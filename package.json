@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "14.18.0"
-  },   
+    "node": "14.17.0"
+  },
   "scripts": {
     "start": "node backend/server.js",
     "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
@@ -20,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
-  "homepage": "https://github.com/MauroPatricio/ecommerce#readme"
+  "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
+  "dependencies": {
+    "cli": "^1.0.1",
+    "heroku": "^8.1.3"
+  }
 }
