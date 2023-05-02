@@ -35,7 +35,7 @@
     "node": ">=14"
   },
   "scripts": {
-    "start": "node backend/server.js",
+    "start": "npm start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
