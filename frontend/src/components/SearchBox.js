@@ -1,0 +1,40 @@
+import React, { useState } from 'react';
+import Button from 'react-bootstrap/Button';
+import  Form  from 'react-bootstrap/Form';
+import FormControl from 'react-bootstrap/FormControl';
+import InputGroup from 'react-bootstrap/InputGroup';
+
+import { useNavigate } from 'react-router-dom';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
+
+export default function SearchBox() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+
+  const searchHandler = (e) => {
+    e.preventDefault();
+    navigate(query ? `search?query=${query}` : '/search');
+  };
+  return (
+    <div>
+      <Form className="d-flex me-auto form-size">
+        <InputGroup>
+          <FormControl
+            type="text"
+            name="query"
+            id="query"
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Pesquisar produtos..."
+            aria-label="Pesquisar Produtos"
+            aria-describedby="button-search"
+          ></FormControl>
+          <Button className='customButtom' variant="light" type="submit" id="button-search" onClick={searchHandler}>
+            <FontAwesomeIcon icon={faSearch}></FontAwesomeIcon>
+          </Button>
+        </InputGroup>
+      </Form>
+    </div>
+  );
+}
