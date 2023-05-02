@@ -29,6 +29,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', "font-src 'self' https://deliveryshop.herokuapp.com;");
+  next();
+});
+
+
 app.use('/api/seed', seedRoutes);
 
 app.get('api/keys/paypal', (req, res) => {
