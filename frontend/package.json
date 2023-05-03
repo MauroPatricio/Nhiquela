@@ -1,6 +1,7 @@
 {
   "name": "frontend",
-  "proxy": "http://127.0.0.1:5000",
+  "proxy": "http://localhost:5000",
+  "homepage": ".",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -38,7 +39,7 @@
     "node": ">=14"
   },
   "scripts": {
-    "start": "react-scripts  start",
+    "start": "react-scripts  start index.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
