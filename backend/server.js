@@ -9,6 +9,7 @@ import uploadRouter from './routes/uploadRoutes.js';
 import http from 'http';
 import {Server} from 'socket.io';
 import categoryRouter from './routes/categoryRoutes.js';
+import path from 'path';
 // Carregando o ficheiro .env
 dotenv.config();
 
@@ -26,6 +27,8 @@ const app = express();
 
 
 
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -34,6 +37,12 @@ app.use((req, res, next) => {
   next();
 });
 
+const __dirname = path.resolve();
+app.use(express.static(path.join(__dirname, '/frontend/build')))
+
+app.get('*',(req, res)=>{
+  res.sendFile(path.join(__dirname,'/frontend/build/index.html'))
+})
 
 app.use('/api/seed', seedRoutes);
 
