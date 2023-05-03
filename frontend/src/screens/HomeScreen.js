@@ -125,10 +125,10 @@ function HomeScreen() {
                 {/* <Carousel showArrows autoPlay showThumbs={false}> */}
 
                 <Row className="row-widget">
-                  {topSellers &&topSellers.length === 0 && (
+                  {topSellers && topSellers.length === 0 && (
                     <MessageBox>Não existem vendedores adicionados</MessageBox>
                   )}
-                  {topSellers.map((seller) => (
+                  {topSellers && topSellers.map((seller) => (
                     <Col key={seller._id} sm={2} md={4} lg={3} className="mb-3">
                       <Product seller={seller}></Product>
                     </Col>
