@@ -6,11 +6,10 @@
   "engines": {
     "node": "14.18.0",
     "npm": ">=7"
-
   },
   "scripts": {
     "start": "node backend/server.js",
-    "build": "cd backend  && cd ../frontend && npm install && npm run build",
+    "build": "cd backend && npm install  && cd ../frontend && npm install && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -24,8 +23,6 @@
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
   "dependencies": {
-    "cli": "^1.0.1",
-    "heroku": "^8.1.3",
-    "react": "^18.2.0"
+    "react-responsive-carousel": "^3.2.23"
   }
 }
