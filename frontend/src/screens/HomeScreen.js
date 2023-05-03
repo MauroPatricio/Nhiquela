@@ -88,6 +88,7 @@ function HomeScreen() {
       try {
         dispatch({ type: 'TOP_SELLERS_REQUEST' });
         const result = await axios.get('/api/users/top-sellers');
+        console.log(result)
         dispatch({ type: 'TOP_SELLERS_SUCCESS', payload: result.data });
       } catch (err) {
         dispatch({ type: 'TOP_SELLERS_FAIL', payload: getError(err) });
@@ -99,6 +100,8 @@ function HomeScreen() {
   const handleShowMore = async () => {
     const newPage = page + 1;
     const res = await axios.get(`/api/products?page=${newPage}`);
+    console.log(res)
+
     setItems([...products, ...res.data.products]);
     setPage(newPage);
   };
