@@ -1,0 +1,10 @@
+{
+"clean_urls": true,
+"routes": [{
+	"src":"/.*",
+	"dest":"/index.html"
+}],
+"static_dirs":{
+	"build": "build"
+}
+}
