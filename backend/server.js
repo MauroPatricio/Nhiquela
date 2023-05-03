@@ -32,10 +32,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "font-src 'self' https://deliveryshop.herokuapp.com;");
-  next();
-});
+// app.use((req, res, next) => {
+//   res.setHeader('Content-Security-Policy', "font-src 'self' https://deliveryshop.herokuapp.com;");
+//   next();
+// });
 
 const __dirname = path.resolve();
 app.use(express.static(path.join(__dirname, '/frontend/build')))
@@ -46,9 +46,6 @@ app.get('*',(req, res)=>{
 
 app.use('/api/seed', seedRoutes);
 
-app.get('api/keys/paypal', (req, res) => {
-  res.send(process.env.PAYPAL_CLIENT_ID || 'sb');
-});
 
 // Rota
 app.use('/api/products', productRoutes);
@@ -58,7 +55,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/categories', categoryRouter);
 
 app.use((err, req, res, next) => {
-  res.status(500).send(err.message);
+  res.status(500).send({message: err.message});
 });
 
 //Definindo porta
