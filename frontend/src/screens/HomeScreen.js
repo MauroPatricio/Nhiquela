@@ -125,7 +125,7 @@ function HomeScreen() {
                 {/* <Carousel showArrows autoPlay showThumbs={false}> */}
 
                 <Row className="row-widget">
-                  {topSellers.length === 0 && (
+                  {topSellers &&topSellers.length === 0 && (
                     <MessageBox>Não existem vendedores adicionados</MessageBox>
                   )}
                   {topSellers.map((seller) => (
@@ -159,10 +159,10 @@ function HomeScreen() {
               ) : (
                 <>
                   <Row className="row-widget">
-                    {products.length === 0 && (
+                    {products && products.length === 0 && (
                       <MessageBox>Não existem produtos adicionados</MessageBox>
                     )}
-                    {items.map((product) => (
+                    {items && items.map((product) => (
                       <Col
                         key={product.slug}
                         sm={2}
@@ -174,7 +174,7 @@ function HomeScreen() {
                       </Col>
                     ))}
                   <div>
-                    {items.length === pageSize * page && (
+                    {items && items.length === pageSize * page && (
                       <Button className="end-margin-bottom" variant="light" onClick={handleShowMore}>
                         ver mais
                       </Button>
