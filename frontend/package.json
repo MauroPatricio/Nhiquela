@@ -15,7 +15,7 @@
     "bootstrap": "^5.2.3",
     "bson": "^5.2.0",
     "font-awesome": "^4.7.0",
-    "react": "^18.2.0",
+    "react": "^16.8.6",
     "react-bootstrap": "^2.7.0",
     "react-dom": "^18.2.0",
     "react-google-charts": "^4.0.0",
