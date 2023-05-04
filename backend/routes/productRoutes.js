@@ -163,7 +163,7 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
      ...categoryFilter,
      ...priceFilter,
      ...ratingFilter
-   } ).populate('category').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
+   } ).populate('seller category').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
 
     const countProducts = await Product.countDocuments(
      {...queryFilter,
