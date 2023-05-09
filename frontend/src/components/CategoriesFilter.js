@@ -90,7 +90,6 @@ export default function CategoriesFilter() {
       } else {
         setShowHeader(true);
         setShowComponent(false)
-
       }
     }
     handleResize();

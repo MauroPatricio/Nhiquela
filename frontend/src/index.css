@@ -159,7 +159,7 @@ table {
   (max-width: 393px),
   (max-width: 412px),
   (max-width: 540px) {
-    
+
   table {
     display: block;
     overflow-x: auto;
@@ -239,7 +239,7 @@ table {
 }
 
 .zoom-image {
-  transition: transform 0.2s ease-in-out;
+  transition: transform 0.1s ease-in-out;
 }
 
 .zoom-image:hover {
