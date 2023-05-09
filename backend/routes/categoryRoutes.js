@@ -15,7 +15,7 @@ categoryRouter.get(
     const page = req.query.page || 1;
     const pageSize = 10
 
-    const categories = await Category.find({ isActive: true }).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    const categories = await Category.find({ isActive: true }).skip(pageSize *(page -1)).limit(pageSize).sort({name: 'asc'});
     const countCategories = await Category.countDocuments({ isActive: true });
     const  pages = Math.ceil(countCategories/pageSize);
 

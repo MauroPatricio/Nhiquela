@@ -100,7 +100,6 @@ function HomeScreen() {
   const handleShowMore = async () => {
     const newPage = page + 1;
     const res = await axios.get(`/api/products?page=${newPage}`);
-    console.log(res)
 
     setItems([...products, ...res.data.products]);
     setPage(newPage);
