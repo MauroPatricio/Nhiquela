@@ -38,6 +38,7 @@ export default function CategoriesFilter() {
 
   const [isMaximized, setIsMaximized] = useState(false);
   const [showComponent, setShowComponent] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
 
 
 
@@ -81,6 +82,21 @@ export default function CategoriesFilter() {
   }, [categories, loadingCategories]);
 
 
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 540) {
+        setShowHeader(false);
+        setShowComponent(true)
+      } else {
+        setShowHeader(true);
+        setShowComponent(false)
+
+      }
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
 
   const getFilterUrl = (filter) => {
@@ -115,10 +131,10 @@ export default function CategoriesFilter() {
   return (
     <div>
       <Card>
-      <Card.Header>
+      {showHeader &&   <Card.Header >
         <CloseButton className='show-close-button' onClick={handleToggleMaximized} style={{marginLeft: '255px'}}>
                 </CloseButton>
-      </Card.Header>
+      </Card.Header>}
       {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}}>Categorias</h6>}
         {showComponent && 
         <Card.Body>
