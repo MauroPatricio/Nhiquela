@@ -95,7 +95,7 @@ export default function CategoriesFilter() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [window.innerWidth >= 540]);
 
 
   const getFilterUrl = (filter) => {
