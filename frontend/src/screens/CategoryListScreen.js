@@ -50,6 +50,8 @@ export default function CategoryListScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
 
+
+
   const navigate = useNavigate();
 
   const {search} =useLocation();
@@ -101,7 +103,6 @@ export default function CategoryListScreen() {
   };
 
 
-  
 
 
   return (

@@ -1,11 +1,14 @@
 import axios from 'axios';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Link, useLocation } from 'react-router-dom';
 import { getError } from '../utils';
 import Rating from './Rating';
 import Card from 'react-bootstrap/Card';
 import { useReducer } from 'react';
+import CloseButton from 'react-bootstrap/CloseButton';
+
+import Button from 'react-bootstrap/Button';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -32,6 +35,13 @@ export default function CategoriesFilter() {
   const rating = searchParams.get('rating') || 'all';
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
+
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [showComponent, setShowComponent] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+
+
+
 
   const [{ categories, loadingCategories }, dispatch] = useReducer(reducer, {
     categories: [],
@@ -71,6 +81,23 @@ export default function CategoriesFilter() {
     }
   }, [categories, loadingCategories]);
 
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 540) {
+        setShowHeader(false);
+        setShowComponent(true)
+      } else {
+        setShowHeader(true);
+        setShowComponent(false)
+      }
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [window.innerWidth >= 540]);
+
+
   const getFilterUrl = (filter) => {
     const filterCategory = filter.category || category;
     const filterQuery = filter.query || query;
@@ -80,12 +107,38 @@ export default function CategoriesFilter() {
     const filterPage = filter.page || page;
     return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}`;
   };
+
+
+
+  const handleClose = () => {
+    // handle close here
+  };
+
+
+
+
+  
+  const handleToggleMaximized = () => {
+    setIsMaximized(!isMaximized);
+    setShowComponent(!showComponent);
+  };
+
+  // const handleClick = () => {
+  // }
+
+
   return (
     <div>
       <Card>
+      {showHeader &&   <Card.Header >
+        <CloseButton className='show-close-button' onClick={handleToggleMaximized} style={{marginLeft: '255px'}}>
+                </CloseButton>
+      </Card.Header>}
+      {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}}>Categorias</h6>}
+        {showComponent && 
         <Card.Body>
-          <div>
             <h6>Categorias</h6>
+          <div>
             <Link
               className={
                 'all' === category ? 'text-bold link-none' : 'link-none'
@@ -153,6 +206,7 @@ export default function CategoriesFilter() {
             </Link>
           </div>
         </Card.Body>
+        }
       </Card>
     </div>
   );

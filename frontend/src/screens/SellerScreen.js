@@ -57,7 +57,7 @@ export default function SellerScreen() {
 
   const {search} =useLocation();
   const sp = new URLSearchParams(search);
-  const page = sp.get('page') || 1 ;
+  // const page = sp.get('page') || 1 ;
 
   const [
     {
@@ -67,7 +67,6 @@ export default function SellerScreen() {
       sellerDetails,
       productsError,
       productsBySeller,
-      pages
     },
     dispatch,
   ] = useReducer(reducer, { sellerDetails: '', loading: true, error: '' });

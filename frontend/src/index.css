@@ -159,6 +159,7 @@ table {
   (max-width: 393px),
   (max-width: 412px),
   (max-width: 540px) {
+
   table {
     display: block;
     overflow-x: auto;
@@ -180,7 +181,9 @@ table {
   }
 }
 
-@media (max-width: 393px) {
+/* @media (max-width: 393px) {
+
+
   .card-img-top {
     display: inline-block;
     width: 100%;
@@ -188,7 +191,7 @@ table {
     justify-content: center;
     box-sizing: border-box;
   }
-}
+} */
 
 .thumbnail {
   height: 5rem;
@@ -236,7 +239,7 @@ table {
 }
 
 .zoom-image {
-  transition: transform 0.2s ease-in-out;
+  transition: transform 0.1s ease-in-out;
 }
 
 .zoom-image:hover {
@@ -433,3 +436,10 @@ table {
 .support-users .unread {
   background-color: #f02020;
 }
+
+.close-button{
+/* position: relative; */
+/* top: 10px; */
+margin-left: 250px;
+}
+

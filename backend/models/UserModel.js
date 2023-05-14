@@ -10,6 +10,8 @@ const modelSchema = new mongoose.Schema({
     isDeliveryMan: {type: Boolean, default: false},
     isSeller: {type: Boolean, default: false},
     isBanned: {type: Boolean, default: false},
+    isApproved: {type: Boolean, default: false},
+
     seller:{
         name: {type: String},
         logo: {type: String},
@@ -17,7 +19,12 @@ const modelSchema = new mongoose.Schema({
         rating: {type: Number, default: 0,},
         numReviews: {type: Number, default: 0, },
         opentime: {type: String},
-        closetime: {type: String}
+        closetime: {type: String},
+        province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province'},
+        docType: {type: mongoose.Schema.Types.ObjectId, ref: 'DocumentType'},
+        frontDocImg: {type: String},
+        backDocImg: {type: String},
+
     }
 },{
     timestamps: true
