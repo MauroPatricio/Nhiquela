@@ -35,6 +35,8 @@ import AdminRoute from './components/AdminRoute';
 import ProductListScreen from './screens/ProductListScreen';
 import ProductEditScreen from './screens/ProductEditScreen';
 import OrderListScreen from './screens/OrderListScreen';
+import OrderAdminListScreen from './screens/OrderAdminListScreen';
+
 import UserListScreen from './screens/UserListScreen';
 import UserEditScreen from './screens/UserEditScreen';
 import SellerRoute from './components/SellerRoute';
@@ -105,7 +107,7 @@ function App() {
                         </LinkContainer>
                       )}
                       {userInfo && userInfo.isDeliveryMan && (
-                        <LinkContainer to="/admin/orderlist">
+                        <LinkContainer to="/delivery/orderlist">
                           <NavDropdown.Item>
                             Pedidos por Entregar
                           </NavDropdown.Item>
@@ -332,9 +334,16 @@ function App() {
                 }
               />
               <Route
-                path="/admin/orderlist"
+                path="/delivery/orderlist"
                 element={
                     <OrderListScreen />
+                }
+              />
+
+          <Route
+                path="/admin/orderlist"
+                element={
+                    <OrderAdminListScreen />
                 }
               />
 

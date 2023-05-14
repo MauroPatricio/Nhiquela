@@ -71,6 +71,8 @@ function HomeScreen() {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
         const result = await axios.get(`/api/products?page=${page}`);
+
+        
         setItems(result.data.products);
 
         dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
@@ -88,7 +90,6 @@ function HomeScreen() {
       try {
         dispatch({ type: 'TOP_SELLERS_REQUEST' });
         const result = await axios.get('/api/users/top-sellers');
-        console.log(result)
         dispatch({ type: 'TOP_SELLERS_SUCCESS', payload: result.data });
       } catch (err) {
         dispatch({ type: 'TOP_SELLERS_FAIL', payload: getError(err) });
@@ -100,15 +101,25 @@ function HomeScreen() {
   const handleShowMore = async () => {
     const newPage = page + 1;
     const res = await axios.get(`/api/products?page=${newPage}`);
-    console.log(res)
-
     setItems([...products, ...res.data.products]);
     setPage(newPage);
   };
 
+  // const sortedProducts = items.sort((a, b) => {
+  //   if (a.category._id < b.category._id) {
+  //     return -1;
+  //   } else if (a.category._id > b.category._id) {
+  //     return 1;
+  //   } else {
+  //     return 0;
+  //   }
+  // });
+  // console.log(sortedProducts)
+
   return (
     <div>
       <Container>
+  
         <Row>
           <Col md={3}>
             <CategoriesFilter></CategoriesFilter>
@@ -162,7 +173,7 @@ function HomeScreen() {
               ) : (
                 <>
                   <Row className="row-widget">
-                    {products && products.length === 0 && (
+                    {items && items.length === 0 && (
                       <MessageBox>Não existem produtos adicionados</MessageBox>
                     )}
                     {items && items.map((product) => (

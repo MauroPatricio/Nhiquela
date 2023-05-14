@@ -59,7 +59,7 @@ export default function OrderListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
 
-  const filteredData = orders&&orders.filter((row) =>
+  const filteredData = orders && orders.filter((row) =>
   row.code.toLowerCase().includes(searchQuery.toLowerCase())
 );
 
@@ -70,7 +70,7 @@ export default function OrderListScreen() {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
 
-        const { data } = await axios.get(`/api/orders/deliveryman?page=${page}`, {
+        const { data } = await axios.get(`/api/orders?page=${page}`, {
           headers: { authorization: `Bearer ${userInfo.token}` },
         });
 

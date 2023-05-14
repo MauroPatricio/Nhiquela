@@ -37,6 +37,33 @@ orderRouter.get(
   })
 );
 
+// All Orders
+orderRouter.get(
+  '/deliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const seller = req.query.seller || '';
+    const sellerFilter = seller ? { seller } : {};
+    const page = req.query.page || 1;
+    const pageSize = 10    
+    
+    const orders = await Order.find({
+      ...sellerFilter,
+      deleted: { $eq: false },
+      isPaid: { $eq: true },
+      status: { $ne: 'Finalizado' }
+    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+
+    const countOrders = await Order.countDocuments({
+      ...sellerFilter,
+      deleted: { $eq: false },
+    });
+
+    const  pages = Math.ceil(countOrders/pageSize);
+    res.send({orders, pages});
+  })
+);
+
 orderRouter.post(
   '/',
   isAuth,
