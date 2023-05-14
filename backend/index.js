@@ -10,6 +10,8 @@ import http from 'http';
 import {Server} from 'socket.io';
 import categoryRouter from './routes/categoryRoutes.js';
 import path from 'path';
+import provinceRoutes from './routes/provinceRoutes.js';
+import documentTypeRoutes from './routes/documentTypeRoutes.js';
 // Carregando o ficheiro .env
 dotenv.config();
 
@@ -40,6 +42,9 @@ app.use('/api/users', userRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/categories', categoryRouter);
+app.use('/api/provinces', provinceRoutes);
+app.use('/api/documents', documentTypeRoutes);
+
 
 const __dirname = path.resolve();
 // const rootDir = path.join(__dirname, '..');

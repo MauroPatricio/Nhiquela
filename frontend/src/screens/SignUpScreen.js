@@ -89,7 +89,7 @@ export default function SignupScreen() {
       toast.error('O número de telefone deve possuir 9 digitos');
       return
     }
-    if((!phoneNumber.startsWith('84')&&!phoneNumber.startsWith('85')&&!phoneNumber.startsWith('86')&&!phoneNumber.startsWith('87')) ){
+    if((!phoneNumber.startsWith('82')&&!phoneNumber.startsWith('83')&&!phoneNumber.startsWith('84')&&!phoneNumber.startsWith('85')&&!phoneNumber.startsWith('86')&&!phoneNumber.startsWith('87')) ){
       toast.error('Número de operadora incorrecto');
       return
     }
@@ -176,11 +176,13 @@ export default function SignupScreen() {
 
         
         <Form.Group className="mb-3" controlId="phoneNumber">
-          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone</Form.Label>
+          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone [+258]</Form.Label>
           <Form.Control
-            type="number"
-           
+            type="text"
+            max={9}
+            maxLength={9}
             pattern="[0-9]*"
+            title="Insira apenas números"
             required
             onChange={(e) => {
               setPhoneNumber(e.target.value);

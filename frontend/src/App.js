@@ -52,6 +52,12 @@ import ChatBox from './components/ChatBox';
 import CategoryListScreen from './screens/CategoryListScreen';
 import CategoryCreateScreen from './screens/CategoryCreateScreen';
 import CategoryEditScreen from './screens/CategoryEditScreen';
+import DocumentTypeListScreen from './screens/DocumentTypeListScreen';
+import DocumentTypeCreateScreen from './screens/DocumentTypeCreateScreen';
+import DocumentTypeEditScreen from './screens/DocumentTypeEditScreen';
+import ProvinceListScreen from './screens/ProvinceListScreen';
+import ProvinceCreateScreen from './screens/ProvinceCreateScreen';
+import ProvinceEditScreen from './screens/ProvinceEditScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -139,6 +145,12 @@ function App() {
                     <NavDropdown title="Admin" id="admin-nav-dropdown">
                       <LinkContainer to="/admin/dashboard">
                         <NavDropdown.Item>Dashboard</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/provinceList">
+                        <NavDropdown.Item>Provincias</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/documentTypeList">
+                        <NavDropdown.Item>Tipos de Documentos</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/categoryList">
                         <NavDropdown.Item>Categorias</NavDropdown.Item>
@@ -246,7 +258,66 @@ function App() {
                 }
               />
 
+            <Route
+                path="/documentTypeList/"
+                element={
+                  <ProtectedRoute>
+                    <DocumentTypeListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
                 <Route
+                path="/document/create"
+                element={
+                  <ProtectedRoute>
+                    <DocumentTypeCreateScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+<Route
+                path="/document/:id"
+                element={
+                  <ProtectedRoute>
+                    <DocumentTypeEditScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+
+
+<Route
+                path="/provinceList/"
+                element={
+                  <ProtectedRoute>
+                    <ProvinceListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+                <Route
+                path="/province/create"
+                element={
+                  <ProtectedRoute>
+                    <ProvinceCreateScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+<Route
+                path="/province/:id"
+                element={
+                  <ProtectedRoute>
+                    <ProvinceEditScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+
+          <Route
                 path="/category/create"
                 element={
                   <ProtectedRoute>

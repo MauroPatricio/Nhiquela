@@ -10,9 +10,11 @@ import Container from 'react-bootstrap/esm/Container';
 export default function PaymentMethodScreen() {
   const navigate = useNavigate();
   const { state, dispatch: ctxDispatch } = useContext(Store);
+  
   const {
     cart: { address, paymentMethod },
   } = state;
+
   const [paymentMethodName, setPaymentMethod] = useState(
     paymentMethod || 'Mpesa'
   );
