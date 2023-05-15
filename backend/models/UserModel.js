@@ -22,6 +22,7 @@ const modelSchema = new mongoose.Schema({
         closetime: {type: String},
         province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province'},
         docType: {type: mongoose.Schema.Types.ObjectId, ref: 'DocumentType'},
+        docNumber: {type: String},
         frontDocImg: {type: String},
         backDocImg: {type: String},
 

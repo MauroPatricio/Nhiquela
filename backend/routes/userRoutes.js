@@ -169,6 +169,11 @@ if (!userExist) {
           description: req.body.sellerDescription,
           opentime: req.body.opentime,
           closetime: req.body.closetime,
+          docType: req.body.sellerDocument,
+          docNumber: req.body.sellerDocumentNumber,
+          frontDocImg:req.body.sellerFrontImgDoc,
+          backDocImg:req.body.sellerBackImgDoc,
+          province: req.body.sellerLocation,
         };
         newUser.seller = seller;
       }

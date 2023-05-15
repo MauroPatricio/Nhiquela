@@ -52,8 +52,14 @@ export default function ProfileScreen() {
   const [isUpdatePassword, setIsUpdatePassword] = useState(false);
 
   const [sellerName, setSellerName] = useState('');
-  const [sellerLogo, setSellerLogo] = useState('');
   const [sellerDescription, setSellerDescription] = useState('');
+  const [sellerLocation, setSellerLocation] = useState('');
+  const [sellerDocument, setSellerDocument] = useState('');
+  const [sellerDocumentNumber, setSellerDocumentNumber] = useState('');
+  const [sellerFrontImgDoc, setSellerFrontImgDoc] = useState('');
+  const [sellerBackImgDoc, setSellerBackImgDoc] = useState('');
+
+  const [sellerLogo, setSellerLogo] = useState('');
   const [opentime, setOpentime] = useState('');
   const [closetime, setClosetime] = useState('');
   let openRef = useRef(null);
@@ -77,8 +83,13 @@ export default function ProfileScreen() {
           phoneNumber,
           isSeller,
           sellerName,
-          sellerLogo,
           sellerDescription,
+          sellerLogo,
+          sellerDocument,
+          sellerDocumentNumber,
+          sellerFrontImgDoc,
+          sellerBackImgDoc,
+          sellerLocation,
           opentime,
           closetime
         },
@@ -99,6 +110,8 @@ export default function ProfileScreen() {
       setSellerName(userInfo.seller.name);
       setSellerLogo(userInfo.seller.logo);
       setSellerDescription(userInfo.seller.description);
+
+
       setOpentime(userInfo.seller.opentime);
       setClosetime(userInfo.seller.closetime);
 
