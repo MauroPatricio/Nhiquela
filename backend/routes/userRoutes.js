@@ -62,15 +62,31 @@ userRouter.put(
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
-      user.isSeller = req.body.isSeller || user.isSeller;
+      user.isSeller = req.body.isSeller ;
 
-      if (user.isSeller) {
+      if (req.body.isSeller) {
         user.seller.name = req.body.sellerName || user.seller.name;
         user.seller.description =
           req.body.sellerDescription || user.seller.description;
         user.seller.logo = req.body.sellerLogo || user.seller.logo;
-        user.seller.opentime= req.body.opentime ||user.seller.opentime,
-        user.seller.closetime= req.body.closetime|| user.seller.closetime
+        user.seller.opentime= req.body.opentime ||user.seller.opentime;
+        user.seller.closetime= req.body.closetime|| user.seller.closetime;
+        user.seller.province=  req.body.sellerLocation|| user.seller.province;
+        user.seller.docType=req.body.sellerDocument || user.seller.docType;
+        user.seller.docNumber=req.body.sellerDocumentNumber || user.seller.docNumber;
+        user.seller.backDocImg=req.body.sellerBackImgDoc|| user.seller.backDocImg;
+        user.seller.frontDocImg=req.body.sellerFrontImgDoc || user.seller.frontDocImg;
+      }else{
+        user.seller.name = "";
+        user.seller.description = "";
+        user.seller.logo = "";
+        user.seller.opentime="",
+        user.seller.closetime= ""; 
+        user.seller.province=null;
+        user.seller.docType=null;
+        user.seller.docNumber="";
+        user.seller.backDocImg="";
+        user.seller.frontDocImg="";
       }
 
       if (req.body.password) {
@@ -78,7 +94,6 @@ userRouter.put(
       }
 
       const updateUser = await user.save();
-
       res.send({
         _id: updateUser._id,
         name: updateUser.name,

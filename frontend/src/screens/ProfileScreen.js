@@ -95,6 +95,7 @@ export default function ProfileScreen() {
     e.preventDefault();
     dispatch({ Type: 'UPDATE_REQUEST' });
     try {
+
       const { data } = await axios.put(
         'api/users/profile',
         {
@@ -131,7 +132,11 @@ export default function ProfileScreen() {
       setSellerName(userInfo.seller.name);
       setSellerLogo(userInfo.seller.logo);
       setSellerDescription(userInfo.seller.description);
-
+      setSellerDocument(userInfo.seller.docType);
+      setSellerDocumentNumber(userInfo.seller.docNumber);
+      setSellerFrontImgDoc(userInfo.seller.frontDocImg);
+      setSellerBackImgDoc(userInfo.seller.backDocImg);
+      setSellerLocation(userInfo.seller.province);
 
       setOpentime(userInfo.seller.opentime);
       setClosetime(userInfo.seller.closetime);
