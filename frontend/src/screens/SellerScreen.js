@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useReducer } from 'react';
 import { Store } from '../Store';
 import axios from 'axios';
 import { getError } from '../utils';
-import {  useLocation, useParams } from 'react-router-dom';
+import {  useParams } from 'react-router-dom';
 import LoadingBox from '../components/LoadingBox';
 import MessageBox from '../components/MessageBox';
 import Row from 'react-bootstrap/Row';
@@ -55,8 +55,8 @@ export default function SellerScreen() {
 
   const { userInfo } = state;
 
-  const {search} =useLocation();
-  const sp = new URLSearchParams(search);
+  // const {search} =useLocation();
+  // const sp = new URLSearchParams(search);
   // const page = sp.get('page') || 1 ;
 
   const [

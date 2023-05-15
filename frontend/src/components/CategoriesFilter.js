@@ -8,8 +8,6 @@ import Card from 'react-bootstrap/Card';
 import { useReducer } from 'react';
 import CloseButton from 'react-bootstrap/CloseButton';
 
-import Button from 'react-bootstrap/Button';
-
 const reducer = (state, action) => {
   switch (action.type) {
     case 'CATEGORIES_REQUEST':
@@ -107,16 +105,6 @@ export default function CategoriesFilter() {
     const filterPage = filter.page || page;
     return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}`;
   };
-
-
-
-  const handleClose = () => {
-    // handle close here
-  };
-
-
-
-
   
   const handleToggleMaximized = () => {
     setIsMaximized(!isMaximized);
