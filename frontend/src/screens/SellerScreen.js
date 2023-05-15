@@ -76,6 +76,7 @@ export default function SellerScreen() {
       try {
         dispatch({ type: 'SELLER_DETAILS_REQUEST' });
         const { data } = await axios.get(`/api/users/${sellerId}`, {});
+        console.log(data)
         dispatch({ type: 'SELLER_DETAILS_SUCCESS', payload: data });
       } catch (err) {
         dispatch({ type: 'SELLER_DETAILS_FAIL', payload: getError(err) });
@@ -137,7 +138,9 @@ export default function SellerScreen() {
                         rating={sellerDetails.seller.rating}
                         numReviews={sellerDetails.seller.numReviews}
                       ></Rating> */}
+                      Endereço da loja: {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
                       {sellerDetails.seller.description}</p>
+
                     </Card.Body>
                   </Card>
                 </Col>

@@ -44,7 +44,7 @@ userRouter.get(
 userRouter.get(
   '/:id',
   expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).populate('seller.docType seller.province');
     if (user) {
       res.send(user);
     } else {
@@ -66,8 +66,7 @@ userRouter.put(
 
       if (req.body.isSeller) {
         user.seller.name = req.body.sellerName || user.seller.name;
-        user.seller.description =
-          req.body.sellerDescription || user.seller.description;
+        user.seller.description =req.body.sellerDescription || user.seller.description;
         user.seller.logo = req.body.sellerLogo || user.seller.logo;
         user.seller.opentime= req.body.opentime ||user.seller.opentime;
         user.seller.closetime= req.body.closetime|| user.seller.closetime;
@@ -76,6 +75,7 @@ userRouter.put(
         user.seller.docNumber=req.body.sellerDocumentNumber || user.seller.docNumber;
         user.seller.backDocImg=req.body.sellerBackImgDoc|| user.seller.backDocImg;
         user.seller.frontDocImg=req.body.sellerFrontImgDoc || user.seller.frontDocImg;
+        user.seller.address=req.body.sellerAddress || user.seller.address;
       }else{
         user.seller.name = "";
         user.seller.description = "";
@@ -87,6 +87,7 @@ userRouter.put(
         user.seller.docNumber="";
         user.seller.backDocImg="";
         user.seller.frontDocImg="";
+        user.seller.address="";
       }
 
       if (req.body.password) {

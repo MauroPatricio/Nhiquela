@@ -81,6 +81,7 @@ export default function ProfileScreen() {
   const [sellerDocumentNumber, setSellerDocumentNumber] = useState('');
   const [sellerFrontImgDoc, setSellerFrontImgDoc] = useState('');
   const [sellerBackImgDoc, setSellerBackImgDoc] = useState('');
+  const [sellerAddress, setSellerAddress] = useState('');
 
   const [sellerLogo, setSellerLogo] = useState('');
   const [opentime, setOpentime] = useState('');
@@ -112,6 +113,7 @@ export default function ProfileScreen() {
           sellerFrontImgDoc,
           sellerBackImgDoc,
           sellerLocation,
+          sellerAddress,
           opentime,
           closetime
         },
@@ -137,7 +139,7 @@ export default function ProfileScreen() {
       setSellerFrontImgDoc(userInfo.seller.frontDocImg);
       setSellerBackImgDoc(userInfo.seller.backDocImg);
       setSellerLocation(userInfo.seller.province);
-
+      setSellerAddress(userInfo.seller.address);
       setOpentime(userInfo.seller.opentime);
       setClosetime(userInfo.seller.closetime);
 
@@ -467,8 +469,8 @@ export default function ProfileScreen() {
        
 
         <Form.Group className="mb-3" controlId="sellerLocation">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Localização da loja</Form.Label>
-            <Form.Select aria-label="Localização da loja"
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Provincia</Form.Label>
+            <Form.Select aria-label="Provincia"
           value={sellerLocation}
           onChange={(e)=>setSellerLocation(e.target.value)} required>
             <option value="">Seleccione</option>
@@ -478,6 +480,19 @@ export default function ProfileScreen() {
             </option>
         ))}
           </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerDescription">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Endereço da loja [Rua/Av.]</Form.Label>
+          <Form.Control
+            type="text"
+            value={sellerAddress}
+            as="textarea"
+            required
+            onChange={(e) => {
+              setSellerAddress(e.target.value);
+            }}
+          />
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerOpentime">

@@ -87,6 +87,7 @@ export default function SignupScreen() {
   const [sellerName, setSellerName] = useState('');
   const [sellerDescription, setSellerDescription] = useState('');
   const [sellerLocation, setSellerLocation] = useState('');
+  const [sellerAddress, setSellerAddress] = useState('');
   const [sellerDocument, setSellerDocument] = useState('');
   const [sellerDocumentNumber, setSellerDocumentNumber] = useState('');
   const [sellerFrontImgDoc, setSellerFrontImgDoc] = useState('');
@@ -150,6 +151,7 @@ export default function SignupScreen() {
         sellerFrontImgDoc,
         sellerBackImgDoc,
         sellerLocation,
+        sellerAddress,
         opentime, 
         closetime
       });
@@ -474,8 +476,8 @@ export default function SignupScreen() {
        
 
         <Form.Group className="mb-3" controlId="sellerLocation">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Localização da loja</Form.Label>
-            <Form.Select aria-label="Localização da loja"
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Provincia</Form.Label>
+            <Form.Select aria-label="Provincia"
           value={sellerLocation}
           onChange={(e)=>setSellerLocation(e.target.value)} required>
             <option value="">Seleccione</option>
@@ -485,6 +487,19 @@ export default function SignupScreen() {
             </option>
         ))}
           </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerDescription">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Endereço da loja [Rua/Av.]</Form.Label>
+          <Form.Control
+            type="text"
+            value={sellerAddress}
+            as="textarea"
+            required
+            onChange={(e) => {
+              setSellerAddress(e.target.value);
+            }}
+          />
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerOpentime">

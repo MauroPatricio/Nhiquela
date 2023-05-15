@@ -21,6 +21,7 @@ const modelSchema = new mongoose.Schema({
         opentime: {type: String},
         closetime: {type: String},
         province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province',  default: null},
+        address: {type: String},
         docType: {type: mongoose.Schema.Types.ObjectId, ref: 'DocumentType',  default: null},
         docNumber: {type: String},
         frontDocImg: {type: String},
