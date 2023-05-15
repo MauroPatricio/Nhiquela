@@ -166,7 +166,9 @@ userRouter.post(
     const userExist = await User.findOne({ phoneNumber: req.body.phoneNumber });
     const emailExist = await User.findOne({ email: req.body.email });
 
-
+if(emailExist){
+  res.status(409).send({ message: 'Ja existe um email identico registado' });
+}
 
 if (!userExist) {
 

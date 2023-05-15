@@ -491,7 +491,6 @@ export default function SignupScreen() {
           <FontAwesomeIcon icon={faClock} /> <Form.Label>Hora de abertura</Form.Label>
           <Form.Control
             type="time"
-            step="3600"
             value={opentime}
             required
             onChange={(e) => {
