@@ -47,7 +47,7 @@ export default function SearchScreen() {
   const rating = searchParams.get('rating') || 'all';
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
-
+  const province = searchParams.get('province') || 'all';
 
   const [{ loading, error, products, pages, countProducts }, dispatch] =
     useReducer(reducer, { loading: true, error: '' });
@@ -57,8 +57,9 @@ export default function SearchScreen() {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
         const { data } = await axios.get(
-          `api/products/search?page=${page}&query=${query}&category=${category}&price=${price}&rating=${rating}&order=${order}`
+          `api/products/search?page=${page}&query=${query}&category=${category}&price=${price}&rating=${rating}&order=${order}&province=${province}`
         );
+        console.log(data)
         dispatch({ type: 'FETCH_SUCCESS', payload: data });
       } catch (err) {
 
@@ -66,21 +67,23 @@ export default function SearchScreen() {
       }
     };
     fetchSearchData();
-  }, [category, order, page, price, query, rating]);
+  }, [category, order, page, price, query, rating, province]);
 
 
 
 
   const getFilterUrl = (filter) => {
     const filterCategory = filter.category || category;
+    const filterProvince = filter.province || province;
     const filterQuery = filter.query || query;
     const filterPrice = filter.price || price;
     const filterRating = filter.rating || rating;
     const filterOrder = filter.order || order;
     const filterPage = filter.page || page;
-    return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}`;
-
+    return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}&province=${filterProvince}`;
   };
+
+  
 
   return (
     <div>
@@ -102,12 +105,15 @@ export default function SearchScreen() {
               <Row className="justify-content-between mb-3">
                 <Col md={6}>
                   <div>
-                    {countProducts === 0 ? '0' : countProducts} Resultado(s) encontrado(s) 
+                    {countProducts === 0 ? '0' : countProducts} Resultado(s) encontrado(s) {' '}
                     {query !== 'all' && ' : ' + query}
-                    {category !== 'all' && ' : ' + category}
+                    {console.log(products[0])}
+                    {category !== 'all' && ' : ' + products && products[0] && products[0].category && products[0].category.name}
+                    {province !== 'all' && ' : ' + products && products[0] && products[0].province && products && products[0].province.name}
                     {price !== 'all' && ' : Preço ' + price +' Mt'}
                     {rating !== 'all' && ' : Rating ' + rating + ' & acima'}
                     {query !== 'all' ||
+                    province !== 'all' ||
                     category !== 'all' ||
                     rating !== 'all' ||
                     price !== 'all' ? (

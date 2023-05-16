@@ -476,7 +476,7 @@ export default function SignupScreen() {
        
 
         <Form.Group className="mb-3" controlId="sellerLocation">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Provincia</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Província</Form.Label>
             <Form.Select aria-label="Provincia"
           value={sellerLocation}
           onChange={(e)=>setSellerLocation(e.target.value)} required>

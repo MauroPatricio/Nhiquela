@@ -30,7 +30,6 @@ export default function SignInScreen() {
         phoneNumber,
         password,
       });
-      console.log(data)
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       navigate(redirect || '/');
     } catch (err) {

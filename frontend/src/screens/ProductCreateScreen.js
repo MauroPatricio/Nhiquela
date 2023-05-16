@@ -47,6 +47,19 @@ const reducer = (state, action) => {
     case 'CATEGORIES_FAIL':
       return { ...state, loadingCategories: false };
 
+      case 'PROVINCES_REQUEST':
+        return { ...state, loadingProvinces: true };
+  
+      case 'PROVINCES_SUCCESS':
+        return {
+          ...state,
+          loadingProvinces: false,
+          provinces: action.payload.provinces,
+        };
+  
+      case 'PROVINCES_FAIL':
+        return { ...state, loadingProvinces: false };
+
     default:
       return state;
   }
@@ -56,7 +69,7 @@ export default function ProductCreateScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingCreate, loadingUpload, categories },
+    { loading, error, loadingCreate, loadingUpload, categories, loadingProvinces, provinces },
     dispatch,
   ] = useReducer(reducer, { loading: false, error: '' });
 
@@ -69,6 +82,8 @@ export default function ProductCreateScreen() {
   const [numReviews] = useState(0);
 
   const [category, setCategory] = useState('');
+  const [province, setProvince] = useState('');
+
   const [countInStock, setCountInStock] = useState('');
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
@@ -90,6 +105,21 @@ export default function ProductCreateScreen() {
     fetchData();
   }, [categories]);
 
+
+  useEffect(() => {
+    dispatch({ type: 'PROVINCES_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/provinces');
+        dispatch({ type: 'PROVINCES_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'PROVINCES_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [provinces]);
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -104,6 +134,7 @@ export default function ProductCreateScreen() {
           image,
           images,
           category,
+          province,
           countInStock,
           brand,
           description,
@@ -216,6 +247,25 @@ export default function ProductCreateScreen() {
                   ))}
               </Form.Select>
             </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Localização do produto</Form.Label>
+              <Form.Select
+                required
+                aria-label="location"
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {provinces &&
+                  provinces.map((province) => (
+                    <option key={province._id} value={province._id}>
+                      {province.name}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+
 
             <Form.Group className="mb-3" controlId="countInStock">
               <Form.Label>Quantidade Disponível</Form.Label>

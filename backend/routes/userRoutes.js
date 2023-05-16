@@ -169,6 +169,7 @@ userRouter.post(
 
 if(emailExist){
   res.status(409).send({ message: 'Ja existe um email identico registado' });
+  return;
 }
 
 if (!userExist) {
@@ -225,7 +226,7 @@ userRouter.delete(
     if (user) {
       await user.deleteOne();
 
-      res.send({ message: `Utilizador Removido Com Sucesso` });
+      res.send({ message: `Utilizador removido com sucesso` });
     } else {
       res.status(404).send({ message: 'Utilizador não encontrado' });
     }

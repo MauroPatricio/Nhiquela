@@ -16,7 +16,7 @@ productRoutes.get('/', async (req, res) => {
           const sellerFilter = seller? {seller}: {};
           const countProducts = await Product.countDocuments({...sellerFilter});
 
-          const products = await Product.find({...sellerFilter}).populate('seller category').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1}); 
+          const products = await Product.find({...sellerFilter}).populate('seller category province').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1}); 
           
          const  pages = Math.ceil(countProducts/pageSize);
           res.send({products, pages: pages});
@@ -38,11 +38,11 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
       product.image = req.body.image;
       product.images = req.body.images;
       product.category = req.body.category;
+      product.province = req.body.province;
       product.brand = req.body.brand;
       product.countInStock = req.body.countInStock;
       product.description = req.body.description;
-      
-      product.save()
+            product.save()
 
       res.send({message: 'Produto Actualizado com Sucesso'});
      }else{
@@ -83,6 +83,7 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           images: req.body.images,
           price: req.body.price,
           category: req.body.category,
+          province: req.body.province,
           brand: req.body.brand,
           countInStock: req.body.countInStock,
           rating: req.body.rating,
@@ -112,17 +113,14 @@ const PAGE_SIZE = 10;
 productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
      const {query} = req;
 
-
-
     const pageSize = query.pageSize || PAGE_SIZE;
     const page = query.page || 1;
     const category = query.category || '';
-    const brand = query.brand || '';
     const price = query.price || '';
     const rating = query.rating || '';
     const order = query.order || '';
+    const province = query.province || '';
     const searchQuery = query.query || '';
-
 
     const queryFilter = searchQuery && searchQuery !== 'all'?{
      name:{
@@ -133,6 +131,10 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
 
     const categoryFilter = category && category !== 'all'?{
      category
+    }:{};
+
+    const provinceFilter = province && province !== 'all'?{
+     province
     }:{};
 
     const ratingFilter = rating && rating !== 'all'?{
@@ -162,12 +164,14 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
      ...queryFilter,
      ...categoryFilter,
      ...priceFilter,
-     ...ratingFilter
-   } ).populate('seller category').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
+     ...ratingFilter,
+     ...provinceFilter,
+   } ).populate('seller category seller.province province').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
 
     const countProducts = await Product.countDocuments(
      {...queryFilter,
      ...categoryFilter,
+     ...provinceFilter,
      ...priceFilter,
      ...ratingFilter});
     
@@ -229,7 +233,7 @@ productRoutes.post('/:id/reviews',isAuth, expressAsyncHandler( async (req, res)=
      const product = await Product.findById(req.params.id);
      if(product){
           if(product.reviews.find((x)=>x.name === req.user.name)){
-               return res.status(400).send({message: 'Ja possui um comentário Adicionado'})
+               return res.status(400).send({message: 'Ja possui um comentário adicionado'})
           }
 
           const review = {
@@ -244,14 +248,14 @@ productRoutes.post('/:id/reviews',isAuth, expressAsyncHandler( async (req, res)=
 
           product.rating = product.reviews.reduce((acc, curr) => acc + parseInt(curr.rating), 0)/product.reviews.length;
           const updateProduct = await product.save();
-          res.status(201).send({message: 'Comentário Adicionado com Sucesso', 
+          res.status(201).send({message: 'Comentário adicionado com sucesso', 
           review: updateProduct.reviews[updateProduct.reviews.length - 1],
           numReviews: product.numReviews,
           rating: product.rating,
           product: updateProduct});
 
      }else{
-          res.status(404).send({message: 'Comentário não Adicionado'});
+          res.status(404).send({message: 'Comentário não adicionado'});
      }
   }));
 export default productRoutes;

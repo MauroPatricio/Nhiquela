@@ -62,6 +62,19 @@ const reducer = (state, action) => {
     case 'CATEGORIES_FAIL':
       return { ...state, loadingCategories: false };
 
+      case 'PROVINCES_REQUEST':
+        return { ...state, loadingProvinces: true };
+  
+      case 'PROVINCES_SUCCESS':
+        return {
+          ...state,
+          loadingProvinces: false,
+          provinces: action.payload.provinces,
+        };
+  
+      case 'PROVINCES_FAIL':
+        return { ...state, loadingProvinces: false };
+
     default:
       return state;
   }
@@ -75,7 +88,7 @@ export default function ProductEditScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingUpdate, loadingUpload, categories },
+    { loading, error, loadingUpdate, loadingUpload, categories, provinces, loadingProvinces },
     dispatch,
   ] = useReducer(reducer, { loading: true, error: '', categories: [] });
 
@@ -86,6 +99,8 @@ export default function ProductEditScreen() {
   const [images, setImages] = useState([]);
 
   const [category, setCategory] = useState('');
+  const [province, setProvince] = useState('');
+
   const [countInStock, setCountInStock] = useState('');
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
@@ -108,6 +123,7 @@ export default function ProductEditScreen() {
         setImage(data.image);
         setImages(data.images);
         setCategory(data.category);
+        setProvince(data.province);
         setCountInStock(data.countInStock);
         setBrand(data.brand);
         setDescription(data.description);
@@ -134,6 +150,21 @@ export default function ProductEditScreen() {
     fetchData();
   }, [categories]);
 
+
+  useEffect(() => {
+    dispatch({ type: 'PROVINCES_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/provinces');
+        dispatch({ type: 'PROVINCES_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'PROVINCES_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [provinces]);
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -149,6 +180,7 @@ export default function ProductEditScreen() {
           image,
           images,
           category,
+          province,
           countInStock,
           brand,
           description,
@@ -255,6 +287,25 @@ export default function ProductEditScreen() {
                   categories.map((category) => (
                     <option key={category._id} value={category._id}>
                       {category.name}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+
+
+            <Form.Group className="mb-3">
+              <Form.Label>Localização do produto</Form.Label>
+              <Form.Select
+                required
+                aria-label="location"
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {provinces &&
+                  provinces.map((province) => (
+                    <option key={province._id} value={province._id}>
+                      {province.name}
                     </option>
                   ))}
               </Form.Select>

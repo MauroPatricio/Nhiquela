@@ -18,6 +18,7 @@ const productSchema = new mongoose.Schema({
     images: [String],
     brand: {type: String, required: true},
     category: {type: mongoose.Schema.Types.ObjectId, ref: 'Category'},
+    province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province'},
     description: {type: String, required: true},
     price: {type: Number, required: true},
     countInStock: {type: Number, required: true},

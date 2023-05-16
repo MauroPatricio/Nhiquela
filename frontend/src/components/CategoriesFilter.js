@@ -19,6 +19,15 @@ const reducer = (state, action) => {
     case 'CATEGORIES_FAIL':
       return { ...state, loadingCategories: false };
 
+      case 'PROVINCE_REQUEST':
+        return { ...state, loadingProvinces: true };
+  
+      case 'PROVINCE_SUCCESS':
+        return { ...state, loadingProvinces: false, provinces: action.payload.provinces };
+  
+      case 'PROVINCE_FAIL':
+        return { ...state, loadingProvinces: false };
+
     default:
       return state;
   }
@@ -28,6 +37,7 @@ export default function CategoriesFilter() {
   const { search } = useLocation();
   const searchParams = new URLSearchParams(search);
   const category = searchParams.get('category') || 'all';
+  const province = searchParams.get('province') || 'all';
   const query = searchParams.get('query') || 'all';
   const price = searchParams.get('price') || 'all';
   const rating = searchParams.get('rating') || 'all';
@@ -41,9 +51,10 @@ export default function CategoriesFilter() {
 
 
 
-  const [{ categories, loadingCategories }, dispatch] = useReducer(reducer, {
+  const [{ categories, loadingCategories, provinces, loadingProvinces}, dispatch] = useReducer(reducer, {
     categories: [],
     loadingCategories: true,
+    loadingProvinces: true,
     error: '',
   });
 
@@ -81,6 +92,22 @@ export default function CategoriesFilter() {
 
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        dispatch({ type: 'PROVINCE_REQUEST' });
+        const { data } = await axios.get('/api/provinces');
+        dispatch({ type: 'PROVINCE_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'PROVINCE_FAIL', payload: getError(err) });
+      }
+    };
+    if (loadingProvinces) {
+      fetchData();
+    }
+  }, [loadingProvinces]);
+
+
+  useEffect(() => {
     function handleResize() {
       if (window.innerWidth >= 540) {
         setShowHeader(false);
@@ -93,17 +120,18 @@ export default function CategoriesFilter() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [window.innerWidth >= 540]);
+  }, []);
 
 
   const getFilterUrl = (filter) => {
     const filterCategory = filter.category || category;
+    const filterProvince = filter.province || province;
     const filterQuery = filter.query || query;
     const filterPrice = filter.price || price;
     const filterRating = filter.rating || rating;
     const filterOrder = filter.order || order;
     const filterPage = filter.page || page;
-    return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}`;
+    return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}&province=${filterProvince}`;
   };
   
   const handleToggleMaximized = () => {
@@ -192,6 +220,31 @@ export default function CategoriesFilter() {
             >
               <Rating caption={' & acima'} rating={0}></Rating>
             </Link>
+          </div>
+            <br/>
+          <h6>Localização</h6>
+          <div>
+            <Link
+              className={
+                'all' === province ? 'text-bold link-none' : 'link-none'
+              }
+              to={getFilterUrl({ province: 'all' })}
+            >
+              Todas
+            </Link>
+            {provinces &&
+              provinces.map((p) => (
+                <li key={p._id}>
+                  <Link
+                    className={
+                      p._id === province ? 'text-bold link-none' : 'link-none'
+                    }
+                    to={getFilterUrl({ province: p._id })}
+                  >
+                    {p.name}
+                  </Link>
+                </li>
+              ))}
           </div>
         </Card.Body>
         }

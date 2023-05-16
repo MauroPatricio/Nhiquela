@@ -127,10 +127,10 @@ function Product(props) {
             </Link>
             <br />
             {seller.seller.description}
-            <Rating
+            {/* <Rating
               rating={seller.seller.rating}
               numReviews={seller.seller.numReviews}
-            />
+            /> */}
           </div>
         </Card>
       )}
