@@ -269,6 +269,31 @@ orderRouter.put(
 );
 
 orderRouter.put(
+  '/:id/intransit',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      //     order.isPaid = true;
+      //     order.paidAt= Date.now();
+      order.status = 'Em trânsito';
+
+      // order.paymentResult = {
+      //   id: req.body.id,
+      //   status: req.body.status,
+      //   update_time: req.body.update_time,
+      //   email_address: req.body.email_address,
+      // };
+      await order.save();
+      res.send({ message: `Pedido em trânsito` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+orderRouter.put(
   '/:id/cancel',
   isAuth,
   expressAsyncHandler(async (req, res) => {

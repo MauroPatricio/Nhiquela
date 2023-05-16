@@ -51,6 +51,23 @@ function reducer(state, action) {
         errorPayment: action.payload,
       };
 
+      case 'CONFIRM_IN_TRANSIT_REQUEST':
+      return { ...state, loadingInTransit: true };
+      
+      case 'CONFIRM_IN_TRANSIT_SUCCESS':
+      return {
+        ...state,
+        loadingInTransit: false,
+        successInTransit: action.payload,
+      };
+
+      case 'CONFIRM_IN_TRANSIT_FAIL':
+        return {
+          ...state,
+          loadingInTransit: false,
+          errorInTransit: action.payload,
+        };
+
     case 'CONFIRM_DESTINATION_REQUEST':
       return { ...state, loadingDestination: true };
     case 'CONFIRM_DESTINATION_SUCCESS':
@@ -113,6 +130,7 @@ export default function OrderScreen() {
       successDeliver,
       loadingPayment,
       loadingDestination,
+      loadingInTransit
     },
     dispatch,
   ] = useReducer(reducer, {
@@ -149,6 +167,10 @@ export default function OrderScreen() {
     if (loadingDestination) {
       fetchOrder();
     }
+
+    if (loadingInTransit) {
+      fetchOrder();
+    }
   }, [
     userInfo,
     order,
@@ -157,6 +179,7 @@ export default function OrderScreen() {
     successDeliver,
     loadingPayment,
     loadingDestination,
+    loadingInTransit
   ]);
 
   const cancelOrderHandler = async (e) => {
@@ -207,6 +230,24 @@ export default function OrderScreen() {
     } catch (err) {
       toast.error(getError(err));
       dispatch({ type: 'DELIVER_FAIL' });
+    }
+  };
+
+
+  const inTransitOrderHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'CONFIRM_IN_TRANSIT_REQUEST' });
+      const { data } = await axios.put(
+        `/api/orders/${order._id}/intransit`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'CONFIRM_IN_TRANSIT_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'CONFIRM_IN_TRANSIT_FAIL' });
     }
   };
 
@@ -273,7 +314,7 @@ export default function OrderScreen() {
               </Card.Text>
               {order.isDelivered ? (
                 <MessageBox variant="success">
-                  Entregue as {formatedDate(order.deliveredAt)}
+                  Entregue dia {formatedDate(order.deliveredAt)}
                 </MessageBox>
               ) : (
                 <MessageBox variant="danger">Não Entregue</MessageBox>
@@ -288,7 +329,7 @@ export default function OrderScreen() {
               </Card.Text>
               {order.isPaid ? (
                 <MessageBox variant="success">
-                  Pago as {formatedDate(order.paidAt)}
+                  Pago dia {formatedDate(order.paidAt)}
                 </MessageBox>
               ) : (
                 <>
@@ -446,9 +487,9 @@ export default function OrderScreen() {
             )}
           &nbsp;
           {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
-            !order.isDelivered &&
-            order.status === 'Aceite' &&
-            order.status !== 'Cheguei ao destino' &&
+           
+              order.status==='Em trânsito' &&
+            order.status !== 'Cheguei ao destino' &&   !order.isDelivered &&
             order.isPaid && (
               <ListGroup.Item>
                 {loadingDestination && <LoadingBox></LoadingBox>}
@@ -464,10 +505,32 @@ export default function OrderScreen() {
                 </div>
               </ListGroup.Item>
             )}
+
+    &nbsp;
+          {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
+            !order.isDelivered &&
+            order.status === 'Aceite' &&
+            order.status !== 'Cheguei ao destino' &&
+            order.isPaid && (
+              <ListGroup.Item>
+                {loadingInTransit && <LoadingBox></LoadingBox>}
+                <div className="d-grid">
+                  <Button
+                    className="customButtom"
+                    variant="light"
+                    type="button"
+                    onClick={inTransitOrderHandler}
+                  >
+                    Em trânsito
+                  </Button>
+                </div>
+              </ListGroup.Item>
+            )}
           &nbsp;
           {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
             !order.isDelivered &&
             order.status !== 'Aceite' &&
+            order.status !=='Em trânsito' &&
             order.status !== 'Cheguei ao destino' &&
             order.isPaid && (
               <ListGroup.Item>
