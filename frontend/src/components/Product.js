@@ -67,7 +67,8 @@ function Product(props) {
             <Link className="link-none" to={`/product/${product.slug}`}>
               <b>{product.name}</b>
             </Link>
-            <Rating rating={product.rating} numReviews={product.numReviews} />
+            {/* <Rating rating={product.rating} numReviews={product.numReviews} /> */}
+            <br/>{product.countInStock} unidade(s)<br/>
             <Link
               className="link-none"
               to={product.seller ? `/seller/${product.seller._id}` : ''}

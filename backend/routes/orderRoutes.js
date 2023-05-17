@@ -84,6 +84,21 @@ orderRouter.post(
       code: generateCode(),
       status: 'Pendente',
     });
+    req.body.orderItems.map(async o=>{
+
+      const product = await Product.findById(o);
+
+
+      if(product.countInStock > 0){
+        product.countInStock = product.countInStock - o.quantity
+
+        await product.save();
+
+      }
+
+    })
+
+
 
     const order = await newOrder.save();
     res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
@@ -261,7 +276,7 @@ orderRouter.put(
         email_address: req.body.email_address,
       };
       await order.save();
-      res.send({ message: `Pedido Entregue` });
+      res.send({ message: `Pedido entregue com sucesso ` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -300,6 +315,13 @@ orderRouter.put(
     const order = await Order.findById(req.params.id);
 
     if (order) {
+      order.orderItems.map(async o=>{
+
+        const product = await Product.findById(o);
+        product.countInStock = parseInt(product.countInStock) + parseInt(o.quantity)
+        await product.save();
+
+      })
       order.isCanceled = true;
       order.isAccepted = false;
       order.status = 'Cancelado';

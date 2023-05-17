@@ -42,12 +42,12 @@ export default function PlaceOrderScreen() {
   cart.itemsPrice = round2(
     cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
   );
-  cart.addressPrice = cart.address.city === 'Maputo Cidade' ? 150 : 250;
+  cart.addressPrice = cart.address.city === 'Maputo Cidade' ? 200 : 300;
   cart.siteTax = round2(0.2 * cart.itemsPrice);
   cart.ivaTax = round2(0.16 * cart.itemsPrice);
 
   cart.totalPrice =
-    cart.itemsPrice + cart.addressPrice + cart.siteTax + cart.ivaTax;
+    (cart.itemsPrice + cart.addressPrice + cart.siteTax + cart.ivaTax).toFixed(2);
 
   const placeOrderHandler = async () => {
     try {
