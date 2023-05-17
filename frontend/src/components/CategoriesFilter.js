@@ -200,28 +200,7 @@ export default function CategoriesFilter() {
               </li>
             ))}
           </div>
-          <br />
-          <div>
-            <h6>Pontuaçōes</h6>
-
-            {ratings.map((r) => (
-              <Link
-                key={r.id}
-                className={r === rating ? 'text-bold link' : 'link'}
-                to={getFilterUrl({ rating: r.rating })}
-              >
-                <Rating caption={' & acima'} rating={r.rating}></Rating>
-              </Link>
-            ))}
-
-            <Link
-              to={getFilterUrl({ rating: 'all' })}
-              className={rating === 'all' ? 'text-bold' : ''}
-            >
-              <Rating caption={' & acima'} rating={0}></Rating>
-            </Link>
-          </div>
-            <br/>
+          <br/>
           <h6>Localização</h6>
           <div>
             <Link
@@ -246,6 +225,28 @@ export default function CategoriesFilter() {
                 </li>
               ))}
           </div>
+          <br />
+          <div>
+            <h6>Pontuaçōes</h6>
+
+            {ratings.map((r) => (
+              <Link
+                key={r.id}
+                className={r === rating ? 'text-bold link' : 'link'}
+                to={getFilterUrl({ rating: r.rating })}
+              >
+                <Rating caption={' & acima'} rating={r.rating}></Rating>
+              </Link>
+            ))}
+
+            <Link
+              to={getFilterUrl({ rating: 'all' })}
+              className={rating === 'all' ? 'text-bold' : ''}
+            >
+              <Rating caption={' & acima'} rating={0}></Rating>
+            </Link>
+          </div>
+           
         </Card.Body>
         }
       </Card>
