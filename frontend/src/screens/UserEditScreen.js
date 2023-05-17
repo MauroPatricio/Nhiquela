@@ -10,10 +10,32 @@ import { Helmet } from 'react-helmet-async';
 import LoadingBox from '../components/LoadingBox';
 import MessageBox from '../components/MessageBox';
 import Button from 'react-bootstrap/Button';
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTextSlash, faClock, faClockFour, faListNumeric } from '@fortawesome/free-solid-svg-icons';
 
 const reducer =(state, action) =>{
     switch(action.type){
+
+
+        case 'DOCUMENT_REQUEST':
+            return { ...state, loading: true };
+      
+          case 'DOCUMENT_SUCCESS':
+            return { ...state, loading: false, documentTypes: action.payload.documentTypes,  pages: action.payload.pages};
+      
+          case 'DOCUMENT_FAIL':
+            return { ...state, loading: false, error: action.payload };
+      
+            case 'FETCH_REQUEST_PROVINCE':
+              return { ...state, loadingProvinces: true };
+        
+            case 'FETCH_SUCCESS_PROVINCE':
+              return { ...state, loadingProvinces: false, provinces: action.payload.provinces,  pages: action.payload.pages};
+        
+            case 'FETCH_FAIL_PROVINCE':
+              return { ...state, loadingProvinces: false, error: action.payload };
+
+
         case 'FETCH_REQUEST':
             return {...state, loading: true};
         case 'FETCH_SUCCESS':
@@ -35,7 +57,7 @@ const reducer =(state, action) =>{
             }
 }
 export default function UserEditScreen() {
-    const [{loading, error, loadingUpdate}, dispatch]= useReducer(reducer, {loading: true, error: ''})
+    const [{loading, error, loadingUpdate,documentTypes, provinces, loadingProvinces}, dispatch]= useReducer(reducer, {loading: true, error: ''})
   
   const {state} = useContext(Store);
   const {userInfo} = state;
@@ -50,9 +72,23 @@ export default function UserEditScreen() {
   const [number, setNumber] = useState('');
 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isSeller, setIsSeller] = useState(false);
   const [isDeliveryMan, setIsDeliveryMan] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
+  
+  const [isSeller, setIsSeller] = useState(false);
+  
+  const [sellerName, setSellerName] = useState('');
+  const [sellerDescription, setSellerDescription] = useState('');
+  const [sellerLocation, setSellerLocation] = useState('');
+  const [sellerDocument, setSellerDocument] = useState('');
+  const [sellerDocumentNumber, setSellerDocumentNumber] = useState('');
+  const [sellerFrontImgDoc, setSellerFrontImgDoc] = useState('');
+  const [sellerBackImgDoc, setSellerBackImgDoc] = useState('');
+  const [sellerAddress, setSellerAddress] = useState('');
+
+  const [sellerLogo, setSellerLogo] = useState('');
+  const [opentime, setOpentime] = useState('');
+  const [closetime, setClosetime] = useState('');
 
   useEffect(()=>{
     const fetchData = async()=>{
@@ -67,6 +103,23 @@ export default function UserEditScreen() {
             setIsSeller(data.isSeller);
             setIsDeliveryMan(data.isDeliveryMan);
             setIsBanned(data.isBanned);
+
+            if (data.isSeller) {
+                console.log(data.seller.docType)
+                setIsSeller(data.isSeller);
+                setSellerName(data.seller.name);
+                setSellerLogo(data.seller.logo);
+                setSellerDescription(data.seller.description);
+                setSellerDocument(data.seller.docType._id);
+                setSellerDocumentNumber(data.seller.docNumber);
+                setSellerFrontImgDoc(data.seller.frontDocImg);
+                setSellerBackImgDoc(data.seller.backDocImg);
+                setSellerLocation(data.seller.province._id);
+                setSellerAddress(data.seller.address);
+                setOpentime(data.seller.opentime);
+                setClosetime(data.seller.closetime);
+              }
+
             dispatch({type: 'FETCH_SUCCESS', payload: data});
         }catch(err){
             dispatch({type: 'FETCH_FAIL', payload: getError(err)})
@@ -76,6 +129,39 @@ export default function UserEditScreen() {
         fetchData();
     
   }, [userInfo, userId]);
+
+ 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        dispatch({ type: 'DOCUMENT_REQUEST' });
+
+        const { data } = await axios.get('/api/documents');
+        
+        dispatch({ type: 'DOCUMENT_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'DOCUMENT_FAIL', payload: getError(err) });
+      }
+    };
+   
+      fetchData();
+    
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        dispatch({ type: 'FETCH_REQUEST_PROVINCE' });
+
+        const { data } = await axios.get('/api/provinces');
+        
+        dispatch({ type: 'FETCH_SUCCESS_PROVINCE', payload: data });
+      } catch (err) {
+        dispatch({ type: 'FETCH_FAIL_PROVINCE', payload: getError(err) });
+      }
+    };
+      fetchData();
+  }, []);
 
   const submitHandler = async (e)=>{
     e.preventDefault();
@@ -131,7 +217,185 @@ export default function UserEditScreen() {
 
             <Form.Check className='mb-3' type="checkbox" id="isBanned"
             label="Foi Banido?" checked={isBanned}
-            onChange={(e)=>setIsBanned(e.target.checked)}></Form.Check>        
+            onChange={(e)=>setIsBanned(e.target.checked)}></Form.Check> 
+
+{isSeller && (
+          <>
+          <br/>
+          <div ><h4>Dados adicionais</h4>
+          
+          <Form.Group className="mb-3" controlId="sellerDocument">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de documento</Form.Label>
+            <Form.Select aria-label="Tipo de documento"
+          value={sellerDocument}
+          onChange={(e)=>setSellerDocument(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {documentTypes && documentTypes.map(document => (
+            <option key={document._id} value={document._id}>
+              {document.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerDocNumber">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de documento</Form.Label>
+          <Form.Control
+            type="text"
+            value={sellerDocumentNumber}
+            required
+            onChange={(e) => {
+              setSellerDocumentNumber(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerFrontDoc">
+              <Form.Label>Imagem do documento frontal</Form.Label>
+              {sellerFrontImgDoc && (
+                <img
+                  style={{
+                    width: '6rem',
+                    height: '6rem',
+                    alignItems: 'center',
+                    alignContent: 'center',
+                  }}
+                  src={sellerFrontImgDoc}
+                  alt={name}
+                  className="card-img-top"
+                ></img>
+              )}
+            </Form.Group>
+
+         
+
+
+            <Form.Group className="mb-3" controlId="sellerFrontDoc">
+              <Form.Label>Imagem de trás do documento</Form.Label>
+              {sellerBackImgDoc && (
+                <img
+                  style={{
+                    width: '6rem',
+                    height: '6rem',
+                    alignItems: 'center',
+                    alignContent: 'center',
+                  }}
+                  src={sellerBackImgDoc}
+                  alt={name}
+                  className="card-img-top"
+                ></img>
+              )}
+            </Form.Group>
+
+          
+          </div>
+
+         
+          <br/>
+          <div><h4>Dados da sua Loja </h4>
+          <Form.Group className="mb-3" controlId="sellerName">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome da Loja/empresa</Form.Label>
+          <Form.Control
+            type="text"
+            value={sellerName}
+            required
+            onChange={(e) => {
+              setSellerName(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+
+        <Form.Group className="mb-3" controlId="sellerLogo">
+              <Form.Label>Logo da Loja</Form.Label>
+              {sellerLogo && (
+                <img
+                  style={{
+                    width: '6rem',
+                    height: '6rem',
+                    alignItems: 'center',
+                    alignContent: 'center',
+                  }}
+                  src={sellerLogo}
+                  alt={name}
+                  className="card-img-top"
+                ></img>
+              )}
+            </Form.Group>
+
+  
+
+          <Form.Group className="mb-3" controlId="sellerDescription">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Descrição da loja [Especialidade]</Form.Label>
+          <Form.Control
+            type="text"
+            value={sellerDescription}
+            as="textarea"
+            required
+            onChange={(e) => {
+              setSellerDescription(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+
+       
+
+        <Form.Group className="mb-3" controlId="sellerLocation">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Provincia</Form.Label>
+            <Form.Select aria-label="Provincia"
+          value={sellerLocation}
+          onChange={(e)=>setSellerLocation(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {provinces && provinces.map(province => (
+            <option key={province._id} value={province._id}>
+              {province.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerDescription">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Endereço da loja [Rua/Av.]</Form.Label>
+          <Form.Control
+            type="text"
+            value={sellerAddress}
+            as="textarea"
+            required
+            onChange={(e) => {
+              setSellerAddress(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerOpentime">
+          <FontAwesomeIcon icon={faClock} /> <Form.Label>Hora de abertura</Form.Label>
+          <Form.Control
+            type="time"
+            value={opentime}
+            required
+            onChange={(e) => {
+              setOpentime(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerClosetime">
+          <FontAwesomeIcon icon={faClockFour} /> <Form.Label>Hora de fecho</Form.Label>
+          <Form.Control
+            type="time"
+            value={closetime}
+            required
+            onChange={(e) => {
+              setClosetime(e.target.value);
+            }}
+
+            
+          />
+        </Form.Group>
+        </div>
+          </>
+        )}    
                         
             <div className='"mb-3'>
                  <Button type='submit' disabled={loadingUpdate}>Actualizar</Button>

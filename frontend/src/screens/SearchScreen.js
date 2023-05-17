@@ -59,7 +59,6 @@ export default function SearchScreen() {
         const { data } = await axios.get(
           `api/products/search?page=${page}&query=${query}&category=${category}&price=${price}&rating=${rating}&order=${order}&province=${province}`
         );
-        console.log(data)
         dispatch({ type: 'FETCH_SUCCESS', payload: data });
       } catch (err) {
 
@@ -107,7 +106,6 @@ export default function SearchScreen() {
                   <div>
                     {countProducts === 0 ? '0' : countProducts} Resultado(s) encontrado(s) {' '}
                     {query !== 'all' && ' : ' + query}
-                    {console.log(products[0])}
                     {category !== 'all' && ' : ' + products && products[0] && products[0].category && products[0].category.name}
                     {province !== 'all' && ' : ' + products && products[0] && products[0].province && products && products[0].province.name}
                     {price !== 'all' && ' : Preço ' + price +' Mt'}

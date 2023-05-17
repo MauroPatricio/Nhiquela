@@ -3,6 +3,7 @@ import User from '../models/UserModel.js';
 import { generateToken, isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
+import Product from '../models/ProductModel.js';
 
 const userRouter = express.Router();
 
@@ -34,7 +35,7 @@ userRouter.get(
 userRouter.get(
   '/top-sellers',
   expressAsyncHandler(async (req, res) => {
-    const topSellers = await User.find({ isSeller: true })
+    const topSellers = await User.find({ isSeller: true, isBanned: false })
       .sort({ 'seller.rating': -1 })
       .limit(4);
     res.send(topSellers);
@@ -127,6 +128,10 @@ userRouter.put(
       user.isBanned = Boolean(req.body.isBanned);
       user.isDeliveryMan = Boolean(req.body.isDeliveryMan);
 
+      if(user.isBanned){
+        await Product.deleteMany({seller: user._id });
+      }
+
       await user.save();
       res.send({ message: 'Utilizador Actualizado Com Sucesso' });
     } else {
@@ -140,6 +145,11 @@ userRouter.post(
   expressAsyncHandler(async (req, res) => {
     const user = await User.findOne({ phoneNumber: req.body.phoneNumber });
 
+    if (user){
+      if(user.isBanned){
+        res.status(401).send({ message: 'Esta conta foi BANIDA!!! Solicito que contacte o Administrador' });
+      }
+    }
     if (user) {
       if (bcrypt.compareSync(req.body.password, user.password)) {
         res.send({
