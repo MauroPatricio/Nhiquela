@@ -81,7 +81,7 @@ function Product(props) {
               <br></br>
             </Link>
             <div className="price">
-              {product.price}Mt
+              <b style={{color: 'green'}}>{product.price} Mt</b>
               {/* {product.onSale ? (
                 <>
                 &nbsp;
