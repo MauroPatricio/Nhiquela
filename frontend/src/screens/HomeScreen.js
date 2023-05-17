@@ -102,7 +102,6 @@ function HomeScreen() {
     const newPage = page + 1;
     const res = await axios.get(`/api/products?page=${newPage}`);
     setItems([...items, ...res.data.products]);
-    console.log(items)
     setPage(newPage);
   };
 
