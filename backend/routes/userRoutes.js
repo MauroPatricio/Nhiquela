@@ -129,7 +129,6 @@ userRouter.put(
       user.isDeliveryMan = Boolean(req.body.isDeliveryMan);
 
       if(user.isBanned){
-        await Product.deleteMany({seller: user._id });
       }
 
       await user.save();
@@ -234,6 +233,9 @@ userRouter.delete(
     const user = await User.findById(req.params.id);
 
     if (user) {
+
+      await Product.deleteMany({seller: user._id });
+
       await user.deleteOne();
 
       res.send({ message: `Utilizador removido com sucesso` });

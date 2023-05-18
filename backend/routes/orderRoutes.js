@@ -192,6 +192,10 @@ orderRouter.delete(
 
     if (order) {
       order.deleted = true;
+
+      
+
+
       await order.save();
 
       res.send({ message: `Pedido Removido Com Sucesso` });
