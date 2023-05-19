@@ -161,7 +161,7 @@ export default function UserEditScreen() {
       }
     };
       fetchData();
-  }, []);
+  }, [loadingProvinces]);
 
   const submitHandler = async (e)=>{
     e.preventDefault();

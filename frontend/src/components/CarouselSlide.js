@@ -1,12 +1,11 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getError } from '../utils';
 import { useReducer } from 'react';
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
+import { Carousel } from 'react-responsive-carousel';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -24,17 +23,7 @@ const reducer = (state, action) => {
   }
 };
 
-export default function Carousel() {
- 
-  const settings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 1,
-      slidesToScroll: 1,
-      autoplay: true, // Enable auto slide
-      autoplaySpeed: 3000 // Set auto slide duration (in milliseconds)
-  };
+export default function CarouselSlide() {
 
 
   const [{  popularItems, loadingPopular}, dispatch] = useReducer(reducer, {
@@ -60,14 +49,22 @@ export default function Carousel() {
 
 
   return (
-    <div>
-       <Slider {...settings}>
-       {popularItems && popularItems.map(p=>{
+    <>
+<br/>
+     {popularItems && <h3>Produtos em Destaque</h3>} 
+    <Carousel showArrows autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
+      {popularItems && popularItems.map((p) => (
         <div key={p._id}>
-          {console.log(p)}
+       <Link className="link" to={`/product/${p.slug}`}>
+
+          <img className='img-carousel' src={p.image} alt={p.name} />
+          <p>{p.name}</p>
+        
+        </Link>
         </div>
-       })}
-      </Slider>
-    </div>
+      ))}
+    </Carousel>
+    </>
+
   );
 }

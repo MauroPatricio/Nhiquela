@@ -443,3 +443,17 @@ table {
 margin-left: 250px;
 }
 
+
+.carousel-custom {
+   margin: 0 auto; /* Center the carousel horizontally */
+   height: 21rem;
+   width: 100%;
+  }
+
+.img-carousel{
+  height: 19rem;
+  width: 20rem;
+  border-radius: 8px;
+align-items: center;
+}
+

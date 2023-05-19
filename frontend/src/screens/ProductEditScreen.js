@@ -88,7 +88,7 @@ export default function ProductEditScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingUpdate, loadingUpload, categories, provinces, loadingProvinces },
+    { loading, error, loadingUpdate, loadingUpload, categories, provinces },
     dispatch,
   ] = useReducer(reducer, { loading: true, error: '', categories: [] });
 
