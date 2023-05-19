@@ -15,11 +15,9 @@ categoryRouter.get(
     const page = req.query.page || 1;
     const pageSize = 10
 
-    const categories = await Category.find({ isActive: true }).skip(pageSize *(page -1)).limit(pageSize).sort({name: 'asc'});
-    const countCategories = await Category.countDocuments({ isActive: true });
-    const  pages = Math.ceil(countCategories/pageSize);
+    const categories = await Category.find({ isActive: true }).sort({name: 'asc'});
 
-    res.send({categories, pages});
+    res.send({categories});
   })
 );
 
@@ -93,6 +91,10 @@ categoryRouter.delete(
 
     if (category) {
       category.isActive = false;
+
+      await Product.deleteMany({category: category._id });
+
+
       await category.save();
 
       res.send({ message: `Categoria Removida Com Sucesso` });
