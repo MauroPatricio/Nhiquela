@@ -10,6 +10,7 @@ import Container from 'react-bootstrap/Container';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import CategoriesFilter from '../components/CategoriesFilter';
 import Button from 'react-bootstrap/Button';
+import Carousel from '../components/Carousel';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -122,9 +123,12 @@ function HomeScreen() {
   
         <Row>
           <Col md={3}>
+      
             <CategoriesFilter></CategoriesFilter>
+
           </Col>
           <Col md={9}>
+            <Carousel></Carousel>
             <h3>Melhores Vendedores</h3>
 
             {loadingTopUsers ? (

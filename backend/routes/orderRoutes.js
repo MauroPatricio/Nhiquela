@@ -37,6 +37,43 @@ orderRouter.get(
   })
 );
 
+
+// most required items
+orderRouter.get(
+  '/popularitems',
+  expressAsyncHandler(async (req, res) => {
+    const pageSize = 10    
+    
+    const orders = await Order.aggregate([
+      // Match orders that have at least one order item
+      { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
+      
+      // Unwind the orderItems array
+      { $unwind: "$orderItems" },
+    
+      // Group by the order item properties and calculate the total quantity
+      {
+        $group: {
+          _id: "$orderItems.slug",
+          slug: { $first: "$orderItems.slug" },
+          name: { $first: "$orderItems.name" },
+          image: { $first: "$orderItems.image" },
+          price: { $first: "$orderItems.price" },
+          totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
+        },
+      },
+    
+      // Sort in descending order based on the total quantity
+      { $sort: { totalQuantity: -1 } },
+    
+      // Optionally, limit the results to a specific number of items
+      { $limit: 5 }, // Adjust the number as per your requirements
+    ]);
+  
+    res.send({orders});
+  })
+);
+
 // All Orders
 orderRouter.get(
   '/deliveryman',
@@ -193,7 +230,7 @@ orderRouter.delete(
     if (order) {
       order.deleted = true;
 
-      
+
 
 
       await order.save();
