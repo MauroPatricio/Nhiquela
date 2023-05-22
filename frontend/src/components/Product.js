@@ -28,17 +28,38 @@ function Product(props) {
       });
       return;
     }
-    toast.info('Item adicionado ao carrinho', {
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
 
-    ctxDispatch({
-      type: 'ADD_ITEM_ON_CART',
-      payload: { ...product, quantity: quantity },
-    });
+    console.log(product)
+
+
+
+    if(cartItems.length > 0 && product.seller._id !== cartItems[0].seller._id){
+      ctxDispatch({
+        type: 'ADD_ITEM_FAIL',
+        payload: `No carrinho, Só pode adicionar produtos pertecentes a um único fornecedor por vez`,
+      });
+
+      toast.error('No carrinho, Só pode adicionar produtos pertecentes a um único fornecedor por vez', {
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }else{
+
+      ctxDispatch({
+        type: 'ADD_ITEM_ON_CART',
+        payload: { ...product, quantity: quantity },
+      });
+
+      toast.info('Item adicionado ao carrinho', {
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+
   };
 
   return (
