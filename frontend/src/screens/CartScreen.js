@@ -6,7 +6,7 @@ import Col from 'react-bootstrap/Col';
 import { Link } from 'react-router-dom';
 import MessageBox from '../components/MessageBox';
 import ListGroup from 'react-bootstrap/ListGroup';
-import Button from 'react-bootstrap/esm/Button';
+import Button from 'react-bootstrap/Button';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMinusCircle } from '@fortawesome/free-solid-svg-icons';
@@ -25,13 +25,17 @@ export default function CartScreen() {
     cart: { cartItems },
   } = state;
 
+  const {error} = state;
+
+
   async function updateCartHandler(item, quantity) {
     const { data } = await axios.get(`/api/products/${item._id}`);
+
 
     if (data.countInStock < quantity) {
       window.alert(`Desculpe, o Produto não está disponível`);
       return;
-    }
+    } 
     ctxDispatch({
       type: 'ADD_ITEM_ON_CART',
       payload: { ...item, quantity },
@@ -55,6 +59,7 @@ export default function CartScreen() {
         <title>Carrinho de Compras</title>
       </Helmet>
       <h1>Carrinho de Compras</h1>
+          {error && <MessageBox variant="danger">{error}</MessageBox>}
       <Row>
         <Col md={8}>
           {cartItems.length === 0 ? (

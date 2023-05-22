@@ -44,6 +44,11 @@ function reducer(state, action) {
           cartItems,
         },
       };
+
+      case 'ADD_ITEM_FAIL':{
+        return {...state, error: action.payload}
+      }
+
     case 'REMOVE_ITEM_ON_CART': {
       const cartItems = state.cart.cartItems.filter(
         (item) => item._id !== action.payload._id
@@ -60,11 +65,11 @@ function reducer(state, action) {
 
     case 'USER_SIGNIN': {
       localStorage.setItem('userInfo', JSON.stringify(action.payload));
-      return { ...state, userInfo: action.payload };
+      return { ...state, error: '',userInfo: action.payload };
     }
     case 'USER_SIGNUP': {
       localStorage.setItem('newUser', JSON.stringify(action.payload));
-      return { ...state, newUser: action.payload };
+      return { ...state, error: '', newUser: action.payload };
     }
 
     case 'USER_SIGNOUT': {
@@ -75,6 +80,7 @@ function reducer(state, action) {
 
       return {
         ...state,
+        error: '',
         userInfo: null,
 
         cart: { cartItems: [], address: {}, paymentMethod: '' },
@@ -84,6 +90,7 @@ function reducer(state, action) {
     case 'SAVE_ADDRESS': {
       return {
         ...state,
+        error: '',
         cart: {
           ...state.cart,
           address: action.payload,
@@ -96,6 +103,7 @@ function reducer(state, action) {
 
       return {
         ...state,
+        error: '',
         cart: {
           ...state.cart,
           paymentMethod: action.payload,
@@ -107,6 +115,7 @@ function reducer(state, action) {
       localStorage.removeItem('cartItems');
       return {
         ...state,
+        error: '',
         cart: { ...state.cart, cartItems: [] },
       };
     }

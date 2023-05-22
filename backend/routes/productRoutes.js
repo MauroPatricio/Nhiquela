@@ -181,7 +181,7 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
 // Products by slug
 productRoutes.get('/slug/:slug',async (req, res)=>{
   
-  const product = await Product.findOne({slug:req.params.slug}).populate('category').sort({'reviews.createdAt': -1});
+  const product = await Product.findOne({slug:req.params.slug}).populate('seller category').sort({'reviews.createdAt': -1});
   if(product){
        res.send(product);
   }else{
@@ -218,7 +218,7 @@ productRoutes.get('/categories',async (req, res)=>{
 // Porduct by Id
 productRoutes.get('/:id',async (req, res)=>{
  
-   const product = await Product.findById(req.params.id);
+   const product = await Product.findById(req.params.id).populate('seller');
    if(product){
         res.send(product);
    }else{

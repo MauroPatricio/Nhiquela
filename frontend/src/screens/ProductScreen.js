@@ -109,14 +109,29 @@ function ProductScreen() {
     const existItem = cart.cartItems.find((x) => x._id === product._id);
     const quantity = existItem ? existItem.quantity + 1 : 1;
     const { data } = await axios.get(`/api/products/${product._id}`);
+
+
+
+
     if (data.countInStock < quantity) {
       window.alert(`Desculpe, o Produto não está disponível`);
       return;
     }
-    ctxDispatch({
-      type: 'ADD_ITEM_ON_CART',
-      payload: { ...product, quantity: quantity },
-    });
+
+
+    
+    if(cart.cartItems.length > 0 && data.seller !== cart.cartItems[0].seller){
+      ctxDispatch({
+        type: 'ADD_ITEM_FAIL',
+        payload: `No carrinho, Só pode adicionar produtos pertecentes a um único fornecedor ${cart.cartItems[0].seller.name}`,
+      });
+    }else{
+
+      ctxDispatch({
+        type: 'ADD_ITEM_ON_CART',
+        payload: { ...product, quantity: quantity },
+      });
+    }
 
     navegate('/cart');
   };
@@ -182,6 +197,14 @@ function ProductScreen() {
             <ListGroup.Item>
               <Rating rating={product.rating} numReviews={product.numReviews} />
             </ListGroup.Item>
+            <ListGroup.Item>Fornecedor: 
+            <Link
+              className="link-none"
+              to={product.seller ? `/seller/${product.seller._id}` : ''}
+            > 
+             <b> {product.seller && product.seller.seller && product.seller.seller.name}</b>
+              </Link></ListGroup.Item>
+
             <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 
             <ListGroup.Item>Preço: {product.price} MT</ListGroup.Item>
