@@ -58,6 +58,7 @@ import DocumentTypeEditScreen from './screens/DocumentTypeEditScreen';
 import ProvinceListScreen from './screens/ProvinceListScreen';
 import ProvinceCreateScreen from './screens/ProvinceCreateScreen';
 import ProvinceEditScreen from './screens/ProvinceEditScreen';
+import Footer from './components/Footer';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -441,9 +442,7 @@ function App() {
           </Container>
         </main>
         <footer className='row center'>
-        {/* {userInfo && !userInfo.isAdmin && <ChatBox userInfo={userInfo}/>} */}
-          <div className="text-center">Todos os direitos são reservados</div>
-       
+       <Footer></Footer>
         </footer>
       </div>
     </BrowserRouter>

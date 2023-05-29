@@ -67,16 +67,7 @@ function Product(props) {
       {product && (
         <Card className="product zoom-image">
           <Link to={`/product/${product.slug}`}>
-            {/* {product.onSale && (
-              <span className="sale">
-                <b>Promoção</b>
-              </span>
-            )} */}
-            {/* {product.onSale && (
-              <span className="sale-percentage">
-                <b>{product.onSalePercentage * 100}%</b>
-              </span>
-            )} */}
+           
 
             <img
               src={product.image}
