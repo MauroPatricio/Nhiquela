@@ -74,7 +74,7 @@ export default function Footer() {
             <a href="#!" className="text-white">Termos de uso e condições</a>
           </p>
           <p>
-            <a href="#!" className="text-white">Ajuda</a>
+            <a href="#!" className="text-white">Como podemos ajuda?</a>
           </p>
         </div>
 
@@ -87,9 +87,9 @@ export default function Footer() {
               />
           <p><i className="fas fa-home mr-3"></i> Mocambique, Maputo cidade</p>
           <p><i className="fas fa-envelope mr-3"></i> deliveryshop@example.com</p>
-          <p><i className="fas fa-phone mr-3"></i> +258 82 00 00 000</p>
-          <p><i className="fas fa-print mr-3"></i> +258 84 00 00 000</p>
-          <p><i className="fas fa-print mr-3"></i> +258 87 00 00 000</p>
+          <p><i className="fas fa-phone mr-3"></i> +258 82 00 00 000<br/>
+           <i className="fas fa-print mr-3"></i> +258 84 00 00 000<br/>
+         <i className="fas fa-print mr-3"></i> +258 87 00 00 000</p>
 
         </div>
       </div>
