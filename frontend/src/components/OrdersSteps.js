@@ -7,6 +7,9 @@ import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { faWalking } from '@fortawesome/free-solid-svg-icons';
 import { faHistory } from '@fortawesome/free-solid-svg-icons';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
+import { FaShippingFast } from "react-icons/fa";
+
+
 
 export default function OrderSteps(props) {
   // Adicionar condicao para verificar se existe um local storage criado
@@ -25,7 +28,7 @@ export default function OrderSteps(props) {
        <br/>
         </Col>
         <Col className={props.status==='Em trânsito' ? 'active' : ''}>
-        <FontAwesomeIcon icon={faWalking} className={props.status==='Em trânsito' ? 'active icon-active' : ''}></FontAwesomeIcon><br/>
+        <FaShippingFast  className={props.status==='Em trânsito' ? 'active icon-active' : ''}></FaShippingFast><br/>
         Em trânsito<br/>
        <br/>
         </Col>
