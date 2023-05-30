@@ -6,7 +6,10 @@ import { getError } from '../utils';
 import Rating from './Rating';
 import Card from 'react-bootstrap/Card';
 import { useReducer } from 'react';
-import CloseButton from 'react-bootstrap/CloseButton';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -147,8 +150,8 @@ export default function CategoriesFilter() {
     <div>
       <Card>
       {showHeader &&   <Card.Header >
-        <CloseButton className='show-close-button' onClick={handleToggleMaximized} style={{marginLeft: '255px'}}>
-                </CloseButton>
+        <FontAwesomeIcon icon={faPlus}  className='show-close-button' onClick={handleToggleMaximized} style={{marginLeft: '255px'}}></FontAwesomeIcon>
+
       </Card.Header>}
       {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}}>Categorias</h6>}
         {showComponent && 
