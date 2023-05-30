@@ -4,6 +4,8 @@ import { FaFacebookF } from "react-icons/fa";
 import { FaTwitter } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa";
+import { FaYoutube } from "react-icons/fa";
+import { Link } from 'react-router-dom';
 
 
 
@@ -31,7 +33,7 @@ export default function Footer() {
       <FaFacebookF></FaFacebookF>
         </a>
       <a href="" className="text-white me-4">
-        <FaTwitter></FaTwitter>
+        <FaYoutube></FaYoutube>
       </a>
       <a href="" className="text-white me-4">
       <FaTiktok></FaTiktok>
@@ -53,7 +55,7 @@ export default function Footer() {
 
               />
           <p>
-          Tudo em suas mãos. De forma fácil e rápida num só clique
+          Tudo em suas mãos. Fazendo entrega dos seus pedidos de forma rápida e fácil num só clique
           </p>
         </div>
    
@@ -65,16 +67,13 @@ export default function Footer() {
 
               />
           <p>
-            <a href="#!" className="text-white">Criar Conta</a>
+            <Link to="/terms" className="text-white">Como tornar-se vendedor</Link>
           </p>
           <p>
-            <a href="#!" className="text-white">Como tornar-se vendedor</a>
+            <Link to="/terms" className="text-white">Termos de uso e condições</Link>
           </p>
           <p>
-            <a href="#!" className="text-white">Termos de uso e condições</a>
-          </p>
-          <p>
-            <a href="#!" className="text-white">Como podemos ajuda?</a>
+            <Link to="/terms" className="text-white">Como podemos ajudar?</Link>
           </p>
         </div>
 
@@ -85,7 +84,7 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p><i className="fas fa-home mr-3"></i> Mocambique, Maputo cidade</p>
+          <p><i className="fas fa-home mr-3"></i> Moçambique, Maputo cidade</p>
           <p><i className="fas fa-envelope mr-3"></i> deliveryshop@example.com</p>
           <p><i className="fas fa-phone mr-3"></i> +258 82 00 00 000<br/>
            <i className="fas fa-print mr-3"></i> +258 84 00 00 000<br/>
