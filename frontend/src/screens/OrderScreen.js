@@ -333,7 +333,7 @@ export default function OrderScreen() {
                 </MessageBox>
               ) : (
                 <>
-                  {order.status !== 'Cancelado' &&
+                  {/* {order.status !== 'Cancelado' &&
                     order.paymentMethod === 'Mpesa' &&
                     !order.isPaid && (
                       <MessageBox variant="">
@@ -348,7 +348,7 @@ export default function OrderScreen() {
                         Para confirmar o seu pedido efectue o pagamento do valor
                         "Total" no número 870000000
                       </MessageBox>
-                    )}
+                    )} */}
 
                   <MessageBox variant="danger">Não Pago</MessageBox>
                 </>
@@ -357,7 +357,7 @@ export default function OrderScreen() {
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Items</Card.Title>
+              <Card.Title>Produtos</Card.Title>
               <ListGroup variant="flush">
                 {order.orderItems.map((item) => (
                   <ListGroup.Item key={item._id}>
@@ -405,7 +405,7 @@ export default function OrderScreen() {
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
-                    <Col>Items</Col>
+                    <Col>Produtos</Col>
                     <Col>{order.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
@@ -423,12 +423,12 @@ export default function OrderScreen() {
                         <Col>{order.siteTax} MT</Col>
                       </Row>
                     </ListGroup.Item>
-                    <ListGroup.Item>
+                    {/* <ListGroup.Item>
                       <Row>
                         <Col>IVA (16%)</Col>
                         <Col>{order.ivaTax} MT</Col>
                       </Row>
-                    </ListGroup.Item>
+                    </ListGroup.Item> */}
                     <ListGroup.Item>
                       <Row>
                         <Col>
@@ -444,6 +444,41 @@ export default function OrderScreen() {
               </ListGroup>
             </Card.Body>
           </Card>
+
+          {order.status !== 'Cancelado' &&
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Pagamento do Pedido</Card.Title>
+              <ListGroup variant="flush">
+                <ListGroup.Item>
+                  <Row>
+                    <Col>
+                    {order.paymentMethod === 'Mpesa' &&
+                    !order.isPaid && (
+                      <MessageBox variant="">
+                        Para efectuar o pagamento do seu pedido envie o valor {' '}
+                        <b>{order.totalPrice} MT</b> para o número de conta/telefone <b>840000000</b>
+                      </MessageBox>
+                    )}                
+                       </Col>
+                       </Row>
+                       <Row>
+                       <Col>
+                       {order.paymentMethod !== 'Mpesa' &&
+                    !order.isPaid && (
+                      <MessageBox variant="">
+                                Para efectuar o pagamento do seu pedido envie o valor {' '} 
+                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>870000000</b>
+                      </MessageBox>
+                    )}
+                       </Col>
+                  </Row>
+                </ListGroup.Item>
+              
+              </ListGroup>
+            </Card.Body>
+          </Card>
+}
           &nbsp;
           {(userInfo.isAdmin ||
             !userInfo.isDeliveryMan ||
