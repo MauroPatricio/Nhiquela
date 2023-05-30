@@ -1,4 +1,4 @@
-import React, { useContext, useReducer } from 'react';
+import React, { useContext, useEffect, useReducer, useState } from 'react';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
@@ -36,6 +36,24 @@ export default function PlaceOrderScreen() {
   const { cart, userInfo } = state;
 
   const navigate = useNavigate();
+
+
+  
+  const {
+    cart: { address, paymentMethod },
+  } = state;
+
+  const [paymentMethodName, setPaymentMethod] = useState(
+    paymentMethod || 'Mpesa'
+  );
+
+  useEffect(() => {
+    if (!address.address) {
+      navigate('/address');
+    }
+  }, [address, navigate]);
+
+
 
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100; // 1234.3213123 => 1234.32
 
@@ -103,18 +121,18 @@ export default function PlaceOrderScreen() {
                 {cart.address.address}, {cart.address.referenceAddress}
               </Card.Text>
               <Link className="link" to="/address">
-                Editar
+                Alterar dados de entrega
               </Link>
             </Card.Body>
           </Card>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <strong>Método de Pagamento</strong>
+                <strong>Forma de Pagamento</strong>
               </Card.Title>
               <Card.Text>{cart.paymentMethod}</Card.Text>
               <Link className="link" to="/payment">
-                Editar
+                Alterar forma de pagamento
               </Link>
             </Card.Body>
           </Card>
@@ -150,9 +168,7 @@ export default function PlaceOrderScreen() {
                   </ListGroup.Item>
                 ))}
               </ListGroup>
-              <Link className="link" to="/cart">
-                Editar
-              </Link>
+             
             </Card.Body>
           </Card>
         </Col>
