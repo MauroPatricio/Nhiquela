@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
-import Rating from '../components/Rating';
 import { useContext } from 'react';
 import { Store } from '../Store';
 import { toast } from 'react-toastify';
