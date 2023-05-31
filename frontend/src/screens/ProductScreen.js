@@ -215,6 +215,7 @@ function ProductScreen() {
                 as="textarea"
                 value={product.description}
                 readOnly
+                rows={5}
               ></Form.Control>
             </ListGroup.Item>
           </ListGroup>
