@@ -138,7 +138,7 @@ function HomeScreen() {
             ) : (
               <>
                 {topSellers.length === 0 && (
-                  <MessageBox>Vendendores não encontrados</MessageBox>
+                  <MessageBox>Vendedores não encontrados</MessageBox>
                 )}
                 {/* <Carousel showArrows autoPlay showThumbs={false}> */}
 

@@ -59,7 +59,6 @@ import ProvinceListScreen from './screens/ProvinceListScreen';
 import ProvinceCreateScreen from './screens/ProvinceCreateScreen';
 import ProvinceEditScreen from './screens/ProvinceEditScreen';
 import Footer from './components/Footer';
-import TermsAndConditions from './screens/TermsAndConditions';
 import Help from './screens/Help';
 import HowToBeSeller from './screens/HowToBeSeller';
 
@@ -209,12 +208,7 @@ function App() {
               <Route path="/cart" element={<CartScreen />} />
               <Route path="/signin" element={<SignInScreen />} />
               <Route path="/signup" element={<SignupScreen />} />
-              <Route
-                path="/terms"
-                element={
-                    <TermsAndConditions />
-                }
-              />
+          
 
 <Route
                 path="/howtobeseller"
