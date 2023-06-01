@@ -1,10 +1,13 @@
 import React from 'react'
+
+import React from 'react'
 import Card from 'react-bootstrap/Card';
 
 export default function TermsAndConditions() {
   return (
     <div>
-        <Card>
+       
+       <Card>
                 <Card.Body>
 
             <head>
@@ -46,7 +49,7 @@ export default function TermsAndConditions() {
                 <p>2.4. Se o Utilizador não concordar com os presentes Termos e Condições, na sua totalidade, não</p>
                 </Card.Body>
         </Card>
-     
+
     </div>
   )
 }

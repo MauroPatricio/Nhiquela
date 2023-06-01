@@ -61,6 +61,7 @@ import ProvinceEditScreen from './screens/ProvinceEditScreen';
 import Footer from './components/Footer';
 import Help from './screens/Help';
 import HowToBeSeller from './screens/HowToBeSeller';
+import TermsAndConditions from './screens/TermsAndConditions';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -209,7 +210,12 @@ function App() {
               <Route path="/signin" element={<SignInScreen />} />
               <Route path="/signup" element={<SignupScreen />} />
           
-
+              <Route
+                path="/terms"
+                element={
+                    <TermsAndConditions />
+                }
+              />
 <Route
                 path="/howtobeseller"
                 element={
