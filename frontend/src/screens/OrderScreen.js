@@ -413,13 +413,13 @@ export default function OrderScreen() {
                   <>
                     <ListGroup.Item>
                       <Row>
-                        <Col>Taxa de Entrega</Col>
+                        <Col>Entrega</Col>
                         <Col>{order.addressPrice} MT</Col>
                       </Row>
                     </ListGroup.Item>
                     <ListGroup.Item>
                       <Row>
-                        <Col>Taxa online (20%)</Col>
+                        <Col>Comissão</Col>
                         <Col>{order.siteTax} MT</Col>
                       </Row>
                     </ListGroup.Item>

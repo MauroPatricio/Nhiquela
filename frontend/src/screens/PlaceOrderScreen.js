@@ -183,13 +183,13 @@ export default function PlaceOrderScreen() {
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
-                    <Col>Taxa de Entrega</Col>
+                    <Col>Entrega</Col>
                     <Col>{cart.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
-                    <Col>Taxa online (20%)</Col>
+                    <Col>Comissão</Col>
                     <Col>{cart.siteTax} MT</Col>
                   </Row>
                 </ListGroup.Item>

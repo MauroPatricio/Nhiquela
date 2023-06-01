@@ -123,7 +123,7 @@ function ProductScreen() {
     if(cart.cartItems.length > 0 && data.seller !== cart.cartItems[0].seller){
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
-        payload: `No carrinho, Só pode adicionar produtos pertecentes a um único fornecedor por vez`,
+        payload: `Na carrinha, Só e permitido adicionar produtos pertecentes a um único fornecedor por vez, ${data.seller.seller.name} `,
       });
     }else{
 
@@ -245,7 +245,7 @@ function ProductScreen() {
                 {product.countInStock > 0 && product.seller && (
                   <div className="d-grid">
                     <Button className='customButtom' variant='light' onClick={addOnCartHandler}  >
-                      Colocar no carrinho
+                      Colocar na carrinha
                     </Button>
                   </div>
                 )}

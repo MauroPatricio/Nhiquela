@@ -28,17 +28,14 @@ function Product(props) {
       return;
     }
 
-    console.log(product)
-
-
 
     if(cartItems.length > 0 && product.seller._id !== cartItems[0].seller._id){
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
-        payload: `No carrinho, Só pode adicionar produtos pertecentes a um único fornecedor por vez`,
+        payload: `Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${product.seller.seller.name}`,
       });
 
-      toast.error('No carrinho, Só pode adicionar produtos pertecentes a um único fornecedor por vez', {
+      toast.error(`Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${product.seller.seller.name}`, {
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
@@ -105,20 +102,20 @@ function Product(props) {
             </div>
 
             {product.countInStock === 0 
-            && (
+            ? (
               <Button disabled variant="light">
                 Sem estoque
               </Button>
             ) 
-            // : (
-            //   <Button
-            //     className="customButtom space"
-            //     onClick={() => addOnCartHandler(product)}
-            //     variant="light"
-            //   >
-            //     <FontAwesomeIcon icon={faCartPlus} />
-            //   </Button>
-            // )
+            : (
+              <Button
+                className="customButtom space"
+                onClick={() => addOnCartHandler(product)}
+                variant="light"
+              >
+                <FontAwesomeIcon icon={faCartPlus} />
+              </Button>
+            )
             }
           </div>
         </Card>
