@@ -61,7 +61,7 @@ import ProvinceEditScreen from './screens/ProvinceEditScreen';
 import Footer from './components/Footer';
 import Help from './screens/Help';
 import HowToBeSeller from './screens/HowToBeSeller';
-import TermsAndConditions from './screens/TermsAndConditions';
+import Terms from './screens/Terms';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -213,7 +213,7 @@ function App() {
               <Route
                 path="/terms"
                 element={
-                    <TermsAndConditions />
+                    <Terms />
                 }
               />
 <Route
