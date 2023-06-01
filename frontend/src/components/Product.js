@@ -104,19 +104,22 @@ function Product(props) {
               ):<span>{product.price} Mt</span>} */}
             </div>
 
-            {product.countInStock === 0 ? (
+            {product.countInStock === 0 
+            && (
               <Button disabled variant="light">
                 Sem estoque
               </Button>
-            ) : (
-              <Button
-                className="customButtom space"
-                onClick={() => addOnCartHandler(product)}
-                variant="light"
-              >
-                <FontAwesomeIcon icon={faCartPlus} />
-              </Button>
-            )}
+            ) 
+            // : (
+            //   <Button
+            //     className="customButtom space"
+            //     onClick={() => addOnCartHandler(product)}
+            //     variant="light"
+            //   >
+            //     <FontAwesomeIcon icon={faCartPlus} />
+            //   </Button>
+            // )
+            }
           </div>
         </Card>
       )}
