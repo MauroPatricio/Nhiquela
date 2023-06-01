@@ -28,6 +28,10 @@ const productSchema = new mongoose.Schema({
     onSalePercentage: {type: Number, required: false},
     isActive:  { type: Boolean, default: true },
     discount: {type: Number, required: false},
+    colors: [String],
+    size: [String], // S, M, L, XL, XXL or 20,21,22,23,24, [...] 40,41,42,43
+    qualityType: String, // Original, Replica
+    conditionStatus: String, // Novo, usado
     reviews: [reviewSchema],
 },{
     timestamps: true

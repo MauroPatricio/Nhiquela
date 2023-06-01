@@ -2,7 +2,6 @@ import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Province from '../models/ProvinceModel.js';
-import Product from '../models/ProductModel.js';
 
 const provinceRoutes = express.Router();
 

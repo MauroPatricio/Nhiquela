@@ -76,7 +76,8 @@ export default function UserEditScreen() {
   const [isBanned, setIsBanned] = useState(false);
   
   const [isSeller, setIsSeller] = useState(false);
-  
+  const [isApproved, setIsApproved] = useState(false);
+
   const [sellerName, setSellerName] = useState('');
   const [sellerDescription, setSellerDescription] = useState('');
   const [sellerLocation, setSellerLocation] = useState('');
@@ -101,11 +102,11 @@ export default function UserEditScreen() {
 
             setIsAdmin(data.isAdmin);
             setIsSeller(data.isSeller);
+            setIsApproved(data.isApproved)
             setIsDeliveryMan(data.isDeliveryMan);
             setIsBanned(data.isBanned);
 
             if (data.isSeller) {
-                console.log(data.seller.docType)
                 setIsSeller(data.isSeller);
                 setSellerName(data.seller.name);
                 setSellerLogo(data.seller.logo);
@@ -168,7 +169,7 @@ export default function UserEditScreen() {
     try{
         dispatch({type: 'UPDATE_REQUEST'})
        const {data}= await axios.put(`/api/users/${userId}`,
-        {_id: userId, name, email, isAdmin, isBanned, isDeliveryMan, isSeller},
+        {_id: userId, name, email, isAdmin, isBanned, isDeliveryMan, isSeller, isApproved},
         {headers: {Authorization: `Bearer ${userInfo.token}`}})
         dispatch({type: 'UPDATE_SUCCESS'})
         toast.success(data.message)
@@ -209,7 +210,11 @@ export default function UserEditScreen() {
 
             <Form.Check className='mb-3' type="checkbox" id="isSeller"
             label="É Vendedor?" checked={isSeller}
-            onChange={(e)=>setIsSeller(e.target.checked)}></Form.Check>        
+            onChange={(e)=>setIsSeller(e.target.checked)}></Form.Check>   
+
+            <Form.Check className='mb-3' type="checkbox" id="isApproved"
+            label="Foi Aprovado como Vendedor?" checked={isApproved}
+            onChange={(e)=>setIsApproved(e.target.checked)}></Form.Check>        
 
             <Form.Check className='mb-3' type="checkbox" id="isDeliveryMan"
             label="É Entregador?" checked={isDeliveryMan}

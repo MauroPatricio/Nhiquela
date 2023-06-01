@@ -164,7 +164,7 @@ export default function ProductListSellerScreen() {
             alt={product.name}
           ></img></td>
                     <td>{product.name}</td>
-                    <td>{product.price} Mt</td>
+                    <td>{product.price} MT</td>
                     <td>{product.category.name}</td>
                     <td>
                         <Button type="button" variant='light'

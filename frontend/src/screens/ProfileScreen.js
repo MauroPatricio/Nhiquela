@@ -29,6 +29,17 @@ const reducer = (state, action) => {
     case 'FETCH_FAIL':
       return { ...state, loading: false, error: action.payload };
 
+
+      case 'FETCH_USER_REQUEST':
+        return { ...state, loadingUser: true };
+  
+      case 'FETCH_USER_SUCCESS':
+        return { ...state, loadingUser: false, user: action.payload};
+  
+      case 'FETCH_USER_FAIL':
+        return { ...state, loadingUser: false, error: action.payload };
+
+
       case 'FETCH_REQUEST_PROVINCE':
         return { ...state, loading: true };
   
@@ -88,7 +99,7 @@ export default function ProfileScreen() {
   const [closetime, setClosetime] = useState('');
 
 
-  const [{ loadingUpdate, loadingUpload,documentTypes, provinces }, dispatch] = useReducer(reducer, {
+  const [{ loadingUpdate, loadingUpload,documentTypes, provinces, loadingUser, user }, dispatch] = useReducer(reducer, {
     loadingUpdate: false,
   });
 
@@ -128,26 +139,42 @@ export default function ProfileScreen() {
       toast.error(getError(er));
     }
   };
-  useEffect(() => {
-    if (userInfo.isSeller) {
-      setIsSeller(userInfo.isSeller);
-      setSellerName(userInfo.seller.name);
-      setSellerLogo(userInfo.seller.logo);
-      setSellerDescription(userInfo.seller.description);
-      setSellerDocument(userInfo.seller.docType);
-      setSellerDocumentNumber(userInfo.seller.docNumber);
-      setSellerFrontImgDoc(userInfo.seller.frontDocImg);
-      setSellerBackImgDoc(userInfo.seller.backDocImg);
-      setSellerLocation(userInfo.seller.province);
-      setSellerAddress(userInfo.seller.address);
-      setOpentime(userInfo.seller.opentime);
-      setClosetime(userInfo.seller.closetime);
+  useEffect(  () => {
 
+    async function fetchData (){
+
+
+      dispatch({ type: 'FETCH_USER_REQUEST' });
+      try{
+        const { data } = await axios.get(`api/users/${userInfo._id}`);
+        
+        dispatch({ type: 'FETCH_USER_SUCCESS' , payload: data});
+    
+        if (userInfo.isSeller && data) {
+          setIsSeller(true);
+          setSellerName(data.seller.name);
+          setSellerLogo(data.seller.logo);
+          setSellerDescription(data.seller.description);
+          setSellerDocument(data.seller.docType._id);
+          setSellerDocumentNumber(data.seller.docNumber);
+          setSellerFrontImgDoc(data.seller.frontDocImg);
+          setSellerBackImgDoc(data.seller.backDocImg);
+          setSellerLocation(data.seller.province._id);
+          setSellerAddress(data.seller.address);
+          setOpentime(data.seller.opentime);
+          setClosetime(data.seller.closetime);
+    
+        }
+        if (data.isDeliveryMan) {
+          //   setDeliveryName(userInfo.deliveryMan.name)
+        }
+  
+      }catch(e){
+        dispatch({ type: 'FETCH_USER_FAIL', payload: getError(e) });
+      }
     }
-    if (userInfo.isDeliveryMan) {
-      //   setDeliveryName(userInfo.deliveryMan.name)
-    }
-  }, [dispatch, userInfo]);
+    fetchData();
+  }, [userInfo]);
 
 
 

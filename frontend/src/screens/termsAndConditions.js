@@ -1,7 +1,7 @@
 import React from 'react'
 
-export default function termsAndConditions() {
+export default function TermsAndConditions() {
   return (
-    <div>termsAndConditions</div>
+    <div>TermsAndConditions</div>
   )
 }

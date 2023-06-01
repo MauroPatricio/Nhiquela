@@ -103,6 +103,7 @@ export default function UserListScreen() {
               <th>Nome</th>
               <th>Número de telefone</th>
               <th>É Vendedor?</th>
+              <th>Foi aprovado?</th>
               <th>É Administrador?</th>
               <th>É Entregador?</th>
               <th>Foi Banido?</th>
@@ -116,6 +117,8 @@ export default function UserListScreen() {
                 <td>{u.name}</td>
                 <td>{u.phoneNumber}</td>
                 <td>{u.isSeller? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
+                <td>{u.isApproved? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
+
                 <td>{u.isAdmin?  <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
                 <td>{u.isDeliveryMan?  <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
                 <td>{u.isBanned?  <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>

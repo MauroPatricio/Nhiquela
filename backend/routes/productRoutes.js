@@ -2,24 +2,27 @@ import express, { query } from 'express';
 import Product from '../models/ProductModel.js';
 import expressAsyncHandler from 'express-async-handler';
 import { isAdmin, isAuth, isSeller, isSellerOrAdmin } from '../utils.js';
+import User from '../models/UserModel.js';
 
 const productRoutes = express.Router();
 
 // All Products
 productRoutes.get('/', async (req, res) => {
-
      try{
           const seller = req.query.seller || '';
           const page = req.query.page || 1;
           const pageSize = 10
 
           const sellerFilter = seller? {seller}: {};
-          const countProducts = await Product.countDocuments({...sellerFilter});
 
-          const products = await Product.find({...sellerFilter}).populate('seller category province').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1}); 
-          
+          const countProducts = await Product.countDocuments({...sellerFilter, isActive:true});
+
+          const products = await Product.find({...sellerFilter, isActive:true}).populate(  [  { path: 'seller'},
+          { path: 'category' }, { path: 'province' }]).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+
          const  pages = Math.ceil(countProducts/pageSize);
-          res.send({products, pages: pages});
+
+         res.send({products, pages: pages});
      }catch(e){
           res.status(500).send({message: 'Ops... Não consegui me conectar ao servidor '});
 
@@ -28,7 +31,7 @@ productRoutes.get('/', async (req, res) => {
 
 // Put 
 productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
-  
+
      const productId = req.params.id;
      const product = await Product.findById(productId);
      if(product){
@@ -53,7 +56,7 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 
  // delete
  productRoutes.delete('/:id',isAuth,expressAsyncHandler( async (req, res) => {
-     
+
      const productId = req.params.id;
      const product = await Product.findById(productId);
      if(product){
@@ -71,10 +74,13 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 
 // Post 
 productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
+
      if(!req.body.image){
           res.status(404).send({message: 'A imagem do produto é obrigatória'});
           return
      }
+     const user = await User.findById( req.user._id);
+
      const newProduct = new Product({
           name: req.body.name,
           slug: req.body.slug,
@@ -90,8 +96,8 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           numReviews: req.body.numReviews,
           description: req.body.description,
           onSale: req.body.onSale,
-          onSalePercentage: req.body.onSalePercentage
-
+          onSalePercentage: req.body.onSalePercentage,
+          isActive: user.isApproved
      });
 
      if(req.body.onSale){  
@@ -166,14 +172,18 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
      ...priceFilter,
      ...ratingFilter,
      ...provinceFilter,
+     isActive: true
    } ).populate('seller category seller.province province').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
+
+
+//    const products = allProducts.filter((product)=>product.seller&&product.seller.isApproved===true);
 
     const countProducts = await Product.countDocuments(
      {...queryFilter,
      ...categoryFilter,
      ...provinceFilter,
      ...priceFilter,
-     ...ratingFilter});
+     ...ratingFilter, isActive: true});
     
      res.send({products, countProducts, page, pages: Math.ceil(countProducts/pageSize)});
 }));
@@ -197,15 +207,15 @@ expressAsyncHandler(async (req, res)=>{
      const page = query.pag || 1;
      const pageSize = query.pageSize || PAGE_SIZE;
 
-     const products = await Product.find().populate('category').skip(pageSize * (page -1)).limit(10);
+     const products = await Product.find().populate('category seller').skip(pageSize * (page -1)).limit(10);
      
-     const countProducts = await Product.countDocuments();
+     const countProducts = await Product.countDocuments({ isActive:true});
      res.send({products, countProducts, page, pages: Math.ceil(countProducts/10)})
 }));
 
 productRoutes.get('/categories',async (req, res)=>{
   
-     const categories = await Product.find().distinct('category');
+     const categories = await Product.find({ isActive: true}).populate('seller').distinct('category');
      if(categories){
           res.send(categories);
      }else{

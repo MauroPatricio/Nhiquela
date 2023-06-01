@@ -127,8 +127,16 @@ userRouter.put(
       user.isSeller = Boolean(req.body.isSeller);
       user.isBanned = Boolean(req.body.isBanned);
       user.isDeliveryMan = Boolean(req.body.isDeliveryMan);
+      user.isApproved = Boolean(req.body.isApproved);
 
       if(user.isBanned){
+        user.isApproved=false;
+         await Product.deleteMany({ seller: user._id });
+      }
+
+      if(user.isApproved){
+        user.isBanned=false;
+        await Product.updateMany({ seller: user._id }, { $set: { isActive: user.isApproved } });
       }
 
       await user.save();
@@ -153,13 +161,14 @@ userRouter.post(
       if (bcrypt.compareSync(req.body.password, user.password)) {
         res.send({
           _id: user._id,
-          name: user.name,
           email: user.email,
-          phoneNumber: user.phoneNumber,
           isAdmin: user.isAdmin,
-          isSeller: user.isSeller,
-          isDeliveryMan: user.isDeliveryMan,
+          isApproved: user.isApproved,
           isBanned: user.isBanned,
+          isDeliveryMan: user.isDeliveryMan,
+          isSeller: user.isSeller,
+          name: user.name,
+          phoneNumber: user.phoneNumber,
           seller: user.seller,
           token: generateToken(user),
         });

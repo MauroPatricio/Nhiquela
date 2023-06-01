@@ -1,7 +1,5 @@
 import React from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FaFacebookF } from "react-icons/fa";
-import { FaTwitter } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa";
 import { FaYoutube } from "react-icons/fa";
@@ -67,13 +65,13 @@ export default function Footer() {
 
               />
           <p>
-            <Link to="/howtobeseller" className="text-white">Como tornar-se vendedor</Link>
+            <Link to="/howtobeseller" className="text-white link-none">Como tornar-se vendedor</Link>
           </p>
           <p>
-            <Link to="/terms" className="text-white">Termos de uso e condições</Link>
+            <Link to="/terms" className="text-white link-none">Termos de uso e condições</Link>
           </p>
           <p>
-            <Link to="/help" className="text-white">Como podemos ajudar?</Link>
+            <Link to="/help" className="text-white link-none">Como podemos ajudar?</Link>
           </p>
         </div>
 

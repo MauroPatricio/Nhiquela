@@ -312,7 +312,7 @@ export default function ProductEditScreen() {
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="countInStock">
-              <Form.Label>Quantidade Disponível</Form.Label>
+              <Form.Label>Quantidade disponível</Form.Label>
               <Form.Control
                 type="number"
                 value={countInStock}
