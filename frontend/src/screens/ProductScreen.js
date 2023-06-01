@@ -233,7 +233,7 @@ function ProductScreen() {
                   <Row>
                     <Col>Estado</Col>
                     <Col>
-                      {product.countInStock > 0 ? (
+                      {product.countInStock > 0 && product.seller!== null ? (
                         <Badge bg="success">Disponível</Badge>
                       ) : (
                         <Badge bg="danger">Indisponível</Badge>
@@ -242,7 +242,7 @@ function ProductScreen() {
                   </Row>
                 </ListGroup.Item>
                 <p></p>
-                {product.countInStock > 0 && (
+                {product.countInStock > 0 && product.seller && (
                   <div className="d-grid">
                     <Button className='customButtom' variant='light' onClick={addOnCartHandler}  >
                       Colocar no carrinho
