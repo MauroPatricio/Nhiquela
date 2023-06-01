@@ -82,7 +82,7 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p><i className="fas fa-home mr-3"></i> Moçambique, Maputo cidade</p>
+          <p><i className="fas fa-home mr-3"></i> Moçambique, Maputo Cidade</p>
           <p><i className="fas fa-envelope mr-3"></i> deliveryshop@example.com</p>
           <p><i className="fas fa-phone mr-3"></i> +258 82 00 00 000<br/>
            <i className="fas fa-print mr-3"></i> +258 84 00 00 000<br/>

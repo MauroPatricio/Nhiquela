@@ -198,7 +198,7 @@ function App() {
           <Row>
             <Col className="bg-color-row">
 
-        <p className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo cidade e província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 17:30</b></p>
+        <p className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b></p>
             </Col>
 
           </Row>
