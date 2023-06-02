@@ -45,7 +45,9 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
       product.brand = req.body.brand;
       product.countInStock = req.body.countInStock;
       product.description = req.body.description;
-            product.save()
+      product.qualityType = req.body.qualityTyp;
+      product.conditionStatus = req.body.conditionStatu;
+      product.save();
 
       res.send({message: 'Produto Actualizado com Sucesso'});
      }else{
@@ -97,6 +99,8 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           description: req.body.description,
           onSale: req.body.onSale,
           onSalePercentage: req.body.onSalePercentage,
+          qualityType :req.body.qualityTyp,
+          conditionStatus : req.body.conditionStatu,
           isActive: user.isApproved
      });
 

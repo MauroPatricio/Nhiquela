@@ -75,6 +75,28 @@ const reducer = (state, action) => {
       case 'PROVINCES_FAIL':
         return { ...state, loadingProvinces: false };
 
+
+        case 'CONDITION_STATUS_REQUEST':
+          return { ...state, loadingConditionStatus: true };
+    
+        case 'CONDITION_STATUS_SUCCESS':
+          return { ...state, loadingConditionStatus: false, conditionStatus: action.payload.conditionStatus };
+    
+        case 'CONDITION_STATUS_FAIL':
+          return { ...state, error: action.payload, loadingConditionStatus: false };
+  
+  
+          case 'QUALITY_TYPE_REQUEST':
+            return { ...state, loadingQuality: true };
+      
+          case 'QUALITY_TYPE_SUCCESS':
+            return { ...state, loadingQuality: false, qualityTypes: action.payload.qualityTypes };
+      
+          case 'QUALITY_TYPE_FAIL':
+            return { ...state, error: action.payload, loadingQuality: false };
+    
+  
+
     default:
       return state;
   }
@@ -88,7 +110,7 @@ export default function ProductEditScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingUpdate, loadingUpload, categories, provinces },
+    { loading, error, loadingCreate, loadingUpload, loadingUpdate, categories, loadingConditionStatus, loadingQuality,conditionStatus, qualityTypes, provinces },
     dispatch,
   ] = useReducer(reducer, { loading: true, error: '', categories: [] });
 
@@ -104,6 +126,9 @@ export default function ProductEditScreen() {
   const [countInStock, setCountInStock] = useState('');
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
+
+  const [conditionStatu, setConditionStatu] = useState('');
+  const [qualityTyp, setQualityTyp] = useState('');
 
   const [onSale, setOnSale] = useState(false);
 
@@ -128,13 +153,52 @@ export default function ProductEditScreen() {
         setBrand(data.brand);
         setDescription(data.description);
         setOnSale(data.onSale);
-        setOnSalePercentage(data.onSalePercentage)
+        setOnSalePercentage(data.onSalePercentage);
+        setConditionStatu(data.conditionStatus);
+        setQualityTyp(data.qualityType);
+
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: err });
       }
     };
     fetchData();
   }, [productId, userInfo]);
+
+
+
+  
+  useEffect(() => {
+    dispatch({ type: 'CONDITION_STATUS_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/conditionstatus');
+        dispatch({ type: 'CONDITION_STATUS_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'CONDITION_STATUS_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [conditionStatus]);
+
+
+  useEffect(() => {
+    dispatch({ type: 'QUALITY_TYPE_REQUEST' });
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/qualitytype');
+        dispatch({ type: 'QUALITY_TYPE_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'QUALITY_TYPE_FAIL', payload: getError(err) });
+      }
+    };
+    if(loadingQuality){
+
+      fetchData();
+    }
+    
+  }, [loadingQuality]);
+
 
   useEffect(() => {
     dispatch({ type: 'CATEGORIES_REQUEST' });
@@ -185,7 +249,9 @@ export default function ProductEditScreen() {
           brand,
           description,
           onSale,
-          onSalePercentage
+          onSalePercentage,
+          conditionStatu,
+          qualityTyp,
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -193,7 +259,7 @@ export default function ProductEditScreen() {
       );
       dispatch({ type: 'UPDATE_SUCCESS' });
       toast.success('Producto Actualizado com Sucesso');
-      navigate('/admin/productlist');
+      navigate('/productlist/seller');
     } catch (err) {
       toast.error(getError(err));
       dispatch({ type: 'UPDATE_FAIL' });
@@ -338,6 +404,47 @@ export default function ProductEditScreen() {
               checked={onSale}
               onChange={(e) => setOnSale(e.target.checked)}
             ></Form.Check>
+
+
+            
+<Form.Group className="mb-3">
+              <Form.Label>Qualidade</Form.Label>
+              <Form.Select
+                required
+                aria-label="Qualidade"
+                value={qualityTyp}
+                onChange={(e) => setQualityTyp(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {qualityTypes &&
+                  qualityTypes.map((quality) => (
+                    <option key={quality._id} value={quality._id}>
+                      {quality.name}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+
+
+            <Form.Group className="mb-3">
+              <Form.Label>Estado de uso</Form.Label>
+              <Form.Select
+                required
+                aria-label="Estado de Uso"
+                value={conditionStatu}
+                onChange={(e) => setConditionStatu(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {conditionStatus &&
+                  conditionStatus.map((condition) => (
+                    <option key={condition._id} value={condition._id}>
+                      {condition.name}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+
+
 
             {onSale && (
               <Form.Group className="mb-3" controlId="percentagem">

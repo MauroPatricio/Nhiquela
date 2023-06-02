@@ -25,6 +25,29 @@ const reducer = (state, action) => {
     case 'CREATE_FAIL':
       return { ...state, error: action.payload, loadingCreate: false };
 
+
+
+      case 'CONDITION_STATUS_REQUEST':
+        return { ...state, loadingConditionStatus: true };
+  
+      case 'CONDITION_STATUS_SUCCESS':
+        return { ...state, loadingConditionStatus: false, conditionStatus: action.payload.conditionStatus };
+  
+      case 'CONDITION_STATUS_FAIL':
+        return { ...state, error: action.payload, loadingConditionStatus: false };
+
+
+        case 'QUALITY_TYPE_REQUEST':
+          return { ...state, loadingQuality: true };
+    
+        case 'QUALITY_TYPE_SUCCESS':
+          return { ...state, loadingQuality: false, qualityTypes: action.payload.qualityTypes };
+    
+        case 'QUALITY_TYPE_FAIL':
+          return { ...state, error: action.payload, loadingQuality: false };
+  
+
+
     case 'UPLOAD_REQUEST':
       return { ...state, loadingUpload: true };
 
@@ -69,7 +92,7 @@ export default function ProductCreateScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingCreate, loadingUpload, categories, loadingProvinces, provinces },
+    { loading, error, loadingCreate, loadingUpload, categories, loadingConditionStatus, loadingQuality,conditionStatus, qualityTypes, provinces },
     dispatch,
   ] = useReducer(reducer, { loading: false, error: '' });
 
@@ -87,6 +110,10 @@ export default function ProductCreateScreen() {
   const [countInStock, setCountInStock] = useState('');
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
+
+  const [conditionStatu, setConditionStatu] = useState('');
+  const [qualityTyp, setQualityTyp] = useState('');
+
 
   const [onSale, setOnSale] = useState(false);
   const [onSalePercentage, setOnSalePercentage] = useState(0);
@@ -108,7 +135,6 @@ export default function ProductCreateScreen() {
 
   useEffect(() => {
     dispatch({ type: 'PROVINCES_REQUEST' });
-
     const fetchData = async () => {
       try {
         const { data } = await axios.get('/api/provinces');
@@ -119,6 +145,39 @@ export default function ProductCreateScreen() {
     };
     fetchData();
   }, [provinces]);
+
+
+  useEffect(() => {
+    dispatch({ type: 'CONDITION_STATUS_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/conditionstatus');
+        dispatch({ type: 'CONDITION_STATUS_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'CONDITION_STATUS_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [conditionStatus]);
+
+
+  useEffect(() => {
+    dispatch({ type: 'QUALITY_TYPE_REQUEST' });
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/qualitytype');
+        dispatch({ type: 'QUALITY_TYPE_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'QUALITY_TYPE_FAIL', payload: getError(err) });
+      }
+    };
+    if(loadingQuality){
+
+      fetchData();
+    }
+    
+  }, [loadingQuality]);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -140,6 +199,8 @@ export default function ProductCreateScreen() {
           description,
           rating,
           numReviews,
+          conditionStatu,
+          qualityTyp,
           onSale,
           onSalePercentage,
         },
@@ -268,7 +329,7 @@ export default function ProductCreateScreen() {
 
 
             <Form.Group className="mb-3" controlId="countInStock">
-              <Form.Label>Quantidade Disponível</Form.Label>
+              <Form.Label>Quantidade disponível</Form.Label>
               <Form.Control
                 type="number"
                 value={countInStock}
@@ -285,6 +346,47 @@ export default function ProductCreateScreen() {
                 required
               />
             </Form.Group>
+
+
+
+            <Form.Group className="mb-3">
+              <Form.Label>Qualidade</Form.Label>
+              <Form.Select
+                required
+                aria-label="Qualidade"
+                value={qualityTyp}
+                onChange={(e) => setQualityTyp(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {qualityTypes &&
+                  qualityTypes.map((quality) => (
+                    <option key={quality._id} value={quality._id}>
+                      {quality.name}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+
+
+            <Form.Group className="mb-3">
+              <Form.Label>Estado de uso</Form.Label>
+              <Form.Select
+                required
+                aria-label="Estado de Uso"
+                value={conditionStatu}
+                onChange={(e) => setConditionStatu(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {conditionStatus &&
+                  conditionStatus.map((condition) => (
+                    <option key={condition._id} value={condition._id}>
+                      {condition.name}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+
+
 
             <Form.Check
               className="mb-3"
