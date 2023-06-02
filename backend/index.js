@@ -12,6 +12,8 @@ import categoryRouter from './routes/categoryRoutes.js';
 import path from 'path';
 import provinceRoutes from './routes/provinceRoutes.js';
 import documentTypeRoutes from './routes/documentTypeRoutes.js';
+import qualityTypeRouter from './routes/qualityTypeRoutes.js';
+import conditionStatusRouter from './routes/conditionStatusRoutes.js';
 // Carregando o ficheiro .env
 dotenv.config();
 
@@ -44,6 +46,8 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/provinces', provinceRoutes);
 app.use('/api/documents', documentTypeRoutes);
+app.use('/api/qualitytype', qualityTypeRouter);
+app.use('/api/conditionstatus', conditionStatusRouter);
 
 
 const __dirname = path.resolve();

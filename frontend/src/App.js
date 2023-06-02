@@ -62,6 +62,12 @@ import Footer from './components/Footer';
 import Help from './screens/Help';
 import HowToBeSeller from './screens/HowToBeSeller';
 import Terms from './screens/Terms';
+import QualityTypeListScreen from './screens/QualityTypeListScreen';
+import QualityTypeCreateScreen from './screens/QualityTypeCreateScreen';
+import QualityTypeEditScreen from './screens/QualityTypeEditScreen';
+import ConditionStatusCreateScreen from './screens/ConditionStatusCreateScreen';
+import ConditionStatusEditScreen from './screens/ConditionStatusEditScreen';
+import ConditionStatusListScreen from './screens/ConditionStatusListScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -158,6 +164,12 @@ function App() {
                       </LinkContainer>
                       <LinkContainer to="/categoryList">
                         <NavDropdown.Item>Categorias</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/conditionstatusList">
+                        <NavDropdown.Item>Condição de uso do produto</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/qualitytypeList">
+                        <NavDropdown.Item>Qualidade do Produto</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/admin/productlist">
                         <NavDropdown.Item>Produtos</NavDropdown.Item>
@@ -278,6 +290,62 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <CategoryListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+            <Route
+                path="/qualitytypeList/"
+                element={
+                  <ProtectedRoute>
+                    <QualityTypeListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+<Route
+                path="/qualitytype/create"
+                element={
+                  <ProtectedRoute>
+                    <QualityTypeCreateScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+<Route
+                path="/qualitytype/:id"
+                element={
+                  <ProtectedRoute>
+                    <QualityTypeEditScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+<Route
+                path="/conditionstatusList/"
+                element={
+                  <ProtectedRoute>
+                    <ConditionStatusListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+<Route
+                path="/conditionstatus/create"
+                element={
+                  <ProtectedRoute>
+                    <ConditionStatusCreateScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+<Route
+                path="/conditionstatus/:id"
+                element={
+                  <ProtectedRoute>
+                    <ConditionStatusEditScreen />
                   </ProtectedRoute>
                 }
               />
