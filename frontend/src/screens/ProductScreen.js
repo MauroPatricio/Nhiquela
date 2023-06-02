@@ -182,7 +182,7 @@ function ProductScreen() {
             alt={product.name}
           ></img>
         </Col>
-
+      {console.log(product)}
         <Col md={4}>
           <ListGroup variant="flush">
             <ListGroup.Item>
@@ -205,10 +205,15 @@ function ProductScreen() {
              <b> {product.seller && product.seller.seller && product.seller.seller.name}</b>
               </Link></ListGroup.Item>
 
+            
+            <ListGroup.Item>Designação: {product.qualityType.name} </ListGroup.Item>
+
+            <ListGroup.Item>Estado: {product.conditionStatus.name} </ListGroup.Item>
+
             <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 
             <ListGroup.Item>Preço: {product.price} MT</ListGroup.Item>
-
+            
             <ListGroup.Item>
               Descrição do Produto:
               <Form.Control

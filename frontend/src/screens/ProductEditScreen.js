@@ -396,18 +396,10 @@ export default function ProductEditScreen() {
                 required
               />
             </Form.Group>
-            <Form.Check
-              className="mb-3"
-              type="checkbox"
-              id="isOnSale"
-              label="Em Promoção?"
-              checked={onSale}
-              onChange={(e) => setOnSale(e.target.checked)}
-            ></Form.Check>
 
 
             
-<Form.Group className="mb-3">
+            <Form.Group className="mb-3">
               <Form.Label>Qualidade</Form.Label>
               <Form.Select
                 required
@@ -443,6 +435,18 @@ export default function ProductEditScreen() {
                   ))}
               </Form.Select>
             </Form.Group>
+
+
+            <Form.Check
+              className="mb-3"
+              type="checkbox"
+              id="isOnSale"
+              label="Em Promoção?"
+              checked={onSale}
+              onChange={(e) => setOnSale(e.target.checked)}
+            ></Form.Check>
+
+
 
 
 

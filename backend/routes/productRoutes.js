@@ -18,7 +18,7 @@ productRoutes.get('/', async (req, res) => {
           const countProducts = await Product.countDocuments({...sellerFilter, isActive:true});
 
           const products = await Product.find({...sellerFilter, isActive:true}).populate(  [  { path: 'seller'},
-          { path: 'category' }, { path: 'province' }]).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+          { path: 'category' }, { path: 'province' },  { path: 'qualityType' },  { path: 'conditionStatus' }]).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
          const  pages = Math.ceil(countProducts/pageSize);
 
@@ -177,7 +177,7 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
      ...ratingFilter,
      ...provinceFilter,
      isActive: true
-   } ).populate('seller category seller.province province').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
+   } ).populate('seller category seller.province province conditionStatus qualityType').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
 
 
 //    const products = allProducts.filter((product)=>product.seller&&product.seller.isApproved===true);
@@ -195,7 +195,7 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
 // Products by slug
 productRoutes.get('/slug/:slug',async (req, res)=>{
   
-  const product = await Product.findOne({slug:req.params.slug}).populate('seller category').sort({'reviews.createdAt': -1});
+  const product = await Product.findOne({slug:req.params.slug}).populate('seller category conditionStatus qualityType').sort({'reviews.createdAt': -1});
   if(product){
        res.send(product);
   }else{
@@ -211,7 +211,7 @@ expressAsyncHandler(async (req, res)=>{
      const page = query.pag || 1;
      const pageSize = query.pageSize || PAGE_SIZE;
 
-     const products = await Product.find().populate('category seller').skip(pageSize * (page -1)).limit(10);
+     const products = await Product.find().populate('category seller conditionStatus qualityType').skip(pageSize * (page -1)).limit(10);
      
      const countProducts = await Product.countDocuments({ isActive:true});
      res.send({products, countProducts, page, pages: Math.ceil(countProducts/10)})

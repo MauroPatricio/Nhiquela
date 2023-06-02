@@ -153,7 +153,7 @@ export default function CategoriesFilter() {
         <FontAwesomeIcon icon={faPlus}  className='show-close-button' onClick={handleToggleMaximized} style={{marginLeft: '255px'}}></FontAwesomeIcon>
 
       </Card.Header>}
-      {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}}>Categorias</h6>}
+      {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}} onClick={handleToggleMaximized}  >Filtros de Pesquisa</h6>}
         {showComponent && 
         <Card.Body>
             <h6>Categorias</h6>
