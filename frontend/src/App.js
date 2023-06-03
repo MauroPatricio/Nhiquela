@@ -106,10 +106,26 @@ function App() {
                 </Navbar.Brand>
               </LinkContainer>
               <SearchBox />
+              
               <Navbar.Toggle
                  onClick={toggleExpanded}
                 aria-controls="basic-navbar-nav"
               />
+              <Link to="/cart" className="nav-link black-icon hide-icon-screen">
+                    <FontAwesomeIcon icon={faCartShopping}></FontAwesomeIcon>
+                    {cart.cartItems.length > 0 && (
+                      <Badge
+                        bg="danger"
+                        variant="danger"
+                        className="cart-number"
+                      >
+                        {cart.cartItems.reduce(
+                          (prev, current) => prev + current.quantity,
+                          0
+                        )}
+                      </Badge>
+                    )}
+                  </Link>
               <Navbar.Collapse  id="collapse basic-navbar-nav">
                 <Nav  className="mr-auto nav-cart w-100 justify-content-end">
                   {userInfo ? (
@@ -184,9 +200,10 @@ function App() {
                         <NavDropdown.Item>Suporte</NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
-                  )}
 
-                  <Link to="/cart" className="nav-link">
+                    
+                  )}
+                  <Link to="/cart" className="nav-link  hide-cart">
                     <FontAwesomeIcon icon={faCartShopping}></FontAwesomeIcon>
                     {cart.cartItems.length > 0 && (
                       <Badge
@@ -203,6 +220,7 @@ function App() {
                   </Link>
                 </Nav>
               </Navbar.Collapse>
+              
             </Container>
           </Navbar>
         </header>

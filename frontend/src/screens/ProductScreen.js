@@ -182,7 +182,6 @@ function ProductScreen() {
             alt={product.name}
           ></img>
         </Col>
-      {console.log(product)}
         <Col md={4}>
           <ListGroup variant="flush">
             <ListGroup.Item>
@@ -206,9 +205,9 @@ function ProductScreen() {
               </Link></ListGroup.Item>
 
             
-            <ListGroup.Item>Designação: {product.qualityType.name} </ListGroup.Item>
+           {product.qualityType && <ListGroup.Item>Designação: {product.qualityType.name} </ListGroup.Item>}
 
-            <ListGroup.Item>Estado: {product.conditionStatus.name} </ListGroup.Item>
+           {product.conditionStatus &&<ListGroup.Item>Estado: {product.conditionStatus.name} </ListGroup.Item>}
 
             <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 

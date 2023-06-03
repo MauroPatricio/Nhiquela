@@ -54,7 +54,7 @@ export default function CarouselSlide() {
      {popularItems && <h3>Produtos em Destaque</h3>} 
     <Carousel showArrows infiniteLoop={true} autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
       {popularItems && popularItems.map((p) => (
-       <Link className="link" to={`/product/${p.slug}`}>
+       <Link className="link" to={`/product/${p.slug}`} key={p._id}>
         <div key={p._id}>
 
           <img className='img-carousel' src={p.image} alt={p.name} />

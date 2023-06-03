@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useReducer } from 'react';
+import React, { useContext, useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import LoadingBox from '../components/LoadingBox';
 import MessageBox from '../components/MessageBox';
@@ -14,6 +14,9 @@ import Button from 'react-bootstrap/Button';
 import { toast } from 'react-toastify';
 import Badge from 'react-bootstrap/Badge';
 import OrderSteps from '../components/OrdersSteps';
+
+
+import {Modal, Form} from 'react-bootstrap';
 
 function reducer(state, action) {
   switch (action.type) {
@@ -121,6 +124,29 @@ export default function OrderScreen() {
   const { id: orderId } = params;
   const navigate = useNavigate();
 
+
+
+
+  const [show, setShow] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleClose = () => {
+    setShow(false);
+    setMessage('');
+  };
+  const handleShow = () => setShow(true);
+
+  const handleInputChange = (e) => {
+    setMessage(e.target.value);
+  };
+
+  const handleSubmit = (e) => {
+    // Handle the submission of the message here
+    cancelOrderHandler(e);
+    handleClose();
+  };
+
+
   const [
     {
       loading,
@@ -188,7 +214,7 @@ export default function OrderScreen() {
       dispatch({ type: 'CANCEL_REQUEST' });
       const { data } = await axios.put(
         `/api/orders/${order._id}/cancel`,
-        {},
+        {message},
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
       dispatch({ type: 'CANCEL_SUCCESS', payload: data });
@@ -409,7 +435,7 @@ export default function OrderScreen() {
                     <Col>{order.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
-                {userInfo.isAdmin && (
+                { (
                   <>
                     <ListGroup.Item>
                       <Row>
@@ -479,6 +505,26 @@ export default function OrderScreen() {
             </Card.Body>
           </Card>
 }
+{order.status === 'Cancelado' &&
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Motivo de Cancelamento</Card.Title>
+              <ListGroup variant="flush">
+                <ListGroup.Item>
+                  <Row>
+                    <Col>
+                    <MessageBox variant="danger">
+
+                    {order.canceledReason}    
+                    </MessageBox>
+          
+                       </Col>
+                       </Row>
+                </ListGroup.Item>
+              
+              </ListGroup>
+            </Card.Body>
+          </Card>}
           &nbsp;
           {(userInfo.isAdmin ||
             !userInfo.isDeliveryMan ||
@@ -492,13 +538,50 @@ export default function OrderScreen() {
                     className="customButtom"
                     variant="light"
                     type="button"
-                    onClick={cancelOrderHandler}
+                    onClick={handleShow}
                   >
                     Cancelar Pedido
                   </Button>
                 </div>
               </ListGroup.Item>
             )}
+
+
+
+
+
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Motivo de cancelamento do pedido</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Control
+            as="textarea"
+            rows={5}
+            type="text"
+            placeholder="Motivo..."
+            value={message}
+            onChange={handleInputChange}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Fechar
+          </Button>
+          <Button variant="primary" onClick={handleSubmit}>
+            Enviar
+          </Button>
+          </Modal.Footer>
+          </Modal>
+
+
+
+
+
+
+
+
+
           &nbsp;
           {(userInfo.isAdmin ||
             !userInfo.isDeliveryMan ||

@@ -51,6 +51,7 @@ const orderSchema = new mongoose.Schema(
     status:{type: String},
     code: {type: String},
     deleted: { type: Boolean, default: false },
+    canceledReason: { type: String}
   },
   {
     timestamps: true,

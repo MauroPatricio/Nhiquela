@@ -110,7 +110,7 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Endereço de Entrega</span>
+                <span>Dados de Entrega</span>
               </Card.Title>
               <Card.Text>
                 <strong>Nome Completo:</strong> {cart.address.fullName}

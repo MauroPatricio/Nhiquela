@@ -137,6 +137,11 @@ text-align: center;
 
 .collapse-open {
   margin-top: 50px;
+
+  .hide-cart{
+    display: none;
+  }
+ 
 }
 
 .floating-button {
@@ -155,10 +160,23 @@ table {
   text-align: center;
   color: #a435f0;
 }
+
+@media (min-width: 992px){
+
+  .hide-icon-screen{
+    display: none;
+  }
+}
+
+
 @media (max-width: 375px),
   (max-width: 393px),
   (max-width: 412px),
-  (max-width: 540px) {
+  (max-width: 540px), (max-width: 992px) {
+
+  .hide-cart{
+    display: none;
+  }
 
   table {
     display: block;

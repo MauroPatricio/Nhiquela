@@ -366,6 +366,7 @@ orderRouter.put(
       order.isCanceled = true;
       order.isAccepted = false;
       order.status = 'Cancelado';
+      order.canceledReason = req.body.message;
 
       await order.save();
       res.send({ message: `Pedido Cancelado com Sucesso` });
