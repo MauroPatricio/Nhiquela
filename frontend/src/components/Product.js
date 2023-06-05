@@ -32,10 +32,10 @@ function Product(props) {
     if(cartItems.length > 0 && product.seller._id !== cartItems[0].seller._id){
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
-        payload: `Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${product.seller.seller.name}`,
+        payload: `Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${cartItems[0].seller.seller.name}`,
       });
 
-      toast.error(`Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${product.seller.seller.name}`, {
+      toast.error(`Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${cartItems[0].seller.seller.name}`, {
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
@@ -89,7 +89,7 @@ function Product(props) {
               <br></br>
             </Link>
             <div className="price">
-              <b style={{color: 'green'}}>{product.price} Mt</b>
+              <b style={{color: '#a435f0'}}>{product.price} MT</b>
               {/* {product.onSale ? (
                 <>
                 &nbsp;

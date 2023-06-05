@@ -12,6 +12,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Badge from 'react-bootstrap/Badge';
 import Col from 'react-bootstrap/Col';
 import {faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import '@fortawesome/fontawesome-svg-core/styles.css';
+
+import { FaStar } from "react-icons/fa";
+import { FaStarHalf } from "react-icons/fa";
+import { FaRegStar } from "react-icons/fa";
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -140,8 +145,7 @@ export default function CategoryListScreen() {
             <tbody>
               {categories.map((c) => (
                 <tr key={c._id}>
-                  <td> {c.icon&&                    <FontAwesomeIcon icon={['fas', c.icon]} />
-} </td>
+                  <td> {c.icon&&<c.icon/>} </td>
                   <td>{c.name}</td>
                   <td>{c.description}</td>
                   <td>

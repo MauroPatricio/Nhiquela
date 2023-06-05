@@ -8,8 +8,13 @@ import Card from 'react-bootstrap/Card';
 import { useReducer } from 'react';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { fas } from '@fortawesome/free-solid-svg-icons';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
+import { FaStar } from "react-icons/fa";
+import { FaStarHalf } from "react-icons/fa";
+import { FaRegStar } from "react-icons/fa";
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -52,6 +57,7 @@ export default function CategoriesFilter() {
   const [showHeader, setShowHeader] = useState(true);
 
 
+  library.add(fas);
 
 
   const [{ categories, loadingCategories, provinces, loadingProvinces}, dispatch] = useReducer(reducer, {
@@ -175,7 +181,7 @@ export default function CategoriesFilter() {
                     }
                     to={getFilterUrl({ category: c._id })}
                   >
-                    {c.name}
+                    <FontAwesomeIcon icon={c.icon}></FontAwesomeIcon>{' '}{c.name}
                   </Link>
                 </li>
               ))}

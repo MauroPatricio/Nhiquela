@@ -10,7 +10,8 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCoffee, faUser, faEnvelope } from '@fortawesome/free-solid-svg-icons';
-
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { fas } from '@fortawesome/free-solid-svg-icons';
 
 import Container from 'react-bootstrap/Container';
 import { Store } from '../Store';
@@ -39,10 +40,14 @@ export default function CategoryCreateScreen() {
 
     const [{loading, error, loadingCreate}, dispatch] = useReducer(reducer, {loading: false, error:''});
  
-    const [icon, setIcon] = useState(null);
+    const [iconName, setIconName] = useState('');
+    const [iconType, setIconType] = useState('fas');    
+    const [icon, setIcon] = useState(null);    
+
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
 
+    library.add(fas);
 
     
     const icons = [
@@ -78,6 +83,15 @@ export default function CategoryCreateScreen() {
     }
 
 
+    const handleInputChange = event => {
+        const { name, value } = event.target;
+        if (name === 'iconName') {
+          setIconName(value);
+        } else if (name === 'iconType') {
+          setIconType(value);
+        }
+      };
+
 return (
    <Container className='small-container'>
     <Helmet>
@@ -95,6 +109,23 @@ return (
             </option>
         ))}
         </select>
+
+
+        <label>
+        Icon Name:
+        <input
+          type="text"
+          name="iconName"
+          value={iconName}
+          onChange={handleInputChange}
+        />
+      </label>
+      <label>
+        Icon Type:
+        <select name="iconType" value={iconType} onChange={handleInputChange}>
+          <option value="fas">fas</option>
+        </select>
+      </label>
 
         <Form.Group className='mb-3' controlId='name'>
         <Form.Label>Nome</Form.Label>

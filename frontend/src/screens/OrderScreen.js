@@ -14,6 +14,7 @@ import Button from 'react-bootstrap/Button';
 import { toast } from 'react-toastify';
 import Badge from 'react-bootstrap/Badge';
 import OrderSteps from '../components/OrdersSteps';
+import { FaMoneyBillAlt } from "react-icons/fa";
 
 
 import {Modal, Form} from 'react-bootstrap';
@@ -471,16 +472,16 @@ export default function OrderScreen() {
             </Card.Body>
           </Card>
 
-          {order.status !== 'Cancelado' &&
+          {order.status !== 'Cancelado' && !order.isPaid &&
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Pagamento do Pedido</Card.Title>
+              <Card.Title>Pagamento do Pedido <FaMoneyBillAlt/></Card.Title>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
                     <Col>
                     {order.paymentMethod === 'Mpesa' &&
-                    !order.isPaid && (
+                     (
                       <MessageBox variant="">
                         Para efectuar o pagamento do seu pedido envie o valor {' '}
                         <b>{order.totalPrice} MT</b> para o número de conta/telefone <b>840000000</b>
@@ -491,7 +492,7 @@ export default function OrderScreen() {
                        <Row>
                        <Col>
                        {order.paymentMethod !== 'Mpesa' &&
-                    !order.isPaid && (
+                     (
                       <MessageBox variant="">
                                 Para efectuar o pagamento do seu pedido envie o valor {' '} 
                                 <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>870000000</b>
