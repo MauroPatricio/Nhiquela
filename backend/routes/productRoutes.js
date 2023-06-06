@@ -47,6 +47,9 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
       product.description = req.body.description;
       product.qualityType = req.body.qualityTyp;
       product.conditionStatus = req.body.conditionStatu;
+      product.color = req.body.color;
+      product.size = req.body.size;
+
       product.save();
 
       res.send({message: 'Produto Actualizado com Sucesso'});
@@ -101,6 +104,8 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           onSalePercentage: req.body.onSalePercentage,
           qualityType :req.body.qualityTyp,
           conditionStatus : req.body.conditionStatu,
+          color : req.body.color,
+          size : req.body.size,
           isActive: user.isApproved
      });
 
@@ -208,7 +213,7 @@ productRoutes.get('/admin',
 isAuth, 
 expressAsyncHandler(async (req, res)=>{
      const {query} = req;
-     const page = query.pag || 1;
+     const page = query.page || 1;
      const pageSize = query.pageSize || PAGE_SIZE;
 
      const products = await Product.find().populate('category seller conditionStatus qualityType').skip(pageSize * (page -1)).limit(10);
@@ -247,7 +252,7 @@ productRoutes.post('/:id/reviews',isAuth, expressAsyncHandler( async (req, res)=
      const product = await Product.findById(req.params.id);
      if(product){
           if(product.reviews.find((x)=>x.name === req.user.name)){
-               return res.status(400).send({message: 'Ja possui um comentário adicionado'})
+               return res.status(400).send({message: 'Já possui um comentário adicionado'})
           }
 
           const review = {

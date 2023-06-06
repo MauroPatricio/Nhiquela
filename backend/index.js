@@ -14,6 +14,8 @@ import provinceRoutes from './routes/provinceRoutes.js';
 import documentTypeRoutes from './routes/documentTypeRoutes.js';
 import qualityTypeRouter from './routes/qualityTypeRoutes.js';
 import conditionStatusRouter from './routes/conditionStatusRoutes.js';
+import colorRoutes from './routes/colorRoutes.js';
+import sizeRoutes from './routes/sizeRoutes.js';
 // Carregando o ficheiro .env
 dotenv.config();
 
@@ -48,6 +50,8 @@ app.use('/api/provinces', provinceRoutes);
 app.use('/api/documents', documentTypeRoutes);
 app.use('/api/qualitytype', qualityTypeRouter);
 app.use('/api/conditionstatus', conditionStatusRouter);
+app.use('/api/colors', colorRoutes);
+app.use('/api/sizes', sizeRoutes);
 
 
 const __dirname = path.resolve();

@@ -30,7 +30,7 @@ export default function Terms() {
                 <p>1.2. Informações ao Utilizador:</p>
                 <ul>
                     <li>Telefone: 210 944 941 / 912 306 978</li>
-                    <li>Endereço de correio eletrónico: apoiocliente@cidalia-cabeleireiros.com</li>
+                    <li>Endereço de correio eletrónico: apoiocliente@nhiquelashop.com</li>
                 </ul>
 
                 <p>2. Utilização do website</p>

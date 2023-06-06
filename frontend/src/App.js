@@ -68,6 +68,12 @@ import QualityTypeEditScreen from './screens/QualityTypeEditScreen';
 import ConditionStatusCreateScreen from './screens/ConditionStatusCreateScreen';
 import ConditionStatusEditScreen from './screens/ConditionStatusEditScreen';
 import ConditionStatusListScreen from './screens/ConditionStatusListScreen';
+import ColorListScreen from './screens/ColorListScreen';
+import SizeListScreen from './screens/SizeListScreen';
+import ColorCreateScreen from './screens/ColorCreateScreen';
+import SizeCreateScreen from './screens/SizeCreateScreen';
+import SizeEditScreen from './screens/SizeEditScreen';
+import ColorEditScreen from './screens/ColorEditScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -180,6 +186,12 @@ function App() {
                       </LinkContainer>
                       <LinkContainer to="/categoryList">
                         <NavDropdown.Item>Categorias</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/colorList">
+                        <NavDropdown.Item>Cores disponíveis</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/sizeList">
+                        <NavDropdown.Item>Tamanhos disponíveis</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/conditionstatusList">
                         <NavDropdown.Item>Condição de uso do produto</NavDropdown.Item>
@@ -313,6 +325,66 @@ function App() {
               />
 
 
+             <Route
+                path="/colorList/"
+                element={
+                  <ProtectedRoute>
+                    <ColorListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+            <Route
+                path="/sizeList/"
+                element={
+                  <ProtectedRoute>
+                    <SizeListScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+<Route
+                path="/size/:id"
+                element={
+                  <ProtectedRoute>
+                    <SizeEditScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+        <Route
+                path="/color/create"
+                element={
+                  <ProtectedRoute>
+                    <ColorCreateScreen/>
+                  </ProtectedRoute>
+                }
+              />
+
+
+          <Route
+                path="/color/:id"
+                element={
+                  <ProtectedRoute>
+                    <ColorEditScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+
+          <Route
+                path="/size/create"
+                element={
+                  <ProtectedRoute>
+                    <SizeCreateScreen/>
+                  </ProtectedRoute>
+                }
+              />
+
+
+
             <Route
                 path="/qualitytypeList/"
                 element={
@@ -386,7 +458,7 @@ function App() {
                 }
               />
 
-<Route
+        <Route
                 path="/document/:id"
                 element={
                   <ProtectedRoute>

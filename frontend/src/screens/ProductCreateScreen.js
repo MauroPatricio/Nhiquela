@@ -83,6 +83,26 @@ const reducer = (state, action) => {
       case 'PROVINCES_FAIL':
         return { ...state, loadingProvinces: false };
 
+
+        case 'COLORS_REQUEST':
+          return { ...state, loadColor: true };
+    
+        case 'COLORS_SUCCESS':
+          return { ...state, loadColor: false, colors: action.payload.colors };
+    
+        case 'COLORS_FAIL':
+          return { ...state, error: action.payload, loadColor: false };
+
+
+          case 'SIZES_REQUEST':
+            return { ...state, loadSize: true };
+      
+          case 'SIZES_SUCCESS':
+            return { ...state, loadSize: false, sizes: action.payload.sizes };
+      
+          case 'SIZES_FAIL':
+            return { ...state, error: action.payload, loadSize: false };
+
     default:
       return state;
   }
@@ -92,7 +112,7 @@ export default function ProductCreateScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingCreate, loadingUpload, categories, loadingConditionStatus, loadingQuality,conditionStatus, qualityTypes, provinces },
+    { loading, error, loadingCreate, loadingUpload, categories, colors,sizes, loadingQuality,conditionStatus, qualityTypes, provinces },
     dispatch,
   ] = useReducer(reducer, { loading: false, error: '' });
 
@@ -114,9 +134,16 @@ export default function ProductCreateScreen() {
   const [conditionStatu, setConditionStatu] = useState('');
   const [qualityTyp, setQualityTyp] = useState('');
 
+  const [size, setSize] = useState('');
+  const [selectedColors, setSelectedColors] =useState([]);
 
   const [onSale, setOnSale] = useState(false);
   const [onSalePercentage, setOnSalePercentage] = useState(0);
+
+  const [items, setItems] = useState([]);
+
+  const availableColors =[{_id: 1, name: 'red'}, {_id: 2, name:"blue"}, {_id: 3, name:"green"}, {_id: 4, name:"yellow"}];
+
 
   useEffect(() => {
     dispatch({ type: 'CATEGORIES_REQUEST' });
@@ -179,6 +206,52 @@ export default function ProductCreateScreen() {
     
   }, [loadingQuality]);
 
+
+  useEffect(() => {
+    dispatch({ type: 'SIZES_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/sizes');
+        dispatch({ type: 'SIZES_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'SIZES_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [sizes]);
+
+
+  useEffect(() => {
+    dispatch({ type: 'COLORS_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/colors');
+        dispatch({ type: 'COLORS_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'COLORS_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [colors]);
+
+
+
+  const addItem = (color) => {
+    console.log(color)
+    setItems([...colors, color]); // Add the new item to the items list
+  };
+
+  // Function to remove an item from the list
+  const removeItem = (index) => {
+    const updatedItems = [...items];
+    updatedItems.splice(index, 1); // Remove the item at the specified index
+    setItems(updatedItems); // Update the items list
+  };
+
+
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -203,6 +276,8 @@ export default function ProductCreateScreen() {
           qualityTyp,
           onSale,
           onSalePercentage,
+          size,
+          colors
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -241,6 +316,11 @@ export default function ProductCreateScreen() {
       dispatch({ type: 'UPLOAD_FAIL', payload: getError(err) });
     }
   };
+
+  // const setHandleColors = (color) => {
+  //   setColors(color); 
+  // };
+
 
   const deleteImageHandler = async (fileName) => {
     setImages(images.filter((x) => x !== fileName));
@@ -338,7 +418,7 @@ export default function ProductCreateScreen() {
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="price">
-              <Form.Label>Preço [Mt]</Form.Label>
+              <Form.Label>Preço [MT]</Form.Label>
               <Form.Control
                 type="number"
                 value={price}
@@ -346,6 +426,54 @@ export default function ProductCreateScreen() {
                 required
               />
             </Form.Group>
+
+
+            <Form.Group className="mb-3" controlId="countInStock">
+              <Form.Label>Cores disponíveis</Form.Label>
+              <Form.Select
+                required
+                aria-label="Cores"
+                // value={colors}
+                onChange={(e) => addItem(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {availableColors &&
+                  availableColors.map((color) => (
+                    <option key={color._id} value={color}>
+                      {color.name}
+                    </option>
+                  ))}
+              </Form.Select>
+           </Form.Group>
+           {/* <button onClick={addItem}>Adicionar Cor </button> */}
+                    {console.log(items)}
+           <ul>
+              {items.map((item, index) => (
+                <li key={index}>
+                  {item.name}
+                  <button onClick={() => removeItem(index)}>Remover cor</button>
+                </li>
+              ))}
+            </ul>
+
+           <Form.Group className="mb-3" controlId="countInStock">
+              <Form.Label>Tamanhos disponíveis</Form.Label>
+              <Form.Select
+                required
+                aria-label="Tamanho"
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {sizes &&
+                  sizes.map((size) => (
+                    <option key={size._id} value={size._id}>
+                      {size.name}
+                    </option>
+                  ))}
+              </Form.Select>
+           </Form.Group>
+
 
 
 
