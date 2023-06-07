@@ -181,7 +181,7 @@ export default function CategoriesFilter() {
                     }
                     to={getFilterUrl({ category: c._id })}
                   >
-                    <FontAwesomeIcon icon={c.icon}></FontAwesomeIcon>{' '}{c.name}
+                  {c.name}
                   </Link>
                 </li>
               ))}
