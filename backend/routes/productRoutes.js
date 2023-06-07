@@ -47,8 +47,8 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
       product.description = req.body.description;
       product.qualityType = req.body.qualityTyp;
       product.conditionStatus = req.body.conditionStatu;
-      product.color = req.body.color;
-      product.size = req.body.size;
+      product.color = req.body.selectedColors;
+      product.size = req.body.selectedSizes;
 
       product.save();
 
@@ -104,8 +104,8 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           onSalePercentage: req.body.onSalePercentage,
           qualityType :req.body.qualityTyp,
           conditionStatus : req.body.conditionStatu,
-          color : req.body.color,
-          size : req.body.size,
+          color : req.body.selectedColors,
+          size : req.body.selectedSizes,
           isActive: user.isApproved
      });
 

@@ -96,6 +96,25 @@ const reducer = (state, action) => {
             return { ...state, error: action.payload, loadingQuality: false };
     
   
+            case 'COLORS_REQUEST':
+              return { ...state, loadColor: true };
+        
+            case 'COLORS_SUCCESS':
+              return { ...state, loadColor: false, colors: action.payload.colors };
+        
+            case 'COLORS_FAIL':
+              return { ...state, error: action.payload, loadColor: false };
+    
+    
+              case 'SIZES_REQUEST':
+                return { ...state, loadSize: true };
+          
+              case 'SIZES_SUCCESS':
+                return { ...state, loadSize: false, sizes: action.payload.sizes };
+          
+              case 'SIZES_FAIL':
+                return { ...state, error: action.payload, loadSize: false };
+    
 
     default:
       return state;
@@ -110,7 +129,7 @@ export default function ProductEditScreen() {
   const { state } = useContext(Store);
   const { userInfo } = state;
   const [
-    { loading, error, loadingCreate, loadingUpload, loadingUpdate, categories, loadingConditionStatus, loadingQuality,conditionStatus, qualityTypes, provinces },
+    { loading, error, loadingCreate, loadingUpload, loadingUpdate, categories, colors,sizes, loadingConditionStatus, loadingQuality,conditionStatus, qualityTypes, provinces },
     dispatch,
   ] = useReducer(reducer, { loading: true, error: '', categories: [] });
 
@@ -131,8 +150,10 @@ export default function ProductEditScreen() {
   const [qualityTyp, setQualityTyp] = useState('');
 
   const [onSale, setOnSale] = useState(false);
-
   const [onSalePercentage, setOnSalePercentage] = useState(0);
+
+  const [selectedColors, setSelectedColors] =useState([]);
+  const [selectedSizes, setSelectedSizes] =useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,6 +177,8 @@ export default function ProductEditScreen() {
         setOnSalePercentage(data.onSalePercentage);
         setConditionStatu(data.conditionStatus);
         setQualityTyp(data.qualityType);
+        setSelectedColors(data.color);
+        setSelectedSizes(data.size);
 
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: err });
@@ -229,6 +252,77 @@ export default function ProductEditScreen() {
     fetchData();
   }, [provinces]);
 
+  useEffect(() => {
+    dispatch({ type: 'SIZES_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/sizes');
+        dispatch({ type: 'SIZES_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'SIZES_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [sizes]);
+
+
+  useEffect(() => {
+    dispatch({ type: 'COLORS_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/colors');
+        dispatch({ type: 'COLORS_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'COLORS_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [colors]);
+
+
+  
+  const addColor= (colorId) => {
+    if(colorId){
+      const selected = colors.find((color) => color._id === colorId);
+
+      const objectExists = selectedColors.some((color) => color._id === selected._id);
+    if (!objectExists) {
+      setSelectedColors([...selectedColors, selected]); // Add the new item to the items list
+    }
+    
+    }
+  };
+
+
+  const addSize= (sizeId) => {
+    if(sizeId){
+      const selected = sizes.find((size) => size._id === sizeId);
+
+      const objectExists = selectedSizes.some((color) => color._id === selected._id);
+      if (!objectExists) {
+        setSelectedSizes([...selectedSizes, selected]); // Add the new item to the items list
+      }
+    }
+  };
+
+  // Function to remove an item from the list
+  const removeColor = (index) => {
+    const updatedItems = [...selectedColors];
+    updatedItems.splice(index, 1); // Remove the item at the specified index
+    setSelectedColors(updatedItems); // Update the items list
+  };
+
+  const removeSize = (index) => {
+    const updatedItems = [...selectedSizes];
+    updatedItems.splice(index, 1); // Remove the item at the specified index
+    setSelectedSizes(updatedItems); // Update the items list
+  };
+
+
+
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -252,6 +346,8 @@ export default function ProductEditScreen() {
           onSalePercentage,
           conditionStatu,
           qualityTyp,
+          selectedColors,
+          selectedSizes
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -396,6 +492,75 @@ export default function ProductEditScreen() {
                 required
               />
             </Form.Group>
+
+
+
+            <Form.Group className="mb-3" controlId="countInStock">
+              <Form.Label>Cores disponíveis</Form.Label>
+              <Form.Select
+                required
+                aria-label="Cores"
+                // value={colors}
+                onChange={(e)=>addColor(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {colors &&
+                  colors.map((color) => (
+                    <option key={color._id} value={color._id}>
+                      {color.name}
+                    </option>
+                  ))}
+              </Form.Select>
+           </Form.Group>
+           {/* <button onClick={addItem}>Adicionar Cor </button> */}
+                    {/* {console.log(items)} */}
+           <ul>
+              {selectedColors.map((item, index) => (
+                <li key={index}>
+                  {item.name}
+                  <Button
+                        variant="light"
+                        onClick={() => removeColor(index)}
+                      >
+                        {' '}
+                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
+                      </Button>
+                </li>
+              ))}
+            </ul>
+
+           <Form.Group className="mb-3" controlId="countInStock">
+              <Form.Label>Tamanhos disponíveis</Form.Label>
+              <Form.Select
+                required
+                aria-label="Tamanho"
+                // value={selectedSizes}
+                onChange={(e) => addSize(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {sizes &&
+                  sizes.map((size) => (
+                    <option key={size._id} value={size._id}>
+                      {size.name}
+                    </option>
+                  ))}
+              </Form.Select>
+           </Form.Group>
+
+           <ul>
+              {selectedSizes.map((item, index) => (
+                <li key={index}>
+                  {item.name}
+                  <Button
+                        variant="light"
+                        onClick={() => removeSize(index)}
+                      >
+                        {' '}
+                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
+                      </Button>
+                </li>
+              ))}
+            </ul>
 
 
             

@@ -8,10 +8,6 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import { toast } from 'react-toastify';
 import { getError } from '../utils';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCoffee, faUser, faEnvelope } from '@fortawesome/free-solid-svg-icons';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { fas } from '@fortawesome/free-solid-svg-icons';
 
 import Container from 'react-bootstrap/Container';
 import { Store } from '../Store';

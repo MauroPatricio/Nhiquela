@@ -212,6 +212,47 @@ function ProductScreen() {
             <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 
             <ListGroup.Item>Preço: {product.price} MT</ListGroup.Item>
+
+  
+
+            <ListGroup.Item> Cor:
+              <div style={{ maxHeight: '80px', overflowY: 'scroll' }}>
+                  {product.color.map((item) => (
+
+                      <Form.Check
+                        type="radio"
+                        name="radioGroup"
+                        value={item.id}
+                        label={item.name}
+                        // checked={selectedColor && selectedItem.id === item.id}
+                        // onChange={handleRadioChange}
+                      />
+
+                  ))}
+                  </div>
+                  </ListGroup.Item> 
+
+
+                  <ListGroup.Item> Tamanho:
+                  <div style={{ maxHeight: '80px', overflowY: 'scroll' }}>
+
+                  {product.size.map((item) => (
+                 
+                      <Form.Check
+                        type="radio"
+                        name="radioGroup"
+                        value={item.id}
+                        label={item.name}
+                        // checked={selectedItem && selectedItem.id === item.id}
+                        // onChange={handleRadioChange}
+                      />
+            
+                  ))}
+                                    </div>
+
+                  </ListGroup.Item> 
+                    
+            
             
             <ListGroup.Item>
               Descrição do Produto:
@@ -233,6 +274,8 @@ function ProductScreen() {
                     <Col>Preço</Col>
                     <Col>{product.price} MT</Col>
                   </Row>
+
+        
 
                   <Row>
                     <Col>Estado</Col>

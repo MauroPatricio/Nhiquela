@@ -45,11 +45,38 @@ orderRouter.get(
     const pageSize = 10    
     
     const orders = await Order.aggregate([
-      // Match orders that have at least one order item
-      { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
-      
-      // Unwind the orderItems array
+ 
       { $unwind: "$orderItems" },
+
+      {
+        $lookup: {
+          from: "products",
+          localField:"orderItems.product",
+          foreignField: "_id",
+          as: "product"
+        }
+  
+      },
+      {
+        $match: {
+          "product.isActive": true
+        }
+      },
+      
+
+
+    // Unwind the orderItems array
+
+
+    
+
+
+      
+
+    // Match orders that have at least one order item
+      { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
+
+
     
       // Group by the order item properties and calculate the total quantity
       {
@@ -59,17 +86,19 @@ orderRouter.get(
           name: { $first: "$orderItems.name" },
           image: { $first: "$orderItems.image" },
           price: { $first: "$orderItems.price" },
+
           totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
         },
       },
+
+    
     
       // Sort in descending order based on the total quantity
       { $sort: { totalQuantity: -1 } },
     
       // Optionally, limit the results to a specific number of items
-      { $limit: 5 }, // Adjust the number as per your requirements
+      { $limit: 10 }, // Adjust the number as per your requirements
     ]);
-  
     res.send({orders});
   })
 );

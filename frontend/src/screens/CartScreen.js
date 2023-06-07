@@ -56,9 +56,9 @@ export default function CartScreen() {
   return (
     <div>
       <Helmet>
-        <title>Carrinho de Compras</title>
+        <title>Carrinha de Compras</title>
       </Helmet>
-      <h1>Carrinho de Compras</h1>
+      <h1>Carrinha de Compras</h1>
           {error && <MessageBox variant="danger">{error}</MessageBox>}
       <Row>
         <Col md={8}>
@@ -84,6 +84,7 @@ export default function CartScreen() {
                       <Link className="link-none" to={`/product/${item.slug}`}>
                         {item.name}
                       </Link>
+                 
                     </Col>
                     <Col md={3}>
                       <Button

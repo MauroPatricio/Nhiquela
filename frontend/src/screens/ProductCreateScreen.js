@@ -134,16 +134,11 @@ export default function ProductCreateScreen() {
   const [conditionStatu, setConditionStatu] = useState('');
   const [qualityTyp, setQualityTyp] = useState('');
 
-  const [size, setSize] = useState('');
   const [selectedColors, setSelectedColors] =useState([]);
+  const [selectedSizes, setSelectedSizes] =useState([]);
 
   const [onSale, setOnSale] = useState(false);
   const [onSalePercentage, setOnSalePercentage] = useState(0);
-
-  const [items, setItems] = useState([]);
-
-  const availableColors =[{_id: 1, name: 'red'}, {_id: 2, name:"blue"}, {_id: 3, name:"green"}, {_id: 4, name:"yellow"}];
-
 
   useEffect(() => {
     dispatch({ type: 'CATEGORIES_REQUEST' });
@@ -238,16 +233,41 @@ export default function ProductCreateScreen() {
 
 
 
-  const addItem = (color) => {
-    console.log(color)
-    setItems([...colors, color]); // Add the new item to the items list
+  const addColor= (colorId) => {
+    if(colorId){
+      const selected = colors.find((color) => color._id === colorId);
+
+      const objectExists = selectedColors.some((color) => color._id === selected._id);
+    if (!objectExists) {
+      setSelectedColors([...selectedColors, selected]); // Add the new item to the items list
+    }
+    
+    }
+  };
+
+
+  const addSize= (sizeId) => {
+    if(sizeId){
+      const selected = sizes.find((size) => size._id === sizeId);
+
+      const objectExists = selectedSizes.some((color) => color._id === selected._id);
+      if (!objectExists) {
+        setSelectedSizes([...selectedSizes, selected]); // Add the new item to the items list
+      }
+    }
   };
 
   // Function to remove an item from the list
-  const removeItem = (index) => {
-    const updatedItems = [...items];
+  const removeColor = (index) => {
+    const updatedItems = [...selectedColors];
     updatedItems.splice(index, 1); // Remove the item at the specified index
-    setItems(updatedItems); // Update the items list
+    setSelectedColors(updatedItems); // Update the items list
+  };
+
+  const removeSize = (index) => {
+    const updatedItems = [...selectedSizes];
+    updatedItems.splice(index, 1); // Remove the item at the specified index
+    setSelectedSizes(updatedItems); // Update the items list
   };
 
 
@@ -276,8 +296,8 @@ export default function ProductCreateScreen() {
           qualityTyp,
           onSale,
           onSalePercentage,
-          size,
-          colors
+          selectedColors,
+          selectedSizes
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -434,24 +454,30 @@ export default function ProductCreateScreen() {
                 required
                 aria-label="Cores"
                 // value={colors}
-                onChange={(e) => addItem(e.target.value)}
+                onChange={(e)=>addColor(e.target.value)}
               >
                 <option value="">Seleccione</option>
-                {availableColors &&
-                  availableColors.map((color) => (
-                    <option key={color._id} value={color}>
+                {colors &&
+                  colors.map((color) => (
+                    <option key={color._id} value={color._id}>
                       {color.name}
                     </option>
                   ))}
               </Form.Select>
            </Form.Group>
            {/* <button onClick={addItem}>Adicionar Cor </button> */}
-                    {console.log(items)}
+                    {/* {console.log(items)} */}
            <ul>
-              {items.map((item, index) => (
+              {selectedColors.map((item, index) => (
                 <li key={index}>
                   {item.name}
-                  <button onClick={() => removeItem(index)}>Remover cor</button>
+                  <Button
+                        variant="light"
+                        onClick={() => removeColor(index)}
+                      >
+                        {' '}
+                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
+                      </Button>
                 </li>
               ))}
             </ul>
@@ -461,8 +487,8 @@ export default function ProductCreateScreen() {
               <Form.Select
                 required
                 aria-label="Tamanho"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
+                // value={selectedSizes}
+                onChange={(e) => addSize(e.target.value)}
               >
                 <option value="">Seleccione</option>
                 {sizes &&
@@ -473,6 +499,21 @@ export default function ProductCreateScreen() {
                   ))}
               </Form.Select>
            </Form.Group>
+
+           <ul>
+              {selectedSizes.map((item, index) => (
+                <li key={index}>
+                  {item.name}
+                  <Button
+                        variant="light"
+                        onClick={() => removeSize(index)}
+                      >
+                        {' '}
+                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
+                      </Button>
+                </li>
+              ))}
+            </ul>
 
 
 
