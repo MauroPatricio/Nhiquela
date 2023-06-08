@@ -25,6 +25,7 @@ const reducer = (state, action) => {
     case 'CREATE_FAIL':
       return { ...state, loading: false };
 
+
     default:
       return state;
   }
@@ -151,8 +152,8 @@ export default function PlaceOrderScreen() {
                           className="img-fluid rounded img-thumbnail"
                         />
                         <p></p>
-                        <Link className="link" to={`/product/${item.slug}`}>
-                          {item.name}
+                        <Link className="link link-none" to={`/product/${item.slug}`}>
+                        Produto: <b>{item.name}</b><br/>Cor:<b>{item.color}</b>{' '} Tamanho:<b>{item.size}</b>
                         </Link>
                       </Col>
                       <Col mb={2}>

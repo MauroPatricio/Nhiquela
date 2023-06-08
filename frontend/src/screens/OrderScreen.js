@@ -395,12 +395,12 @@ export default function OrderScreen() {
                           alt={item.name}
                           className="img-fluid rounded  img-thumbnail"
                         ></img>{' '}
-                        <Link className="link" to={`/product/${item.slug}`}>
-                          {item.name}
+                        <Link className="link link-none" to={`/product/${item.slug}`}>
+                        <br/>Produto: <b>{item.name}</b><br/> Cor:  <b>{item.color}</b>{' '} Tamanho:  <b>{item.size}</b>
                         </Link>
                       </Col>
                       <Col md={2}>
-                        <span>{item.quantity}x</span> qtd
+                        <span>{item.quantity}x</span>Qtd
                       </Col>
                       <Col md={3}>
                         <span>{item.price} MT</span>

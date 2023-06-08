@@ -238,9 +238,9 @@ function ProductScreen() {
                       key={item._id}
                       type="radio"
                       name="radioGroup"
-                      value={item._id}
+                      value={item.name}
                       label={item.name}
-                      checked={selectedColor === item._id }
+                      checked={selectedColor === item.name }
                       onChange={(e) => setSelectedColor(e.target.value)}
                       />
 
@@ -259,9 +259,9 @@ function ProductScreen() {
                         key={item._id}
                         type="radio"
                         name="radioGroup2"
-                        value={item._id}
+                        value={item.name}
                         label={item.name}
-                         checked={selectedSize === item._id}
+                         checked={selectedSize === item.name}
                          onChange={(e) => setSelectedSize(e.target.value)}
                          />
             

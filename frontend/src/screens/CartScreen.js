@@ -82,7 +82,7 @@ export default function CartScreen() {
                       ></img>
                       <p></p>
                       <Link className="link-none" to={`/product/${item.slug}`}>
-                        {item.name}
+                      Produto: <b>{item.name}</b>{' '} Cor:  <b>{item.color}</b>{' '} Tamanho:  <b>{item.size}</b>
                       </Link>
                  
                     </Col>

@@ -108,13 +108,14 @@ function Product(props) {
               </Button>
             ) 
             : (
-              <Button
-                className="customButtom space"
-                onClick={() => addOnCartHandler(product)}
-                variant="light"
-              >
-                <FontAwesomeIcon icon={faCartPlus} />
-              </Button>
+              <>&nbsp;</>
+              // <Button
+              //   className="customButtom space"
+              //   onClick={() => addOnCartHandler(product)}
+              //   variant="light"
+              // >
+              //   <FontAwesomeIcon icon={faCartPlus} />
+              // </Button>
             )
             }
           </div>
