@@ -149,6 +149,7 @@ export default function ProductListSellerScreen() {
             <tr>
                 <th>Imagem do Produto</th>
                 <th>Nome do Produto</th>
+                <th>Quantidade</th>
                 <th>Preço</th>
                 <th>Categoria</th>
                 <th>Acções</th>
@@ -164,6 +165,7 @@ export default function ProductListSellerScreen() {
             alt={product.name}
           ></img></td>
                     <td>{product.name}</td>
+                    <td>{product.countInStock}</td>
                     <td>{product.price} MT</td>
                     <td>{product.category.name}</td>
                     <td>

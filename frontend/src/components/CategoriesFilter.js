@@ -161,7 +161,7 @@ export default function CategoriesFilter() {
       </Card.Header>}
       {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}} onClick={handleToggleMaximized}  >Filtros de Pesquisa</h6>}
         {showComponent && 
-        <Card.Body>
+        <Card.Body style={{marginLeft: '10px'}}>
             <h6>Categorias</h6>
           <div>
             <Link

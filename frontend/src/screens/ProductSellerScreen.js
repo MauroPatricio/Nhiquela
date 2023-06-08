@@ -135,7 +135,7 @@ export default function ProductSellerScreen() {
   return (
     <div>
       
-            <Col><h1>Productos</h1></Col>
+            <Col><h1>Seus Productos</h1></Col>
         {loading?(<LoadingBox></LoadingBox>): error?(<MessageBox variant="danger">{error}</MessageBox>):(<>
             <Col className='col text-end'>
                 <div>
@@ -154,6 +154,8 @@ export default function ProductSellerScreen() {
             <tr>
             <th>Imagem</th>
                 <th>Nome do Produto</th>
+                <th>Quantidade</th>
+
                 <th>Preço</th>
                 <th>Categoria</th>
                 <th>Acções</th>
@@ -170,7 +172,8 @@ export default function ProductSellerScreen() {
           ></img></td>
 
                     <td>{product.name}</td>
-                    <td>{product.price} Mt</td>
+                    <td>{product.countInStock}</td>
+                    <td>{product.price} MT</td>
                     <td>{product.category.name}</td>
 
                     <td>

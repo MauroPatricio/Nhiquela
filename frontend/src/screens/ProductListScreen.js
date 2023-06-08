@@ -150,6 +150,7 @@ export default function ProductListScreen() {
             <th>Imagem</th>
 
                 <th>Nome do Produto</th>
+                <th>Quantidade</th>
                 <th>Preço</th>
                 <th>Categoria</th>
                 <th>Acções</th>
@@ -165,7 +166,8 @@ export default function ProductListScreen() {
             alt={product.name}
           ></img></td>
                     <td>{product.name}</td>
-                    <td>{product.price} Mt</td>
+                    <td>{product.countInStock}</td>
+                    <td>{product.price} MT</td>
                     <td>{product.category.name}</td>
                     <td>
                         <Button type="button" variant='light'
