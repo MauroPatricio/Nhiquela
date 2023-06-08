@@ -87,6 +87,10 @@ function ProductScreen() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [selectedImage, setSelectedImage] = useState('');
+
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
+
   const { cart, userInfo } = state;
 
 
@@ -111,7 +115,17 @@ function ProductScreen() {
     const { data } = await axios.get(`/api/products/${product._id}`);
 
 
+    if (!selectedColor) {
+      toast.error('Por favor, Informe a cor que deseja');
+      return;
+    }
 
+    if (!selectedSize) {
+      toast.error('Por favor, Informe o tamanho que deseja');
+      return;
+    }
+    product.color=selectedColor
+    product.size=selectedSize
 
     if (data.countInStock < quantity) {
       window.alert(`Desculpe, o Produto não está disponível`);
@@ -219,13 +233,15 @@ function ProductScreen() {
               <div style={{ maxHeight: '80px', overflowY: 'scroll' }}>
                   {product.color.map((item) => (
 
-                      <Form.Check
-                        type="radio"
-                        name="radioGroup"
-                        value={item.id}
-                        label={item.name}
-                        // checked={selectedColor && selectedItem.id === item.id}
-                        // onChange={handleRadioChange}
+                    <Form.Check
+                    required
+                      key={item._id}
+                      type="radio"
+                      name="radioGroup"
+                      value={item._id}
+                      label={item.name}
+                      checked={selectedColor === item._id }
+                      onChange={(e) => setSelectedColor(e.target.value)}
                       />
 
                   ))}
@@ -237,15 +253,17 @@ function ProductScreen() {
                   <div style={{ maxHeight: '80px', overflowY: 'scroll' }}>
 
                   {product.size.map((item) => (
-                 
+             
                       <Form.Check
+                      required
+                        key={item._id}
                         type="radio"
-                        name="radioGroup"
-                        value={item.id}
+                        name="radioGroup2"
+                        value={item._id}
                         label={item.name}
-                        // checked={selectedItem && selectedItem.id === item.id}
-                        // onChange={handleRadioChange}
-                      />
+                         checked={selectedSize === item._id}
+                         onChange={(e) => setSelectedSize(e.target.value)}
+                         />
             
                   ))}
                                     </div>

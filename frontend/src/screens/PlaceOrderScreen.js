@@ -68,6 +68,8 @@ export default function PlaceOrderScreen() {
   const placeOrderHandler = async () => {
     try {
       dispatch({ type: 'CREATE_REQUEST' });
+
+     
       const { data } = await axios.post(
         '/api/orders',
         {
@@ -87,7 +89,6 @@ export default function PlaceOrderScreen() {
           },
         }
       );
-
       ctxDispatch({ type: 'CART_CLEAR' });
       dispatch({ type: 'CREATE_SUCCESS' });
       navigate(`/order/${data.order._id}`);
