@@ -384,7 +384,7 @@ export default function OrderScreen() {
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Produtos</Card.Title>
+              <Card.Title>Produtos da Carrinha</Card.Title>
               <ListGroup variant="flush">
                 {order.orderItems.map((item) => (
                   <ListGroup.Item key={item._id}>
@@ -432,7 +432,7 @@ export default function OrderScreen() {
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
-                    <Col>Produtos</Col>
+                    <Col>Valor dos Produtos</Col>
                     <Col>{order.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>

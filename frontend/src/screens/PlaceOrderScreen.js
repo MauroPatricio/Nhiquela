@@ -139,7 +139,7 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Produtos</span>
+                <span>Produtos da Carrinha</span>
               </Card.Title>
               <ListGroup variant="flush">
                 {cart.cartItems.map((item) => (
@@ -179,7 +179,7 @@ export default function PlaceOrderScreen() {
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
-                    <Col>Produtos</Col>
+                    <Col>Valor dos Produtos</Col>
                     <Col>{cart.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>

@@ -52,13 +52,12 @@ export default function CartScreen() {
   const checkOutHandler = () => {
     navigate('/signin?redirect=/address');
   };
-
   return (
     <div>
       <Helmet>
         <title>Carrinha de Compras</title>
       </Helmet>
-      <h1>Carrinha de Compras</h1>
+      <h1>Carrinha de Compras:               <Link className="text_color link-none" to={`/seller/${cartItems && cartItems[0].seller._id}`}>{cartItems && cartItems[0].seller.seller.name}</Link></h1>
           {error && <MessageBox variant="danger">{error}</MessageBox>}
       <Row>
         <Col md={8}>
