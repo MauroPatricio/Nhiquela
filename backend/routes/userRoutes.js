@@ -164,11 +164,11 @@ expressAsyncHandler(async(req, res)=>{
     mailgun().messages().send({
       from: '<me.mydomain.com>',
       to: `${user.name} <${user.email}>`,
-      subject: `Resetar a password`,
+      subject: `Resetar a senha`,
       html:
       `
-      <p>Por favor click no link abaixo para resetar a password</p>
-      <a href="${baseUrl()}/reset-password/${token}">Resetar a password</a>
+      <p>Por favor click no link abaixo para resetar a sua senha</p>
+      <a href="${baseUrl()}/reset-password/${token}">Resetar a senha</a>
       `
     })
   }else{
