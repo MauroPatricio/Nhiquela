@@ -81,6 +81,10 @@ export default function SignInScreen() {
           Nova Conta?{' '}
           <Link className="link" to={`/signup?redirect=${redirect}`}>Criar conta</Link>
         </div>
+        <div className="mb-3">
+          Esqueceu a senha?{' '}
+          <Link className="link" to={`/forget`}>Actualizar senha</Link>
+        </div>
       </Form>
     </Container>
   );

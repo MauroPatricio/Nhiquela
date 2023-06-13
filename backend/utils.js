@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
 
+export const baseUrl = ()=> process.env.BASE_URL ? process.env.BASE_URL : process.env.NODE_ENV !== 'production'?
+'http://localhost:3000': 'https://mydomain.com';
+
 export const generateToken = (user) => {
   return jwt.sign(
     {

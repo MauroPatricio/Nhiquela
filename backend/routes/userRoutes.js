@@ -1,9 +1,11 @@
 import express from 'express';
 import User from '../models/UserModel.js';
-import { generateToken, isAdmin, isAuth } from '../utils.js';
+import { baseUrl, generateToken, isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 import Product from '../models/ProductModel.js';
+import jwt from 'jsonwebtoken';
+
 
 const userRouter = express.Router();
 
@@ -147,10 +149,67 @@ userRouter.put(
   })
 );
 
+userRouter.post('/forget-password',
+expressAsyncHandler(async(req, res)=>{
+  const user = await User.findOne({email: req.body.email});
+
+  if(user){
+    const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET, {expiresIn: '3h'})
+
+    user.resetToken = token 
+    await user.save();
+
+    console.log(`${baseUrl()}/reset-password/${token}`)
+
+    mailgun().messages().send({
+      from: '<me.mydomain.com>',
+      to: `${user.name} <${user.email}>`,
+      subject: `Resetar a password`,
+      html:
+      `
+      <p>Por favor click no link abaixo para resetar a password</p>
+      <a href="${baseUrl()}/reset-password/${token}">Resetar a password</a>
+      `
+    })
+  }else{
+    res.status(404).send({message: 'Utilizador nao encontrado'})
+  }
+}));
+
+
+userRouter.post('reset-password', expressAsyncHandler(async (req, res)=>{
+  jwt.verify(req.body.token, process.env.JWT_SECRET, async(err, decode)=>{
+    if(err){
+      res.status(401).send({message: 'Invalid Token'})
+    }else{
+      const user = await User.findOne({resetToken: req.body.token});
+
+      if(user){
+        if(req.body.password){
+          user.password = bcrypt.hashSync(req.body.password, 8)
+          await user.save()
+          res.send({message: 'Password Actualizada com Successo'})
+        }
+      }else{
+        res.status(404).send({message: 'Utilizador nao encontrado'})
+      }
+    }
+  })
+}))
+
+
+
+
+
+
+
+
 userRouter.post(
   '/signin',
   expressAsyncHandler(async (req, res) => {
     const user = await User.findOne({ phoneNumber: req.body.phoneNumber });
+
+
 
     if (user){
       if(user.isBanned){

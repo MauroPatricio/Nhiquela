@@ -74,6 +74,7 @@ import ColorCreateScreen from './screens/ColorCreateScreen';
 import SizeCreateScreen from './screens/SizeCreateScreen';
 import SizeEditScreen from './screens/SizeEditScreen';
 import ColorEditScreen from './screens/ColorEditScreen';
+import ForgetPasswordScreen from './screens/ForgetPasswordScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -478,6 +479,16 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+<Route
+                path="/forget"
+                element={
+                    <ForgetPasswordScreen />
+                }
+              />
+
+
+
 
                 <Route
                 path="/province/create"

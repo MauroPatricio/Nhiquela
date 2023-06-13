@@ -5,13 +5,13 @@ const modelSchema = new mongoose.Schema({
     name: {type: String, required: true},
     email: {type: String, required: true, unique: true},
     password: {type: String, required: true},
+    resetToken: {type: String},
     phoneNumber: {type: Number, required: true, unique: true},
     isAdmin: {type: Boolean, default: false, required: true},
     isDeliveryMan: {type: Boolean, default: false},
     isSeller: {type: Boolean, default: false},
     isBanned: {type: Boolean, default: false},
     isApproved: {type: Boolean, default: false},
-
     seller:{
         name: {type: String},
         logo: {type: String},
