@@ -176,7 +176,7 @@ export default function OrderListBySellerScreen() {
                       <FontAwesomeIcon icon={faTrash}></FontAwesomeIcon>
                     </Button> */}
                     &nbsp;
-                    {o.status==='Finalizado'&&
+                    {o.status==='Finalizado' || o.status==='Cancelado' &&
                     <Button
                       type="Button"
                       variant="light"
