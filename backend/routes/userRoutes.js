@@ -5,6 +5,7 @@ import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 import Product from '../models/ProductModel.js';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 
 
 const userRouter = express.Router();
@@ -161,16 +162,45 @@ expressAsyncHandler(async(req, res)=>{
 
     console.log(`${baseUrl()}/reset-password/${token}`)
 
-    mailgun().messages().send({
-      from: '<me.mydomain.com>',
-      to: `${user.name} <${user.email}>`,
-      subject: `Resetar a senha`,
-      html:
-      `
-      <p>Por favor click no link abaixo para resetar a sua senha</p>
-      <a href="${baseUrl()}/reset-password/${token}">Resetar a senha</a>
-      `
-    })
+    // mailgun().messages().send({
+    //   from: '<me.mydomain.com>',
+    //   to: `${user.name} <${user.email}>`,
+    //   subject: `Resetar a senha`,
+    //   html:
+    //   `
+    //   <p>Por favor click no link abaixo para resetar a sua senha</p>
+    //   <a href="${baseUrl()}/reset-password/${token}">Resetar a senha</a>
+    //   `
+    // });
+
+
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      auth: {
+          user: 'catalina.hammes45@ethereal.email',
+          pass: 'waGWW2dqs2Ndr2Ej22'
+      }
+  });
+
+  // Define the email options
+const mailOptions = {
+  from: 'sender@example.com',
+  to: user.email,
+  subject: 'Hello from Node.js',
+  text: 'This is a test email from Node.js'
+};
+   
+// Send the email
+transporter.sendMail(mailOptions, (error, info) => {
+  if (error) {
+    console.log('Error occurred:', error.message);
+  } else {
+    console.log('Email sent:', info.response);
+  }
+});
+    
+
   }else{
     res.status(404).send({message: 'Utilizador nao encontrado'})
   }

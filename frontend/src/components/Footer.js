@@ -53,7 +53,7 @@ export default function Footer() {
 
               />
           <p>
-          Tudo em suas mãos. Fazendo entrega dos seus pedidos de forma rápida e fácil num só clique
+          Tudo em suas mãos. <br/>Fazemos entrega de seus pedidos de forma rápida e fácil num só clique
           </p>
         </div>
    

@@ -24,7 +24,7 @@ productRoutes.get('/', async (req, res) => {
 
          res.send({products, pages: pages});
      }catch(e){
-          res.status(500).send({message: 'Ops... Não consegui me conectar ao servidor '});
+          res.status(500).send({message: 'Ops... Não consegui me conectar com o servidor'});
 
      }
 });

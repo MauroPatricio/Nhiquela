@@ -75,6 +75,7 @@ import SizeCreateScreen from './screens/SizeCreateScreen';
 import SizeEditScreen from './screens/SizeEditScreen';
 import ColorEditScreen from './screens/ColorEditScreen';
 import ForgetPasswordScreen from './screens/ForgetPasswordScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -480,10 +481,17 @@ function App() {
                 }
               />
 
-<Route
-                path="/forget"
+              <Route
+                path="/forget-password"
                 element={
                     <ForgetPasswordScreen />
+                }
+              />
+
+            <Route
+                path="/reset-password"
+                element={
+                    <ResetPasswordScreen />
                 }
               />
 

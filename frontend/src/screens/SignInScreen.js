@@ -12,6 +12,9 @@ import { useContext, useEffect, useState } from 'react';
 import { Store } from '../Store.js';
 import { toast } from 'react-toastify';
 import CheckoutSteps from '../components/CheckoutSteps';
+import ReactModal from 'react-modal';
+
+ReactModal.setAppElement('#root'); // Set the root element as the app element
 
 export default function SignInScreen() {
   const navigate = useNavigate();
@@ -23,6 +26,20 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [message, setMessage] = useState('');
+
+
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
   const submitHandler = async (e) => {
     e.preventDefault();
     try {
@@ -36,6 +53,8 @@ export default function SignInScreen() {
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       navigate(redirect || '/');
     } catch (err) {
+      setIsModalOpen(true);
+      setMessage(err.response.data.message)
       toast.error(err.response.data.message);
     }
   };
@@ -83,8 +102,19 @@ export default function SignInScreen() {
         </div>
         <div className="mb-3">
           Esqueceu a senha?{' '}
-          <Link className="link" to={`/forget`}>Actualizar senha</Link>
+          <Link className="link" to={`/forget-password`}>Actualizar senha</Link>
         </div>
+
+        <ReactModal
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        contentLabel="Modal"
+        className="modal-content"
+      >
+        <h5>Erro de Acesso</h5>
+        <p>{message}</p>
+        <Button  onClick={closeModal}>Ok</Button>
+      </ReactModal>
       </Form>
     </Container>
   );

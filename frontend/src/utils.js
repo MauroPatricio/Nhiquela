@@ -1,10 +1,11 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { MdWifiOff } from "react-icons/md";
 
 export const getError = (error) => {
   return error.response && error.response.data.message
     ? error.response.data.message
-    : error.response.status===500?<div style={{ textAlign: 'center' }}><FontAwesomeIcon icon={faExclamationTriangle}/> Verifique a sua INTERNET</div>:error.message;
+    : error.response.status===500?<div style={{ textAlign: 'center' }}><MdWifiOff/> Verifique a sua INTERNET</div>:error.message;
 };
 
 

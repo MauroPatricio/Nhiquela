@@ -70,11 +70,13 @@ export default function CategoriesFilter() {
   const prices = [
     {
       id: 1,
-      name: 'De 100 a 500 Mt',
+      name: 'De 100 a 500 MT',
       value: '100-500',
     },
-    { id: 2, name: 'De 500 a 2000 Mt', value: '500-2000' },
-    { id: 3, name: 'De 2000 acima', value: '2000-100000' },
+    { id: 2, name: 'De 500 a 2000 MT', value: '500-2000' },
+    { id: 3, name: 'De 2000 a 5000 MT', value: '2000-5000' },
+    { id: 4, name: 'De 5000 acima', value: '5000-10000' },
+
   ];
 
   const ratings = [
