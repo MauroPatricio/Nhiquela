@@ -24,6 +24,7 @@ import { Store } from '../Store.js';
 import { toast } from 'react-toastify';
 import { getError } from '../utils.js';
 import LoadingBox from '../components/LoadingBox.js';
+import CountryFlag from 'react-country-flag';
 
 
 
@@ -289,7 +290,7 @@ export default function SignupScreen() {
 
         
         <Form.Group className="mb-3" controlId="phoneNumber">
-          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone [+258]</Form.Label>
+          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone: <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]</Form.Label>
           <Form.Control
             type="text"
             max={9}

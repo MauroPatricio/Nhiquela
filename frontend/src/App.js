@@ -164,7 +164,7 @@ function App() {
                       Fazer Login
                     </Link>
                   )}
-                  {userInfo && userInfo.isSeller && (
+                  {userInfo && userInfo.isSeller && userInfo.isApproved && (
                     <NavDropdown title="Vendedor" id="admin-nav-dropdown">
                       <LinkContainer to="/productlist/seller">
                         <NavDropdown.Item>Produtos</NavDropdown.Item>
@@ -243,7 +243,11 @@ function App() {
             <Col className="bg-color-row">
 
         <p className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b></p>
+
+        
+        {userInfo && !userInfo.isApproved && <p className='not-approved-seller' style={{textAlign: 'center'}}><b>A sua conta ainda não foi aprovada. Para poder expor os seus produtos, por favor contacte a Nhiquela Shop para poder autorizar os seus dados como fornecedor.</b> </p>}
             </Col>
+           
 
           </Row>
           <Container className={expanded ? 'collapse-open' : ''}>

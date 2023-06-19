@@ -3,6 +3,9 @@ import Form from 'react-bootstrap/Form';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMobile } from '@fortawesome/free-solid-svg-icons';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
+import { faFlag } from '@fortawesome/free-solid-svg-icons';
+
+
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,6 +16,8 @@ import { Store } from '../Store.js';
 import { toast } from 'react-toastify';
 import CheckoutSteps from '../components/CheckoutSteps';
 import ReactModal from 'react-modal';
+import CountryFlag from 'react-country-flag';
+
 
 ReactModal.setAppElement('#root'); // Set the root element as the app element
 
@@ -74,7 +79,9 @@ export default function SignInScreen() {
       <h1 className="my-3">Login</h1>
       <Form onSubmit={submitHandler}>
         <Form.Group className="mb-3" controlId="phoneNumber">
-          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone</Form.Label>
+          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone:</Form.Label> <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]        
+
+
           <Form.Control
             type="number"
             required

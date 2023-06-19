@@ -79,6 +79,8 @@ export default function ProfileScreen() {
   const [name, setName] = useState(userInfo.name);
   const [email, setEmail] = useState(userInfo.email);
   const [phoneNumber, setPhoneNumber] = useState(userInfo.phoneNumber);
+  const [approved, setIsApproved] = useState(userInfo.isApproved);
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirmPassword] = useState('');
 
@@ -163,6 +165,7 @@ export default function ProfileScreen() {
           setSellerAddress(data.seller.address);
           setOpentime(data.seller.opentime);
           setClosetime(data.seller.closetime);
+          setIsApproved(data.seller.isApproved)
     
         }
         if (data.isDeliveryMan) {

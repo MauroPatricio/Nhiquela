@@ -135,6 +135,12 @@ text-align: center;
   margin-bottom: 1rem;
 }
 
+.bg-color-approved{
+  background-color:  rgb(212, 200, 202); ;
+  margin-bottom: 1rem;
+}
+
+
 .collapse-open {
   margin-top: 50px;
 
@@ -161,6 +167,10 @@ table {
   color: #a435f0;
 }
 
+.not-approved-seller {
+  text-align: center;
+  color: #a6152d;
+}
 @media (min-width: 992px){
 
   .hide-icon-screen{
@@ -501,3 +511,6 @@ margin-left: 250px;
 align-items: center;
 }
 
+.mz-flag {
+  color: #0000ff; /* Set the desired flag color */
+}
