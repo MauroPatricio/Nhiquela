@@ -109,7 +109,7 @@ export default function Footer() {
 
        >
     © 2023 Todos os direitos são reservados: {' '}
-    <a className="text-white" href="https://deliveryshop.herokuapp.com/">deliveryshop.herokuapp.com</a >
+    <a className="text-white" href="https://deliveryshop.herokuapp.com/">nhiquelashop.co.mz</a >
   </div>
   </footer>
 

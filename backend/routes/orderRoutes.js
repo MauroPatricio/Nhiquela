@@ -448,4 +448,22 @@ orderRouter.put(
   })
 );
 
+orderRouter.put(
+  '/:id/available',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.isAvailableToDeliver = true;
+      order.status = 'Disponivel para Entrega';
+
+      await order.save();
+      res.send({ message: `Pedido disponível para entrega` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
 export default orderRouter;

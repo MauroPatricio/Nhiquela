@@ -110,7 +110,7 @@ function App() {
             <Container>
               <LinkContainer to="/">
                 <Navbar.Brand className="Navbar-Brand">
-                Delivery Shop
+                Nhiquela Shop
                 </Navbar.Brand>
               </LinkContainer>
               <SearchBox />

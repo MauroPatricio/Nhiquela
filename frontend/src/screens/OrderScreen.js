@@ -260,6 +260,23 @@ export default function OrderScreen() {
     }
   };
 
+  const availableOrderHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'DELIVER_REQUEST' });
+      const { data } = await axios.put(
+        `/api/orders/${order._id}/available`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'DELIVER_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'DELIVER_FAIL' });
+    }
+  };
+  
 
   const inTransitOrderHandler = async (e) => {
     e.preventDefault();
@@ -646,6 +663,31 @@ export default function OrderScreen() {
                 </div>
               </ListGroup.Item>
             )}
+
+
+&nbsp;
+          {(userInfo.isAdmin || userInfo.isSeller) &&
+            !order.isDelivered &&
+            order.status === 'Aceite' &&
+            order.status !== 'Cheguei ao destino' &&
+            order.isPaid && (
+              <ListGroup.Item>
+                {loadingDeliver && <LoadingBox></LoadingBox>}
+                <div className="d-grid">
+                  <Button
+                    className="customButtom"
+                    variant="light"
+                    type="button"
+                    onClick={availableOrderHandler}
+                  >
+                   Pedido disponível para entrega
+                  </Button>
+                </div>
+              </ListGroup.Item>
+            )}
+
+
+
           &nbsp;
           {(userInfo.isAdmin || userInfo.isSeller) &&
             !order.isDelivered &&
