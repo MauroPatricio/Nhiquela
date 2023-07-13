@@ -9,13 +9,7 @@ const qualityTypeRouter = express.Router();
 qualityTypeRouter.get(
   '/',
   expressAsyncHandler(async (req, res) => {
-
-
-    const page = req.query.page || 1;
-    const pageSize = 10
-
     const qualityTypes = await QualityType.find({ isActive: true }).sort({name: 'asc'});
-
     res.send({qualityTypes});
   })
 );

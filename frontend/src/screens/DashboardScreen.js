@@ -86,7 +86,7 @@ return (
       <Col md={3}>
       <Card>
         <Card.Body>
-          <Card.Title>{summary.orders && summary.orders[0]? summary.orders[0].totalSales: 0} Mt</Card.Title>
+          <Card.Title>{summary.orders && summary.orders[0]? summary.orders[0].totalSales: 0} MT</Card.Title>
           <Card.Text>Total Vendido</Card.Text>
         </Card.Body>
       </Card>

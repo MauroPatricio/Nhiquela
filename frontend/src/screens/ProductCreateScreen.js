@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import  Card  from 'react-bootstrap/Card';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -361,6 +362,7 @@ export default function ProductCreateScreen() {
         <MessageBox>{error}</MessageBox>
       ) : (
         <>
+
           <Form onSubmit={submitHandler}>
             <Form.Group className="mb-3" controlId="name">
               <Form.Label>Nome</Form.Label>
@@ -376,6 +378,15 @@ export default function ProductCreateScreen() {
               <Form.Control
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="brand">
+              <Form.Label>Marca/Sabor</Form.Label>
+              <Form.Control
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
                 required
               />
             </Form.Group>
@@ -661,14 +672,7 @@ export default function ProductCreateScreen() {
         <Form.Control value={category} onChange={(e)=>setCategory(e.target.value)} required/>
         </Form.Group> */}
 
-            <Form.Group className="mb-3" controlId="brand">
-              <Form.Label>Marca/Sabor</Form.Label>
-              <Form.Control
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                required
-              />
-            </Form.Group>
+
 
             <div className='"mb-3'>
               <Button

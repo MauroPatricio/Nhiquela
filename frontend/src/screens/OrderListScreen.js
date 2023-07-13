@@ -138,9 +138,9 @@ export default function OrderListScreen() {
             <tbody>
               {filteredData.map((o) => (
                 <tr key={o._id}>
-                  <td>{o.code}</td>
+                  <td>Nº {o.code}</td>
                   <td>{formatedDate(o.createdAt)}</td>
-                  <td>{o.totalPrice} Mt</td>
+                  <td>{o.totalPrice} MT</td>
                   <td>
                     {o.isPaid ? (
                       <Badge bg="success" variant="success">

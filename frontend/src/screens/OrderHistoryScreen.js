@@ -26,6 +26,15 @@ function reducer(state, action) {
     case 'FETCH_FAIL':
       return { ...state, error: action.payload, loading: false };
 
+      case 'DELETE_REQUEST':
+        return { ...state, loadingDelete: false };
+
+      case 'DELETE_SUCCESS':
+        return { ...state,  loadingDelete: true };
+
+        case 'DELETE_FAIL':
+          return { ...state,loadingDelete: false };
+
     default:
       return state;
   }
@@ -40,7 +49,7 @@ export default function OrderHistoryScreen() {
 
 
 
-  const [{ loading, error, orders }, dispatch] = useReducer(reducer, {
+  const [{ loading, error, orders, loadingDelete }, dispatch] = useReducer(reducer, {
     loading: true,
     error: '',
   });
@@ -65,7 +74,7 @@ export default function OrderHistoryScreen() {
       }
     };
     fetchData();
-  }, [userInfo]);
+  }, [userInfo, loadingDelete]);
 
   const deleteHandler = async (id) => {
     if (window.confirm('Tem a certeza que deseja remover este pedido?')) {
@@ -105,7 +114,7 @@ export default function OrderHistoryScreen() {
         <table className="table">
           <thead>
             <tr>
-            <th>Codigo do Pedido</th>
+            <th>Código do Pedido</th>
 
               <th>Data</th>
               <th>Total</th>
@@ -120,15 +129,16 @@ export default function OrderHistoryScreen() {
           
             {filteredData.map((order) => (
               <tr key={order._id}>
-                                <td>{order.code}</td>
+                                <td>Nº {order.code}</td>
                 <td>{formatedDate(order.createdAt)}</td>
-                <td>{order.totalPrice} Mt</td>
+                <td>{order.totalPrice} MT</td>
                 <td>{order.isPaid ? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
                 <td>
                   {order.isDelivered
                     ? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}
                 </td><td>
-                <Badge>{order.status}</Badge> 
+                  {order.status === 'Finalizado'?<Badge  bg="success">{order.status }</Badge> : order.status === 'Cancelado'?<Badge  bg="danger">{order.status }</Badge>: <Badge>{order.status }</Badge>}
+                
                 </td>
                 <td>
                   <Button
@@ -141,7 +151,7 @@ export default function OrderHistoryScreen() {
                     <FontAwesomeIcon icon={faList}></FontAwesomeIcon>
                   </Button>
                   &nbsp;
-                  {(order.status==='Pendente'|| order.status==='Cancelado') &&
+                  {(order.status==='Pendente'|| order.status==='Cancelado' || order.status==='Finalizado' ) &&
                    <Button
                      type="Button"
                      variant="light"

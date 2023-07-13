@@ -300,6 +300,7 @@ if (!userExist) {
           frontDocImg:req.body.sellerFrontImgDoc,
           backDocImg:req.body.sellerBackImgDoc,
           province: req.body.sellerLocation,
+          address:  req.body.sellerAddress
         };
         newUser.seller = seller;
       }

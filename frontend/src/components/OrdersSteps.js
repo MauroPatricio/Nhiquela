@@ -24,7 +24,7 @@ export default function OrderSteps(props) {
         </Col>
         <Col className={props.status==='Aceite' ? 'active' : ''}>
         <FontAwesomeIcon icon={faBoxesPacking} className={props.status==='Aceite' ? 'active icon-active' : ''}></FontAwesomeIcon><br/>
-       Aceite/a caminho do fornecedor<br/>
+       Pedido aceite pelo fornecedor<br/>
        <br/>
         </Col>
         <Col className={props.status==='Em trânsito' ? 'active' : ''}>

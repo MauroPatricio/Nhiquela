@@ -94,7 +94,7 @@ export default function ProductListSellerScreen() {
     ,[page, userInfo, successDelete]);
 
     const createHandler = async () =>{
-            if(window.confirm('Tem a certeza que deseja criar um novo Producto?')){
+            if(window.confirm('Tem a certeza que deseja criar um novo Produto?')){
                 navigate('/product/create')
                 // try{
                 //     dispatch({type:'CREATE_REQUEST'});
@@ -131,7 +131,7 @@ export default function ProductListSellerScreen() {
                 {loading?(<LoadingBox></LoadingBox>): error?(<MessageBox variant="danger">{error}</MessageBox>):(<>
 
         <Row>
-            <Col><h1>Productos</h1></Col>
+            <Col><h1>Produtos</h1></Col>
             <Col className='col text-end'>
                 <div >
                     <Button className='customButtom'  variant='light' type="button"  onClick={createHandler}>

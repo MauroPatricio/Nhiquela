@@ -108,7 +108,7 @@ export default function SearchScreen() {
                     {query !== 'all' && ' : ' + query}
                     {category !== 'all' && ' : ' + products && products[0] && products[0].category && products[0].category.name}
                     {province !== 'all' && ' : ' + products && products[0] && products[0].province && products && products[0].province.name}
-                    {price !== 'all' && ' : Preço ' + price +' Mt'}
+                    {price !== 'all' && ' : Preço ' + price +' MT'}
                     {rating !== 'all' && ' : Rating ' + rating + ' & acima'}
                     {query !== 'all' ||
                     province !== 'all' ||

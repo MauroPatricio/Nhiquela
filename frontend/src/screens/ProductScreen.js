@@ -224,6 +224,8 @@ function ProductScreen() {
 
             <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 
+            <ListGroup.Item>Marca/Sabor: {product.brand}</ListGroup.Item>
+
             <ListGroup.Item>Preço: {product.price} MT</ListGroup.Item>
 
   

@@ -95,7 +95,7 @@ function App() {
     <BrowserRouter>
       <div className="d-flex flex-column site-background">
         <Helmet>
-          <title>Delivery Shop</title>
+          <title>Nhiquela Shop</title>
         </Helmet>
         <ToastContainer position="top-right" autoClose={1000} />
 
@@ -165,7 +165,7 @@ function App() {
                     </Link>
                   )}
                   {userInfo && userInfo.isSeller && userInfo.isApproved && (
-                    <NavDropdown title="Vendedor" id="admin-nav-dropdown">
+                    <NavDropdown title={userInfo.seller.name} id="admin-nav-dropdown">
                       <LinkContainer to="/productlist/seller">
                         <NavDropdown.Item>Produtos</NavDropdown.Item>
                       </LinkContainer>
@@ -245,7 +245,7 @@ function App() {
         <p className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b></p>
 
         
-        {userInfo && !userInfo.isApproved && <p className='not-approved-seller' style={{textAlign: 'center'}}><b>A sua conta ainda não foi aprovada. Para poder expor os seus produtos, por favor contacte a Nhiquela Shop para poder autorizar os seus dados como fornecedor.</b> </p>}
+        {userInfo && userInfo.isSeller && !userInfo.isApproved && <p className='not-approved-seller' style={{textAlign: 'center'}}><b>A sua conta ainda não foi aprovada para poder expor os seus produtos. Por favor, contacte a Nhiquela Shop para poder autorizar os seus dados como fornecedor.</b> </p>}
             </Col>
            
 

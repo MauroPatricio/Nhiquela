@@ -13,9 +13,9 @@ export default function Terms() {
                 <title>Termos e Condições</title>
             </head>
 
-                <h2>Termos e Condições</h2>
+                <h3>Termos e Condições</h3>
                 <br/>
-                <h3>OBJECTO</h3>
+                <h4>OBJECTO</h4>
                 <br/>
                 <p>O presente documento (de ora em diante, simplesmente "Termos e Condições") regula os termos e as condições gerais de
                     utilização do MarketPlace ou loja online que acaba de aceder, propriedade da NHIQUELA CONSULTORIA E SERVICOS SU., assim como os termos e as
@@ -29,7 +29,7 @@ export default function Terms() {
                     “NHIQUELA CONSULTORIA E SERVICOS”.</p>
                 <p>1.2. Informações ao Utilizador:</p>
                 <ul>
-                    <li>Telefone: 210 944 941 / 912 306 978</li>
+                    <li>Telefone: 820000000 / 840000000 / 860000000</li>
                     <li>Endereço de correio eletrónico: apoiocliente@nhiquelashop.com</li>
                 </ul>
 
@@ -48,21 +48,6 @@ export default function Terms() {
                 <p>2.4. Se o Utilizador não concordar com os presentes Termos e Condições, na sua totalidade, não</p>
                
                
-                <p>1. Propriedade e Direitos Autorais:</p>
-<p>Todo o conteúdo disponibilizado neste site, incluindo textos, imagens, gráficos, logotipos e elementos de design, são de propriedade exclusiva do [nome da empresa] e estão protegidos por leis de direitos autorais e outras leis de propriedade intelectual. Nenhum conteúdo deste site pode ser copiado, reproduzido, modificado, republicado, transmitido ou distribuído de qualquer forma sem o consentimento prévio por escrito da [nome da empresa]. Qualquer uso não autorizado do conteúdo deste site pode violar leis de direitos autorais, marcas registradas e outras regulamentações aplicáveis.</p>
-
-        <p>2. Limitação de Responsabilidade:</p>
-<p>Este site é fornecido "como está" e não oferece garantias de qualquer tipo, expressas ou implícitas. A [nome da empresa] não se responsabiliza por quaisquer danos diretos, indiretos, incidentais, consequenciais, especiais, punitivos ou outros danos resultantes do acesso ou uso deste site. A [nome da empresa] não garante a precisão, integridade, atualidade ou adequação do conteúdo disponível neste site. O uso deste site é de responsabilidade exclusiva do usuário.</p>
-
-3. Modificações e Interrupção do Serviço:
-A [nome da empresa] reserva-se o direito de modificar, suspender ou interromper, temporária ou permanentemente, o serviço oferecido por este site, com ou sem aviso prévio. A [nome da empresa] não será responsável por qualquer modificação, suspensão ou interrupção do serviço.
-
-4. Links Externos:
-Este site pode conter links para sites de terceiros. A inclusão de qualquer link não implica necessariamente uma afiliação, endosso ou patrocínio por parte da [nome da empresa]. A [nome da empresa] não tem controle sobre o conteúdo dos sites vinculados e não se responsabiliza por qualquer informação, produtos, serviços ou conteúdos presentes nesses sites.
-
-5. Jurisdição e Lei Aplicável:
-Estes termos de uso serão regidos e interpretados de acordo com as leis do [país/estado/região]. Qualquer disputa relacionada a estes termos de uso estará sujeita à jurisdição exclusiva dos tribunais competentes na [cidade/estado/região].
-
 
                 </Card.Body>
         </Card>

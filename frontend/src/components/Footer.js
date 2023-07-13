@@ -45,8 +45,18 @@ export default function Footer() {
   <section className="">
     <div className="container text-center text-md-start mt-5">
       <div className="row mt-3">
-        <div className="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
-          <h6 className="text-uppercase fw-bold">Delivery Shop</h6>
+      <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+      <img 
+                    style={{width: '12rem', height: '12rem'}}
+
+      src="nhiquela2.png"
+              className="card-img-top "
+              alt="Nhiquela" ></img>   
+        </div>
+
+
+            <div className="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
+          <h6 className="text-uppercase fw-bold">Nhiquela Shop</h6>
           <hr
               className="mb-4 mt-0 d-inline-block mx-auto"
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
@@ -82,11 +92,11 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p><i className="fas fa-home mr-3"></i> Moçambique, Maputo Cidade</p>
-          <p><i className="fas fa-envelope mr-3"></i> deliveryshop@example.com</p>
           <p><i className="fas fa-phone mr-3"></i> +258 82 00 00 000<br/>
            <i className="fas fa-print mr-3"></i> +258 84 00 00 000<br/>
-         <i className="fas fa-print mr-3"></i> +258 87 00 00 000</p>
+         <i className="fas fa-print mr-3"></i> +258 87 00 00 000<br/>
+          <i className="fas fa-envelope mr-3"></i> deliveryshop@example.com<br/>
+          <i className="fas fa-home mr-3"></i> Moçambique, Maputo Cidade</p>
 
         </div>
       </div>

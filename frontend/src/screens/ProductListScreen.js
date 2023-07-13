@@ -96,14 +96,14 @@ export default function ProductListScreen() {
     ,[page, userInfo, successDelete]);
 
     const createHandler = async () =>{
-            if(window.confirm('Tem a certeza que deseja Criar um novo Producto?')){
+            if(window.confirm('Tem a certeza que deseja Criar um novo Produto?')){
                 try{
                     dispatch({type:'CREATE_REQUEST'});
 
                     const {data} = await axios.post('/api/products',{},{
                         headers: {Authorization: `Bearer ${userInfo.token}`}
                     }) 
-                    toast.success('Producto Criado Com Sucesso')
+                    toast.success('Produto Criado Com Sucesso')
                     dispatch({type:'CREATE_SUCCESS'});
                     navigate(`/admin/product/${data.product._id}`)
                 }catch(err){
@@ -130,7 +130,7 @@ export default function ProductListScreen() {
   return (
     <div>
         <Row>
-            <Col><h1>Productos</h1></Col>
+            <Col><h1>Produtos</h1></Col>
             <Col className='col text-end'>
                 <div>
                     <Button className='customButtom' variant='light' type="button" onClick={createHandler}>

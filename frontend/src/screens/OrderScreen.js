@@ -319,7 +319,7 @@ export default function OrderScreen() {
   ) : (
     <div>
       <Helmet>
-        <title>Pedido {order.code}</title>
+        <title>Pedido № {order.code}</title>
       </Helmet>
 
       <h1>Acompanhar Pedido</h1>
@@ -563,6 +563,7 @@ export default function OrderScreen() {
             placeholder="Motivo..."
             value={message}
             onChange={handleInputChange}
+            style={{width: '19rem'}}
           />
         </Modal.Body>
         <Modal.Footer>
@@ -646,7 +647,7 @@ export default function OrderScreen() {
               </ListGroup.Item>
             )}
           &nbsp;
-          {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
+          {(userInfo.isAdmin || userInfo.isSeller) &&
             !order.isDelivered &&
             order.status !== 'Aceite' &&
             order.status !=='Em trânsito' &&
@@ -661,7 +662,7 @@ export default function OrderScreen() {
                     type="button"
                     onClick={acceptOrderHandler}
                   >
-                    Aceitar Entrega
+                    Aceitar Pedido
                   </Button>
                 </div>
               </ListGroup.Item>

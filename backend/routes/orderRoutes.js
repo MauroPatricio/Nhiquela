@@ -24,7 +24,7 @@ orderRouter.get(
     
     const orders = await Order.find({
       ...sellerFilter,
-      deleted: { $eq: false },
+      deleted: { $eq: false},
     }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
     const countOrders = await Order.countDocuments({
@@ -37,6 +37,32 @@ orderRouter.get(
   })
 );
 
+
+orderRouter.get(
+  '/sellerview',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const seller = req.query.seller || '';
+    const sellerFilter = seller ? { seller } : {};
+    const page = req.query.page || 1;
+    const pageSize = 10    
+    
+    const orders = await Order.find({
+      ...sellerFilter,
+      isPaid: { $eq: true},
+      deleted: { $eq: false},
+    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+
+    const countOrders = await Order.countDocuments({
+      ...sellerFilter,
+      isPaid: { $eq: true},
+      deleted: { $eq: false },
+    });
+
+    const  pages = Math.ceil(countOrders/pageSize);
+    res.send({orders, pages});
+  })
+);
 
 // most required items
 orderRouter.get(
@@ -177,7 +203,8 @@ orderRouter.get(
   '/mine',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const orders = await Order.find({ user: req.user._id });
+    
+    const orders = await Order.find({ user: req.user._id, deleted: false });
     res.send(orders);
   })
 );
@@ -257,9 +284,7 @@ orderRouter.delete(
     const order = await Order.findById(req.params.id);
     if (order) {
       order.deleted = true;
-
-
-
+      order.isActive = false;
 
       await order.save();
 

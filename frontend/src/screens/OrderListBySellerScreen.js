@@ -69,7 +69,7 @@ export default function OrderListBySellerScreen() {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
 
-        const { data } = await axios.get(`/api/orders?seller=${userInfo._id}&page=${page}`, {
+        const { data } = await axios.get(`/api/orders/sellerview?seller=${userInfo._id}&page=${page}`, {
           headers: { authorization: `Bearer ${userInfo.token}` },
         });
 
@@ -139,9 +139,9 @@ export default function OrderListBySellerScreen() {
             <tbody>
               {filteredData.map((o) => (
                 <tr key={o._id}>
-                  <td>{o.code}</td>
+                  <td>Nº {o.code}</td>
                   <td>{formatedDate(o.createdAt)}</td>
-                  <td>{o.totalPrice} Mt</td>
+                  <td>{o.totalPrice} MT</td>
                   <td>{o.isPaid ?  <Badge bg="success" variant="success">
                         Sim
                       </Badge> : <Badge bg="danger" variant="danger">
