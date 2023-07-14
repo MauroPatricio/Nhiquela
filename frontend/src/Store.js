@@ -18,6 +18,10 @@ const initialState = {
     paymentMethod: localStorage.getItem('paymentMethod')
       ? JSON.parse(localStorage.getItem('paymentMethod'))
       : '',
+
+      deliveryOptionValue: localStorage.getItem('deliveryOptionValue')
+    ? JSON.parse(localStorage.getItem('deliveryOptionValue'))
+    : '',
   },
 };
 
@@ -107,6 +111,20 @@ function reducer(state, action) {
         cart: {
           ...state.cart,
           paymentMethod: action.payload,
+        },
+      };
+    }
+
+
+    case 'SAVE_DELIVERY_OPTION': {
+      localStorage.setItem('deliveryOptionValue', JSON.stringify(action.payload));
+
+      return {
+        ...state,
+        error: '',
+        cart: {
+          ...state.cart,
+          deliveryOptionValue: action.payload,
         },
       };
     }

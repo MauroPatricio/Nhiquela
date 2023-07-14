@@ -7,7 +7,7 @@ import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { faWalking } from '@fortawesome/free-solid-svg-icons';
 import { faHistory } from '@fortawesome/free-solid-svg-icons';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
-import { FaShippingFast } from "react-icons/fa";
+import { FaShippingFast, FaBox } from "react-icons/fa";
 
 
 
@@ -25,6 +25,11 @@ export default function OrderSteps(props) {
         <Col className={props.status==='Aceite' ? 'active' : ''}>
         <FontAwesomeIcon icon={faBoxesPacking} className={props.status==='Aceite' ? 'active icon-active' : ''}></FontAwesomeIcon><br/>
        Pedido aceite pelo fornecedor<br/>
+       <br/>
+        </Col>
+        <Col className={props.status==='Disponível para Entrega' ? 'active' : ''}>
+        <FaBox  className={props.status==='Disponível para Entrega' ? 'active icon-active' : ''}></FaBox><br/>
+        Disponível Para Entrega<br/>
        <br/>
         </Col>
         <Col className={props.status==='Em trânsito' ? 'active' : ''}>

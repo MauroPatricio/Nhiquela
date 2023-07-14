@@ -90,6 +90,7 @@ export default function AddressScreen() {
                 placeholder="Para facilitar a sua localização ao entregador"
                 value={referenceAddress}
                 onChange={(e) => setReferenceAddress(e.target.value)}
+                required
               ></Form.Control>
           </Form.Group>
           <div>

@@ -4,19 +4,19 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import { Store } from '../Store.js';
 import { useNavigate } from 'react-router-dom';
-import CheckoutSteps from '../components/CheckoutSteps';
+import CheckoutSteps from '../components/CheckoutSteps.js';
 import Container from 'react-bootstrap/esm/Container';
 
-export default function PaymentMethodScreen() {
+export default function DeliveryOptionScreen() {
   const navigate = useNavigate();
   const { state, dispatch: ctxDispatch } = useContext(Store);
   
   const {
-    cart: { address, paymentMethod },
+    cart: { address, deliveryOptionValue },
   } = state;
 
-  const [paymentMethodName, setPaymentMethod] = useState(
-    paymentMethod || 'Mpesa'
+  const [deliveryOption, setDeliveryOption] = useState(
+    deliveryOptionValue || 'includeDelivery'
   );
 
   useEffect(() => {
@@ -27,46 +27,38 @@ export default function PaymentMethodScreen() {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    ctxDispatch({ type: 'SAVE_PAYMENT_METHOD', payload: paymentMethodName });
-    navigate('/deliveryoption');
+    ctxDispatch({ type: 'SAVE_DELIVERY_OPTION', payload: deliveryOption });
+    navigate('/placeorder');
   };
 
   return (
     <div>
       <Container className="small-conteiner">
-        <CheckoutSteps step1 step2 step3></CheckoutSteps>
+        <CheckoutSteps step1 step2 step3 step4></CheckoutSteps>
         <Helmet>
-          <title>Formas de Pagamento</title>
+          <title>Opções de Entrega</title>
         </Helmet>
         <div className="container small-container">
-          <h1>Formas de Pagamento</h1>
+          <h1>Opções de Entrega</h1>
           <Form onSubmit={submitHandler}>
             <div className="mb-3">
-              {/* <Form.Check
-                type="radio"
-                label="Dinheiro"
-                id="Dinheiro"
-                value="Dinheiro"
-                checked={paymentMethodName === 'Dinheiro'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              ></Form.Check> */}
               
                <Form.Check
                 type="radio"
-                label="Mpesa"
-                id="Mpesa"
-                value="Mpesa"
-                checked={paymentMethodName === 'Mpesa'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                label="Incluir Entrega [Max. 20 kg de Carga]"
+                id="include"
+                value="includeDelivery"
+                checked={deliveryOption === 'includeDelivery'}
+                onChange={(e) => setDeliveryOption(e.target.value)}
               ></Form.Check>
 
               <Form.Check
                 type="radio"
-                label="Emola"
-                id="Emola"
-                value="Emola"
-                checked={paymentMethodName === 'Emola'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                label="Sem Entrega"
+                id="without"
+                value="withoutDelivery"
+                checked={deliveryOption === 'withoutDelivery'}
+                onChange={(e) => setDeliveryOption(e.target.value)}
               ></Form.Check>
 
              

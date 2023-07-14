@@ -455,12 +455,13 @@ export default function OrderScreen() {
                 </ListGroup.Item>
                 { (
                   <>
-                    <ListGroup.Item>
-                      <Row>
-                        <Col>Entrega</Col>
-                        <Col>{order.addressPrice} MT</Col>
-                      </Row>
-                    </ListGroup.Item>
+             {order.addressPrice===0?'':
+                <ListGroup.Item>
+                  <Row>
+                    <Col>Valor de Entrega</Col>
+                    <Col>{order.addressPrice} MT</Col>
+                  </Row>
+                </ListGroup.Item>}
                     <ListGroup.Item>
                       <Row>
                         <Col>Comissão</Col>

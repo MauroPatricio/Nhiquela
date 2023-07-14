@@ -133,7 +133,7 @@ export default function SearchScreen() {
                   onChange={(e)=>{
                     navigate(getFilterUrl({order: e.target.value}));
                   }}>
-                    <option value="newest">Novos productos</option>
+                    <option value="newest">Novos produtos</option>
                     <option value="lowest">Preços: Baixos a Altos</option>
                     <option value="highest">Preços: Altos a Baixos</option>
                     <option value="toprated">Avg: Avaliaçōes de Clientes</option>
@@ -141,7 +141,7 @@ export default function SearchScreen() {
                   </select>
                 </Col>
               </Row>
-              {products.length === 0 && (<MessageBox> Productos não encontrados</MessageBox>)}
+              {products.length === 0 && (<MessageBox> Produtos não encontrados</MessageBox>)}
             <Row>
               {products.map((product)=>(
                 <Col sm={6} lg={3} className="mb-3" key={product._id}>

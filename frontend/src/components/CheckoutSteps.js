@@ -26,6 +26,11 @@ export default function CheckoutSteps(props) {
       </Col>
       <Col className={props.step4 ? 'active' : ''}>
         <Link className="link"></Link>
+        {userInfo ? <Link to="/deliveryoption" className="link">Opções de Entrega</Link>: <Link className="link">Opções de Entrega</Link>}
+
+      </Col>
+      <Col className={props.step5 ? 'active' : ''}>
+        <Link className="link"></Link>
         {userInfo ? <Link to="/placeorder" className="link">Confirmar Pedido</Link>: <Link className="link">Confirmar Pedido</Link>}
 
       </Col>

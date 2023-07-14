@@ -57,7 +57,9 @@ export default function PlaceOrderScreen() {
   cart.itemsPrice = round2(
     cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
   );
-  cart.addressPrice = cart.address.city === 'Maputo Cidade' ? 200 : 350;
+
+   
+  cart.addressPrice = cart && cart.deliveryOption === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 200 : 350;
   cart.siteTax = round2(0.2 * cart.itemsPrice);
   // cart.ivaTax = round2(0.16 * cart.itemsPrice);
   cart.ivaTax = 0;
@@ -105,7 +107,7 @@ export default function PlaceOrderScreen() {
         <title>Confirmar Pedido</title>
       </Helmet>
 
-      <CheckoutSteps step1 step2 step3 step4></CheckoutSteps>
+      <CheckoutSteps step1 step2 step3 step4 step5></CheckoutSteps>
       <h1>Confirmar Pedido</h1>
       <Row>
         <Col md={8}>
@@ -175,7 +177,15 @@ export default function PlaceOrderScreen() {
         <Col md={4}>
           <Card>
             <Card.Body>
-              <Card.Title>Resumido</Card.Title>
+              <Card.Title>Resumido</Card.Title> 
+              <ListGroup variant="flush">
+              <ListGroup.Item>
+
+               <Link className="link" to="/deliveryoption">
+                Alterar Opções de entrega
+              </Link>
+              </ListGroup.Item>
+              </ListGroup>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
@@ -183,12 +193,13 @@ export default function PlaceOrderScreen() {
                     <Col>{cart.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
+                {cart.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Entrega</Col>
+                    <Col>Valor de Entrega</Col>
                     <Col>{cart.addressPrice} MT</Col>
                   </Row>
-                </ListGroup.Item>
+                </ListGroup.Item>}
                 <ListGroup.Item>
                   <Row>
                     <Col>Comissão</Col>

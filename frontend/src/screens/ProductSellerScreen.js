@@ -135,7 +135,7 @@ export default function ProductSellerScreen() {
   return (
     <div>
       
-            <Col><h1>Seus Productos</h1></Col>
+            <Col><h1>Seus Produtos</h1></Col>
         {loading?(<LoadingBox></LoadingBox>): error?(<MessageBox variant="danger">{error}</MessageBox>):(<>
             <Col className='col text-end'>
                 <div>

@@ -76,6 +76,7 @@ import SizeEditScreen from './screens/SizeEditScreen';
 import ColorEditScreen from './screens/ColorEditScreen';
 import ForgetPasswordScreen from './screens/ForgetPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
+import DeliveryOptionScreen from './screens/DeliveryOptionScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -285,6 +286,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              <Route
+                path="/deliveryoption"
+                element={
+                  <ProtectedRoute>
+                    <DeliveryOptionScreen />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/payment"
                 element={
@@ -293,6 +303,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+                
               <Route
                 path="/placeorder"
                 element={
