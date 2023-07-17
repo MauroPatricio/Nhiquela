@@ -463,6 +463,7 @@ orderRouter.put(
         order.status = 'Finalizado';
         order.isInTransit = true;
         order.isDelivered = true;
+        order.deliveredAt = Date.now();
       }
 
       await order.save();
