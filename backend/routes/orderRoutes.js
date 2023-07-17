@@ -449,14 +449,15 @@ orderRouter.put(
 );
 
 orderRouter.put(
-  '/:id/available',
+  '/:id/availableToDeliver',
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
       order.isAvailableToDeliver = true;
-      order.status = 'Disponivel para Entrega';
+      order.status = 'Pronto';
+      
 
       await order.save();
       res.send({ message: `Pedido disponível para entrega` });

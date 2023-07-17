@@ -168,10 +168,10 @@ function App() {
                   {userInfo && userInfo.isSeller && userInfo.isApproved && (
                     <NavDropdown title={userInfo.seller.name} id="admin-nav-dropdown">
                       <LinkContainer to="/productlist/seller">
-                        <NavDropdown.Item>Produtos</NavDropdown.Item>
+                        <NavDropdown.Item>Meus Produtos</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/orderlist/seller">
-                        <NavDropdown.Item>Pedidos</NavDropdown.Item>
+                        <NavDropdown.Item>Pedidos dos Clientes</NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
                   )}

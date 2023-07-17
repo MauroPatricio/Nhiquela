@@ -24,11 +24,11 @@ export default function OrderSteps(props) {
         </Col>
         <Col className={props.status==='Aceite' ? 'active' : ''}>
         <FontAwesomeIcon icon={faBoxesPacking} className={props.status==='Aceite' ? 'active icon-active' : ''}></FontAwesomeIcon><br/>
-       Pedido aceite pelo fornecedor<br/>
+       Aceite pelo fornecedor<br/>
        <br/>
         </Col>
-        <Col className={props.status==='Disponível para Entrega' ? 'active' : ''}>
-        <FaBox  className={props.status==='Disponível para Entrega' ? 'active icon-active' : ''}></FaBox><br/>
+        <Col className={props.status==='Pronto' ? 'active' : ''}>
+        <FaBox  className={props.status==='Pronto' ? 'active icon-active' : ''}></FaBox><br/>
         Disponível Para Entrega<br/>
        <br/>
         </Col>

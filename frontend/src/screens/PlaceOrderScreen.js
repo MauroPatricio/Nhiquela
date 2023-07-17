@@ -141,7 +141,7 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Produtos da Carrinha</span>
+                <span>Produtos na Carrinha</span>
               </Card.Title>
               <ListGroup variant="flush">
                 {cart.cartItems.map((item) => (
@@ -196,7 +196,7 @@ export default function PlaceOrderScreen() {
                 {cart.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor de Entrega</Col>
+                    <Col>Valor da Entrega</Col>
                     <Col>{cart.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>}

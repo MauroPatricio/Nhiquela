@@ -40,6 +40,20 @@ function reducer(state, action) {
         errorDeliver: action.payload,
       };
 
+      case 'AVAILABLE_TO_DELIVER_REQUEST':
+        return { ...state, loadingAvaliableToDeliver: true };
+      case 'AVAILABLE_TO_DELIVER_SUCCESS':
+        return { ...state, loadingAvaliableToDeliver: false, successAvaliableToDeliver: true };
+      case 'AVAILABLE_TO_DELIVER_FAIL':
+        return {
+          ...state,
+          loadingAvaliableToDeliver: false,
+          successAvaliableToDeliver: false,
+          errorAvaliableToDeliver: action.payload,
+        };
+
+      
+
     case 'PAYMENT_REQUEST':
       return { ...state, loadingPayment: true };
     case 'PAYMENT_SUCCESS':
@@ -157,7 +171,8 @@ export default function OrderScreen() {
       successDeliver,
       loadingPayment,
       loadingDestination,
-      loadingInTransit
+      loadingInTransit,
+      loadingAvaliableToDeliver
     },
     dispatch,
   ] = useReducer(reducer, {
@@ -198,6 +213,10 @@ export default function OrderScreen() {
     if (loadingInTransit) {
       fetchOrder();
     }
+
+    if (loadingAvaliableToDeliver) {
+      fetchOrder();
+    }
   }, [
     userInfo,
     order,
@@ -206,7 +225,8 @@ export default function OrderScreen() {
     successDeliver,
     loadingPayment,
     loadingDestination,
-    loadingInTransit
+    loadingInTransit,
+    loadingAvaliableToDeliver
   ]);
 
   const cancelOrderHandler = async (e) => {
@@ -260,20 +280,20 @@ export default function OrderScreen() {
     }
   };
 
-  const availableOrderHandler = async (e) => {
+  const availableToDeliverHandler = async (e) => {
     e.preventDefault();
     try {
-      dispatch({ type: 'DELIVER_REQUEST' });
+      dispatch({ type: 'AVAILABLE_TO_DELIVER_REQUEST' });
       const { data } = await axios.put(
-        `/api/orders/${order._id}/available`,
+        `/api/orders/${order._id}/availableToDeliver`,
         {},
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
-      dispatch({ type: 'DELIVER_SUCCESS', payload: data });
+      dispatch({ type: 'AVAILABLE_TO_DELIVER_SUCCESS', payload: data });
       toast.success(data.message);
     } catch (err) {
       toast.error(getError(err));
-      dispatch({ type: 'DELIVER_FAIL' });
+      dispatch({ type: 'AVAILABLE_TO_DELIVER_FAIL' });
     }
   };
   
@@ -401,7 +421,7 @@ export default function OrderScreen() {
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Produtos da Carrinha</Card.Title>
+              <Card.Title>Produtos na Carrinha</Card.Title>
               <ListGroup variant="flush">
                 {order.orderItems.map((item) => (
                   <ListGroup.Item key={item._id}>
@@ -413,7 +433,7 @@ export default function OrderScreen() {
                           className="img-fluid rounded  img-thumbnail"
                         ></img>{' '}
                         <Link className="link link-none" to={`/product/${item.slug}`}>
-                        <br/>Produto: <b>{item.name}</b><br/> Cor:  <b>{item.color}</b>{' '} Tamanho:  <b>{item.size}</b>
+                        <br/>Produto: <b>{item.name}</b><br/>Cor:  <b>{item.color}</b>{' '} Tamanho:  <b>{item.size}</b>
                         </Link>
                       </Col>
                       <Col md={2}>
@@ -501,7 +521,7 @@ export default function OrderScreen() {
                     {order.paymentMethod === 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                        Para efectuar o pagamento do seu pedido envie o valor {' '}
+                        Para efectuar o pagamento e confirmar o seu pedido envie o valor {' '}
                         <b>{order.totalPrice} MT</b> para o número de conta/telefone <b>840000000</b>
                       </MessageBox>
                     )}                
@@ -512,7 +532,7 @@ export default function OrderScreen() {
                        {order.paymentMethod !== 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                                Para efectuar o pagamento do seu pedido envie o valor {' '} 
+                                Para efectuar o pagamento e confirmar o seu pedido envie o valor {' '} 
                                 <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>870000000</b>
                       </MessageBox>
                     )}
@@ -594,14 +614,6 @@ export default function OrderScreen() {
           </Modal.Footer>
           </Modal>
 
-
-
-
-
-
-
-
-
           &nbsp;
           {(userInfo.isAdmin ||
             !userInfo.isDeliveryMan ||
@@ -679,7 +691,7 @@ export default function OrderScreen() {
                     className="customButtom"
                     variant="light"
                     type="button"
-                    onClick={availableOrderHandler}
+                    onClick={availableToDeliverHandler}
                   >
                    Pedido disponível para entrega
                   </Button>
