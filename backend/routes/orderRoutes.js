@@ -387,6 +387,7 @@ orderRouter.put(
       //     order.isPaid = true;
       //     order.paidAt= Date.now();
       order.status = 'Em trânsito';
+      order.isInTransit = true;
 
       // order.paymentResult = {
       //   id: req.body.id,
@@ -457,7 +458,12 @@ orderRouter.put(
     if (order) {
       order.isAvailableToDeliver = true;
       order.status = 'Pronto';
-      
+
+      if(order.addressPrice == 0){
+        order.status = 'Finalizado';
+        order.isInTransit = true;
+        order.isDelivered = true;
+      }
 
       await order.save();
       res.send({ message: `Pedido disponível para entrega` });

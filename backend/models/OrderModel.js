@@ -51,6 +51,7 @@ const orderSchema = new mongoose.Schema(
     isAccepted:{ type: Boolean, default: false },
     isAvailableToDeliver:{ type: Boolean, default: false },
     isDelivered: { type: Boolean, default: false },
+    isInTransit: { type: Boolean, default: false },
     deliveredAt: { type: Date },
     status:{type: String},
     code: {type: String},
