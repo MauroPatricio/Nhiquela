@@ -143,6 +143,7 @@ orderRouter.get(
       ...sellerFilter,
       deleted: { $eq: false },
       isPaid: { $eq: true },
+      isAvailableToDeliver: { $eq: true },
       status: { $ne: 'Finalizado' }
     }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
@@ -341,9 +342,9 @@ orderRouter.put(
     const order = await Order.findById(req.params.id);
 
     if (order) {
-      order.status = 'Cheguei ao destino';
+      order.status = 'No destino indicado';
       const updateOrder = await order.save();
-      res.send({ message: `Cheguei ao destino`, order: updateOrder });
+      res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
