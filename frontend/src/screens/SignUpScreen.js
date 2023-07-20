@@ -423,7 +423,7 @@ export default function SignupScreen() {
 
          
           <br/>
-          <div><h4>Dados da sua Loja </h4>
+          <div><h4>Detalhes da sua Loja </h4>
           <Form.Group className="mb-3" controlId="sellerName">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome da Loja/empresa</Form.Label>
           <Form.Control

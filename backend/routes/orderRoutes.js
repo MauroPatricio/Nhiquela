@@ -460,7 +460,7 @@ orderRouter.put(
       order.isAvailableToDeliver = true;
       order.status = 'Pronto';
 
-      if(order.addressPrice == 0){
+      if(order.addressPrice === 0){
         order.status = 'Finalizado';
         order.isInTransit = true;
         order.isDelivered = true;

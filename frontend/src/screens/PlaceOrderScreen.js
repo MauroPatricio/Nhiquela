@@ -58,8 +58,7 @@ export default function PlaceOrderScreen() {
     cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
   );
 
-   
-  cart.addressPrice = cart && cart.deliveryOption === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 200 : 350;
+  cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 200 : 350;
   cart.siteTax = round2(0.2 * cart.itemsPrice);
   // cart.ivaTax = round2(0.16 * cart.itemsPrice);
   cart.ivaTax = 0;
@@ -114,7 +113,7 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Dados de Entrega</span>
+                <span>Detalhes de Entrega</span>
               </Card.Title>
               <Card.Text>
                 <strong>Nome Completo:</strong> {cart.address.fullName}
@@ -123,7 +122,7 @@ export default function PlaceOrderScreen() {
                 {cart.address.address}, {cart.address.referenceAddress}
               </Card.Text>
               <Link className="link" to="/address">
-                Alterar dados de entrega
+                Alterar detalhes de entrega
               </Link>
             </Card.Body>
           </Card>

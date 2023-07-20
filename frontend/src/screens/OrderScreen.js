@@ -368,7 +368,7 @@ export default function OrderScreen() {
         <Col md={8}>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Dados</Card.Title>
+              <Card.Title>Detalhes</Card.Title>
               <Card.Text>
                 <strong>Name:</strong> {order.deliveryAddress.fullName}
                 <br />
@@ -615,11 +615,12 @@ export default function OrderScreen() {
           </Modal>
 
           &nbsp;
-          {(userInfo.isAdmin ||
-            !userInfo.isDeliveryMan ||
-            !userInfo.isSeller) &&
+          {(
+            !userInfo.isDeliveryMan
+           ) &&
             !order.isDelivered &&
-            order.status === 'Cheguei ao destino' &&
+            order.isInTransit &&
+            order.status === 'No destino indicado' &&
             order.isPaid && (
               <ListGroup.Item>
                 {loadingDeliver && <LoadingBox></LoadingBox>}
@@ -636,10 +637,13 @@ export default function OrderScreen() {
               </ListGroup.Item>
             )}
           &nbsp;
+
           {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
            
               order.status==='Em trânsito' &&
-            order.status !== 'Cheguei ao destino' &&   !order.isDelivered &&
+              order.status !== 'Aceite' &&
+              order.status !== 'Pronto' &&
+            order.status !== 'No destino indicado' &&   !order.isDelivered &&
             order.isPaid && (
               <ListGroup.Item>
                 {loadingDestination && <LoadingBox></LoadingBox>}
@@ -650,7 +654,7 @@ export default function OrderScreen() {
                     type="button"
                     onClick={confirmArriveDestinationOrderHandler}
                   >
-                    Cheguei ao destino
+                    No destino indicado
                   </Button>
                 </div>
               </ListGroup.Item>
@@ -659,8 +663,10 @@ export default function OrderScreen() {
     &nbsp;
           {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
             !order.isDelivered &&
-            order.status === 'Aceite' &&
-            order.status !== 'Cheguei ao destino' &&
+            order.status !== 'Aceite' &&
+            order.status === 'Pronto' &&
+            order.status !=='Em trânsito' &&
+            order.status !== 'No destino indicado' &&
             order.isPaid && (
               <ListGroup.Item>
                 {loadingInTransit && <LoadingBox></LoadingBox>}
@@ -682,7 +688,9 @@ export default function OrderScreen() {
           {(userInfo.isAdmin || userInfo.isSeller) &&
             !order.isDelivered &&
             order.status === 'Aceite' &&
-            order.status !== 'Cheguei ao destino' &&
+            order.status !== 'Pronto' &&
+            order.status !=='Em trânsito' &&
+            order.status !== 'No destino indicado' &&
             order.isPaid && (
               <ListGroup.Item>
                 {loadingDeliver && <LoadingBox></LoadingBox>}
@@ -705,8 +713,10 @@ export default function OrderScreen() {
           {(userInfo.isAdmin || userInfo.isSeller) &&
             !order.isDelivered &&
             order.status !== 'Aceite' &&
+            order.status !=='Pronto' &&
+
             order.status !=='Em trânsito' &&
-            order.status !== 'Cheguei ao destino' &&
+            order.status !== 'No destino indicado' &&
             order.isPaid && (
               <ListGroup.Item>
                 {loadingDeliver && <LoadingBox></LoadingBox>}

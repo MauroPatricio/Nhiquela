@@ -115,7 +115,6 @@ function HomeScreen() {
   //     return 0;
   //   }
   // });
-  // console.log(sortedProducts)
 
   return (
     <div>

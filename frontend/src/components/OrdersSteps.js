@@ -37,9 +37,9 @@ export default function OrderSteps(props) {
         Em trânsito<br/>
        <br/>
         </Col>
-        <Col className={props.status==='Cheguei ao destino' ? 'active' : ''}>
-        <FontAwesomeIcon icon={faLocationDot} className={props.status==='Cheguei ao destino' ? 'active icon-active' : ''}></FontAwesomeIcon><br/>
-        Cheguei ao destino<br/>
+        <Col className={props.status==='No destino indicado' ? 'active' : ''}>
+        <FontAwesomeIcon icon={faLocationDot} className={props.status==='No destino indicado' ? 'active icon-active' : ''}></FontAwesomeIcon><br/>
+        No destino indicado<br/>
        <br/>
         </Col>
         <Col className={props.status==='Finalizado' ? 'active' : ''}>
