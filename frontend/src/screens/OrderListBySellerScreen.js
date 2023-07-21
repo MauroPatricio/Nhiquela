@@ -47,7 +47,7 @@ export default function OrderListBySellerScreen() {
       error: '',
     });
 
-  const { state } = useContext(Store);
+  const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
   const navigate = useNavigate();
 

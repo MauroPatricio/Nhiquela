@@ -22,6 +22,10 @@ const initialState = {
       deliveryOptionValue: localStorage.getItem('deliveryOptionValue')
     ? JSON.parse(localStorage.getItem('deliveryOptionValue'))
     : '',
+
+    ordersBySeller: localStorage.getItem('ordersBySeller')
+    ? JSON.parse(localStorage.getItem('ordersBySeller'))
+    : [],
   },
 };
 
@@ -135,6 +139,21 @@ function reducer(state, action) {
         ...state,
         error: '',
         cart: { ...state.cart, cartItems: [] },
+      };
+    }
+
+
+
+    case 'ORDERS_BY_SELLER': {
+      localStorage.setItem('ordersBySeller', JSON.stringify(action.payload));
+
+      return {
+        ...state,
+        error: '',
+        cart: {
+          ...state.cart,
+          ordersBySeller: action.payload,
+        },
       };
     }
     default:

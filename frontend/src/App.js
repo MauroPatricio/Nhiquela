@@ -9,7 +9,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import Badge from 'react-bootstrap/Badge';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import Container from 'react-bootstrap/Container';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Helmet } from 'react-helmet-async';
@@ -77,6 +77,7 @@ import ColorEditScreen from './screens/ColorEditScreen';
 import ForgetPasswordScreen from './screens/ForgetPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import DeliveryOptionScreen from './screens/DeliveryOptionScreen';
+import axios from 'axios';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -91,6 +92,22 @@ function App() {
   const signOutHandler = () => {
     ctxDispatch({ type: 'USER_SIGNOUT' });
   };
+
+  useEffect(()=>{
+
+    const refresh = async () =>{
+
+      if(userInfo){
+        const {data} = await axios.get(`/api/orders/sellerview?seller=${userInfo._id}`, {
+          headers: { authorization: `Bearer ${userInfo.token}` },
+        });    
+
+      
+        ctxDispatch({type: 'ORDERS_BY_SELLER', payload: data.orders});
+      }
+    }
+    refresh();
+  },[userInfo])
 
   return (
     <BrowserRouter>
@@ -165,13 +182,23 @@ function App() {
                       Fazer Login
                     </Link>
                   )}
+
+
                   {userInfo && userInfo.isSeller && userInfo.isApproved && (
                     <NavDropdown title={userInfo.seller.name} id="admin-nav-dropdown">
                       <LinkContainer to="/productlist/seller">
                         <NavDropdown.Item>Meus Produtos</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/orderlist/seller">
-                        <NavDropdown.Item>Pedidos dos Clientes</NavDropdown.Item>
+                        <NavDropdown.Item>Pedidos dos Clientes
+                        <Badge
+                        bg="danger"
+                        variant="danger"
+                        className="cart-number"
+                      >
+                        {cart.ordersBySeller && cart.ordersBySeller.length > 0 && cart.ordersBySeller.length}
+                      </Badge>
+                        </NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
                   )}

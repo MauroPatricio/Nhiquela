@@ -53,9 +53,15 @@ export default function SignInScreen() {
         password,
       });
 
+     
+      
+
 
 
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
+
+
+
       navigate(redirect || '/');
     } catch (err) {
       setIsModalOpen(true);
