@@ -3,7 +3,6 @@ import Form from 'react-bootstrap/Form';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMobile } from '@fortawesome/free-solid-svg-icons';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
-import { faFlag } from '@fortawesome/free-solid-svg-icons';
 
 
 import Button from 'react-bootstrap/Button';
@@ -36,11 +35,6 @@ export default function SignInScreen() {
   const [message, setMessage] = useState('');
 
 
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
   const closeModal = () => {
     setIsModalOpen(false);
   };
@@ -53,14 +47,7 @@ export default function SignInScreen() {
         password,
       });
 
-     
-      
-
-
-
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
-
-
 
       navigate(redirect || '/');
     } catch (err) {

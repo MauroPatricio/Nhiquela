@@ -11,6 +11,8 @@ import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import CategoriesFilter from '../components/CategoriesFilter';
 import Button from 'react-bootstrap/Button';
 import CarouselSlide from '../components/CarouselSlide';
+import { Carousel } from 'react-responsive-carousel';
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -50,7 +52,6 @@ function HomeScreen() {
     {
       loading,
       error,
-      products,
       topSellers,
       loadingTopUsers,
       errorTopUsers,
@@ -58,7 +59,6 @@ function HomeScreen() {
     dispatch,
   ] = useReducer(reducer, {
     topSellers: [],
-    products: [],
     loading: true,
     error: '',
   });
@@ -66,6 +66,26 @@ function HomeScreen() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [items, setItems] = useState([]);
+  const [showCaroselTopSellers, setShowCaroselTopSellers] = useState(false);
+  const [showDivTopSellers, setShowDivTopSellers] = useState(false);
+
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth <= 540) {
+        setShowCaroselTopSellers(true);
+        setShowDivTopSellers(false)
+      } else {
+        setShowCaroselTopSellers(false);
+        setShowDivTopSellers(true)
+
+      }
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -145,7 +165,17 @@ function HomeScreen() {
                   {topSellers && topSellers.length === 0 && (
                     <MessageBox>Não existem vendedores adicionados</MessageBox>
                   )}
-                  {topSellers && topSellers.map((seller) => (
+
+{showCaroselTopSellers && <Carousel showArrows infiniteLoop={true} autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
+      {topSellers && topSellers.map((seller) => (
+        <Col key={seller._id} sm={2} md={4} lg={3} className="mb-3">
+        <Product seller={seller}></Product>
+      </Col>
+      ))}
+    </Carousel>}
+
+
+                  {showDivTopSellers && topSellers && topSellers.map((seller) => (
                     <Col key={seller._id} sm={2} md={4} lg={3} className="mb-3">
                       <Product seller={seller}></Product>
                     </Col>

@@ -12,9 +12,6 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
-import { FaStar } from "react-icons/fa";
-import { FaStarHalf } from "react-icons/fa";
-import { FaRegStar } from "react-icons/fa";
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -54,7 +51,7 @@ export default function CategoriesFilter() {
 
   const [isMaximized, setIsMaximized] = useState(false);
   const [showComponent, setShowComponent] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
+  const [showHeader, setShowHeader] = useState(false);
 
 
   library.add(fas);
@@ -120,12 +117,12 @@ export default function CategoriesFilter() {
 
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth >= 540) {
-        setShowHeader(false);
-        setShowComponent(true)
-      } else {
+      if (window.innerWidth <= 540) {
         setShowHeader(true);
         setShowComponent(false)
+      } else {
+        setShowHeader(false);
+        setShowComponent(true)
       }
     }
     handleResize();
