@@ -104,7 +104,7 @@ export default function SellerScreen() {
       <Helmet>
         <title>Página do Vendedor</title>
       </Helmet>
-      <h3>Produtos do Vendedor: <b>{sellerDetails && sellerDetails.seller.name}</b></h3><p></p>
+      <h3>Produtos do Vendedor: <b className='text_color'>{sellerDetails && sellerDetails.seller.name}</b></h3><p></p>
       {loadingSeller ? (
         <LoadingBox></LoadingBox>
       ) : errorSeller ? (
