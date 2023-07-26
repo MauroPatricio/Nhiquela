@@ -151,6 +151,7 @@ export default function SellerScreen() {
                     ) : productsError ? (
                       <MessageBox variant="danger">{productsError}</MessageBox>
                     ) : (
+                      
                       <>
                       <Row className="row-widget">
                         {productsBySeller.length === 0 && (
