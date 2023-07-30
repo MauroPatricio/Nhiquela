@@ -8,6 +8,9 @@ import { faWalking } from '@fortawesome/free-solid-svg-icons';
 import { faHistory } from '@fortawesome/free-solid-svg-icons';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { FaShippingFast, FaBox } from "react-icons/fa";
+import { BsFillBagCheckFill } from "react-icons/bs";
+
+
 
 
 
@@ -28,7 +31,7 @@ export default function OrderSteps(props) {
        <br/>
         </Col>
         <Col className={props.status==='Pronto' ? 'active' : ''}>
-        <FaBox  className={props.status==='Pronto' ? 'active icon-active' : ''}></FaBox><br/>
+        <BsFillBagCheckFill  className={props.status==='Pronto' ? 'active icon-active' : ''}></BsFillBagCheckFill><br/>
         Disponível Para Entrega<br/>
        <br/>
         </Col>

@@ -15,6 +15,9 @@ export default function AddressScreen() {
   const [city, setCity] = useState(cart.address.city ||'');
   const [address, setAddress] = useState(cart.address.address ||'');
   const [referenceAddress, setReferenceAddress] = useState(cart.address.referenceAddress ||'');
+  const [phoneNumber, setPhoneNumber] = useState(cart.address.phoneNumber ||'');
+  const [alternativePhoneNumber, setAlternativePhoneNumber] = useState(cart.address.alternativePhoneNumber ||'');
+
   const navigate = useNavigate();
 
     
@@ -29,6 +32,8 @@ export default function AddressScreen() {
         city,
         address,
         referenceAddress,
+        phoneNumber,
+        alternativePhoneNumber
       },
     });
     localStorage.setItem(
@@ -38,6 +43,8 @@ export default function AddressScreen() {
         city,
         address,
         referenceAddress,
+        phoneNumber,
+        alternativePhoneNumber
       })
     );
     navigate('/payment');
@@ -55,10 +62,29 @@ export default function AddressScreen() {
         <br></br>
         <Form onSubmit={submitHandler}>
           <Form.Group className="mb-3" controlId="fullName">
-            <Form.Label>Nome Completo</Form.Label>
+            <Form.Label>Nome</Form.Label>
             <Form.Control
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              required
+            ></Form.Control>
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="phoneNumber">
+            <Form.Label>Número para chamadas</Form.Label>
+            <Form.Control
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+            ></Form.Control>
+          </Form.Group>
+
+
+          <Form.Group className="mb-3" controlId="alternativePhoneNumber">
+            <Form.Label>Número alternativo</Form.Label>
+            <Form.Control
+              value={alternativePhoneNumber}
+              onChange={(e) => setAlternativePhoneNumber(e.target.value)}
               required
             ></Form.Control>
           </Form.Group>

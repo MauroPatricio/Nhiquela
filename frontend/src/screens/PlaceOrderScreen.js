@@ -116,10 +116,14 @@ export default function PlaceOrderScreen() {
                 <span>Detalhes de Entrega</span>
               </Card.Title>
               <Card.Text>
-                <strong>Nome Completo:</strong> {cart.address.fullName}
-                <br></br>
+                <strong>Nome:</strong> {cart.address.fullName}
+                <br/>
+                <strong>Número(s):</strong>
+                {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
+                <br />
                 <strong>Endereço de entrega:</strong> {cart.address.city},{' '}
-                {cart.address.address}, {cart.address.referenceAddress}
+                {cart.address.address}, {cart.address.referenceAddress}, 
+                {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
               </Card.Text>
               <Link className="link" to="/address">
                 Alterar detalhes de entrega

@@ -370,11 +370,16 @@ export default function OrderScreen() {
             <Card.Body>
               <Card.Title>Detalhes</Card.Title>
               <Card.Text>
-                <strong>Name:</strong> {order.deliveryAddress.fullName}
+                <strong>Nome:</strong> {order.deliveryAddress.fullName}
                 <br />
+                <strong>Número(s):</strong>
+                {order.deliveryAddress.phoneNumber}, {order.deliveryAddress.alternativePhoneNumber}
+
+                <br />
+
                 <strong>Endereço:</strong>
-                {order.deliveryAddress.address}, {order.deliveryAddress.city},{' '}
-                {order.deliveryAddress.referenceAddress}
+                {order.deliveryAddress.city}, {order.deliveryAddress.address},{' '}
+                {order.deliveryAddress.referenceAddress},
               </Card.Text>
               {order.isDelivered ? (
                 <MessageBox variant="success">
