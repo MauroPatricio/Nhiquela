@@ -4,7 +4,6 @@ import Col from 'react-bootstrap/Col';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBoxesPacking } from '@fortawesome/free-solid-svg-icons';
 import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
-import { faWalking } from '@fortawesome/free-solid-svg-icons';
 import { faHistory } from '@fortawesome/free-solid-svg-icons';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { FaShippingFast, FaBox } from "react-icons/fa";
