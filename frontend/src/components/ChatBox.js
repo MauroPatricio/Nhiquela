@@ -5,6 +5,7 @@ import socketIOClient from 'socket.io-client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage } from '@fortawesome/free-solid-svg-icons';
 import { faClose } from '@fortawesome/free-solid-svg-icons';
+import {FaWhatsapp } from "react-icons/fa";
 
 const ENDPOINT =
   window.location.host.indexOf('localhost') >= 0
@@ -119,14 +120,14 @@ export default function ChatBox(props) {
             </div>
             <div>
               <form onSubmit={submitHandler} className="row">
-                <input
+                {/* <input
                   value={messageBody}
                   onChange={(e) => setMessageBody(e.target.value)}
                   type="text"
                   placeholder="Adicione uma mensagem"
-                />
+                /> */}
                 <Button className="customButtom" variant="light" type="submit">
-                  Enviar
+                  Suporte pelo whatsapp <FaWhatsapp></FaWhatsapp>
                 </Button>
               </form>
             </div>
