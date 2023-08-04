@@ -659,7 +659,7 @@ export default function ProductCreateScreen() {
               </ListGroup>
             </Form.Group>
             <Form.Group className="mb-3" controlId="additionalImageFile">
-              <Form.Label>Upload de mais fotos</Form.Label>
+              <Form.Label>Upload imagens adicionais</Form.Label>
               <Form.Control
                 type="file"
                 onChange={(e) => uploadFileHandler(e, true)}
@@ -681,7 +681,7 @@ export default function ProductCreateScreen() {
                 type="submit"
                 disabled={loadingCreate}
               >
-                Registar
+                Criar
               </Button>
               {loadingCreate && <LoadingBox />}
             </div>

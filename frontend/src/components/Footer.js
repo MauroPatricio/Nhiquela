@@ -46,12 +46,9 @@ export default function Footer() {
     <div className="container text-center text-md-start mt-5">
       <div className="row mt-3">
       <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
-      <img 
-                    style={{width: '12rem', height: '12rem'}}
-
-      src="nhiquela2.png"
-              className="card-img-top "
-              alt="Nhiquela" ></img>   
+      <img style={{width: '12rem', height: '12rem', textAlign: 'center'}}
+            src="nhiquela2.png" 
+            alt="Nhiquela" ></img>   
         </div>
 
 
@@ -108,7 +105,7 @@ export default function Footer() {
        style={{backgroundColor: 'rgba(0, 0, 0, 0.2)'}}
 
        >
-    © 2023 Todos os direitos são reservados: {' '}
+    © 2023 Todos os direitos são reservados {' '}
     {/* <a className="text-white" href="https://deliveryshop.herokuapp.com/">nhiquelashop.co.mz</a > */}
   </div>
   </footer>

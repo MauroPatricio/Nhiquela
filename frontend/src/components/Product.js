@@ -66,8 +66,8 @@ function Product(props) {
            
 
             <img
+              className="card-img-top"
               src={product.image}
-              className="card-img-top "
               alt={product.name}
             ></img>
           </Link>

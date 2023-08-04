@@ -223,7 +223,7 @@ function HomeScreen() {
                   <div>
                     {items && items.length === pageSize * page && (
                       <Button className="end-margin-bottom" variant="light" onClick={handleShowMore}>
-                        ver mais
+                        Ver mais
                       </Button>
                     )}
                   </div>
