@@ -127,7 +127,7 @@ export default function ChatBox(props) {
                   placeholder="Adicione uma mensagem"
                 /> */}
                 <Button className="customButtom" variant="light" type="submit">
-                  Suporte pelo whatsapp <FaWhatsapp></FaWhatsapp>
+                  Suporte pelo nosso whatsapp <FaWhatsapp></FaWhatsapp>
                 </Button>
               </form>
             </div>
