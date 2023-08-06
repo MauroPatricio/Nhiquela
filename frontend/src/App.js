@@ -117,7 +117,7 @@ function App() {
         </Helmet>
         <ToastContainer position="top-right" autoClose={1000} />
 
-        <header>
+         <header>
           <Navbar
              expanded={expanded}
              bg="light"
@@ -265,9 +265,8 @@ function App() {
               
             </Container>
           </Navbar>
-        </header>
-        <main style={{ marginTop: '30px' }}>
-          <Row>
+        </header> 
+         <main style={{ marginTop: '30px' }}>
             <Col className="bg-color-row">
 
         <p className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b></p>
@@ -277,7 +276,6 @@ function App() {
             </Col>
            
 
-          </Row>
           <Container className={expanded ? 'collapse-open' : ''}>
             <Routes>
               <Route path="/" element={<HomeScreen />} />
@@ -681,11 +679,11 @@ function App() {
 
             {userInfo&&<ChatBox  userInfo={userInfo}/>}
       
-          </Container>
-        </main>
-        <footer className='row center'>
-       <Footer></Footer>
-        </footer>
+          </Container> 
+        </main> 
+      <footer className='center'>
+        <Footer></Footer>
+              </footer> 
       </div>
     </BrowserRouter>
   );

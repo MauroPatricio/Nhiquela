@@ -183,6 +183,7 @@ table {
 .delivery-info {
   text-align: center;
   color: #a435f0;
+  padding: 10px;
 }
 
 .not-approved-seller {
