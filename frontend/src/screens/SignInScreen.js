@@ -78,6 +78,7 @@ export default function SignInScreen() {
           <Form.Control
             type="number"
             required
+            placeholder="8********"
             onChange={(e) => {
               setPhoneNumber(e.target.value);
             }}
@@ -88,6 +89,7 @@ export default function SignInScreen() {
           <Form.Control
             type="password"
             required
+            placeholder="******"
             onChange={(e) => {
               setPassword(e.target.value);
             }}

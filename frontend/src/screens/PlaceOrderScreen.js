@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useReducer, useState } from 'react';
+import React, { useContext, useEffect, useReducer } from 'react';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
@@ -13,6 +13,8 @@ import { getError } from '../utils.js';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import LoadingBox from '../components/LoadingBox';
+import { FaPencilAlt } from "react-icons/fa";
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -116,7 +118,7 @@ export default function PlaceOrderScreen() {
                 <span>Detalhes de Entrega</span>
               </Card.Title>
               <Card.Text>
-                <strong>Nome:</strong> {cart.address.fullName}
+                <strong>Receptor do pedido:</strong> {cart.address.fullName}
                 <br/>
                 <strong>Número(s):</strong>
                 {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
@@ -126,7 +128,7 @@ export default function PlaceOrderScreen() {
                 {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
               </Card.Text>
               <Link className="link" to="/address">
-                Alterar detalhes de entrega
+                Alterar detalhes de entrega <FaPencilAlt/>
               </Link>
             </Card.Body>
           </Card>
@@ -137,7 +139,7 @@ export default function PlaceOrderScreen() {
               </Card.Title>
               <Card.Text>{cart.paymentMethod}</Card.Text>
               <Link className="link" to="/payment">
-                Alterar forma de pagamento
+                Alterar forma de pagamento <FaPencilAlt/>
               </Link>
             </Card.Body>
           </Card>
@@ -185,7 +187,7 @@ export default function PlaceOrderScreen() {
               <ListGroup.Item>
 
                <Link className="link" to="/deliveryoption">
-                Alterar Opções de entrega
+                Alterar opções de entrega <FaPencilAlt/>
               </Link>
               </ListGroup.Item>
               </ListGroup>
@@ -199,7 +201,7 @@ export default function PlaceOrderScreen() {
                 {cart.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor da Entrega</Col>
+                    <Col>Taxa de Entrega</Col>
                     <Col>{cart.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>}

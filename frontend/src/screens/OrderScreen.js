@@ -370,7 +370,7 @@ export default function OrderScreen() {
             <Card.Body>
               <Card.Title>Detalhes</Card.Title>
               <Card.Text>
-                <strong>Nome:</strong> {order.deliveryAddress.fullName}
+                <strong>Receptor do pedido:</strong> {order.deliveryAddress.fullName}
                 <br />
                 <strong>Número(s):</strong>
                 {order.deliveryAddress.phoneNumber}, {order.deliveryAddress.alternativePhoneNumber}

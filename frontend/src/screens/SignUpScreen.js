@@ -297,6 +297,7 @@ export default function SignupScreen() {
             maxLength={9}
             pattern="[0-9]*"
             title="Insira apenas números"
+            placeholder="8********"
             required
             onChange={(e) => {
               setPhoneNumber(e.target.value);
@@ -308,6 +309,7 @@ export default function SignupScreen() {
           <Form.Control
             type="email"
             required
+            placeholder=".com"
             onChange={(e) => {
               setEmail(e.target.value);
             }}
@@ -319,6 +321,7 @@ export default function SignupScreen() {
           <FontAwesomeIcon icon={faLock} /> <Form.Label>Password</Form.Label>
           <Form.Control
             type="password"
+            placeholder="******"
             required
             onChange={(e) => {
               setPassword(e.target.value);
@@ -330,6 +333,7 @@ export default function SignupScreen() {
           <FontAwesomeIcon icon={faLockOpen} /> <Form.Label>Confirme o Password</Form.Label>
           <Form.Control
             type="password"
+            placeholder="******"
             required
             onChange={(e) => {
               setConfirmPassword(e.target.value);

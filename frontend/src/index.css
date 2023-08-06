@@ -508,7 +508,9 @@ margin-left: 250px;
 .carousel-custom {
    margin: 0 auto; /* Center the carousel horizontally */
    /* height: 21rem; */
-   width: 100%;
+   width: 100%; /* Adjust this to your desired width */
+   max-width: 100%; /* Ensures the image doesn't exceed the card's width */
+   height: auto; /* Maintains the image's aspect ratio */
   }
 
 .img-carousel{
