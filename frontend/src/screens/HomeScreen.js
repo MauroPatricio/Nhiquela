@@ -70,6 +70,11 @@ function HomeScreen() {
   const [showDivTopSellers, setShowDivTopSellers] = useState(false);
 
 
+
+
+
+     
+
   useEffect(() => {
     function handleResize() {
       if (window.innerWidth <= 540) {
@@ -91,12 +96,24 @@ function HomeScreen() {
     const fetchData = async () => {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
-        const result = await axios.get(`/api/products?page=${page}`);
+        const sortedProductsByCategory = [];
+        let currentCategory = null;
+        
+        const {data} = await axios.get(`/api/products?page=${page}`);
+        data.products.forEach(product => {
+
+          if (product.category !== currentCategory) {
+            currentCategory = product.category;
+            sortedProductsByCategory.push(product);
+          }
+        });
+
+        setItems(sortedProductsByCategory);
 
         
-        setItems(result.data.products);
+        // setItems(data.products);
 
-        dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
+        dispatch({ type: 'FETCH_SUCCESS', payload: data });
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
       }
@@ -121,8 +138,8 @@ function HomeScreen() {
 
   const handleShowMore = async () => {
     const newPage = page + 1;
-    const res = await axios.get(`/api/products?page=${newPage}`);
-    setItems([...items, ...res.data.products]);
+    const {data} = await axios.get(`/api/products?page=${newPage}`);
+    setItems([...items, ...data.products]);
     setPage(newPage);
   };
 
@@ -168,6 +185,10 @@ function HomeScreen() {
 
 {showCaroselTopSellers && <Carousel showArrows infiniteLoop={true} autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
       {topSellers && topSellers.map((seller) => (
+
+        
+
+
         <Col key={seller._id} sm={2} md={4} lg={3} className="mb-3">
         <Product seller={seller}></Product>
       </Col>
@@ -181,19 +202,6 @@ function HomeScreen() {
                     </Col>
                   ))}
                 </Row>
-
-                {/* {topSellers.map((seller) => (
-                    <div key={seller._id}>
-                      <Link className="link" to={`/seller/${seller._id}`}>
-                        <img
-                          src={seller.seller.logo}
-                          alt={seller.seller.name}
-                        ></img>
-                        <p className="legend">{seller.seller.name}</p>
-                      </Link>
-                    </div>
-                  ))} */}
-                {/* </Carousel> */}
               </>
             )}
 
@@ -210,16 +218,22 @@ function HomeScreen() {
                       <MessageBox>Não existem produtos adicionados</MessageBox>
                     )}
                     {items && items.map((product) => (
-                      <Col
+<>
+                <Col
                         key={product.slug}
                         sm={2}
                         md={4}
                         lg={3}
                         className="mb-3"
-                      >
+                        >
                         <Product product={product}></Product>
                       </Col>
+</>
+
+
                     ))}
+                   
+               
                   <div>
                     {items && items.length === pageSize * page && (
                       <Button className="end-margin-bottom" variant="light" onClick={handleShowMore}>

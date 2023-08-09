@@ -137,7 +137,7 @@ function Product(props) {
               <b>{truncateString(seller.seller.name,30)}</b>
             </Link>
             <br />
-            {truncateString(seller.seller.description,60)}
+            {truncateString(seller.seller.description,30)}
             {/* <Rating
               rating={seller.seller.rating}
               numReviews={seller.seller.numReviews}

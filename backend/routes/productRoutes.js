@@ -17,8 +17,16 @@ productRoutes.get('/', async (req, res) => {
 
           const countProducts = await Product.countDocuments({...sellerFilter, isActive:true});
 
+          const { category } = req.query;
+    
+          let query = Product.find();
+          
+          if (category) {
+            query = query.where('category', category);
+          }
+
           const products = await Product.find({...sellerFilter, isActive:true}).populate(  [  { path: 'seller'},
-          { path: 'category' }, { path: 'province' },  { path: 'qualityType' },  { path: 'conditionStatus' },  { path: 'size' },  { path: 'color' }]).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+          { path: 'category' }, { path: 'province' },  { path: 'qualityType' },  { path: 'conditionStatus' },  { path: 'size' },  { path: 'color' }]).skip(pageSize *(page -1)).limit(pageSize).sort({category: 1, createdAt: -1});
 
          const  pages = Math.ceil(countProducts/pageSize);
 
