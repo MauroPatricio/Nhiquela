@@ -354,7 +354,7 @@ export default function ProductEditScreen() {
         }
       );
       dispatch({ type: 'UPDATE_SUCCESS' });
-      toast.success('Producto Actualizado com Sucesso');
+      toast.success('Produto Actualizado com Sucesso');
       navigate('/productlist/seller');
     } catch (err) {
       toast.error(getError(err));

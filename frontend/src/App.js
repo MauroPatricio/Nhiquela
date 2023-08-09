@@ -272,7 +272,7 @@ function App() {
         <p className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b></p>
 
         
-        {userInfo && userInfo.isSeller && !userInfo.isApproved && <p className='not-approved-seller' style={{textAlign: 'center'}}><b>A sua conta ainda não foi aprovada para poder expor os seus produtos. Por favor, contacte a Nhiquela Shop para poder autorizar os seus dados como fornecedor.</b> </p>}
+        {userInfo && userInfo.isSeller && !userInfo.isApproved && <p className='not-approved-seller' style={{textAlign: 'center'}}><b>A sua conta ainda não foi autorizada para expor os seus produtos. Por favor, contacte a Nhiquela Shop para autorizar-lhe como fornecedor.</b> </p>}
             </Col>
            
 

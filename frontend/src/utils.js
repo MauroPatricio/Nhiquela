@@ -23,3 +23,8 @@ const seconds = datetime.getSeconds().toString().padStart(2, '0'); // Get the se
 const formattedDatetime = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 return formattedDatetime; // Output: 29/04/2023 00:50:49
 }
+
+export const truncateString = (str, maxLength) => {
+  
+  return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+};

@@ -3,9 +3,7 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import { useContext } from 'react';
 import { Store } from '../Store';
-import { toast } from 'react-toastify';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCartPlus } from '@fortawesome/free-solid-svg-icons';
+import { truncateString } from '../utils';
 
 function Product(props) {
   const { product, seller } = props;
@@ -73,7 +71,7 @@ function Product(props) {
           </Link>
           <div className="product-info small ">
             <Link className="link-none" to={`/product/${product.slug}`}>
-              <b>{product.name}</b>
+              <b>{truncateString(product.name,30)}</b>
             </Link>
             {/* <Rating rating={product.rating} numReviews={product.numReviews} /> */}
             <br/>{product.countInStock} unidade(s)<br/>
@@ -83,7 +81,7 @@ function Product(props) {
             >
               {product.seller
                 ? <b>{product.seller.seller}</b>
-                  ? <b>{product.seller.seller.name}</b>
+                  ? <b>{truncateString(product.seller.seller.name,30)}</b>
                   : ''
                 : ''}
               <br></br>
@@ -136,10 +134,10 @@ function Product(props) {
               className="link-none"
               to={seller.seller ? `/seller/${seller._id}` : ''}
             >
-              <b>{seller.seller.name}</b>
+              <b>{truncateString(seller.seller.name,30)}</b>
             </Link>
             <br />
-            {seller.seller.description}
+            {truncateString(seller.seller.description,60)}
             {/* <Rating
               rating={seller.seller.rating}
               numReviews={seller.seller.numReviews}

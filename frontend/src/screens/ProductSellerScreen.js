@@ -99,23 +99,8 @@ export default function ProductSellerScreen() {
     ,[page, userInfo, successDelete, createdSucess]);
 
     const createHandler = async () =>{
-            if(window.confirm('Tem a certeza que deseja Criar um novo Producto?')){
+            if(window.confirm('Tem a certeza que deseja Criar um novo Produto?')){
                 navigate('/product/create')
-
-                // try{
-                //     dispatch({type:'CREATE_REQUEST'});
-
-                //  const {data} = await axios.post('/api/products',{},{
-                //         headers: {Authorization: `Bearer ${userInfo.token}`}
-                //     }) 
-                //     toast.success('Producto Criado Com Sucesso')
-                //     dispatch({type:'CREATE_SUCCESS'});
-                // navigate(`/product/${data.product.slug}`);
-                // }catch(err){
-                //     toast.error(getError(error));
-                //     dispatch({type:'CREATE_FAIL'});
-
-                // }
             }
     }
 

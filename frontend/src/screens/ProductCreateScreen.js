@@ -305,7 +305,7 @@ export default function ProductCreateScreen() {
         }
       );
       dispatch({ type: 'CREATE_SUCCESS' });
-      toast.success('Producto Criado com Sucesso');
+      toast.success('Produto Criado com Sucesso');
       navigate('/productlist/seller');
     } catch (err) {
       toast.error(getError(err));

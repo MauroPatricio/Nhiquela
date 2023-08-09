@@ -114,7 +114,7 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
      }
 
      const product = await newProduct.save();
-     res.send({message: 'Producto criado', product});
+     res.send({message: 'Produto criado', product});
 }));
 
 
@@ -204,7 +204,7 @@ productRoutes.get('/slug/:slug',async (req, res)=>{
   if(product){
        res.send(product);
   }else{
-       res.status(404).send({message: 'Producto não encontrado'});
+       res.status(404).send({message: 'Produto não encontrado'});
   }
 });
 
@@ -241,7 +241,7 @@ productRoutes.get('/:id',async (req, res)=>{
    if(product){
         res.send(product);
    }else{
-        res.status(404).send({message: 'Producto não encontrado'});
+        res.status(404).send({message: 'Produto não encontrado'});
    }
 });
 
