@@ -79,6 +79,7 @@ import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import DeliveryOptionScreen from './screens/DeliveryOptionScreen';
 import axios from 'axios';
 import PaybackInfoAndSecurity from './components/PaybackInfoAndSecurity';
+import AdicionalInfoHeader from './components/AdicionalInfoHeader';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -269,12 +270,7 @@ function App() {
         </header> 
          <main style={{ marginTop: '30px' }}>
       <PaybackInfoAndSecurity/>
-            <Row className="bg-color-row">
-        <Col className='delivery-info' style={{textAlign: 'center'}}><b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b></Col>
-
-        <Col> {userInfo && userInfo.isSeller && !userInfo.isApproved && <p className='not-approved-seller' ><b>A sua conta ainda não foi autorizada para expor os seus produtos. Por favor, contacte a Nhiquela Shop para autorizar-lhe como fornecedor.</b> </p>}</Col>
-            </Row>
-           
+      <AdicionalInfoHeader/>
 
           <Container className={expanded ? 'collapse-open' : ''}>
             <Routes>

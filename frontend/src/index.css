@@ -259,13 +259,10 @@ table {
 
   .delivery-info {
     text-align: center;
-    margin-top: 40px;
     color: #a435f0;
   }
 
 .card-img-top {
-    /* display: inline-block; */
-    /* width: 100%;  */
     justify-content: center;
     box-sizing: content-box;
   } 
