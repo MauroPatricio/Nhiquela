@@ -194,7 +194,26 @@ function ProductScreen() {
             src={selectedImage || product.image}
             alt={product.name}
           ></img>
+           <Row xs={1} md={2} className="g-2">
+        {[product.image, ...product.images].map((x) => (
+
+            <Button key={x}
+              className="thumbnail"
+              type="button"
+              variant="light"
+              onClick={() => setSelectedImage(x)}
+            >
+              <Card.Img
+                variant="top"
+                src={x}
+                className="cardImg"
+                alt="Produto"
+              ></Card.Img>
+            </Button>
+        ))}
+      </Row>
         </Col>
+       
         <Col md={4}>
           <ListGroup variant="flush">
             <ListGroup.Item>
@@ -206,6 +225,7 @@ function ProductScreen() {
             <ListGroup.Item>
             {product.slug}            
             </ListGroup.Item>
+
             <ListGroup.Item>
               <Rating rating={product.rating} numReviews={product.numReviews} />
             </ListGroup.Item>
@@ -216,15 +236,17 @@ function ProductScreen() {
             > 
              <b> {product.seller && product.seller.seller && product.seller.seller.name}</b>
               </Link></ListGroup.Item>
-
+              <ListGroup.Item>
+                 Data publicação: {formatedDate(product.createdAt)}            
+            </ListGroup.Item>
             
            {product.qualityType && <ListGroup.Item>Designação: {product.qualityType.name} </ListGroup.Item>}
 
            {product.conditionStatus &&<ListGroup.Item>Estado: {product.conditionStatus.name} </ListGroup.Item>}
 
-            <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
-
             <ListGroup.Item>Marca/Sabor: {product.brand}</ListGroup.Item>
+
+            <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 
             <ListGroup.Item>Preço: {product.price} MT</ListGroup.Item>
 
@@ -321,24 +343,7 @@ function ProductScreen() {
         </Col>
       </Row>
 
-      <Row xs={1} md={2} className="g-2">
-        {[product.image, ...product.images].map((x) => (
-
-            <Button key={x}
-              className="thumbnail"
-              type="button"
-              variant="light"
-              onClick={() => setSelectedImage(x)}
-            >
-              <Card.Img
-                variant="top"
-                src={x}
-                className="cardImg"
-                alt="Produto"
-              ></Card.Img>
-            </Button>
-        ))}
-      </Row>
+ 
 
       <div className="my-3">
         <h2 ref={reviewsRef}>Comentários</h2>
