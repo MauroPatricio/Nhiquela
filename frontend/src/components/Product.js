@@ -59,15 +59,16 @@ function Product(props) {
   return (
     <>
       {product && (
-        <Card className="product zoom-image">
+        <Card className="product zoom-image" >
           <Link to={`/product/${product.slug}`}>
            
+          <Card.Img variant="top" src={product.image} alt="Card image" />
 
-            <img
+            {/* <img
               className="card-img-top"
               src={product.image}
               alt={product.name}
-            ></img>
+            ></img> */}
           </Link>
           <div className="product-info small ">
             <Link className="link-none" to={`/product/${product.slug}`}>

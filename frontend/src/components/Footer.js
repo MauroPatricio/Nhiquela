@@ -19,7 +19,6 @@ export default function Footer() {
   <section
            className="d-flex justify-content-between p-4"
            style={{backgroundColor: '#6351ce'}}
-
            >
     <div className="me-5">
       <span>Fique conectado a nós nas seguintes redes sociais:</span>

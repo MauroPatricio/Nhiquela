@@ -228,6 +228,7 @@ function HomeScreen() {
                         >
                         <Product product={product}></Product>
                       </Col>
+                   
 </>
 
 

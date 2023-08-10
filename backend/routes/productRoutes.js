@@ -1,10 +1,42 @@
 import express, { query } from 'express';
 import Product from '../models/ProductModel.js';
+
 import expressAsyncHandler from 'express-async-handler';
 import { isAdmin, isAuth, isSeller, isSellerOrAdmin } from '../utils.js';
 import User from '../models/UserModel.js';
 
 const productRoutes = express.Router();
+
+
+
+//by category
+productRoutes.get('/bycategory', async (req, res) => {
+     try {
+       const productsByCategory = await Product.aggregate([
+         {
+           $lookup: {
+             from: 'categories',
+             localField: 'category',
+             foreignField: '_id',
+             as: 'categoryDetails',
+           },
+         },
+         {
+           $unwind: '$categoryDetails',
+         },
+         {
+           $sort: {
+             'categoryDetails.name': 1, // Sort by category title in ascending order
+           },
+         },
+       ]);
+   
+       res.json(productsByCategory);
+     } catch (error) {
+       res.status(500).json({ error: 'Ocorreu um erro no servidor' });
+     }
+   });
+
 
 // All Products
 productRoutes.get('/', async (req, res) => {
