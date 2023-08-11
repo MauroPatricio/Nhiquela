@@ -68,7 +68,7 @@ export default function SignInScreen() {
       <Helmet>
         <title>Tela Inicial</title>
       </Helmet>
-      <CheckoutSteps step1></CheckoutSteps>
+      <CheckoutSteps step1 step2 step3 step4 step5></CheckoutSteps>
       <h1 className="my-3">Login</h1>
       <Form onSubmit={submitHandler}>
         <Form.Group className="mb-3" controlId="phoneNumber">

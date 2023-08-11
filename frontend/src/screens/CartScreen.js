@@ -50,7 +50,7 @@ export default function CartScreen() {
   }
 
   const checkOutHandler = () => {
-    navigate('/signin?redirect=/address');
+    navigate('/address');
   };
   return (
     <div>

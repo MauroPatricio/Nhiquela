@@ -34,7 +34,7 @@ export default function DeliveryOptionScreen() {
   return (
     <div>
       <Container className="small-conteiner">
-        <CheckoutSteps step1 step2 step3 step4></CheckoutSteps>
+        <CheckoutSteps step1 step2 step3></CheckoutSteps>
         <Helmet>
           <title>Opções de Entrega</title>
         </Helmet>

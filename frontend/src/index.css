@@ -150,7 +150,18 @@ text-align: center;
 
 .bg-color-row {
   background-color:  rgb(239, 239, 239); ;
-  /* margin-bottom: 1rem; */
+  margin-left: 10px;
+  margin-right: 10px;
+
+}
+
+.bg-color-row-pay{
+    background-color:  rgb(239, 239, 239); ;
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 10px;
+    margin-bottom:5px;
+     text-align: center;
 }
 
 .bg-color-approved{
@@ -223,10 +234,13 @@ table {
   (max-width: 412px),
   (max-width: 540px), (max-width: 992px) {
 
-    .bg-color-row{
-      margin-top: 40px;
-    }
-
+ 
+.bg-color-row-pay{
+  /* background-color:  rgb(239, 239, 239); ;
+  margin-left: 10px;
+  margin-right: 10px; */
+  padding-top:40px; 
+}
     .info-icon-home{
       color: #a435f0;
       font-size: 2rem;

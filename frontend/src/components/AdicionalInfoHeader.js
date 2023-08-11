@@ -14,7 +14,7 @@ export default function AdicionalInfoHeader() {
   const { cart, userInfo } = state;
   return (
     <Row className="bg-color-row" style={{ textAlign: 'center', marginBottom: '10px'}}>
-    <Col md={12} className='delivery-info' style={{textAlign: 'center',  marginBottom: '10px'}}>
+    <Col md={12} className='delivery-info' style={{textAlign: 'center', }}>
     <b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b>
     </Col>
     <Col md={12}style={{textAlign: 'center',  marginBottom: '10px'}}>

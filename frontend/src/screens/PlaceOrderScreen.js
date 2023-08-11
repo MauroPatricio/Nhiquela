@@ -70,6 +70,8 @@ export default function PlaceOrderScreen() {
     (cart.itemsPrice + cart.addressPrice + cart.siteTax ).toFixed(2);
 
   const placeOrderHandler = async () => {
+      navigate('/signin?redirect=/address');
+
     try {
       dispatch({ type: 'CREATE_REQUEST' });
 
@@ -108,7 +110,7 @@ export default function PlaceOrderScreen() {
         <title>Confirmar Pedido</title>
       </Helmet>
 
-      <CheckoutSteps step1 step2 step3 step4 step5></CheckoutSteps>
+      <CheckoutSteps step1 step2 step3 step4 ></CheckoutSteps>
       <h1>Confirmar Pedido</h1>
       <Row>
         <Col md={8}>

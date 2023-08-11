@@ -13,26 +13,27 @@ export default function CheckoutSteps(props) {
 
   return (
     <Row className="steps">
+
       <Col className={props.step1 ? 'active' : ''}>
-        <Link className="link">Login</Link>
-      </Col>
-      <Col className={props.step2 ? 'active' : ''}>
       {userInfo ? <Link to="/address" className="link">Endereço</Link>: <Link className="link">Endereço</Link>}
 
       </Col>
-      <Col className={props.step3 ? 'active' : ''}>
+      <Col className={props.step2 ? 'active' : ''}>
         {userInfo ? <Link to="/payment" className="link">Formas de Pagamento</Link>: <Link className="link">Formas de Pagamento</Link>}
 
       </Col>
-      <Col className={props.step4 ? 'active' : ''}>
+      <Col className={props.step3 ? 'active' : ''}>
         <Link className="link"></Link>
         {userInfo ? <Link to="/deliveryoption" className="link">Opções de Entrega</Link>: <Link className="link">Opções de Entrega</Link>}
 
       </Col>
-      <Col className={props.step5 ? 'active' : ''}>
+      <Col className={props.step4 ? 'active' : ''}>
         <Link className="link"></Link>
         {userInfo ? <Link to="/placeorder" className="link">Confirmar Pedido</Link>: <Link className="link">Confirmar Pedido</Link>}
+      </Col>
 
+      <Col className={props.step5 ? 'active' : ''}>
+        <Link className="link">Login</Link>
       </Col>
     </Row>
   );

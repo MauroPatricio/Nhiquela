@@ -56,7 +56,7 @@ export default function AddressScreen() {
       <Helmet>
         <title>Endereço de Entrega</title>
       </Helmet>
-      <CheckoutSteps step1 step2 ></CheckoutSteps>
+      <CheckoutSteps step1 ></CheckoutSteps>
       <div className="container small-container">
         <h1 className="my-3">Detalhes do Endereço de Entrega</h1>
         <br></br>

@@ -17,7 +17,7 @@ export default function PaybackInfoAndSecurity() {
   return (
     <>
     
-    <Row className="bg-color-row" style={{padding: '10px' , marginLeft: '10px', marginRight: '10px', marginBottom:'5px', textAlign: 'center'}}>
+    <Row className="bg-color-row-pay" >
     <Col md={4}>
         <BsShieldFillCheck className="info-icon-home"/>
        Pagamentos Seguros
