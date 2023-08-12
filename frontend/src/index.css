@@ -233,6 +233,10 @@ table {
   (max-width: 412px),
   (max-width: 540px), (max-width: 992px) {
 
+    .howitworks{
+     width: 90%;
+    }
+
  
 .bg-color-row-pay{
   /* background-color:  rgb(239, 239, 239); ;
@@ -566,7 +570,7 @@ margin-left: 250px;
   }
 
 .img-carousel{
-  height: 20rem;
+  height: 22rem;
   width: 100%;
   border-radius: 8px;
 align-items: center;
@@ -576,4 +580,6 @@ align-items: center;
   color: #0000ff; /* Set the desired flag color */
 }
 
-
+.howitworks{
+  text-align: center;
+}

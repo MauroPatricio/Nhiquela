@@ -51,12 +51,16 @@ orderRouter.get(
       ...sellerFilter,
       isPaid: { $eq: true},
       deleted: { $eq: false},
+      status: { $ne: 'Finalizado' }
+
     }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
       isPaid: { $eq: true},
       deleted: { $eq: false },
+      status: { $ne: 'Finalizado' }
+
     });
 
     const  pages = Math.ceil(countOrders/pageSize);
