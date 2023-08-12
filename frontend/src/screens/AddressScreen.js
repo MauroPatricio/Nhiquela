@@ -62,7 +62,7 @@ export default function AddressScreen() {
         <br></br>
         <Form onSubmit={submitHandler}>
           <Form.Group className="mb-3" controlId="fullName">
-            <Form.Label>Nome</Form.Label>
+            <Form.Label>Nome do receptor do pedido</Form.Label>
             <Form.Control
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -71,7 +71,7 @@ export default function AddressScreen() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="phoneNumber">
-            <Form.Label>Número para chamadas</Form.Label>
+            <Form.Label>Número de chamadas</Form.Label>
             <Form.Control
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
@@ -81,11 +81,10 @@ export default function AddressScreen() {
 
 
           <Form.Group className="mb-3" controlId="alternativePhoneNumber">
-            <Form.Label>Número alternativo</Form.Label>
+            <Form.Label>Número alternativo (opcional)</Form.Label>
             <Form.Control
               value={alternativePhoneNumber}
               onChange={(e) => setAlternativePhoneNumber(e.target.value)}
-              required
             ></Form.Control>
           </Form.Group>
  
@@ -109,11 +108,11 @@ export default function AddressScreen() {
           </Form.Group>
           <Form.Group className="mb-3" controlId="reference">
             <Form.Label>
-              Mais informações do seu Endereço
+              Mais informações do seu endereço
             </Form.Label>
           <Form.Control
                 as="textarea"
-                placeholder="Para facilitar a sua localização ao entregador"
+                placeholder="Com detalhes para facilitar a sua localização ao entregador"
                 value={referenceAddress}
                 onChange={(e) => setReferenceAddress(e.target.value)}
                 required

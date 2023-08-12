@@ -203,7 +203,7 @@ export default function PlaceOrderScreen() {
                 {cart.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Taxa de Entrega</Col>
+                    <Col>Taxa de entrega</Col>
                     <Col>{cart.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>}

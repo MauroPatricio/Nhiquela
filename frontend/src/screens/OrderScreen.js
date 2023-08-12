@@ -483,7 +483,7 @@ export default function OrderScreen() {
              {order.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor de Entrega</Col>
+                    <Col>Taxa de entrega</Col>
                     <Col>{order.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>}
