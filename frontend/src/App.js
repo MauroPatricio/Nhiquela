@@ -80,6 +80,7 @@ import DeliveryOptionScreen from './screens/DeliveryOptionScreen';
 import axios from 'axios';
 import PaybackInfoAndSecurity from './components/PaybackInfoAndSecurity';
 import AdicionalInfoHeader from './components/AdicionalInfoHeader';
+import ScrollTopButton from './components/ScrollTopButton';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -87,6 +88,8 @@ function App() {
   const { cart, userInfo } = state;
   const [expanded, setExpanded] = useState(false);
 
+
+ 
   const toggleExpanded = () => {
     setExpanded(!expanded);
   };
@@ -95,7 +98,9 @@ function App() {
     ctxDispatch({ type: 'USER_SIGNOUT' });
   };
 
+
   useEffect(()=>{
+
 
     const refresh = async () =>{
 
@@ -109,6 +114,9 @@ function App() {
       }
     }
     refresh();
+
+
+  
   },[userInfo])
 
   return (
@@ -119,7 +127,7 @@ function App() {
         </Helmet>
         <ToastContainer position="top-right" autoClose={1000} />
 
-         <header>
+         <header >
           <Navbar
              expanded={expanded}
              bg="light"
@@ -128,8 +136,8 @@ function App() {
             fixed="top"
           >
             <Container>
-              <LinkContainer to="/">
-                <Navbar.Brand className="Navbar-Brand">
+              <LinkContainer to="/" >
+                <Navbar.Brand className="Navbar-Brand"  >
                 Nhiquela Shop
                 </Navbar.Brand>
               </LinkContainer>
@@ -268,7 +276,7 @@ function App() {
             </Container>
           </Navbar>
         </header> 
-         <main style={{ marginTop: '30px' }}>
+         <main style={{ marginTop: '30px' }} >
       <PaybackInfoAndSecurity/>
       <AdicionalInfoHeader/>
 
@@ -674,7 +682,7 @@ function App() {
             </Routes>        
 
             {userInfo&&<ChatBox  userInfo={userInfo}/>}
-      
+            <ScrollTopButton />
           </Container> 
         </main> 
       <footer className='center'>

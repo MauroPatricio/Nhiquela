@@ -170,13 +170,12 @@ text-align: center;
 }
 
 
-.collapse-open {
-  margin-top: 50px;
+.collapse-open{
+  /* margin-top: 50px; */
 
   .hide-cart{
     display: none;
   }
- 
 }
 
 .floating-button {
@@ -413,6 +412,30 @@ table {
   background-color: #a435f0;
 }
 
+
+.scroll-to-top-button {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.scroll-to-top-button.show {
+  opacity: 1;
+  position: fixed;
+  bottom: 25px;
+  right: 30px;
+  background-color: #a435f0;
+  color: white;
+  border: none;
+  border-radius: 60%;
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
 
 
