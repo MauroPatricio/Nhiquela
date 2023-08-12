@@ -5,7 +5,7 @@ export default function Help() {
     <div style={{ textAlign: 'center'}}>
        <img 
             className='howitworks'
-            src="images/nhiquelahowItworks.png" 
+            src="images/nhiquelaCompras.png" 
             alt="Como comprar na site" ></img>    
       
     </div>
