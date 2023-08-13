@@ -202,6 +202,13 @@ table {
 }
 @media (min-width: 992px){
 
+  .img-carousel{
+    height: 30rem;
+    width: 100%;
+    border-radius: 8px;
+  align-items: center;
+  }
+
   .info-icon-home{
     color: #a435f0;
     font-size: 3rem;
@@ -232,6 +239,13 @@ table {
   (max-width: 393px),
   (max-width: 412px),
   (max-width: 540px), (max-width: 992px) {
+
+    .img-carousel{
+      height: 22rem;
+      width: 100%;
+      border-radius: 8px;
+    align-items: center;
+    }
 
     .howitworks{
      width: 90%;
@@ -569,12 +583,7 @@ margin-left: 250px;
    height: auto; /* Maintains the image's aspect ratio */
   }
 
-.img-carousel{
-  height: 22rem;
-  width: 100%;
-  border-radius: 8px;
-align-items: center;
-}
+
 
 .mz-flag {
   color: #0000ff; /* Set the desired flag color */
