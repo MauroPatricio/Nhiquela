@@ -5,8 +5,6 @@ import { Row, Col } from 'react-bootstrap';
 import { BsShieldFillCheck } from "react-icons/bs";
 import {GiBackwardTime} from "react-icons/gi";
 import {FaUserShield} from "react-icons/fa";
-import { faClock } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Store } from '../Store';
 
 export default function PaybackInfoAndSecurity() {

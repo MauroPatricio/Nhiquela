@@ -1,8 +1,3 @@
-import { faStar } from '@fortawesome/free-solid-svg-icons';
-import { faStarHalf } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStarOfDavid } from '@fortawesome/free-solid-svg-icons';
-
 import { FaStar } from "react-icons/fa";
 import { FaStarHalf } from "react-icons/fa";
 import { FaRegStar } from "react-icons/fa";

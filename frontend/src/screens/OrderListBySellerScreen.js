@@ -47,7 +47,7 @@ export default function OrderListBySellerScreen() {
       error: '',
     });
 
-  const { state, dispatch: ctxDispatch } = useContext(Store);
+  const { state} = useContext(Store);
   const { userInfo } = state;
   const navigate = useNavigate();
 
@@ -176,7 +176,7 @@ export default function OrderListBySellerScreen() {
                       <FontAwesomeIcon icon={faTrash}></FontAwesomeIcon>
                     </Button> */}
                     &nbsp;
-                    {o.status==='Finalizado' || o.status==='Cancelado' &&
+                    {(o.status==='Finalizado' || o.status==='Cancelado') &&
                     <Button
                       type="Button"
                       variant="light"

@@ -13,7 +13,6 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
-import  Card  from 'react-bootstrap/Card';
 
 const reducer = (state, action) => {
   switch (action.type) {

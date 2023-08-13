@@ -1,60 +1,10 @@
 import { Link } from 'react-router-dom';
 import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
-import { useContext } from 'react';
-import { Store } from '../Store';
 import { truncateString } from '../utils';
 
 function Product(props) {
   const { product, seller } = props;
-  const { state, dispatch: ctxDispatch } = useContext(Store);
-
-  const {
-    cart: { cartItems },
-  } = state;
-
-  // const addOnCartHandler = () => {
-  //   const existItem = cartItems.find((x) => x._id === product._id);
-  //   const quantity = existItem ? existItem.quantity + 1 : 1;
-  //   if (product.countInStock === quantity) {
-  //     toast.error('Desculpe, o Produto não está disponível', {
-  //       hideProgressBar: false,
-  //       closeOnClick: true,
-  //       pauseOnHover: true,
-  //       draggable: true,
-  //     });
-  //     return;
-  //   }
-
-
-  //   if(cartItems.length > 0 && product.seller._id !== cartItems[0].seller._id){
-  //     ctxDispatch({
-  //       type: 'ADD_ITEM_FAIL',
-  //       payload: `Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${cartItems[0].seller.seller.name}`,
-  //     });
-
-  //     toast.error(`Na carrinha, só é permitido adicionar produtos pertecentes a um único fornecedor por vez ${cartItems[0].seller.seller.name}`, {
-  //       hideProgressBar: false,
-  //       closeOnClick: true,
-  //       pauseOnHover: true,
-  //       draggable: true,
-  //     });
-  //   }else{
-
-  //     ctxDispatch({
-  //       type: 'ADD_ITEM_ON_CART',
-  //       payload: { ...product, quantity: quantity },
-  //     });
-
-  //     toast.info('Item adicionado ao carrinho', {
-  //       hideProgressBar: false,
-  //       closeOnClick: true,
-  //       pauseOnHover: true,
-  //       draggable: true,
-  //     });
-  //   }
-
-  // };
 
   return (
     <>
@@ -63,18 +13,11 @@ function Product(props) {
           <Link to={`/product/${product.slug}`}>
            
           <Card.Img variant="top" src={product.image} alt="Card image" />
-
-            {/* <img
-              className="card-img-top"
-              src={product.image}
-              alt={product.name}
-            ></img> */}
           </Link>
           <div className="product-info small ">
             <Link className="link-none" to={`/product/${product.slug}`}>
               <b>{truncateString(product.name,30)}</b>
             </Link>
-            {/* <Rating rating={product.rating} numReviews={product.numReviews} /> */}
             <br/>{product.countInStock} unidade(s)<br/>
             <Link
               className="link-none"

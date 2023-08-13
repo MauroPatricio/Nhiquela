@@ -14,9 +14,6 @@ import Col from 'react-bootstrap/Col';
 import {faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 
-import { FaStar } from "react-icons/fa";
-import { FaStarHalf } from "react-icons/fa";
-import { FaRegStar } from "react-icons/fa";
 
 const reducer = (state, action) => {
   switch (action.type) {

@@ -51,7 +51,7 @@ export default function CarouselSlide() {
   return (
     <>
 <br/>
-     {popularItems && popularItems.length != 0 && <h3>Produtos em Destaque</h3>} 
+     {popularItems && popularItems.length !== 0 && <h3>Produtos em Destaque</h3>} 
     <Carousel showArrows infiniteLoop={true}  autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
       {popularItems && popularItems.map((p) => (
        <Link className="link" to={`/product/${p.slug}`} key={p._id}>
