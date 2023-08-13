@@ -379,7 +379,7 @@ export default function OrderScreen() {
 
                 <strong>Endereço:</strong>
                 {order.deliveryAddress.city}, {order.deliveryAddress.address},{' '}
-                {order.deliveryAddress.referenceAddress},
+                {order.deliveryAddress.referenceAddress}.
               </Card.Text>
               {order.isDelivered ? (
                 <MessageBox variant="success">

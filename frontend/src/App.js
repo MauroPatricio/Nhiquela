@@ -310,35 +310,27 @@ function App() {
               <Route
                 path="/address"
                 element={
-                  <ProtectedRoute>
                     <AddressScreen />
-                  </ProtectedRoute>
                 }
               />
 
               <Route
                 path="/deliveryoption"
                 element={
-                  <ProtectedRoute>
                     <DeliveryOptionScreen />
-                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/payment"
                 element={
-                  <ProtectedRoute>
                     <PaymentMethodScreen />
-                  </ProtectedRoute>
                 }
               />
                 
               <Route
                 path="/placeorder"
                 element={
-                  <ProtectedRoute>
                     <PlaceOrderScreen />
-                  </ProtectedRoute>
                 }
               />
               <Route

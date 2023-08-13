@@ -60,7 +60,7 @@ export default function PlaceOrderScreen() {
     cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
   );
 
-  cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 200 : 350;
+  cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
   cart.siteTax = round2(0.2 * cart.itemsPrice);
   // cart.ivaTax = round2(0.16 * cart.itemsPrice);
   cart.ivaTax = 0;
@@ -70,8 +70,10 @@ export default function PlaceOrderScreen() {
     (cart.itemsPrice + cart.addressPrice + cart.siteTax ).toFixed(2);
 
   const placeOrderHandler = async () => {
-      navigate('/signin?redirect=/address');
 
+    if (!userInfo) {
+      return navigate('/signin?redirect=/placeorder');
+    }
     try {
       dispatch({ type: 'CREATE_REQUEST' });
 
@@ -126,8 +128,7 @@ export default function PlaceOrderScreen() {
                 {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
                 <br />
                 <strong>Endereço de entrega:</strong> {cart.address.city},{' '}
-                {cart.address.address}, {cart.address.referenceAddress}, 
-                {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
+                {cart.address.address}, {cart.address.referenceAddress}.
               </Card.Text>
               <Link className="link" to="/address">
                 Alterar detalhes de entrega <FaPencilAlt/>
