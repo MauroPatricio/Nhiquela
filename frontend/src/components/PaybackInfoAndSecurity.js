@@ -19,17 +19,17 @@ export default function PaybackInfoAndSecurity() {
     
     <Row className="bg-color-row-pay" >
     <Col md={4}>
-        <BsShieldFillCheck className="info-icon-home"/>
-       Pagamentos Seguros
-      </Col>
+<FaUserShield className="info-icon-home" />
+           Privacidade de seus dados
+    </Col>
     <Col md={4}>
 <GiBackwardTime className="info-icon-home" />
             Garantia de devolução do valor
     </Col>
     <Col md={4}>
-<FaUserShield className="info-icon-home" />
-           Privacidade de seus dados
-    </Col>
+        <BsShieldFillCheck className="info-icon-home"/>
+       Pagamentos Seguros
+      </Col>
   </Row>
     </>
 
