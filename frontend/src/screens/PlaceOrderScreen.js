@@ -72,7 +72,7 @@ export default function PlaceOrderScreen() {
   const placeOrderHandler = async () => {
 
     if (!userInfo) {
-      return navigate('/signin?redirect=/placeorder');
+     navigate('/signin?redirect=/placeorder');
     }
     try {
       dispatch({ type: 'CREATE_REQUEST' });
