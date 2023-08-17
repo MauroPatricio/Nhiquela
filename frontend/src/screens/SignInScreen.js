@@ -14,11 +14,9 @@ import { useContext, useEffect, useState } from 'react';
 import { Store } from '../Store.js';
 import { toast } from 'react-toastify';
 import CheckoutSteps from '../components/CheckoutSteps';
-import ReactModal from 'react-modal';
+import {Modal} from 'react-bootstrap';
 import CountryFlag from 'react-country-flag';
 
-
-ReactModal.setAppElement('#root'); // Set the root element as the app element
 
 export default function SignInScreen() {
   const navigate = useNavigate();
@@ -107,16 +105,23 @@ export default function SignInScreen() {
           <Link className="link" to={`/forget-password`}>Actualizar senha</Link>
         </div>
 
-        <ReactModal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
+ 
+
+      <Modal show={isModalOpen}  onRequestClose={closeModal}
         contentLabel="Modal"
-        className="modal-content"
-      >
-        <h5>Erro de Acesso</h5>
-        <p>{message}</p>
-        <Button  onClick={closeModal}>Ok</Button>
-      </ReactModal>
+        >
+        <Modal.Header closeButton onClick={closeModal}>
+          <Modal.Title>Erro de Acesso</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+         {message}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="danger" onClick={closeModal}>
+            Ok
+          </Button>
+        </Modal.Footer>
+      </Modal>
       </Form>
     </Container>
   );
