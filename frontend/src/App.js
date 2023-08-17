@@ -81,6 +81,7 @@ import axios from 'axios';
 import PaybackInfoAndSecurity from './components/PaybackInfoAndSecurity';
 import AdicionalInfoHeader from './components/AdicionalInfoHeader';
 import ScrollTopButton from './components/ScrollTopButton';
+import SearchSellersScreen from './screens/SearchSellersScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -352,6 +353,7 @@ function App() {
                 }
               />
               <Route path="/search" element={<SearchScreen />} />
+              <Route path="/sellers" element={<SearchSellersScreen />} />
 
               <Route
                 path="/categoryList/"

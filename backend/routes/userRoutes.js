@@ -38,10 +38,34 @@ userRouter.get(
 userRouter.get(
   '/top-sellers',
   expressAsyncHandler(async (req, res) => {
+
+
     const topSellers = await User.find({ isSeller: true, isApproved: true, isBanned: false })
       .sort({ 'seller.rating': -1 })
       .limit(4);
     res.send(topSellers);
+    })
+);
+
+
+// All Sellers
+userRouter.get(
+  '/sellers',
+  expressAsyncHandler(async (req, res) => {
+    const page = req.query.page || 1;
+    const pageSize = 10   
+    try{
+
+      const sellers = await User.find({ isSeller: true, isApproved: true, isBanned: false }).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1})
+        .sort({ 'seller.rating': -1 });
+      
+      const countSellers = await User.countDocuments({ isSeller: true, isApproved: true, isBanned: false });
+      const pages = Math.ceil(countSellers/pageSize);
+
+      res.send({sellers,pages,countSellers});
+    }catch(e){
+      console.log(e)
+    }
   })
 );
 

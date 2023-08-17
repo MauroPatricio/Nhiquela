@@ -12,7 +12,7 @@ function Product(props) {
         <Card className="product zoom-image" >
           <Link to={`/product/${product.slug}`}>
            
-          <Card.Img variant="top" style={{height: '200px'}} src={product.image} alt="Card image" />
+          <Card.Img variant="top" style={{height: '190px'}} src={product.image} alt="Card image" />
           </Link>
           <div className="product-info small ">
             <Link className="link-none" to={`/product/${product.slug}`}>
@@ -68,7 +68,7 @@ function Product(props) {
         <Card className="product zoom-image">
           <Link to={seller.seller ? `/seller/${seller._id}` : ''}>
             
-                      <Card.Img variant="top" style={{height: '200px'}} src={seller.seller.logo} alt="Card image" />
+                      <Card.Img variant="top" style={{height: '190px'}} src={seller.seller.logo} alt="Card image" />
 
           </Link>
           <div className="product-info small ">

@@ -49,6 +49,7 @@ export default function CategoriesFilter() {
   const rating = searchParams.get('rating') || 'all';
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
+  const seller = searchParams.get('seller') || 'all';
 
   const [isMaximized, setIsMaximized] = useState(false);
   const [showComponent, setShowComponent] = useState(false);
@@ -142,6 +143,13 @@ export default function CategoriesFilter() {
     const filterPage = filter.page || page;
     return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}&province=${filterProvince}`;
   };
+
+  const getSellers = (filter)=>{
+    const filterPage = filter.page || page;
+
+    return `/sellers?sellers=sellers&page=${filterPage}`;
+
+  }
   
   const handleToggleMaximized = () => {
     setIsMaximized(!isMaximized);
@@ -162,7 +170,21 @@ export default function CategoriesFilter() {
       {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}} onClick={handleToggleMaximized}  >Filtros de Pesquisa           <FontAwesomeIcon icon={faCaretDown} /> </h6>}
         {showComponent && 
         <Card.Body style={{marginLeft: '10px'}}>
-            <h6>Categorias</h6>
+
+<div>
+
+          <Link
+              to={getSellers({ seller: 'all' })}
+              className={seller === 'all' ? ' link-none' : 'link-none'}
+            >
+            <h6> <b> Todos Vendedores</b></h6>
+            </Link>
+            
+
+  </div>
+
+
+            <h6>Categorias:</h6>
           <div>
             <Link
               className={
@@ -170,7 +192,7 @@ export default function CategoriesFilter() {
               }
               to={getFilterUrl({ category: 'all' })}
             >
-              Todas
+             <li key={1}> Todas categorias</li>
             </Link>
             {categories &&
               categories.map((c) => (
@@ -188,12 +210,13 @@ export default function CategoriesFilter() {
           </div>
           <br />
           <div>
-            <h6>Preços por intervalos</h6>
+            <h6>Preços por intervalos:</h6>
             <Link
               className={'all' === price ? 'text-bold link-none' : 'link-none'}
               to={getFilterUrl({ price: 'all' })}
             >
-              Todos preços
+              <li key={1}> Todos preços</li>
+
             </Link>
 
             {prices.map((p) => (
@@ -210,7 +233,7 @@ export default function CategoriesFilter() {
             ))}
           </div>
           <br/>
-          <h6>Localização</h6>
+          <h6>Localização:</h6>
           <div>
             <Link
               className={
@@ -218,7 +241,7 @@ export default function CategoriesFilter() {
               }
               to={getFilterUrl({ province: 'all' })}
             >
-              Todas
+              <li key={1}> Todas Localizaçōes</li>
             </Link>
             {provinces &&
               provinces.map((p) => (
@@ -255,6 +278,8 @@ export default function CategoriesFilter() {
               <Rating caption={' & acima'} rating={0}></Rating>
             </Link>
           </div>
+
+  
            
         </Card.Body>
         }

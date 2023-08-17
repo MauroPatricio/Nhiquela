@@ -24,10 +24,10 @@ const reducer = (state, action) => {
       return {
         ...state,
         loading: false,
-        products: action.payload.products,
+        sellers: action.payload.sellers,
         page: action.payload.page,
         pages: action.payload.pages,
-        countProducts: action.payload.countProducts,
+        countSellers: action.payload.countSellers,
       };
 
     case 'FETCH_FAIL':
@@ -37,7 +37,7 @@ const reducer = (state, action) => {
   }
 };
 
-export default function SearchScreen() {
+export default function SearchSellersScreen() {
   const navigate = useNavigate();
   const { search } = useLocation();
   const searchParams = new URLSearchParams(search);
@@ -48,23 +48,20 @@ export default function SearchScreen() {
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
   const province = searchParams.get('province') || 'all';
-  const sellers = searchParams.get('sellers') ;
   
 
 
-  const [{ loading, error, products, pages, countProducts }, dispatch] =
+  const [{ loading, error, sellers, pages, countSellers }, dispatch] =
     useReducer(reducer, { loading: true, error: '' });
 
   useEffect(() => {
     const fetchSearchData = async () => {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
-    
-
-            const {data}  = await axios.get(
-            `api/products/search?page=${page}&query=${query}&category=${category}&price=${price}&rating=${rating}&order=${order}&province=${province}`
+          const  {data}  = await axios.get(
+            `api/users/sellers?page=${page}`
           );
-        
+      
 
 
         dispatch({ type: 'FETCH_SUCCESS', payload: data });
@@ -78,14 +75,8 @@ export default function SearchScreen() {
 
 
   const getFilterUrl = (filter) => {
-    const filterCategory = filter.category || category;
-    const filterProvince = filter.province || province;
-    const filterQuery = filter.query || query;
-    const filterPrice = filter.price || price;
-    const filterRating = filter.rating || rating;
-    const filterOrder = filter.order || order;
     const filterPage = filter.page || page;
-    return `/search?category=${filterCategory}&query=${filterQuery}&price=${filterPrice}&rating=${filterRating}&order=${filterOrder}&page=${filterPage}&province=${filterProvince}`;
+    return `/sellers?page=${filterPage}`;
   };
 
   
@@ -93,9 +84,9 @@ export default function SearchScreen() {
   return (
     <div>
       <Helmet>
-        <title>Pesquisar Produtos</title>
+        <title>Pesquisar Vendedores</title>
       </Helmet>
-      <h1><p>Pesquisa de Produtos</p></h1>
+      <h1><p>Pesquisa de Vendedores</p></h1>
       <Row>
         <Col md={3}>
         <CategoriesFilter></CategoriesFilter>
@@ -108,13 +99,13 @@ export default function SearchScreen() {
           ) : (
             <>
               <Row className="justify-content-between mb-3">
+
                 <Col md={6}>
                   <div>
-                    {countProducts === 0 ? '0' : countProducts} Resultado(s) encontrado(s) {' '}
+                  {countSellers === 0 ? '0' : countSellers} Resultado(s) encontrado(s) {' '}
+
                     {query !== 'all' && ' : ' + query}
-                    {category !== 'all' && ' : ' + products && products[0] && products[0].category && products[0].category.name}
-                    {province !== 'all' && ' : ' + products && products[0] && products[0].province && products && products[0].province.name}
-                    {price !== 'all' && ' : Preço ' + price +' MT'}
+                             {price !== 'all' && ' : Preço ' + price +' MT'}
                     {rating !== 'all' && ' : Rating ' + rating + ' & acima'}
                     {query !== 'all' ||
                     province !== 'all' ||
@@ -147,11 +138,11 @@ export default function SearchScreen() {
                   </select>
                 </Col>
               </Row>
-              {products.length === 0 && (<MessageBox> Produtos não encontrados</MessageBox>)}
+              {sellers.length === 0 && (<MessageBox> Vendedores não encontrados</MessageBox>)}
             <Row>
-              {products.map((product)=>(
-                <Col sm={6} lg={3} className="mb-3" key={product._id}>
-                  <Product product={product}></Product>
+              {sellers.map((seller)=>(
+                <Col sm={6} lg={3} className="mb-3" key={seller._id}>
+                  <Product seller={seller}></Product>
                 </Col>
               ))}
             </Row>
