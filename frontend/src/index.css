@@ -203,7 +203,7 @@ table {
 @media (min-width: 992px){
 
   .img-carousel{
-    height: 30rem;
+    height: 320px;
     width: 100%;
     border-radius: 8px;
   align-items: center;
