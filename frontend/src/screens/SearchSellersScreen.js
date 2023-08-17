@@ -103,39 +103,7 @@ export default function SearchSellersScreen() {
                 <Col md={6}>
                   <div>
                   {countSellers === 0 ? '0' : countSellers} Resultado(s) encontrado(s) {' '}
-
-                    {query !== 'all' && ' : ' + query}
-                             {price !== 'all' && ' : Preço ' + price +' MT'}
-                    {rating !== 'all' && ' : Rating ' + rating + ' & acima'}
-                    {query !== 'all' ||
-                    province !== 'all' ||
-                    category !== 'all' ||
-                    rating !== 'all' ||
-                    price !== 'all' ? (
-                      <Button
-                        variant="light"
-                        onClick={() => {
-                          navigate('/search');
-                        }}
-                      >
-                        {' '}
-                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
-                      </Button>
-                    ) : null}
                   </div>
-                </Col>
-                <Col className="text-end">
-                  Organizar por{' '}
-                  <select value={order}
-                  onChange={(e)=>{
-                    navigate(getFilterUrl({order: e.target.value}));
-                  }}>
-                    <option value="newest">Novos produtos</option>
-                    <option value="lowest">Preços: Baixos a Altos</option>
-                    <option value="highest">Preços: Altos a Baixos</option>
-                    <option value="toprated">Avg: Avaliaçōes de Clientes</option>
-
-                  </select>
                 </Col>
               </Row>
               {sellers.length === 0 && (<MessageBox> Vendedores não encontrados</MessageBox>)}

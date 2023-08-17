@@ -175,14 +175,14 @@ export default function CategoriesFilter() {
 
           <Link
               to={getSellers({ seller: 'all' })}
-              className={seller === 'all' ? ' link-none' : 'link-none'}
+              className={seller === 'all' ? 'text-bold  link-none' : 'text-bold link-none'}
             >
-            <h6> <b> Todos Vendedores</b></h6>
+            <h6><li>Todos Vendedores</li> </h6>
             </Link>
             
 
   </div>
-
+<br/>
 
             <h6>Categorias:</h6>
           <div>
