@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useReducer } from 'react';
+import React, { useContext, useEffect, useReducer, useState } from 'react';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
@@ -14,6 +14,8 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import LoadingBox from '../components/LoadingBox';
 import { FaPencilAlt } from "react-icons/fa";
+import {Modal} from 'react-bootstrap';
+
 
 
 const reducer = (state, action) => {
@@ -36,11 +38,21 @@ const reducer = (state, action) => {
 export default function PlaceOrderScreen() {
   const [{ loading }, dispatch] = useReducer(reducer, { loading: false });
   const { state, dispatch: ctxDispatch } = useContext(Store);
-  const { cart, userInfo } = state;
-
   const navigate = useNavigate();
+  const { cart, userInfo } = state;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [message] = useState('Faça login ou cadastro da sua conta para poder acompanhar o progresso do seu pedido pela plataforma ou por SMS no seu telefone');
 
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  
+  const loginRedirect = () => {
+    navigate('/signin?redirect=/placeorder');
+  };
   
   const {
     cart: { address },
@@ -72,7 +84,8 @@ export default function PlaceOrderScreen() {
   const placeOrderHandler = async () => {
 
     if (!userInfo) {
-     navigate('/signin?redirect=/placeorder');
+      setIsModalOpen(true)
+      return
     }
     try {
       dispatch({ type: 'CREATE_REQUEST' });
@@ -250,6 +263,25 @@ export default function PlaceOrderScreen() {
           </Card>
         </Col>
       </Row>
+
+      <Modal show={isModalOpen}  onRequestClose={closeModal}
+        contentLabel="Modal"
+        >
+        <Modal.Header closeButton onClick={closeModal}>
+          <Modal.Title>Login</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+         {message}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="dark" onClick={loginRedirect}>
+            Ok
+          </Button>
+          <Button variant="danger" onClick={closeModal}>
+            Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

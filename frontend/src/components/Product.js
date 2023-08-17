@@ -67,16 +67,15 @@ function Product(props) {
       {seller && (
         <Card className="product zoom-image">
           <Link to={seller.seller ? `/seller/${seller._id}` : ''}>
-            <img
-              src={seller.seller.logo}
-              className="card-img-top "
-              alt={seller.name}
-            ></img>
+            
+                      <Card.Img variant="top" style={{height: '200px'}} src={seller.seller.logo} alt="Card image" />
+
           </Link>
           <div className="product-info small ">
             <Link
               className="link-none"
-              to={seller.seller ? `/seller/${seller._id}` : ''}
+              to={seller.seller ? `/seller/${seller._id}
+              ` : ''}
             >
               <b>{truncateString(seller.seller.name,30)}</b>
             </Link>
