@@ -120,7 +120,7 @@ export default function AddressScreen() {
           </Form.Group>
           <div>
             <Button className='customButtom' variant="light" type="submit">
-              Confirmar
+            Próximo
             </Button>
           </div>
         </Form>

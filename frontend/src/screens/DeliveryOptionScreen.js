@@ -64,7 +64,7 @@ export default function DeliveryOptionScreen() {
              
             </div>
             <div className="mb-3">
-              <Button className='customButtom' variant='light' type="submit">Continuar</Button>
+              <Button className='customButtom' variant='light' type="submit">Próximo</Button>
             </div>
           </Form>
         </div>
