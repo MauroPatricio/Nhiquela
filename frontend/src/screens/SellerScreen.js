@@ -116,10 +116,11 @@ export default function SellerScreen() {
               <Row>
                 <Col md={3}>
                   <Card>
+                    <Card.Img variant="top" style={{height: '250px'}} src={sellerDetails.seller.logo} alt={sellerDetails.seller.name} />
                     <Card.Body    style={{
                           alignItems: 'center',
                         }}>
-                      <img
+                      {/* <img
                         style={{
                           width: '14rem',
                           height: '14rem',
@@ -128,7 +129,8 @@ export default function SellerScreen() {
                         }}
                         src={sellerDetails.seller.logo}
                         alt={sellerDetails.seller.name}
-                      ></img>
+                      ></img> */}
+
                       <p>
                         <b>{sellerDetails.seller.name}</b><br/>
                         <b><FontAwesomeIcon icon={faClockFour}/> <b style={{color: 'green'}}> Aberto: </b>{sellerDetails.seller.opentime} - {sellerDetails.seller.closetime} </b><br/>
@@ -144,6 +146,7 @@ export default function SellerScreen() {
                     </Card.Body>
                   </Card>
                 </Col>
+                <br/>
                 <Col md={9}>
                   <div className="products">
                     {loadingProducts ? (
