@@ -162,7 +162,12 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Produtos na Carrinha</span>
+                <span>Produtos na Carrinha: {' '}
+                <Link className="link" to={`/seller/${cart.cartItems[0] && cart.cartItems[0].seller && cart.cartItems[0].seller.seller && cart.cartItems[0].seller._id}`}>
+                <b className='link'>{cart.cartItems[0] && cart.cartItems[0].seller && cart.cartItems[0].seller.seller && cart.cartItems[0].seller.seller.name}</b>
+              </Link>
+
+              </span>
               </Card.Title>
               <ListGroup variant="flush">
                 {cart.cartItems.map((item) => (
@@ -187,6 +192,7 @@ export default function PlaceOrderScreen() {
                         {' '}
                         <span>{item.quantity * item.price} MT</span>
                       </Col>
+                      
                     </Row>
                   </ListGroup.Item>
                 ))}

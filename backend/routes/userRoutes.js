@@ -104,6 +104,10 @@ userRouter.put(
         user.seller.backDocImg=req.body.sellerBackImgDoc|| user.seller.backDocImg;
         user.seller.frontDocImg=req.body.sellerFrontImgDoc || user.seller.frontDocImg;
         user.seller.address=req.body.sellerAddress || user.seller.address;
+        user.seller.phoneNumberAccount=req.body.phoneNumberAccount || user.seller.phoneNumberAccount;
+        user.seller.accountType=req.body.accountType || user.seller.accountType;
+        user.seller.accountNumber=req.body.accountNumber || user.seller.accountNumber;
+
       }else{
         user.seller.name = "";
         user.seller.description = "";
@@ -116,6 +120,9 @@ userRouter.put(
         user.seller.backDocImg="";
         user.seller.frontDocImg="";
         user.seller.address="";
+        user.seller.phoneNumberAccount="";    
+        user.seller.accountType="";   
+         user.seller.accountNumber="";
       }
 
       if (req.body.password) {
@@ -324,7 +331,11 @@ if (!userExist) {
           frontDocImg:req.body.sellerFrontImgDoc,
           backDocImg:req.body.sellerBackImgDoc,
           province: req.body.sellerLocation,
-          address:  req.body.sellerAddress
+          address:  req.body.sellerAddress,
+          phoneNumberAccount:  req.body.phoneNumberAccount,
+          accountType:  req.body.accountType,
+          accountNumber: req.body.accountNumber
+
         };
         newUser.seller = seller;
       }
