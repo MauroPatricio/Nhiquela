@@ -241,7 +241,7 @@ table {
   (max-width: 540px), (max-width: 992px) {
 
     .img-carousel{
-      height: 22rem;
+      height: 300px;
       width: 100%;
       border-radius: 8px;
     align-items: center;
