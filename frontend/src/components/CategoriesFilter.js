@@ -9,9 +9,10 @@ import { useReducer } from 'react';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { fas } from '@fortawesome/free-solid-svg-icons';
+import { faList, fas } from '@fortawesome/free-solid-svg-icons';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
+import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt, FaList} from 'react-icons/fa';
 
 
 const reducer = (state, action) => {
@@ -167,7 +168,7 @@ export default function CategoriesFilter() {
         <FontAwesomeIcon icon={faPlus}  className='show-close-button' onClick={handleToggleMaximized} style={{marginLeft: '255px'}}></FontAwesomeIcon>
 
       </Card.Header>}
-      {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}} onClick={handleToggleMaximized}  >Filtros de Pesquisa           <FontAwesomeIcon icon={faCaretDown} /> </h6>}
+      {!showComponent && <h6 style={{marginLeft: '10px', marginTop: '10px'}} onClick={handleToggleMaximized}  ><FontAwesomeIcon icon={faList} /> Filtros de Pesquisa           <FontAwesomeIcon icon={faCaretDown} /> </h6>}
         {showComponent && 
         <Card.Body style={{marginLeft: '10px'}}>
 
@@ -177,14 +178,14 @@ export default function CategoriesFilter() {
               to={getSellers({ seller: 'all' })}
               className={seller === 'all' ? 'text-bold  link-none' : 'text-bold link-none'}
             >
-            <h6><li>Todos Vendedores</li> </h6>
+            <h6><FaUsers/> Todos Vendedores</h6>
             </Link>
             
 
   </div>
 <br/>
 
-            <h6>Categorias:</h6>
+            <h6><FaSortAlphaDownAlt/> Categorias:</h6>
           <div>
             <Link
               className={
@@ -210,7 +211,7 @@ export default function CategoriesFilter() {
           </div>
           <br />
           <div>
-            <h6>Preços por intervalos:</h6>
+            <h6><FaMoneyBillWaveAlt/> Preços por intervalos:</h6>
             <Link
               className={'all' === price ? 'text-bold link-none' : 'link-none'}
               to={getFilterUrl({ price: 'all' })}
@@ -233,7 +234,7 @@ export default function CategoriesFilter() {
             ))}
           </div>
           <br/>
-          <h6>Localização:</h6>
+          <h6><FaSearchLocation/> Localização:</h6>
           <div>
             <Link
               className={
@@ -259,7 +260,7 @@ export default function CategoriesFilter() {
           </div>
           <br />
           <div>
-            <h6>Pontuaçōes</h6>
+            <h6><FaStarHalfAlt/> Pontuaçōes</h6>
 
             {ratings.map((r) => (
               <Link
