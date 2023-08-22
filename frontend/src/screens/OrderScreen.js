@@ -426,7 +426,12 @@ export default function OrderScreen() {
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Produtos na Carrinha</Card.Title>
+              <Card.Title>Produtos na Carrinha:
+              {' '}
+                <Link className="link" to={`/seller/${order.orderItems[0] && order.orderItems[0].seller && order.orderItems[0].seller.seller && order.orderItems[0].seller._id}`}>
+                <b className='link'>{order.orderItems[0] && order.orderItems[0].seller && order.orderItems[0].seller.seller && order.orderItems[0].seller.seller.name}</b>
+              </Link>
+              </Card.Title>
               <ListGroup variant="flush">
                 {order.orderItems.map((item) => (
                   <ListGroup.Item key={item._id}>

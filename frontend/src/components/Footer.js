@@ -46,7 +46,7 @@ export default function Footer() {
       <div className="row mt-3">
       <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
       <img style={{width: '12rem', height: '12rem', textAlign: 'center'}}
-            src="nhiquela2.png" 
+            src="nhiquelalogo.png" 
             alt="Nhiquela" ></img>   
         </div>
 
