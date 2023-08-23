@@ -146,7 +146,6 @@ export default function SellerScreen() {
                     </Card.Body>
                   </Card>
                 </Col>
-                <br/>
                 <Col md={9}>
                   <div className="products">
                     {loadingProducts ? (
