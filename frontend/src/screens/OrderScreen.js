@@ -625,7 +625,7 @@ export default function OrderScreen() {
           </Modal>
 
           &nbsp;
-          {(
+          {(userInfo.isAdmin ||
             !userInfo.isDeliveryMan
            ) &&
             !order.isDelivered &&

@@ -5,7 +5,13 @@ import { isAuth, isAdmin } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 
+
+
+
+
 const orderRouter = express.Router();
+
+
 
 function generateCode() {
   let code = Math.floor(Math.random() * 900000) + 100000;
@@ -182,6 +188,15 @@ orderRouter.post(
       code: generateCode(),
       status: 'Pendente',
     });
+
+   
+      //  Para envio de mensagens
+
+//       let msg = 'Ola Seja bem vindo a Nhiquela Shop. O seu pagamento sera confirmado dentro de instantes. Por favor aguarde' 
+//       +`e muito obrigado pela confianca e preferencia. O codigo do seu pedido e ${newOrder.code}`; 
+ 
+//  sendSmsToTwilio(msg)
+
     req.body.orderItems.map(async o=>{
 
       const product = await Product.findById(o);
@@ -199,6 +214,9 @@ orderRouter.post(
 
 
     const order = await newOrder.save();
+
+  
+
     res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
   })
 );

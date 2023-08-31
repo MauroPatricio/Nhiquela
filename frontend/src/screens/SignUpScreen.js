@@ -290,7 +290,7 @@ export default function SignupScreen() {
 
         
         <Form.Group className="mb-3" controlId="phoneNumber">
-          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone: <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]</Form.Label>
+          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone:  <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]</Form.Label>
           <Form.Control
             type="text"
             max={9}
@@ -528,8 +528,6 @@ export default function SignupScreen() {
             onChange={(e) => {
               setClosetime(e.target.value);
             }}
-
-            
           />
         </Form.Group>
 

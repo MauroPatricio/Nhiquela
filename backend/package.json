@@ -29,7 +29,8 @@
     "nodemailer": "^6.9.3",
     "react-paypal-js": "0.0.1-security",
     "socket.io": "^4.6.1",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "twilio": "^4.16.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"

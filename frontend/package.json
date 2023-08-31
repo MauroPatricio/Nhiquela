@@ -17,6 +17,7 @@
     "bootstrap": "^5.2.3",
     "bson": "^5.2.0",
     "font-awesome": "^4.7.0",
+    "messagebird": "^4.0.1",
     "npm-check-updates": "^16.10.9",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.4",
