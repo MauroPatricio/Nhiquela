@@ -525,14 +525,15 @@ export default function OrderScreen() {
             <Card.Body>
               <Card.Title>Pagamento do Pedido <FaMoneyBillAlt/></Card.Title>
               <ListGroup variant="flush">
+             
                 <ListGroup.Item>
                   <Row>
                     <Col>
                     {order.paymentMethod === 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                        Para efectuar o pagamento e confirmar o seu pedido envie o valor {' '}
-                        <b>{order.totalPrice} MT</b> para o número de conta/telefone <b>840000000</b>
+                     Para confirmar o seu pedido efectue o pagamento do valor {' '} 
+                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>840000000</b>
                       </MessageBox>
                     )}                
                        </Col>
@@ -542,11 +543,17 @@ export default function OrderScreen() {
                        {order.paymentMethod !== 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                                Para efectuar o pagamento e confirmar o seu pedido envie o valor {' '} 
+                                Para confirmar o seu pedido efectue o pagamento do valor {' '} 
                                 <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>870000000</b>
                       </MessageBox>
                     )}
                        </Col>
+                  </Row>
+                </ListGroup.Item>
+
+                <ListGroup.Item>
+                  <Row>
+                    <Col>Tempo máximo de confirmação de pagamento: <b>1 hora</b></Col>
                   </Row>
                 </ListGroup.Item>
               
@@ -641,7 +648,7 @@ export default function OrderScreen() {
                     type="button"
                     onClick={deliverOrderHandler}
                   >
-                    Confirmar Entrega
+                    Confirmar entrega
                   </Button>
                 </div>
               </ListGroup.Item>
@@ -737,7 +744,7 @@ export default function OrderScreen() {
                     type="button"
                     onClick={acceptOrderHandler}
                   >
-                    Aceitar Pedido
+                    Aceitar pedido
                   </Button>
                 </div>
               </ListGroup.Item>
@@ -753,7 +760,7 @@ export default function OrderScreen() {
                   type="button"
                   onClick={payOrderHandler}
                 >
-                  Confirmar Pagamento
+                  Confirmar pagamento
                 </Button>
               </div>
             </ListGroup.Item>
