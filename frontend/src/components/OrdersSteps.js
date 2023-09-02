@@ -6,7 +6,7 @@ import { faBoxesPacking } from '@fortawesome/free-solid-svg-icons';
 import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { faHistory } from '@fortawesome/free-solid-svg-icons';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
-import { FaShippingFast, FaBox } from "react-icons/fa";
+import { FaShippingFast } from "react-icons/fa";
 import { BsFillBagCheckFill } from "react-icons/bs";
 
 
