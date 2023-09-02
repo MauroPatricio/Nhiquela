@@ -5,13 +5,10 @@ import Col from 'react-bootstrap/Col';
 import MessageBox from '../components/MessageBox';
 import LoadingBox from '../components/LoadingBox';
 import { Helmet } from 'react-helmet-async';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getError } from '../utils';
 import Button from 'react-bootstrap/Button';
 
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import Product from '../components/Product';
 import CategoriesFilter from '../components/CategoriesFilter';
 
@@ -38,7 +35,6 @@ const reducer = (state, action) => {
 };
 
 export default function SearchSellersScreen() {
-  const navigate = useNavigate();
   const { search } = useLocation();
   const searchParams = new URLSearchParams(search);
   const category = searchParams.get('category') || 'all';

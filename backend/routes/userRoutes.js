@@ -5,7 +5,6 @@ import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 import Product from '../models/ProductModel.js';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
 
 
 const userRouter = express.Router();
@@ -205,22 +204,22 @@ expressAsyncHandler(async(req, res)=>{
     // });
 
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      auth: {
-          user: 'catalina.hammes45@ethereal.email',
-          pass: 'waGWW2dqs2Ndr2Ej22'
-      }
-  });
+//     const transporter = nodemailer.createTransport({
+//       host: 'smtp.ethereal.email',
+//       port: 587,
+//       auth: {
+//           user: 'catalina.hammes45@ethereal.email',
+//           pass: 'waGWW2dqs2Ndr2Ej22'
+//       }
+//   });
 
-  // Define the email options
-const mailOptions = {
-  from: 'sender@example.com',
-  to: user.email,
-  subject: 'Hello from Node.js',
-  text: 'This is a test email from Node.js'
-};
+//   // Define the email options
+// const mailOptions = {
+//   from: 'sender@example.com',
+//   to: user.email,
+//   subject: 'Hello from Node.js',
+//   text: 'This is a test email from Node.js'
+// };
    
 // Send the email
 transporter.sendMail(mailOptions, (error, info) => {
