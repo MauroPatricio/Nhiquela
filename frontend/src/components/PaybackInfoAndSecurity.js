@@ -5,12 +5,9 @@ import { Row, Col } from 'react-bootstrap';
 import { BsShieldFillCheck } from "react-icons/bs";
 import {GiBackwardTime} from "react-icons/gi";
 import {FaUserShield} from "react-icons/fa";
-import { Store } from '../Store';
 
 export default function PaybackInfoAndSecurity() {
-  const { state, dispatch: ctxDispatch } = useContext(Store);
 
-  const { cart, userInfo } = state;
 
   return (
     <>
