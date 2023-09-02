@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React from 'react';
 
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { Row, Col } from 'react-bootstrap';

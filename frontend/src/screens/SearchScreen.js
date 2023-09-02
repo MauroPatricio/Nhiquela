@@ -48,7 +48,6 @@ export default function SearchScreen() {
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
   const province = searchParams.get('province') || 'all';
-  const sellers = searchParams.get('sellers') ;
   
 
 
