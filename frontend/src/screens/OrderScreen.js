@@ -525,7 +525,13 @@ export default function OrderScreen() {
             <Card.Body>
               <Card.Title>Pagamento do Pedido <FaMoneyBillAlt/></Card.Title>
               <ListGroup variant="flush">
-             
+
+              {/* <ListGroup.Item>
+                  <Row>
+                    <Col>Tempo de confirmação de pagamento: Max 1 hora</Col>
+                  </Row>
+                </ListGroup.Item>
+              */}
                 <ListGroup.Item>
                   <Row>
                     <Col>
@@ -551,11 +557,7 @@ export default function OrderScreen() {
                   </Row>
                 </ListGroup.Item>
 
-                <ListGroup.Item>
-                  <Row>
-                    <Col>Tempo máximo de confirmação de pagamento: <b>1 hora</b></Col>
-                  </Row>
-                </ListGroup.Item>
+              
               
               </ListGroup>
             </Card.Body>
