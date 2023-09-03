@@ -9,9 +9,9 @@ import { Store } from '../Store';
 
 
 export default function AdicionalInfoHeader() {
-  const { state, dispatch: ctxDispatch } = useContext(Store);
+  const { state, } = useContext(Store);
 
-  const { cart, userInfo } = state;
+  const { userInfo } = state;
   return (
     <Row className="bg-color-row" style={{ textAlign: 'center', marginBottom: '10px'}}>
     <Col md={12} className='delivery-info' style={{textAlign: 'center', }}>

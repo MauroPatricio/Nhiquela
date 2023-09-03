@@ -101,7 +101,7 @@ export default function ProfileScreen() {
   const [closetime, setClosetime] = useState('');
 
 
-  const [{ loadingUpdate, loadingUpload,documentTypes, provinces, loadingUser, user }, dispatch] = useReducer(reducer, {
+  const [{ loadingUpdate, loadingUpload,documentTypes, provinces }, dispatch] = useReducer(reducer, {
     loadingUpdate: false,
   });
 
