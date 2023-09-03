@@ -252,7 +252,23 @@ function ProductScreen() {
 
   
 
-            <ListGroup.Item> Cor:
+            <ListGroup.Item>
+                  <Form.Group className="mb-3" controlId="cor">
+                   <Form.Label>Cor:</Form.Label>
+                        <Form.Select aria-label="Cor"
+                      value={selectedColor}
+                      onChange={(e)=>setSelectedColor(e.target.value)} required>
+                        <option value="">Seleccione</option>
+                        {product && product.color.map(color => (
+                        <option key={color._id} value={color.name}>
+                          {color.name}
+                        </option>
+                    ))}
+                      </Form.Select>
+                  </Form.Group>
+                  </ListGroup.Item>
+
+            {/* <ListGroup.Item> Cor:
               <div style={{ maxHeight: '80px', overflowY: 'scroll' }}>
                   {product.color.map((item) => (
 
@@ -269,10 +285,26 @@ function ProductScreen() {
 
                   ))}
                   </div>
-                  </ListGroup.Item> 
+                  </ListGroup.Item>  */}
+
+                  <ListGroup.Item>
+                  <Form.Group className="mb-3" controlId="Tamanho">
+                   <Form.Label>Tamanho:</Form.Label>
+                        <Form.Select aria-label="Tamanho"
+                      value={selectedSize}
+                      onChange={(e)=>setSelectedSize(e.target.value)} required>
+                        <option value="">Seleccione</option>
+                        {product && product.size.map(size => (
+                        <option key={size._id} value={size.name}>
+                          {size.name}
+                        </option>
+                    ))}
+                      </Form.Select>
+                  </Form.Group>
+                  </ListGroup.Item>
 
 
-                  <ListGroup.Item> Tamanho:
+                  {/* <ListGroup.Item> Tamanho:
                   <div style={{ maxHeight: '80px', overflowY: 'scroll' }}>
 
                   {product.size.map((item) => (
@@ -289,9 +321,8 @@ function ProductScreen() {
                          />
             
                   ))}
-                                    </div>
-
-                  </ListGroup.Item> 
+                </div> 
+                 </ListGroup.Item>  */}
                     
             
             

@@ -79,7 +79,7 @@ export default function ProfileScreen() {
   const [name, setName] = useState(userInfo.name);
   const [email, setEmail] = useState(userInfo.email);
   const [phoneNumber, setPhoneNumber] = useState(userInfo.phoneNumber);
-  const [approved, setIsApproved] = useState(userInfo.isApproved);
+  const [ isApproved,setIsApproved] = useState(userInfo.isApproved);
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirmPassword] = useState('');
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
   const [closetime, setClosetime] = useState('');
 
 
-  const [{ loadingUpdate, loadingUpload,documentTypes, provinces, loadingUser, user }, dispatch] = useReducer(reducer, {
+  const [{ loadingUpdate, loadingUpload,documentTypes, provinces }, dispatch] = useReducer(reducer, {
     loadingUpdate: false,
   });
 

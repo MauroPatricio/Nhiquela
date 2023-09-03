@@ -73,7 +73,8 @@ export default function PlaceOrderScreen() {
   );
 
   cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
-  cart.siteTax = round2(0.2 * cart.itemsPrice);
+ // cart.siteTax = round2(0.2 * cart.itemsPrice);
+  cart.siteTax = 0;
   // cart.ivaTax = round2(0.16 * cart.itemsPrice);
   cart.ivaTax = 0;
 

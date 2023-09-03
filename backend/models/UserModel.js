@@ -26,9 +26,15 @@ const modelSchema = new mongoose.Schema({
         docNumber: {type: String},
         frontDocImg: {type: String},
         backDocImg: {type: String},
+        
         phoneNumberAccount: {type: Number},
+        alternativePhoneNumberAccount: {type: Number},
+
         accountType:  {type: String},
         accountNumber: {type: Number},
+
+        alternativeAccountType:  {type: String},
+        alternativeAccountNumber: {type: Number},
 
 
 

@@ -7,6 +7,7 @@ export default function Help() {
             className='howitworks'
             src="images/nhiquelaCompras.png" 
             alt="Como comprar na site" ></img>    
+            
       
     </div>
   )
