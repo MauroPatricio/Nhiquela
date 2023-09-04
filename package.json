@@ -5,7 +5,7 @@
   "main": "index.js",
   "engines": {
     "node": "14.18.0",
-    "npm": "9.6.5"
+    "npm": ">=7"
   },
   "scripts": {
     "start": "node backend/index.js",
@@ -22,7 +22,5 @@
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
-  "dependencies": {
-    "semver": "^7.5.4"
-  }
+  "dependencies": {}
 }
