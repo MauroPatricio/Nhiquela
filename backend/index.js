@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-// import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import seedRoutes from './routes/seedRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import userRouter from './routes/userRoutes.js';
@@ -20,14 +20,14 @@ import sizeRoutes from './routes/sizeRoutes.js';
 dotenv.config();
 
 // Conectando com a database MongoDB Atlas
-// mongoose
-//   .connect(process.env.MONGODB_URI)
-//   .then(() => {
-//     console.log('Connectei me ao MongoDB com SUCESSO');
-//   })
-//   .catch((err) => {
-//     console.log(err.message);
-//   });
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connectei me ao MongoDB com SUCESSO');
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
 
 const app = express();
 
