@@ -22,5 +22,7 @@
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
-  "dependencies": {}
+  "dependencies": {
+    "semver": "^7.5.4"
+  }
 }
