@@ -12,7 +12,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faList, fas } from '@fortawesome/free-solid-svg-icons';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
-import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt, FaList} from 'react-icons/fa';
+import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt} from 'react-icons/fa';
 
 
 const reducer = (state, action) => {
