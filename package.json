@@ -5,7 +5,7 @@
   "main": "index.js",
   "engines": {
     "node": "18.x",
-    "npm": "7.x"
+    "npm": "9.x"
   },
   "scripts": {
     "start": "node backend/index.js",
