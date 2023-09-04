@@ -94,3 +94,14 @@ export const isDeliveryMan = (req,  next) => {
 
     
 // }
+
+export  const sendSMSToUSendIt= () =>{
+
+  const username = "mpatricio";
+  const password = "Patrick2019#"
+  const timezone = "Africa/Maputo";
+  const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
+
+  
+
+}
