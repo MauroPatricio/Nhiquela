@@ -70,7 +70,6 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "npm-force-resolutions": "0.0.10"
   },
   "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
