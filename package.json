@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": ">=20",
-    "npm": ">=10"
+    "node": "18.16.0",
+    "npm": "9.6.5"
   },
   "scripts": {
     "start": "node backend/index.js",

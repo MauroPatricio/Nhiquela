@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "homepage": "http://.",
+  "homepage": ".",
   "type": "module",
   "version": "1.0.0",
   "main": "index.js",
@@ -14,7 +14,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@gyumeijie/is-pojo": "^1.0.2",
     "bcryptjs": "^2.4.3",
     "bson": "^6.0.0",
     "cloudinary": "^1.35.0",
