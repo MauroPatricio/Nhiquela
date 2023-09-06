@@ -18,7 +18,7 @@ export default function AdicionalInfoHeader() {
     <b>Entregas disponíveis para Maputo Cidade e Província a partir das <FontAwesomeIcon icon={faClock}/> 7:30 as 18:00</b>
     </Col>
     <Col md={12}style={{textAlign: 'center',  marginBottom: '10px'}}>
-     {userInfo && userInfo.isSeller && !userInfo.isApproved && <b className='not-approved-seller' >A sua conta ainda não foi autorizada para expor os seus produtos. Por favor, contacte a Nhiquela Shop para autorizar-lhe como fornecedor.</b>}
+     {userInfo && userInfo.isSeller && !userInfo.isApproved && <b className='not-approved-seller' >A sua conta ainda não foi autorizada para expor os seus produtos. Para mais informações por favor contacte a Nhiquela Shop.</b>}
     </Col>
   </Row>
 
