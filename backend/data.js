@@ -10,7 +10,7 @@ const data = {
       phoneNumber: 840575992,
       isAdmin: true,
       isDeliveryMan: true,
-
+ 
     },
    
   ],
