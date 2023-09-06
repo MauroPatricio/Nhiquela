@@ -23,6 +23,5 @@
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
   "dependencies": {
-    "@gyumeijie/is-pojo": "^1.0.2"
   }
 }
