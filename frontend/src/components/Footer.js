@@ -25,17 +25,17 @@ export default function Footer() {
     </div>
 
     <div>
-      <a href="" className="text-white me-4">
+      <a href="https://web.facebook.com/profile.php?id=61551226670311" className="text-white me-4">
         <i className="fab fa-facebook-f"></i>
       <FaFacebookF></FaFacebookF>
         </a>
-      <a href="" className="text-white me-4">
+      <a href="https://www.youtube.com/channel/UCgP2pdDdw5F_y40-nh4Vw9A" className="text-white me-4">
         <FaYoutube></FaYoutube>
       </a>
-      <a href="" className="text-white me-4">
+      <a href="https://www.tiktok.com/@nhiquelashopofficial" className="text-white me-4">
       <FaTiktok></FaTiktok>
         </a>
-      <a href="" className="text-white me-4">
+      <a href="https://www.instagram.com/nhiquelashop/" className="text-white me-4">
       <FaInstagram></FaInstagram>
       </a>
     </div>
@@ -88,10 +88,10 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p><i className="fas fa-phone mr-3"></i> +258 82 00 00 000<br/>
-           <i className="fas fa-print mr-3"></i> +258 84 00 00 000<br/>
-         <i className="fas fa-print mr-3"></i> +258 87 00 00 000<br/>
-          <i className="fas fa-envelope mr-3"></i> deliveryshop@example.com<br/>
+          <p>
+           <i className="fas fa-print mr-3"></i> +258 85 36 000 36<br/>
+         <i className="fas fa-print mr-3"></i> +258 87 93 00 036<br/>
+          <i className="fas fa-envelope mr-3"></i> nhiquelaservicosconsultoria@gmail.com<br/>
           <i className="fas fa-home mr-3"></i> Moçambique, Maputo Cidade</p>
 
         </div>

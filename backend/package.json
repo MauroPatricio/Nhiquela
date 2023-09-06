@@ -1,9 +1,8 @@
 {
   "name": "backend",
-  "homepage": ".",
+  "homepage": "http://.",
   "type": "module",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "engines": {
     "node": ">=14"
@@ -33,5 +32,6 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
-  }
+  },
+  "description": ""
 }
