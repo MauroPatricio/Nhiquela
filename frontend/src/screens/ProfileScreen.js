@@ -117,6 +117,7 @@ export default function ProfileScreen() {
           email,
           password,
           phoneNumber,
+          isApproved,
           isSeller,
           sellerName,
           sellerDescription,
