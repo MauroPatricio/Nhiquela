@@ -3,7 +3,6 @@ import {v2 as cloudinary} from 'cloudinary';
 import streamifier from 'streamifier';
 import multer from 'multer';
 const uploadRouter = express.Router();
-import fs from 'fs';
 
 const upload = multer()
 
