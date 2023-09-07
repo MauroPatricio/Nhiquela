@@ -1,11 +1,10 @@
 {
   "name": "ecommerce",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "engines": {
-    "node": "18.16.0",
-    "npm": ">=9"
+    "node": ">=14.18.0",
+    "npm": ">=7"
   },
   "scripts": {
     "start": "node backend/index.js",
@@ -22,6 +21,5 @@
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
-  "dependencies": {
-  }
+  "description": ""
 }
