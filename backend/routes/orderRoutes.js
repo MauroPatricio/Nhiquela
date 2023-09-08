@@ -1,7 +1,7 @@
 import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin } from '../utils.js';
+import { isAuth, isAdmin, sendSMSToUSendIt } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 
@@ -195,7 +195,7 @@ orderRouter.post(
 //       let msg = 'Ola Seja bem vindo a Nhiquela Shop. O seu pagamento sera confirmado dentro de instantes. Por favor aguarde' 
 //       +`e muito obrigado pela confianca e preferencia. O codigo do seu pedido e ${newOrder.code}`; 
  
-//  sendSmsToTwilio(msg)
+sendSMSToUSendIt();
 
     req.body.orderItems.map(async o=>{
 

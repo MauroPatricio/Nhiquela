@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import soap from 'soap';
 
 
 
@@ -95,13 +96,44 @@ export const isDeliveryMan = (req,  next) => {
     
 // }
 
-export  const sendSMSToUSendIt= () =>{
+export  const sendSMSToUSendIt= async () =>{
 
   const username = "mpatricio";
   const password = "Patrick2019#"
   const timezone = "Africa/Maputo";
   const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
+  const wsdlUrl = 'https://api.usendit.pt/v2/remoteusendit.asmx?WSDL';
 
   
 
+
+
+
+  // Definição dos parametros do sendMessage para o pedido the SOAP
+  const sendMessageArgs = {
+    username: username,
+    password: password,
+    partnerEventId: partnerEventId,
+    timezone: timezone,
+    partnerMsgId: '67890',
+    sender: '840575992',
+    msisdn: '1234567890',
+    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
+    priority: 1,
+    messageText: 'hello world',
+    workingDays: true,
+    isFlash: false,
+  };
+
+  const client = await soap.createClientAsync(wsdlUrl);
+
+  // Chamar a função sendMessage
+  client.SendMessage(sendMessageArgs, (err, result) => {
+    if (err) {
+      console.error('Error calling sendmessage:', err);
+    } else {
+      console.log('sendmessage Result:', result);
+    }
+  });
 }
+
