@@ -70,32 +70,6 @@ export const isDeliveryMan = (req,  next) => {
   }
 };
 
-
-
-// export const sendSmsToTwilio =(msg) => {
-//   const accountSid = 'AC913455c0151bdc7fbe242feb9a5c880c';
-//   const authToken = 'a2417f36e96a784f401853169f6d651f';
-//   const client = twilio(accountSid, authToken);
-  
-//   const messageParams = {
-//     body: msg,
-//     from: '+16185684095',
-//     to: '+258840575992'
-//   };
-
-
-//     client.messages.create(messageParams)
-//     .then(message => {
-//       console.log('Message sent successfully:', message.sid);
-//     })
-//     .catch(error => {
-//       console.error('Error sending message:', error);
-//     });
-      
-
-    
-// }
-
 export  const sendSMSToUSendIt= async () =>{
 
   const username = "mpatricio";
@@ -122,6 +96,7 @@ export  const sendSMSToUSendIt= async () =>{
     isFlash: false,
   };
 
+  // criar coneccao com o client
   const client = await soap.createClientAsync(wsdlUrl);
 
   // Chamar a função sendMessage
