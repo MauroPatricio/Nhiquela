@@ -104,9 +104,6 @@ export  const sendSMSToUSendIt= async () =>{
   const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
   const wsdlUrl = 'https://api.usendit.pt/v2/remoteusendit.asmx?WSDL';
 
-  
-
-
 
 
   // Definição dos parametros do sendMessage para o pedido the SOAP
