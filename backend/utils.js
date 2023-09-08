@@ -96,6 +96,7 @@ export  const sendSMSToUSendIt= async () =>{
     isFlash: false,
   };
 
+  
   // criar coneccao com o client
   const client = await soap.createClientAsync(wsdlUrl);
 
