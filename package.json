@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "engines": {
-    "node": "18.16.0",
-    "npm": "9.6.5"
+    "node": ">=18",
+    "npm": ">=9"
   },
   "scripts": {
     "start": "node backend/index.js",
@@ -21,8 +21,5 @@
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
-  "description": "",
-  "dependencies": {
-    "mongoose": "^7.5.0"
-  }
+  "description": ""
 }
