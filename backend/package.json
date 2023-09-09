@@ -25,6 +25,7 @@
     "mongobd": "0.0.1-security.0",
     "mongoose": "7.5.0",
     "multer": "^1.4.5-lts.1",
+    "readable-stream": "^4.4.2",
     "restore-cursor": "^4.0.0",
     "semver": "7.x",
     "soap": "^1.0.0",
