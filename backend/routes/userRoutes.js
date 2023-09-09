@@ -104,8 +104,13 @@ userRouter.put(
         user.seller.frontDocImg=req.body.sellerFrontImgDoc || user.seller.frontDocImg;
         user.seller.address=req.body.sellerAddress || user.seller.address;
         user.seller.phoneNumberAccount=req.body.phoneNumberAccount || user.seller.phoneNumberAccount;
+        user.seller.alternativePhoneNumberAccount=req.body.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount;
+        
         user.seller.accountType=req.body.accountType || user.seller.accountType;
         user.seller.accountNumber=req.body.accountNumber || user.seller.accountNumber;
+
+        user.seller.alternativeAccountType=req.body.alternativeAccountType || user.seller.alternativeAccountType;
+        user.seller.alternativeAccountNumber=req.body.alternativeAccountNumber || user.seller.alternativeAccountNumber;
 
       }else{
         user.seller.name = "";
@@ -120,8 +125,11 @@ userRouter.put(
         user.seller.frontDocImg="";
         user.seller.address="";
         user.seller.phoneNumberAccount="";    
+        user.seller.alternativePhoneNumberAccount="";
         user.seller.accountType="";   
          user.seller.accountNumber="";
+         user.seller.alternativeAccountType="";
+         user.seller.alternativeAccountNumber="";
       }
 
       if (req.body.password) {
@@ -332,8 +340,11 @@ if (!userExist) {
           province: req.body.sellerLocation,
           address:  req.body.sellerAddress,
           phoneNumberAccount:  req.body.phoneNumberAccount,
+          alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount,
           accountType:  req.body.accountType,
-          accountNumber: req.body.accountNumber
+          accountNumber: req.body.accountNumber,
+          alternativeAccountType: req.body.alternativeAccountType,
+          alternativeAccountNumber: req.body.alternativeAccountNumber
 
         };
         newUser.seller = seller;

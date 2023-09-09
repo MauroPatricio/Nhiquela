@@ -36,9 +36,6 @@ const modelSchema = new mongoose.Schema({
         alternativeAccountType:  {type: String},
         alternativeAccountNumber: {type: Number},
 
-
-
-
     }
 },{
     timestamps: true

@@ -231,7 +231,7 @@ function ProductScreen() {
             </ListGroup.Item>
             <ListGroup.Item>Fornecedor: 
             <Link
-              className="link-none"
+              className="link"
               to={product.seller ? `/seller/${product.seller._id}` : ''}
             > 
              <b> {product.seller && product.seller.seller && product.seller.seller.name}</b>

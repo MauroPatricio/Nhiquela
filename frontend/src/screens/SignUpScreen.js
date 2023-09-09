@@ -98,6 +98,23 @@ export default function SignupScreen() {
   const [opentime, setOpentime] = useState('');
   const [closetime, setClosetime] = useState('');
 
+  const [phoneNumberAccount, setPhoneNumberAccount] = useState('');
+  const [alternativePhoneNumberAccount, setAlternativePhoneNumberAccount] = useState('');
+  const [accountType, setAccountType] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [alternativeAccountType, setAlternativeAccountType] = useState('');
+  const [alternativeAccountNumber, setAlternativeAccountNumber] = useState('');
+
+
+  const accountTypes = [
+    { id: 1, name: 'BCI' },
+    { id: 2, name: 'BIM' },
+    { id: 3, name: 'MOZA' },
+    { id: 4, name: 'ABSA' },
+
+  ];
+
+
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
 
@@ -154,7 +171,13 @@ export default function SignupScreen() {
         sellerLocation,
         sellerAddress,
         opentime, 
-        closetime
+        closetime,
+        phoneNumberAccount,
+        alternativePhoneNumberAccount,
+        accountType,
+        accountNumber,
+        alternativeAccountType,
+        alternativeAccountNumber
       });
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       navigate(redirect || '/');
@@ -349,6 +372,88 @@ export default function SignupScreen() {
           <>
           <br/>
           <div ><h4>Dados adicionais</h4>
+
+          <Form.Group className="mb-3" controlId="sellerPhoneNumberAccount">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone para transferências</Form.Label>
+          <Form.Control
+            type="text"
+            value={phoneNumberAccount}
+            required
+            onChange={(e) => {
+              setPhoneNumberAccount(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerPhoneNumberAccountAlternative">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone para transferências (opcional)</Form.Label>
+          <Form.Control
+            type="text"
+            value={alternativePhoneNumberAccount}
+            onChange={(e) => {
+              setAlternativePhoneNumberAccount(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+          <Form.Group className="mb-3" controlId="sellerPhoneNumberAccount">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta</Form.Label>
+            <Form.Select aria-label="Tipo de conta"
+          value={accountType}
+          onChange={(e)=>setAccountType(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {accountTypes && accountTypes.map(accountType => (
+            <option key={accountType.id} value={accountType.name}>
+              {accountType.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerPhoneNumberAccountAlternative">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de Conta</Form.Label>
+          <Form.Control
+            type="text"
+            value={accountNumber}
+            onChange={(e) => {
+              setAccountNumber(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+
+        <Form.Group className="mb-3" controlId="numeroAccountAlternative">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta alternativo (opcional)</Form.Label>
+            <Form.Select aria-label="Tipo de conta para transferências"
+          value={alternativeAccountType}
+          onChange={(e)=>setAlternativeAccountType(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {accountTypes && accountTypes.map(accountType => (
+            <option key={accountType.id} value={accountType.name}>
+              {accountType.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="numeroAccountAlternative">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de Conta alternativo (opcional)</Form.Label>
+          <Form.Control
+            type="text"
+            value={alternativeAccountNumber}
+            onChange={(e) => {
+              setAlternativeAccountNumber(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+
+
+
+
+
+
+
           
           <Form.Group className="mb-3" controlId="sellerDocument">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de documento</Form.Label>
