@@ -6,7 +6,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   },
   "scripts": {
     "start": "nodemon index.js",
