@@ -76,7 +76,7 @@ export  const sendSMSToUSendIt= async () =>{
   const password = "Patrick2019#"
   const timezone = "Africa/Maputo";
   const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
-  const wsdlUrl = 'https://api.usendit.pt/v2/remoteusendit.asmx?WSDL';
+  const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
 
 
 
@@ -84,19 +84,17 @@ export  const sendSMSToUSendIt= async () =>{
   const sendMessageArgs = {
     username: username,
     password: password,
-    partnerEventId: partnerEventId,
     timezone: timezone,
-    partnerMsgId: '67890',
-    sender: '840575992',
+    sender: 'Nhiquela Shop',
     msisdn: '1234567890',
     mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
     priority: 1,
     messageText: 'hello world',
-    workingDays: true,
+    workingDays: false,
     isFlash: false,
   };
 
-  
+
   // criar coneccao com o client
   const client = await soap.createClientAsync(wsdlUrl);
 
