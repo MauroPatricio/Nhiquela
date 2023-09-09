@@ -26,7 +26,7 @@
     "messagebird": "^4.0.1",
     "mongobd": "^0.0.1-security.0",
     "mongodb": "^6.0.0",
-    "mongoose": "7.0.0",
+    "mongoose": "^7.0.0",
     "multer": "^1.4.5-lts.1",
     "node-gyp": "^9.4.0",
     "semver": "7.x",
