@@ -296,9 +296,9 @@ export default function SignupScreen() {
   return (
     <Container className="small-conteiner">
       <Helmet>
-        <title>Nova Conta</title>
+        <title>Nova conta</title>
       </Helmet>
-      <h1 className="my-3">Nova Conta</h1>
+      <h1 className="my-3">Nova conta</h1>
       <Form onSubmit={submitHandler}>
       <Form.Group className="mb-3" controlId="name">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome</Form.Label>
@@ -411,7 +411,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerPhoneNumberAccountAlternative">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de Conta</Form.Label>
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta</Form.Label>
           <Form.Control
             type="text"
             value={accountNumber}
@@ -437,7 +437,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="numeroAccountAlternative">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de Conta alternativo (opcional)</Form.Label>
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta alternativo (opcional)</Form.Label>
           <Form.Control
             type="text"
             value={alternativeAccountNumber}
