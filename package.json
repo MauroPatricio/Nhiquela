@@ -1,14 +1,11 @@
 {
   "name": "ecommerce",
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
-  "engines": {
-    "node": "18.x",
-    "npm": ">=7"
-  },
   "scripts": {
-    "start": "node backend/index.js",
-    "build": "cd backend && npm install  && cd ../frontend && npm install && npm run build",
+    "start": "node backend/server.js",
+    "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,6 +17,5 @@
   "bugs": {
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
-  "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
-  "description": ""
+  "homepage": "https://github.com/MauroPatricio/ecommerce#readme"
 }
