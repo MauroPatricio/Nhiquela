@@ -120,16 +120,6 @@ export default function SellerScreen() {
                     <Card.Body    style={{
                           alignItems: 'center',
                         }}>
-                      {/* <img
-                        style={{
-                          width: '14rem',
-                          height: '14rem',
-                          alignItems: 'center',
-                          alignContent: 'center'
-                        }}
-                        src={sellerDetails.seller.logo}
-                        alt={sellerDetails.seller.name}
-                      ></img> */}
 
                       <p>
                         <b>{sellerDetails.seller.name}</b><br/>
@@ -139,9 +129,15 @@ export default function SellerScreen() {
                         rating={sellerDetails.seller.rating}
                         numReviews={sellerDetails.seller.numReviews}
                       ></Rating> */}
-                      <b>Endereço:</b> {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
+
+                     
+
+                    <b>Endereço:</b> {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
                    
                     <b>Especialidade:</b>  {sellerDetails.seller.description}</p>
+                     {userInfo && userInfo.isAdmin &&  <b>Numero(s) telefone para transferencia(s):</b>}{ userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.phoneNumberAccount} {' '}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativePhoneNumberAccount}<br/>
+                      
+                     {userInfo && userInfo.isAdmin && <b>Numero(s) conta para transferencia(s):</b>}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountType} {' '} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountNumber}{'  '} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountType} {' '} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountNumber}<br/>
 
                     </Card.Body>
                   </Card>

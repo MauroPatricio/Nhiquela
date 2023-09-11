@@ -63,7 +63,7 @@ export default function Footer() {
       <a href="#" onClick={handleYoutubeClick} className="text-white me-4">
         <FaYoutube></FaYoutube>
       </a>
-      <a href="#" onClick={handleTiktokClick} on className="text-white me-4">
+      <a href="#" onClick={handleTiktokClick} className="text-white me-4">
       <FaTiktok></FaTiktok>
         </a>
       <a href="#" onClick={handleInstagramClick} className="text-white me-4">

@@ -90,18 +90,28 @@ export default function ProfileScreen() {
   const [sellerName, setSellerName] = useState('');
   const [sellerDescription, setSellerDescription] = useState('');
   const [sellerLocation, setSellerLocation] = useState('');
-  const [sellerDocument, setSellerDocument] = useState('');
-  const [sellerDocumentNumber, setSellerDocumentNumber] = useState('');
-  const [sellerFrontImgDoc, setSellerFrontImgDoc] = useState('');
-  const [sellerBackImgDoc, setSellerBackImgDoc] = useState('');
-  const [sellerAddress, setSellerAddress] = useState('');
 
+  const [phoneNumberAccount, setPhoneNumberAccount] = useState('');
+  const [alternativePhoneNumberAccount, setAlternativePhoneNumberAccount] = useState('');
+  const [accountType, setAccountType] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [alternativeAccountType, setAlternativeAccountType] = useState('');
+  const [alternativeAccountNumber, setAlternativeAccountNumber] = useState('');
+
+  const [sellerAddress, setSellerAddress] = useState('');
   const [sellerLogo, setSellerLogo] = useState('');
   const [opentime, setOpentime] = useState('');
   const [closetime, setClosetime] = useState('');
 
+  const accountTypes = [
+    { _id: 1, name: 'BCI' },
+    { _id: 2, name: 'BIM' },
+    { _id: 3, name: 'MOZA' },
+    { _id: 4, name: 'ABSA' },
+  ];
 
-  const [{ loadingUpdate, loadingUpload,documentTypes, provinces }, dispatch] = useReducer(reducer, {
+
+  const [{ loadingUpdate, loadingUpload, provinces }, dispatch] = useReducer(reducer, {
     loadingUpdate: false,
   });
 
@@ -122,10 +132,14 @@ export default function ProfileScreen() {
           sellerName,
           sellerDescription,
           sellerLogo,
-          sellerDocument,
-          sellerDocumentNumber,
-          sellerFrontImgDoc,
-          sellerBackImgDoc,
+
+          phoneNumberAccount,
+          alternativePhoneNumberAccount,
+          accountType,
+          accountNumber,
+          alternativeAccountType,
+          alternativeAccountNumber,
+
           sellerLocation,
           sellerAddress,
           opentime,
@@ -158,10 +172,15 @@ export default function ProfileScreen() {
           setSellerName(data.seller.name);
           setSellerLogo(data.seller.logo);
           setSellerDescription(data.seller.description);
-          setSellerDocument(data.seller.docType._id);
-          setSellerDocumentNumber(data.seller.docNumber);
-          setSellerFrontImgDoc(data.seller.frontDocImg);
-          setSellerBackImgDoc(data.seller.backDocImg);
+          
+          setPhoneNumberAccount(data.seller.phoneNumberAccount);
+          setAlternativePhoneNumberAccount(data.seller.alternativePhoneNumberAccount);
+          setAccountType(data.seller.accountType);
+          setAccountNumber(data.seller.accountNumber);
+          setAlternativeAccountType(data.seller.alternativeAccountType);
+          setAlternativeAccountNumber(data.seller.alternativeAccountNumber);
+
+
           setSellerLocation(data.seller.province._id);
           setSellerAddress(data.seller.address);
           setOpentime(data.seller.opentime);
@@ -237,49 +256,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const uploadFrontHandler = async (e) => {
-    const file = e.target.files[0];
-    const bodyFormData = new FormData();
-    bodyFormData.append('file', file);
-    try {
-      ctxDispatch({ type: 'UPLOAD_REQUEST' });
-      const { data } = await axios.post('/api/upload', bodyFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      ctxDispatch({ type: 'UPLOAD_SUCCESS', payload: data });
-
-      setSellerFrontImgDoc(data.secure_url);
-
-      toast.success('Upload de Imagem com Sucesso.');
-    } catch (err) {
-      toast.error(getError(err));
-      ctxDispatch({ type: 'UPLOAD_FAIL', payload: getError(err) });
-    }
-  };
-
-  const uploadBackHandler = async (e) => {
-    const file = e.target.files[0];
-    const bodyFormData = new FormData();
-    bodyFormData.append('file', file);
-    try {
-      ctxDispatch({ type: 'UPLOAD_REQUEST' });
-      const { data } = await axios.post('/api/upload', bodyFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      ctxDispatch({ type: 'UPLOAD_SUCCESS', payload: data });
-
-      setSellerBackImgDoc(data.secure_url);
-
-      toast.success('Upload de Imagem com Sucesso.r');
-    } catch (err) {
-      toast.error(getError(err));
-      ctxDispatch({ type: 'UPLOAD_FAIL', payload: getError(err) });
-    }
-  };
 
   return (
     <div className="container small-container">
@@ -368,80 +344,93 @@ export default function ProfileScreen() {
           <>
           <br/>
           <div ><h4>Dados adicionais</h4>
+
+          <Form.Group className="mb-3" controlId="sellerPhoneAccount">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone para transferencias</Form.Label>
+          <Form.Control
+             type="text"
+             max={9}
+             maxLength={9}
+             pattern="[0-9]*"
+             title="Insira apenas números"
+             placeholder="8********"
+            value={phoneNumberAccount}
+            required
+            onChange={(e) => {
+              setPhoneNumberAccount(e.target.value);
+            }}
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="sellerPhoneAccountAlternativo">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone alternativo para transferencias (opcional)</Form.Label>
+          <Form.Control
+             type="text"
+             max={9}
+             maxLength={9}
+             pattern="[0-9]*"
+             title="Insira apenas números"
+             placeholder="8********"
+            value={alternativePhoneNumberAccount}
+            onChange={(e) => {
+              setAlternativePhoneNumberAccount(e.target.value);
+            }}
+          />
+        </Form.Group>
           
-          <Form.Group className="mb-3" controlId="sellerDocument">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de documento</Form.Label>
-            <Form.Select aria-label="Tipo de documento"
-          value={sellerDocument}
-          onChange={(e)=>setSellerDocument(e.target.value)} required>
+          <Form.Group className="mb-3" controlId="sellerAccountType">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta</Form.Label>
+            <Form.Select aria-label="Tipo de conta"
+          value={accountType}
+          onChange={(e)=>setAccountType(e.target.value)} required>
             <option value="">Seleccione</option>
-            {documentTypes && documentTypes.map(document => (
-            <option key={document._id} value={document._id}>
-              {document.name}
+            {accountTypes && accountTypes.map(account => (
+            <option key={account._id} value={account.name}>
+              {account.name}
             </option>
         ))}
           </Form.Select>
         </Form.Group>
 
-        <Form.Group className="mb-3" controlId="sellerDocNumber">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de documento</Form.Label>
+        <Form.Group className="mb-3" controlId="sellerAccountNumber">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta</Form.Label>
           <Form.Control
             type="text"
-            value={sellerDocumentNumber}
+            value={accountNumber}
             required
             onChange={(e) => {
-              setSellerDocumentNumber(e.target.value);
+              setAccountNumber(e.target.value);
             }}
           />
         </Form.Group>
 
-        <Form.Group className="mb-3" controlId="sellerFrontDoc">
-              <Form.Label>Imagem do documento frontal</Form.Label>
-              {sellerFrontImgDoc && (
-                <img
-                  style={{
-                    width: '6rem',
-                    height: '6rem',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}
-                  src={sellerFrontImgDoc}
-                  alt={name}
-                  className="card-img-top"
-                ></img>
-              )}
-            </Form.Group>
 
-            <Form.Group className="mb-3" controlId="imageFile">
-              <Form.Label>Upload documento frontal</Form.Label>
-              <Form.Control type="file" onChange={uploadFrontHandler} />
-              {loadingUpload && <LoadingBox></LoadingBox>}
-            </Form.Group>
+        <Form.Group className="mb-3" controlId="sellerAccountTypeAlternativo">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta alternativo (opcional)</Form.Label>
+            <Form.Select aria-label="Tipo de conta alternativo (opcional)"
+          value={alternativeAccountType}
+          onChange={(e)=>setAlternativeAccountType(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {accountTypes && accountTypes.map(account => (
+            <option key={account._id} value={account.name}>
+              {account.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
 
+        <Form.Group className="mb-3" controlId="sellerAccountNumberAlternativo">
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta alternativo (opcional)</Form.Label>
+          <Form.Control
+            type="text"
+            value={alternativeAccountNumber}
+            onChange={(e) => {
+              setAlternativeAccountNumber(e.target.value);
+            }}
+          />
+        </Form.Group>
 
-
-            <Form.Group className="mb-3" controlId="sellerFrontDoc">
-              <Form.Label>Imagem de trás do documento</Form.Label>
-              {sellerBackImgDoc && (
-                <img
-                  style={{
-                    width: '6rem',
-                    height: '6rem',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}
-                  src={sellerBackImgDoc}
-                  alt={name}
-                  className="card-img-top"
-                ></img>
-              )}
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="imageFile">
-              <Form.Label>Upload de trás do documento </Form.Label>
-              <Form.Control type="file" onChange={uploadBackHandler} />
-              {loadingUpload && <LoadingBox></LoadingBox>}
-            </Form.Group>
+      
           </div>
 
          

@@ -22,10 +22,6 @@ const modelSchema = new mongoose.Schema({
         closetime: {type: String},
         province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province',  default: null},
         address: {type: String},
-        docType: {type: mongoose.Schema.Types.ObjectId, ref: 'DocumentType',  default: null},
-        docNumber: {type: String},
-        frontDocImg: {type: String},
-        backDocImg: {type: String},
         
         phoneNumberAccount: {type: Number},
         alternativePhoneNumberAccount: {type: Number},

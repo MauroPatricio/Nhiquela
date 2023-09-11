@@ -71,7 +71,7 @@ userRouter.get(
 userRouter.get(
   '/:id',
   expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id).populate('seller.docType seller.province');
+    const user = await User.findById(req.params.id).populate('seller.province');
     if (user) {
       res.send(user);
     } else {
@@ -98,10 +98,6 @@ userRouter.put(
         user.seller.opentime= req.body.opentime ||user.seller.opentime;
         user.seller.closetime= req.body.closetime|| user.seller.closetime;
         user.seller.province=  req.body.sellerLocation|| user.seller.province;
-        user.seller.docType=req.body.sellerDocument || user.seller.docType;
-        user.seller.docNumber=req.body.sellerDocumentNumber || user.seller.docNumber;
-        user.seller.backDocImg=req.body.sellerBackImgDoc|| user.seller.backDocImg;
-        user.seller.frontDocImg=req.body.sellerFrontImgDoc || user.seller.frontDocImg;
         user.seller.address=req.body.sellerAddress || user.seller.address;
         user.seller.phoneNumberAccount=req.body.phoneNumberAccount || user.seller.phoneNumberAccount;
         user.seller.alternativePhoneNumberAccount=req.body.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount;
@@ -119,17 +115,13 @@ userRouter.put(
         user.seller.opentime="",
         user.seller.closetime= ""; 
         user.seller.province=null;
-        user.seller.docType=null;
-        user.seller.docNumber="";
-        user.seller.backDocImg="";
-        user.seller.frontDocImg="";
         user.seller.address="";
         user.seller.phoneNumberAccount="";    
         user.seller.alternativePhoneNumberAccount="";
         user.seller.accountType="";   
-         user.seller.accountNumber="";
-         user.seller.alternativeAccountType="";
-         user.seller.alternativeAccountNumber="";
+        user.seller.accountNumber="";
+        user.seller.alternativeAccountType="";
+        user.seller.alternativeAccountNumber="";
       }
 
       if (req.body.password) {
@@ -333,10 +325,6 @@ if (!userExist) {
           description: req.body.sellerDescription,
           opentime: req.body.opentime,
           closetime: req.body.closetime,
-          docType: req.body.sellerDocument,
-          docNumber: req.body.sellerDocumentNumber,
-          frontDocImg:req.body.sellerFrontImgDoc,
-          backDocImg:req.body.sellerBackImgDoc,
           province: req.body.sellerLocation,
           address:  req.body.sellerAddress,
           phoneNumberAccount:  req.body.phoneNumberAccount,
