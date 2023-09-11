@@ -9,6 +9,37 @@ import { Link } from 'react-router-dom';
 
 
 export default function Footer() {
+
+  const handleFacebookClick = (e) => {
+    e.preventDefault(); // Prevent the default navigation behavior
+
+    const facebookUrl = "https://web.facebook.com/profile.php?id=61551226670311";
+    const newTab = window.open(facebookUrl, '_blank');
+    newTab.focus(); 
+  };
+
+  const handleYoutubeClick = (e) => {
+    e.preventDefault(); // Prevent the default navigation behavior
+    const youtubeUrl = "https://www.youtube.com/channel/UCgP2pdDdw5F_y40-nh4Vw9A";
+    const newTab = window.open(youtubeUrl, '_blank');
+    newTab.focus(); 
+  };
+
+  const handleTiktokClick = (e) => {
+    e.preventDefault(); // Prevent the default navigation behavior
+    const tiktokUrl = "https://www.tiktok.com/@nhiquelashopofficial";
+    const newTab = window.open(tiktokUrl, '_blank');
+    newTab.focus(); 
+  };
+
+  const handleInstagramClick = (e) => {
+    e.preventDefault(); // Prevent the default navigation behavior
+    const instagramUrl = "https://www.instagram.com/nhiquelashop/";
+    const newTab = window.open(instagramUrl, '_blank');
+    newTab.focus(); 
+  };
+
+
   return (
     <>
 &nbsp;
@@ -25,17 +56,17 @@ export default function Footer() {
     </div>
 
     <div>
-      <a href="https://web.facebook.com/profile.php?id=61551226670311" className="text-white me-4">
+      <a href="#" onClick={handleFacebookClick} className="text-white me-4">
         <i className="fab fa-facebook-f"></i>
       <FaFacebookF></FaFacebookF>
         </a>
-      <a href="https://www.youtube.com/channel/UCgP2pdDdw5F_y40-nh4Vw9A" className="text-white me-4">
+      <a href="#" onClick={handleYoutubeClick} className="text-white me-4">
         <FaYoutube></FaYoutube>
       </a>
-      <a href="https://www.tiktok.com/@nhiquelashopofficial" className="text-white me-4">
+      <a href="#" onClick={handleTiktokClick} on className="text-white me-4">
       <FaTiktok></FaTiktok>
         </a>
-      <a href="https://www.instagram.com/nhiquelashop/" className="text-white me-4">
+      <a href="#" onClick={handleInstagramClick} className="text-white me-4">
       <FaInstagram></FaInstagram>
       </a>
     </div>

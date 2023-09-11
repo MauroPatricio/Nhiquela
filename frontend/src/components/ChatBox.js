@@ -51,9 +51,9 @@ export default function ChatBox(props) {
 
     const whatsappURL = 'https://wa.me/message/2HLEYV6VTD7BF1';
 
-    // Navigate to the WhatsApp URL
-    window.location.href = whatsappURL;
-    
+
+    // Open the URL in a new browser tab
+    window.open(whatsappURL, '_blank')    
     // if (!messageBody.trim()) {
     //   alert('Error. Please type message.');
     // } else {
