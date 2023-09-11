@@ -192,10 +192,10 @@ orderRouter.post(
    
       //  Para envio de mensagens
 
-//       let msg = 'Ola Seja bem vindo a Nhiquela Shop. O seu pagamento sera confirmado dentro de instantes. Por favor aguarde' 
-//       +`e muito obrigado pela confianca e preferencia. O codigo do seu pedido e ${newOrder.code}`; 
+      // let msg = 'Ola Seja bem vindo a Nhiquela Shop. O seu pagamento sera confirmado dentro de instantes. Por favor aguarde' 
+      +` e muito obrigado pela confiança e preferência. O codigo do seu pedido e ${newOrder.code}`; 
  
- // sendSMSToUSendIt();
+    //  sendSMSToUSendIt(msg);
 
     req.body.orderItems.map(async o=>{
 
@@ -349,6 +349,18 @@ orderRouter.put(
         update_time: req.body.update_time,
         email_address: req.body.email_address,
       };
+
+      //  Para envio de mensagens
+
+      // let msg =`Olá [Nome do Cliente],
+      // Gostaríamos de lhe informar que confirmamos o seu pagamento no valor de ${order.totalPrice} foi processado com sucesso em ${order.totalPrice}. Este pagamento refere-se ao pedido no: ${order.code}
+      // Aguarde pela confirmacao do fornecedor.
+      // Em caso de dúvida, por favor, entre em contato conosco imediatamente.
+      // Agradecemos por usar nossos serviços online.
+      // Atenciosamente, Nhiquela Shop.`;
+ 
+    //  sendSMSToUSendIt(msg);
+
       const updateOrder = await order.save();
       res.send({ message: `Pedido Pago`, order: updateOrder });
     } else {
@@ -393,6 +405,29 @@ orderRouter.put(
         email_address: req.body.email_address,
       };
       await order.save();
+
+       //  Para envio de mensagens
+
+      // let msg =`Ola [Nome do Destinatário],
+
+      //     Gostaríamos de confirmar que o seu pedido  foi entregue com sucesso em ${order.deliveredAt}. O pacote foi entregue no endereço indicado:
+
+      //     Endereço de Entrega:
+
+      //     ${order.deliveryAddress.referenceAddress}
+      //     ${order.deliveryAddress.address},
+      //     ${order.deliveryAddress.city}
+
+
+      //     Ficamos satisfeitos em saber que o seu pedido chegou conforme o planejado. Se você tiver algum problema ou dúvida relacionada à entrega, por favor, entre em contato conosco imediatamente.
+
+      //     Agradecemos por escolher a Nhiquela Shop e esperamos que fique satisfeito com sua compra. Se precisar de assistência adicional, não hesite em nos contatar.
+
+      //     Atenciosamente,
+
+      //     Nhiquela Shop.`;
+ 
+    //  sendSMSToUSendIt(msg);
       res.send({ message: `Pedido entregue com sucesso ` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -419,6 +454,22 @@ orderRouter.put(
       //   email_address: req.body.email_address,
       // };
       await order.save();
+
+        //  Para envio de mensagens
+
+            // let msg =`Ola [Nome do Cliente],
+
+            // Temos o prazer de informar que seu pedido número ${order.code} está a caminho do destino indicado.
+
+            // Certifique-se de estar disponível no endereço de entrega ou forneça instruções específicas para o entregador.
+
+            // Ficamos à disposição para qualquer dúvida ou assistência adicional. Agradecemos por escolher a Nhiquela Shop e esperamos que você tenha uma excelente experiência com o seu pedido.
+
+            // Atenciosamente,
+            // Nhiquela Shop
+            // .`;
+ 
+    //  sendSMSToUSendIt(msg);
       res.send({ message: `Pedido em trânsito` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -445,6 +496,25 @@ orderRouter.put(
       order.status = 'Cancelado';
       order.canceledReason = req.body.message;
 
+
+       //  Para envio de mensagens
+
+//             let msg =`Ola [Nome do Cliente],
+
+// Esperamos que esteja bem. Lamentamos informar que o seu pedido número ${order.code} foi cancelado. Pedimos desculpas por qualquer inconveniente que isso possa causar.
+
+// Motivo do Cancelamento podera verificar no site e pesquisando pelo codigo ${order.code}.
+
+// Qualquer pagamento já realizado será reembolsado para a sua conta original de pagamento. Por favor, permita 5 dias úteis para o processamento do reembolso.
+
+// Se você tiver alguma dúvida ou precisar de assistência adicional, não hesite em entrar em contato conosco. Estamos à disposição para ajudá-lo(a) de qualquer maneira possível.
+
+// Lamentamos profundamente qualquer inconveniente que isso possa causar e agradecemos pela sua compreensão.
+
+// Atenciosamente,
+// Nhiquela Shop.`;
+ 
+    //  sendSMSToUSendIt(msg);
       await order.save();
       res.send({ message: `Pedido Cancelado com Sucesso` });
     } else {
@@ -465,6 +535,25 @@ orderRouter.put(
 
       order.status = 'Aceite';
       await order.save();
+
+      //  Para envio de mensagens
+
+            let msg =`Ola [Nome do Cliente],
+
+            Temos o prazer de informar que o seu pedido número ${order.code} foi aceito pelo nosso fornecedor. Isso significa que o processo de atendimento do seu pedido está em andamento e em breve você receberá mais actualizacoes.
+            Detalhes do Pedido:
+            - Número do Pedido: ${order.code}
+            - Data do Pedido: ${order.createdAt}
+            - Valor Total: ${order.totalPrice}
+            
+            Agradecemos pela confiança em nosso serviço e estamos à disposição para qualquer dúvida ou assistência adicional. Fique à vontade para entrar em contato conosco a qualquer momento.
+            
+            Esperamos que tenha uma excelente experiência de compra conosco.
+            
+            Atenciosamente,
+            Nhiquela Shop`;
+ 
+    //  sendSMSToUSendIt(msg);
       res.send({ message: `Pedido Aceite com Sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -490,6 +579,26 @@ orderRouter.put(
       }
 
       await order.save();
+
+      // let msg =`Ola [Nome do Cliente],
+
+      // Temos o prazer de informar que o seu pedido número ${order.code} foi entregue com sucesso e está agora em suas mãos.
+      
+      // Detalhes do Pedido:
+      // - Número do Pedido: [Número do Pedido]
+      // - Data do Pedido: [Data do Pedido]
+      // - Valor Total: [Valor Total do Pedido]
+      
+      // Detalhes da Entrega:
+      // - Data e Horário da Entrega: [Horário da Entrega]
+      // - Endereço de Entrega: [Endereço de Entrega]
+      
+      // Agradecemos por escolher a Nhiquela Shop e esperamos que esteja satisfeito(a) com os produtos que recebeu. Se você tiver alguma dúvida ou precisar de assistência adicional relacionada ao seu pedido, não hesite em entrar em contato conosco. 
+      
+      // Atenciosamente,
+      // Nhiquela Shop`;
+
+//  sendSMSToUSendIt(msg);
       res.send({ message: `Pedido disponível para entrega` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });

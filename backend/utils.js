@@ -70,7 +70,7 @@ export const isDeliveryMan = (req,  next) => {
   }
 };
 
-export  const sendSMSToUSendIt= async () =>{
+export  const sendSMSToUSendIt= async (msgText) =>{
 
   const username = "mpatricio";
   const password = "Patrick2019#"
@@ -81,17 +81,47 @@ export  const sendSMSToUSendIt= async () =>{
 
 
   // Definição dos parametros do sendMessage para o pedido the SOAP
-  const sendMessageArgs = {
+  // paramentros de envio para apenas um contacto
+  const sendMessageOneContact = {
     username: username,
     password: password,
     timezone: timezone,
-    sender: 'Nhiquela Shop',
-    msisdn: '1234567890',
+    sender: 'Sales Info',
+    msisdn: '258840575992',
     mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
     priority: 1,
-    messageText: 'hello world',
+    messageText: msgText,
     workingDays: false,
     isFlash: false,
+  };
+
+  // Paramentros de envio para varios contactos
+
+  const sendMessageMultipleContacts = {
+    username: username,
+    password: password,
+    timezone: timezone,
+    smsList: [
+      
+     {
+      sender: 'Sales Info', 
+      msisdn: '258840575992',
+      mobileOperator: -1, 
+      priority: 1,
+      messageText: msgText,
+      workingDays: false,
+      isFlash: true
+    },
+      {     
+      sender: 'Sales Info',
+      msisdn: '258853600036',
+      mobileOperator: -1, 
+      priority: 1,
+      messageText: msgText,
+      workingDays: false,
+      isFlash: true
+    },
+    ],
   };
 
 
@@ -99,7 +129,7 @@ export  const sendSMSToUSendIt= async () =>{
   const client = await soap.createClientAsync(wsdlUrl);
 
   // Chamar a função sendMessage
-  client.SendMessage(sendMessageArgs, (err, result) => {
+  client.SendMessage(sendMessageMultipleContacts, (err, result) => {
     if (err) {
       console.error('Error calling sendmessage:', err);
     } else {

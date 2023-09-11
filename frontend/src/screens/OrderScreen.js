@@ -447,7 +447,7 @@ export default function OrderScreen() {
                         </Link>
                       </Col>
                       <Col md={2}>
-                        <span>{item.quantity}x</span>Qtd
+                        <span>{item.quantity}x</span>qtd
                       </Col>
                       <Col md={3}>
                         <span>{item.price} MT</span>
@@ -539,7 +539,7 @@ export default function OrderScreen() {
                      (
                       <MessageBox variant="">
                      Para confirmar o seu pedido efectue o pagamento do valor {' '} 
-                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>840000000</b>
+                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>853600036</b>
                       </MessageBox>
                     )}                
                        </Col>
@@ -550,7 +550,7 @@ export default function OrderScreen() {
                      (
                       <MessageBox variant="">
                                 Para confirmar o seu pedido efectue o pagamento do valor {' '} 
-                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>870000000</b>
+                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>879300036</b>
                       </MessageBox>
                     )}
                        </Col>
