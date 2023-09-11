@@ -72,3 +72,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 
 
  "proxy": "http://localhost:5000",
+
+
+Para resolver problemas de dependencias devo apagar sempre a pasta node_modules
+

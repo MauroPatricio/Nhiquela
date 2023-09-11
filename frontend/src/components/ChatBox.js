@@ -17,7 +17,6 @@ export default function ChatBox(props) {
   const [socket, setSocket] = useState(null);
   const uiMessagesRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [messageBody, setMessageBody] = useState('');
   const [messages, setMessages] = useState([
     { name: 'Admin', body: 'Ola, como podemos ajudar?.' },
   ]);
@@ -49,20 +48,26 @@ export default function ChatBox(props) {
   };
   const submitHandler = (e) => {
     e.preventDefault();
-    if (!messageBody.trim()) {
-      alert('Error. Please type message.');
-    } else {
-      setMessages([...messages, { body: messageBody, name: userInfo.name }]);
-      setMessageBody('');
-      setTimeout(() => {
-        socket.emit('onMessage', {
-          body: messageBody,
-          name: userInfo.name,
-          isAdmin: userInfo.isAdmin,
-          _id: userInfo._id,
-        });
-      }, 1000);
-    }
+
+    const whatsappURL = 'https://wa.me/message/2HLEYV6VTD7BF1';
+
+    // Navigate to the WhatsApp URL
+    window.location.href = whatsappURL;
+    
+    // if (!messageBody.trim()) {
+    //   alert('Error. Please type message.');
+    // } else {
+    //   setMessages([...messages, { body: messageBody, name: userInfo.name }]);
+    //   setMessageBody('');
+    //   setTimeout(() => {
+    //     socket.emit('onMessage', {
+    //       body: messageBody,
+    //       name: userInfo.name,
+    //       isAdmin: userInfo.isAdmin,
+    //       _id: userInfo._id,
+    //     });
+    //   }, 1000);
+    // }
   };
   const closeHandler = () => {
     setIsOpen(false);
@@ -127,7 +132,8 @@ export default function ChatBox(props) {
                   placeholder="Adicione uma mensagem"
                 /> */}
                 <Button className="customButtom" variant="light" type="submit">
-                  Suporte pelo nosso whatsapp <FaWhatsapp></FaWhatsapp>
+                  Suporte pelo nosso whatsapp    
+                    <FaWhatsapp></FaWhatsapp>
                 </Button>
               </form>
             </div>
