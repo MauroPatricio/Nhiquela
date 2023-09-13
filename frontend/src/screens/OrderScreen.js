@@ -494,7 +494,7 @@ export default function OrderScreen() {
                 </ListGroup.Item>}
                     <ListGroup.Item>
                       <Row>
-                        <Col>Serviços</Col>
+                        <Col>Outros serviços</Col>
                         <Col>{order.siteTax} MT</Col>
                       </Row>
                     </ListGroup.Item>

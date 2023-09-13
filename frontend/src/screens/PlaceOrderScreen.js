@@ -73,7 +73,7 @@ export default function PlaceOrderScreen() {
   );
 
   cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
-  cart.siteTax = round2(0.2 * ca);
+  cart.siteTax = round2(0.2 * cart.itemsPrice);
   cart.ivaTax = round2(0.16 * cart.itemsPrice);
 
 
@@ -228,7 +228,7 @@ export default function PlaceOrderScreen() {
                 </ListGroup.Item>}
                 <ListGroup.Item>
                   <Row>
-                    <Col>Serviços</Col>
+                    <Col>Outros serviços</Col>
                     <Col>{cart.siteTax} MT</Col>
                   </Row>
                 </ListGroup.Item>
