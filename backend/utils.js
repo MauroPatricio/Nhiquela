@@ -101,28 +101,24 @@ export  const sendSMSToUSendIt= async (msgText) =>{
     username: username,
     password: password,
     timezone: timezone,
-    smsList: [
-      
-     {
-      sender: 'Sales Info', 
-      msisdn: '258840575992',
-      mobileOperator: -1, 
-      priority: 1,
-      messageText: msgText,
-      workingDays: false,
-      isFlash: true
-    },
-      {     
-      sender: 'Sales Info',
-      msisdn: '258853600036',
-      mobileOperator: -1, 
-      priority: 1,
-      messageText: msgText,
-      workingDays: false,
-      isFlash: true
-    },
+    smsList: [{
+      		  sender: 'Sales Info',
+            msisdn: '258840575992',
+            priority: 1,
+            messageText: msgText,
+            workingDays: false,
+            isFlash: false
+        },
+        {
+          	sender: 'Sales Info',
+            msisdn: '258853600036',
+            priority: 1,
+            messageText: msgText,
+            workingDays: false,
+            isFlash: false
+        },
     ],
-  };
+  }
 
 
   // criar coneccao com o client
