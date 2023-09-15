@@ -450,10 +450,11 @@ export default function OrderScreen() {
                         <span>{item.quantity}x</span>qtd
                       </Col>
                       <Col md={3}>
-                        <span>{item.price} MT</span>
+                        <span>{item.onSale?item.discount:item.price} MT</span>
                       </Col>
                       <Col md={3}>
-                        <span>Total {item.quantity * item.price} MT</span>
+                        {console.log(item)}
+                        <span>Total {item.onSale?item.quantity * item.discount:item.quantity * item.price} MT</span>
                       </Col>
                     </Row>
                   </ListGroup.Item>

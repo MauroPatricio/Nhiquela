@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import Card from 'react-bootstrap/Card';
-import Button from 'react-bootstrap/Button';
 import { truncateString } from '../utils';
+import Badge from 'react-bootstrap/esm/Badge';
 
 function Product(props) {
   const { product, seller } = props;
@@ -10,15 +10,27 @@ function Product(props) {
     <>
       {product && (
         <Card className="product zoom-image" >
+                      {product && product.onSale &&  <span className="sale"><b>Em promoção</b></span>}
+                      {product && product.onSale &&  <span className="sale-percentage"><b>{product.onSalePercentage*100}%</b></span>}
+
           <Link to={`/product/${product.slug}`}>
            
           <Card.Img variant="top" style={{height: '190px'}} src={product.image} alt="Card image" />
           </Link>
+          {product.countInStock === 0 
+            && (
+              // <Button disabled variant="light">
+                
+              // </Button>
+              <b className='link-none'></b>
+          
+            ) 
+            }
           <div className="product-info small ">
             <Link className="link-none" to={`/product/${product.slug}`}>
               <b>{truncateString(product.name,30)}</b>
             </Link>
-            <br/>{product.countInStock} unidade(s)<br/>
+            <br/>{product.countInStock !== 0 ?product.countInStock +' '+'unidade(s)': <Badge bg='danger'>Sem stock</Badge>}<br/>
             <Link
               className="link-none"
               to={product.seller ? `/seller/${product.seller._id}` : ''}
@@ -31,35 +43,21 @@ function Product(props) {
               <br></br>
             </Link>
             <div className="price">
-              <b style={{color: '#a435f0'}}>{product.price} MT</b>
-              {/* {product.onSale ? (
+              
+              {product.onSale ? (
                 <>
                 &nbsp;
 
+                <span style={{color: '#a435f0'}}>{product.discount} MT</span>
                   <span>
-                    <small>{product.price}Mt</small>
+                    <small>{product.price} MT</small>
                   </span>
+                  
                 </>
-              ):<span>{product.price} Mt</span>} */}
+              ):<b style={{color: '#a435f0'}}>{product.price} MT</b>}
             </div>
 
-            {product.countInStock === 0 
-            ? (
-              <Button disabled variant="light">
-                Sem estoque
-              </Button>
-            ) 
-            : (
-              <>&nbsp;</>
-              // <Button
-              //   className="customButtom space"
-              //   onClick={() => addOnCartHandler(product)}
-              //   variant="light"
-              // >
-              //   <FontAwesomeIcon icon={faCartPlus} />
-              // </Button>
-            )
-            }
+           
           </div>
         </Card>
       )}

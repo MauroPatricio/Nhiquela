@@ -33,9 +33,10 @@ export default function CartScreen() {
 
 
     if (data.countInStock < quantity) {
-      window.alert(`Desculpe, o Produto não está disponível`);
+      window.alert(`Desculpe, o Produto já não se encontra disponível`);
       return;
     } 
+
     ctxDispatch({
       type: 'ADD_ITEM_ON_CART',
       payload: { ...item, quantity },
@@ -107,7 +108,7 @@ export default function CartScreen() {
                       </Button>
                     </Col>
 
-                    <Col md={3}>{item.quantity * item.price} MT</Col>
+                    <Col md={3}>{item.onSale? item.quantity * item.discount: item.quantity * item.price} MT</Col>
 
                     <Col md={1}>
                       <Button
@@ -132,8 +133,9 @@ export default function CartScreen() {
                     Subtotal (
                     {cartItems.reduce((pre, cur) => pre + cur.quantity, 0)}{' '}
                     items):{' '}
+
                     {cartItems.reduce(
-                      (pre, cur) => pre + cur.price * cur.quantity,
+                      (pre, cur) => cur.onSale?pre + cur.discount * cur.quantity:pre + cur.price * cur.quantity,
                       0
                     )}
                     MT

@@ -98,16 +98,6 @@ orderRouter.get(
           "product.isActive": true
         }
       },
-      
-
-
-    // Unwind the orderItems array
-
-
-    
-
-
-      
 
     // Match orders that have at least one order item
       { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
@@ -117,11 +107,14 @@ orderRouter.get(
       // Group by the order item properties and calculate the total quantity
       {
         $group: {
-          _id: "$orderItems.slug",
+          _id: "_id",
           slug: { $first: "$orderItems.slug" },
           name: { $first: "$orderItems.name" },
           image: { $first: "$orderItems.image" },
           price: { $first: "$orderItems.price" },
+          onSale: { $first: "$orderItems.onSale" },
+          onSalePercentage: { $first: "$orderItems.onSalePercentage" },
+          discount: { $first: "$orderItems.discount" },
 
           totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
         },
@@ -172,6 +165,7 @@ orderRouter.post(
   isAuth,
   expressAsyncHandler(async (req, res) => {
 
+
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,
       orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id})),
@@ -189,11 +183,12 @@ orderRouter.post(
       status: 'Pendente',
     });
 
+
    
       //  Para envio de mensagens
 
       // let msg = 'Ola Seja bem vindo a Nhiquela Shop. O seu pagamento sera confirmado dentro de instantes. Por favor aguarde' 
-      +` e muito obrigado pela confiança e preferência. O codigo do seu pedido e ${newOrder.code}`; 
+      // +` e muito obrigado pela confiança e preferência. O codigo do seu pedido e ${newOrder.code}`; 
  
     //  sendSMSToUSendIt(msg);
 
@@ -211,9 +206,8 @@ orderRouter.post(
 
     })
 
-
-
     const order = await newOrder.save();
+
 
   
 

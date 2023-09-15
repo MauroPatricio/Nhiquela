@@ -69,12 +69,12 @@ export default function PlaceOrderScreen() {
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100; // 1234.3213123 => 1234.32
 
   cart.itemsPrice = round2(
-    cart.cartItems.reduce((a, c) => a + c.quantity * c.price, 0)
+    cart.cartItems.reduce((a, c) => c.onSale?a + c.quantity * c.discount:a + c.quantity * c.price, 0)
   );
 
   cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
-  cart.siteTax = round2(0.2 * cart.itemsPrice);
-  cart.ivaTax = round2(0.16 * cart.itemsPrice);
+  cart.siteTax = round2(0.15 * cart.itemsPrice);
+  cart.ivaTax = round2(0.15 * cart.itemsPrice);
 
 
   cart.totalPrice =
@@ -189,7 +189,7 @@ export default function PlaceOrderScreen() {
                       </Col>
                       <Col mb={3}>
                         {' '}
-                        <span>{item.quantity * item.price} MT</span>
+                        <span>{item.onSale?item.quantity * item.discount:item.quantity * item.price} MT</span>
                       </Col>
                       
                     </Row>

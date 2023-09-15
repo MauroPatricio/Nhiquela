@@ -202,6 +202,8 @@ table {
 }
 @media (min-width: 992px){
 
+  
+
   .img-carousel{
     height: 320px;
     width: 100%;
@@ -357,10 +359,10 @@ table {
 .sale {
   position: absolute;
   top: 10px;
-  left: 1px;
+  left: 2px;
   background-color: #a435f0;
   color: #fff;
-  width: 80px;
+  width: 100px;
   height: 22px;
   border-radius: 4px;
   display: flex;
@@ -373,7 +375,7 @@ table {
 .sale-percentage {
   position: absolute;
   top: 10px;
-  right: 0px;
+  right: 2px;
   background-color: #a435f0;
   color: #fff;
   width: 40px;
@@ -387,12 +389,12 @@ table {
 }
 
 .price span:nth-child(1) {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .price span:nth-child(2) {
   position: relative;
-  font-size: 18px;
+  font-size: 14px;
   color: #9a9999;
 }
 .price span:nth-child(2) small::after {

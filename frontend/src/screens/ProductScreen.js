@@ -124,22 +124,25 @@ function ProductScreen() {
       toast.error('Por favor, Informe o tamanho que deseja');
       return;
     }
-    product.color=selectedColor
-    product.size=selectedSize
+  
 
     if (data.countInStock < quantity) {
-      window.alert(`Desculpe, o Produto não está disponível`);
+      toast.error('Desculpe, o Produto não está disponível');
+      // window.alert(`Desculpe, o Produto não está disponível`);
       return;
     }
 
+    product.color=selectedColor
+    product.size=selectedSize
+
     
     if(cart.cartItems.length > 0 && product.seller._id !== cart.cartItems[0].seller._id){
+
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
         payload: `Na carrinha, Só e permitido adicionar produtos pertecentes a um único fornecedor por vez, ${cart.cartItems[0].seller.seller.name} `,
       });
     }else{
-
       ctxDispatch({
         type: 'ADD_ITEM_ON_CART',
         payload: { ...product, quantity: quantity },
@@ -248,12 +251,36 @@ function ProductScreen() {
 
             <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
 
-            <ListGroup.Item>Preço: {product.price} MT</ListGroup.Item>
+            <ListGroup.Item>Preço:  
+              {product.onSale ? (
+                <>
+                <span>{product.discount} MT</span>
+                  
+                </>
+              ):<b style={{color: '#a435f0'}}>{product.price} MT</b>}</ListGroup.Item>
 
-  
-
+{/*   
+{product &&
             <ListGroup.Item>
                   <Form.Group className="mb-3" controlId="cor">
+                   <Form.Label>Cor:</Form.Label>
+                        <Form.Select aria-label="Cor"
+                      value={selectedColor}
+                      onChange={(e)=>setSelectedColor(e.target.value)} required>
+                        <option value="">Seleccione</option>
+                        {product && product.color && product.color.map(color => (
+                        <option key={color._id} value={color.name}>
+                          {color.name}
+                        </option>
+                    ))}
+                      </Form.Select>
+                  </Form.Group>
+                  </ListGroup.Item>} */}
+
+
+
+                  <ListGroup.Item>
+                  <Form.Group className="mb-3" controlId="Cor">
                    <Form.Label>Cor:</Form.Label>
                         <Form.Select aria-label="Cor"
                       value={selectedColor}
@@ -342,10 +369,17 @@ function ProductScreen() {
             <Card.Body>
               <ListGroup variant="flush">
                 <ListGroup.Item>
-                  <Row>
-                    <Col>Preço</Col>
-                    <Col>{product.price} MT</Col>
-                  </Row>
+                                <Row>
+                                                  <Col>
+                                                    {product && product.onSale && <Badge bg='success' >Em promoção</Badge> }
+                                                    </Col>
+                                                    <Col>
+                                                    {product && product.onSale && <Badge bg='success'><span>{product.onSalePercentage*100}% de desconto</span> </Badge>}
+                                                    </Col>
+                                </Row>
+                    </ListGroup.Item>
+
+                    <ListGroup.Item>
 
         
 
@@ -360,6 +394,29 @@ function ProductScreen() {
                     </Col>
                   </Row>
                 </ListGroup.Item>
+
+                <ListGroup.Item>
+
+
+                                  
+                                  <Row>
+                                
+                                    <Col>Preço</Col>
+
+                                    <Col>  {product.onSale ? (
+                                <>
+                                &nbsp;
+
+                                <span>{product.discount} MT</span>
+                                
+                                  
+                                </>
+                              ):<b>{product.price} MT</b>}
+
+                                  </Col>
+                                  </Row>
+                  </ListGroup.Item>
+                  
                 <p></p>
                 {product.countInStock > 0 && product.seller && (
                   <div className="d-grid">

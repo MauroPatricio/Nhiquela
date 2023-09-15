@@ -71,7 +71,7 @@ export default function AddressScreen() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="phoneNumber">
-            <Form.Label>Número de chamadas</Form.Label>
+            <Form.Label>Número para chamadas</Form.Label>
             <Form.Control
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
@@ -108,11 +108,11 @@ export default function AddressScreen() {
           </Form.Group>
           <Form.Group className="mb-3" controlId="reference">
             <Form.Label>
-              Mais informações do seu endereço
+              Informações adicionais do seu endereço
             </Form.Label>
           <Form.Control
                 as="textarea"
-                placeholder="Com detalhes para facilitar a sua localização ao entregador"
+                placeholder="Mais detalhes para facilitar a sua localização ao entregador"
                 value={referenceAddress}
                 onChange={(e) => setReferenceAddress(e.target.value)}
                 required

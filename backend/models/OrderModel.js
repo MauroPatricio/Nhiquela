@@ -4,13 +4,31 @@ const orderSchema = new mongoose.Schema(
   {
     orderItems: [
       {
-        slug: { type: String, require: true },
-        name: { type: String, require: true },
+        
         quantity: { type: String, require: true },
-        image: { type: String, require: true },
-        price: { type: String, require: true },
-        size: { type: String },
-        color: { type: String },
+        seller: {type: String},
+        image: {type: String},
+        images: [String],
+        brand: {type: String},
+        category: {type: String},
+        province: {type: String},
+        description: {type: String},
+        price: {type: Number},
+        priceWithComission: {type: Number},
+        countInStock: {type: Number},
+        rating: {type: Number},
+        numReviews: {type: Number},
+        onSale: { type: Boolean },
+        onSalePercentage: {type: Number},
+        isActive:  { type: Boolean},
+        discount: {type: Number},
+        color:  {type: String}, // vermelho, preto, castanho, azul
+        size:  {type: String}, // S, M, L, XL, XXL or 20,21,22,23,24, [...] 40,41,42,43
+        qualityType: {type: String}, // Original, Replica
+        conditionStatus: {type: String}, // Novo, usado
+        
+        
+
 
         product: {
           type: mongoose.Schema.Types.ObjectId,

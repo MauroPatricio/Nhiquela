@@ -33,7 +33,6 @@ function reducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM_ON_CART':
       // ADICIONANDO NO CARRINHO
-
       const newItem = action.payload;
       const stateCartItems = state.cart.cartItems;
       const existItem = stateCartItems.find((item) => item._id === newItem._id);
@@ -44,6 +43,7 @@ function reducer(state, action) {
         : [...state.cart.cartItems, newItem];
 
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
+
 
       return {
         ...state,

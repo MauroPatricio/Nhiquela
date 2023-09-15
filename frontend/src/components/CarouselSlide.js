@@ -56,9 +56,14 @@ export default function CarouselSlide() {
       {popularItems && popularItems.map((p) => (
        <Link className="link" to={`/product/${p.slug}`} key={p._id}>
         <div key={p._id}>
-
+          {console.log(p)}
           <img className='img-carousel' src={p.image} alt={p.name} />
+                      {p && p.onSale &&  <span className="sale"><b>Em promoção</b></span>}
+                      {p && p.onSale &&  <span className="sale-percentage"><b>{p.onSalePercentage*100}%</b></span>}
+           
           <p>{p.name}</p>
+         
+
         
         </div>
         </Link>
