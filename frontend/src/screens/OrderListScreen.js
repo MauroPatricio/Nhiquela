@@ -164,13 +164,12 @@ export default function OrderListScreen() {
                     )}
                   </td>
                   <td>
-                    {o.status === 'Finalizado' ? (
-                      <Badge bg="success" variant="success">
-                        {o.status}
-                      </Badge>
-                    ) : (
-                      <Badge>{o.status}</Badge>
-                    )}
+                  <Badge
+                      bg={o.status === 'Finalizado' ? 'success' : o.status === 'Cancelado' ? 'danger' : 'primary'}
+                      variant={o.status === 'Finalizado' ? 'success' : 'primary'}
+                    >
+                      {o.status}
+                    </Badge>
                   </td>
                   <td>
                     <Button

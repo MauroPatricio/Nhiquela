@@ -153,9 +153,15 @@ export default function OrderListBySellerScreen() {
                       </Badge> : <Badge bg="danger" variant="danger">
                       Não
                       </Badge>}</td>
-                      <td><Badge variant="success">
-                     { o.status}
-                      </Badge></td>
+                      <td>
+                      <Badge
+                      bg={o.status === 'Finalizado' ? 'success' : o.status === 'Cancelado' ? 'danger' : 'primary'}
+                      variant={o.status === 'Finalizado' ? 'success' : 'primary'}
+                    >
+                      {o.status}
+                    </Badge>
+                      
+                      </td>
                   <td>
                     
                     <Button

@@ -30,7 +30,7 @@ function Product(props) {
             <Link className="link-none" to={`/product/${product.slug}`}>
               <b>{truncateString(product.name,30)}</b>
             </Link>
-            <br/>{product.countInStock !== 0 ?product.countInStock +' '+'unidade(s)': <Badge bg='danger'>Sem stock</Badge>}<br/>
+            <br/>{product.countInStock !== 0 ?product.countInStock +` unidade(s)`: <Badge bg='danger'>Sem stock</Badge>}<br/>
             <Link
               className="link-none"
               to={product.seller ? `/seller/${product.seller._id}` : ''}

@@ -52,6 +52,7 @@ export default function CategoriesFilter() {
   const page = searchParams.get('page') || 1;
   const seller = searchParams.get('seller') || 'all';
 
+
   const [isMaximized, setIsMaximized] = useState(false);
   const [showComponent, setShowComponent] = useState(false);
   const [showHeader, setShowHeader] = useState(false);
@@ -151,14 +152,16 @@ export default function CategoriesFilter() {
     return `/sellers?sellers=sellers&page=${filterPage}`;
 
   }
+
+  // const getOnsale = (filter)=>{
+  //   const filterOnsale = filter.page || page;
+  //   return `/search?onsale=onsale&page=${filterOnsale}`;
+  // }
   
   const handleToggleMaximized = () => {
     setIsMaximized(!isMaximized);
     setShowComponent(!showComponent);
   };
-
-  // const handleClick = () => {
-  // }
 
 
   return (
@@ -180,6 +183,13 @@ export default function CategoriesFilter() {
             >
             <h6><FaUsers/> Todos Vendedores</h6>
             </Link>
+
+            {/* <Link
+              to={getOnsale({ onsale: true })}
+              className={onsale === true ? 'text-bold  link-none' : 'text-bold link-none'}
+            >
+            <h6><FaPercent/> Em promoção</h6>
+            </Link> */}
             
 
   </div>

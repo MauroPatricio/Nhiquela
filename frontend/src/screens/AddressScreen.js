@@ -74,6 +74,7 @@ export default function AddressScreen() {
             <Form.Label>Número para chamadas</Form.Label>
             <Form.Control
               value={phoneNumber}
+              placeholder="8********"
               onChange={(e) => setPhoneNumber(e.target.value)}
               required
             ></Form.Control>
@@ -83,13 +84,14 @@ export default function AddressScreen() {
           <Form.Group className="mb-3" controlId="alternativePhoneNumber">
             <Form.Label>Número alternativo (opcional)</Form.Label>
             <Form.Control
+              placeholder="8********"
               value={alternativePhoneNumber}
               onChange={(e) => setAlternativePhoneNumber(e.target.value)}
             ></Form.Control>
           </Form.Group>
  
           <Form.Group className="mb-3" controlId="fullcityname">
-          <Form.Label>Cidade</Form.Label>
+          <Form.Label>Cidade de entrega</Form.Label>
           <Form.Select aria-label="Cidade"
           value={city}
           onChange={(e)=>setCity(e.target.value)} required>
