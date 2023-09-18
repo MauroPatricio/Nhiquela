@@ -12,7 +12,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faList, fas } from '@fortawesome/free-solid-svg-icons';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
-import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt} from 'react-icons/fa';
+import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt, FaPercent} from 'react-icons/fa';
 
 
 const reducer = (state, action) => {
@@ -51,6 +51,7 @@ export default function CategoriesFilter() {
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
   const seller = searchParams.get('seller') || 'all';
+  const onsale = searchParams.get('onsale') || false;
 
 
   const [isMaximized, setIsMaximized] = useState(false);
@@ -153,10 +154,10 @@ export default function CategoriesFilter() {
 
   }
 
-  // const getOnsale = (filter)=>{
-  //   const filterOnsale = filter.page || page;
-  //   return `/search?onsale=onsale&page=${filterOnsale}`;
-  // }
+  const getOnsale = (filter)=>{
+    const filterPage = filter.page || page;
+    return `/onsale?onsale=onsale&page=${filterPage}`;
+  }
   
   const handleToggleMaximized = () => {
     setIsMaximized(!isMaximized);
@@ -176,24 +177,25 @@ export default function CategoriesFilter() {
         <Card.Body style={{marginLeft: '10px'}}>
 
 <div>
-
           <Link
               to={getSellers({ seller: 'all' })}
               className={seller === 'all' ? 'text-bold  link-none' : 'text-bold link-none'}
             >
             <h6><FaUsers/> Todos Vendedores</h6>
-            </Link>
-
-            {/* <Link
-              to={getOnsale({ onsale: true })}
-              className={onsale === true ? 'text-bold  link-none' : 'text-bold link-none'}
-            >
-            <h6><FaPercent/> Em promoção</h6>
-            </Link> */}
-            
+            </Link>     
 
   </div>
-<br/>
+          <div className='padding-sale'>
+                  <Link
+                      to={getOnsale({ onsale: true })}
+                      className={onsale === true ? 'text-bold  link-none' : 'text-bold link-none'}
+                    >
+                    <h6><FaPercent/> Em promoção</h6>
+                  </Link>
+          </div>
+         
+
+
 
             <h6><FaSortAlphaDownAlt/> Categorias:</h6>
           <div>
@@ -289,7 +291,7 @@ export default function CategoriesFilter() {
               <Rating caption={' & acima'} rating={0}></Rating>
             </Link>
           </div>
-
+         
   
            
         </Card.Body>

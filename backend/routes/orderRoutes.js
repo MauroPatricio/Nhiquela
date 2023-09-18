@@ -305,7 +305,7 @@ orderRouter.delete(
 
       await order.save();
 
-      res.send({ message: `Pedido Removido Com Sucesso` });
+      res.send({ message: `Pedido removido com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }

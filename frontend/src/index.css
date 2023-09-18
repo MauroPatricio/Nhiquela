@@ -236,6 +236,11 @@ table {
   }
 }
 
+.padding-sale{
+  padding-top: 2%;
+  padding-bottom: 2%;
+
+}
 
 @media (max-width: 375px),
   (max-width: 393px),

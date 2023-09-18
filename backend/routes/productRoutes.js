@@ -158,11 +158,6 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
 }));
 
 
-
-
-
-
-
 // Search
 const PAGE_SIZE = 10;
 productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
@@ -233,6 +228,80 @@ productRoutes.get('/search',expressAsyncHandler( async (req, res) => {
      ...provinceFilter,
      ...priceFilter,
      ...ratingFilter, isActive: true});
+    
+     res.send({products, countProducts, page, pages: Math.ceil(countProducts/pageSize)});
+}));
+
+
+productRoutes.get('/onsale',expressAsyncHandler( async (req, res) => {
+     const {query} = req;
+
+    const pageSize = query.pageSize || PAGE_SIZE;
+    const page = query.page || 1;
+    const category = query.category || '';
+    const price = query.price || '';
+    const rating = query.rating || '';
+    const order = query.order || '';
+    const province = query.province || '';
+    const searchQuery = query.query || '';
+
+    const queryFilter = searchQuery && searchQuery !== 'all'?{
+     name:{
+          $regex: searchQuery,
+          $options: 'i'
+     }
+    }:{};
+
+    const categoryFilter = category && category !== 'all'?{
+     category
+    }:{};
+
+    const provinceFilter = province && province !== 'all'?{
+     province
+    }:{};
+
+    const ratingFilter = rating && rating !== 'all'?{
+     rating:{
+          $gte: Number(rating),
+     }
+    }:{};
+
+    const priceFilter = price && price !== 'all'?{
+     price:{
+          $gte: Number(price.split('-')[0]),
+          $lte: Number(price.split('-')[1]),
+     }
+    }:{};
+
+
+    const sortOrder = order === 'featured'?
+    {featured: -1}: order === 'lowest'?
+    {price: 1}: order === 'highest'?
+    {price: -1}: order === 'toprated'?
+    {rating: -1}: order === 'newest'?
+    {createdAt: -1}:{_id:-1}
+
+
+
+    const products = await Product.find({
+     ...queryFilter,
+     ...categoryFilter,
+     ...priceFilter,
+     ...ratingFilter,
+     ...provinceFilter,
+     onSale: true,
+     isActive: true
+   } ).populate('seller category seller.province province conditionStatus qualityType size color').sort(sortOrder).skip(pageSize *(page -1)).limit(pageSize);
+
+
+//    const products = allProducts.filter((product)=>product.seller&&product.seller.isApproved===true);
+
+    const countProducts = await Product.countDocuments(
+     {...queryFilter,
+     ...categoryFilter,
+     ...provinceFilter,
+     ...priceFilter,
+     ...ratingFilter, onSale: true, isActive: true});
     
      res.send({products, countProducts, page, pages: Math.ceil(countProducts/pageSize)});
 }));
