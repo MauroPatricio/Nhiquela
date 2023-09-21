@@ -5,7 +5,7 @@ import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 import Product from '../models/ProductModel.js';
 import jwt from 'jsonwebtoken';
-
+import nodemailer from 'nodemailer'
 
 const userRouter = express.Router();
 
@@ -180,6 +180,19 @@ userRouter.put(
   })
 );
 
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'mauro.patricio1@gmail.com',      // Your email address
+    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+  },
+  tls:{
+    rejectUnauthorized: false
+  }
+});
+
 userRouter.post('/forget-password',
 expressAsyncHandler(async(req, res)=>{
   const user = await User.findOne({email: req.body.email});
@@ -192,58 +205,46 @@ expressAsyncHandler(async(req, res)=>{
 
     console.log(`${baseUrl()}/reset-password/${token}`)
 
-    // mailgun().messages().send({
-    //   from: '<me.mydomain.com>',
-    //   to: `${user.name} <${user.email}>`,
-    //   subject: `Resetar a senha`,
-    //   html:
-    //   `
-    //   <p>Por favor click no link abaixo para resetar a sua senha</p>
-    //   <a href="${baseUrl()}/reset-password/${token}">Resetar a senha</a>
-    //   `
-    // });
+// Composicao do texto
+const text = `<p>Por favor click no link abaixo para resetar a sua senha</p>
+   <a href="${baseUrl()}/reset-password/${token}">Resetar a senha</a>`
 
 
-//     const transporter = nodemailer.createTransport({
-//       host: 'smtp.ethereal.email',
-//       port: 587,
-//       auth: {
-//           user: 'catalina.hammes45@ethereal.email',
-//           pass: 'waGWW2dqs2Ndr2Ej22'
-//       }
-//   });
+// Email message configuration
+const mailOptions = {
+  from: 'mauro.patricio1@gmail.com',         
+  to: user.email,       
+  subject: 'Recuperação de senha – Nhiquela Shop',                
+  text: text,
+};
 
-//   // Define the email options
-// const mailOptions = {
-//   from: 'sender@example.com',
-//   to: user.email,
-//   subject: 'Hello from Node.js',
-//   text: 'This is a test email from Node.js'
-// };
-   
-// Send the email
-transporter.sendMail(mailOptions, (error, info) => {
+// Enviar email
+transporter.sendMail(mailOptions, function (error, info) {
   if (error) {
-    console.log('Error occurred:', error.message);
+    console.error('Error sending email:', error);
+    res.status(404).send({message: 'Email não enviado'})
+
   } else {
     console.log('Email sent:', info.response);
+    res.send({ message: 'Email enviado com Sucesso' });
   }
 });
+   
+
     
 
   }else{
-    res.status(404).send({message: 'Utilizador nao encontrado'})
+    res.status(404).send({message: 'Utilizador não encontrado'})
   }
 }));
 
 
-userRouter.post('reset-password', expressAsyncHandler(async (req, res)=>{
+userRouter.post('/reset-password', expressAsyncHandler(async (req, res)=>{
   jwt.verify(req.body.token, process.env.JWT_SECRET, async(err, decode)=>{
     if(err){
       res.status(401).send({message: 'Invalid Token'})
     }else{
       const user = await User.findOne({resetToken: req.body.token});
-
       if(user){
         if(req.body.password){
           user.password = bcrypt.hashSync(req.body.password, 8)
@@ -256,12 +257,6 @@ userRouter.post('reset-password', expressAsyncHandler(async (req, res)=>{
     }
   })
 }))
-
-
-
-
-
-
 
 
 userRouter.post(

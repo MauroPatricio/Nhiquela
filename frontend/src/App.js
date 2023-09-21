@@ -80,6 +80,7 @@ import AdicionalInfoHeader from './components/AdicionalInfoHeader';
 import ScrollTopButton from './components/ScrollTopButton';
 import SearchSellersScreen from './screens/SearchSellersScreen';
 import SearchOnSaleScreen from './screens/SearchOnSaleScreen';
+import EmailSentScreen from './screens/EmailSentScreen';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -526,11 +527,20 @@ function App() {
               />
 
             <Route
-                path="/reset-password"
+                path="/reset-password/:token"
                 element={
                     <ResetPasswordScreen />
                 }
               />
+
+<Route
+                path="/email-sent"
+                element={
+                    <EmailSentScreen />
+                }
+              />
+
+
 
 
 

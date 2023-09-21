@@ -10,7 +10,7 @@ import  Form  from 'react-bootstrap/Form';
 import { Store } from '../Store';
 
 
-export default function ForgetPasswordScreen() {
+export default function EmailSentScreen() {
     const navigate = useNavigate();
     const [email,setEmail] = useState('');
     
@@ -31,9 +31,7 @@ export default function ForgetPasswordScreen() {
         try{
             const {data} = await axios.post('/api/users/forget-password', {email});
             toast.success(data.message);
-
-            navigate('/email-sent')
-
+            
         }catch(err){
             toast.error(getError(err));
         }
@@ -41,14 +39,11 @@ export default function ForgetPasswordScreen() {
 
   return (
     <Container className="small-container">
-        <Helmet><title>Esqueci minha Senha</title></Helmet>
-        <h1 className='my-3'>Esqueci minha Senha</h1>
+        <Helmet><title>Email enviado </title></Helmet>
+        <h1 className='my-3'>Email enviado com Sucesso</h1>
 
         <Form onSubmit={submitHandler}>
-            <Form.Label>Email</Form.Label>
-            <Form.Control type="email" required onChange={(e)=>setEmail(e.target.value)}/>
-
-            <Button type="submit">Enviar</Button>
+            O email de recuperação da senha foi enviado com sucesso para o email por sí informado.
         </Form>
     </Container>
   )

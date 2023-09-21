@@ -12,7 +12,9 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faList, fas } from '@fortawesome/free-solid-svg-icons';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
-import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt, FaPercent} from 'react-icons/fa';
+import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt} from 'react-icons/fa';
+import { ImPriceTags} from 'react-icons/im';
+
 
 
 const reducer = (state, action) => {
@@ -190,7 +192,7 @@ export default function CategoriesFilter() {
                       to={getOnsale({ onsale: true })}
                       className={onsale === true ? 'text-bold  link-none' : 'text-bold link-none'}
                     >
-                    <h6><FaPercent/> Em promoção</h6>
+                    <h6><ImPriceTags/> Em promoção</h6>
                   </Link>
           </div>
          
