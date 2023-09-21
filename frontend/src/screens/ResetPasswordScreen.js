@@ -57,8 +57,9 @@ export default function ResetPasswordScreen() {
 
             <Form.Label>Confirmação da Senha</Form.Label>
             <Form.Control type="password" required onChange={(e)=>setConfirmPassword(e.target.value)}/>
+            <br/>
 
-            <Button type="submit">Actualizar Senha</Button>
+            <Button type="submit" className='customButtom'>Actualizar Senha</Button>
         </Form>
     </Container>
   )

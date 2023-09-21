@@ -41,14 +41,14 @@ export default function ForgetPasswordScreen() {
 
   return (
     <Container className="small-container">
-        <Helmet><title>Esqueci minha Senha</title></Helmet>
-        <h1 className='my-3'>Esqueci minha Senha</h1>
+        <Helmet><title>Esqueci minha senha</title></Helmet>
+        <h1 className='my-3'>Esqueci minha senha</h1>
 
         <Form onSubmit={submitHandler}>
             <Form.Label>Email</Form.Label>
             <Form.Control type="email" required onChange={(e)=>setEmail(e.target.value)}/>
-
-            <Button type="submit">Enviar</Button>
+<br/>
+            <Button type="submit" className='customButtom'>Enviar</Button>
         </Form>
     </Container>
   )

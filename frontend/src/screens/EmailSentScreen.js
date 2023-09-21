@@ -5,7 +5,6 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import { Helmet } from 'react-helmet-async';
 import  Container  from 'react-bootstrap/Container';
-import  Button  from 'react-bootstrap/Button';
 import  Form  from 'react-bootstrap/Form';
 import { Store } from '../Store';
 
@@ -40,7 +39,7 @@ export default function EmailSentScreen() {
   return (
     <Container className="small-container">
         <Helmet><title>Email enviado </title></Helmet>
-        <h1 className='my-3'>Email enviado com Sucesso</h1>
+        <h1 className='my-3'>Email enviado com sucesso</h1>
 
         <Form onSubmit={submitHandler}>
             O email de recuperação da senha foi enviado com sucesso para o email por sí informado.
