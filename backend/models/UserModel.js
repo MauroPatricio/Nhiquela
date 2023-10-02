@@ -31,14 +31,17 @@ const modelSchema = new mongoose.Schema({
 
         alternativeAccountType:  {type: String},
         alternativeAccountNumber: {type: Number},
-
+    },
+    deliveryman:{
+        photo: {type: String},
+        transport_type: {type: String},
+        transport_color: {type: String},
+        registration: {type: String},
     }
 },{
     timestamps: true
 });
 
-
 const User = mongoose.model('User', modelSchema);
-
 
 export default User;

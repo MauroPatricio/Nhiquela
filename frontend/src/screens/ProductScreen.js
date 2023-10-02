@@ -494,7 +494,7 @@ function ProductScreen() {
             Por favor{' '}
             <Link className="link" to={`/signin?redirect=/product/${product.slug}`}>
               {' '}
-              Faça Login
+              Faça login
             </Link>{' '}
             para deixar o seu comentário
           </MessageBox>
