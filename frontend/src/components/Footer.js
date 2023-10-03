@@ -123,7 +123,7 @@ export default function Footer() {
            <i className="fas fa-print mr-3"></i> +258 853600036<br/>
            </p>
          <p><i className="fas fa-print mr-3"></i> +258 879300036<br/></p>
-          <p><i className="fas fa-envelope mr-3"></i> nhiquelaservicosconsultoria@gmail.com<br/></p>
+          <p><i className="fas fa-envelope mr-3"></i>geral@nhiquelashop.co.mz<br/></p>
           <p><i className="fas fa-home mr-3"></i> Moçambique, Maputo Cidade</p>
 
         </div>
