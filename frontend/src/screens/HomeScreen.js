@@ -165,7 +165,7 @@ function HomeScreen() {
           </Col>
           <Col md={9}>
             <CarouselSlide></CarouselSlide>
-            <h3>Melhores Vendedores</h3>
+            <h3>Melhores vendedores</h3>
 
             {loadingTopUsers ? (
               <LoadingBox />
@@ -205,7 +205,7 @@ function HomeScreen() {
               </>
             )}
 
-            <h3>Produtos para Si </h3>
+            <h3>Produtos para si </h3>
             <div className="products">
               {loading ? (
                 <LoadingBox />

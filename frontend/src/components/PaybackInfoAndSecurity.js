@@ -23,7 +23,7 @@ export default function PaybackInfoAndSecurity() {
     </Col>
     <Col md={4}>
         <BsShieldFillCheck className="info-icon-home"/>
-       Pagamentos Seguros
+       Pagamentos seguros
       </Col>
   </Row>
     </>

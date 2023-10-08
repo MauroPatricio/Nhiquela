@@ -183,7 +183,7 @@ export default function CategoriesFilter() {
               to={getSellers({ seller: 'all' })}
               className={seller === 'all' ? 'text-bold  link-none' : 'text-bold link-none'}
             >
-            <h6><FaUsers/> Todos Vendedores</h6>
+            <h6><FaUsers/> Todos vendedores</h6>
             </Link>     
 
   </div>

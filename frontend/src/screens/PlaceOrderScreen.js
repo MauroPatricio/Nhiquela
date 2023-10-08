@@ -125,13 +125,13 @@ export default function PlaceOrderScreen() {
       </Helmet>
 
       <CheckoutSteps step1 step2 step3 step4 ></CheckoutSteps>
-      <h1>Confirmar Pedido</h1>
+      <h1>Confirmar pedido</h1>
       <Row>
         <Col md={8}>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Detalhes de Entrega</span>
+                <span>Detalhes de entrega</span>
               </Card.Title>
               <Card.Text>
                 <strong>Receptor do pedido:</strong> {cart.address.fullName}
@@ -150,7 +150,7 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <strong>Forma de Pagamento</strong>
+                <strong>Forma de pagamento</strong>
               </Card.Title>
               <Card.Text>{cart.paymentMethod}</Card.Text>
               <Link className="link" to="/payment">
@@ -161,7 +161,7 @@ export default function PlaceOrderScreen() {
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Produtos na Carrinha: {' '}
+                <span>Produtos na carrinha: {' '}
                 <Link className="link" to={`/seller/${cart.cartItems[0] && cart.cartItems[0].seller && cart.cartItems[0].seller.seller && cart.cartItems[0].seller._id}`}>
                 <b className='link'>{cart.cartItems[0] && cart.cartItems[0].seller && cart.cartItems[0].seller.seller && cart.cartItems[0].seller.seller.name}</b>
               </Link>
@@ -215,7 +215,7 @@ export default function PlaceOrderScreen() {
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor dos Produtos</Col>
+                    <Col>Valor dos produtos</Col>
                     <Col>{cart.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>

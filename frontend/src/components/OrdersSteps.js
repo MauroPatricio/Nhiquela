@@ -31,7 +31,7 @@ export default function OrderSteps(props) {
         </Col>
         <Col className={props.status==='Pronto' ? 'active' : ''}>
         <BsFillBagCheckFill  className={props.status==='Pronto' ? 'active icon-active' : ''}></BsFillBagCheckFill><br/>
-        Disponível Para Entrega<br/>
+        Disponível para entrega<br/>
        <br/>
         </Col>
         <Col className={props.status==='Em trânsito' ? 'active' : ''}>

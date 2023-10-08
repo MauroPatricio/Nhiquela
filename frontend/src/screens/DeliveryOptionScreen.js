@@ -36,16 +36,16 @@ export default function DeliveryOptionScreen() {
       <Container className="small-conteiner">
         <CheckoutSteps step1 step2 step3></CheckoutSteps>
         <Helmet>
-          <title>Opções de Entrega</title>
+          <title>Opções de entrega</title>
         </Helmet>
         <div className="container small-container">
-          <h1>Opções de Entrega</h1>
+          <h1>Opções de entrega</h1>
           <Form onSubmit={submitHandler}>
             <div className="mb-3">
               
                <Form.Check
                 type="radio"
-                label="Incluir Entrega [Max. 20 kg de Carga]"
+                label="Incluir entrega [Max. 20 kg de Carga]"
                 id="include"
                 value="includeDelivery"
                 checked={deliveryOption === 'includeDelivery'}
@@ -54,7 +54,7 @@ export default function DeliveryOptionScreen() {
 
               <Form.Check
                 type="radio"
-                label="Sem Entrega"
+                label="Sem entrega"
                 id="without"
                 value="withoutDelivery"
                 checked={deliveryOption === 'withoutDelivery'}

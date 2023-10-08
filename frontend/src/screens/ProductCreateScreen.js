@@ -351,9 +351,9 @@ export default function ProductCreateScreen() {
   return (
     <Container className="small-container">
       <Helmet>
-        <title>Criar Produto </title>
+        <title>Criar produto </title>
       </Helmet>
-      <h1> Criar Produto</h1>
+      <h1> Criar produto</h1>
 
       {loading ? (
         <LoadingBox></LoadingBox>
