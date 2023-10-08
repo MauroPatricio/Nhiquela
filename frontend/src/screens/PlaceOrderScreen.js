@@ -112,7 +112,7 @@ export default function PlaceOrderScreen() {
       ctxDispatch({ type: 'CART_CLEAR' });
       dispatch({ type: 'CREATE_SUCCESS' });
       navigate(`/order/${data.order._id}`);
-      toast.success('Pedido Efectuado com sucesso');
+      toast.success('Pedido efectuado com sucesso');
     } catch (err) {
       toast.error(getError(err));
     }
@@ -258,7 +258,7 @@ export default function PlaceOrderScreen() {
                       disabled={cart.cartItems.length === 0}
                     >
                       {' '}
-                      Fazer Pedido
+                      Fazer pedido
                     </Button>
                   </div>
                 </ListGroup.Item>

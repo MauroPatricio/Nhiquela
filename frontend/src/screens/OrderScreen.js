@@ -359,7 +359,7 @@ export default function OrderScreen() {
         <title>Pedido № {order.code}</title>
       </Helmet>
 
-      <h1>Acompanhar Pedido</h1>
+      <h1>Acompanhar pedido</h1>
       <br />
       {order.status && <OrderSteps {...order}></OrderSteps>}
 
@@ -368,11 +368,11 @@ export default function OrderScreen() {
         <Col md={8}>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Detalhes</Card.Title>
+              <Card.Title>Detalhes de entrega</Card.Title>
               <Card.Text>
                 <strong>Receptor do pedido:</strong> {order.deliveryAddress.fullName}
                 <br />
-                <strong>Número(s):</strong>
+                <strong>Número(s) de chamadas:{' '}</strong>
                 {order.deliveryAddress.phoneNumber}, {order.deliveryAddress.alternativePhoneNumber}
 
                 <br />
@@ -383,22 +383,22 @@ export default function OrderScreen() {
               </Card.Text>
               {order.isDelivered ? (
                 <MessageBox variant="success">
-                  Entregue dia {formatedDate(order.deliveredAt)}
+                  Entregue no dia {formatedDate(order.deliveredAt)}
                 </MessageBox>
               ) : (
-                <MessageBox variant="danger">Não Entregue</MessageBox>
+                <MessageBox variant="danger">Não entregue</MessageBox>
               )}
             </Card.Body>
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Pagamento</Card.Title>
+              <Card.Title>Forma de Pagamento</Card.Title>
               <Card.Text>
                 <strong>Método:</strong> {order.paymentMethod}
               </Card.Text>
               {order.isPaid ? (
                 <MessageBox variant="success">
-                  Pago dia {formatedDate(order.paidAt)}
+                  Pago no dia {formatedDate(order.paidAt)}
                 </MessageBox>
               ) : (
                 <>
@@ -419,14 +419,14 @@ export default function OrderScreen() {
                       </MessageBox>
                     )} */}
 
-                  <MessageBox variant="danger">Não Pago</MessageBox>
+                  <MessageBox variant="danger">Não pago</MessageBox>
                 </>
               )}
             </Card.Body>
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Produtos na Carrinha:
+              <Card.Title>Produtos na carrinha:
               {' '}
                 <Link className="link" to={`/seller/${order.orderItems[0] && order.orderItems[0].seller && order.orderItems[0].seller.seller && order.orderItems[0].seller._id}`}>
                 <b className='link'>{order.orderItems[0] && order.orderItems[0].seller && order.orderItems[0].seller.seller && order.orderItems[0].seller.seller.name}</b>
@@ -447,7 +447,7 @@ export default function OrderScreen() {
                         </Link>
                       </Col>
                       <Col md={2}>
-                        <span>{item.quantity}x</span>qtd
+                        <span>{item.quantity}x</span>Qtd
                       </Col>
                       <Col md={3}>
                         <span>{item.onSale?item.discount:item.price} MT</span>
@@ -465,11 +465,11 @@ export default function OrderScreen() {
         <Col md={4}>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Resumo do Pedido</Card.Title>
+              <Card.Title>Resumo do pedido</Card.Title>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
-                    <Col>Estado do Pedido</Col>
+                    <Col>Estado do pedido</Col>
                     <Col>
                       <Badge bg="success" variant="success">
                         {order.status}
@@ -479,7 +479,7 @@ export default function OrderScreen() {
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor dos Produtos</Col>
+                    <Col>Valor dos produtos</Col>
                     <Col>{order.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
@@ -523,7 +523,7 @@ export default function OrderScreen() {
           {order.status !== 'Cancelado' && !order.isPaid &&
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Pagamento do Pedido <FaMoneyBillAlt/></Card.Title>
+              <Card.Title>Pagamento do pedido <FaMoneyBillAlt/></Card.Title>
               <ListGroup variant="flush">
 
               {/* <ListGroup.Item>
@@ -538,8 +538,8 @@ export default function OrderScreen() {
                     {order.paymentMethod === 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                     Para confirmar o seu pedido efectue o pagamento do valor {' '} 
-                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>853600036</b>
+                     Para confirmar seu pedido efectue o pagamento de {' '} 
+                                <b>{order.totalPrice} MT</b> no número de conta/telefone <b>853600036</b>
                       </MessageBox>
                     )}                
                        </Col>
@@ -549,8 +549,8 @@ export default function OrderScreen() {
                        {order.paymentMethod !== 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                                Para confirmar o seu pedido efectue o pagamento do valor {' '} 
-                                <b>{order.totalPrice} MT</b> para o  número de conta/telefone <b>879300036</b>
+                                Para confirmar seu pedido efectue o pagamento de {' '} 
+                                <b>{order.totalPrice} MT</b> no  número de conta/telefone <b>879300036</b>
                       </MessageBox>
                     )}
                        </Col>
@@ -566,7 +566,7 @@ export default function OrderScreen() {
 {order.status === 'Cancelado' &&
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Motivo de Cancelamento</Card.Title>
+              <Card.Title>Motivo de cancelamento</Card.Title>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
@@ -598,7 +598,7 @@ export default function OrderScreen() {
                     type="button"
                     onClick={handleShow}
                   >
-                    Cancelar Pedido
+                    Cancelar pedido
                   </Button>
                 </div>
               </ListGroup.Item>

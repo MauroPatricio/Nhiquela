@@ -171,13 +171,13 @@ function App() {
                       </LinkContainer>
                       {userInfo && !userInfo.isDeliveryMan && (
                         <LinkContainer to="/orderHistory">
-                          <NavDropdown.Item>Meus Pedidos</NavDropdown.Item>
+                          <NavDropdown.Item>Meus pedidos</NavDropdown.Item>
                         </LinkContainer>
                       )}
                       {userInfo && userInfo.isDeliveryMan && (
                         <LinkContainer to="/delivery/orderlist">
                           <NavDropdown.Item>
-                            Pedidos por Entregar
+                            Pedidos por entregar
                           </NavDropdown.Item>
                         </LinkContainer>
                       )}
@@ -222,7 +222,7 @@ function App() {
                         <NavDropdown.Item>Provincias</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/documentTypeList">
-                        <NavDropdown.Item>Tipos de Documentos</NavDropdown.Item>
+                        <NavDropdown.Item>Tipos de documentos</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/categoryList">
                         <NavDropdown.Item>Categorias</NavDropdown.Item>

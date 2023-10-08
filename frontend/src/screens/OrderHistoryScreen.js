@@ -96,8 +96,8 @@ export default function OrderHistoryScreen() {
 
   return (
     <div>
-      <Helmet>Histórico de Pedidos</Helmet>
-      <h1>Histórico de Pedidos</h1>
+      <Helmet>Histórico de pedidos</Helmet>
+      <h1>Histórico de pedidos</h1>
       {loading ? (
         <LoadingBox></LoadingBox>
       ) : error ? (
@@ -114,7 +114,7 @@ export default function OrderHistoryScreen() {
         <table className="table">
           <thead>
             <tr>
-            <th>Código do Pedido</th>
+            <th>Código do pedido</th>
 
               <th>Data</th>
               <th>Total</th>

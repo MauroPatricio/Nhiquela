@@ -45,7 +45,7 @@ export default function DeliveryOptionScreen() {
               
                <Form.Check
                 type="radio"
-                label="Incluir entrega [Max. 20 kg de Carga]"
+                label="Incluir entrega [Max. 20 kg de carga]"
                 id="include"
                 value="includeDelivery"
                 checked={deliveryOption === 'includeDelivery'}

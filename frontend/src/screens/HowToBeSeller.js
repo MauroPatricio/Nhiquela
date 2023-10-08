@@ -6,7 +6,7 @@ export default function HowToBeSeller() {
          <img 
               className='howitworks'
               src="images/sellerhowtoregister.png" 
-              alt="Como comprar na site" ></img>    
+              alt="Como comprar no site" ></img>    
         
       </div>
       )

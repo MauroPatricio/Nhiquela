@@ -96,8 +96,8 @@ export default function AddressScreen() {
           value={city}
           onChange={(e)=>setCity(e.target.value)} required>
             <option value="">Seleccione</option>
-            <option value="Maputo Cidade">Maputo Cidade</option>
-            <option value="Maputo Provincia">Maputo Província</option>
+            <option value="Maputo Cidade">Maputo cidade</option>
+            <option value="Maputo Provincia">Maputo província</option>
           </Form.Select>
           </Form.Group>
           <Form.Group className="mb-3" controlId="address">

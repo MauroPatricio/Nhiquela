@@ -126,7 +126,7 @@ export default function OrderListScreen() {
           <table className="table">
             <thead>
               <tr>
-                <th>Código do Pedido</th>
+                <th>Código do pedido</th>
                 <th>Data</th>
                 <th>Total</th>
                 <th>Pago</th>
