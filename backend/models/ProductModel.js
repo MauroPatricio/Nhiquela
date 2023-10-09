@@ -28,6 +28,8 @@ const productSchema = new mongoose.Schema({
     onSale: { type: Boolean, default: false },
     onSalePercentage: {type: Number, required: false},
     isActive:  { type: Boolean, default: true },
+    isGuaranteed:  { type: Boolean, default: false },
+    GuaranteedPeriod:  { type: String },
     discount: {type: Number, required: false},
     color: [ {type: mongoose.Schema.Types.ObjectId, ref: 'Color'}], // vermelho, preto, castanho, azul
     size: [ {type: mongoose.Schema.Types.ObjectId, ref: 'Size'}], // S, M, L, XL, XXL or 20,21,22,23,24, [...] 40,41,42,43

@@ -37,6 +37,7 @@ export default function CarouselSlide() {
       try {
         dispatch({ type: 'ITEMS_REQUEST' });
         const { data } = await axios.get('/api/orders/popularitems');
+        console.log(data)
         dispatch({ type: 'ITEMS_SUCCESS', payload: data });
       } catch (err) {
         dispatch({ type: 'ITEMS_FAIL', payload: getError(err) });

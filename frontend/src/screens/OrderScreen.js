@@ -392,7 +392,7 @@ export default function OrderScreen() {
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Forma de Pagamento</Card.Title>
+              <Card.Title>Forma de pagamento</Card.Title>
               <Card.Text>
                 <strong>Método:</strong> {order.paymentMethod}
               </Card.Text>
@@ -402,28 +402,28 @@ export default function OrderScreen() {
                 </MessageBox>
               ) : (
                 <>
-                  {/* {order.status !== 'Cancelado' &&
-                    order.paymentMethod === 'Mpesa' &&
-                    !order.isPaid && (
-                      <MessageBox variant="">
-                        Para confirmar o seu pedido efectue o pagamento do valor
-                        "Total" no número 840000000
-                      </MessageBox>
-                    )}
-                  {order.status !== 'Cancelado' &&
-                    order.paymentMethod !== 'Mpesa' &&
-                    !order.isPaid && (
-                      <MessageBox variant="">
-                        Para confirmar o seu pedido efectue o pagamento do valor
-                        "Total" no número 870000000
-                      </MessageBox>
-                    )} */}
-
                   <MessageBox variant="danger">Não pago</MessageBox>
                 </>
               )}
             </Card.Body>
           </Card>
+
+          {order.addressPrice!==0 && (
+            <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Detalhes do entregador</Card.Title>
+              <Card.Text>
+              <strong>Nome:</strong>{' '}Joao Pedro<br/>
+              <strong>Telefone:</strong> {' '}840000000<br/>
+              <strong>Transporte:</strong>{' '}Motorizada<br/>
+              <strong>Matricula:</strong>{' '}AGT330MC<br/>
+              <strong>Cor:</strong>{' '}Vermelha<br/>
+              </Card.Text>
+             
+            </Card.Body>
+          </Card>
+          )}
+
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>Produtos na carrinha:

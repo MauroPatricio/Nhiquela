@@ -26,10 +26,7 @@ const orderSchema = new mongoose.Schema(
         size:  {type: String}, // S, M, L, XL, XXL or 20,21,22,23,24, [...] 40,41,42,43
         qualityType: {type: String}, // Original, Replica
         conditionStatus: {type: String}, // Novo, usado
-        
-        
-
-
+    
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Product',
@@ -44,6 +41,14 @@ const orderSchema = new mongoose.Schema(
       referenceAddress: { type: String, require: true },
       phoneNumber: { type: String },
       alternativePhoneNumber: { type: String }
+    },
+    deliveryman: {
+      photo: { type: String },
+      name: { type: String},
+      phoneNumber: {type: Number},
+      transport_type: {type: String},
+      transport_color: {type: String},
+      transport_registration: {type: String},
     },
     paymentMethod: { type: String, require: true },
     paymentResult: {

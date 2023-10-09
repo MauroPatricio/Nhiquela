@@ -34,9 +34,11 @@ const modelSchema = new mongoose.Schema({
     },
     deliveryman:{
         photo: {type: String},
+        name: { type: String},
+        phoneNumber: {type: Number},
         transport_type: {type: String},
         transport_color: {type: String},
-        registration: {type: String},
+        transport_registration: {type: String},
     }
 },{
     timestamps: true

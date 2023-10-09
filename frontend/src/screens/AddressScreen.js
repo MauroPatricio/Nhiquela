@@ -54,11 +54,11 @@ export default function AddressScreen() {
     <div>
       <Container className="small-container">
       <Helmet>
-        <title>Endereço de Entrega</title>
+        <title>Endereço de entrega</title>
       </Helmet>
       <CheckoutSteps step1 ></CheckoutSteps>
       <div className="container small-container">
-        <h1 className="my-3">Detalhes do Endereço de Entrega</h1>
+        <h1 className="my-3">Detalhes do endereço de entrega</h1>
         <br></br>
         <Form onSubmit={submitHandler}>
           <Form.Group className="mb-3" controlId="fullName">

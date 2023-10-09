@@ -81,52 +81,48 @@ orderRouter.get(
     const pageSize = 10    
     
     const orders = await Order.aggregate([
- 
-      { $unwind: "$orderItems" },
-
-      {
-        $lookup: {
-          from: "products",
-          localField:"orderItems.product",
-          foreignField: "_id",
-          as: "product"
-        }
   
-      },
-      {
-        $match: {
-          "product.isActive": true
-        }
-      },
-
-    // Match orders that have at least one order item
-      { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
-
-
+        { $unwind: "$orderItems" },
+  
+        {
+          $lookup: {
+            from: "products",
+            localField:"orderItems.product",
+            foreignField: "_id",
+            as: "product"
+          }
     
-      // Group by the order item properties and calculate the total quantity
-      {
-        $group: {
-          _id: "_id",
-          slug: { $first: "$orderItems.slug" },
-          name: { $first: "$orderItems.name" },
-          image: { $first: "$orderItems.image" },
-          price: { $first: "$orderItems.price" },
-          onSale: { $first: "$orderItems.onSale" },
-          onSalePercentage: { $first: "$orderItems.onSalePercentage" },
-          discount: { $first: "$orderItems.discount" },
-
-          totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
         },
-      },
+        {
+          $match: {
+            "product.isActive": true
+          }
+        },
+        
+      // Match orders that have at least one order item
+        { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
 
-    
-    
-      // Sort in descending order based on the total quantity
-      { $sort: { totalQuantity: -1 } },
-    
-      // Optionally, limit the results to a specific number of items
-      { $limit: 10 }, // Adjust the number as per your requirements
+        // Group by the order item properties and calculate the total quantity
+        {
+          $group: {
+            _id: "$orderItems.slug",
+            slug: { $first: "$orderItems.slug" },
+            name: { $first: "$orderItems.name" },
+            image: { $first: "$orderItems.image" },
+            price: { $first: "$orderItems.price" },
+            onSale: { $first: "$orderItems.onSale" },
+            onSalePercentage: { $first: "$orderItems.onSalePercentage" },
+            discount: { $first: "$orderItems.discount" },
+  
+            totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
+          },
+        },
+        
+        // Sort in descending order based on the total quantity
+        { $sort: { totalQuantity: -1 } },
+      
+        // Optionally, limit the results to a specific number of items
+        { $limit: 10 }, 
     ]);
     res.send({orders});
   })
