@@ -1,7 +1,7 @@
 import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendSMSToUSendIt } from '../utils.js';
+import { isAuth, isAdmin, sendSMSToUSendIt, sendEmailOrderStatus } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 
@@ -186,7 +186,9 @@ orderRouter.post(
 
       let msg = `Ola, seja bem vindo(a) a Nhiquela Shop. Dentro de instantes confirmaremos o seu pagamento. Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}`; 
  
-    //  sendSMSToUSendIt(req, msg);
+     sendSMSToUSendIt(req, msg);
+
+     sendEmailOrderStatus(req,msg, newOrder);
 
     req.body.orderItems.map(async o=>{
 
@@ -347,7 +349,7 @@ orderRouter.put(
       //  Para envio de mensagens
       let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.price} foi efectuado com sucesso.`;
  
-       sendSMSToUSendIt(msg);
+      //  sendSMSToUSendIt(req, msg);
       res.send({ message: `Pedido Pago`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -403,7 +405,7 @@ orderRouter.put(
 
       // let msg =`Ola, o pedido XXXX foi entregue com sucesso. Agradecemos por escolher a Nhiquela Shop.`;
  
-      //  sendSMSToUSendIt(msg);
+      //  sendSMSToUSendIt(req,msg);
  
       res.send({ message: `Pedido entregue com sucesso ` });
     } else {
@@ -451,7 +453,7 @@ orderRouter.put(
 
         // let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido XXXXX esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr: 840000000`;
  
-        //  sendSMSToUSendIt(msg);
+        //  sendSMSToUSendIt(req,msg);
       res.send({ message: `Pedido em trânsito` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -485,7 +487,7 @@ orderRouter.put(
 
       // let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr XXXXX foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
 
-      //  sendSMSToUSendIt(msg);      
+      //  sendSMSToUSendIt(req,msg);      
       res.send({ message: `Pedido cancelado com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -508,9 +510,9 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-            // let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr XXXXX foi aceite com sucesso pelo fornecedor.`;
+    let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr XXXXX foi aceite com sucesso pelo fornecedor.`;
  
-    //  sendSMSToUSendIt(msg);
+    //  sendSMSToUSendIt(req, msg);
       res.send({ message: `Pedido aceite com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -539,7 +541,7 @@ orderRouter.put(
 
       // let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr xxxxx ja esta pronto e disponivel para entrega.`;
 
-//  sendSMSToUSendIt(msg);
+//  sendSMSToUSendIt(req, msg);
       res.send({ message: `Pedido disponível para entrega` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });

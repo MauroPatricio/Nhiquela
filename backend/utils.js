@@ -1,10 +1,26 @@
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import soap from 'soap';
+
 
 
 
 export const baseUrl = ()=> process.env.BASE_URL ? process.env.BASE_URL : process.env.NODE_ENV !== 'production'?
 'http://localhost:3000': 'https://nhiquelashop.co.mz';
+
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'mauro.patricio1@gmail.com',      // Your email address
+    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+  },
+  tls:{
+    rejectUnauthorized: false
+  }
+});
 
 export const generateToken = (user) => {
   return jwt.sign(
@@ -79,37 +95,38 @@ export  const sendSMSToUSendIt= async (req, msgText) =>{
   const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
 
 
+  const clientPhoneNumber = req.user.phoneNumber;
+  const concatNumber = '258'+clientPhoneNumber;
 
   // Definição dos parametros do sendMessage para o pedido the SOAP
   // paramentros de envio para apenas um contacto
-  // const sendMessageOneContact = {
-  //   username: username,
-  //   password: password,
-  //   timezone: timezone,
-  //   sender: 'Sales Info',
-  //   msisdn: '258840575992',
-  //   mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
-  //   priority: 1,
-  //   messageText: msgText,
-  //   workingDays: false,
-  //   isFlash: false,
-  // };
+  const sendMessageOneContact = {
+    username: username,
+    password: password,
+    timezone: timezone,
+    sender: 'Sales Info',
+    msisdn: concatNumber,
+    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
+    priority: 1,
+    messageText: msgText,
+    workingDays: false,
+    isFlash: false,
+  };
 
-  //   // criar coneccao com o client
-  //   const client = await soap.createClientAsync(wsdlUrl);
+    // criar coneccao com o client
+    const client = await soap.createClientAsync(wsdlUrl);
 
-  //   // Chamar a função sendMessage
-  //   client.SendMessage(sendMessageOneContact, (err, result) => {
-  //     if (err) {
-  //       console.error('Error calling sendmessage:', err);
-  //     } else {
-  //       console.log('sendmessage Result:', result);
-  //     }
-  //   });
+    // Chamar a função sendMessage
+    client.SendMessage(sendMessageOneContact, (err, result) => {
+      if (err) {
+        console.error('Error calling sendmessage:', err);
+      } else {
+        console.log('sendmessage Result:', result);
+      }
+    });
 
   
-  // const clientPhoneNumber = req.user.phoneNumber;
-  // const concatNumber = '258'+clientPhoneNumber;
+
 
   
   // // Paramentros de envio para varios contactos
@@ -151,5 +168,41 @@ export  const sendSMSToUSendIt= async (req, msgText) =>{
   //     console.log('sendmessage Result:', result);
   //   }
   // });
+}
+
+
+
+export const sendEmailOrderStatus = async (req, msg, order)=>{
+
+  const email = req.user.email
+
+
+
+  if(email){
+
+
+// Email message configuration
+const mailOptions = {
+  from: 'mauro.patricio1@gmail.com',         
+  to: email,       
+  subject: `Acompanhar Pedido - Nhiquela Shop - pedido ${order.code}`,                
+  text: msg,
+};
+
+// Enviar email
+transporter.sendMail(mailOptions, function (error, info) {
+  if (error) {
+    console.error('Error sending email:', error);
+    res.status(404).send({message: 'Email não enviado'})
+
+  } else {
+    console.log('Email sent:', info.response);
+    res.send({ message: 'Email enviado com Sucesso' });
+  }
+});
+   
+  }else{
+    res.status(404).send({message: 'Utilizador não encontrado'})
+  }
 }
 
