@@ -124,6 +124,16 @@ userRouter.put(
         user.seller.alternativeAccountNumber="";
       }
 
+
+      if(user.isDeliveryMan){
+        user.deliveryman.photo = req.body.deliveryManPhoto;
+        user.deliveryman.name = req.body.deliveryManName;
+        user.deliveryman.phoneNumber = req.body.deliveryManPhoneNumber;
+        user.deliveryman.transport_type = req.body.deliveryMantransportType;
+        user.deliveryman.transport_registration = req.body.deliveryMantransportRegistration;
+        user.deliveryman.transport_color = req.body.deliveryMantransportColor;
+      }
+
       if (req.body.password) {
         user.password = bcrypt.hashSync(req.body.password, 8);
       }

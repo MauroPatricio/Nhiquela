@@ -95,7 +95,7 @@ export default function Footer() {
         </div>
    
         <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
-          <h6 className="text-uppercase fw-bold">Outros links</h6>
+          <h6 className="text-uppercase fw-bold">Links inportantes</h6>
           <hr
               className="mb-4 mt-0 d-inline-block mx-auto"
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
@@ -108,7 +108,7 @@ export default function Footer() {
             <Link to="/howtobeseller" className="text-white link-none">Como tornar-se vendedor</Link>
           </p>
           <p>
-            <Link to="/terms" className="text-white link-none">Termos de uso e condições</Link>
+            <Link to="/terms" className="text-white link-none">Termos e condições</Link>
           </p>
         </div>
 

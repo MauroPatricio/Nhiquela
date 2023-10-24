@@ -304,7 +304,7 @@ export default function OrderScreen() {
       dispatch({ type: 'CONFIRM_IN_TRANSIT_REQUEST' });
       const { data } = await axios.put(
         `/api/orders/${order._id}/intransit`,
-        {},
+        {userInfo},
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
       dispatch({ type: 'CONFIRM_IN_TRANSIT_SUCCESS', payload: data });
@@ -408,16 +408,16 @@ export default function OrderScreen() {
             </Card.Body>
           </Card>
 
-          {order.addressPrice!==0 && (
+          {order.addressPrice!==0 && order.deliveryman && (
             <Card className="mb-3">
             <Card.Body>
               <Card.Title>Detalhes do entregador</Card.Title>
               <Card.Text>
-              <strong>Nome:</strong>{' '}Joao Pedro<br/>
-              <strong>Telefone:</strong> {' '}840000000<br/>
-              <strong>Transporte:</strong>{' '}Motorizada<br/>
-              <strong>Matricula:</strong>{' '}AGT330MC<br/>
-              <strong>Cor:</strong>{' '}Vermelha<br/>
+              <strong>Nome:</strong>{' '}{ order.deliveryman.name}<br/>
+              <strong>Telefone:</strong> {' '}{ order.deliveryman.phoneNumber}<br/>
+              <strong>Transporte:</strong>{' '}{ order.deliveryman.transport_type}<br/>
+              <strong>Matrícula:</strong>{' '}{ order.deliveryman.transport_registration}<br/>
+              <strong>Cor:</strong>{' '}{ order.deliveryman.transport_color}<br/>
               </Card.Text>
              
             </Card.Body>

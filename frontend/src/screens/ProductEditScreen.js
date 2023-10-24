@@ -396,9 +396,9 @@ export default function ProductEditScreen() {
   return (
     <Container className="small-container">
       <Helmet>
-        <title>Editar Produto {productId}</title>
+        <title>Editar produto {productId}</title>
       </Helmet>
-      <h1> Editar Produto {productId}</h1>
+      <h1> Editar produto {productId}</h1>
 
       {loading ? (
         <LoadingBox></LoadingBox>

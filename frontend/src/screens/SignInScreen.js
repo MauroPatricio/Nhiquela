@@ -107,8 +107,8 @@ export default function SignInScreen() {
 
  
 
-      <Modal show={isModalOpen}  onRequestClose={closeModal}
-        contentLabel="Modal"
+      <Modal show={isModalOpen}  onClick={closeModal}
+       
         >
         <Modal.Header closeButton onClick={closeModal}>
           <Modal.Title>Erro de Acesso</Modal.Title>

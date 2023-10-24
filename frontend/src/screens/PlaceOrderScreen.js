@@ -269,8 +269,8 @@ export default function PlaceOrderScreen() {
         </Col>
       </Row>
 
-      <Modal show={isModalOpen}  onRequestClose={closeModal}
-        contentLabel="Modal"
+      <Modal show={isModalOpen}  onClick={closeModal}
+       
         >
         <Modal.Header closeButton onClick={closeModal}>
           <Modal.Title>Login</Modal.Title>

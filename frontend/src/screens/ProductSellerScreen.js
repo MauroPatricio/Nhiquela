@@ -99,7 +99,7 @@ export default function ProductSellerScreen() {
     ,[page, userInfo, successDelete, createdSucess]);
 
     const createHandler = async () =>{
-            if(window.confirm('Tem a certeza que deseja Criar um novo Produto?')){
+            if(window.confirm('Tem a certeza que deseja criar um novo produto?')){
                 navigate('/product/create')
             }
     }
@@ -120,19 +120,19 @@ export default function ProductSellerScreen() {
   return (
     <div>
       
-            <Col><h1>Seus Produtos</h1></Col>
+            <Col><h1>Meus Produtos</h1></Col>
         {loading?(<LoadingBox></LoadingBox>): error?(<MessageBox variant="danger">{error}</MessageBox>):(<>
             <Col className='col text-end'>
                 <div>
                     <Button className='customButtom' variant='light' type="button" onClick={createHandler}>
-                        Criar Produto
+                        Criar produto
                     </Button>
                 </div>
             </Col>
 
 
-            {loadingCreate&&<LoadingBox></LoadingBox>}
-            {loadingDelete &&<LoadingBox></LoadingBox>}
+            {loadingCreate && <LoadingBox></LoadingBox>}
+            {loadingDelete && <LoadingBox></LoadingBox>}
 
         <table className='table'>
             <thead>

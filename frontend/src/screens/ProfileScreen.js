@@ -12,9 +12,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import { faClock } from '@fortawesome/free-solid-svg-icons';
 import { faTextSlash } from '@fortawesome/free-solid-svg-icons';
+import { faCar } from '@fortawesome/free-solid-svg-icons';
 
 import { faClockFour } from '@fortawesome/free-solid-svg-icons';
 import { faListNumeric } from '@fortawesome/free-solid-svg-icons';
+import { faDriversLicense } from '@fortawesome/free-solid-svg-icons';
 
 
 const reducer = (state, action) => {
@@ -67,6 +69,17 @@ const reducer = (state, action) => {
     case 'UPLOAD_FAIL':
       return { ...state, errorUpload: action.payload, loadingUpload: false };
 
+
+      case 'COLORS_REQUEST':
+        return { ...state, loadColor: true };
+  
+      case 'COLORS_SUCCESS':
+        return { ...state, loadColor: false, colors: action.payload.colors };
+  
+      case 'COLORS_FAIL':
+        return { ...state, error: action.payload, loadColor: false };
+
+
     default:
       return state;
   }
@@ -103,6 +116,16 @@ export default function ProfileScreen() {
   const [opentime, setOpentime] = useState('');
   const [closetime, setClosetime] = useState('');
 
+  // detalhes do entregador
+  const [isDeliveryMan, setIsDeliveryMan] = useState(false);
+  const [deliveryManPhoto, setDeliveryManPhoto] = useState('');
+  const [deliveryManName, setDeliveryManName] = useState('');
+  const [deliveryManPhoneNumber, setDeliveryManPhoneNumber] = useState('');
+  const [deliveryMantransportType, setDeliveryMantransportType] = useState('');
+  const [deliveryMantransportRegistration, setDeliveryMantransportRegistration] = useState('');
+  const [deliveryMantransportColor, setDeliveryMantransportColor] = useState('');
+
+
   const accountTypes = [
     { _id: 1, name: 'BCI' },
     { _id: 2, name: 'BIM' },
@@ -110,10 +133,33 @@ export default function ProfileScreen() {
     { _id: 4, name: 'ABSA' },
   ];
 
+  const transportTypes = [
+    { _id: 1, name: 'Txopela' },
+    { _id: 2, name: 'Carro' },
+    { _id: 3, name: 'Motorizada' },
+    { _id: 4, name: 'Camião' },
+  ];
 
-  const [{ loadingUpdate, loadingUpload, provinces }, dispatch] = useReducer(reducer, {
-    loadingUpdate: false,
+
+
+  const [{ loadingUpdate, loadingUpload, provinces, loadColor, colors }, dispatch] = useReducer(reducer, {
+    loadingUpdate: false, 
+    loadColor: false,
   });
+
+  useEffect(() => {
+    dispatch({ type: 'COLORS_REQUEST' });
+
+    const fetchData = async () => {
+      try {
+        const { data } = await axios.get('/api/colors');
+        dispatch({ type: 'COLORS_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'COLORS_FAIL', payload: getError(err) });
+      }
+    };
+    fetchData();
+  }, [colors]);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -143,7 +189,16 @@ export default function ProfileScreen() {
           sellerLocation,
           sellerAddress,
           opentime,
-          closetime
+          closetime,
+
+          //deliveryMan details
+          isDeliveryMan,
+          deliveryManPhoto,
+          deliveryManName,
+          deliveryManPhoneNumber,
+          deliveryMantransportType,
+          deliveryMantransportRegistration,
+          deliveryMantransportColor
         },
         { headers: { authorization: `Bearer ${userInfo.token}` } }
       );
@@ -166,6 +221,9 @@ export default function ProfileScreen() {
         const { data } = await axios.get(`api/users/${userInfo._id}`);
         
         dispatch({ type: 'FETCH_USER_SUCCESS' , payload: data});
+
+
+       setIsDeliveryMan(data.isDeliveryMan);
     
         if (userInfo.isSeller && data) {
           setIsSeller(true);
@@ -189,7 +247,11 @@ export default function ProfileScreen() {
     
         }
         if (data.isDeliveryMan) {
-          //   setDeliveryName(userInfo.deliveryMan.name)
+          setDeliveryManPhoneNumber(data.phoneNumber);
+          setDeliveryManName(data.name);
+          setDeliveryMantransportType(data.deliveryman!==undefined?data.deliveryman.transport_type:'');
+          setDeliveryMantransportColor(data.deliveryman!==undefined? data.deliveryman.transport_color:'');
+          setDeliveryMantransportRegistration(data.deliveryman!==undefined?data.deliveryman.transport_registration:'');
         }
   
       }catch(e){
@@ -296,6 +358,58 @@ export default function ProfileScreen() {
           ></Form.Control>
         </Form.Group>
 
+
+        {isDeliveryMan && (
+          <div>
+
+        <Form.Group className="mb-3" controlId="transportType">
+          <FontAwesomeIcon icon={faCar} /> <Form.Label>Tipo de veículo</Form.Label>
+            <Form.Select aria-label="Tipo de veículo"
+          value={deliveryMantransportType}
+          onChange={(e)=>setDeliveryMantransportType(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {transportTypes && transportTypes.map(transport => (
+            <option key={transport._id} value={transport.name}>
+              {transport.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="colorTransport">
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Cor do veículo</Form.Label>
+            <Form.Select aria-label="Cor do veículo"
+          value={deliveryMantransportColor}
+          onChange={(e)=>setDeliveryMantransportColor(e.target.value)} required>
+            <option value="">Seleccione</option>
+            {colors && colors.map(color => (
+            <option key={color._id} value={color.name}>
+              {color.name}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="transportPlate">
+              <FontAwesomeIcon icon={faDriversLicense} /> <Form.Label>Matrícula</Form.Label>
+              <Form.Control
+                type="text"
+                value={deliveryMantransportRegistration}
+                required
+                onChange={(e) => {
+                  setDeliveryMantransportRegistration(e.target.value);
+                }}
+              />
+        </Form.Group>
+
+ 
+          </div>
+          
+          )}
+
+
+
+
         <Form.Check
           className="mb-3"
           type="checkbox"
@@ -304,6 +418,8 @@ export default function ProfileScreen() {
           checked={isUpdatePassword}
           onChange={(e) => setIsUpdatePassword(e.target.checked)}
         ></Form.Check>
+
+
 
         {isUpdatePassword && (
           <>
@@ -331,6 +447,8 @@ export default function ProfileScreen() {
           </>
         )}
 
+
+
         <Form.Check
           className="mb-3"
           type="checkbox"
@@ -339,6 +457,9 @@ export default function ProfileScreen() {
           checked={isSeller}
           onChange={(e) => setIsSeller(e.target.checked)}
         ></Form.Check>
+
+
+    
 
 {isSeller && (
           <>
@@ -484,9 +605,6 @@ export default function ProfileScreen() {
             }}
           />
         </Form.Group>
-
-
-       
 
         <Form.Group className="mb-3" controlId="sellerLocation">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Provincia</Form.Label>

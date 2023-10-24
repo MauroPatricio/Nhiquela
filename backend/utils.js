@@ -70,7 +70,7 @@ export const isDeliveryMan = (req,  next) => {
   }
 };
 
-export  const sendSMSToUSendIt= async (msgText) =>{
+export  const sendSMSToUSendIt= async (req, msgText) =>{
 
   const username = "mpatricio";
   const password = "Patrick2019#"
@@ -82,55 +82,74 @@ export  const sendSMSToUSendIt= async (msgText) =>{
 
   // Definição dos parametros do sendMessage para o pedido the SOAP
   // paramentros de envio para apenas um contacto
-  const sendMessageOneContact = {
-    username: username,
-    password: password,
-    timezone: timezone,
-    sender: 'Sales Info',
-    msisdn: '258840575992',
-    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
-    priority: 1,
-    messageText: msgText,
-    workingDays: false,
-    isFlash: false,
-  };
+  // const sendMessageOneContact = {
+  //   username: username,
+  //   password: password,
+  //   timezone: timezone,
+  //   sender: 'Sales Info',
+  //   msisdn: '258840575992',
+  //   mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
+  //   priority: 1,
+  //   messageText: msgText,
+  //   workingDays: false,
+  //   isFlash: false,
+  // };
 
-  // Paramentros de envio para varios contactos
+  //   // criar coneccao com o client
+  //   const client = await soap.createClientAsync(wsdlUrl);
 
-  const sendMessageMultipleContacts = {
-    username: username,
-    password: password,
-    timezone: timezone,
-    smsList: [{
-      		  sender: 'Sales Info',
-            msisdn: '258840575992',
-            priority: 1,
-            messageText: msgText,
-            workingDays: false,
-            isFlash: false
-        },
-        {
-          	sender: 'Sales Info',
-            msisdn: '258853600036',
-            priority: 1,
-            messageText: msgText,
-            workingDays: false,
-            isFlash: false
-        },
-    ],
-  }
+  //   // Chamar a função sendMessage
+  //   client.SendMessage(sendMessageOneContact, (err, result) => {
+  //     if (err) {
+  //       console.error('Error calling sendmessage:', err);
+  //     } else {
+  //       console.log('sendmessage Result:', result);
+  //     }
+  //   });
+
+  
+  // const clientPhoneNumber = req.user.phoneNumber;
+  // const concatNumber = '258'+clientPhoneNumber;
+
+  
+  // // Paramentros de envio para varios contactos
+  // const sendMessageMultipleContacts = {
+  //   username: username,
+  //   password: password,
+  //   timezone: timezone,
+  //   smsList: 
+  //       {
+  //         Sms: [{
+  //     		  Sender: 'Sales Info',
+  //           Msisdn: '258840575992',
+  //           Priority: 99,
+  //           MessageText: msgText,
+  //           WorkingDays: false,
+  //           IsFlash: false
+  //       },
+  //       {
+  //         	Sender: 'Sales Info',
+  //           Msisdn: '258879300036',
+  //           Priority: 99,
+  //           MessageText: msgText,
+  //           WorkingDays: false,
+  //           IsFlash: false
+  //           }
+  //       ],
+  //     }
+  //   }
 
 
-  // criar coneccao com o client
-  const client = await soap.createClientAsync(wsdlUrl);
+  // // criar coneccao com o client
+  // const client = await soap.createClientAsync(wsdlUrl);
 
-  // Chamar a função sendMessage
-  client.SendMessage(sendMessageMultipleContacts, (err, result) => {
-    if (err) {
-      console.error('Error calling sendmessage:', err);
-    } else {
-      console.log('sendmessage Result:', result);
-    }
-  });
+  // // Chamar a função sendMessage
+  // client.SendMessages(sendMessageMultipleContacts, (err, result) => {
+  //   if (err) {
+  //     console.error('Error calling sendmessage:', err);
+  //   } else {
+  //     console.log('sendmessage Result:', result);
+  //   }
+  // });
 }
 

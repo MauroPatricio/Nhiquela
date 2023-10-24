@@ -37,7 +37,6 @@ export default function CarouselSlide() {
       try {
         dispatch({ type: 'ITEMS_REQUEST' });
         const { data } = await axios.get('/api/orders/popularitems');
-        console.log(data)
         dispatch({ type: 'ITEMS_SUCCESS', payload: data });
       } catch (err) {
         dispatch({ type: 'ITEMS_FAIL', payload: getError(err) });
@@ -62,9 +61,6 @@ export default function CarouselSlide() {
                       {p && p.onSale &&  <span className="sale-percentage"><b>{p.onSalePercentage*100}%</b></span>}
            
           <p>{p.name}</p>
-         
-
-        
         </div>
         </Link>
       ))}

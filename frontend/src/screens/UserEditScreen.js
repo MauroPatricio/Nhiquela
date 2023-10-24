@@ -11,7 +11,7 @@ import LoadingBox from '../components/LoadingBox';
 import MessageBox from '../components/MessageBox';
 import Button from 'react-bootstrap/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTextSlash, faClock, faClockFour, faListNumeric } from '@fortawesome/free-solid-svg-icons';
+import { faTextSlash, faClock, faClockFour } from '@fortawesome/free-solid-svg-icons';
 
 const reducer =(state, action) =>{
     switch(action.type){
@@ -57,7 +57,7 @@ const reducer =(state, action) =>{
             }
 }
 export default function UserEditScreen() {
-    const [{loading, error, loadingUpdate,documentTypes, provinces, loadingProvinces}, dispatch]= useReducer(reducer, {loading: true, error: ''})
+    const [{loading, error, loadingUpdate, provinces, loadingProvinces}, dispatch]= useReducer(reducer, {loading: true, error: ''})
   
   const {state} = useContext(Store);
   const {userInfo} = state;
@@ -81,10 +81,6 @@ export default function UserEditScreen() {
   const [sellerName, setSellerName] = useState('');
   const [sellerDescription, setSellerDescription] = useState('');
   const [sellerLocation, setSellerLocation] = useState('');
-  const [sellerDocument, setSellerDocument] = useState('');
-  const [sellerDocumentNumber, setSellerDocumentNumber] = useState('');
-  const [sellerFrontImgDoc, setSellerFrontImgDoc] = useState('');
-  const [sellerBackImgDoc, setSellerBackImgDoc] = useState('');
   const [sellerAddress, setSellerAddress] = useState('');
 
   const [sellerLogo, setSellerLogo] = useState('');
@@ -111,10 +107,6 @@ export default function UserEditScreen() {
                 setSellerName(data.seller.name);
                 setSellerLogo(data.seller.logo);
                 setSellerDescription(data.seller.description);
-                setSellerDocument(data.seller.docType._id);
-                setSellerDocumentNumber(data.seller.docNumber);
-                setSellerFrontImgDoc(data.seller.frontDocImg);
-                setSellerBackImgDoc(data.seller.backDocImg);
                 setSellerLocation(data.seller.province._id);
                 setSellerAddress(data.seller.address);
                 setOpentime(data.seller.opentime);
@@ -227,73 +219,7 @@ export default function UserEditScreen() {
 {isSeller && (
           <>
           <br/>
-          <div ><h4>Dados adicionais</h4>
-          
-          <Form.Group className="mb-3" controlId="sellerDocument">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de documento</Form.Label>
-            <Form.Select aria-label="Tipo de documento"
-          value={sellerDocument}
-          onChange={(e)=>setSellerDocument(e.target.value)} required>
-            <option value="">Seleccione</option>
-            {documentTypes && documentTypes.map(document => (
-            <option key={document._id} value={document._id}>
-              {document.name}
-            </option>
-        ))}
-          </Form.Select>
-        </Form.Group>
-
-        <Form.Group className="mb-3" controlId="sellerDocNumber">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de documento</Form.Label>
-          <Form.Control
-            type="text"
-            value={sellerDocumentNumber}
-            required
-            onChange={(e) => {
-              setSellerDocumentNumber(e.target.value);
-            }}
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3" controlId="sellerFrontDoc">
-              <Form.Label>Imagem do documento frontal</Form.Label>
-              {sellerFrontImgDoc && (
-                <img
-                  style={{
-                    width: '6rem',
-                    height: '6rem',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}
-                  src={sellerFrontImgDoc}
-                  alt={name}
-                  className="card-img-top"
-                ></img>
-              )}
-            </Form.Group>
-
          
-
-
-            <Form.Group className="mb-3" controlId="sellerFrontDoc">
-              <Form.Label>Imagem de trás do documento</Form.Label>
-              {sellerBackImgDoc && (
-                <img
-                  style={{
-                    width: '6rem',
-                    height: '6rem',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}
-                  src={sellerBackImgDoc}
-                  alt={name}
-                  className="card-img-top"
-                ></img>
-              )}
-            </Form.Group>
-
-          
-          </div>
 
          
           <br/>
