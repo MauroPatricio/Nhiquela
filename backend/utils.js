@@ -172,7 +172,7 @@ export  const sendSMSToUSendIt= async (req, msgText) =>{
 
 
 
-export const sendEmailOrderStatus = async (req, msg, order)=>{
+export const sendEmailOrderStatus = async (req, msg, order, res)=>{
 
   const email = req.user.email
 
@@ -180,12 +180,12 @@ export const sendEmailOrderStatus = async (req, msg, order)=>{
 
   if(email){
 
-
+const test ='nhiquelaservicosconsultoria@gmail.com'
 // Email message configuration
 const mailOptions = {
-  from: 'mauro.patricio1@gmail.com',         
-  to: email,       
-  subject: `Acompanhar Pedido - Nhiquela Shop - pedido ${order.code}`,                
+  from: 'mauro.patricio1@gmail.com',      // Your email address
+  to: [ test, email],       
+  subject: `Nhiquela Shop - Acompanhar Pedido - pedido Nº ${order.code}`,                
   text: msg,
 };
 

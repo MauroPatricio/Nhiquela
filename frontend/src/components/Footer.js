@@ -90,12 +90,12 @@ export default function Footer() {
 
               />
           <p>
-          Tudo em suas mãos. <br/>Fazemos entrega de seus pedidos de forma rápida e fácil
+          Tudo em suas mãos. <br/>Fazemos entrega de seus pedidos de forma rápida, fácil e segura
           </p>
         </div>
    
         <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
-          <h6 className="text-uppercase fw-bold">Links inportantes</h6>
+          <h6 className="text-uppercase fw-bold">Links importantes</h6>
           <hr
               className="mb-4 mt-0 d-inline-block mx-auto"
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}

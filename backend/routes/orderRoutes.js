@@ -180,15 +180,18 @@ orderRouter.post(
     });
 
 
-
    
       //  Para envio de mensagens
 
       let msg = `Ola, seja bem vindo(a) a Nhiquela Shop. Dentro de instantes confirmaremos o seu pagamento. Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}`; 
  
-     sendSMSToUSendIt(req, msg);
+    //  sendSMSToUSendIt(req, msg);
 
-     sendEmailOrderStatus(req,msg, newOrder);
+    let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
+ 
+    //  sendSMSToUSendIt(req, msg);
+
+     sendEmailOrderStatus(req,mailText, newOrder, res);
 
     req.body.orderItems.map(async o=>{
 
@@ -205,9 +208,6 @@ orderRouter.post(
     })
 
     const order = await newOrder.save();
-
-
-  
 
     res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
   })

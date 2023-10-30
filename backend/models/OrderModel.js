@@ -84,6 +84,7 @@ const orderSchema = new mongoose.Schema(
     canceledReason: { type: String},
     isDeletedBySeller: { type: Boolean, default: false },
     isDeletedByDeliverman: { type: Boolean, default: false },
+    isDeletedByAdmin: { type: Boolean, default: false },
 
   },
   {
