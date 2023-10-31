@@ -218,9 +218,8 @@ function HomeScreen() {
                       <MessageBox>Não existem produtos adicionados</MessageBox>
                     )}
                     {items && items.map((product) => (
-<>
                 <Col
-                        key={product.slug}
+                        key={product._id}
                         sm={2}
                         md={4}
                         lg={3}
@@ -229,7 +228,7 @@ function HomeScreen() {
                         <Product product={product}></Product>
                       </Col>
                    
-</>
+
 
 
                     ))}

@@ -407,7 +407,7 @@ function ProductScreen() {
                                 <>
                                 &nbsp;
 
-                                <span>{product.discount} MT</span>
+                                <b>{product.discount} MT</b>
                                 
                                   
                                 </>

@@ -5,7 +5,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import NavDropdown from 'react-bootstrap/NavDropdown';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import Badge from 'react-bootstrap/Badge';
@@ -81,6 +81,7 @@ import ScrollTopButton from './components/ScrollTopButton';
 import SearchSellersScreen from './screens/SearchSellersScreen';
 import SearchOnSaleScreen from './screens/SearchOnSaleScreen';
 import EmailSentScreen from './screens/EmailSentScreen';
+import { getError } from './utils';
 
 function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -105,12 +106,15 @@ function App() {
     const refresh = async () =>{
 
       if(userInfo){
-        const {data} = await axios.get(`/api/orders/sellerview?seller=${userInfo._id}`, {
-          headers: { authorization: `Bearer ${userInfo.token}` },
-        });    
 
-      
-        ctxDispatch({type: 'ORDERS_BY_SELLER', payload: data.orders});
+        try {
+          const {data} = await axios.get(`/api/orders/sellerview?seller=${userInfo._id}`, {
+            headers: { authorization: `Bearer ${userInfo.token}` },
+          });    
+          ctxDispatch({type: 'ORDERS_BY_SELLER', payload: data.orders});
+        } catch (err) {
+          toast.error(getError(err));
+        }
       }
     }
     refresh();
@@ -181,7 +185,7 @@ function App() {
                           </NavDropdown.Item>
                         </LinkContainer>
                       )}
-                      <LinkContainer to="/signout">
+                      <LinkContainer to="/signin">
                         <NavDropdown.Item onClick={signOutHandler}>
                           <b>Sair</b>
                         </NavDropdown.Item>

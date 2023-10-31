@@ -3,19 +3,19 @@ import { createContext, useReducer } from 'react';
 export const Store = createContext();
 
 const initialState = {
-  userInfo: localStorage.getItem('userInfo')
+  userInfo: localStorage.getItem('userInfo') 
     ? JSON.parse(localStorage.getItem('userInfo'))
     : null,
 
   cart: {
-    address: localStorage.getItem('address')
+    address: localStorage.getItem('address') 
       ? JSON.parse(localStorage.getItem('address'))
       : {},
     cartItems: localStorage.getItem('cartItems')
       ? JSON.parse(localStorage.getItem('cartItems'))
       : [],
 
-    paymentMethod: localStorage.getItem('paymentMethod')
+    paymentMethod: localStorage.getItem('paymentMethod') 
       ? JSON.parse(localStorage.getItem('paymentMethod'))
       : '',
 
@@ -23,7 +23,7 @@ const initialState = {
     ? JSON.parse(localStorage.getItem('deliveryOptionValue'))
     : '',
 
-    ordersBySeller: localStorage.getItem('ordersBySeller')
+    ordersBySeller: localStorage.getItem('ordersBySeller') !== 'undefined'
     ? JSON.parse(localStorage.getItem('ordersBySeller'))
     : [],
   },
