@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useReducer } from 'react'
+import React, { useContext, useEffect, useReducer, useState } from 'react'
 import { Store } from '../Store';
 import { getError } from '../utils';
 import { toast } from 'react-toastify';
@@ -42,7 +42,7 @@ const reducer= (state, action) =>{
 
 export default function UserListScreen() {
   const [{loading, error, users, loadingDelete, successDelete, pages}, dispatch] = useReducer(reducer,{
-    loading: true, error: ''
+    loading: true, error: '', users: []
   })
   const {state} = useContext(Store);
   const {userInfo} = state;
@@ -50,6 +50,29 @@ export default function UserListScreen() {
   const {search} =useLocation();
   const sp = new URLSearchParams(search);
   const page = sp.get('page') || 1 ;
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredData, setFilteredData] = useState([]);
+    
+    
+  useEffect(() => {
+    const numericSearchQuery = parseInt(searchQuery);
+    if (!isNaN(numericSearchQuery)) {
+      
+      const filtered = users && users.filter((user) => user.phoneNumber === numericSearchQuery);
+      if(filtered.length>0){
+        setFilteredData(filtered);
+      }else{
+        setFilteredData(users);
+      }
+    } else {
+      // If the searchQuery is not a valid number, set filteredData to the original user data.
+      setFilteredData(users);
+    }
+  }, [searchQuery, users]);
+
+
+
 
   useEffect(()=>{
     const fetchData = async () =>{
@@ -97,22 +120,29 @@ export default function UserListScreen() {
       <h1>Utilizadores</h1>
       {loading?(<LoadingBox></LoadingBox>):error?<MessageBox variant="danger">{error}</MessageBox>:(
         <>
+        <div style={{textAlign: "right"}}> Pesquise pelo número de telefone:{' '}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          </div>
         <table className='table'>
           <thead>
             <tr>
               <th>Nome</th>
               <th>Número de telefone</th>
-              <th>É Vendedor?</th>
+              <th>É vendedor?</th>
               <th>Foi aprovado?</th>
-              <th>É Administrador?</th>
-              <th>É Entregador?</th>
-              <th>Foi Banido?</th>
+              <th>É administrador?</th>
+              <th>É entregador?</th>
+              <th>Foi banido?</th>
 
               <th>Acções</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u)=>(
+            {filteredData.map((u)=>(
               <tr key={u._id}>
                 <td>{u.name}</td>
                 <td>{u.phoneNumber}</td>
