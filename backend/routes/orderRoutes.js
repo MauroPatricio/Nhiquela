@@ -347,7 +347,7 @@ orderRouter.put(
       const updateOrder = await order.save();
 
       //  Para envio de mensagens
-      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.price} foi efectuado com sucesso.`;
+      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.itemsPrice} foi efectuado com sucesso.`;
  
       //  sendSMSToUSendIt(req, msg);
       sendEmailOrderStatus(req,msg, updateOrder, res);
@@ -371,7 +371,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr *****`;
+       let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
  
       //  sendSMSToUSendIt(msg);
 
@@ -408,7 +408,7 @@ orderRouter.put(
 
        //  Para envio de mensagens
 
-      let msg =`Ola, o pedido XXXX foi entregue com sucesso. Agradecemos por escolher a Nhiquela Shop.`;
+      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher a Nhiquela Shop.`;
  
       //  sendSMSToUSendIt(req,msg);
 
@@ -459,7 +459,7 @@ orderRouter.put(
 
         //  Para envio de mensagens
 
-        let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido XXXXX esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr: 840000000`;
+        let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr: 840000000`;
  
         //  sendSMSToUSendIt(req,msg);
 
@@ -497,7 +497,7 @@ orderRouter.put(
       
       //  Para envio de mensagens
 
-      let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr XXXXX foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
+      let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
 
       //  sendSMSToUSendIt(req,msg);    
 
@@ -525,7 +525,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-    let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr XXXXX foi aceite com sucesso pelo fornecedor.`;
+    let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
  
     //  sendSMSToUSendIt(req, msg);
     sendEmailOrderStatus(req,msg, order, res);
@@ -556,7 +556,7 @@ orderRouter.put(
 
       await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr xxxxx ja esta pronto e disponivel para entrega.`;
+      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr ${order.code} ja esta pronto e disponivel para entrega.`;
 
       sendEmailOrderStatus(req,msg, order, res);
 
