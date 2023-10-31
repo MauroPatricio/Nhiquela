@@ -189,7 +189,7 @@ export default function PlaceOrderScreen() {
                       </Col>
                       <Col mb={3}>
                         {' '}
-                        <span>{item.onSale?item.quantity * item.discount:item.quantity * item.price} MT</span>
+                        <span>{(item.onSale?item.quantity * item.discount:item.quantity * item.price).toFixed(2)} MT</span>
                       </Col>
                       
                     </Row>

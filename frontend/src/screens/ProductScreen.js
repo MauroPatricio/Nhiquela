@@ -254,7 +254,7 @@ function ProductScreen() {
             <ListGroup.Item>Preço:  
               {product.onSale ? (
                 <>
-                <span>{product.discount} MT</span>
+                <b style={{color: '#a435f0'}}>{product.discount} MT</b>
                   
                 </>
               ):<b style={{color: '#a435f0'}}>{product.price} MT</b>}</ListGroup.Item>
@@ -407,11 +407,11 @@ function ProductScreen() {
                                 <>
                                 &nbsp;
 
-                                <b>{product.discount} MT</b>
+                                <b className='text_color'>{product.discount} MT</b>
                                 
                                   
                                 </>
-                              ):<b>{product.price} MT</b>}
+                              ):<b className='text_color'>{product.price} MT</b>}
 
                                   </Col>
                                   </Row>

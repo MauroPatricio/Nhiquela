@@ -453,7 +453,7 @@ export default function OrderScreen() {
                         <span>{item.onSale?item.discount:item.price} MT</span>
                       </Col>
                       <Col md={3}>
-                        <span>Total {item.onSale?item.quantity * item.discount:item.quantity * item.price} MT</span>
+                        <span>Total {(item.onSale?item.quantity * item.discount:item.quantity * item.price).toFixed(2)} MT</span>
                       </Col>
                     </Row>
                   </ListGroup.Item>

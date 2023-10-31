@@ -108,7 +108,7 @@ export default function CartScreen() {
                       </Button>
                     </Col>
 
-                    <Col md={3}>{item.onSale? item.quantity * item.discount: item.quantity * item.price} MT</Col>
+                    <Col md={3}>{(item.onSale? item.quantity * item.discount: item.quantity * item.price).toFixed(2)} MT</Col>
 
                     <Col md={1}>
                       <Button
@@ -137,7 +137,7 @@ export default function CartScreen() {
                     {cartItems.reduce(
                       (pre, cur) => cur.onSale?pre + cur.discount * cur.quantity:pre + cur.price * cur.quantity,
                       0
-                    )}
+                    ).toFixed(2)}
                     MT
                   </h4>
                 </ListGroup.Item>
