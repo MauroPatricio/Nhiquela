@@ -102,10 +102,10 @@ export default function Footer() {
 
               />
           <p>
-            <Link to="/help" className="text-white link-none">Como comprar produtos?</Link>
+            <Link to="/help" className="text-white link-none">Como comprar</Link>
           </p>
           <p>
-            <Link to="/howtobeseller" className="text-white link-none">Como tornar-se vendedor</Link>
+            <Link to="/howtobeseller" className="text-white link-none">Como tornar-se Fornecedor</Link>
           </p>
           <p>
             <Link to="/terms" className="text-white link-none">Termos e condições</Link>

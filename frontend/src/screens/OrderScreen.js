@@ -732,6 +732,7 @@ export default function OrderScreen() {
           {(userInfo.isAdmin || userInfo.isSeller) &&
             !order.isDelivered &&
             order.status !== 'Aceite' &&
+            order.status !== 'Cancelado' &&
             order.status !=='Pronto' &&
 
             order.status !=='Em trânsito' &&

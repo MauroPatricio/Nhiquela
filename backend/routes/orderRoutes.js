@@ -1,7 +1,7 @@
 import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendSMSToUSendIt, sendEmailOrderStatus } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 
@@ -340,17 +340,23 @@ orderRouter.put(
         status: req.body.status,
         update_time: req.body.update_time,
         email_address: req.body.email_address,
+        
       };
 
       
-      
       const updateOrder = await order.save();
 
+
+      const sellerOfProduct = await User.findById(order.seller);
+       
+
       //  Para envio de mensagens
-      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.itemsPrice} foi efectuado com sucesso.`;
+      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
  
       //  sendSMSToUSendIt(req, msg);
-      sendEmailOrderStatus(req,msg, updateOrder, res);
+
+      
+      sendEmailOrderToSeller(req,msg, sellerOfProduct, updateOrder, res);
 
       res.send({ message: `Pedido Pago`, order: updateOrder });
     } else {
@@ -369,13 +375,16 @@ orderRouter.put(
       order.status = 'No destino indicado';
       const updateOrder = await order.save();
 
+
+      const sellerOfProduct = await User.findById(order.seller);
+
       //  Para envio de mensagens
 
        let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
  
       //  sendSMSToUSendIt(msg);
 
-      sendEmailOrderStatus(req,msg, updateOrder, res);
+      sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
 
       res.send({ message: `No destino indicado`, order: updateOrder });
@@ -394,6 +403,9 @@ orderRouter.put(
     if (order) {
       //     order.isPaid = true;
       //     order.paidAt= Date.now();
+
+
+
       order.isDelivered = true;
       order.deliveredAt = Date.now();
       order.status = 'Finalizado';
@@ -412,7 +424,10 @@ orderRouter.put(
  
       //  sendSMSToUSendIt(req,msg);
 
-      sendEmailOrderStatus(req,msg, order, res);
+      const sellerOfProduct = await User.findById(order.seller);
+
+
+      sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
  
       res.send({ message: `Pedido entregue com sucesso ` });
@@ -463,7 +478,10 @@ orderRouter.put(
  
         //  sendSMSToUSendIt(req,msg);
 
-        sendEmailOrderStatus(req,msg, order, res);
+        const sellerOfProduct = await User.findById(order.seller);
+
+
+      sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
         
       res.send({ message: `Pedido em trânsito` });
@@ -501,7 +519,10 @@ orderRouter.put(
 
       //  sendSMSToUSendIt(req,msg);    
 
-      sendEmailOrderStatus(req,msg, order, res);
+      const sellerOfProduct = await User.findById(order.seller);
+
+
+      sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
       res.send({ message: `Pedido cancelado com sucesso` });
     } else {
@@ -556,7 +577,7 @@ orderRouter.put(
 
       await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr ${order.code} ja esta pronto e disponivel para entrega.`;
+      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       sendEmailOrderStatus(req,msg, order, res);
 

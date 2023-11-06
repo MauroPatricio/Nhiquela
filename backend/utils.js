@@ -170,8 +170,6 @@ export  const sendSMSToUSendIt= async (req, msgText) =>{
   // });
 }
 
-
-
 export const sendEmailOrderStatus = async (req, msg, order, res)=>{
 
   const email = req.user.email
@@ -179,7 +177,6 @@ export const sendEmailOrderStatus = async (req, msg, order, res)=>{
 
 
   if(email){
-
 const test ='nhiquelaservicosconsultoria@gmail.com'
 // Email message configuration
 const mailOptions = {
@@ -206,3 +203,108 @@ transporter.sendMail(mailOptions, function (error, info) {
   }
 }
 
+
+
+export const sendEmailOrderToAdminAndUser = async (req, msg, order, res)=>{
+
+  const email = req.user.email
+
+
+
+  if(email){
+const test ='nhiquelaservicosconsultoria@gmail.com'
+// Email message configuration
+const mailOptions = {
+  from: 'mauro.patricio1@gmail.com',      // Your email address
+  to: [ test, email],       
+  subject: `Nhiquela Shop - Acompanhar Pedido - pedido Nº ${order.code}`,                
+  text: msg,
+};
+
+// Enviar email
+transporter.sendMail(mailOptions, function (error, info) {
+  if (error) {
+    console.error('Error sending email:', error);
+    res.status(404).send({message: 'Email não enviado'})
+
+  } else {
+    console.log('Email sent:', info.response);
+    res.send({ message: 'Email enviado com Sucesso' });
+  }
+});
+   
+  }else{
+    res.status(404).send({message: 'Utilizador não encontrado'})
+  }
+}
+
+
+
+export const sendEmailOrderToSeller = async (req, msg,seller, order, res)=>{
+
+  const userOrderEmail = req.user.email
+
+  const sellerEmail = seller.email;
+
+
+
+  if(userOrderEmail){
+// Email message configuration
+const mailOptions = {
+  from: 'mauro.patricio1@gmail.com',      // Your email address
+  to: [ sellerEmail, userOrderEmail],       
+  subject: `Nhiquela Shop - Acompanhar Pedido - pedido Nº ${order.code}`,                
+  text: msg,
+};
+
+// Enviar email
+transporter.sendMail(mailOptions, function (error, info) {
+  if (error) {
+    console.error('Error sending email:', error);
+    res.status(404).send({message: 'Email não enviado'})
+
+  } else {
+    console.log('Email sent:', info.response);
+    res.send({ message: 'Email enviado com Sucesso' });
+  }
+});
+   
+  }else{
+    res.status(404).send({message: 'Utilizador não encontrado'})
+  }
+}
+
+
+export const sendEmailOrderStatusToSellerAndDeliver = async (req, msg, seller, order, res)=>{
+
+  const userOrderEmail = req.user.email
+
+  const sellerEmail = seller.email;
+
+
+
+  if(userOrderEmail){
+// Email message configuration
+const mailOptions = {
+  from: 'mauro.patricio1@gmail.com',      // Your email address
+  to: [ sellerEmail, userOrderEmail],       
+  subject: `Nhiquela Shop - Acompanhar Pedido - pedido Nº ${order.code}`,                
+  text: msg,
+};
+
+// Enviar email
+transporter.sendMail(mailOptions, function (error, info) {
+  if (error) {
+    console.error('Error sending email:', error);
+    res.status(404).send({message: 'Email não enviado'})
+
+  } else {
+    console.log('Email sent:', info.response);
+    res.send({ message: 'Email enviado com Sucesso' });
+  }
+});
+   
+  }else{
+    res.status(404).send({message: 'Utilizador não encontrado'})
+  }
+}

@@ -8,6 +8,7 @@ import { faHistory } from '@fortawesome/free-solid-svg-icons';
 import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { FaShippingFast } from "react-icons/fa";
 import { BsFillBagCheckFill } from "react-icons/bs";
+import { BsPersonFillCheck } from "react-icons/bs";
 
 
 
@@ -34,6 +35,13 @@ export default function OrderSteps(props) {
         Disponível para entrega<br/>
        <br/>
         </Col>
+
+        {/* <Col className={props.status==='Aceite pelo entregador' ? 'active' : ''}>
+        <BsPersonFillCheck  className={props.status==='Aceite pelo entregador' ? 'active icon-active' : ''}></BsPersonFillCheck><br/>
+        Aceite pelo entregador<br/>
+       <br/>
+        </Col> */}
+
         <Col className={props.status==='Em trânsito' ? 'active' : ''}>
         <FaShippingFast  className={props.status==='Em trânsito' ? 'active icon-active' : ''}></FaShippingFast><br/>
         Em trânsito<br/>
