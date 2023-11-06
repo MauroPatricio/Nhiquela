@@ -86,6 +86,47 @@ export const isDeliveryMan = (req,  next) => {
   }
 };
 
+export const sendSMSToSellerUSendIt = async (seller, msgText) =>{
+  const username = "mpatricio";
+  const password = "Patrick2019#"
+  const timezone = "Africa/Maputo";
+  const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
+  const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
+
+
+
+
+  const clientPhoneNumber = seller.phoneNumber;
+  const concatNumber = '258'+clientPhoneNumber;
+
+  // Definição dos parametros do sendMessage para o pedido the SOAP
+  // paramentros de envio para apenas um contacto
+  const sendMessageOneContact = {
+    username: username,
+    password: password,
+    timezone: timezone,
+    sender: 'Sales Info',
+    msisdn: concatNumber,
+    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
+    priority: 1,
+    messageText: msgText,
+    workingDays: false,
+    isFlash: false,
+  };
+
+    // criar coneccao com o client
+    const client = await soap.createClientAsync(wsdlUrl);
+
+    // Chamar a função sendMessage
+    client.SendMessage(sendMessageOneContact, (err, result) => {
+      if (err) {
+        console.error('Error calling sendmessage:', err);
+      } else {
+        console.log('sendmessage Result:', result);
+      }
+    });
+
+}
 export  const sendSMSToUSendIt= async (req, msgText) =>{
 
   const username = "mpatricio";

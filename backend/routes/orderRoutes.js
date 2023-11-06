@@ -1,7 +1,7 @@
 import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 
@@ -352,11 +352,15 @@ orderRouter.put(
 
       //  Para envio de mensagens
       let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
- 
-      //  sendSMSToUSendIt(req, msg);
-
-      
       sendEmailOrderToSeller(req,msg, sellerOfProduct, updateOrder, res);
+
+      if (sellerOfProduct){
+        
+        //  Para envio de mensagens
+      let msgSeller =`Ola, a Nhiquela Shop gostaria de lhe informar que possui um novo pedido com o codigo ${updateOrder.code}.`;
+
+     sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
+  }
 
       res.send({ message: `Pedido Pago`, order: updateOrder });
     } else {
@@ -429,7 +433,8 @@ orderRouter.put(
 
       sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
- 
+      sendSMSToUSendIt(req, msg);
+
       res.send({ message: `Pedido entregue com sucesso ` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
