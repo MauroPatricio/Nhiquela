@@ -30,7 +30,9 @@ const initialState = {
 };
 
 function reducer(state, action) {
+
   switch (action.type) {
+    
     case 'ADD_ITEM_ON_CART':
       // ADICIONANDO NO CARRINHO
       const newItem = action.payload;
@@ -44,13 +46,13 @@ function reducer(state, action) {
 
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
 
-
       return {
         ...state,
         cart: {
           ...state.cart,
           cartItems,
         },
+        error:''
       };
 
       case 'ADD_ITEM_FAIL':{

@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Store } from '../Store';
 import Row from 'react-bootstrap/Row';
@@ -26,6 +26,8 @@ export default function CartScreen() {
   } = state;
 
   const {error} = state;
+
+ 
 
 
   async function updateCartHandler(item, quantity) {

@@ -109,6 +109,7 @@ function ProductScreen() {
     fetchData();
   }, [categories]);
 
+
   const addOnCartHandler = async () => {
     const existItem = cart.cartItems.find((x) => x._id === product._id);
     const quantity = existItem ? existItem.quantity + 1 : 1;
@@ -137,7 +138,6 @@ function ProductScreen() {
 
     
     if(cart.cartItems.length > 0 && product.seller._id !== cart.cartItems[0].seller._id){
-
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
         payload: `Na carrinha, Só e permitido adicionar produtos pertecentes a um único fornecedor por vez, ${cart.cartItems[0].seller.seller.name} `,
@@ -155,7 +155,7 @@ function ProductScreen() {
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!comment || !rating) {
-      toast.error('Por favor, deixe o seu Comentário e Pontuação');
+      toast.error('Por favor, deixe o seu comentário e Pontuação');
       return;
     }
     try {
