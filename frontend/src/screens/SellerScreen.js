@@ -122,7 +122,7 @@ export default function SellerScreen() {
                         }}>
 
                       <p>
-                        <b>{sellerDetails.seller.name}</b><br/>
+                        <b className='text_color'>{sellerDetails.seller.name}</b><br/>
                       <FontAwesomeIcon icon={faClockFour}/> <span style={{color:'green'}}> Dias de trabalho: </span>{sellerDetails.seller.workDayAndTime.map((workDay)=>(
                 <Col  key={workDay.dayOfWeek}>
                   {workDay.dayOfWeek} - {workDay.opentime} - {workDay.closetime}

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useReducer, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Store } from '../Store';
 import Row from 'react-bootstrap/Row';
@@ -16,8 +16,23 @@ import Card from 'react-bootstrap/Card';
 import axios from 'axios';
 
 import { useNavigate } from 'react-router-dom';
+import { getError } from '../utils';
 
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'SELLER_DETAILS_REQUEST':
+      return { ...state, loadingSeller: true };
 
+    case 'SELLER_DETAILS_SUCCESS':
+      return { ...state, sellerDetails: action.payload, loadingSeller: false };
+
+    case 'SELLER_DETAILS_FAIL':
+      return { ...state, errorSeller: action.payload, loadingSeller: false };
+
+    default:
+      return state;
+  }
+};
 
 export default function CartScreen() {
   const navigate = useNavigate();
@@ -30,9 +45,38 @@ export default function CartScreen() {
 
   const {error} = state;
 
- 
+  const [sellerId, setSellerId] = useState('');
+const [seller, setSeller] = useState({});
 
-  useEffect(() => {
+const [
+  {
+    loadingSeller,
+    loadingProducts,
+    errorSeller,
+    sellerDetails,
+    productsError,
+    productsBySeller,
+  },
+  dispatch,
+] = useReducer(reducer, { sellerDetails: '', loading: true, error: '' });
+
+useEffect(() => {
+  const fetchSellerDetails = async () => {
+    try {
+      dispatch({ type: 'SELLER_DETAILS_REQUEST' });
+      const sellerId = cartItems && cartItems[0].seller._id;
+
+      const { data } = await axios.get(`/api/users/${sellerId}`, {});
+      setSeller(data)
+      dispatch({ type: 'SELLER_DETAILS_SUCCESS', payload: data });
+    } catch (err) {
+      dispatch({ type: 'SELLER_DETAILS_FAIL', payload: getError(err) });
+    }
+  };
+  fetchSellerDetails();
+}, [dispatch, sellerId]);
+
+  useEffect( () => {
     // Get the current time
     const currentTime = new Date();
     const currentDay = currentTime.getDay();
@@ -43,23 +87,23 @@ const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the
 
 const formattedDatetime = `${hours}:${minutes}`;
 
+    if(seller &&  seller.seller!==undefined){
 
-    const seller = cartItems && cartItems[0].seller.seller
-    
-    seller.workDayAndTime.map(async workday=>{
-      
-      if(workday.dayNumber === currentDay){
-
-      if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-          setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+      seller.seller.workDayAndTime.map(async workday=>{
+        
+        if(workday.dayNumber === currentDay){
+  
+        if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+            setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+        }else{
+          setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+        }
       }else{
         setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
       }
-    }else{
-      setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+      })
     }
-    })
-  }, []);
+  }, [seller]);
 
   async function updateCartHandler(item, quantity) {
     const { data } = await axios.get(`/api/products/${item._id}`);

@@ -124,7 +124,16 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           res.status(404).send({message: 'A imagem do produto é obrigatória'});
           return
      }
+
+     const comission_price = parseFloat(process.env.COMISSION_PRICE)
+
      const user = await User.findById( req.user._id);
+
+     const priceFromSeller = parseFloat(req.body.price);
+
+     const priceComission = parseFloat(priceFromSeller*comission_price);
+
+     const priceWithComission = parseFloat(priceComission+priceFromSeller);
 
      const newProduct = new Product({
           name: req.body.name,
@@ -132,7 +141,10 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           seller: req.user._id,
           image: req.body.image,
           images: req.body.images,
-          price: req.body.price,
+          priceFromSeller: req.body.price,
+          comissionPercentage: comission_price,
+          priceComission: priceComission,
+          price: priceWithComission,
           category: req.body.category,
           province: req.body.province,
           brand: req.body.brand,

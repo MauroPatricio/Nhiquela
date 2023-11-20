@@ -28,6 +28,15 @@ const reducer = (state, action) => {
 
     case 'CREATE_FAIL':
       return { ...state, loading: false };
+   case 'SELLER_DETAILS_REQUEST':
+        return { ...state, loadingSeller: true };
+  
+      case 'SELLER_DETAILS_SUCCESS':
+        return { ...state, sellerDetails: action.payload, loadingSeller: false };
+  
+      case 'SELLER_DETAILS_FAIL':
+        return { ...state, errorSeller: action.payload, loadingSeller: false };
+  
 
 
     default:
@@ -65,36 +74,57 @@ export default function PlaceOrderScreen() {
     }
   }, [address, navigate]);
 
+  const [sellerId, setSellerId] = useState('');
+  const [seller, setSeller] = useState({});
+  
 
+  
   useEffect(() => {
-    // Get the current time
-    const currentTime = new Date();
-    const currentDay = currentTime.getDay();
-
-    
-const hours = currentTime.getHours().toString().padStart(2, '0'); // Get the hours and pad with leading 0 if needed
-const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
-
-const formattedDatetime = `${hours}:${minutes}`;
-
-
-    const seller = cart.cartItems && cart.cartItems[0].seller.seller
-    
-    seller.workDayAndTime.map(async workday=>{
-      
-      if(workday.dayNumber === currentDay){
-
-      if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-          setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
-      }else{
-        setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+    const fetchSellerDetails = async () => {
+      try {
+        dispatch({ type: 'SELLER_DETAILS_REQUEST' });
+        const sellerId = cart.cartItems && cart.cartItems[0].seller._id;
+  
+        const { data } = await axios.get(`/api/users/${sellerId}`, {});
+        setSeller(data)
+        dispatch({ type: 'SELLER_DETAILS_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'SELLER_DETAILS_FAIL', payload: getError(err) });
       }
-    }else{
-      setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
-    }
-    })
-  }, []);
+    };
+    fetchSellerDetails();
+  }, [dispatch, sellerId]);
+  
+    useEffect( () => {
+      // Get the current time
+      const currentTime = new Date();
+      const currentDay = currentTime.getDay();
+  
+      
+  const hours = currentTime.getHours().toString().padStart(2, '0'); // Get the hours and pad with leading 0 if needed
+  const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
+  
+  const formattedDatetime = `${hours}:${minutes}`;
+  
+      if(seller &&  seller.seller!==undefined){
+  
+        seller.seller.workDayAndTime.map(async workday=>{
+          
+          if(workday.dayNumber === currentDay){
+    
+          if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+              setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+          }else{
+            setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+          }
+        }else{
+          setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+        }
+        })
+      }
+    }, [seller]);
 
+    
 
 
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100; // 1234.3213123 => 1234.32
@@ -126,7 +156,6 @@ const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the
 const formattedDatetime = `${hours}:${minutes}`;
 
 
-    const seller = cart.cartItems && cart.cartItems[0].seller.seller
 
     // pego a variavel do dia de semana actual 
 
@@ -138,7 +167,7 @@ const formattedDatetime = `${hours}:${minutes}`;
     // Caso o dia de semana actual e o dia de semana disponivel na listagem forem diferentes
 
 
-    if(seller.workDayAndTime.length===0){
+    if(seller && seller.seller.workDayAndTime.length===0){
       try {
         dispatch({ type: 'CREATE_REQUEST' });
   
@@ -170,9 +199,9 @@ const formattedDatetime = `${hours}:${minutes}`;
         toast.error(getError(err));
       }
     }
+
     
-    
-    seller.workDayAndTime.map(async workday=>{
+    seller.seller.workDayAndTime.map(async workday=>{
       
       if(workday.dayNumber === currentDay){
 
