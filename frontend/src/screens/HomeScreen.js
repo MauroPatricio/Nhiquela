@@ -165,7 +165,7 @@ function HomeScreen() {
           </Col>
           <Col md={9}>
             <CarouselSlide></CarouselSlide>
-            <h3>Melhores vendedores</h3>
+            <h3>Melhores fornecedores</h3>
 
             {loadingTopUsers ? (
               <LoadingBox />
@@ -174,13 +174,13 @@ function HomeScreen() {
             ) : (
               <>
                 {topSellers.length === 0 && (
-                  <MessageBox>Vendedores não encontrados</MessageBox>
+                  <MessageBox>fornecedores não encontrados</MessageBox>
                 )}
                 {/* <Carousel showArrows autoPlay showThumbs={false}> */}
 
                 <Row className="row-widget">
                   {topSellers && topSellers.length === 0 && (
-                    <MessageBox>Não existem vendedores adicionados</MessageBox>
+                    <MessageBox>Não existem fornecedores adicionados</MessageBox>
                   )}
 
 {showCaroselTopSellers && <Carousel showArrows infiniteLoop={true} autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>

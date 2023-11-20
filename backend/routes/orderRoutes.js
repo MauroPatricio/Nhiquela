@@ -433,7 +433,7 @@ orderRouter.put(
 
       sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
-      sendSMSToUSendIt(req, msg);
+      // sendSMSToUSendIt(req, msg);
 
       res.send({ message: `Pedido entregue com sucesso ` });
     } else {

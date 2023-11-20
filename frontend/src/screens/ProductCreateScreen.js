@@ -275,6 +275,18 @@ export default function ProductCreateScreen() {
   const submitHandler = async (e) => {
     e.preventDefault();
 
+
+    if(selectedColors.length === 0){
+      toast.error('Por favor, Adicione a cor')
+      return 
+    }
+
+    if(selectedSizes.length === 0){
+      toast.error('Por favor, Adicione o tamanho')
+      return 
+    }
+
+
     try {
       dispatch({ type: 'CREATE_REQUEST' });
       await axios.post(
@@ -364,7 +376,7 @@ export default function ProductCreateScreen() {
 
           <Form onSubmit={submitHandler}>
             <Form.Group className="mb-3" controlId="name">
-              <Form.Label>Nome</Form.Label>
+              <Form.Label>Nome do produto</Form.Label>
               <Form.Control
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -461,7 +473,6 @@ export default function ProductCreateScreen() {
             <Form.Group className="mb-3" controlId="countInStock">
               <Form.Label>Cores disponíveis</Form.Label>
               <Form.Select
-                required
                 aria-label="Cores"
                 // value={colors}
                 onChange={(e)=>addColor(e.target.value)}
@@ -495,7 +506,6 @@ export default function ProductCreateScreen() {
            <Form.Group className="mb-3" controlId="countInStock">
               <Form.Label>Tamanhos disponíveis</Form.Label>
               <Form.Select
-                required
                 aria-label="Tamanho"
                 // value={selectedSizes}
                 onChange={(e) => addSize(e.target.value)}

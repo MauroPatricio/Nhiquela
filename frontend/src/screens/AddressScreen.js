@@ -91,7 +91,7 @@ export default function AddressScreen() {
           </Form.Group>
  
           <Form.Group className="mb-3" controlId="fullcityname">
-          <Form.Label>Cidade de entrega</Form.Label>
+          <Form.Label>Local de entrega</Form.Label>
           <Form.Select aria-label="Cidade"
           value={city}
           onChange={(e)=>setCity(e.target.value)} required>

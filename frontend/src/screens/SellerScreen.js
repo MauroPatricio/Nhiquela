@@ -102,9 +102,9 @@ export default function SellerScreen() {
   return (
     <div>
       <Helmet>
-        <title>Página do Vendedor</title>
+        <title>Página do fornecedor</title>
       </Helmet>
-      <h3>Produtos do Vendedor: <b className='text_color'>{sellerDetails && sellerDetails.seller.name}</b></h3><p></p>
+      <h3>Produtos do fornecedor: <b className='text_color'>{sellerDetails && sellerDetails.seller.name}</b></h3><p></p>
       {loadingSeller ? (
         <LoadingBox></LoadingBox>
       ) : errorSeller ? (
@@ -123,7 +123,11 @@ export default function SellerScreen() {
 
                       <p>
                         <b>{sellerDetails.seller.name}</b><br/>
-                        <b><FontAwesomeIcon icon={faClockFour}/> <b style={{color: 'green'}}> Aberto: </b>{sellerDetails.seller.opentime} - {sellerDetails.seller.closetime} </b><br/>
+                      <FontAwesomeIcon icon={faClockFour}/> <span style={{color:'green'}}> Dias de trabalho: </span>{sellerDetails.seller.workDayAndTime.map((workDay)=>(
+                <Col  key={workDay.dayOfWeek}>
+                  {workDay.dayOfWeek} - {workDay.opentime} - {workDay.closetime}
+                </Col>
+              ))}<br/>
 
                       {/* <Rating
                         rating={sellerDetails.seller.rating}

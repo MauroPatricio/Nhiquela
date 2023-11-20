@@ -80,9 +80,9 @@ export default function SearchSellersScreen() {
   return (
     <div>
       <Helmet>
-        <title>Pesquisar Vendedores</title>
+        <title>Pesquisar fornecedores</title>
       </Helmet>
-      <h1><p>Pesquisa de Vendedores</p></h1>
+      <h1><p>Pesquisa de fornecedores</p></h1>
       <Row>
         <Col md={3}>
         <CategoriesFilter></CategoriesFilter>
@@ -102,7 +102,7 @@ export default function SearchSellersScreen() {
                   </div>
                 </Col>
               </Row>
-              {sellers.length === 0 && (<MessageBox> Vendedores não encontrados</MessageBox>)}
+              {sellers.length === 0 && (<MessageBox> fornecedores não encontrados</MessageBox>)}
             <Row>
               {sellers.map((seller)=>(
                 <Col sm={6} lg={3} className="mb-3" key={seller._id}>

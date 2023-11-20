@@ -132,7 +132,7 @@ export default function UserListScreen() {
             <tr>
               <th>Nome</th>
               <th>Número de telefone</th>
-              <th>É vendedor?</th>
+              <th>É fornecedor?</th>
               <th>Foi aprovado?</th>
               <th>É administrador?</th>
               <th>É entregador?</th>

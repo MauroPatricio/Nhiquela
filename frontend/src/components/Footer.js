@@ -105,7 +105,7 @@ export default function Footer() {
             <Link to="/help" className="text-white link-none">Como comprar</Link>
           </p>
           <p>
-            <Link to="/howtobeseller" className="text-white link-none">Como tornar-se Fornecedor</Link>
+            <Link to="/howtobeseller" className="text-white link-none">Como tornar-se fornecedor</Link>
           </p>
           <p>
             <Link to="/terms" className="text-white link-none">Termos e condições</Link>

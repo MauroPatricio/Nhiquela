@@ -11,8 +11,8 @@ import { faLockOpen } from '@fortawesome/free-solid-svg-icons';
 
 import { faClock } from '@fortawesome/free-solid-svg-icons';
 import { faClockFour } from '@fortawesome/free-solid-svg-icons';
-import { faListNumeric } from '@fortawesome/free-solid-svg-icons';
 
+import { CiCreditCard1 } from "react-icons/ci";
 
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
@@ -26,7 +26,10 @@ import { getError } from '../utils.js';
 import LoadingBox from '../components/LoadingBox.js';
 import CountryFlag from 'react-country-flag';
 
+import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { FaCalendarAlt } from "react-icons/fa";
 
+import { GoNumber } from "react-icons/go";
 
 
 const reducer = (state, action) => {
@@ -101,12 +104,17 @@ export default function SignupScreen() {
   const [alternativeAccountType, setAlternativeAccountType] = useState('');
   const [alternativeAccountNumber, setAlternativeAccountNumber] = useState('');
 
+  const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira','Sexta-feira','Sábado', 'Feriados'];
+  const [workDaysWithTime, setWorkDaysWithTime] = useState([]);
+  const [dayOfWeek, setDayOfWeek] = useState('');
 
   const accountTypes = [
     { _id: 1, name: 'BCI' },
     { _id: 2, name: 'BIM' },
     { _id: 3, name: 'MOZA' },
     { _id: 4, name: 'ABSA' },
+    { _id: 5, name: 'FNB' },
+
   ];
 
 
@@ -122,6 +130,56 @@ export default function SignupScreen() {
     },
     dispatch
   ] = useReducer(reducer, { loadingUser: false, registerUserFail:[], registerUser: {} });
+
+  const removeDayWeek = (index) => {
+    const workDays = [...workDaysWithTime];
+    workDays.splice(index, 1); // Remove the item at the specified index
+    setWorkDaysWithTime(workDays); // Update the items list
+  };
+  const handleAddItem = () => {
+    // Validar entrada do usuário, se necessário
+    if (dayOfWeek && opentime && closetime) {
+      let dayNumber = 0;
+        if(dayOfWeek){
+          const selectedWorkDay = workDaysWithTime.find((workDay) => workDay.dayOfWeek === dayOfWeek);    
+
+          if(!selectedWorkDay){
+
+          if(dayOfWeek.includes("Dom")|| dayOfWeek.includes("Sun"))
+             dayNumber=0;
+          if(dayOfWeek.includes("Seg")|| dayOfWeek.includes("Mon"))
+             dayNumber=1;
+          if(dayOfWeek.includes("Ter")|| dayOfWeek.includes("Tue"))
+             dayNumber=2;
+          if(dayOfWeek.includes("Qua")|| dayOfWeek.includes("Wed"))
+             dayNumber=3;
+          if(dayOfWeek.includes("Qui")|| dayOfWeek.includes("Thu"))
+             dayNumber=4;
+          if(dayOfWeek.includes("Sex")|| dayOfWeek.includes("Fri"))
+             dayNumber=5;
+          if(dayOfWeek.includes("Sab")|| dayOfWeek.includes("Sat"))
+             dayNumber=6;
+          if(dayOfWeek.includes("Fer")|| dayOfWeek.includes("Hol"))
+              dayNumber=7;
+           
+            const newItem = {
+               dayOfWeek,
+              opentime,
+              closetime
+            };
+            setWorkDaysWithTime([...workDaysWithTime, newItem]);
+            setDayOfWeek({});
+            setOpentime('');
+            setClosetime('');
+          }
+        
+        }
+      
+    } else {
+      // Lidar com erro de entrada inválida, se necessário
+      toast.error('Por favor, preencha todos os campos.');
+    }
+  };
 
 
   const { userInfo } = state;
@@ -146,6 +204,16 @@ export default function SignupScreen() {
       return
     }
 
+    if(workDaysWithTime.length===0 && isSeller ){
+      toast.error('Por favor, adicione os dias úteis de trabalho e horário');
+      return
+    }
+    if(sellerLogo === ''  && isSeller){
+      toast.error('Por favor, adicione a logo da loja');
+      return
+    
+    }
+
     try {
       ctxDispatch({ type: 'USER_REQUEST' });
 
@@ -160,14 +228,13 @@ export default function SignupScreen() {
         sellerLogo,
         sellerLocation,
         sellerAddress,
-        opentime, 
-        closetime,
         phoneNumberAccount,
         alternativePhoneNumberAccount,
         accountType,
         accountNumber,
         alternativeAccountType,
-        alternativeAccountNumber
+        alternativeAccountNumber,
+        workDaysWithTime
       });
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       navigate(redirect || '/');
@@ -248,7 +315,7 @@ export default function SignupScreen() {
       <h1 className="my-3">Nova conta</h1>
       <Form onSubmit={submitHandler}>
       <Form.Group className="mb-3" controlId="name">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Seu nome</Form.Label>
           <Form.Control
             type="text"
             required
@@ -288,7 +355,7 @@ export default function SignupScreen() {
 
 
         <Form.Group className="mb-3" controlId="password">
-          <FontAwesomeIcon icon={faLock} /> <Form.Label>Password</Form.Label>
+          <FontAwesomeIcon icon={faLock} /> <Form.Label>Password: <small className='color-transparent'>*Deve possuir no minimo 6 digitos</small></Form.Label>
           <Form.Control
             type="password"
             placeholder="******"
@@ -300,7 +367,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="confirmPassword">
-          <FontAwesomeIcon icon={faLockOpen} /> <Form.Label>Confirme o Password</Form.Label>
+          <FontAwesomeIcon icon={faLockOpen} /> <Form.Label>Confirme o password</Form.Label>
           <Form.Control
             type="password"
             placeholder="******"
@@ -318,10 +385,10 @@ export default function SignupScreen() {
 {isSeller && (
           <>
           <br/>
-          <div ><h4>Dados adicionais</h4>
+          <div ><h4>Dados bancários</h4>
 
           <Form.Group className="mb-3" controlId="sellerPhoneNumberAccount">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone para transferências</Form.Label>
+          <GoNumber /> <Form.Label>Número de telefone para transferências</Form.Label>
           <Form.Control
              type="text"
              max={9}
@@ -338,7 +405,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerPhoneNumberAccountAlternative">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone para transferências (opcional)</Form.Label>
+        <GoNumber /> <Form.Label>Número de telefone para transferências [opcional]</Form.Label>
           <Form.Control
             type="text"
             max={9}
@@ -354,7 +421,7 @@ export default function SignupScreen() {
         </Form.Group>
 
           <Form.Group className="mb-3" controlId="sellerAccountType">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta</Form.Label>
+          <CiCreditCard1 /> <Form.Label>Tipo de conta</Form.Label>
             <Form.Select aria-label="Tipo de conta"
           value={accountType}
           onChange={(e)=>setAccountType(e.target.value)} required>
@@ -367,10 +434,10 @@ export default function SignupScreen() {
           </Form.Select>
         </Form.Group>
 
-        <Form.Group className="mb-3" controlId="sellerPhoneNumberAccountAlternative">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta</Form.Label>
+        <Form.Group className="mb-3" controlId="accountNumber">
+        <GoNumber /> <Form.Label>Número de conta</Form.Label>
           <Form.Control
-            type="text"
+            type="Number"
             value={accountNumber}
             onChange={(e) => {
               setAccountNumber(e.target.value);
@@ -379,8 +446,8 @@ export default function SignupScreen() {
         </Form.Group>
 
 
-        <Form.Group className="mb-3" controlId="numeroAccountAlternative">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta alternativo (opcional)</Form.Label>
+        <Form.Group className="mb-3" controlId="accountTypeAlternative">
+        <CiCreditCard1 /> <Form.Label>Tipo de conta alternativo [opcional]</Form.Label>
             <Form.Select aria-label="Tipo de conta para transferências"
           value={alternativeAccountType}
           onChange={(e)=>setAlternativeAccountType(e.target.value)}>
@@ -394,9 +461,9 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="numeroAccountAlternative">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta alternativo (opcional)</Form.Label>
+        <GoNumber /><Form.Label>Número de conta alternativo [opcional]</Form.Label>
           <Form.Control
-             type="text"
+             type="Number"
             value={alternativeAccountNumber}
             onChange={(e) => {
               setAlternativeAccountNumber(e.target.value);
@@ -407,9 +474,9 @@ export default function SignupScreen() {
 
          
           <br/>
-          <div><h4>Detalhes da sua Loja </h4>
+          <div><h4>Detalhes da sua loja </h4>
           <Form.Group className="mb-3" controlId="sellerName">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome da Loja/empresa</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome da loja/empresa</Form.Label>
           <Form.Control
             type="text"
             value={sellerName}
@@ -422,7 +489,7 @@ export default function SignupScreen() {
 
 
         <Form.Group className="mb-3" controlId="sellerLogo">
-              <Form.Label>Logo da Loja</Form.Label>
+              <Form.Label>Logo da loja</Form.Label>
               {sellerLogo && (
                 <img
                   style={{
@@ -474,7 +541,7 @@ export default function SignupScreen() {
           </Form.Select>
         </Form.Group>
 
-        <Form.Group className="mb-3" controlId="sellerDescription">
+        <Form.Group className="mb-3" controlId="address">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Endereço da loja [Rua/Av.]</Form.Label>
           <Form.Control
             type="text"
@@ -487,12 +554,27 @@ export default function SignupScreen() {
           />
         </Form.Group>
 
+
+        <div>
+                  
+        <Form.Group className="mb-3" controlId="dayWeek">
+        <FaCalendarAlt /> <Form.Label>Dia de semana</Form.Label>
+            <Form.Select aria-label="Week"
+          value={dayOfWeek}
+          onChange={(e)=>setDayOfWeek(e.target.value)}>
+            <option value="">Seleccione</option>
+            {daysOfWeek && daysOfWeek.map(day => (
+            <option key={day} value={day}>
+              {day}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
         <Form.Group className="mb-3" controlId="sellerOpentime">
           <FontAwesomeIcon icon={faClock} /> <Form.Label>Hora de abertura</Form.Label>
           <Form.Control
             type="time"
             value={opentime}
-            required
             onChange={(e) => {
               setOpentime(e.target.value);
             }}
@@ -504,12 +586,31 @@ export default function SignupScreen() {
           <Form.Control
             type="time"
             value={closetime}
-            required
             onChange={(e) => {
               setClosetime(e.target.value);
             }}
           />
         </Form.Group>
+            <Button onClick={handleAddItem}>Adicionar</Button>
+       </div>
+
+       {workDaysWithTime && <h6>Dias úteis e horário</h6>}
+      <ul>
+        {workDaysWithTime.map((item, index) => (
+          <li key={index}>
+            {item.dayOfWeek}: {item.opentime} - {item.closetime}
+            <Button
+                        variant="light"
+                        onClick={() => removeDayWeek(index)}
+                      >
+                        {' '}
+                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
+                      </Button>
+          </li>
+        ))}
+      </ul>
+
+       
 
         </div>
 

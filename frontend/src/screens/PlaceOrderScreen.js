@@ -44,6 +44,7 @@ export default function PlaceOrderScreen() {
 
   const [message] = useState('Faça login ou cadastro da sua conta para poder acompanhar o progresso do seu pedido pela plataforma ou por SMS no seu telefone');
 
+  const [sellerDayInfo, setSellerDayInfo] = useState('');
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -65,6 +66,36 @@ export default function PlaceOrderScreen() {
   }, [address, navigate]);
 
 
+  useEffect(() => {
+    // Get the current time
+    const currentTime = new Date();
+    const currentDay = currentTime.getDay();
+
+    
+const hours = currentTime.getHours().toString().padStart(2, '0'); // Get the hours and pad with leading 0 if needed
+const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
+
+const formattedDatetime = `${hours}:${minutes}`;
+
+
+    const seller = cart.cartItems && cart.cartItems[0].seller.seller
+    
+    seller.workDayAndTime.map(async workday=>{
+      
+      if(workday.dayNumber === currentDay){
+
+      if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+          setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+      }else{
+        setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+      }
+    }else{
+      setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+    }
+    })
+  }, []);
+
+
 
   const round2 = (num) => Math.round(num * 100 + Number.EPSILON) / 100; // 1234.3213123 => 1234.32
 
@@ -80,42 +111,121 @@ export default function PlaceOrderScreen() {
   cart.totalPrice =
     (cart.itemsPrice + cart.addressPrice + cart.siteTax ).toFixed(2);
 
+
   const placeOrderHandler = async () => {
+
+
+    // Get the current time
+    const currentTime = new Date();
+    const currentDay = currentTime.getDay();
+
+    
+const hours = currentTime.getHours().toString().padStart(2, '0'); // Get the hours and pad with leading 0 if needed
+const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
+
+const formattedDatetime = `${hours}:${minutes}`;
+
+
+    const seller = cart.cartItems && cart.cartItems[0].seller.seller
+
+    // pego a variavel do dia de semana actual 
+
+    // Crio um ciclo e verificar se o dia de semana actual com os dias de semana preenchidos pelo fornecedor sao iguais
+    // caso o dia de semana seja igual com o dia de semana adicionado pelo fornecedor
+    // O sistema verifica se a hora actual do sistema e a hora definida pelo fornecedor esta  entre a hora de abertura e fecho
+    // caso esteja a hora esteja entre o sistema regista o pedido
+    // caso nao o sistema emite uma mensagem informando que "Nao podemos efectuar o seu registo pois a loja neste momento encontra-se fechada" e nao regista o pedido
+    // Caso o dia de semana actual e o dia de semana disponivel na listagem forem diferentes
+
+
+    if(seller.workDayAndTime.length===0){
+      try {
+        dispatch({ type: 'CREATE_REQUEST' });
+  
+       
+        const { data } = await axios.post(
+          '/api/orders',
+          {
+            orderItems: cart.cartItems,
+            address: cart.address,
+            paymentMethod: cart.paymentMethod,
+            itemsPrice: cart.itemsPrice,
+            ivaTax: cart.ivaTax,
+            siteTax: cart.siteTax,
+            taxPrice: cart.taxPrice,
+            totalPrice: cart.totalPrice,
+            addressPrice: cart.addressPrice,
+          },
+          {
+            headers: {
+              authorization: `Bearer ${userInfo.token}`,
+            },
+          }
+        );
+        ctxDispatch({ type: 'CART_CLEAR' });
+        dispatch({ type: 'CREATE_SUCCESS' });
+        navigate(`/order/${data.order._id}`);
+        toast.success('Pedido efectuado com sucesso');
+      } catch (err) {
+        toast.error(getError(err));
+      }
+    }
+    
+    
+    seller.workDayAndTime.map(async workday=>{
+      
+      if(workday.dayNumber === currentDay){
+
+      if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+        // esta tudo bem passa.
+        // Esta dentro do periodo informado
+
+        try {
+          dispatch({ type: 'CREATE_REQUEST' });
+    
+         
+          const { data } = await axios.post(
+            '/api/orders',
+            {
+              orderItems: cart.cartItems,
+              address: cart.address,
+              paymentMethod: cart.paymentMethod,
+              itemsPrice: cart.itemsPrice,
+              ivaTax: cart.ivaTax,
+              siteTax: cart.siteTax,
+              taxPrice: cart.taxPrice,
+              totalPrice: cart.totalPrice,
+              addressPrice: cart.addressPrice,
+            },
+            {
+              headers: {
+                authorization: `Bearer ${userInfo.token}`,
+              },
+            }
+          );
+          ctxDispatch({ type: 'CART_CLEAR' });
+          dispatch({ type: 'CREATE_SUCCESS' });
+          navigate(`/order/${data.order._id}`);
+          toast.success('Pedido efectuado com sucesso');
+        } catch (err) {
+          toast.error(getError(err));
+        }
+      }
+    }else{
+      toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
+      return;
+    }
+    })
+    // Compare the current time with the threshold
+    // const isPastThreshold =
+    //   currentHour > thresholdHour ||
+    //   (currentHour === thresholdHour && currentMinute >= thresholdMinute);
 
     if (!userInfo) {
       setIsModalOpen(true)
       return
     }
-    try {
-      dispatch({ type: 'CREATE_REQUEST' });
-
-     
-      const { data } = await axios.post(
-        '/api/orders',
-        {
-          orderItems: cart.cartItems,
-          address: cart.address,
-          paymentMethod: cart.paymentMethod,
-          itemsPrice: cart.itemsPrice,
-          ivaTax: cart.ivaTax,
-          siteTax: cart.siteTax,
-          taxPrice: cart.taxPrice,
-          totalPrice: cart.totalPrice,
-          addressPrice: cart.addressPrice,
-        },
-        {
-          headers: {
-            authorization: `Bearer ${userInfo.token}`,
-          },
-        }
-      );
-      ctxDispatch({ type: 'CART_CLEAR' });
-      dispatch({ type: 'CREATE_SUCCESS' });
-      navigate(`/order/${data.order._id}`);
-      toast.success('Pedido efectuado com sucesso');
-    } catch (err) {
-      toast.error(getError(err));
-    }
+   
   };
 
   return (
@@ -125,7 +235,7 @@ export default function PlaceOrderScreen() {
       </Helmet>
 
       <CheckoutSteps step1 step2 step3 step4 ></CheckoutSteps>
-      <h1>Confirmar pedido</h1>
+      <h1>Confirmar pedido - {sellerDayInfo}</h1>
       <Row>
         <Col md={8}>
           <Card className="mb-3">

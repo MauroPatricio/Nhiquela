@@ -129,7 +129,7 @@ function App() {
         <Helmet>
           <title>Nhiquela Shop</title>
         </Helmet>
-        <ToastContainer position="top-right" autoClose={1000} />
+        <ToastContainer position="top-right" autoClose={3000} />
 
          <header >
           <Navbar

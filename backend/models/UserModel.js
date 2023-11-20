@@ -18,11 +18,17 @@ const modelSchema = new mongoose.Schema({
         description: {type: String},
         rating: {type: Number, default: 0,},
         numReviews: {type: Number, default: 0, },
-        opentime: {type: String},
-        closetime: {type: String},
         province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province',  default: null},
         address: {type: String},
-        
+        workDayAndTime: [
+            {
+              dayNumber: Number,
+              dayOfWeek: String,
+              opentime:  String,
+              closetime: String,
+            },
+          ],
+
         phoneNumberAccount: {type: Number},
         alternativePhoneNumberAccount: {type: Number},
 

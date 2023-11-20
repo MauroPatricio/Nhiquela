@@ -22,6 +22,7 @@ const productSchema = new mongoose.Schema({
     description: {type: String, required: true},
     price: {type: Number, required: true},
     priceWithComission: {type: Number},
+    comission: {type: Number},
     countInStock: {type: Number, required: true},
     rating: {type: Number, required: true},
     numReviews: {type: Number, required: true},

@@ -6,7 +6,7 @@ export default function Help() {
        <img 
             className='howitworks'
             src="images/nhiquelaCompras.png" 
-            alt="Como comprar na site" ></img>    
+            alt="Como comprar no site" ></img>    
             
       
     </div>

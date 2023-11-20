@@ -17,6 +17,8 @@ import { faCar } from '@fortawesome/free-solid-svg-icons';
 import { faClockFour } from '@fortawesome/free-solid-svg-icons';
 import { faListNumeric } from '@fortawesome/free-solid-svg-icons';
 import { faDriversLicense } from '@fortawesome/free-solid-svg-icons';
+import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { FaCalendarAlt } from "react-icons/fa";
 
 
 const reducer = (state, action) => {
@@ -125,6 +127,64 @@ export default function ProfileScreen() {
   const [deliveryMantransportRegistration, setDeliveryMantransportRegistration] = useState('');
   const [deliveryMantransportColor, setDeliveryMantransportColor] = useState('');
 
+  
+  const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Feriados'];
+  const [workDaysWithTime, setWorkDaysWithTime] = useState([]);
+  const [dayOfWeek, setDayOfWeek] = useState('');
+
+
+  const removeDayWeek = (index) => {
+    const workDays = [...workDaysWithTime];
+    workDays.splice(index, 1); // Remove the item at the specified index
+    setWorkDaysWithTime(workDays); // Update the items list
+  };
+  const handleAddItem = () => {
+    // Validar entrada do usuário, se necessário
+    if (dayOfWeek && opentime && closetime) {
+let dayNumber = 0;
+        if(dayOfWeek){
+          const selectedWorkDay = workDaysWithTime.find((workDay) => workDay.dayOfWeek === dayOfWeek);    
+
+          if(!selectedWorkDay){
+
+            if(dayOfWeek.includes("Dom")|| dayOfWeek.includes("Sun"))
+            dayNumber=0;
+         if(dayOfWeek.includes("Seg")|| dayOfWeek.includes("Mon"))
+            dayNumber=1;
+         if(dayOfWeek.includes("Ter")|| dayOfWeek.includes("Tue"))
+            dayNumber=2;
+         if(dayOfWeek.includes("Qua")|| dayOfWeek.includes("Wed"))
+            dayNumber=3;
+         if(dayOfWeek.includes("Qui")|| dayOfWeek.includes("Thu"))
+            dayNumber=4;
+         if(dayOfWeek.includes("Sex")|| dayOfWeek.includes("Fri"))
+            dayNumber=5;
+         if(dayOfWeek.includes("Sab")|| dayOfWeek.includes("Sat"))
+            dayNumber=6;
+         if(dayOfWeek.includes("Fer")|| dayOfWeek.includes("Hol"))
+             dayNumber=7;
+
+            const newItem = {
+              dayNumber,
+              dayOfWeek,
+              opentime,
+              closetime
+            };
+            setWorkDaysWithTime([...workDaysWithTime, newItem]);
+            setDayOfWeek('');
+            setOpentime('');
+            setClosetime('');
+          
+          }
+        
+        }
+      
+    } else {
+      // Lidar com erro de entrada inválida, se necessário
+      toast.error('Por favor, preencha todos os campos.');
+    }
+  };
+
 
   const accountTypes = [
     { _id: 1, name: 'BCI' },
@@ -188,8 +248,7 @@ export default function ProfileScreen() {
 
           sellerLocation,
           sellerAddress,
-          opentime,
-          closetime,
+          workDaysWithTime,
 
           //deliveryMan details
           isDeliveryMan,
@@ -244,7 +303,8 @@ export default function ProfileScreen() {
           setOpentime(data.seller.opentime);
           setClosetime(data.seller.closetime);
           setIsApproved(data.seller.isApproved)
-    
+          setWorkDaysWithTime(data.seller.workDayAndTime);
+
         }
         if (data.isDeliveryMan) {
           setDeliveryManPhoneNumber(data.phoneNumber);
@@ -453,7 +513,7 @@ export default function ProfileScreen() {
           className="mb-3"
           type="checkbox"
           id="isSeller"
-          label="É Vendedor?"
+          label="É fornecedor?"
           checked={isSeller}
           onChange={(e) => setIsSeller(e.target.checked)}
         ></Form.Check>
@@ -633,12 +693,26 @@ export default function ProfileScreen() {
           />
         </Form.Group>
 
+        <div>
+                  
+        <Form.Group className="mb-3" controlId="dayWeek">
+        <FaCalendarAlt /> <Form.Label>Dia de semana</Form.Label>
+            <Form.Select aria-label="Week"
+          value={dayOfWeek}
+          onChange={(e)=>setDayOfWeek(e.target.value)}>
+            <option value="">Seleccione</option>
+            {daysOfWeek && daysOfWeek.map(day => (
+            <option key={day} value={day}>
+              {day}
+            </option>
+        ))}
+          </Form.Select>
+        </Form.Group>
         <Form.Group className="mb-3" controlId="sellerOpentime">
           <FontAwesomeIcon icon={faClock} /> <Form.Label>Hora de abertura</Form.Label>
           <Form.Control
             type="time"
             value={opentime}
-            required
             onChange={(e) => {
               setOpentime(e.target.value);
             }}
@@ -650,14 +724,32 @@ export default function ProfileScreen() {
           <Form.Control
             type="time"
             value={closetime}
-            required
             onChange={(e) => {
               setClosetime(e.target.value);
             }}
-
-            
           />
         </Form.Group>
+            <Button onClick={handleAddItem}>Adicionar</Button>
+       </div>
+
+       {workDaysWithTime && <h6>Dias úteis e horário</h6>}
+      <ul>
+        {workDaysWithTime && workDaysWithTime.map((item, index) => (
+          <li key={index}>
+            {item.dayOfWeek}: {item.opentime} - {item.closetime}
+            <Button
+                        variant="light"
+                        onClick={() => removeDayWeek(index)}
+                      >
+                        {' '}
+                        <FontAwesomeIcon icon={faTimesCircle}></FontAwesomeIcon>
+                      </Button>
+          </li>
+        ))}
+      </ul>
+
+       
+
         </div>
           </>
         )}

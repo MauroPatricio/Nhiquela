@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Store } from '../Store';
 import Row from 'react-bootstrap/Row';
@@ -17,8 +17,11 @@ import axios from 'axios';
 
 import { useNavigate } from 'react-router-dom';
 
+
+
 export default function CartScreen() {
   const navigate = useNavigate();
+  const [sellerDayInfo, setSellerDayInfo] = useState('');
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const {
@@ -29,6 +32,34 @@ export default function CartScreen() {
 
  
 
+  useEffect(() => {
+    // Get the current time
+    const currentTime = new Date();
+    const currentDay = currentTime.getDay();
+
+    
+const hours = currentTime.getHours().toString().padStart(2, '0'); // Get the hours and pad with leading 0 if needed
+const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
+
+const formattedDatetime = `${hours}:${minutes}`;
+
+
+    const seller = cartItems && cartItems[0].seller.seller
+    
+    seller.workDayAndTime.map(async workday=>{
+      
+      if(workday.dayNumber === currentDay){
+
+      if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+          setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+      }else{
+        setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+      }
+    }else{
+      setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+    }
+    })
+  }, []);
 
   async function updateCartHandler(item, quantity) {
     const { data } = await axios.get(`/api/products/${item._id}`);
@@ -60,7 +91,7 @@ export default function CartScreen() {
       <Helmet>
         <title>Carrinha de compras</title>
       </Helmet>
-      <h1>Carrinha de compras:               <Link className="text_color link-none" to={`/seller/${cartItems[0] && cartItems[0].seller._id}`}>{cartItems[0] && cartItems[0].seller.seller.name}</Link></h1>
+      <h1>Carrinha de compras:               <Link className="text_color link-none" to={`/seller/${cartItems[0] && cartItems[0].seller._id}`}>{cartItems[0] && cartItems[0].seller.seller.name}</Link> - {sellerDayInfo}</h1>
           {error && <MessageBox variant="danger">{error}</MessageBox>}
       <Row>
         <Col md={8}>

@@ -108,6 +108,7 @@ userRouter.put(
         user.seller.alternativeAccountType=req.body.alternativeAccountType || user.seller.alternativeAccountType;
         user.seller.alternativeAccountNumber=req.body.alternativeAccountNumber || user.seller.alternativeAccountNumber;
 
+        user.seller.workDayAndTime = req.body.workDaysWithTime || user.seller.workDaysWithTime;
       }else{
         user.seller.name = "";
         user.seller.description = "";
@@ -122,6 +123,7 @@ userRouter.put(
         user.seller.accountNumber="";
         user.seller.alternativeAccountType="";
         user.seller.alternativeAccountNumber="";
+        user.seller.workDayAndTime=[];
       }
 
 
@@ -323,13 +325,12 @@ if (!userExist) {
         password: bcrypt.hashSync(req.body.password),
         isSeller: req.body.isSeller,
       });
+
       if (newUser.isSeller) {
         const seller = {
           name: req.body.sellerName,
           logo: req.body.sellerLogo,
           description: req.body.sellerDescription,
-          opentime: req.body.opentime,
-          closetime: req.body.closetime,
           province: req.body.sellerLocation,
           address:  req.body.sellerAddress,
           phoneNumberAccount:  req.body.phoneNumberAccount,
@@ -337,7 +338,8 @@ if (!userExist) {
           accountType:  req.body.accountType,
           accountNumber: req.body.accountNumber,
           alternativeAccountType: req.body.alternativeAccountType,
-          alternativeAccountNumber: req.body.alternativeAccountNumber
+          alternativeAccountNumber: req.body.alternativeAccountNumber,
+          workDayAndTime: req.body.workDaysWithTime
 
         };
         newUser.seller = seller;

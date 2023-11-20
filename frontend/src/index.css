@@ -335,6 +335,10 @@ table {
   color: #a435f0;
 }
 
+.color-transparent{
+  color:#808080
+}
+
 .space {
   margin-left: 10px;
 }
