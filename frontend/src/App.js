@@ -83,7 +83,7 @@ import SearchOnSaleScreen from './screens/SearchOnSaleScreen';
 import EmailSentScreen from './screens/EmailSentScreen';
 import { getError } from './utils';
 
-function App() {
+export  function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
 
   const { cart, userInfo } = state;

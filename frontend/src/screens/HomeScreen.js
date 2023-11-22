@@ -47,7 +47,7 @@ const reducer = (state, action) => {
       return state;
   }
 };
-function HomeScreen() {
+export function HomeScreen() {
   const [
     {
       loading,

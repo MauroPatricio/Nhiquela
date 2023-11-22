@@ -140,7 +140,7 @@ function ProductScreen() {
     if(cart.cartItems.length > 0 && product.seller._id !== cart.cartItems[0].seller._id){
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
-        payload: `Na carrinha, Só e permitido adicionar produtos pertecentes a um único fornecedor por vez, ${cart.cartItems[0].seller.seller.name} `,
+        payload: `Na carrinha, só e permitido adicionar produtos pertecentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos produtos pertencentes a loja anterior `,
       });
     }else{
       ctxDispatch({
