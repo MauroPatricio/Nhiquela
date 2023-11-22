@@ -159,8 +159,9 @@ export default function SignupScreen() {
              dayNumber=5;
           if(dayOfWeek.includes("Sab")|| dayOfWeek.includes("Sat"))
              dayNumber=6;
-          if(dayOfWeek.includes("Fer")|| dayOfWeek.includes("Hol"))
-              dayNumber=7;
+          if(dayOfWeek.includes("Fer")|| dayOfWeek.includes("Hol")){
+            dayNumber=7;
+          }
            
             const newItem = {
                dayOfWeek,

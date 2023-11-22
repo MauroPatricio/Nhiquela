@@ -79,6 +79,7 @@ const orderSchema = new mongoose.Schema(
     isInTransit: { type: Boolean, default: false },
     deliveredAt: { type: Date },
     status:{type: String},
+    stepStatus:{type: Number},
     code: {type: String},
     deleted: { type: Boolean, default: false },
     canceledReason: { type: String},

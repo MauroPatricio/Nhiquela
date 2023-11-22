@@ -177,6 +177,8 @@ orderRouter.post(
       user: req.user._id,
       code: generateCode(),
       status: 'Pendente',
+      stepStatus: 0,
+
     });
 
 
@@ -334,6 +336,7 @@ orderRouter.put(
 
     if (order) {
       order.isPaid = true;
+      order.stepStatus = 1;
       order.paidAt = Date.now();
       order.paymentResult = {
         id: req.body.id,
@@ -369,14 +372,76 @@ orderRouter.put(
   })
 );
 
+
 orderRouter.put(
-  '/:id/confirmDestination',
+  '/:id/accept',
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
-      order.status = 'No destino indicado';
+      order.isAccepted = true;
+      order.isCanceled = false;
+      order.stepStatus = 2;
+      order.status = 'Aceite';
+      await order.save();
+
+      //  Para envio de mensagens
+
+    let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
+ 
+    //  sendSMSToUSendIt(req, msg);
+    sendEmailOrderStatus(req,msg, order, res);
+
+      res.send({ message: `Pedido aceite com sucesso` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+
+orderRouter.put(
+  '/:id/availableToDeliver',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.isAvailableToDeliver = true;
+      order.status = 'Pronto';
+      order.stepStatus = 3;
+      if(order.addressPrice === 0){
+        order.status = 'Finalizado';
+        order.isInTransit = true;
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
+      }
+
+      await order.save();
+
+      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+
+      sendEmailOrderStatus(req,msg, order, res);
+
+//  sendSMSToUSendIt(req, msg);
+      res.send({ message: `Pedido disponível para entrega` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+
+orderRouter.put(
+  '/:id/acceptedByDeliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.status = 'Aceite pelo entregador';
+      order.stepStatus=4;
       const updateOrder = await order.save();
 
 
@@ -384,63 +449,20 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
+       let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o seu pedido correspondente ao pedido nr ${updateOrder.code}`;
  
       //  sendSMSToUSendIt(msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
 
-      res.send({ message: `No destino indicado`, order: updateOrder });
+      res.send({ message: `Aceite pelo entregador`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
   })
 );
 
-orderRouter.put(
-  '/:id/deliver',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-
-    if (order) {
-      //     order.isPaid = true;
-      //     order.paidAt= Date.now();
-
-
-
-      order.isDelivered = true;
-      order.deliveredAt = Date.now();
-      order.status = 'Finalizado';
-
-      order.paymentResult = {
-        id: req.body.id,
-        status: req.body.status,
-        update_time: req.body.update_time,
-        email_address: req.body.email_address,
-      };
-      await order.save();
-
-       //  Para envio de mensagens
-
-      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher a Nhiquela Shop.`;
- 
-      //  sendSMSToUSendIt(req,msg);
-
-      const sellerOfProduct = await User.findById(order.seller);
-
-
-      sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
-
-      // sendSMSToUSendIt(req, msg);
-
-      res.send({ message: `Pedido entregue com sucesso ` });
-    } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
-    }
-  })
-);
 
 orderRouter.put(
   '/:id/intransit',
@@ -454,7 +476,7 @@ orderRouter.put(
       //     order.paidAt= Date.now();
       order.status = 'Em trânsito';
       order.isInTransit = true;
-
+      order.stepStatus=5;
 
       if(user_deliver.isDeliveryMan){
 
@@ -497,6 +519,82 @@ orderRouter.put(
 );
 
 orderRouter.put(
+  '/:id/confirmDestination',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.status = 'No destino indicado';
+      order.stepStatus= 5;
+      const updateOrder = await order.save();
+
+
+      const sellerOfProduct = await User.findById(order.seller);
+
+      //  Para envio de mensagens
+
+       let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
+ 
+      //  sendSMSToUSendIt(msg);
+
+      sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
+
+
+      res.send({ message: `No destino indicado`, order: updateOrder });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+orderRouter.put(
+  '/:id/deliver',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      //     order.isPaid = true;
+      //     order.paidAt= Date.now();
+
+
+
+      order.isDelivered = true;
+      order.deliveredAt = Date.now();
+      order.status = 'Finalizado';
+      order.stepStatus = 6;
+
+      order.paymentResult = {
+        id: req.body.id,
+        status: req.body.status,
+        update_time: req.body.update_time,
+        email_address: req.body.email_address,
+      };
+      await order.save();
+
+       //  Para envio de mensagens
+
+      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher a Nhiquela Shop.`;
+ 
+      //  sendSMSToUSendIt(req,msg);
+
+      const sellerOfProduct = await User.findById(order.seller);
+
+
+      sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
+
+      // sendSMSToUSendIt(req, msg);
+
+      res.send({ message: `Pedido entregue com sucesso ` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+
+orderRouter.put(
   '/:id/cancel',
   isAuth,
   expressAsyncHandler(async (req, res) => {
@@ -513,6 +611,7 @@ orderRouter.put(
       order.isCanceled = true;
       order.isAccepted = false;
       order.status = 'Cancelado';
+      order.stepStatus = 7;
       order.canceledReason = req.body.message;
 
 
@@ -536,62 +635,5 @@ orderRouter.put(
   })
 );
 
-orderRouter.put(
-  '/:id/accept',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-
-    if (order) {
-      order.isAccepted = true;
-      order.isCanceled = false;
-
-      order.status = 'Aceite';
-      await order.save();
-
-      //  Para envio de mensagens
-
-    let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
- 
-    //  sendSMSToUSendIt(req, msg);
-    sendEmailOrderStatus(req,msg, order, res);
-
-      res.send({ message: `Pedido aceite com sucesso` });
-    } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
-    }
-  })
-);
-
-orderRouter.put(
-  '/:id/availableToDeliver',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-
-    if (order) {
-      order.isAvailableToDeliver = true;
-      order.status = 'Pronto';
-
-      if(order.addressPrice === 0){
-        order.status = 'Finalizado';
-        order.isInTransit = true;
-        order.isDelivered = true;
-        order.deliveredAt = Date.now();
-      }
-
-      await order.save();
-
-      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr ${order.code} esta pronto e disponivel para entrega.`;
-
-      sendEmailOrderStatus(req,msg, order, res);
-
-//  sendSMSToUSendIt(req, msg);
-      res.send({ message: `Pedido disponível para entrega` });
-    } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
-    }
-  })
-);
 
 export default orderRouter;

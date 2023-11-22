@@ -36,11 +36,11 @@ export default function OrderSteps(props) {
        <br/>
         </Col>
 
-        {/* <Col className={props.status==='Aceite pelo entregador' ? 'active' : ''}>
+        <Col className={props.status==='Aceite pelo entregador' ? 'active' : ''}>
         <BsPersonFillCheck  className={props.status==='Aceite pelo entregador' ? 'active icon-active' : ''}></BsPersonFillCheck><br/>
         Aceite pelo entregador<br/>
        <br/>
-        </Col> */}
+        </Col>
 
         <Col className={props.status==='Em trânsito' ? 'active' : ''}>
         <FaShippingFast  className={props.status==='Em trânsito' ? 'active icon-active' : ''}></FaShippingFast><br/>

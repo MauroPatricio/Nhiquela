@@ -53,7 +53,7 @@ export default function PlaceOrderScreen() {
 
   const [message] = useState('Faça login ou cadastro da sua conta para poder acompanhar o progresso do seu pedido pela plataforma ou por SMS no seu telefone');
 
-  const [sellerDayInfo, setSellerDayInfo] = useState('');
+  const [sellerDayInfo, setSellerDayInfo] = useState(<span style={{color: 'red'}}>[Loja fechada]</span>);
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -83,7 +83,7 @@ export default function PlaceOrderScreen() {
     const fetchSellerDetails = async () => {
       try {
         dispatch({ type: 'SELLER_DETAILS_REQUEST' });
-        const sellerId = cart.cartItems && cart.cartItems[0].seller._id;
+        setSellerId(cart.cartItems && cart.cartItems[0].seller._id);
   
         const { data } = await axios.get(`/api/users/${sellerId}`, {});
         setSeller(data)
@@ -93,7 +93,7 @@ export default function PlaceOrderScreen() {
       }
     };
     fetchSellerDetails();
-  }, [dispatch, sellerId]);
+  }, [dispatch, sellerId, cart.cartItems]);
   
     useEffect( () => {
       // Get the current time
@@ -111,15 +111,12 @@ export default function PlaceOrderScreen() {
         seller.seller.workDayAndTime.map(async workday=>{
           
           if(workday.dayNumber === currentDay){
-    
-          if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-              setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
-          }else{
-            setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
+
+            if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+                  setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+                  return
+            }
           }
-        }else{
-          setSellerDayInfo(<span style={{color: 'red'}}>[Loja fechada]</span>)
-        }
         })
       }
     }, [seller]);
@@ -134,8 +131,8 @@ export default function PlaceOrderScreen() {
   );
 
   cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
-  cart.siteTax = round2(0.15 * cart.itemsPrice);
-  cart.ivaTax = round2(0.15 * cart.itemsPrice);
+  cart.siteTax = round2(0.16 * cart.itemsPrice);
+  cart.ivaTax = round2(0.16 * cart.itemsPrice);
 
 
   cart.totalPrice =
@@ -367,7 +364,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                 </ListGroup.Item>}
                 <ListGroup.Item>
                   <Row>
-                    <Col>Outros serviços</Col>
+                    <Col>IVA (16%)</Col>
                     <Col>{cart.siteTax} MT</Col>
                   </Row>
                 </ListGroup.Item>
