@@ -1,0 +1,35 @@
+{
+    "greeting": "Olá, mundo!",
+    "selectLanguage": "Selecionar Idioma",
+    "profile":"Perfil",
+    "myorders":"Meus pedidos",
+    "orderstodeliver":"Pedidos por entregar",
+    "logout":"Sair",
+    "login":"Aceder",
+    "myproducts":"Meus produtos",
+    "orderclients":"Pedidos dos clientes",
+    "dashboard":"Painel de controle",
+    "provinces":"Províncias",
+    "doctypes":"Tipos de documentos",
+    "categories":"Categorias",
+    "availablecolors":"Cores disponíveis",
+    "availablesizes":"Tamanhos disponíveis",
+    "productcondition":"Condição de uso do produto",
+    "productquality":"Qualidade do produto",
+    "products":"Produtos",
+    "orders":"Pedidos",
+    "userslist":"Lista de usuários",
+    "Support":"Suporte",
+    "stayconnected":"Fique conectado a nós nas seguintes redes sociais",
+    "everythinginhands":"Tudo em suas mãos",
+    "wedeliveryourorder":"Fazemos entrega de seus pedidos de forma rápida, fácil e segura",
+    "importantlinks":"Links importantes",
+    "howtobuy":"Como comprar",
+    "howtobesupplier":"Como tornar-se fornecedor",
+    "termsandcondition":"Termos e condições",
+    "reservedrights":"Todos os direitos são reservados"
+
+
+
+    
+  }

@@ -602,3 +602,37 @@ margin-left: 250px;
 .howitworks{
   text-align: center;
 }
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 2px; /* Adjust padding as needed */
+  padding: 2px; /* Adjust padding as needed */
+
+  font-size: 16px; /* Adjust font size as needed */
+}
+
+/* Add a background color and border to make it visually distinct */
+select {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Style the dropdown arrow */
+select::after {
+  content: '\25BC'; /* Unicode character for down arrow */
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Style when the select box is focused */
+select:focus {
+  outline: none; /* Remove the default focus outline */
+  border-color: #007bff; /* Change border color when focused */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Add a subtle box shadow */
+}

@@ -1,0 +1,42 @@
+{
+    "greeting": "Hello, world!",
+    "selectLanguage": "Select Language",
+    "profile":"Profile",
+    "myorders":"My orders",
+    "orderstodeliver":"Orders to deliver",
+    "logout":"Logout",
+    "login":"Login",
+    "myproducts":"My products",
+    "orderclients":"Customer orders",
+    "dashboard":"Dashboard",
+    "provinces":"Provinces",
+    "doctypes":"Types of documents",
+    "categories":"Categories",
+    "availablecolors":"Available colors",
+    "availablesizes":"Available sizes",
+    "productcondition":"Product use condition",
+    "productquality":"Product quality",
+    "products":"Products",
+    "orders":"Orders",
+    "userslist":"Users List",
+    "Support":"Support",
+    "stayconnected":"Stay connected with us on the following social networks",
+    "everythinginhands":"Everything in your hands",
+    "wedeliveryourorder":"We deliver your orders quickly, easily and safely",
+    "importantlinks":"Important links",
+    "howtobuy":"How to buy",
+    "howtobesupplier":" How to become a supplier",
+    "termsandcondition":"Terms and conditions",
+    "reservedrights":"All rights are reserved"
+
+
+
+   
+
+
+
+
+
+
+
+  }

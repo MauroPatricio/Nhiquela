@@ -5,10 +5,13 @@ import { FaTiktok } from "react-icons/fa";
 import { FaYoutube } from "react-icons/fa";
 import { Link } from 'react-router-dom';
 
+import LanguageSwitcher from './../LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 
 
 export default function Footer() {
+  const { t } = useTranslation();
 
   const handleFacebookClick = (e) => {
     e.preventDefault(); // Prevent the default navigation behavior
@@ -52,7 +55,7 @@ export default function Footer() {
            style={{backgroundColor: '#6351ce'}}
            >
     <div className="me-5">
-      <span>Fique conectado a nós nas seguintes redes sociais:</span>
+      <span>{t('stayconnected')}</span>
     </div>
 
     <div>
@@ -69,6 +72,7 @@ export default function Footer() {
       <a href="#" onClick={handleInstagramClick} className="text-white me-4">
       <FaInstagram></FaInstagram>
       </a>
+    <LanguageSwitcher />
     </div>
   </section>
 
@@ -90,25 +94,27 @@ export default function Footer() {
 
               />
           <p>
-          Tudo em suas mãos. <br/>Fazemos entrega de seus pedidos de forma rápida, fácil e segura
+         {t('everythinginhands')} <br/>{t('wedeliveryourorder')}
           </p>
         </div>
    
         <div className="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
-          <h6 className="text-uppercase fw-bold">Links importantes</h6>
+          <h6 className="text-uppercase fw-bold">{t('importantlinks')}</h6>
           <hr
               className="mb-4 mt-0 d-inline-block mx-auto"
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
+       
+
           <p>
-            <Link to="/help" className="text-white link-none">Como comprar</Link>
+            <Link to="/help" className="text-white link-none">{t('howtobuy')}</Link>
           </p>
           <p>
-            <Link to="/howtobeseller" className="text-white link-none">Como tornar-se fornecedor</Link>
+            <Link to="/howtobeseller" className="text-white link-none">{t('howtobesupplier')}</Link>
           </p>
           <p>
-            <Link to="/terms" className="text-white link-none">Termos e condições</Link>
+            <Link to="/terms" className="text-white link-none">{t('termsandcondition')}</Link>
           </p>
         </div>
 
@@ -136,7 +142,7 @@ export default function Footer() {
        style={{backgroundColor: 'rgba(0, 0, 0, 0.2)'}}
 
        >
-    © 2023 Todos os direitos são reservados {' '}
+    © 2023 {t('reservedrights')} {' '}
     {/* <a className="text-white" href="https://deliveryshop.herokuapp.com/">nhiquelashop.co.mz</a > */}
   </div>
   </footer>

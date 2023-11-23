@@ -6,6 +6,22 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { StoreProvider } from './Store';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+
+
+i18n.use(initReactI18next).init({
+  resources: {
+    pt: { translation: require('./../src/locales/pt/translation.json') },
+    en: { translation: require('./../src/locales/en/translation.json') },
+  },
+  lng: 'pt',
+  fallbackLng: 'pt',
+  interpolation: {
+    escapeValue: false,
+  },
+});
 
 // const root = ReactDOM.createRoot(document.getElementById('root'));
 const root =createRoot( document.getElementById('root'));

@@ -83,12 +83,15 @@ import SearchOnSaleScreen from './screens/SearchOnSaleScreen';
 import EmailSentScreen from './screens/EmailSentScreen';
 import { getError } from './utils';
 
+import { useTranslation } from 'react-i18next';
+
 export  function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
 
   const { cart, userInfo } = state;
   const [expanded, setExpanded] = useState(false);
 
+  const { t } = useTranslation();
 
  
   const toggleExpanded = () => {
@@ -146,7 +149,6 @@ export  function App() {
                 </Navbar.Brand>
               </LinkContainer>
               <SearchBox />
-              
               <Navbar.Toggle
                  onClick={toggleExpanded}
                 aria-controls="basic-navbar-nav"
@@ -171,29 +173,30 @@ export  function App() {
                   {userInfo ? (
                     <NavDropdown title={userInfo.name} id="basic-nav-dropdown">
                       <LinkContainer to="/profile">
-                        <NavDropdown.Item>Perfil</NavDropdown.Item>
+                        <NavDropdown.Item>{t('profile')}</NavDropdown.Item>
                       </LinkContainer>
                       {userInfo && !userInfo.isDeliveryMan && (
                         <LinkContainer to="/orderHistory">
-                          <NavDropdown.Item>Meus pedidos</NavDropdown.Item>
+                          <NavDropdown.Item>{t('myorders')}</NavDropdown.Item>
                         </LinkContainer>
                       )}
                       {userInfo && userInfo.isDeliveryMan && (
                         <LinkContainer to="/delivery/orderlist">
                           <NavDropdown.Item>
-                            Pedidos por entregar
+                          {t('orderstodeliver')}
+                            
                           </NavDropdown.Item>
                         </LinkContainer>
                       )}
                       <LinkContainer to="/signin">
                         <NavDropdown.Item onClick={signOutHandler}>
-                          <b>Sair</b>
+                          <b>{t('logout')}</b>
                         </NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
                   ) : (
                     <Link className="nav-link" to="/signin">
-                      Fazer login
+                      {t('login')}
                     </Link>
                   )}
 
@@ -201,10 +204,10 @@ export  function App() {
                   {userInfo && userInfo.isSeller && userInfo.isApproved && (
                     <NavDropdown title={userInfo.seller.name} id="admin-nav-dropdown">
                       <LinkContainer to="/productlist/seller">
-                        <NavDropdown.Item>Meus produtos</NavDropdown.Item>
+                        <NavDropdown.Item>{t('myproducts')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/orderlist/seller">
-                        <NavDropdown.Item>Pedidos dos clientes
+                        <NavDropdown.Item>{t('orderclients')}
                         <Badge
                         bg="danger"
                         variant="danger"
@@ -220,40 +223,40 @@ export  function App() {
                   {userInfo && userInfo.isAdmin && (
                     <NavDropdown title="Admin" id="admin-nav-dropdown">
                       <LinkContainer to="/admin/dashboard">
-                        <NavDropdown.Item>Dashboard</NavDropdown.Item>
+                        <NavDropdown.Item>{t('dashboard')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/provinceList">
-                        <NavDropdown.Item>Provincias</NavDropdown.Item>
+                        <NavDropdown.Item>{t('provinces')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/documentTypeList">
-                        <NavDropdown.Item>Tipos de documentos</NavDropdown.Item>
+                        <NavDropdown.Item>{t('doctypes')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/categoryList">
-                        <NavDropdown.Item>Categorias</NavDropdown.Item>
+                        <NavDropdown.Item>{t('categories')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/colorList">
-                        <NavDropdown.Item>Cores disponíveis</NavDropdown.Item>
+                        <NavDropdown.Item>{t('availablecolors')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/sizeList">
-                        <NavDropdown.Item>Tamanhos disponíveis</NavDropdown.Item>
+                        <NavDropdown.Item>{t('availablesizes')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/conditionstatusList">
-                        <NavDropdown.Item>Condição de uso do produto</NavDropdown.Item>
+                        <NavDropdown.Item>{t('productcondition')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/qualitytypeList">
-                        <NavDropdown.Item>Qualidade do produto</NavDropdown.Item>
+                        <NavDropdown.Item>{t('productquality')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/admin/productlist">
-                        <NavDropdown.Item>Produtos</NavDropdown.Item>
+                        <NavDropdown.Item>{t('products')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/admin/orderlist">
-                        <NavDropdown.Item>Pedidos</NavDropdown.Item>
+                        <NavDropdown.Item>{t('orders')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/admin/userlist">
-                        <NavDropdown.Item>Lista de usuários</NavDropdown.Item>
+                        <NavDropdown.Item>{t('userslist')}</NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/support">
-                        <NavDropdown.Item>Suporte</NavDropdown.Item>
+                        <NavDropdown.Item>{t('Support')}</NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
 
@@ -693,6 +696,7 @@ export  function App() {
           </Container> 
         </main> 
       <footer className='center'>
+
         <Footer></Footer>
               </footer> 
       </div>
