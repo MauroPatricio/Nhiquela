@@ -8,6 +8,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getError } from '../utils';
 import Button from 'react-bootstrap/Button';
+import { useTranslation } from 'react-i18next';
 
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -48,7 +49,8 @@ export default function SearchScreen() {
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
   const province = searchParams.get('province') || 'all';
-  
+  const { t } = useTranslation();
+
 
 
   const [{ loading, error, products, pages, countProducts }, dispatch] =
@@ -92,9 +94,9 @@ export default function SearchScreen() {
   return (
     <div>
       <Helmet>
-        <title>Pesquisar Produtos</title>
+        <title>{t('searchproducts')}</title>
       </Helmet>
-      <h1><p>Pesquisa de Produtos</p></h1>
+      <h1><p>{t('searchproducts')}</p></h1>
       <Row>
         <Col md={3}>
         <CategoriesFilter></CategoriesFilter>
@@ -109,7 +111,7 @@ export default function SearchScreen() {
               <Row className="justify-content-between mb-3">
                 <Col md={6}>
                   <div>
-                    {countProducts === 0 ? '0' : countProducts} Resultado(s) encontrado(s) {' '}
+                    {countProducts === 0 ? '0' : countProducts} {t('resultfound')} {' '}
                     {query !== 'all' && ' : ' + query}
                     {category !== 'all' && ' : ' + products && products[0] && products[0].category && products[0].category.name}
                     {province !== 'all' && ' : ' + products && products[0] && products[0].province && products && products[0].province.name}
@@ -133,20 +135,20 @@ export default function SearchScreen() {
                   </div>
                 </Col>
                 <Col className="text-end">
-                  Organizar por{' '}
+                  {t('orderby')}{' '}
                   <select value={order}
                   onChange={(e)=>{
                     navigate(getFilterUrl({order: e.target.value}));
                   }}>
-                    <option value="newest">Novos produtos</option>
-                    <option value="lowest">Preços: Baixos a Altos</option>
-                    <option value="highest">Preços: Altos a Baixos</option>
-                    <option value="toprated">Avg: Avaliaçōes de Clientes</option>
+                    <option value="newest">{t('newproducts')}</option>
+                    <option value="lowest">{t('lowtohigh')}</option>
+                    <option value="highest">{t('hightolow')}</option>
+                    <option value="toprated">{t('avgcustomerreviews')}</option>
 
                   </select>
                 </Col>
               </Row>
-              {products.length === 0 && (<MessageBox> Produtos não encontrados</MessageBox>)}
+              {products.length === 0 && (<MessageBox> {t('productsnotfound')}</MessageBox>)}
             <Row>
               {products.map((product)=>(
                 <Col sm={6} lg={3} className="mb-3" key={product._id}>

@@ -6,6 +6,7 @@ import { getError } from '../utils';
 import { useReducer } from 'react';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import { useTranslation } from 'react-i18next';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -25,6 +26,7 @@ const reducer = (state, action) => {
 
 export default function CarouselSlide() {
 
+  const { t } = useTranslation();
 
   const [{  popularItems, loadingPopular}, dispatch] = useReducer(reducer, {
     loadingPopular: true,
@@ -51,13 +53,13 @@ export default function CarouselSlide() {
   return (
     <>
 <br/>
-     {popularItems && popularItems.length !== 0 && <h3>Produtos em destaque</h3>} 
+     {popularItems && popularItems.length !== 0 && <h3>{t('featuredproducts')}</h3>} 
     <Carousel showArrows infiniteLoop={true}  autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
       {popularItems && popularItems.map((p) => (
        <Link className="link" to={`/product/${p.slug}`} key={p._id}>
         <div key={p._id}>
           <img className='img-carousel' src={p.image} alt={p.name} />
-                      {p && p.onSale &&  <span className="sale"><b>Em promoção</b></span>}
+                      {p && p.onSale &&  <span className="sale"><b>{t('onsale')}</b></span>}
                       {p && p.onSale &&  <span className="sale-percentage"><b>{p.onSalePercentage*100}%</b></span>}
            
           <p>{p.name}</p>

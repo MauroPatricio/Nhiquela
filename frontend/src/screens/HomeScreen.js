@@ -12,6 +12,7 @@ import CategoriesFilter from '../components/CategoriesFilter';
 import Button from 'react-bootstrap/Button';
 import CarouselSlide from '../components/CarouselSlide';
 import { Carousel } from 'react-responsive-carousel';
+import { t } from 'i18next';
 
 
 const reducer = (state, action) => {
@@ -165,7 +166,7 @@ export function HomeScreen() {
           </Col>
           <Col md={9}>
             <CarouselSlide></CarouselSlide>
-            <h3>Melhores fornecedores</h3>
+            <h3>{t('thebestsuppliers')}</h3>
 
             {loadingTopUsers ? (
               <LoadingBox />
@@ -174,13 +175,13 @@ export function HomeScreen() {
             ) : (
               <>
                 {topSellers.length === 0 && (
-                  <MessageBox>fornecedores não encontrados</MessageBox>
+                  <MessageBox>{t('suppliersnotfound')}</MessageBox>
                 )}
                 {/* <Carousel showArrows autoPlay showThumbs={false}> */}
 
                 <Row className="row-widget">
                   {topSellers && topSellers.length === 0 && (
-                    <MessageBox>Não existem fornecedores adicionados</MessageBox>
+                    <MessageBox>{t('suppliersnotadd')}</MessageBox>
                   )}
 
 {showCaroselTopSellers && <Carousel showArrows infiniteLoop={true} autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
@@ -205,7 +206,7 @@ export function HomeScreen() {
               </>
             )}
 
-            <h3>Produtos para si </h3>
+            <h3>{t('Productsforyou')}</h3>
             <div className="products">
               {loading ? (
                 <LoadingBox />
@@ -215,7 +216,7 @@ export function HomeScreen() {
                 <>
                   <Row className="row-widget">
                     {items && items.length === 0 && (
-                      <MessageBox>Não existem produtos adicionados</MessageBox>
+                      <MessageBox>{t('therearenoaddedproducts')}</MessageBox>
                     )}
                     {items && items.map((product) => (
                 <Col
@@ -241,7 +242,7 @@ export function HomeScreen() {
                       // </Button>
 
                       <Button className="customButtom" variant="light" onClick={handleShowMore}>
-                         Ver mais
+                        {t('showmore')}
                       </Button>
                     )}
                   </div>

@@ -119,7 +119,7 @@ export default function Footer() {
         </div>
 
         <div className="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4">
-          <h6 className="text-uppercase fw-bold">Contactos</h6>
+          <h6 className="text-uppercase fw-bold">{t('contacts')}</h6>
           <hr
               className="mb-4 mt-0 d-inline-block mx-auto"
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
@@ -130,7 +130,7 @@ export default function Footer() {
            </p>
          <p><i className="fas fa-print mr-3"></i> +258 879300036<br/></p>
           <p><i className="fas fa-envelope mr-3"></i>geral@nhiquelashop.co.mz<br/></p>
-          <p><i className="fas fa-home mr-3"></i> Moçambique, Maputo cidade</p>
+          <p><i className="fas fa-home mr-3"></i> {t('mozambique')},{t('maputocity')}</p>
 
         </div>
       </div>

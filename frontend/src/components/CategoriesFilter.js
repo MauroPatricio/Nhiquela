@@ -14,6 +14,7 @@ import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt} from 'react-icons/fa';
 import { ImPriceTags} from 'react-icons/im';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -54,6 +55,8 @@ export default function CategoriesFilter() {
   const page = searchParams.get('page') || 1;
   const seller = searchParams.get('seller') || 'all';
   const onsale = searchParams.get('onsale') || false;
+  const { t } = useTranslation();
+
 
 
   const [isMaximized, setIsMaximized] = useState(false);
@@ -74,20 +77,21 @@ export default function CategoriesFilter() {
   const prices = [
     {
       id: 1,
-      name: 'De 100 a 500 MT',
+      name: t('from100to500'),
       value: '100-500',
     },
-    { id: 2, name: 'De 500 a 2000 MT', value: '500-2000' },
-    { id: 3, name: 'De 2000 a 5000 MT', value: '2000-5000' },
-    { id: 4, name: 'De 5000 acima', value: '5000-10000' },
+    { id: 2, name: t('from500to5000'), value: '500-5000' },
+    { id: 3, name: t('from5000to10000'), value: '5000-10000' },
+    { id: 4, name: t('from10000to20000'), value: '10000-20000' },
+    { id: 5, name: t('from20000up'), value: '20000-100000' },
 
   ];
 
   const ratings = [
-    { id: 1, name: 'Mais de 4 estrelas', rating: 4 },
-    { id: 2, name: 'Mais de 3 estrelas', rating: 3 },
-    { id: 3, name: 'Mais de 2 estrelas', rating: 2 },
-    { id: 4, name: 'Mais de 1 estrela', rating: 1 },
+    { id: 1, name: t('morethan4stars'), rating: 4 },
+    { id: 2, name: t('morethan3stars'), rating: 3 },
+    { id: 3, name: t('morethan2stars'), rating: 2 },
+    { id: 4, name: t('morethan1stars'), rating: 1 },
   ];
 
   useEffect(() => {
@@ -183,7 +187,7 @@ export default function CategoriesFilter() {
               to={getSellers({ seller: 'all' })}
               className={seller === 'all' ? 'text-bold  link-none' : 'text-bold link-none'}
             >
-            <h6><FaUsers/> Todos fornecedores</h6>
+            <h6><FaUsers/> {t('allsuppliers')}</h6>
             </Link>     
 
   </div>
@@ -192,14 +196,14 @@ export default function CategoriesFilter() {
                       to={getOnsale({ onsale: true })}
                       className={onsale === true ? 'text-bold  link-none' : 'text-bold link-none'}
                     >
-                    <h6><ImPriceTags/> Em promoção</h6>
+                    <h6><ImPriceTags/> {t('onsale')}</h6>
                   </Link>
           </div>
          
 
 
 
-            <h6><FaSortAlphaDownAlt/> Categorias:</h6>
+            <h6><FaSortAlphaDownAlt/> {t('categories')}:</h6>
           <div>
             <Link
               className={
@@ -207,7 +211,7 @@ export default function CategoriesFilter() {
               }
               to={getFilterUrl({ category: 'all' })}
             >
-             <li key={1}> Todas categorias</li>
+             <li key={1}> {t('allcategories')}</li>
             </Link>
             {categories &&
               categories.map((c) => (
@@ -225,12 +229,12 @@ export default function CategoriesFilter() {
           </div>
           <br />
           <div>
-            <h6><FaMoneyBillWaveAlt/> Preços por intervalos:</h6>
+            <h6><FaMoneyBillWaveAlt/> {t('intervalpricing')}:</h6>
             <Link
               className={'all' === price ? 'text-bold link-none' : 'link-none'}
               to={getFilterUrl({ price: 'all' })}
             >
-              <li key={1}> Todos preços</li>
+              <li key={1}> {t('allprices')}</li>
 
             </Link>
 
@@ -248,7 +252,7 @@ export default function CategoriesFilter() {
             ))}
           </div>
           <br/>
-          <h6><FaSearchLocation/> Localização:</h6>
+          <h6><FaSearchLocation/> {t('location')}:</h6>
           <div>
             <Link
               className={
@@ -256,7 +260,7 @@ export default function CategoriesFilter() {
               }
               to={getFilterUrl({ province: 'all' })}
             >
-              <li key={1}> Todas Localizaçōes</li>
+              <li key={1}> {t('alllocations')}</li>
             </Link>
             {provinces &&
               provinces.map((p) => (
@@ -274,7 +278,7 @@ export default function CategoriesFilter() {
           </div>
           <br />
           <div>
-            <h6><FaStarHalfAlt/> Pontuaçōes</h6>
+            <h6><FaStarHalfAlt/> {t('scores')}</h6>
 
             {ratings.map((r) => (
               <Link

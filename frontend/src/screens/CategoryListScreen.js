@@ -81,7 +81,7 @@ export default function CategoryListScreen() {
   }, [userInfo, successDelete, page]);
 
    const createHandler = async () =>{
-  if(window.confirm('Tem a certeza que deseja criar uma nova Categoria?')){
+  if(window.confirm('Tem a certeza que deseja criar uma nova categoria?')){
     navigate('/category/create')
 }
 }
