@@ -64,7 +64,21 @@
    "lowtohigh":"Preços: Baixos a Altos",
    "hightolow":"Preços: Altos a Baixo",
    "avgcustomerreviews":"Avg: Avaliaçōes de Clientes",
-   "productsnotfound":"Produtos não encontrados"
+   "productsnotfound":"Produtos não encontrados",
+   "privacydata":"Privacidade de seus dados",
+   "moneybackguarantee":"Garantia de devolução do valor",
+   "securepayments":"Pagamentos seguros",
+   "homescreen":"Tela Inicial",
+   "phone":"Telefone",
+   "password":"Senha",
+   "createaccount":"Criar conta",
+   "newaccount":"Nova Conta",
+   "forgotpassword":"Esqueceu a senha",
+   "updatepassword":"Actualizar senha",
+   "address":"Endereço",
+   "paymentmethods":"Formas de pagamento",
+   "deliveryoptions":"Opções de entrega",
+   "":"Confirmar pedido"
 
 
 

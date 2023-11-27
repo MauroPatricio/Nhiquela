@@ -15,7 +15,7 @@ export default function LanguageSwitcher () {
   return (
     <select onChange={handleChangeLanguage} style={{textAlign: 'center'}}>
       <option value="pt">Português</option>
-      <option value="en">Inglês<Flag
+      <option value="en">English<Flag
           countryCode='US'
           svg
           style={{

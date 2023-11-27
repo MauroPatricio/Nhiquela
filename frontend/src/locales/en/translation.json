@@ -65,7 +65,30 @@
     "lowtohigh":"Prices: Low to High",
     "hightolow":"Prices: High to Low",
     "avgcustomerreviews":"Avg: Customer Reviews",
-    "productsnotfound":"Products not found"
+    "productsnotfound":"Products not found",
+    "privacydata":"Privacy of your data",
+    "moneybackguarantee":"Money back guarantee",
+    "securepayments":"Secure Payments",
+    "homescreen":"Home Screen",
+    "phone":"Phone",
+    "password":"Password",
+    "createaccount":"Create account",
+    "newaccount":"New Account",
+    "forgotpassword":"Forgot password",
+    "updatepassword":"Update password",
+    "address":"Address",
+    "paymentmethods":"Payment methods",
+    "deliveryoptions":"Delivery Options",
+    "confirmorder":"Confirm order"
+
+
+
+
+
+
+
+
+
 
 
 

@@ -8,8 +8,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function SearchBox() {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
 
@@ -26,7 +29,7 @@ export default function SearchBox() {
             name="query"
             id="query"
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Pesquisar produtos..."
+            placeholder={t('searchproducts')}
             aria-label="Pesquisar Produtos"
             aria-describedby="button-search"
           ></FormControl>

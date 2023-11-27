@@ -16,6 +16,7 @@ import { toast } from 'react-toastify';
 import CheckoutSteps from '../components/CheckoutSteps';
 import {Modal} from 'react-bootstrap';
 import CountryFlag from 'react-country-flag';
+import { useTranslation } from 'react-i18next';
 
 
 export default function SignInScreen() {
@@ -31,6 +32,7 @@ export default function SignInScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [message, setMessage] = useState('');
+  const { t } = useTranslation();
 
 
   const closeModal = () => {
@@ -64,13 +66,13 @@ export default function SignInScreen() {
   return (
     <Container className="small-conteiner">
       <Helmet>
-        <title>Tela Inicial</title>
+        <title>{t('homescreen')}</title>
       </Helmet>
       <CheckoutSteps step1 step2 step3 step4 step5></CheckoutSteps>
       <h1 className="my-3">Login</h1>
       <Form onSubmit={submitHandler}>
         <Form.Group className="mb-3" controlId="phoneNumber">
-          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone:</Form.Label> <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]        
+          <FontAwesomeIcon icon={faMobile} /> <Form.Label>{t('phone')}:</Form.Label> <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]        
 
 
           <Form.Control
@@ -83,7 +85,7 @@ export default function SignInScreen() {
           />
         </Form.Group>
         <Form.Group className="mb-3" controlId="password">
-          <FontAwesomeIcon icon={faLock} /> <Form.Label>Password</Form.Label>
+          <FontAwesomeIcon icon={faLock} /> <Form.Label>{t('password')}</Form.Label>
           <Form.Control
             type="password"
             required
@@ -94,15 +96,15 @@ export default function SignInScreen() {
           />
         </Form.Group>
         <div className="mb-3">
-          <Button className='customButtom' variant='light' type="submit">Login</Button>
+          <Button className='customButtom' variant='light' type="submit">{t('login')}</Button>
         </div>
         <div className="mb-3">
-          Nova Conta?{' '}
-          <Link className="link" to={`/signup?redirect=${redirect}`}>Criar conta</Link>
+          {t('newaccount')}?{' '}
+          <Link className="link" to={`/signup?redirect=${redirect}`}>{t('createaccount')}</Link>
         </div>
         <div className="mb-3">
-          Esqueceu a senha?{' '}
-          <Link className="link" to={`/forget-password`}>Actualizar senha</Link>
+          {t('forgotpassword')}?{' '}
+          <Link className="link" to={`/forget-password`}>{t('updatepassword')}</Link>
         </div>
 
  
