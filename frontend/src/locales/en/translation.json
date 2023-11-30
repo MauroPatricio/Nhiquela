@@ -132,7 +132,14 @@
     "acceptedbydeliveryman":"Accepted by the deliveryman",
     "intransit":"In transit",
     "atdestination":"At destination",
-    "delivered":"Delivered"
+    "delivered":"Delivered",
+    "deliverdetails":"Deliveryman details",
+    "name":"Name",
+    "transport":"Transport",
+    "registration":"Registration"
+
+
+
 
 
 

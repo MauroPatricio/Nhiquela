@@ -131,7 +131,11 @@
     "acceptedbydeliveryman":"Aceite pelo entregador",
     "intransit":"Em trânsito",
     "atdestination":"No destino indicado",
-    "delivered":"Entregue"
+    "delivered":"Entregue",
+    "deliverdetails":"Detalhes do entregador",
+    "name":"Nome",
+    "transport":"Transporte",
+    "registration":"Matrícula"
 
 
 

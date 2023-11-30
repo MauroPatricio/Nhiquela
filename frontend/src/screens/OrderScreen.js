@@ -487,13 +487,13 @@ useEffect(() => {
           {order.addressPrice!==0 && order.deliveryman && (
             <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Detalhes do entregador</Card.Title>
+              <Card.Title>{t('deliverdetails')}</Card.Title>
               <Card.Text>
-              <strong>Nome:</strong>{' '}{ order.deliveryman.name}<br/>
-              <strong>Telefone:</strong> {' '}{ order.deliveryman.phoneNumber}<br/>
-              <strong>Transporte:</strong>{' '}{ order.deliveryman.transport_type}<br/>
-              <strong>Matrícula:</strong>{' '}{ order.deliveryman.transport_registration}<br/>
-              <strong>Cor:</strong>{' '}{ order.deliveryman.transport_color}<br/>
+              <strong>{t('name')}:</strong>{' '}{ order.deliveryman.name}<br/>
+              <strong>{t('phone')}:</strong> {' '}{ order.deliveryman.phoneNumber}<br/>
+              <strong>{t('transport')}:</strong>{' '}{ order.deliveryman.transport_type}<br/>
+              <strong>{t('registration')}:</strong>{' '}{ order.deliveryman.transport_registration}<br/>
+              <strong>{t('color')}:</strong>{' '}{ order.deliveryman.transport_color}<br/>
               </Card.Text>
              
             </Card.Body>
@@ -603,7 +603,7 @@ useEffect(() => {
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor a enviar do pedido</Col>
+                    <Col>Valor do pedido a enviar</Col>
                     <Col>
                       <Badge bg="success" variant="success">
                         { }
