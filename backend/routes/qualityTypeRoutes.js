@@ -21,6 +21,7 @@ qualityTypeRouter.post(
   expressAsyncHandler(async (req, res) => {
     const newQualityType = new QualityType({
       name: req.body.name,
+      nome: req.body.nome,
       description: req.body.description,
       isActive: true,
     });
@@ -54,6 +55,7 @@ qualityTypeRouter.put(
 
     if (qualityType) {
       qualityType.name = req.body.name;
+      qualityType.nome = req.body.nome;
       qualityType.description = req.body.description;
       qualityType.isActive = req.body.isActive;
 

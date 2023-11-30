@@ -27,6 +27,7 @@ conditionStatusRouter.post(
   expressAsyncHandler(async (req, res) => {
     const newConditionStatus = new ConditionStatus({
       name: req.body.name,
+      nome: req.body.nome,
       description: req.body.description,
       isActive: true,
     });

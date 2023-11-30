@@ -1,27 +1,37 @@
 // LanguageSwitcher.js
-import React from 'react';
+import React, { useContext, useEffect, useReducer } from 'react';
 import i18n from 'i18next';
-import Flag from "react-country-flag"
+import { Store } from './Store';
 
-import Form from 'react-bootstrap/Form';
 
 export default function LanguageSwitcher () {
+  
 
-  const handleChangeLanguage = (event) => {
-    const selectedLanguage = event.target.value;
+  const { state, dispatch: ctxDispatch } = useContext(Store);
+
+  const {changelng} = state;
+
+
+
+
+  useEffect(()=>{
+    handleChangeLanguage()
+  },[changelng])
+
+  let handleChangeLanguage = (event) => {
+    let selectedLanguage = '';
+    if(event){
+       selectedLanguage = event.target.value;
+       ctxDispatch({ type: 'CHANGE_LNG', payload: selectedLanguage });
+    }
+
     i18n.changeLanguage(selectedLanguage);
   };
 
   return (
     <select onChange={handleChangeLanguage} style={{textAlign: 'center'}}>
       <option value="pt">Português</option>
-      <option value="en">English<Flag
-          countryCode='US'
-          svg
-          style={{
-            marginRight: '8px',
-          }}
-        /></option>
+      <option value="en">English</option>
     </select>
 
     // <Form.Select aria-label="Linguas"

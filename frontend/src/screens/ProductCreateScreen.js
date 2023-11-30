@@ -13,6 +13,8 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -116,6 +118,10 @@ export default function ProductCreateScreen() {
     dispatch,
   ] = useReducer(reducer, { loading: false, error: '' });
 
+  const { t } = useTranslation();
+
+
+  const [nome, setNome] = useState('');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
@@ -293,6 +299,7 @@ export default function ProductCreateScreen() {
         `/api/products/`,
         {
           name,
+          nome,
           slug,
           price,
           image,
@@ -363,9 +370,9 @@ export default function ProductCreateScreen() {
   return (
     <Container className="small-container">
       <Helmet>
-        <title>Criar produto </title>
+        <title>{t('createproduct')} </title>
       </Helmet>
-      <h1> Criar produto</h1>
+      <h1>{t('createproduct')} </h1>
 
       {loading ? (
         <LoadingBox></LoadingBox>
@@ -375,8 +382,18 @@ export default function ProductCreateScreen() {
         <>
 
           <Form onSubmit={submitHandler}>
+            <Form.Group className="mb-3" controlId="nome">
+              <Form.Label>Nome (Português)</Form.Label>
+              <Form.Control
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required
+              />
+            </Form.Group>
+
+
             <Form.Group className="mb-3" controlId="name">
-              <Form.Label>Nome do produto</Form.Label>
+              <Form.Label>Nome do produto (english)</Form.Label>
               <Form.Control
                 value={name}
                 onChange={(e) => setName(e.target.value)}

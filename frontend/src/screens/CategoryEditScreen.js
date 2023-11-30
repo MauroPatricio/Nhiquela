@@ -53,6 +53,7 @@ export default function CategoryEditScreen() {
  
     const [icon, setIcon] = useState('');
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(false);
 
@@ -66,6 +67,8 @@ export default function CategoryEditScreen() {
                 const {data} = await axios.get(`/api/categories/${categoryId}`,{headers: {Authorization: `Bearer ${userInfo.token}`}});
                 setIcon(data.icon);
                 setName(data.name);
+                setNome(data.nome);
+
                 setDescription(data.description);
                 setIsActive(data.isActive);
               
@@ -87,6 +90,7 @@ export default function CategoryEditScreen() {
             dispatch({type: 'EDIT_REQUEST'});
             await axios.put(`/api/categories/${categoryId}`,{
                 name,
+                nome,
                 icon,
                 description,
                 isActive
@@ -115,7 +119,12 @@ return (
     <Form onSubmit={submitHandler}>
 
         <Form.Group className='mb-3' controlId='name'>
-        <Form.Label>Nome</Form.Label>
+        <Form.Label>Nome(pt)</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
+        <Form.Group className='mb-3' controlId='name'>
+        <Form.Label>Name(en)</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

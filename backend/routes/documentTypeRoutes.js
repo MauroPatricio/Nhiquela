@@ -30,6 +30,7 @@ documentTypeRoutes.post(
   expressAsyncHandler(async (req, res) => {
     const newDocumentType = new DocumentType({
       name: req.body.name,
+      nome: req.body.nome,
       isActive: true,
     });
 
@@ -62,6 +63,7 @@ documentTypeRoutes.put(
 
     if (documenType) {
       documenType.name = req.body.name;
+      documenType.nome = req.body.nome;
       documenType.isActive = req.body.isActive;
 
       await documenType.save();

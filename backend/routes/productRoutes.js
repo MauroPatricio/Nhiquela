@@ -5,6 +5,9 @@ import expressAsyncHandler from 'express-async-handler';
 import { isAdmin, isAuth, isSeller, isSellerOrAdmin } from '../utils.js';
 import User from '../models/UserModel.js';
 
+
+import {v2 as cloudinary} from 'cloudinary';
+
 const productRoutes = express.Router();
 
 
@@ -75,6 +78,7 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
      const productId = req.params.id;
      const product = await Product.findById(productId);
      if(product){
+      product.nome = req.body.nome;
       product.name = req.body.name;
       product.slug = req.body.slug;
       product.price = req.body.price;
@@ -101,10 +105,26 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 
  // delete
  productRoutes.delete('/:id',isAuth,expressAsyncHandler( async (req, res) => {
+     cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+          api_key: process.env.CLOUDINARY_API_KEY,
+          api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
 
      const productId = req.params.id;
      const product = await Product.findById(productId);
      if(product){
+
+          const publicIdToDelete = product.image;
+
+          // Delete the image
+          cloudinary.uploader.destroy(publicIdToDelete, (error, result) => {
+          if (error) {
+          console.error(error);
+          } else {
+          console.log(`Image deleted successfully. Result: ${result}`);
+          }
+          });
      
       product.deleteOne();
 
@@ -136,6 +156,7 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
      const priceWithComission = parseFloat(priceComission+priceFromSeller);
 
      const newProduct = new Product({
+          nome: req.body.nome,
           name: req.body.name,
           slug: req.body.slug,
           seller: req.user._id,

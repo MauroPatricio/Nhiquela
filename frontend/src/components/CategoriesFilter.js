@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 
 import { Link, useLocation } from 'react-router-dom';
 import { getError } from '../utils';
@@ -15,6 +15,7 @@ import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FaUsers, FaSortAlphaDownAlt, FaMoneyBillWaveAlt, FaSearchLocation, FaStarHalfAlt} from 'react-icons/fa';
 import { ImPriceTags} from 'react-icons/im';
 import { useTranslation } from 'react-i18next';
+import { Store } from '../Store';
 
 
 
@@ -73,6 +74,12 @@ export default function CategoriesFilter() {
     loadingProvinces: true,
     error: '',
   });
+
+
+  const { state, dispatch: ctxDispatch } = useContext(Store);
+
+  const {changelng} = state;
+
 
   const prices = [
     {
@@ -222,7 +229,8 @@ export default function CategoriesFilter() {
                     }
                     to={getFilterUrl({ category: c._id })}
                   >
-                  {c.name}
+                    
+                  {changelng=='pt'?c.nome:c.name}
                   </Link>
                 </li>
               ))}

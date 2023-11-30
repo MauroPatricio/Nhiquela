@@ -45,6 +45,8 @@ export default function CategoryCreateScreen() {
     const [icon, setIcon] = useState(null);    
 
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
+
     const [description, setDescription] = useState('');
 
     library.add(fas);
@@ -67,6 +69,7 @@ export default function CategoryCreateScreen() {
             dispatch({type: 'CREATE_REQUEST'});
             await axios.post(`/api/categories/`,{
                 name,
+                nome,
                 icon,
                 description
             }, {
@@ -129,6 +132,11 @@ return (
 
         <Form.Group className='mb-3' controlId='name'>
         <Form.Label>Nome</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
+        <Form.Group className='mb-3' controlId='name'>
+        <Form.Label>Name</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

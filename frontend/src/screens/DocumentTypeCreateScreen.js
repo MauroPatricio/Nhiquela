@@ -38,6 +38,7 @@ export default function DocumentTypeCreateScreen() {
     const [{loading, error, loadingCreate}, dispatch] = useReducer(reducer, {loading: false, error:''});
  
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
 
 
 
@@ -49,6 +50,7 @@ export default function DocumentTypeCreateScreen() {
             dispatch({type: 'CREATE_REQUEST'});
             await axios.post(`/api/documents/`,{
                 name,
+                nome
             }, {
                 headers: {Authorization: `Bearer ${userInfo.token}`}
             });
@@ -73,8 +75,13 @@ return (
     {loading? (<LoadingBox></LoadingBox>):error?<MessageBox>{error}</MessageBox>:<>
     <Form onSubmit={submitHandler}>
 
-        <Form.Group className='mb-3' controlId='name'>
+        <Form.Group className='mb-3' controlId='nome'>
         <Form.Label>Nome</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
+        <Form.Group className='mb-3' controlId='name'>
+        <Form.Label>Name</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

@@ -29,6 +29,7 @@ sizeRoutes.post(
   expressAsyncHandler(async (req, res) => {
     const newSize = new Size({
       name: req.body.name,
+      nome: req.body.nome,
       isActive: true,
     });
 
@@ -61,6 +62,7 @@ sizeRoutes.put(
 
     if (size) {
       size.name = req.body.name;
+      size.nome = req.body.nome;
       size.isActive = req.body.isActive;
 
      if(!size.isActive){

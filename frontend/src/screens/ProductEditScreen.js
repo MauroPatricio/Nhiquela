@@ -134,6 +134,8 @@ export default function ProductEditScreen() {
   ] = useReducer(reducer, { loading: true, error: '', categories: [] });
 
   const [name, setName] = useState('');
+  const [nome, setNome] = useState('');
+
   const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
   const [image, setImage] = useState('');
@@ -163,7 +165,9 @@ export default function ProductEditScreen() {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
         dispatch({ type: 'FETCH_SUCCESS', payload: data });
+        setNome(data.nome);
         setName(data.name);
+
         setSlug(data.slug);
         setPrice(data.price);
         setImage(data.image);
@@ -332,6 +336,7 @@ export default function ProductEditScreen() {
         `/api/products/${productId}`,
         {
           _id: productId,
+          nome,
           name,
           slug,
           price,
@@ -407,8 +412,17 @@ export default function ProductEditScreen() {
       ) : (
         <>
           <Form onSubmit={submitHandler}>
+            <Form.Group className="mb-3" controlId="nome">
+              <Form.Label>Nome (pt)</Form.Label>
+              <Form.Control
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required
+              />
+            </Form.Group>
+
             <Form.Group className="mb-3" controlId="name">
-              <Form.Label>Nome</Form.Label>
+              <Form.Label>Nome (en)</Form.Label>
               <Form.Control
                 value={name}
                 onChange={(e) => setName(e.target.value)}

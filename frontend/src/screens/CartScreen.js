@@ -15,9 +15,11 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import Card from 'react-bootstrap/Card';
 import axios from 'axios';
 
+
 import { useNavigate } from 'react-router-dom';
 import { getError } from '../utils';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -36,8 +38,10 @@ const reducer = (state, action) => {
 };
 
 export default function CartScreen() {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
-  const [sellerDayInfo, setSellerDayInfo] = useState(<span style={{color: 'red'}}>[Loja fechada]</span>);
+  const [sellerDayInfo, setSellerDayInfo] = useState(<span style={{color: 'red'}}>[{t('closestore')}]</span>);
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const {
@@ -64,12 +68,16 @@ const [
 useEffect(() => {
   const fetchSellerDetails = async () => {
     try {
+      if(cartItems.length!==0){
       dispatch({ type: 'SELLER_DETAILS_REQUEST' });
       const sellerId = cartItems && cartItems[0].seller._id;
 
-      const { data } = await axios.get(`/api/users/${sellerId}`, {});
-      setSeller(data)
-      dispatch({ type: 'SELLER_DETAILS_SUCCESS', payload: data });
+        const { data } = await axios.get(`/api/users/${sellerId}`, {});
+        setSeller(data)
+        dispatch({ type: 'SELLER_DETAILS_SUCCESS', payload: data });
+
+      }
+
     } catch (err) {
       dispatch({ type: 'SELLER_DETAILS_FAIL', payload: getError(err) });
     }
@@ -91,12 +99,11 @@ const formattedDatetime = `${hours}:${minutes}`;
     if(seller &&  seller.seller!==undefined){
 
       seller.seller.workDayAndTime.map(async workday=>{
-        
-  console.log(seller.seller.workDayAndTime)
-            if(workday.dayNumber === currentDay){
+
+        if(workday.dayNumber === currentDay){
 
                 if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-                      setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+                      setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
                       return
                 }
               }
@@ -135,12 +142,21 @@ const formattedDatetime = `${hours}:${minutes}`;
         const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
         
         const formattedDatetime = `${hours}:${minutes}`;
+
+        if(seller.seller.workDayAndTime.length==0){
+          toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
+          return;
+        }
+
     seller.seller.workDayAndTime.map(async workday=>{
+
         if(workday.dayNumber === currentDay){
           // esta tudo bem passa.
           // Esta dentro do periodo informado
           if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-            setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+            setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
+            navigate('/address');
+
             return
         }
   
@@ -148,7 +164,6 @@ const formattedDatetime = `${hours}:${minutes}`;
         toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
         return;
       }
-    navigate('/address');
   })}
   return (
     <div>

@@ -6,8 +6,11 @@ import { Store } from '../Store.js';
 import { useNavigate } from 'react-router-dom';
 import CheckoutSteps from '../components/CheckoutSteps.js';
 import Container from 'react-bootstrap/esm/Container';
+import { useTranslation } from 'react-i18next';
 
 export default function DeliveryOptionScreen() {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const { state, dispatch: ctxDispatch } = useContext(Store);
   
@@ -36,16 +39,16 @@ export default function DeliveryOptionScreen() {
       <Container className="small-conteiner">
         <CheckoutSteps step1 step2 step3></CheckoutSteps>
         <Helmet>
-          <title>Opções de entrega</title>
+          <title>{t('deliveryoptions')}</title>
         </Helmet>
         <div className="container small-container">
-          <h1>Opções de entrega</h1>
+          <h1>{t('deliveryoptions')}</h1>
           <Form onSubmit={submitHandler}>
             <div className="mb-3">
               
                <Form.Check
                 type="radio"
-                label="Incluir entrega [Max. 20 kg de carga]"
+                label={t('includedelivery')}
                 id="include"
                 value="includeDelivery"
                 checked={deliveryOption === 'includeDelivery'}
@@ -54,7 +57,7 @@ export default function DeliveryOptionScreen() {
 
               <Form.Check
                 type="radio"
-                label="Sem entrega"
+                label={t('nodelivery')}
                 id="without"
                 value="withoutDelivery"
                 checked={deliveryOption === 'withoutDelivery'}
@@ -64,7 +67,7 @@ export default function DeliveryOptionScreen() {
              
             </div>
             <div className="mb-3">
-              <Button className='customButtom' variant='light' type="submit">Próximo</Button>
+              <Button className='customButtom' variant='light' type="submit">{t('next')}</Button>
             </div>
           </Form>
         </div>

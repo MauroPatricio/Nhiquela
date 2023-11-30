@@ -29,9 +29,11 @@ categoryRouter.post(
     const newCategory = new Category({
       icon: req.body.icon,
       name: req.body.name,
+      nome: req.body.nome,
       description: req.body.description,
       isActive: true,
     });
+
 
     const category = await newCategory.save();
     res
@@ -63,6 +65,8 @@ categoryRouter.put(
     if (category) {
       category.icon = req.body.icon;
       category.name = req.body.name;
+      category.nome = req.body.nome;
+
       category.description = req.body.description;
       category.isActive = req.body.isActive;
 

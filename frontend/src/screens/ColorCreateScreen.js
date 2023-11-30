@@ -38,6 +38,7 @@ export default function ColorCreateScreen() {
  
     const [name, setName] = useState('');
 
+    const [nome, setNome] = useState('');
 
 
 
@@ -72,10 +73,16 @@ return (
     {loading? (<LoadingBox></LoadingBox>):error?<MessageBox>{error}</MessageBox>:<>
     <Form onSubmit={submitHandler}>
 
+        <Form.Group className='mb-3' controlId='nome'>
+        <Form.Label>Nome(pt)</Form.Label>
+        <Form.Control value={name} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
         <Form.Group className='mb-3' controlId='name'>
-        <Form.Label>Nome</Form.Label>
+        <Form.Label>Name(en)</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
+
 
         <div className='"mb-3'>
              <Button className="customButtom" variant='light' type='submit' disabled={loadingCreate}>Registar</Button>

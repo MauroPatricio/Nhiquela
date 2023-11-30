@@ -52,6 +52,8 @@ export default function DocumentTypeEditScreen() {
     const [{loading, error, loadingEdit}, dispatch] = useReducer(reducer, {loadingEdit: false, error:''});
  
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
+
     const [isActive, setIsActive] = useState(false);
 
 
@@ -60,6 +62,7 @@ export default function DocumentTypeEditScreen() {
             try{
                 dispatch({type: 'FETCH_REQUEST'})
                 const {data} = await axios.get(`/api/documents/${documentId}`,{headers: {Authorization: `Bearer ${userInfo.token}`}});
+                setNome(data.nome);
                 setName(data.name);
                 setIsActive(data.isActive);
               
@@ -81,6 +84,7 @@ export default function DocumentTypeEditScreen() {
             dispatch({type: 'EDIT_REQUEST'});
             await axios.put(`/api/documents/${documentId}`,{
                 name,
+                nome,
                 isActive
             }, {
                 headers: {Authorization: `Bearer ${userInfo.token}`}
@@ -106,8 +110,14 @@ return (
     {loading? (<LoadingBox></LoadingBox>):error?<MessageBox>{error}</MessageBox>:<>
     <Form onSubmit={submitHandler}>
 
+        <Form.Group className='mb-3' controlId='nome'>
+        <Form.Label>Nome (pt)</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setName(e.target.value)} required/>
+        </Form.Group>
+
+
         <Form.Group className='mb-3' controlId='name'>
-        <Form.Label>Nome</Form.Label>
+        <Form.Label>Name (en)</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

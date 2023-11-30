@@ -28,6 +28,7 @@ colorRoutes.post(
   expressAsyncHandler(async (req, res) => {
     const newColor = new Color({
       name: req.body.name,
+      nome: req.body.nome,
       isActive: true,
     });
 
@@ -60,6 +61,8 @@ colorRoutes.put(
 
     if (color) {
       color.name = req.body.name;
+      color.nome = req.body.nome;
+
       color.isActive = req.body.isActive;
 
      if(!color.isActive){

@@ -52,6 +52,8 @@ export default function ConditionStatusEditScreen() {
     const [{loading, error, loadingEdit}, dispatch] = useReducer(reducer, {loadingEdit: false, error:''});
  
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
+
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(false);
 
@@ -64,6 +66,7 @@ export default function ConditionStatusEditScreen() {
                 dispatch({type: 'FETCH_REQUEST'})
                 const {data} = await axios.get(`/api/conditionstatus/${conditionId}`,{headers: {Authorization: `Bearer ${userInfo.token}`}});
                 setName(data.name);
+                setNome(data.nome);
                 setDescription(data.description);
                 setIsActive(data.isActive);
               
@@ -84,6 +87,7 @@ export default function ConditionStatusEditScreen() {
         try{
             dispatch({type: 'EDIT_REQUEST'});
             await axios.put(`/api/conditionstatus/${conditionId}`,{
+                nome,
                 name,
                 description,
                 isActive
@@ -111,8 +115,13 @@ return (
     {loading? (<LoadingBox></LoadingBox>):error?<MessageBox>{error}</MessageBox>:<>
     <Form onSubmit={submitHandler}>
 
+        <Form.Group className='mb-3' controlId='nome'>
+        <Form.Label>Nome (pt)</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
         <Form.Group className='mb-3' controlId='name'>
-        <Form.Label>Nome</Form.Label>
+        <Form.Label>Name (en)</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

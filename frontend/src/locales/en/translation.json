@@ -79,7 +79,45 @@
     "address":"Address",
     "paymentmethods":"Payment methods",
     "deliveryoptions":"Delivery Options",
-    "confirmorder":"Confirm order"
+    "confirmorder":"Confirm order",
+    "createproduct":"Create Product",
+    "outofstock":"Out of stock",
+    "deliveryaddress":"Delivery address",
+    "deliveryaddressdetails":"Delivery address details",
+    "nameoforderreceiver":"Name of order receiver",
+    "numbertocall":"Number to call",
+    "alternativenumberoptional":"Alternative number (optional)",
+    "deliveryplace":"Delivery place",
+    "next":"Next",
+    "additionalinformation":"Additional information about your address",
+    "select":"Select",
+    "openstore": "Open Store",
+    "closestore":"Close Store",
+    "paymentmethod":"Payment Methods",
+    "providemoredetails":"Provide more details to make it easier for the delivery person to locate you",
+    "nodelivery":"No delivery",
+    "includedelivery":"Include delivery [Max. 20 kg load]",
+    "deliverydetails":"Delivery Details",
+    "changedelivdetails":"Change delivery details",
+    "changepayment":"Change payment method",
+    "productsinthecart":"Products in the cart",
+    "size":"Size",
+    "color":"Color",
+    "product":"Product",
+    "placeorder":"Place order",
+    "deliveryfee":"Delivery fee",
+    "changedelivoptions":"Change delivery options",
+    "priceofproducts":"Price of products"
+
+
+
+
+
+
+
+
+
+
 
 
 

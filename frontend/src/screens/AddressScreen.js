@@ -6,8 +6,11 @@ import { Store } from '../Store.js';
 import { useNavigate } from 'react-router-dom';
 import CheckoutSteps from '../components/CheckoutSteps.js';
 import Container from 'react-bootstrap/esm/Container';
+import { useTranslation } from 'react-i18next';
 
 export default function AddressScreen() {
+  const { t } = useTranslation();
+
   const { state, dispatch: ctxDispatch } = useContext(Store);
 
   const { cart } = state;
@@ -54,15 +57,15 @@ export default function AddressScreen() {
     <div>
       <Container className="small-container">
       <Helmet>
-        <title>Endereço de entrega</title>
+        <title>{t('deliveryaddress')}</title>
       </Helmet>
       <CheckoutSteps step1 ></CheckoutSteps>
       <div className="container small-container">
-        <h1 className="my-3">Detalhes do endereço de entrega</h1>
+        <h1 className="my-3">{t('deliveryaddressdetails')}</h1>
         <br></br>
         <Form onSubmit={submitHandler}>
           <Form.Group className="mb-3" controlId="fullName">
-            <Form.Label>Nome do receptor do pedido</Form.Label>
+            <Form.Label>{t('nameoforderreceiver')}</Form.Label>
             <Form.Control
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -71,7 +74,7 @@ export default function AddressScreen() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="phoneNumber">
-            <Form.Label>Número para chamadas</Form.Label>
+            <Form.Label>{t('numbertocall')}</Form.Label>
             <Form.Control
               value={phoneNumber}
               placeholder="8********"
@@ -82,7 +85,7 @@ export default function AddressScreen() {
 
 
           <Form.Group className="mb-3" controlId="alternativePhoneNumber">
-            <Form.Label>Número alternativo (opcional)</Form.Label>
+            <Form.Label>{t('alternativenumberoptional')}</Form.Label>
             <Form.Control
               placeholder="8********"
               value={alternativePhoneNumber}
@@ -91,17 +94,17 @@ export default function AddressScreen() {
           </Form.Group>
  
           <Form.Group className="mb-3" controlId="fullcityname">
-          <Form.Label>Local de entrega</Form.Label>
+          <Form.Label>{t('deliveryplace')}</Form.Label>
           <Form.Select aria-label="Cidade"
           value={city}
           onChange={(e)=>setCity(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             <option value="Maputo Cidade">Maputo cidade</option>
             <option value="Maputo Provincia">Maputo província</option>
           </Form.Select>
           </Form.Group>
           <Form.Group className="mb-3" controlId="address">
-            <Form.Label>Endereço</Form.Label>
+            <Form.Label>{t('address')}</Form.Label>
             <Form.Control
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -110,11 +113,11 @@ export default function AddressScreen() {
           </Form.Group>
           <Form.Group className="mb-3" controlId="reference">
             <Form.Label>
-              Informações adicionais do seu endereço
+              {t('additionalinformation')}
             </Form.Label>
           <Form.Control
                 as="textarea"
-                placeholder="Mais detalhes para facilitar a sua localização ao entregador"
+                placeholder={t('providemoredetails')}
                 value={referenceAddress}
                 onChange={(e) => setReferenceAddress(e.target.value)}
                 required
@@ -122,7 +125,7 @@ export default function AddressScreen() {
           </Form.Group>
           <div>
             <Button className='customButtom' variant="light" type="submit">
-            Próximo
+            {t('next')}
             </Button>
           </div>
         </Form>

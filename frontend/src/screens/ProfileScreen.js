@@ -159,7 +159,7 @@ let dayNumber = 0;
             dayNumber=4;
          if(dayOfWeek.includes("Sex")|| dayOfWeek.includes("Fri"))
             dayNumber=5;
-         if(dayOfWeek.includes("Sab")|| dayOfWeek.includes("Sat"))
+         if(dayOfWeek.includes("Sab")|| dayOfWeek.includes("Sat")|| dayOfWeek.includes("Sáb"))
             dayNumber=6;
          if(dayOfWeek.includes("Fer")|| dayOfWeek.includes("Hol"))
              dayNumber=7;

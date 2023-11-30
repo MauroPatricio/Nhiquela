@@ -15,6 +15,7 @@ import axios from 'axios';
 import LoadingBox from '../components/LoadingBox';
 import { FaPencilAlt } from "react-icons/fa";
 import {Modal} from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -45,6 +46,8 @@ const reducer = (state, action) => {
 };
 
 export default function PlaceOrderScreen() {
+  const { t } = useTranslation();
+
   const [{ loading }, dispatch] = useReducer(reducer, { loading: false });
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const navigate = useNavigate();
@@ -53,7 +56,7 @@ export default function PlaceOrderScreen() {
 
   const [message] = useState('Faça login ou cadastro da sua conta para poder acompanhar o progresso do seu pedido pela plataforma ou por SMS no seu telefone');
 
-  const [sellerDayInfo, setSellerDayInfo] = useState(<span style={{color: 'red'}}>[Loja fechada]</span>);
+  const [sellerDayInfo, setSellerDayInfo] = useState(<span style={{color: 'red'}}>[{t('closestore')}]</span>);
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -113,7 +116,7 @@ export default function PlaceOrderScreen() {
           if(workday.dayNumber === currentDay){
 
             if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-                  setSellerDayInfo(<span style={{color: 'green'}}>[Loja aberta]</span>)
+                  setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
                   return
             }
           }
@@ -257,47 +260,47 @@ const formattedDatetime = `${hours}:${minutes}`;
   return (
     <div>
       <Helmet>
-        <title>Confirmar Pedido</title>
+        <title>{t('confirmorder')}</title>
       </Helmet>
 
       <CheckoutSteps step1 step2 step3 step4 ></CheckoutSteps>
-      <h1>Confirmar pedido - {sellerDayInfo}</h1>
+      <h1>{t('confirmorder')} - {sellerDayInfo}</h1>
       <Row>
         <Col md={8}>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Detalhes de entrega</span>
+                <span>{t('deliverydetails')}</span>
               </Card.Title>
               <Card.Text>
-                <strong>Receptor do pedido:</strong> {cart.address.fullName}
+                <strong>{t('nameoforderreceiver')}:</strong> {cart.address.fullName}
                 <br/>
-                <strong>Número(s):</strong>
+                <strong>{t('numbertocall')}:</strong>
                 {cart.address.phoneNumber}, {cart.address.alternativePhoneNumber}
                 <br />
-                <strong>Endereço de entrega:</strong> {cart.address.city},{' '}
+                <strong>{t('deliveryaddress')}:</strong> {cart.address.city},{' '}
                 {cart.address.address}, {cart.address.referenceAddress}.
               </Card.Text>
               <Link className="link" to="/address">
-                Alterar detalhes de entrega <FaPencilAlt/>
+                {t('changedelivdetails')} <FaPencilAlt/>
               </Link>
             </Card.Body>
           </Card>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <strong>Forma de pagamento</strong>
+                <strong>{t('paymentmethod')}</strong>
               </Card.Title>
               <Card.Text>{cart.paymentMethod}</Card.Text>
               <Link className="link" to="/payment">
-                Alterar forma de pagamento <FaPencilAlt/>
+                {t('changepayment')} <FaPencilAlt/>
               </Link>
             </Card.Body>
           </Card>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>
-                <span>Produtos na carrinha: {' '}
+                <span>{t('productsinthecart')}: {' '}
                 <Link className="link" to={`/seller/${cart.cartItems[0] && cart.cartItems[0].seller && cart.cartItems[0].seller.seller && cart.cartItems[0].seller._id}`}>
                 <b className='link'>{cart.cartItems[0] && cart.cartItems[0].seller && cart.cartItems[0].seller.seller && cart.cartItems[0].seller.seller.name}</b>
               </Link>
@@ -316,7 +319,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                         />
                         <p></p>
                         <Link className="link link-none" to={`/product/${item.slug}`}>
-                        Produto: <b>{item.name}</b><br/>Cor:<b>{item.color}</b>{' '} Tamanho:<b>{item.size}</b>
+                        {t('product')}: <b>{item.name}</b><br/>{t('color')}:<b>{item.color}</b>{' '} {t('size')}:<b>{item.size}</b>
                         </Link>
                       </Col>
                       <Col mb={2}>
@@ -344,21 +347,21 @@ const formattedDatetime = `${hours}:${minutes}`;
               <ListGroup.Item>
 
                <Link className="link" to="/deliveryoption">
-                Alterar opções de entrega <FaPencilAlt/>
+                {t('changedelivoptions')} <FaPencilAlt/>
               </Link>
               </ListGroup.Item>
               </ListGroup>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor dos produtos</Col>
+                    <Col>{t('priceofproducts')}</Col>
                     <Col>{cart.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
                 {cart.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Taxa de entrega</Col>
+                    <Col>{t('deliveryfee')}</Col>
                     <Col>{cart.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>}
@@ -394,7 +397,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                       disabled={cart.cartItems.length === 0}
                     >
                       {' '}
-                      Fazer pedido
+                      {t('placeorder')}
                     </Button>
                   </div>
                 </ListGroup.Item>

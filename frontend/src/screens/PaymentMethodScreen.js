@@ -6,8 +6,11 @@ import { Store } from '../Store.js';
 import { useNavigate } from 'react-router-dom';
 import CheckoutSteps from '../components/CheckoutSteps';
 import Container from 'react-bootstrap/esm/Container';
+import { useTranslation } from 'react-i18next';
 
 export default function PaymentMethodScreen() {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const { state, dispatch: ctxDispatch } = useContext(Store);
   
@@ -36,10 +39,10 @@ export default function PaymentMethodScreen() {
       <Container className="small-conteiner">
         <CheckoutSteps step1 step2></CheckoutSteps>
         <Helmet>
-          <title>Formas de pagamento</title>
+          <title>{t('paymentmethod')}</title>
         </Helmet>
         <div className="container small-container">
-          <h1>Formas de pagamento</h1>
+          <h1>{t('paymentmethod')}</h1>
           <Form onSubmit={submitHandler}>
             <div className="mb-3">
               {/* <Form.Check
@@ -72,7 +75,7 @@ export default function PaymentMethodScreen() {
              
             </div>
             <div className="mb-3">
-              <Button className='customButtom' variant='light' type="submit">Próximo</Button>
+              <Button className='customButtom' variant='light' type="submit">{t('next')}</Button>
             </div>
           </Form>
         </div>

@@ -27,6 +27,8 @@ const initialState = {
     ? JSON.parse(localStorage.getItem('ordersBySeller'))
     : [],
   },
+  changelng: localStorage.getItem('changelng') ? JSON.parse(localStorage.getItem('changelng'))
+  : 'pt',
 };
 
 function reducer(state, action) {
@@ -86,6 +88,8 @@ function reducer(state, action) {
       localStorage.removeItem('userInfo');
       localStorage.removeItem('address');
       localStorage.removeItem('paymentMethod');
+      localStorage.removeItem('changelng');
+
       window.location.href = '/signin';
 
       return {
@@ -94,6 +98,7 @@ function reducer(state, action) {
         userInfo: null,
 
         cart: { cartItems: [], address: {}, paymentMethod: '' },
+        changelng:''
       };
     }
 
@@ -105,6 +110,16 @@ function reducer(state, action) {
           ...state.cart,
           address: action.payload,
         },
+      };
+    }
+
+    case 'CHANGE_LNG': {
+      localStorage.setItem('changelng', JSON.stringify(action.payload));
+
+      return {
+        ...state,
+        error: '',
+        changelng: action.payload
       };
     }
 
