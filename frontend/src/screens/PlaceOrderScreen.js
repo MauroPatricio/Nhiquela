@@ -342,7 +342,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         <Col md={4}>
           <Card>
             <Card.Body>
-              <Card.Title>Resumido</Card.Title> 
+              <Card.Title>{t('ordersummary')}</Card.Title> 
               <ListGroup variant="flush">
               <ListGroup.Item>
 

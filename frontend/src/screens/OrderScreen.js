@@ -18,6 +18,7 @@ import { FaMoneyBillAlt } from "react-icons/fa";
 
 
 import {Modal, Form} from 'react-bootstrap';
+import { t } from 'i18next';
 
 function reducer(state, action) {
   switch (action.type) {
@@ -431,53 +432,53 @@ useEffect(() => {
   ) : (
     <div>
       <Helmet>
-        <title>Pedido № {order.code}</title>
+        <title>{t('order')} № {order.code}</title>
       </Helmet>
 
-      <h1>Acompanhar pedido</h1>
+      <h1>{t('trackorder')}</h1>
       <br />
       {order.status && <OrderSteps {...order}></OrderSteps>}
 
-      <h4>Pedido №: {order.code}</h4>
+      <h4>{t('order')} №: {order.code}</h4>
       <Row>
         <Col md={8}>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Detalhes de entrega</Card.Title>
+              <Card.Title>{t('deliverydetails')}</Card.Title>
               <Card.Text>
-                <strong>Receptor do pedido:</strong> {order.deliveryAddress.fullName}
+                <strong>{t('nameoforderreceiver')}:</strong> {order.deliveryAddress.fullName}
                 <br />
-                <strong>Número(s) de chamadas:{' '}</strong>
+                <strong>{t('numbertocall')}:{' '}</strong>
                 {order.deliveryAddress.phoneNumber}, {order.deliveryAddress.alternativePhoneNumber}
 
                 <br />
 
-                <strong>Endereço:</strong>
+                <strong>{t('address')}:</strong>
                 {order.deliveryAddress.city}, {order.deliveryAddress.address},{' '}
                 {order.deliveryAddress.referenceAddress}.
               </Card.Text>
               {order.isDelivered ? (
                 <MessageBox variant="success">
-                  Entregue no dia {formatedDate(order.deliveredAt)}
+                  {t('deliveredon')} {formatedDate(order.deliveredAt)}
                 </MessageBox>
               ) : (
-                <MessageBox variant="danger">Não entregue</MessageBox>
+                <MessageBox variant="danger">{t('notdelivered')}</MessageBox>
               )}
             </Card.Body>
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Forma de pagamento</Card.Title>
+              <Card.Title>{t('paymentmethod')}</Card.Title>
               <Card.Text>
-                <strong>Método:</strong> {order.paymentMethod}
+                <strong>{t('method')}:</strong> {order.paymentMethod}
               </Card.Text>
               {order.isPaid ? (
                 <MessageBox variant="success">
-                  Pago no dia {formatedDate(order.paidAt)}
+                  {t('paidon')} {formatedDate(order.paidAt)}
                 </MessageBox>
               ) : (
                 <>
-                  <MessageBox variant="danger">Não pago</MessageBox>
+                  <MessageBox variant="danger">{t('notpaid')}</MessageBox>
                 </>
               )}
             </Card.Body>
@@ -501,7 +502,7 @@ useEffect(() => {
 
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Produtos na carrinha:
+              <Card.Title>{t('productsinthecart')}:
               {' '}
               <Link className="link" to={`/seller/${seller && seller._id}`}>
 
@@ -519,7 +520,7 @@ useEffect(() => {
                           className="img-fluid rounded  img-thumbnail"
                         ></img>{' '}
                         <Link className="link link-none" to={`/product/${item.slug}`}>
-                        <br/>Produto: <b>{item.name}</b><br/>Cor:  <b>{item.color}</b>{' '} Tamanho:  <b>{item.size}</b>
+                        <br/>{t('product')}: <b>{item.name}</b><br/>{t('color')}:  <b>{item.color}</b>{' '} {t('size')}:  <b>{item.size}</b>
                         </Link>
                       </Col>
                       <Col md={2}>
@@ -541,11 +542,11 @@ useEffect(() => {
         <Col md={4}>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Resumo do pedido</Card.Title>
+              <Card.Title>{t('ordersummary')}</Card.Title>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
-                    <Col>Estado do pedido</Col>
+                    <Col>{t('orderstatus')}</Col>
                     <Col>
                       <Badge bg="success" variant="success">
                         {order.status}
@@ -555,7 +556,7 @@ useEffect(() => {
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor dos produtos</Col>
+                    <Col>{t('priceofproducts')}</Col>
                     <Col>{order.itemsPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>
@@ -564,7 +565,7 @@ useEffect(() => {
              {order.addressPrice===0?'':
                 <ListGroup.Item>
                   <Row>
-                    <Col>Taxa de entrega</Col>
+                    <Col>{t('deliveryfee')}</Col>
                     <Col>{order.addressPrice} MT</Col>
                   </Row>
                 </ListGroup.Item>}
@@ -657,7 +658,7 @@ useEffect(() => {
           {order.status !== 'Cancelado' && !order.isPaid &&
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Pagamento do pedido <FaMoneyBillAlt/></Card.Title>
+              <Card.Title>{t('orderpayment')}<FaMoneyBillAlt/></Card.Title>
               <ListGroup variant="flush">
 
               {/* <ListGroup.Item>
@@ -672,8 +673,8 @@ useEffect(() => {
                     {order.paymentMethod === 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                     Para confirmar seu pedido efectue o pagamento de {' '} 
-                                <b>{order.totalPrice} MT</b> no número de conta/telefone <b>853600036</b>
+                     {t('forconfirmyourorder')} {' '} 
+                                <b>{order.totalPrice} MT</b> {t('onaccountnumber')} <b>853600036</b>
                       </MessageBox>
                     )}                
                        </Col>
@@ -683,8 +684,8 @@ useEffect(() => {
                        {order.paymentMethod !== 'Mpesa' &&
                      (
                       <MessageBox variant="">
-                                Para confirmar seu pedido efectue o pagamento de {' '} 
-                                <b>{order.totalPrice} MT</b> no  número de conta/telefone <b>879300036</b>
+                                {t('forconfirmyourorder')} {' '} 
+                                <b>{order.totalPrice} MT</b> {t('onaccountnumber')} <b>879300036</b>
                       </MessageBox>
                     )}
                        </Col>
@@ -700,7 +701,7 @@ useEffect(() => {
 {order.status === 'Cancelado' &&
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Motivo de cancelamento</Card.Title>
+              <Card.Title>{t('reasonforcancel')}</Card.Title>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <Row>
@@ -732,7 +733,7 @@ useEffect(() => {
                     type="button"
                     onClick={handleShow}
                   >
-                    Cancelar pedido
+                    {t('cancelorder')}
                   </Button>
                 </div>
               </ListGroup.Item>
@@ -744,7 +745,7 @@ useEffect(() => {
 
       <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
-          <Modal.Title>Motivo de cancelamento do pedido</Modal.Title>
+          <Modal.Title>{t('reasonforcancel')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Control

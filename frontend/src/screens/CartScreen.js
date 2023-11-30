@@ -168,17 +168,17 @@ const formattedDatetime = `${hours}:${minutes}`;
   return (
     <div>
       <Helmet>
-        <title>Carrinha de compras</title>
+        <title>{t('shoppingcart')}</title>
       </Helmet>
-      <h1>Carrinha de compras:               <Link className="text_color link-none" to={`/seller/${cartItems[0] && cartItems[0].seller._id}`}>{cartItems[0] && cartItems[0].seller.seller.name}</Link> - {sellerDayInfo}</h1>
+      <h1>{t('shoppingcart')}:               <Link className="text_color link-none" to={`/seller/${cartItems[0] && cartItems[0].seller._id}`}>{cartItems[0] && cartItems[0].seller.seller.name}</Link> - {sellerDayInfo}</h1>
           {error && <MessageBox variant="danger">{error}</MessageBox>}
       <Row>
         <Col md={8}>
           {cartItems.length === 0 ? (
             <MessageBox>
-              Carrinho vazio.{' '}
+              {t('emptycart')}.{' '}
               <Link className="text_color" to="/">
-                Fazer compras
+                {t('shopping')}
               </Link>
             </MessageBox>
           ) : (
@@ -194,7 +194,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                       ></img>
                       <p></p>
                       <Link className="link-none" to={`/product/${item.slug}`}>
-                      Produto: <b>{item.name}</b>{' '} Cor:  <b>{item.color}</b>{' '} Tamanho:  <b>{item.size}</b>
+                      {t('product')}: <b>{item.name}</b>{' '} {t('color')}:  <b>{item.color}</b>{' '} {t('size')}:  <b>{item.size}</b>
                       </Link>
                  
                     </Col>
@@ -262,7 +262,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                       disabled={cartItems.length === 0}
                       onClick={() => checkOutHandler()}
                     >
-                      Requisitar
+                      {t('request')}
                     </Button>
                   </div>
                 </ListGroup.Item>

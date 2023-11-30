@@ -93,7 +93,7 @@
     "select":"Select",
     "openstore": "Open Store",
     "closestore":"Close Store",
-    "paymentmethod":"Payment Methods",
+    "paymentmethod":"Payment Method",
     "providemoredetails":"Provide more details to make it easier for the delivery person to locate you",
     "nodelivery":"No delivery",
     "includedelivery":"Include delivery [Max. 20 kg load]",
@@ -107,7 +107,39 @@
     "placeorder":"Place order",
     "deliveryfee":"Delivery fee",
     "changedelivoptions":"Change delivery options",
-    "priceofproducts":"Price of products"
+    "priceofproducts":"Price of products",
+    "trackorder":"Track order",
+    "request":"Request",
+    "shopping":"Shopping",
+    "shoppingcart":"Shopping cart",
+    "emptycart":"Empty cart",
+    "order":"Order",
+    "deliveredon":"Delivered on the",
+    "notdelivered":"Not delivered",
+    "method":"Method",
+    "paidon":"Paid on",
+    "notpaid":"Not paid",
+    "ordersummary":"Order Summary",
+    "orderstatus":"Order status",
+    "orderpayment":"Order payment",
+    "cancelorder":"Cancel order",
+    "forconfirmyourorder":"To confirm your order, make the payment of",
+    "onaccountnumber":"on the account/telephone number",
+    "reasonforcancel":"Reason for cancellation",
+    "pending":"Pending",
+    "acceptedbysupplier":"Accepted by supplier",
+    "availabletodeliver":"Available to delivery",
+    "acceptedbydeliveryman":"Accepted by the deliveryman",
+    "intransit":"In transit",
+    "atdestination":"At destination",
+    "delivered":"Delivered"
+
+
+
+
+
+
+
 
 
 
