@@ -135,10 +135,27 @@
     "deliverdetails":"Detalhes do entregador",
     "name":"Nome",
     "transport":"Transporte",
-    "registration":"Matrícula"
+    "registration":"Matrícula",
+    "supplierpage":"Página do fornecedor",
+    "supplierproducts":"Produtos do fornecedor",
+    "workdays":"Dias úteis",
+    "specialty":"Especialidade",
+    "iforgotmypassword":"Esqueci minha senha",
+    "send":"Enviar",
+    "supplier":"Fornecedor",
+    "productdetails":"Detalhes do Produto",
+    "publicationdate":"Data de publicação",
+    "price":"Preço",
+    "quantity":"Quantidade",
+    "unit":"unidade(s)",
+    "status":"Estado",
+    "designation":"Designação",
+    "brand":"Marca/Sabor",
+    "available":"Disponível",
+    "unavailable":"Indisponível",
+    "discount":"de desconto",
+    "productdescription":"Descrição do Produto",
+    "addoncart":"Colocar na carrinha",
+    "onlyonesupplier":"Na carrinha, só é permitido adicionar produtos pertencentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos os produtos da loja anterior"
 
-
-
-
-    
   }

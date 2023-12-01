@@ -16,6 +16,8 @@ import { Store } from '../Store';
 import Form from 'react-bootstrap/Form';
 import FloatingLabel from 'react-bootstrap/esm/FloatingLabel';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -55,6 +57,8 @@ const reducer = (state, action) => {
 };
 
 function ProductScreen() {
+  const { t } = useTranslation();
+
   const params = useParams();
   const { slug } = params;
   const navegate = useNavigate();
@@ -140,7 +144,7 @@ function ProductScreen() {
     if(cart.cartItems.length > 0 && product.seller._id !== cart.cartItems[0].seller._id){
       ctxDispatch({
         type: 'ADD_ITEM_FAIL',
-        payload: `Na carrinha, só e permitido adicionar produtos pertecentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos produtos pertencentes a loja anterior `,
+        payload: t('onlyonesupplier'),
       });
     }else{
       ctxDispatch({
@@ -189,7 +193,7 @@ function ProductScreen() {
     <MessageBox variant="danger">{error}</MessageBox>
   ) : (
     <div>
-      <h3><p>Detalhes do Produto</p></h3>
+      <h3><p>{t('productdetails')}</p></h3>
       <Row>
         <Col md={5}>
           <img
@@ -232,7 +236,7 @@ function ProductScreen() {
             <ListGroup.Item>
               <Rating rating={product.rating} numReviews={product.numReviews} />
             </ListGroup.Item>
-            <ListGroup.Item>Fornecedor: 
+            <ListGroup.Item>{t('supplier')}: 
             <Link
               className="link"
               to={product.seller ? `/seller/${product.seller._id}` : ''}
@@ -240,18 +244,18 @@ function ProductScreen() {
              <b> {product.seller && product.seller.seller && product.seller.seller.name}</b>
               </Link></ListGroup.Item>
               <ListGroup.Item>
-                 Data publicação: {formatedDate(product.createdAt)}            
+                 {t('publicationdate')}: {formatedDate(product.createdAt)}            
             </ListGroup.Item>
             
-           {product.qualityType && <ListGroup.Item>Designação: {product.qualityType.name} </ListGroup.Item>}
+           {product.qualityType && <ListGroup.Item>{t('designation')}: {product.qualityType.name} </ListGroup.Item>}
 
-           {product.conditionStatus &&<ListGroup.Item>Estado: {product.conditionStatus.name} </ListGroup.Item>}
+           {product.conditionStatus &&<ListGroup.Item>{t('status')}: {product.conditionStatus.name} </ListGroup.Item>}
 
-            <ListGroup.Item>Marca/Sabor: {product.brand}</ListGroup.Item>
+            <ListGroup.Item>{t('brand')}: {product.brand}</ListGroup.Item>
 
-            <ListGroup.Item>Quantidade: {product.countInStock} unidade(s)</ListGroup.Item>
+            <ListGroup.Item>{t('quantity')}: {product.countInStock} {t('unit')}</ListGroup.Item>
 
-            <ListGroup.Item>Preço:  
+            <ListGroup.Item>{t('price')}:  
               {product.onSale ? (
                 <>
                 <b style={{color: '#a435f0'}}>{product.discount} MT</b>
@@ -281,11 +285,11 @@ function ProductScreen() {
 
                   <ListGroup.Item>
                   <Form.Group className="mb-3" controlId="Cor">
-                   <Form.Label>Cor:</Form.Label>
+                   <Form.Label>{t('color')}:</Form.Label>
                         <Form.Select aria-label="Cor"
                       value={selectedColor}
                       onChange={(e)=>setSelectedColor(e.target.value)} required>
-                        <option value="">Seleccione</option>
+                        <option value="">{t('select')}</option>
                         {product && product.color.map(color => (
                         <option key={color._id} value={color.name}>
                           {color.name}
@@ -316,11 +320,11 @@ function ProductScreen() {
 
                   <ListGroup.Item>
                   <Form.Group className="mb-3" controlId="Tamanho">
-                   <Form.Label>Tamanho:</Form.Label>
+                   <Form.Label>{t('size')}:</Form.Label>
                         <Form.Select aria-label="Tamanho"
                       value={selectedSize}
                       onChange={(e)=>setSelectedSize(e.target.value)} required>
-                        <option value="">Seleccione</option>
+                        <option value="">{t('select')}</option>
                         {product && product.size.map(size => (
                         <option key={size._id} value={size.name}>
                           {size.name}
@@ -354,7 +358,7 @@ function ProductScreen() {
             
             
             <ListGroup.Item>
-              Descrição do Produto:
+              {t('productdescription')}:
               <Form.Control
                 as="textarea"
                 value={product.description}
@@ -371,10 +375,10 @@ function ProductScreen() {
                 <ListGroup.Item>
                                 <Row>
                                                   <Col>
-                                                    {product && product.onSale && <Badge bg='success' >Em promoção</Badge> }
+                                                    {product && product.onSale && <Badge bg='success' >{t('onsale')}</Badge> }
                                                     </Col>
                                                     <Col>
-                                                    {product && product.onSale && <Badge bg='success'><span>{product.onSalePercentage*100}% de desconto</span> </Badge>}
+                                                    {product && product.onSale && <Badge bg='success'><span>{product.onSalePercentage*100}% {t('discount')}</span> </Badge>}
                                                     </Col>
                                 </Row>
                     </ListGroup.Item>
@@ -384,12 +388,12 @@ function ProductScreen() {
         
 
                   <Row>
-                    <Col>Estado</Col>
+                    <Col>{t('status')}</Col>
                     <Col>
                       {product.countInStock > 0 && product.seller!== null ? (
-                        <Badge bg="success">Disponível</Badge>
+                        <Badge bg="success">{t('available')}</Badge>
                       ) : (
-                        <Badge bg="danger">Indisponível</Badge>
+                        <Badge bg="danger">{t('unavailable')}</Badge>
                       )}
                     </Col>
                   </Row>
@@ -401,7 +405,7 @@ function ProductScreen() {
                                   
                                   <Row>
                                 
-                                    <Col>Preço</Col>
+                                    <Col>{t('price')}</Col>
 
                                     <Col>  {product.onSale ? (
                                 <>
@@ -421,7 +425,7 @@ function ProductScreen() {
                 {product.countInStock > 0 && product.seller && (
                   <div className="d-grid">
                     <Button className='customButtom' variant='light' onClick={addOnCartHandler}  >
-                      Colocar na carrinha
+                     {t('addoncart')}
                     </Button>
                   </div>
                 )}

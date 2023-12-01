@@ -8,9 +8,12 @@ import  Container  from 'react-bootstrap/Container';
 import  Button  from 'react-bootstrap/Button';
 import  Form  from 'react-bootstrap/Form';
 import { Store } from '../Store';
+import { useTranslation } from 'react-i18next';
 
 
 export default function ForgetPasswordScreen() {
+    const { t } = useTranslation();
+
     const navigate = useNavigate();
     const [email,setEmail] = useState('');
     
@@ -41,14 +44,14 @@ export default function ForgetPasswordScreen() {
 
   return (
     <Container className="small-container">
-        <Helmet><title>Esqueci minha senha</title></Helmet>
-        <h1 className='my-3'>Esqueci minha senha</h1>
+        <Helmet><title>{t('iforgotmypassword')}</title></Helmet>
+        <h1 className='my-3'>{t('iforgotmypassword')}</h1>
 
         <Form onSubmit={submitHandler}>
             <Form.Label>Email</Form.Label>
             <Form.Control type="email" required onChange={(e)=>setEmail(e.target.value)}/>
 <br/>
-            <Button type="submit" className='customButtom'>Enviar</Button>
+            <Button type="submit" className='customButtom'>{t('send')}</Button>
         </Form>
     </Container>
   )

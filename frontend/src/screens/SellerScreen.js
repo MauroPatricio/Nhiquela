@@ -10,6 +10,8 @@ import Col from 'react-bootstrap/Col';
 import Product from '../components/Product';
 import Card from 'react-bootstrap/Card';
 import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
+
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faClockFour} from '@fortawesome/free-solid-svg-icons'
@@ -48,6 +50,8 @@ const reducer = (state, action) => {
 };
 
 export default function SellerScreen() {
+  const { t } = useTranslation();
+
   const params = useParams();
   const { id: sellerId } = params;
 
@@ -102,9 +106,9 @@ export default function SellerScreen() {
   return (
     <div>
       <Helmet>
-        <title>Página do fornecedor</title>
+        <title>{t('supplierpage')}</title>
       </Helmet>
-      <h3>Produtos do fornecedor: <b className='text_color'>{sellerDetails && sellerDetails.seller.name}</b></h3>
+      <h3>{t('supplierproducts')}: <b className='text_color'>{sellerDetails && sellerDetails.seller.name}</b></h3>
       {loadingSeller ? (
         <LoadingBox></LoadingBox>
       ) : errorSeller ? (
@@ -123,7 +127,7 @@ export default function SellerScreen() {
 
                    
                        <br/>
-                      <FontAwesomeIcon icon={faClockFour}/> <span style={{color:'green'}}> Dias de trabalho: </span>{sellerDetails.seller.workDayAndTime.map((workDay)=>(
+                      <FontAwesomeIcon icon={faClockFour}/> <span style={{color:'green'}}> {t('workdays')}: </span>{sellerDetails.seller.workDayAndTime.map((workDay)=>(
                 <Col  key={workDay.dayOfWeek}>
                   {workDay.dayOfWeek} - {workDay.opentime} - {workDay.closetime}
                 </Col>
@@ -136,12 +140,12 @@ export default function SellerScreen() {
 
                      
 
-                    <b>Endereço:</b> {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
+                    <b>{t('address')}:</b> {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
                    
-                    <b>Especialidade:</b>  {sellerDetails.seller.description}<br/><br/>
-                     {userInfo && userInfo.isAdmin &&  <b>Numero(s) telefone para transferencia(s):</b>}{ userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.phoneNumberAccount} {' '}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativePhoneNumberAccount}<br/>
+                    <b>{t('specialty')}:</b>  {sellerDetails.seller.description}<br/><br/>
+                     {userInfo && userInfo.isAdmin &&  <b>Numero(s) telefone para transferencia(s):</b>}{ userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.phoneNumberAccount} {';'}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativePhoneNumberAccount}<br/>
                       
-                     {userInfo && userInfo.isAdmin && <b>Numero(s) conta para transferencia(s):</b>}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountType} {' '} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountNumber}{'  '} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountType} {' '} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountNumber}<br/>
+                     {userInfo && userInfo.isAdmin && <b>Numero(s) conta para transferencia(s):</b>}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountType} {'-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountNumber}{';'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountType} {'-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountNumber}<br/>
 
                     </Card.Body>
                   </Card>
@@ -158,7 +162,7 @@ export default function SellerScreen() {
                       <Row className="row-widget">
                         {productsBySeller.length === 0 && (
                           <MessageBox>
-                            Não existem produtos adicionados
+                            {t('Therearenoaddedproducts')}
                           </MessageBox>
                         )}
                         {productsBySeller.map((product) => (

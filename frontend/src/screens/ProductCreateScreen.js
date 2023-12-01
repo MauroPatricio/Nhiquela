@@ -438,7 +438,7 @@ export default function ProductCreateScreen() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="">Seleccione</option>
+                <option value="">{t('select')}</option>
                 {categories &&
                   categories.map((category) => (
                     <option key={category._id} value={category._id}>
@@ -477,7 +477,7 @@ export default function ProductCreateScreen() {
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="price">
-              <Form.Label>Preço [MT]</Form.Label>
+              <Form.Label>{t('price')} [MT]</Form.Label>
               <Form.Control
                 type="number"
                 value={price}
@@ -494,7 +494,7 @@ export default function ProductCreateScreen() {
                 // value={colors}
                 onChange={(e)=>addColor(e.target.value)}
               >
-                <option value="">Seleccione</option>
+                <option value="">{t('select')}</option>
                 {colors &&
                   colors.map((color) => (
                     <option key={color._id} value={color._id}>
@@ -527,7 +527,7 @@ export default function ProductCreateScreen() {
                 // value={selectedSizes}
                 onChange={(e) => addSize(e.target.value)}
               >
-                <option value="">Seleccione</option>
+                <option value="">{t('select')}</option>
                 {sizes &&
                   sizes.map((size) => (
                     <option key={size._id} value={size._id}>
@@ -563,7 +563,7 @@ export default function ProductCreateScreen() {
                 value={qualityTyp}
                 onChange={(e) => setQualityTyp(e.target.value)}
               >
-                <option value="">Seleccione</option>
+                <option value="">{t('select')}</option>
                 {qualityTypes &&
                   qualityTypes.map((quality) => (
                     <option key={quality._id} value={quality._id}>
@@ -582,7 +582,7 @@ export default function ProductCreateScreen() {
                 value={conditionStatu}
                 onChange={(e) => setConditionStatu(e.target.value)}
               >
-                <option value="">Seleccione</option>
+                <option value="">{t('select')}</option>
                 {conditionStatus &&
                   conditionStatus.map((condition) => (
                     <option key={condition._id} value={condition._id}>
@@ -612,7 +612,7 @@ export default function ProductCreateScreen() {
                   onChange={(e) => setOnSalePercentage(e.target.value)}
                   required
                 >
-                  <option value="">Seleccione</option>
+                  <option value="">{t('select')}</option>
                   <option value="0.05">5%</option>
                   <option value="0.1">10%</option>
                   <option value="0.15">15%</option>
