@@ -134,12 +134,12 @@ export default function PlaceOrderScreen() {
   );
 
   cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
-  cart.siteTax = round2(0.16 * cart.itemsPrice);
+  cart.siteTax = 40;
   cart.ivaTax = round2(0.16 * cart.itemsPrice);
 
 
   cart.totalPrice =
-    (cart.itemsPrice + cart.addressPrice + cart.siteTax ).toFixed(2);
+    (cart.itemsPrice + cart.addressPrice + cart.siteTax + cart.ivaTax ).toFixed(2);
 
 
   const placeOrderHandler = async () => {
@@ -367,16 +367,16 @@ const formattedDatetime = `${hours}:${minutes}`;
                 </ListGroup.Item>}
                 <ListGroup.Item>
                   <Row>
-                    <Col>IVA (16%)</Col>
+                    <Col>Taxa de pagamentos</Col>
                     <Col>{cart.siteTax} MT</Col>
                   </Row>
                 </ListGroup.Item>
-                {/* <ListGroup.Item>
+                <ListGroup.Item>
                   <Row>
                     <Col>IVA (16%)</Col>
                     <Col>{cart.ivaTax} MT</Col>
                   </Row>
-                </ListGroup.Item> */}
+                </ListGroup.Item>
                 <ListGroup.Item>
                   <Row>
                     <Col>

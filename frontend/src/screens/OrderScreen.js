@@ -188,6 +188,12 @@ export default function OrderScreen() {
   };
 
 
+  const calculateReducedPrice =(originalPrice) =>{
+    return originalPrice - (originalPrice * 0.10);
+}
+
+// Example usage
+
   
 
 
@@ -424,6 +430,8 @@ useEffect(() => {
     }
   };
 
+  const priceWithoutcommission = calculateReducedPrice(order && order.itemsPrice);
+
 
   return loading ? (
     <LoadingBox></LoadingBox>
@@ -571,16 +579,16 @@ useEffect(() => {
                 </ListGroup.Item>}
                     <ListGroup.Item>
                       <Row>
-                        <Col>IVA (16%)</Col>
+                        <Col>Taxa de pagamentos</Col>
                         <Col>{order.siteTax} MT</Col>
                       </Row>
                     </ListGroup.Item>
-                    {/* <ListGroup.Item>
+                    <ListGroup.Item>
                       <Row>
                         <Col>IVA (16%)</Col>
                         <Col>{order.ivaTax} MT</Col>
                       </Row>
-                    </ListGroup.Item> */}
+                    </ListGroup.Item>
                     <ListGroup.Item>
                       <Row>
                         <Col>
@@ -601,55 +609,15 @@ useEffect(() => {
             <Card.Body>
               <Card.Title>Pagamento ao fornecedor</Card.Title>
               <ListGroup variant="flush">
+                
                 <ListGroup.Item>
                   <Row>
-                    <Col>Valor do pedido a enviar</Col>
-                    <Col>
-                      <Badge bg="success" variant="success">
-                        { }
-                      </Badge>
-                    </Col>
+                    <Col>Valor a enviar</Col>
+                    <Col>{priceWithoutcommission} MT</Col>
                   </Row>
                 </ListGroup.Item>
-                <ListGroup.Item>
-                  <Row>
-                    <Col>Valor dos produtos</Col>
-                    <Col>{order.itemsPrice} MT</Col>
-                  </Row>
-                </ListGroup.Item>
-                { (
-                  <>
-             {order.addressPrice===0?'':
-                <ListGroup.Item>
-                  <Row>
-                    <Col>Taxa de entrega</Col>
-                    <Col>{order.addressPrice} MT</Col>
-                  </Row>
-                </ListGroup.Item>}
-                    <ListGroup.Item>
-                      <Row>
-                        <Col>IVA (16%)</Col>
-                        <Col>{order.siteTax} MT</Col>
-                      </Row>
-                    </ListGroup.Item>
-                    {/* <ListGroup.Item>
-                      <Row>
-                        <Col>IVA (16%)</Col>
-                        <Col>{order.ivaTax} MT</Col>
-                      </Row>
-                    </ListGroup.Item> */}
-                    <ListGroup.Item>
-                      <Row>
-                        <Col>
-                          <b>Total</b>
-                        </Col>
-                        <Col>
-                          <b>{order.totalPrice} MT</b>
-                        </Col>
-                      </Row>
-                    </ListGroup.Item>
-                  </>
-                )}
+              
+             
               </ListGroup>
             </Card.Body>
           </Card>
