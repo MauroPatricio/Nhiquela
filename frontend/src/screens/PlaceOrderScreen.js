@@ -54,7 +54,7 @@ export default function PlaceOrderScreen() {
   const { cart, userInfo } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [message] = useState('Faça login ou cadastro da sua conta para poder acompanhar o progresso do seu pedido pela plataforma ou por SMS no seu telefone');
+  const [message] = useState(t('makelogin'));
 
   const [sellerDayInfo, setSellerDayInfo] = useState(<span style={{color: 'red'}}>[{t('closestore')}]</span>);
 

@@ -156,6 +156,7 @@
     "discount":"de desconto",
     "productdescription":"Descrição do Produto",
     "addoncart":"Colocar na carrinha",
-    "onlyonesupplier":"Na carrinha, só é permitido adicionar produtos pertencentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos os produtos da loja anterior"
+    "onlyonesupplier":"Na carrinha, só é permitido adicionar produtos pertencentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos os produtos da loja anterior",
+    "makelogin":"Faça login ou cadastro de sua conta para poder acompanhar o andamento do seu pedido pela plataforma ou por SMS no seu telefone"
 
   }

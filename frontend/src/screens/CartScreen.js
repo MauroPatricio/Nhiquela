@@ -144,7 +144,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         const formattedDatetime = `${hours}:${minutes}`;
 
         if(seller.seller.workDayAndTime.length==0){
-          toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
+          toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
           return;
         }
 
@@ -156,12 +156,11 @@ const formattedDatetime = `${hours}:${minutes}`;
           if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
             setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
             navigate('/address');
-
             return
         }
   
       }else{
-        toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
+        toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
         return;
       }
   })}

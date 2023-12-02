@@ -101,7 +101,7 @@ categoryRouter.delete(
 
       await category.save();
 
-      res.send({ message: `Categoria Removida Com Sucesso` });
+      res.send({ message: `Categoria removida com sucesso` });
     } else {
       res.status(404).send({ message: 'Categoria não encontrada' });
     }

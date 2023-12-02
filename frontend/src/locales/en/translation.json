@@ -157,7 +157,8 @@
     "discount":"discount",
     "productdescription":"Product Description",
     "addoncart":"Add on cart",
-    "onlyonesupplier":"In the cart, it is only allowed to add products belonging to a single supplier at a time. If you want to add products from another store, you must first remove all products from the previous store"
+    "onlyonesupplier":"In the cart, it is only allowed to add products belonging to a single supplier at a time. If you want to add products from another store, you must first remove all products from the previous store",
+    "makelogin":"Log in or register your account to be able to track the progress of your order via the platform or via SMS on your phone"
 
 
 

@@ -839,7 +839,7 @@ useEffect(() => {
 
 
 &nbsp;
-          {(userInfo.isAdmin || userInfo.isSeller) &&
+          {(userInfo.isAdmin || !userInfo.isSeller) &&
             !order.isDelivered &&
             order.status === 'Pronto' &&
             order.status !=='Em trânsito' &&

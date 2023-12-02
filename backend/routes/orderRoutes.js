@@ -185,7 +185,7 @@ orderRouter.post(
    
       //  Para envio de mensagens
 
-      let msg = `Ola, seja bem vindo(a) a Nhiquela Shop. Dentro de instantes confirmaremos o seu pagamento. Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}`; 
+      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
  
     //  sendSMSToUSendIt(req, msg);
 
@@ -362,7 +362,7 @@ orderRouter.put(
         //  Para envio de mensagens
       let msgSeller =`Ola, a Nhiquela Shop gostaria de lhe informar que possui um novo pedido com o codigo ${updateOrder.code}.`;
 
-     sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
+    //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
   }
 
       res.send({ message: `Pedido Pago`, order: updateOrder });
@@ -379,11 +379,14 @@ orderRouter.put(
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
+
     if (order) {
       order.isAccepted = true;
       order.isCanceled = false;
       order.stepStatus = 2;
       order.status = 'Aceite';
+
+     
       await order.save();
 
       //  Para envio de mensagens
@@ -438,10 +441,24 @@ orderRouter.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
+    const user_deliver = await User.findById(req.user._id);
 
     if (order) {
       order.status = 'Aceite pelo entregador';
       order.stepStatus=4;
+
+      if(user_deliver.isDeliveryMan){
+
+        order.deliveryman = {
+          photo: user_deliver.deliveryman.photo,
+          name:  user_deliver.deliveryman.name,
+          phoneNumber:  user_deliver.deliveryman.phoneNumber,
+          transport_type:  user_deliver.deliveryman.transport_type,
+          transport_color:  user_deliver.deliveryman.transport_color,
+          transport_registration:  user_deliver.deliveryman.transport_registration,
+        }
+      }
+
       const updateOrder = await order.save();
 
 
@@ -469,7 +486,7 @@ orderRouter.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
-    const user_deliver = await User.findById(req.user._id);
+    // const user_deliver = await User.findById(req.user._id);
 
     if (order) {
       //     order.isPaid = true;
@@ -478,17 +495,17 @@ orderRouter.put(
       order.isInTransit = true;
       order.stepStatus=5;
 
-      if(user_deliver.isDeliveryMan){
+      // if(user_deliver.isDeliveryMan){
 
-        order.deliveryman = {
-          photo: user_deliver.deliveryman.photo,
-          name:  user_deliver.deliveryman.name,
-          phoneNumber:  user_deliver.deliveryman.phoneNumber,
-          transport_type:  user_deliver.deliveryman.transport_type,
-          transport_color:  user_deliver.deliveryman.transport_color,
-          transport_registration:  user_deliver.deliveryman.transport_registration,
-        }
-      }
+      //   order.deliveryman = {
+      //     photo: user_deliver.deliveryman.photo,
+      //     name:  user_deliver.deliveryman.name,
+      //     phoneNumber:  user_deliver.deliveryman.phoneNumber,
+      //     transport_type:  user_deliver.deliveryman.transport_type,
+      //     transport_color:  user_deliver.deliveryman.transport_color,
+      //     transport_registration:  user_deliver.deliveryman.transport_registration,
+      //   }
+      // }
 
 
       // order.paymentResult = {
@@ -575,7 +592,7 @@ orderRouter.put(
 
        //  Para envio de mensagens
 
-      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher a Nhiquela Shop.`;
+      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar na Nhiquela Shop.`;
  
       //  sendSMSToUSendIt(req,msg);
 
@@ -586,7 +603,7 @@ orderRouter.put(
 
       // sendSMSToUSendIt(req, msg);
 
-      res.send({ message: `Pedido entregue com sucesso ` });
+      res.send({ message: `Pedido entregue com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
