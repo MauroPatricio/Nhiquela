@@ -143,9 +143,9 @@ export default function SellerScreen() {
                     <b>{t('address')}:</b> {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
                    
                     <b>{t('specialty')}:</b>  {sellerDetails.seller.description}<br/><br/>
-                     {userInfo && userInfo.isAdmin &&  <b>Numero(s) telefone para transferencia(s):</b>}{ userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.phoneNumberAccount} {';'}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativePhoneNumberAccount}<br/>
+                     {userInfo && userInfo.isAdmin &&  <b>Numero(s) telefone para transferencia(s):</b>}{ userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.phoneNumberAccount} {userInfo && userInfo.isAdmin && ';'}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativePhoneNumberAccount}<br/>
                       
-                     {userInfo && userInfo.isAdmin && <b>Numero(s) conta para transferencia(s):</b>}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountType} {'-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountNumber}{';'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountType} {'-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountNumber}<br/>
+                     {userInfo && userInfo.isAdmin && <b>Numero(s) conta para transferencia(s):</b> }{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountType} {userInfo && userInfo.isAdmin && '-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountNumber}{ userInfo && userInfo.isAdmin &&';'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountType} {userInfo && userInfo.isAdmin && '-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountNumber}<br/>
 
                     </Card.Body>
                   </Card>
@@ -162,7 +162,7 @@ export default function SellerScreen() {
                       <Row className="row-widget">
                         {productsBySeller.length === 0 && (
                           <MessageBox>
-                            {t('Therearenoaddedproducts')}
+                            {t('therearenoaddedproducts')}
                           </MessageBox>
                         )}
                         {productsBySeller.map((product) => (

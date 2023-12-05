@@ -5,7 +5,7 @@
     "myorders":"Meus pedidos",
     "orderstodeliver":"Pedidos por entregar",
     "logout":"Sair",
-    "login":"Aceder",
+    "login":"Entrar",
     "myproducts":"Meus produtos",
     "orderclients":"Pedidos dos clientes",
     "dashboard":"Painel de controle",
@@ -54,7 +54,7 @@
     "suppliersnotfound":"fornecedores não encontrados",
     "suppliersnotadd":"Não existem fornecedores adicionados",
     "Productsforyou":"Produtos para si",
-    "Therearenoaddedproducts":"Não existem produtos adicionados",
+    "therearenoaddedproducts":"Não existem produtos adicionados",
    "showmore":"Ver mais",
    "thebestsuppliers":"Melhores fornecedores",
    "searchproducts":"Pesquisar produtos",
@@ -158,5 +158,6 @@
     "addoncart":"Colocar na carrinha",
     "onlyonesupplier":"Na carrinha, só é permitido adicionar produtos pertencentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos os produtos da loja anterior",
     "makelogin":"Faça login ou cadastro de sua conta para poder acompanhar o andamento do seu pedido pela plataforma ou por SMS no seu telefone"
+   , "scores":"Pontuações"
 
   }

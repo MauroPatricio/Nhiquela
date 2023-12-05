@@ -75,13 +75,24 @@ productRoutes.get('/', async (req, res) => {
 // Put 
 productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
 
+     const comission_price = parseFloat(process.env.COMISSION_PRICE)
+
+     const priceFromSeller = parseFloat(req.body.price);
+
+     const priceComission = parseFloat(priceFromSeller*comission_price);
+
+     const priceWithComission = parseFloat(priceComission+priceFromSeller);
+
      const productId = req.params.id;
      const product = await Product.findById(productId);
      if(product){
       product.nome = req.body.nome;
       product.name = req.body.name;
       product.slug = req.body.slug;
-      product.price = req.body.price;
+      product.priceFromSeller = priceFromSeller;
+      product.priceComission = priceComission;
+      product.price = priceWithComission;
+      product.comissionPercentage = comission_price
       product.image = req.body.image;
       product.images = req.body.images;
       product.category = req.body.category;
@@ -181,7 +192,7 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           size : req.body.selectedSizes,
           isActive: user.isApproved
      });
-
+     console.log(newProduct)
      if(req.body.onSale){  
           newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;
      }

@@ -140,7 +140,7 @@ export default function ProductSellerScreen() {
             <th>Imagem</th>
                 <th>Nome do Produto</th>
                 <th>Quantidade</th>
-                <th>Preço</th>
+                <th>Preço + Comissão</th>
                 <th>Categoria</th>
                 <th>Acções</th>
 

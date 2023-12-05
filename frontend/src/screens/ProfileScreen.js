@@ -298,7 +298,7 @@ let dayNumber = 0;
           setAlternativeAccountNumber(data.seller.alternativeAccountNumber);
 
 
-          setSellerLocation(data.seller.province._id);
+          setSellerLocation(data.seller.province && data.seller.province._id);
           setSellerAddress(data.seller.address);
           setOpentime(data.seller.opentime);
           setClosetime(data.seller.closetime);

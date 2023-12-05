@@ -36,8 +36,8 @@ function Product(props) {
             }
           <div className="product-info small ">
             <Link className="link-none" to={`/product/${product.slug}`}>
-              {/* <b>{changelng=='pt'?truncateString(product.nome,30):truncateString(product.name,30)}</b> */}
-              <b>{truncateString(product.name,30)}</b>
+              <b>{changelng=='pt'?truncateString(product.nome,30):truncateString(product.name,30)}</b>
+              {/* <b>{truncateString(product.name,30)}</b> */}
 
             </Link>
             <br/>{product.countInStock !== 0 ?product.countInStock +` unidade(s)`: <Badge bg='danger'>{t('outofstock')}</Badge>}<br/>
