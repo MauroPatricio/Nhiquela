@@ -15,7 +15,7 @@ categoryRouter.get(
     const page = req.query.page || 1;
     const pageSize = 10
 
-    const categories = await Category.find({ isActive: true }).sort({name: 'asc'});
+    const categories = await Category.find({ isActive: true }).sort({nome: 'asc'});
 
     res.send({categories});
   })
