@@ -274,9 +274,17 @@ userRouter.post('/reset-password', expressAsyncHandler(async (req, res)=>{
 userRouter.post(
   '/signin',
   expressAsyncHandler(async (req, res) => {
-    const user = await User.findOne({ phoneNumber: req.body.phoneNumber });
+    let user = null;
+    if (req.body.phoneNumber.includes("@")){
+      user = await User.findOne({ email: req.body.phoneNumber });
 
-
+    }else{
+      if (!isNaN(req.body.phoneNumber)) {
+        user = await User.findOne({ phoneNumber: req.body.phoneNumber });
+      } else {
+        res.status(401).send({ message: 'Número de telefone inválido' });
+      }
+    }
 
     if (user){
       if(user.isBanned){
@@ -312,7 +320,7 @@ userRouter.post(
     const emailExist = await User.findOne({ email: req.body.email });
 
 if(emailExist){
-  res.status(409).send({ message: 'Ja existe um email identico registado' });
+  res.status(409).send({ message: 'Já existe um email idêntico registrado' });
   return;
 }
 
@@ -360,7 +368,7 @@ if (!userExist) {
       return;
     }
 
-    res.status(409).send({ message: 'Número de Registo Existente' });
+    res.status(409).send({ message: 'Número de Registo existente' });
   })
 );
 

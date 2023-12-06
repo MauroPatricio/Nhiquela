@@ -27,6 +27,7 @@ export default function SignInScreen() {
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,9 +77,9 @@ export default function SignInScreen() {
 
 
           <Form.Control
-            type="number"
+            type="text"
             required
-            placeholder="8********"
+            placeholder="Numero de telefone ou email"
             onChange={(e) => {
               setPhoneNumber(e.target.value);
             }}
