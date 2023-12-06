@@ -158,7 +158,46 @@
     "productdescription":"Product Description",
     "addoncart":"Add on cart",
     "onlyonesupplier":"In the cart, it is only allowed to add products belonging to a single supplier at a time. If you want to add products from another store, you must first remove all products from the previous store",
-    "makelogin":"Log in or register your account to be able to track the progress of your order via the platform or via SMS on your phone"
+    "makelogin":"Log in or register your account to be able to track the progress of your order via the platform or via SMS on your phone",
+    "musthave6digits":"*Must have at least 6 digits",
+    "confirmpassword":"Confirm your password",
+    "bankdata":"Bank data",
+    "phonenumbertransfers":"Telephone number for transfers",
+    "phonenumbertransfersoptional":"Telephone number for transfers [optional]",
+    "accounttype":"Account Type",
+    "accountnumber":"Account number",
+    "accounttypeoptional":"Account Type [optional]",
+    "accountnumberoptional":"Account number [optional]",
+    "storedetails":"Details of your store",
+    "storename":"Store/company name",
+    "storelogo":"Store logo",
+    "storedescription":"Store Description [Specialty]",
+    "province":"Province",
+    "storeaddress":"Store address [Street/Av.]",
+    "weekday":"Weekday",
+    "openingtime":"Opening time",
+    "closingtime":"Closing time",
+    "add":"Add",
+    "businessdays":"Business days and hours",
+    "create":"Create",
+    "alreadyhaveaccount":"Already have an account?",
+    "start":"Start",
+    "wanttobeoursupplier":"Do you want to be our supplier?",
+    "vehicletype":"Vehicle type",
+    "vehiclecolor":"Vehicle color",
+    "additionaldata":"Additional data",
+    "update":"Update",
+    "updateyourpassword":"Do you want to update your password?",
+    "areyousupplier":"Are you our supplier?"
+ 
+
+
+
+
+
+
+
+    
 
 
 

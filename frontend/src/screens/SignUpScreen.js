@@ -30,7 +30,7 @@ import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import { FaCalendarAlt } from "react-icons/fa";
 
 import { GoNumber } from "react-icons/go";
-
+import { useTranslation } from 'react-i18next';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -76,6 +76,7 @@ const reducer = (state, action) => {
   }
 };
 export default function SignupScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { search } = useLocation();
   const urlToRedirect = new URLSearchParams(search).get('redirect');
@@ -311,12 +312,12 @@ export default function SignupScreen() {
   return (
     <Container className="small-conteiner">
       <Helmet>
-        <title>Nova conta</title>
+        <title>{t('newaccount')}</title>
       </Helmet>
-      <h1 className="my-3">Nova conta</h1>
+      <h1 className="my-3">{t('newaccount')}</h1>
       <Form onSubmit={submitHandler}>
       <Form.Group className="mb-3" controlId="name">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Seu nome</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('name')}</Form.Label>
           <Form.Control
             type="text"
             required
@@ -328,7 +329,7 @@ export default function SignupScreen() {
 
         
         <Form.Group className="mb-3" controlId="phoneNumber">
-          <FontAwesomeIcon icon={faMobile} /> <Form.Label>Telefone:  <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]</Form.Label>
+          <FontAwesomeIcon icon={faMobile} /> <Form.Label>{t('phone')}:  <CountryFlag countryCode="MZ" svg className="mz-flag" /> [+258]</Form.Label>
           <Form.Control
             type="text"
             max={9}
@@ -356,7 +357,7 @@ export default function SignupScreen() {
 
 
         <Form.Group className="mb-3" controlId="password">
-          <FontAwesomeIcon icon={faLock} /> <Form.Label>Password: <small className='color-transparent'>*Deve possuir no minimo 6 digitos</small></Form.Label>
+          <FontAwesomeIcon icon={faLock} /> <Form.Label>{t('password')}: <small className='color-transparent'>{t('musthave6digits')}</small></Form.Label>
           <Form.Control
             type="password"
             placeholder="******"
@@ -368,7 +369,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="confirmPassword">
-          <FontAwesomeIcon icon={faLockOpen} /> <Form.Label>Confirme o password</Form.Label>
+          <FontAwesomeIcon icon={faLockOpen} /> <Form.Label>{t('confirmpassword')}</Form.Label>
           <Form.Control
             type="password"
             placeholder="******"
@@ -380,16 +381,16 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Check className='mb-3' type="checkbox" id="isSeller"
-            label="Deseja ser nosso fornecedor?" checked={isSeller}
+            label={t('wanttobeoursupplier')} checked={isSeller}
             onChange={(e)=>setIsSeller(e.target.checked)}></Form.Check>        
 
 {isSeller && (
           <>
           <br/>
-          <div ><h4>Dados bancários</h4>
+          <div ><h4>{t('bankdata')}</h4>
 
           <Form.Group className="mb-3" controlId="sellerPhoneNumberAccount">
-          <GoNumber /> <Form.Label>Número de telefone para transferências</Form.Label>
+          <GoNumber /> <Form.Label>{t('phonenumbertransfers')}</Form.Label>
           <Form.Control
              type="text"
              max={9}
@@ -406,7 +407,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerPhoneNumberAccountAlternative">
-        <GoNumber /> <Form.Label>Número de telefone para transferências [opcional]</Form.Label>
+        <GoNumber /> <Form.Label>{t('phonenumbertransfersoptional')}</Form.Label>
           <Form.Control
             type="text"
             max={9}
@@ -422,11 +423,11 @@ export default function SignupScreen() {
         </Form.Group>
 
           <Form.Group className="mb-3" controlId="sellerAccountType">
-          <CiCreditCard1 /> <Form.Label>Tipo de conta</Form.Label>
+          <CiCreditCard1 /> <Form.Label>{t('accounttype')}</Form.Label>
             <Form.Select aria-label="Tipo de conta"
           value={accountType}
           onChange={(e)=>setAccountType(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {accountTypes && accountTypes.map(accountType => (
             <option key={accountType._id} value={accountType.name}>
               {accountType.name}
@@ -436,7 +437,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="accountNumber">
-        <GoNumber /> <Form.Label>Número de conta</Form.Label>
+        <GoNumber /> <Form.Label>{t('accountnumber')}</Form.Label>
           <Form.Control
             type="Number"
             value={accountNumber}
@@ -448,11 +449,11 @@ export default function SignupScreen() {
 
 
         <Form.Group className="mb-3" controlId="accountTypeAlternative">
-        <CiCreditCard1 /> <Form.Label>Tipo de conta alternativo [opcional]</Form.Label>
+        <CiCreditCard1 /> <Form.Label>{t('accounttypeoptional')}</Form.Label>
             <Form.Select aria-label="Tipo de conta para transferências"
           value={alternativeAccountType}
           onChange={(e)=>setAlternativeAccountType(e.target.value)}>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {accountTypes && accountTypes.map(accountType => (
             <option key={accountType.id} value={accountType.name}>
               {accountType.name}
@@ -462,7 +463,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="numeroAccountAlternative">
-        <GoNumber /><Form.Label>Número de conta alternativo [opcional]</Form.Label>
+        <GoNumber /><Form.Label>{t('accountnumberoptional')}</Form.Label>
           <Form.Control
              type="Number"
             value={alternativeAccountNumber}
@@ -475,9 +476,9 @@ export default function SignupScreen() {
 
          
           <br/>
-          <div><h4>Detalhes da sua loja </h4>
+          <div><h4>{t('storedetails')} </h4>
           <Form.Group className="mb-3" controlId="sellerName">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome da loja/empresa</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storename')}</Form.Label>
           <Form.Control
             type="text"
             value={sellerName}
@@ -490,7 +491,7 @@ export default function SignupScreen() {
 
 
         <Form.Group className="mb-3" controlId="sellerLogo">
-              <Form.Label>Logo da loja</Form.Label>
+              <Form.Label>{t('storelogo')}</Form.Label>
               {sellerLogo && (
                 <img
                   style={{
@@ -513,7 +514,7 @@ export default function SignupScreen() {
             </Form.Group>
 
           <Form.Group className="mb-3" controlId="sellerDescription">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Descrição da loja [Especialidade]</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storedescription')}</Form.Label>
           <Form.Control
             type="text"
             value={sellerDescription}
@@ -529,11 +530,11 @@ export default function SignupScreen() {
        
 
         <Form.Group className="mb-3" controlId="sellerLocation">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Província</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('province')}</Form.Label>
             <Form.Select aria-label="Provincia"
           value={sellerLocation}
           onChange={(e)=>setSellerLocation(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {provinces && provinces.map(province => (
             <option key={province._id} value={province._id}>
               {province.name}
@@ -543,7 +544,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="address">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Endereço da loja [Rua/Av.]</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storeaddress')}</Form.Label>
           <Form.Control
             type="text"
             value={sellerAddress}
@@ -559,11 +560,11 @@ export default function SignupScreen() {
         <div>
                   
         <Form.Group className="mb-3" controlId="dayWeek">
-        <FaCalendarAlt /> <Form.Label>Dia de semana</Form.Label>
+        <FaCalendarAlt /> <Form.Label>{t('weekday')}</Form.Label>
             <Form.Select aria-label="Week"
           value={dayOfWeek}
           onChange={(e)=>setDayOfWeek(e.target.value)}>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {daysOfWeek && daysOfWeek.map(day => (
             <option key={day} value={day}>
               {day}
@@ -572,7 +573,7 @@ export default function SignupScreen() {
           </Form.Select>
         </Form.Group>
         <Form.Group className="mb-3" controlId="sellerOpentime">
-          <FontAwesomeIcon icon={faClock} /> <Form.Label>Hora de abertura</Form.Label>
+          <FontAwesomeIcon icon={faClock} /> <Form.Label>{t('openingtime')}</Form.Label>
           <Form.Control
             type="time"
             value={opentime}
@@ -583,7 +584,7 @@ export default function SignupScreen() {
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerClosetime">
-          <FontAwesomeIcon icon={faClockFour} /> <Form.Label>Hora de fecho</Form.Label>
+          <FontAwesomeIcon icon={faClockFour} /> <Form.Label>{t('closingtime')}</Form.Label>
           <Form.Control
             type="time"
             value={closetime}
@@ -592,10 +593,10 @@ export default function SignupScreen() {
             }}
           />
         </Form.Group>
-            <Button onClick={handleAddItem}>Adicionar</Button>
+            <Button onClick={handleAddItem}>{t('add')}</Button>
        </div>
 
-       {workDaysWithTime && <h6>Dias úteis e horário</h6>}
+       {workDaysWithTime && <h6>{t('businessdays')}</h6>}
       <ul>
         {workDaysWithTime.map((item, index) => (
           <li key={index}>
@@ -622,12 +623,12 @@ export default function SignupScreen() {
 
         
         <div className="mb-3">
-          <Button className='customButtom' variant='light' disabled={loadingUser} type="submit">Criar</Button>
+          <Button className='customButtom' variant='light' disabled={loadingUser} type="submit">{t('create')}</Button>
           {loadingUser&&<LoadingBox></LoadingBox>}
         </div>
         <div className="mb-3">
-        Ja possui conta?{' '}
-          <Link className="link " to={`/signin?redirect=${redirect}`}>Início</Link>
+        {t('alreadyhaveaccount')}{' '}
+          <Link className="link " to={`/signin?redirect=${redirect}`}>{t('start')}</Link>
         </div>
       </Form>
     </Container>

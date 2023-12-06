@@ -158,6 +158,40 @@
     "addoncart":"Colocar na carrinha",
     "onlyonesupplier":"Na carrinha, só é permitido adicionar produtos pertencentes a um único fornecedor por vez. Caso queira adicionar produtos de outra loja, primeiro deve remover todos os produtos da loja anterior",
     "makelogin":"Faça login ou cadastro de sua conta para poder acompanhar o andamento do seu pedido pela plataforma ou por SMS no seu telefone"
-   , "scores":"Pontuações"
+   , "scores":"Pontuações",
+   "musthave6digits":"*Deve possuir no minimo 6 digitos",
+   "confirmpassword":"Confirme a senha",
+   "bankdata":"Dados bancários",
+   "phonenumbertransfers":"Número de telefone para transferências",
+   "phonenumbertransfersoptional":"Número de telefone para transferências [opcional]",
+   "accounttype":"Tipo de Conta",
+   "accountnumber":"Número de conta",
+   "accounttypeoptional":"Tipo de conta alternativo [opcional]",
+   "accountnumberoptional":"Número de conta alternativo [opcional]",
+   "storedetails":"Detalhes da sua loja",
+   "storename":"Nome da loja/empresa",
+   "storelogo":"Logotipo da loja",
+   "storedescription":"Descrição da loja [Especialidade]",
+   "province":"Província",
+   "storeaddress":"Endereço da loja [Rua/Av.]",
+   "weekday":"Dia de semana",
+   "openingtime":"Hora de abertura",
+   "closingtime":"Hora de fecho",
+   "add":"Adicionar",
+   "businessdays":"Dias úteis e horário",
+   "create":"Criar",
+   "alreadyhaveaccount":"já possui uma conta?",
+   "start":"Início",
+   "wanttobeoursupplier":"Deseja ser nosso fornecedor?",
+   "vehicletype":"Tipo de veículo",
+   "vehiclecolor":"Cor do veículo",
+   "additionaldata":"Dados adicionais",
+   "update":"Actualizar",
+   "updateyourpassword":"Deseja actualizar a password?",
+   "areyousupplier":"É nosso fornecedor?"
+
+
+
+
 
   }

@@ -20,6 +20,8 @@ import { faDriversLicense } from '@fortawesome/free-solid-svg-icons';
 import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import { FaCalendarAlt } from "react-icons/fa";
 
+import { useTranslation } from 'react-i18next';
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -88,6 +90,8 @@ const reducer = (state, action) => {
 };
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
+
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const { userInfo } = state;
   const navigate = useNavigate();
@@ -381,11 +385,11 @@ let dayNumber = 0;
 
   return (
     <div className="container small-container">
-      <Helmet>Perfil</Helmet>
-      <h1 className="mb-3"> Perfil</h1>
+      <Helmet>{t('profile')}</Helmet>
+      <h1 className="mb-3"> {t('profile')}</h1>
       <Form onSubmit={submitHandler}>
         <Form.Group className="mb-3" controlId="name">
-          <Form.Label> Nome</Form.Label>
+          <Form.Label> {t('name')}</Form.Label>
           <Form.Control
             value={name}
             onChange={(e) => {
@@ -396,7 +400,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="phone">
-          <Form.Label> Número de telefone</Form.Label>
+          <Form.Label> {t('phone')}</Form.Label>
           <Form.Control
             value={phoneNumber}
             onChange={(e) => {
@@ -423,11 +427,11 @@ let dayNumber = 0;
           <div>
 
         <Form.Group className="mb-3" controlId="transportType">
-          <FontAwesomeIcon icon={faCar} /> <Form.Label>Tipo de veículo</Form.Label>
+          <FontAwesomeIcon icon={faCar} /> <Form.Label>{t('vehicletype')}</Form.Label>
             <Form.Select aria-label="Tipo de veículo"
           value={deliveryMantransportType}
           onChange={(e)=>setDeliveryMantransportType(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {transportTypes && transportTypes.map(transport => (
             <option key={transport._id} value={transport.name}>
               {transport.name}
@@ -437,11 +441,11 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="colorTransport">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Cor do veículo</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('colortype')}</Form.Label>
             <Form.Select aria-label="Cor do veículo"
           value={deliveryMantransportColor}
           onChange={(e)=>setDeliveryMantransportColor(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {colors && colors.map(color => (
             <option key={color._id} value={color.name}>
               {color.name}
@@ -451,7 +455,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="transportPlate">
-              <FontAwesomeIcon icon={faDriversLicense} /> <Form.Label>Matrícula</Form.Label>
+              <FontAwesomeIcon icon={faDriversLicense} /> <Form.Label>{t('registration')}</Form.Label>
               <Form.Control
                 type="text"
                 value={deliveryMantransportRegistration}
@@ -474,7 +478,7 @@ let dayNumber = 0;
           className="mb-3"
           type="checkbox"
           id="isUpdatePassword"
-          label="Deseja actualizar a password?"
+          label={t('updateyourpassword')}
           checked={isUpdatePassword}
           onChange={(e) => setIsUpdatePassword(e.target.checked)}
         ></Form.Check>
@@ -484,7 +488,7 @@ let dayNumber = 0;
         {isUpdatePassword && (
           <>
             <Form.Group className="mb-3" controlId="password">
-              <Form.Label> Password</Form.Label>
+              <Form.Label> {t('password')}</Form.Label>
               <Form.Control
                 value={password}
                 onChange={(e) => {
@@ -495,7 +499,7 @@ let dayNumber = 0;
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="confirm">
-              <Form.Label> Confirme Password</Form.Label>
+              <Form.Label> {t('confirmpassword')}</Form.Label>
               <Form.Control
                 value={confirm}
                 onChange={(e) => {
@@ -513,7 +517,7 @@ let dayNumber = 0;
           className="mb-3"
           type="checkbox"
           id="isSeller"
-          label="É fornecedor?"
+          label={t('areyousupplier')}
           checked={isSeller}
           onChange={(e) => setIsSeller(e.target.checked)}
         ></Form.Check>
@@ -524,10 +528,10 @@ let dayNumber = 0;
 {isSeller && (
           <>
           <br/>
-          <div ><h4>Dados adicionais</h4>
+          <div ><h4>{t('additionaldata')}</h4>
 
           <Form.Group className="mb-3" controlId="sellerPhoneAccount">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone para transferencias</Form.Label>
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>{t('phonenumbertransfers')}</Form.Label>
           <Form.Control
              type="text"
              max={9}
@@ -544,7 +548,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerPhoneAccountAlternativo">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de telefone alternativo para transferencias (opcional)</Form.Label>
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>{t('phonenumbertransfersoptional')}</Form.Label>
           <Form.Control
              type="text"
              max={9}
@@ -560,11 +564,11 @@ let dayNumber = 0;
         </Form.Group>
           
           <Form.Group className="mb-3" controlId="sellerAccountType">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('accounttype')}</Form.Label>
             <Form.Select aria-label="Tipo de conta"
           value={accountType}
           onChange={(e)=>setAccountType(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {accountTypes && accountTypes.map(account => (
             <option key={account._id} value={account.name}>
               {account.name}
@@ -574,7 +578,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerAccountNumber">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta</Form.Label>
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>{t('accountnumber')}</Form.Label>
           <Form.Control
             type="text"
             value={accountNumber}
@@ -587,11 +591,11 @@ let dayNumber = 0;
 
 
         <Form.Group className="mb-3" controlId="sellerAccountTypeAlternativo">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Tipo de conta alternativo (opcional)</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('accounttypeoptional')}</Form.Label>
             <Form.Select aria-label="Tipo de conta alternativo (opcional)"
           value={alternativeAccountType}
           onChange={(e)=>setAlternativeAccountType(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {accountTypes && accountTypes.map(account => (
             <option key={account._id} value={account.name}>
               {account.name}
@@ -601,7 +605,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerAccountNumberAlternativo">
-          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>Número de conta alternativo (opcional)</Form.Label>
+          <FontAwesomeIcon icon={faListNumeric} /> <Form.Label>{t('accountnumberoptional')}</Form.Label>
           <Form.Control
             type="text"
             value={alternativeAccountNumber}
@@ -616,9 +620,9 @@ let dayNumber = 0;
 
          
           <br/>
-          <div><h4>Detalhes de sua Loja </h4>
+          <div><h4>{t('storedetails')} </h4>
           <Form.Group className="mb-3" controlId="sellerName">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Nome da Loja/empresa</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storename')}</Form.Label>
           <Form.Control
             type="text"
             value={sellerName}
@@ -631,7 +635,7 @@ let dayNumber = 0;
 
 
         <Form.Group className="mb-3" controlId="sellerLogo">
-              <Form.Label>Logo da Loja</Form.Label>
+              <Form.Label>{t('storelogo')}</Form.Label>
               {sellerLogo && (
                 <img
                   style={{
@@ -654,7 +658,7 @@ let dayNumber = 0;
             </Form.Group>
 
           <Form.Group className="mb-3" controlId="sellerDescription">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Descrição da loja [Especialidade]</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storedescription')}</Form.Label>
           <Form.Control
             type="text"
             value={sellerDescription}
@@ -667,11 +671,11 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerLocation">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Provincia</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('province')}</Form.Label>
             <Form.Select aria-label="Provincia"
           value={sellerLocation}
           onChange={(e)=>setSellerLocation(e.target.value)} required>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {provinces && provinces.map(province => (
             <option key={province._id} value={province._id}>
               {province.name}
@@ -681,7 +685,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerDescription">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>Endereço da loja [Rua/Av.]</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storeaddress')}</Form.Label>
           <Form.Control
             type="text"
             value={sellerAddress}
@@ -696,11 +700,11 @@ let dayNumber = 0;
         <div>
                   
         <Form.Group className="mb-3" controlId="dayWeek">
-        <FaCalendarAlt /> <Form.Label>Dia de semana</Form.Label>
+        <FaCalendarAlt /> <Form.Label>{t('weekday')}</Form.Label>
             <Form.Select aria-label="Week"
           value={dayOfWeek}
           onChange={(e)=>setDayOfWeek(e.target.value)}>
-            <option value="">Seleccione</option>
+            <option value="">{t('select')}</option>
             {daysOfWeek && daysOfWeek.map(day => (
             <option key={day} value={day}>
               {day}
@@ -709,7 +713,7 @@ let dayNumber = 0;
           </Form.Select>
         </Form.Group>
         <Form.Group className="mb-3" controlId="sellerOpentime">
-          <FontAwesomeIcon icon={faClock} /> <Form.Label>Hora de abertura</Form.Label>
+          <FontAwesomeIcon icon={faClock} /> <Form.Label>{t('openingtime')}</Form.Label>
           <Form.Control
             type="time"
             value={opentime}
@@ -720,7 +724,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="sellerClosetime">
-          <FontAwesomeIcon icon={faClockFour} /> <Form.Label>Hora de fecho</Form.Label>
+          <FontAwesomeIcon icon={faClockFour} /> <Form.Label>{t('closingtime')}</Form.Label>
           <Form.Control
             type="time"
             value={closetime}
@@ -729,10 +733,10 @@ let dayNumber = 0;
             }}
           />
         </Form.Group>
-            <Button onClick={handleAddItem}>Adicionar</Button>
+            <Button onClick={handleAddItem}>{t('add')}</Button>
        </div>
 
-       {workDaysWithTime && <h6>Dias úteis e horário</h6>}
+       {workDaysWithTime && <h6>{t('businessdays')}</h6>}
       <ul>
         {workDaysWithTime && workDaysWithTime.map((item, index) => (
           <li key={index}>
@@ -761,7 +765,7 @@ let dayNumber = 0;
             type="submit"
             disabled={loadingUpdate}
           >
-            Actualizar
+            {t('update')}
           </Button>
         </div>
       </Form>
