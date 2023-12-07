@@ -174,6 +174,7 @@ orderRouter.post(
       ivaTax: req.body.ivaTax,
       siteTax: req.body.siteTax,
       addressPrice: req.body.addressPrice,
+      itemsPriceForSeller: req.body.itemsPriceForSeller,
       user: req.user._id,
       code: generateCode(),
       status: 'Pendente',

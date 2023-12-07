@@ -261,7 +261,7 @@ userRouter.post('/reset-password', expressAsyncHandler(async (req, res)=>{
         if(req.body.password){
           user.password = bcrypt.hashSync(req.body.password, 8)
           await user.save()
-          res.send({message: 'Password Actualizada com Successo'})
+          res.send({message: 'Password Actualizada com successo'})
         }
       }else{
         res.status(404).send({message: 'Utilizador nao encontrado'})

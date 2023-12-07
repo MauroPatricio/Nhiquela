@@ -59,6 +59,7 @@ const orderSchema = new mongoose.Schema(
       phoneNumer: Number,
     },
     itemsPrice: { type: Number, require: true },
+    itemsPriceForSeller: { type: Number, require: true },
     deliveryPrice: { type: Number, require: true },
     addressPrice: { type: Number, require: true },
     totalPrice: { type: Number, require: true },

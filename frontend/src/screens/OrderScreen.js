@@ -430,9 +430,6 @@ useEffect(() => {
     }
   };
 
-  const priceWithoutcommission = calculateReducedPrice(order && order.itemsPrice);
-
-
   return loading ? (
     <LoadingBox></LoadingBox>
   ) : error ? (
@@ -609,11 +606,42 @@ useEffect(() => {
             <Card.Body>
               <Card.Title>Pagamento ao fornecedor</Card.Title>
               <ListGroup variant="flush">
+              <ListGroup.Item>
+                  <Row>
+                    <Col><b className='link'>{seller && seller.seller && seller.seller.name}</b></Col>
+                  </Row>
+                </ListGroup.Item>
+              <ListGroup.Item>
+                  <Row>
+                    <Col>Número principal</Col>
+                    <Col>{seller && seller.seller && seller.seller.phoneNumberAccount}</Col>
+                  </Row>
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <Row>
+                    <Col>Número alternativo</Col>
+                    <Col>{seller && seller.seller && seller.seller.alternativePhoneNumberAccount}</Col>
+                  </Row>
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <Row>
+                    <Col>Número de conta</Col>
+                    <Col>{seller && seller.seller && seller.seller.accountType}</Col>
+                    <Col>{seller && seller.seller && seller.seller.accountNumber}</Col>
+                  </Row>
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <Row>
+                    <Col>conta alternativa</Col>
+                    <Col>{seller && seller.seller && seller.seller.alternativeAccountType}</Col>
+                    <Col>{seller && seller.seller && seller.seller.alternativeAccountNumber}</Col>
+                  </Row>
+                </ListGroup.Item>
                 
                 <ListGroup.Item>
                   <Row>
                     <Col>Valor a enviar</Col>
-                    <Col>{priceWithoutcommission} MT</Col>
+                    <Col>{order.itemsPriceForSeller} MT</Col>
                   </Row>
                 </ListGroup.Item>
               

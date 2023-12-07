@@ -141,6 +141,18 @@ export default function PlaceOrderScreen() {
   cart.totalPrice =
     (cart.itemsPrice + cart.addressPrice + cart.siteTax + cart.ivaTax ).toFixed(2);
 
+    let itemsPriceForSeller=0;
+    cart.cartItems && cart.cartItems.map(item =>{
+      if(item.onSale){
+        itemsPriceForSeller = (item.priceFromSeller-item.priceFromSeller*item.onSalePercentage)*item.quantity
+      }else{
+        itemsPriceForSeller = item.priceFromSeller*item.quantity
+      }
+    })
+
+    cart.itemsPriceForSeller = itemsPriceForSeller
+
+
 
   const placeOrderHandler = async () => {
 
@@ -184,6 +196,7 @@ const formattedDatetime = `${hours}:${minutes}`;
             taxPrice: cart.taxPrice,
             totalPrice: cart.totalPrice,
             addressPrice: cart.addressPrice,
+            itemsPriceForSeller: cart.itemsPriceForSeller
           },
           {
             headers: {
@@ -225,6 +238,7 @@ const formattedDatetime = `${hours}:${minutes}`;
               taxPrice: cart.taxPrice,
               totalPrice: cart.totalPrice,
               addressPrice: cart.addressPrice,
+              itemsPriceForSeller: cart.itemsPriceForSeller
             },
             {
               headers: {
