@@ -14,7 +14,6 @@ export default function ResetPasswordScreen() {
     const navigate = useNavigate();
 
     const {token} = useParams();
-    console.log(token);
     const [password,setPassword] = useState('');
     const [confirmPassword,setConfirmPassword] = useState('');
 

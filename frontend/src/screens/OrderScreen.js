@@ -641,7 +641,7 @@ useEffect(() => {
                 <ListGroup.Item>
                   <Row>
                     <Col>Valor a enviar</Col>
-                    <Col>{order.itemsPriceForSeller} MT</Col>
+                    <Col><b>{order.itemsPriceForSeller} MT</b></Col>
                   </Row>
                 </ListGroup.Item>
               
@@ -734,7 +734,6 @@ useEffect(() => {
                 </div>
               </ListGroup.Item>
             )}
-
 
 
 

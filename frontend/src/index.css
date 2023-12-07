@@ -447,7 +447,7 @@ table {
 }
 
 .scroll-to-top-button.show {
-  opacity: 1;
+  opacity: 7;
   position: fixed;
   bottom: 25px;
   right: 30px;

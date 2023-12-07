@@ -328,7 +328,7 @@ orderRouter.get(
   })
 );
 
-// get order paid
+// Actualizar o estado do pedido para pago
 orderRouter.put(
   '/:id/pay',
   isAuth,
@@ -373,7 +373,7 @@ orderRouter.put(
   })
 );
 
-
+// Pedido aceite pelo fornecedor
 orderRouter.put(
   '/:id/accept',
   isAuth,
@@ -404,7 +404,7 @@ orderRouter.put(
   })
 );
 
-
+// disponivel para entrega
 orderRouter.put(
   '/:id/availableToDeliver',
   isAuth,
@@ -424,7 +424,7 @@ orderRouter.put(
 
       await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o seu pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+      let msg =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       sendEmailOrderStatus(req,msg, order, res);
 
@@ -436,7 +436,7 @@ orderRouter.put(
   })
 );
 
-
+// Pedido aceite pelo entregador
 orderRouter.put(
   '/:id/acceptedByDeliveryman',
   isAuth,
@@ -467,7 +467,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o seu pedido correspondente ao pedido nr ${updateOrder.code}`;
+       let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
  
       //  sendSMSToUSendIt(msg);
 
@@ -481,7 +481,7 @@ orderRouter.put(
   })
 );
 
-
+// O pedido esta a caminho
 orderRouter.put(
   '/:id/intransit',
   isAuth,
@@ -519,7 +519,7 @@ orderRouter.put(
 
         //  Para envio de mensagens
 
-        let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr: 840000000`;
+        let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr nos detalhes do pedido`;
  
         //  sendSMSToUSendIt(req,msg);
 
@@ -536,6 +536,7 @@ orderRouter.put(
   })
 );
 
+// O entregador Confirma a chegada do destino de entrega
 orderRouter.put(
   '/:id/confirmDestination',
   isAuth,
@@ -566,6 +567,8 @@ orderRouter.put(
   })
 );
 
+
+// O cliente finaliza a confirmar a recepcao do pedido
 orderRouter.put(
   '/:id/deliver',
   isAuth,
@@ -611,7 +614,7 @@ orderRouter.put(
   })
 );
 
-
+// Em caso de cancelamento do pedido
 orderRouter.put(
   '/:id/cancel',
   isAuth,
