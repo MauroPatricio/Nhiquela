@@ -144,9 +144,9 @@ export default function PlaceOrderScreen() {
     let itemsPriceForSeller=0;
     cart.cartItems && cart.cartItems.map(item =>{
       if(item.onSale){
-        itemsPriceForSeller = (item.priceFromSeller-item.priceFromSeller*item.onSalePercentage)*item.quantity
+        itemsPriceForSeller = itemsPriceForSeller + (item.priceFromSeller-item.priceFromSeller*item.onSalePercentage)*item.quantity
       }else{
-        itemsPriceForSeller = item.priceFromSeller*item.quantity
+        itemsPriceForSeller = itemsPriceForSeller +  item.priceFromSeller*item.quantity
       }
     })
 

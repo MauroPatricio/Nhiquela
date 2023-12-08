@@ -105,7 +105,7 @@ export default function SignupScreen() {
   const [alternativeAccountType, setAlternativeAccountType] = useState('');
   const [alternativeAccountNumber, setAlternativeAccountNumber] = useState('');
 
-  const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira','Sexta-feira','Sábado', 'Feriados'];
+  const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira','Sexta-feira','Sábado'];
   const [workDaysWithTime, setWorkDaysWithTime] = useState([]);
   const [dayOfWeek, setDayOfWeek] = useState('');
 

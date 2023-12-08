@@ -53,6 +53,9 @@ export default function CartScreen() {
   const [sellerId, setSellerId] = useState('');
 const [seller, setSeller] = useState({});
 
+const [storeOpen, isStoreOpen] = useState(false);
+
+
 const [
   {
     loadingSeller,
@@ -147,6 +150,10 @@ const formattedDatetime = `${hours}:${minutes}`;
           toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
           return;
         }
+        // if(storeOpen){
+        // toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
+        // return;
+        // }
 
     seller.seller.workDayAndTime.map(async workday=>{
 
@@ -155,12 +162,13 @@ const formattedDatetime = `${hours}:${minutes}`;
           // Esta dentro do periodo informado
           if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
             setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
+            // isStoreOpen(true)
             navigate('/address');
             return
         }
   
       }else{
-        toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
+        // toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
         return;
       }
   })}

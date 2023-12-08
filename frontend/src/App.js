@@ -285,8 +285,8 @@ export  function App() {
         </header> 
          <main style={{ marginTop: '30px' }} >
       <PaybackInfoAndSecurity/>
+
       <AdicionalInfoHeader/>
-      <ScrollTopButton />
 
           <Container className={expanded ? 'collapse-open' : ''}>
             <Routes>
@@ -691,6 +691,7 @@ export  function App() {
                 }
               />
             </Routes>        
+            <ScrollTopButton />
 
             {userInfo&&<ChatBox  userInfo={userInfo}/>}
           </Container> 
