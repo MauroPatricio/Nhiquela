@@ -19,6 +19,7 @@ import { FaMoneyBillAlt } from "react-icons/fa";
 
 import {Modal, Form} from 'react-bootstrap';
 import { t } from 'i18next';
+import InvoiceGenerator from '../components/InvoiceGenerator';
 
 function reducer(state, action) {
   switch (action.type) {
@@ -443,6 +444,7 @@ useEffect(() => {
       <h1>{t('trackorder')}</h1>
       <br />
       {order.status && <OrderSteps {...order}></OrderSteps>}
+      {/* <InvoiceGenerator/> */}
 
       <h4>{t('order')} №: {order.code}</h4>
       <Row>

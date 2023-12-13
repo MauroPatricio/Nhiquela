@@ -17,6 +17,7 @@
     "bootstrap": "^5.2.3",
     "bson": "^5.2.0",
     "font-awesome": "^4.7.0",
+    "html2pdf.js": "^0.10.1",
     "i18next": "^23.7.6",
     "i18next-browser-languagedetector": "^7.1.0",
     "i18next-http-backend": "^2.3.1",

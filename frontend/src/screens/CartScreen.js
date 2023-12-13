@@ -147,7 +147,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         const formattedDatetime = `${hours}:${minutes}`;
 
         if(seller.seller.workDayAndTime.length==0){
-          toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
+          toast.error(`Não é possível registrar o seu pedido em uma loja fechada. `)
           return;
         }
         // if(storeOpen){
@@ -179,7 +179,8 @@ const formattedDatetime = `${hours}:${minutes}`;
       </Helmet>
       <h1>{t('shoppingcart')}:               <Link className="text_color link-none" to={`/seller/${cartItems[0] && cartItems[0].seller._id}`}>{cartItems[0] && cartItems[0].seller.seller.name}</Link> - {sellerDayInfo}</h1>
           {error && <MessageBox variant="danger">{error}</MessageBox>}
-      <Row>
+        <b className='text_color'>{t('supplierclosetimenotice')}</b>          
+        <Row>
         <Col md={8}>
           {cartItems.length === 0 ? (
             <MessageBox>

@@ -255,7 +255,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         }
       }
     }else{
-      toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
+      // toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
       return;
     }
     })
