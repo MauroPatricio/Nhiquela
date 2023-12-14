@@ -364,7 +364,7 @@ export default function ProductCreateScreen() {
   const deleteImageHandler = async (fileName) => {
     setImages(images.filter((x) => x !== fileName));
 
-    toast.success('Imagem removida ');
+    toast.success('Imagem removida');
   };
 
   return (

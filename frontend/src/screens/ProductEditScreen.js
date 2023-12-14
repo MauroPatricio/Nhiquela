@@ -138,6 +138,8 @@ export default function ProductEditScreen() {
 
   const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
+  const [priceFromSeller, setPriceFromSeller] = useState('');
+
   const [image, setImage] = useState('');
   const [images, setImages] = useState([]);
 
@@ -183,6 +185,7 @@ export default function ProductEditScreen() {
         setQualityTyp(data.qualityType);
         setSelectedColors(data.color);
         setSelectedSizes(data.size);
+        setPriceFromSeller(data.priceFromSeller)
 
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: err });
@@ -352,7 +355,8 @@ export default function ProductEditScreen() {
           conditionStatu,
           qualityTyp,
           selectedColors,
-          selectedSizes
+          selectedSizes,
+          priceFromSeller
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -499,7 +503,16 @@ export default function ProductEditScreen() {
 
 
             <Form.Group className="mb-3" controlId="price">
-              <Form.Label>Preço [Mt]</Form.Label>
+              <Form.Label>Preço informado [Mt]</Form.Label>
+              <Form.Control
+                value={priceFromSeller}
+                onChange={(e) => priceFromSeller(e.target.value)}
+              />
+            </Form.Group>
+
+
+            <Form.Group className="mb-3" controlId="price">
+              <Form.Label>Preço + comissão [Mt]</Form.Label>
               <Form.Control
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
