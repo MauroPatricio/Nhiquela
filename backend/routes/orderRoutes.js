@@ -178,8 +178,9 @@ orderRouter.post(
       user: req.user._id,
       code: generateCode(),
       status: 'Pendente',
-      stepStatus: 0,
-
+      isPaid: req.body.isPaid,
+      paidAt: req.body.paidAt,
+      stepStatus: req.body.stepStatus
     });
 
 

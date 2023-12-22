@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useReducer, useState } from 'react';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
-
+// import Form from 'react-bootstrap/Form';
 import { Helmet } from 'react-helmet-async';
 import CheckoutSteps from '../components/CheckoutSteps';
 import Card from 'react-bootstrap/Card';
@@ -29,6 +29,17 @@ const reducer = (state, action) => {
 
     case 'CREATE_FAIL':
       return { ...state, loading: false };
+
+
+      case 'CREATE_MPESA_REQUEST':
+        return { ...state, loading: true };
+  
+      case 'CREATE_MPESA_SUCCESS':
+        return { ...state, paymentMpesa: action.payload, loading: false };
+  
+      case 'CREATE_MPESA_FAIL':
+        return { ...state, loading: false };
+
    case 'SELLER_DETAILS_REQUEST':
         return { ...state, loadingSeller: true };
   
@@ -53,6 +64,9 @@ export default function PlaceOrderScreen() {
   const navigate = useNavigate();
   const { cart, userInfo } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalMpesa, setIsModalMpesa] = useState(false);
+  let [customerNumber, setCustomerNumber] = useState(null);
+
 
   const [message] = useState(t('makelogin'));
 
@@ -61,6 +75,11 @@ export default function PlaceOrderScreen() {
   const closeModal = () => {
     setIsModalOpen(false);
   };
+
+  const closeModalMpesa = () => {
+    setIsModalMpesa(false);
+  };
+
 
   
   const loginRedirect = () => {
@@ -79,8 +98,84 @@ export default function PlaceOrderScreen() {
 
   const [sellerId, setSellerId] = useState('');
   const [seller, setSeller] = useState({});
-  
 
+
+  // Estado para rastrear a escolha do usuário
+  const [escolha, setEscolha] = useState(null);
+
+  // Estado para rastrear o valor do campo de input condicional
+  const [valorInput, setValorInput] = useState('');
+
+  // Função para atualizar o estado de escolha
+  const handleEscolhaChange = (event) => {
+    const novaEscolha = event.target.value;
+    setEscolha(novaEscolha);
+    setCustomerNumber(userInfo && userInfo.phoneNumber)
+
+    // Limpar o valor do input quando a escolha mudar
+    setValorInput('');
+  };
+
+  // Função para lidar com a mudança no campo de input
+  const handleInputChange = (event) => {
+    const novoValor = event.target.value;
+    setValorInput(novoValor);
+  };
+  
+  const paymentMpesa = async () => {
+
+    if(valorInput){
+      customerNumber = valorInput
+    }
+
+    const amount = cart.totalPrice;
+    try{
+    dispatch({ type: 'CREATE_MPESA_REQUEST' });
+
+    const { data } = await axios.post(`/api/payments/mpesa`, {customerNumber, amount},  {
+      headers: {
+        authorization: `Bearer ${userInfo.token}`,
+      },
+    });
+
+    try{
+      dispatch({ type: 'CREATE_REQUEST' });
+      const order = await axios.post(
+        '/api/orders',
+        {
+          orderItems: cart.cartItems,
+          address: cart.address,
+          paymentMethod: cart.paymentMethod,
+          itemsPrice: cart.itemsPrice,
+          ivaTax: cart.ivaTax,
+          siteTax: cart.siteTax,
+          taxPrice: cart.taxPrice,
+          totalPrice: cart.totalPrice,
+          addressPrice: cart.addressPrice,
+          itemsPriceForSeller: cart.itemsPriceForSeller,
+          isPaid: data.paid,
+          paidAt: Date.now(),
+          stepStatus: 1
+        },
+        {
+          headers: {
+            authorization: `Bearer ${userInfo.token}`,
+          },
+        }
+      );
+      ctxDispatch({ type: 'CART_CLEAR' });
+      dispatch({ type: 'CREATE_SUCCESS' });
+      navigate(`/order/${order.data.order._id}`);
+      toast.success('Pedido efectuado com sucesso');
+  
+      dispatch({ type: 'CREATE_MPESA_SUCCESS', payload: data });
+    } catch (err) {
+      dispatch({ type: 'CREATE_MPESA_FAIL', payload: getError(err) });
+    }
+    } catch (err) {
+      toast.error(getError(err));
+    }
+  };
   
   useEffect(() => {
     const fetchSellerDetails = async () => {
@@ -122,7 +217,7 @@ export default function PlaceOrderScreen() {
           }
         })
       }
-    }, [seller]);
+    }, [seller, t]);
 
     
 
@@ -142,7 +237,7 @@ export default function PlaceOrderScreen() {
     (cart.itemsPrice + cart.addressPrice + cart.siteTax + cart.ivaTax ).toFixed(2);
 
     let itemsPriceForSeller=0;
-    cart.cartItems && cart.cartItems.map(item =>{
+    cart.cartItems && cart.cartItems.map((item) =>{
       if(item.onSale){
         itemsPriceForSeller = itemsPriceForSeller + (item.priceFromSeller-item.priceFromSeller*item.onSalePercentage)*item.quantity
       }else{
@@ -179,39 +274,40 @@ const formattedDatetime = `${hours}:${minutes}`;
     // Caso o dia de semana actual e o dia de semana disponivel na listagem forem diferentes
 
 
-    if(seller && seller.seller.workDayAndTime.length===0){
-      try {
-        dispatch({ type: 'CREATE_REQUEST' });
+    // if(seller && seller.seller.workDayAndTime.length===0){
+    //   try {
+    //     dispatch({ type: 'CREATE_REQUEST' });
+    //    // if()
   
        
-        const { data } = await axios.post(
-          '/api/orders',
-          {
-            orderItems: cart.cartItems,
-            address: cart.address,
-            paymentMethod: cart.paymentMethod,
-            itemsPrice: cart.itemsPrice,
-            ivaTax: cart.ivaTax,
-            siteTax: cart.siteTax,
-            taxPrice: cart.taxPrice,
-            totalPrice: cart.totalPrice,
-            addressPrice: cart.addressPrice,
-            itemsPriceForSeller: cart.itemsPriceForSeller
-          },
-          {
-            headers: {
-              authorization: `Bearer ${userInfo.token}`,
-            },
-          }
-        );
-        ctxDispatch({ type: 'CART_CLEAR' });
-        dispatch({ type: 'CREATE_SUCCESS' });
-        navigate(`/order/${data.order._id}`);
-        toast.success('Pedido efectuado com sucesso');
-      } catch (err) {
-        toast.error(getError(err));
-      }
-    }
+    //     const { data } = await axios.post(
+    //       '/api/orders',
+    //       {
+    //         orderItems: cart.cartItems,
+    //         address: cart.address,
+    //         paymentMethod: cart.paymentMethod,
+    //         itemsPrice: cart.itemsPrice,
+    //         ivaTax: cart.ivaTax,
+    //         siteTax: cart.siteTax,
+    //         taxPrice: cart.taxPrice,
+    //         totalPrice: cart.totalPrice,
+    //         addressPrice: cart.addressPrice,
+    //         itemsPriceForSeller: cart.itemsPriceForSeller
+    //       },
+    //       {
+    //         headers: {
+    //           authorization: `Bearer ${userInfo.token}`,
+    //         },
+    //       }
+    //     );
+    //     ctxDispatch({ type: 'CART_CLEAR' });
+    //     dispatch({ type: 'CREATE_SUCCESS' });
+    //     navigate(`/order/${data.order._id}`);
+    //     toast.success('Pedido efectuado com sucesso');
+    //   } catch (err) {
+    //     toast.error(getError(err));
+    //   }
+    // }
 
     
     seller.seller.workDayAndTime.map(async workday=>{
@@ -225,6 +321,18 @@ const formattedDatetime = `${hours}:${minutes}`;
         try {
           dispatch({ type: 'CREATE_REQUEST' });
     
+
+          // verifica se o pagamento selecionado e via mpesa ou nao
+          // Caso o pagamento selecionado seja Mpesa 
+          // entao ira apresentar um pop up para o cliente pagar via mpesa
+          // Apos retornar a informacao do pagamento por parte do cliente 
+          // Secto os dados na ordem para informar que este pagamento foi pago
+          // Caso o pagamento nao tenha sido pago com sucesso 
+          // este nao avanca para a tela seguinte e apresenta a mensagem com o motivo do pagamento nao ter sido efectuado com sucesso
+          if(cart.paymentMethod==='Mpesa'){
+            setIsModalMpesa(true)
+            return
+          }
          
           const { data } = await axios.post(
             '/api/orders',
@@ -238,7 +346,9 @@ const formattedDatetime = `${hours}:${minutes}`;
               taxPrice: cart.taxPrice,
               totalPrice: cart.totalPrice,
               addressPrice: cart.addressPrice,
-              itemsPriceForSeller: cart.itemsPriceForSeller
+              itemsPriceForSeller: cart.itemsPriceForSeller,
+              isPaid: false
+
             },
             {
               headers: {
@@ -268,6 +378,12 @@ const formattedDatetime = `${hours}:${minutes}`;
       setIsModalOpen(true)
       return
     }
+
+    if (userInfo) {
+      setCustomerNumber(userInfo.phoneNumber)
+      return
+    }
+   
    
   };
 
@@ -422,9 +538,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         </Col>
       </Row>
 
-      <Modal show={isModalOpen}  onClick={closeModal}
-       
-        >
+      <Modal show={isModalOpen}  onClick={closeModal}>
         <Modal.Header closeButton onClick={closeModal}>
           <Modal.Title>Login</Modal.Title>
         </Modal.Header>
@@ -436,6 +550,58 @@ const formattedDatetime = `${hours}:${minutes}`;
             Ok
           </Button>
           <Button variant="danger" onClick={closeModal}>
+            Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={isModalMpesa} >
+        <Modal.Header closeButton onClick={closeModalMpesa}>
+          <Modal.Title>{t('mpesapayment')}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+        {t('whichnumbertopay')}<br/>
+       
+       
+      {/* RadioButtons */}
+      <label>
+        <input
+          type="radio"
+          value="opcao1"
+          checked={escolha === "opcao1"}
+          onChange={handleEscolhaChange}
+        />
+        {userInfo.phoneNumber}
+      </label>
+<br/>
+      <label>
+        <input
+          type="radio"
+          value="opcao2"
+          checked={escolha === "opcao2"}
+          onChange={handleEscolhaChange}
+        />
+          {t('anothernumber')}
+      </label>
+
+      {/* Campo de input condicional */}
+      {escolha === 'opcao2' && (
+        <div>
+          <label>
+            <input
+              type="text"
+              value={valorInput}
+              onChange={handleInputChange}
+            />
+          </label>
+        </div>
+      )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="dark" onClick={paymentMpesa}>
+            Pagar
+          </Button>
+          <Button variant="danger" onClick={closeModalMpesa}>
             Cancelar
           </Button>
         </Modal.Footer>

@@ -190,7 +190,12 @@
     "updateyourpassword":"Do you want to update your password?",
     "areyousupplier":"Are you our supplier?",
     "supplierclosetimenotice":"NOTE: If the store is closed, it is not possible to process any orders.",
-    "servicecharge": "Service charge"
+    "servicecharge": "Service charge",
+    "whichnumbertopay":"Which number do you want to pay on:",
+    "mpesapayment":"Payment via MPESA",
+    "anothernumber":"Another number",
+    "enternumber":"Enter your number:"
+
 
 
 

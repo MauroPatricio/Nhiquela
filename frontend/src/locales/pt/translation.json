@@ -190,7 +190,11 @@
    "updateyourpassword":"Deseja actualizar a password?",
    "areyousupplier":"É nosso fornecedor?",
    "supplierclosetimenotice":"NOTA: Caso a loja esteja fechada não será possível processar nenhum pedido",
-   "servicecharge": "Taxa de Serviço"
+   "servicecharge": "Taxa de Serviço",
+   "whichnumbertopay":"Em qual número deseja pagar:",
+   "mpesapayment":"Pagamento via MPESA",
+   "anothernumber":"Outro número",
+   "enternumber":"Coloque seu número:"
 
 
 
