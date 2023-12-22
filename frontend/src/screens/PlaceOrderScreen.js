@@ -310,7 +310,7 @@ const formattedDatetime = `${hours}:${minutes}`;
     // }
 
     
-    seller.seller.workDayAndTime.map(async workday=>{
+    seller && seller.seller.workDayAndTime.map(async workday=>{
       
       if(workday.dayNumber === currentDay){
 
