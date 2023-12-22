@@ -1,7 +1,6 @@
 import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
-import Category from '../models/CategoryModel.js';
 import Product from '../models/ProductModel.js';
 import Size from '../models/SizeModel.js';
 

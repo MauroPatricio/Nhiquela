@@ -1,8 +1,8 @@
-import express, { query } from 'express';
+import express from 'express';
 import Product from '../models/ProductModel.js';
 
 import expressAsyncHandler from 'express-async-handler';
-import { isAdmin, isAuth, isSeller, isSellerOrAdmin } from '../utils.js';
+import { isAuth, isSellerOrAdmin } from '../utils.js';
 import User from '../models/UserModel.js';
 
 

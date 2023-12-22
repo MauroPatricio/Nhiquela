@@ -6,7 +6,6 @@ import { faClock } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Store } from '../Store';
 import { useTranslation } from 'react-i18next';
-import html2pdf from 'html2pdf.js';
 
 
 
@@ -26,19 +25,7 @@ export default function InvoiceGenerator() {
     // You can add additional logic for taxes, discounts, etc., if needed
   };
 
-  const downloadInvoice = () => {
-    const invoiceTable = document.getElementById('invoice-table');
-    const pdfOptions = {
-      margin: 10,
-      filename: 'nhiquelainvoice.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    };
-
-    html2pdf().from(invoiceTable).set(pdfOptions).save();
-  };
-
+  
   return (
     <div>
       <h1>Invoice</h1>
@@ -72,7 +59,7 @@ export default function InvoiceGenerator() {
           </tr>
         </tfoot>
       </table>
-      <button onClick={downloadInvoice}>Download Invoice</button>
+      <button >Download Invoice</button>
     </div>
   )
 

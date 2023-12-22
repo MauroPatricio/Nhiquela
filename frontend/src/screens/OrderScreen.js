@@ -578,7 +578,7 @@ useEffect(() => {
                 </ListGroup.Item>}
                     <ListGroup.Item>
                       <Row>
-                        <Col>Taxa de pagamentos</Col>
+                      <Col>{t('servicecharge')}</Col>
                         <Col>{order.siteTax} MT</Col>
                       </Row>
                     </ListGroup.Item>

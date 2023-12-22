@@ -86,7 +86,7 @@
    "nameoforderreceiver":"Nome do destinatário do pedido",
    "numbertocall":"Número para chamadas",
    "alternativenumberoptional":"Número alternativo (opcional)",
-   "deliveryplace":"Local de entrega",
+   "deliveryplace":"Cidade de entrega",
    "next":"Próximo",
    "additionalinformation":"Informações adicionais do seu endereço",
    "select":"Seleccione",
@@ -189,7 +189,8 @@
    "update":"Actualizar",
    "updateyourpassword":"Deseja actualizar a password?",
    "areyousupplier":"É nosso fornecedor?",
-   "supplierclosetimenotice":"NOTA: Caso a loja esteja fechada não será possível processar nenhum pedido"
+   "supplierclosetimenotice":"NOTA: Caso a loja esteja fechada não será possível processar nenhum pedido",
+   "servicecharge": "Taxa de Serviço"
 
 
 

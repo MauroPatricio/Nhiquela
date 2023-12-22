@@ -2,7 +2,6 @@ import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import DocumentType from '../models/DocumentTypeModel.js';
-import Product from '../models/ProductModel.js';
 
 const documentTypeRoutes = express.Router();
 

@@ -16,6 +16,7 @@ import qualityTypeRouter from './routes/qualityTypeRoutes.js';
 import conditionStatusRouter from './routes/conditionStatusRoutes.js';
 import colorRoutes from './routes/colorRoutes.js';
 import sizeRoutes from './routes/sizeRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 // Carregando o ficheiro .env
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use('/api/qualitytype', qualityTypeRouter);
 app.use('/api/conditionstatus', conditionStatusRouter);
 app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
 const __dirname = path.resolve();

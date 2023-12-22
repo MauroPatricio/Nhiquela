@@ -381,7 +381,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                 </ListGroup.Item>}
                 <ListGroup.Item>
                   <Row>
-                    <Col>Taxa de pagamentos</Col>
+                    <Col>{t('servicecharge')}</Col>
                     <Col>{cart.siteTax} MT</Col>
                   </Row>
                 </ListGroup.Item>

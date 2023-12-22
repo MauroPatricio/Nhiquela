@@ -87,7 +87,7 @@
     "nameoforderreceiver":"Name of order receiver",
     "numbertocall":"Number to call",
     "alternativenumberoptional":"Alternative number (optional)",
-    "deliveryplace":"Delivery place",
+    "deliveryplace":"Delivery city",
     "next":"Next",
     "additionalinformation":"Additional information about your address",
     "select":"Select",
@@ -189,7 +189,9 @@
     "update":"Update",
     "updateyourpassword":"Do you want to update your password?",
     "areyousupplier":"Are you our supplier?",
-    "supplierclosetimenotice":"NOTE: If the store is closed, it is not possible to process any orders."
+    "supplierclosetimenotice":"NOTE: If the store is closed, it is not possible to process any orders.",
+    "servicecharge": "Service charge"
+
 
 
 
