@@ -338,7 +338,7 @@ const formattedDatetime = `${hours}:${minutes}`;
     // }
 
     
-    seller && seller.seller.workDayAndTime.map(async workday=>{
+    seller && seller.seller && seller.seller.workDayAndTime.map(async workday=>{
       
       if(workday.dayNumber === currentDay){
 
@@ -566,7 +566,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         </Col>
       </Row>
 
-      <Modal show={isModalOpen}  onClick={closeModal}>
+      <Modal show={isModalOpen}  onClick={closeModal}  className='modal'>
         <Modal.Header closeButton onClick={closeModal}>
           <Modal.Title>Login</Modal.Title>
         </Modal.Header>
@@ -583,7 +583,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         </Modal.Footer>
       </Modal>
 
-      <Modal show={isModalMpesa} >
+      <Modal show={isModalMpesa}  className='modal' >
         <Modal.Header closeButton onClick={closeModalMpesa}>
           <Modal.Title>{t('mpesapayment')}</Modal.Title>
         </Modal.Header>

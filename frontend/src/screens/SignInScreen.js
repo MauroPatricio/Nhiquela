@@ -109,8 +109,8 @@ export default function SignInScreen() {
         </div>
 
  
-
-      <Modal show={isModalOpen}  onClick={closeModal}
+ 
+      <Modal show={isModalOpen}  onClick={closeModal}  className='modal'
        
         >
         <Modal.Header closeButton onClick={closeModal}>
