@@ -77,7 +77,7 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 
      const comission_price = parseFloat(process.env.COMISSION_PRICE)
 
-     const priceFromSeller = parseFloat(req.body.price);
+     const priceFromSeller = parseFloat(req.body.priceFromSeller);
 
      const priceComission = parseFloat(priceFromSeller*comission_price);
 

@@ -333,6 +333,16 @@ export default function ProductEditScreen() {
   const submitHandler = async (e) => {
     e.preventDefault();
 
+    if(selectedColors.length === 0){
+      toast.error('Por favor, Adicione a cor')
+      return 
+    }
+
+    if(selectedSizes.length === 0){
+      toast.error('Por favor, Adicione o tamanho')
+      return 
+    }
+
     try {
       dispatch({ type: 'UPDATE_REQUEST' });
       await axios.put(
@@ -506,7 +516,7 @@ export default function ProductEditScreen() {
               <Form.Label>Preço informado [Mt]</Form.Label>
               <Form.Control
                 value={priceFromSeller}
-                onChange={(e) => priceFromSeller(e.target.value)}
+                onChange={(e) => setPriceFromSeller(e.target.value)}
               />
             </Form.Group>
 
@@ -516,7 +526,8 @@ export default function ProductEditScreen() {
               <Form.Control
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                required
+                required 
+                disabled
               />
             </Form.Group>
 
@@ -525,7 +536,6 @@ export default function ProductEditScreen() {
             <Form.Group className="mb-3" controlId="countInStock">
               <Form.Label>Cores disponíveis</Form.Label>
               <Form.Select
-                required
                 aria-label="Cores"
                 // value={colors}
                 onChange={(e)=>addColor(e.target.value)}
@@ -559,7 +569,6 @@ export default function ProductEditScreen() {
            <Form.Group className="mb-3" controlId="countInStock">
               <Form.Label>Tamanhos disponíveis</Form.Label>
               <Form.Select
-                required
                 aria-label="Tamanho"
                 // value={selectedSizes}
                 onChange={(e) => addSize(e.target.value)}
