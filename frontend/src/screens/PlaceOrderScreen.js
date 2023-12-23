@@ -137,40 +137,68 @@ export default function PlaceOrderScreen() {
         authorization: `Bearer ${userInfo.token}`,
       },
     });
+    if(data.paid){
 
-    try{
-      dispatch({ type: 'CREATE_REQUEST' });
-      const order = await axios.post(
-        '/api/orders',
-        {
-          orderItems: cart.cartItems,
-          address: cart.address,
-          paymentMethod: cart.paymentMethod,
-          itemsPrice: cart.itemsPrice,
-          ivaTax: cart.ivaTax,
-          siteTax: cart.siteTax,
-          taxPrice: cart.taxPrice,
-          totalPrice: cart.totalPrice,
-          addressPrice: cart.addressPrice,
-          itemsPriceForSeller: cart.itemsPriceForSeller,
-          isPaid: data.paid,
-          paidAt: Date.now(),
-          stepStatus: 1
-        },
-        {
-          headers: {
-            authorization: `Bearer ${userInfo.token}`,
+      try{
+        dispatch({ type: 'CREATE_REQUEST' });
+        const order = await axios.post(
+          '/api/orders',
+          {
+            orderItems: cart.cartItems,
+            address: cart.address,
+            paymentMethod: cart.paymentMethod,
+            itemsPrice: cart.itemsPrice,
+            ivaTax: cart.ivaTax,
+            siteTax: cart.siteTax,
+            taxPrice: cart.taxPrice,
+            totalPrice: cart.totalPrice,
+            addressPrice: cart.addressPrice,
+            itemsPriceForSeller: cart.itemsPriceForSeller,
+            isPaid: data.paid,
+            paidAt: Date.now(),
+            stepStatus: 1
           },
-        }
-      );
-      ctxDispatch({ type: 'CART_CLEAR' });
-      dispatch({ type: 'CREATE_SUCCESS' });
-      navigate(`/order/${order.data.order._id}`);
-      toast.success('Pedido efectuado com sucesso');
-  
-      dispatch({ type: 'CREATE_MPESA_SUCCESS', payload: data });
-    } catch (err) {
-      dispatch({ type: 'CREATE_MPESA_FAIL', payload: getError(err) });
+          {
+            headers: {
+              authorization: `Bearer ${userInfo.token}`,
+            },
+          }
+        );
+        ctxDispatch({ type: 'CART_CLEAR' });
+        dispatch({ type: 'CREATE_SUCCESS' });
+        navigate(`/order/${order.data.order._id}`);
+        toast.success('Pedido efectuado com sucesso');
+    
+        dispatch({ type: 'CREATE_MPESA_SUCCESS', payload: data });
+      } catch (err) {
+        dispatch({ type: 'CREATE_MPESA_FAIL', payload: getError(err) });
+      }
+    }else{
+      console.log(data.code==='INS-1')
+      if(data.code==='INS-1'){
+        toast.error('Erro Interno');
+      }
+      if(data.code==='INS-4'){
+        toast.error('Conta inactiva');
+      }
+      if(data.code==='INS-5'){
+        toast.error('Transação cancelada pelo utilizador');
+      }
+      if(data.code==='INS-6'){
+        toast.error('Transação falhada');
+      }
+      if(data.code==='INS-9'){
+        toast.error('Tempo de espera excedido');
+      }
+      if(data.code==='INS-2006'){
+        toast.error('Saldo insuficiente');
+      }
+      if(data.code==='INS-2051'){
+        toast.error('Número de telefone inválido');
+      }
+      
+      toast.error('Pagamento sem sucesso');
+      setIsModalMpesa(false);
     }
     } catch (err) {
       toast.error(getError(err));
