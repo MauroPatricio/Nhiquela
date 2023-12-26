@@ -79,7 +79,7 @@ export default function SignInScreen() {
           <Form.Control
             type="text"
             required
-            placeholder="Numero de telefone ou email"
+            placeholder="Número de telefone ou email"
             onChange={(e) => {
               setPhoneNumber(e.target.value);
             }}

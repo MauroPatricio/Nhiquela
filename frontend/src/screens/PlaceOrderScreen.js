@@ -14,7 +14,8 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import LoadingBox from '../components/LoadingBox';
 import { FaPencilAlt } from "react-icons/fa";
-import {Modal} from 'react-bootstrap';
+import { Modal} from 'react-bootstrap';
+import Form from 'react-bootstrap/Form'
 import { useTranslation } from 'react-i18next';
 
 
@@ -125,9 +126,10 @@ export default function PlaceOrderScreen() {
   const paymentMpesa = async () => {
 
     if(valorInput){
-      customerNumber = valorInput
+        customerNumber = valorInput
     }
-
+    customerNumber = '258'+customerNumber;
+    
     const amount = cart.totalPrice;
     try{
     dispatch({ type: 'CREATE_MPESA_REQUEST' });
@@ -615,13 +617,16 @@ const formattedDatetime = `${hours}:${minutes}`;
       {/* Campo de input condicional */}
       {escolha === 'opcao2' && (
         <div>
-          <label>
-            <input
-              type="text"
-              value={valorInput}
-              onChange={handleInputChange}
-            />
-          </label>
+          <Form.Control
+            type="text"
+            max={9}
+            maxLength={9}
+            pattern="[0-9]*"
+            title="Insira apenas números"
+            placeholder="8********"
+            value={valorInput}
+            onChange={handleInputChange}
+          />
         </div>
       )}
         </Modal.Body>
