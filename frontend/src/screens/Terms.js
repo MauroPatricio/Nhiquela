@@ -1,11 +1,14 @@
 import React from 'react'
 
 import Card from 'react-bootstrap/Card';
+import { Helmet } from 'react-helmet-async';
 
 export default function Terms() {
   return (
     <div>
-       
+             <Helmet>
+        <title>Termos e Condições</title>
+      </Helmet>
       
 
             <head>
@@ -106,7 +109,7 @@ export default function Terms() {
 
 
                 <h6 className='howitworks '><b>(Garantias)</b></h6>       
-                1. O prazo de garantia de bens móveis nãos consumíveis sera garantido o seu bom estado e o seu funcionamento por período nunca inferior a um ano.<br/>
+                1. O prazo de garantia de bens móveis não consumíveis será garantido o seu bom estado e o seu funcionamento por período nunca inferior a um ano.<br/>
                 2. O decurso do prazo de garantia suspende-se durante o período de tempo em que o consumidor se achar privado do uso dos bens em virtude das operações de reparação resultantes de defeitos originários.<br/>
                 <br/>
 
