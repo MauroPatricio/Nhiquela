@@ -80,6 +80,7 @@ paymentRouter.post('/mpesa',expressAsyncHandler(async (req,response)=>{
               }
     }catch(error){
 
+        console.log(error)
 
    const e = {
     "response_code":error.output_ResponseCode,
