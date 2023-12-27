@@ -87,7 +87,7 @@ const orderSchema = new mongoose.Schema(
     isDeletedBySeller: { type: Boolean, default: false },
     isDeletedByDeliverman: { type: Boolean, default: false },
     isDeletedByAdmin: { type: Boolean, default: false },
-
+    isDeletedByRequester: { type: Boolean, default: false },
   },
   {
     timestamps: true,

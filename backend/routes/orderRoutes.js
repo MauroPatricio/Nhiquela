@@ -74,6 +74,39 @@ orderRouter.get(
   })
 );
 
+
+
+orderRouter.get(
+  '/sellerordersview',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const seller = req.query.seller || '';
+    const sellerFilter = seller ? { seller } : {};
+    const page = req.query.page || 1;
+    const pageSize = 10    
+    
+    const orders = await Order.find({
+      ...sellerFilter,
+      isPaid: { $eq: true},
+      deleted: { $eq: false},
+      status: { $ne: 'Cancelado' }
+
+    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+
+    const countOrders = await Order.countDocuments({
+      ...sellerFilter,
+      isPaid: { $eq: true},
+      deleted: { $eq: false },
+      status: { $ne: 'Cancelado' }
+
+
+    });
+
+    const  pages = Math.ceil(countOrders/pageSize);
+    res.send({orders, pages});
+  })
+);
+
 // most required items
 orderRouter.get(
   '/popularitems',
@@ -185,15 +218,20 @@ orderRouter.post(
 
 
    
-      //  Para envio de mensagens
-
-      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
- 
-    //  sendSMSToUSendIt(req, msg);
-
+    
+    
     let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
- 
-    //  sendSMSToUSendIt(req, msg);
+    
+    //  Para envio de mensagens
+    // const sellerOfProduct = await User.findById(newOrder.seller);
+
+      // if (newOrder.isPaid){
+      // let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
+      //  sendSMSToSellerUSendIt(sellerOfProduct, msg);
+    // }else{
+      //  let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
+      //  sendSMSToUSendIt(sellerOfProduct, msg);
+    // }
 
      sendEmailOrderStatus(req,mailText, newOrder, res);
 
@@ -223,7 +261,7 @@ orderRouter.get(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     
-    const orders = await Order.find({ user: req.user._id, deleted: false });
+    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false });
     res.send(orders);
   })
 );
@@ -302,10 +340,28 @@ orderRouter.delete(
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (order) {
-      order.deleted = true;
+      order.isDeletedBySeller = true;
       order.isActive = false;
 
       await order.save();
+
+      res.send({ message: `Pedido removido com sucesso` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+orderRouter.delete(
+  '/admin/:id',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+    if (order) {
+      order.deleted = true;
+      order.isActive = false;
+
+      await order.deleteOne();
 
       res.send({ message: `Pedido removido com sucesso` });
     } else {
@@ -360,7 +416,7 @@ orderRouter.put(
       sendEmailOrderToSeller(req,msg, sellerOfProduct, updateOrder, res);
 
       if (sellerOfProduct){
-        
+
         //  Para envio de mensagens
       let msgSeller =`Ola, a Nhiquela Shop gostaria de lhe informar que possui um novo pedido com o codigo ${updateOrder.code}.`;
 

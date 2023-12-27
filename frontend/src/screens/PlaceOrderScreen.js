@@ -129,7 +129,7 @@ export default function PlaceOrderScreen() {
         customerNumber = valorInput
     }
     customerNumber = '258'+customerNumber;
-    
+
     const amount = cart.totalPrice;
     try{
     dispatch({ type: 'CREATE_MPESA_REQUEST' });
@@ -176,7 +176,6 @@ export default function PlaceOrderScreen() {
         dispatch({ type: 'CREATE_MPESA_FAIL', payload: getError(err) });
       }
     }else{
-      console.log(data.code==='INS-1')
       if(data.code==='INS-1'){
         toast.error('Erro Interno');
       }

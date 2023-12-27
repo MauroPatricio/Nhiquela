@@ -19,7 +19,7 @@ const reducer = (state, action) => {
       return { ...state, loading: true };
 
     case 'FETCH_SUCCESS':
-      return { ...state, loading: false, orders: action.payload.orders, pages: action.payload.pages };
+      return { ...state, loading: false, orders: action.payload.orders, pages:  action.payload.pages};
 
     case 'FETCH_FAIL':
       return { ...state, loading: false, error: action.payload };
@@ -35,32 +35,19 @@ const reducer = (state, action) => {
 
     case 'DELETE_RESET':
       return { ...state, loadingDelete: false, successDelete: false };
-
-      case 'REMOVE_REQUEST':
-        return { ...state, loadingRemove: true, successRemove: false };
-  
-      case 'REMOVE_SUCCESS':
-        return { ...state, loadingRemove: false, successRemove: true };
-  
-      case 'REMOVE_FAIL':
-        return { ...state, loadingRemove: false };
-  
-      case 'REMOVE_RESET':
-        return { ...state, loadingRemove: false, successRemove: false };
-      
     default:
       return state;
   }
 };
 
-export default function OrderListScreen() {
-  const [{ loading, error, orders, loadingDelete, successDelete,loadingRemove, successRemove,pages }, dispatch] =
+export default function OrderHistoryBySellerScreen() {
+  const [{ loading, error, orders, loadingDelete, successDelete, pages }, dispatch] =
     useReducer(reducer, {
       loading: true,
       error: '',
     });
 
-  const { state } = useContext(Store);
+  const { state} = useContext(Store);
   const { userInfo } = state;
   const navigate = useNavigate();
 
@@ -71,19 +58,18 @@ export default function OrderListScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-
-  const filteredData = orders && orders.filter((row) =>
-  row.code.toLowerCase().includes(searchQuery.toLowerCase())
-);
-
-
+  const filteredData =
+    orders &&
+    orders.filter((row) =>
+      row.code.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         dispatch({ type: 'FETCH_REQUEST' });
 
-        const { data } = await axios.get(`/api/orders?page=${page}`, {
+        const { data } = await axios.get(`/api/orders/sellerordersview?seller=${userInfo._id}&page=${page}`, {
           headers: { authorization: `Bearer ${userInfo.token}` },
         });
 
@@ -97,13 +83,7 @@ export default function OrderListScreen() {
     } else {
       fetchData();
     }
-
-    if (successDelete) {
-      dispatch({ type: 'REMOVE_RESET' });
-    } else {
-      fetchData();
-    }
-  }, [userInfo, successDelete, page, successRemove]);
+  }, [userInfo, successDelete, page]);
 
   const deleteHandler = async (id) => {
     if (window.confirm('Tem a certeza que deseja remover este pedido?')) {
@@ -122,30 +102,12 @@ export default function OrderListScreen() {
       }
     }
   };
-
-  const removerOrderHandler = async (id) => {
-    if (window.confirm('Tem a certeza que deseja remover por completo este pedido?')) {
-      try {
-        dispatch({ type: 'REMOVE_REQUEST' });
-        const { data } = await axios.delete(`/api/orders/admin/${id}`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        });
-        toast.success(data.message);
-        dispatch({ type: 'REMOVE_SUCCESS' });
-      } catch (err) {
-        dispatch({
-          type: 'REMOVE_FAIL',
-        });
-        toast.error(getError(error));
-      }
-    }
-  };
   return (
     <div>
       <Helmet>
-        <title>Pedidos</title>
+        <title>Histórico de pedidos dos clientes</title>
       </Helmet>
-      <h1>Pedidos</h1>
+      <h1>Histórico de pedidos dos clientes</h1>
       {loadingDelete && <LoadingBox></LoadingBox>}
       {loading ? (
         <LoadingBox></LoadingBox>
@@ -153,23 +115,25 @@ export default function OrderListScreen() {
         <MessageBox>{error}</MessageBox>
       ) : (
         <>
-        <div style={{textAlign: "right"}}> Pesquise pelo código de pedido:{' '}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div style={{ textAlign: 'right' }}>
+            {' '}
+            Pesquise pelo código de pedido:{' '}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <table className="table">
             <thead>
               <tr>
                 <th>Código do pedido</th>
-                <th>Data</th>
-                <th>Total</th>
-                <th>Pago</th>
-                <th>Entregue</th>
-                <th>Estado</th>
-                <th>Acções</th>
+                <th>Data e Hora</th>
+                <th>Valor a receber</th>
+                 {/* <th>Pago</th> */}
+                {/* <th>Entregue</th>
+                <th>Estado do Pedido</th> */}
+                {/* <th>Acções</th> */}
               </tr>
             </thead>
             <tbody>
@@ -177,39 +141,30 @@ export default function OrderListScreen() {
                 <tr key={o._id}>
                   <td>Nº {o.code}</td>
                   <td>{formatedDate(o.createdAt)}</td>
-                  <td>{o.totalPrice} MT</td>
-                  <td>
-                    {o.isPaid ? (
-                      <Badge bg="success" variant="success">
+                  <td>{o.itemsPriceForSeller} MT</td>
+                  {/* <td>{o.isPaid ?  <Badge bg="success" variant="success">
                         Sim
-                      </Badge>
-                    ) : (
-                      <Badge bg="danger" variant="danger">
-                        Não
-                      </Badge>
-                    )}
-                  </td>
-                  <td>
-                    {o.isDelivered ? (
-                      <Badge bg="success" variant="success">
+                      </Badge> : <Badge bg="danger" variant="danger">
+                      Não
+                      </Badge>}</td> */}
+
+                  {/* <td>{o.isDelivered ? <Badge bg="success" variant="success">
                         Sim
-                      </Badge>
-                    ) : (
-                      <Badge bg="danger" variant="danger">
-                        Não
-                      </Badge>
-                    )}
-                  </td>
-                  <td>
-                  <Badge
+                      </Badge> : <Badge bg="danger" variant="danger">
+                      Não
+                      </Badge>}</td>
+                      <td>
+                      <Badge
                       bg={o.status === 'Finalizado' ? 'success' : o.status === 'Cancelado' ? 'danger' : 'primary'}
                       variant={o.status === 'Finalizado' ? 'success' : 'primary'}
                     >
                       {o.status}
                     </Badge>
-                  </td>
+                      
+                      </td> */}
                   <td>
-                    <Button
+                    
+                    {/* <Button
                       type="Button"
                       variant="light"
                       onClick={() => {
@@ -217,8 +172,17 @@ export default function OrderListScreen() {
                       }}
                     >
                       <FontAwesomeIcon icon={faList}></FontAwesomeIcon>
-                    </Button>
+                    </Button> */}
+                    {/* &nbsp;
+                    <Button
+                      type="Button"
+                      variant="light"
+                      onClick={() => deleteHandler(o._id)}
+                    >
+                      <FontAwesomeIcon icon={faTrash}></FontAwesomeIcon>
+                    </Button> */}
                     &nbsp;
+                    {/* {(o.status==='Finalizado' || o.status==='Cancelado') &&
                     <Button
                       type="Button"
                       variant="light"
@@ -226,26 +190,21 @@ export default function OrderListScreen() {
                     >
                       <FontAwesomeIcon icon={faTrash}></FontAwesomeIcon>
                     </Button>
-                    &nbsp;
-                    <Button
-                      type="Button"
-                      variant="dark"
-                      onClick={() => removerOrderHandler(o._id)}
-                    >
-                      <FontAwesomeIcon icon={faTrash}></FontAwesomeIcon>
-                    </Button>
+} */}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+
           <div>
-            {[...Array(pages).keys()].map((x)=>(
-                <Link className={x + 1 === Number(page)? 'btn text-bold': 'btn'} key={x+1} to={`/admin/orderlist?page=${x+1}`}>
-                    {x+1}
-                </Link>
-            ))}
-        </div>
+ {[...Array(pages).keys()].map((x)=>(
+     <Link className={x + 1 === Number(page)? 'btn text-bold': 'btn'} key={x+1} to={`/orderlist/seller?page=${x+1}`}>
+         {x+1}
+     </Link>
+ ))}
+</div>
         </>
       )}
     </div>

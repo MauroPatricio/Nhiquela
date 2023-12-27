@@ -84,6 +84,7 @@ import EmailSentScreen from './screens/EmailSentScreen';
 import { getError } from './utils';
 
 import { useTranslation } from 'react-i18next';
+import OrderHistoryBySellerScreen from './screens/OrderHistoryBySellerScreen';
 
 export  function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -216,6 +217,9 @@ export  function App() {
                         {cart.ordersBySeller && cart.ordersBySeller.length > 0 && cart.ordersBySeller.length}
                       </Badge>
                         </NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/orderhistorybycustomer/seller">
+                        <NavDropdown.Item>{t('orderhistory')}</NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
                   )}
@@ -657,6 +661,16 @@ export  function App() {
                 element={
                   <SellerRoute>
                     <OrderListBySellerScreen />
+                  </SellerRoute>
+                }
+              />
+
+            <Route
+                exact
+                path="/orderhistorybycustomer/seller"
+                element={
+                  <SellerRoute>
+                    <OrderHistoryBySellerScreen />
                   </SellerRoute>
                 }
               />

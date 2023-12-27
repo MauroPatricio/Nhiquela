@@ -107,7 +107,7 @@
     "deliveryfee":"Taxa de entrega",
     "changedelivoptions":"Alterar opções de entrega",
     "priceofproducts":"Preço dos produtos",
-    "trackorder":"Acompanhar pedido",
+    "trackorder":"Acompanhento do pedido",
     "request":"Requisitar",
     "shopping":"Fazer compras",
     "shoppingcart":"Carrinha de compras",
@@ -194,7 +194,10 @@
    "whichnumbertopay":"Em qual número deseja pagar:",
    "mpesapayment":"Pagamento via MPESA",
    "anothernumber":"Outro número",
-   "enternumber":"Coloque seu número:"
+   "enternumber":"Coloque seu número:",
+   "orderhistoryclients":"Histórico de pedidos dos clientes",
+   "orderhistory":"Histórico de pedidos"
+
 
 
 
