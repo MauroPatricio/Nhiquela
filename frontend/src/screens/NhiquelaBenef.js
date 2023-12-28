@@ -53,7 +53,7 @@ export default function NhiquelaBenef() {
                <br/>
                <h5 className='howitworks link'><b >Acompanhamento de pedidos</b></h5>
                 <p>
-                 Pela nossa plataforma tens a possibilidade de acompanhamento por etapa do processamento de seus pedidos por SMS's e email's. Facilitando assim, na estimativa de tempo de chegada e o seu posicionamento para a recepção do seu pedido.
+                 Pela nossa plataforma tens a possibilidade de acompanhamento por etapa do processamento de seus pedidos por SMS's e email's. Facilitando assim, a estimativa de tempo de chegada e seu posicionamento para a recepção do seu pedido.
                </p>
                 </Card.Body>
                 </Card>
