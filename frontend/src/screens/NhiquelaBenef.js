@@ -48,7 +48,7 @@ export default function NhiquelaBenef() {
                <br/>
                <h5 className='howitworks link'><b >Entregas</b></h5>
                 <p>
-                Possuimos entregadores de confiança e garantimos que a sua encomenda ou pedido chegue em segurança, de forma rápida e fácil.
+                Possuimos entregadores de confiança e garantimos que a sua encomenda ou pedido chegue de forma rápida, fácil e segura.
                </p>
                <br/>
                <h5 className='howitworks link'><b >Acompanhamento de pedidos</b></h5>
