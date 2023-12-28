@@ -22,8 +22,7 @@ export default function NhiquelaBenef() {
 
                 <h4 className='howitworks link'><b>Benefícios de comprar na Nhiquela</b></h4>
                 <br/>
-                <p>
-                As compras online se tornaram os principais precursores do grande aumento de lojas online. Comprar pela internet tornou-se um hábito e cada vez mais pessoas tem se adaptado a era digital e com principal enfoque o comércio eletrônico. De pequenas a grandes marcas do mercado, o comércio eletrônico oferece uma série de produtos e vantagens para o consumidor. <br/>São muitos os motivos para se optar por fazer compras online, abaixo algumas destas vantagens.
+                <p> Comprar pela internet tornou-se um hábito e cada vez mais pessoas tem se adaptado a era digital e com principal enfoque ao comércio eletrônico. De pequenas a grandes marcas do mercado, o comércio eletrônico oferece uma série de produtos e vantagens para o consumidor. <br/>São muitos os motivos para se optar por fazer compras online, abaixo algumas destas vantagens que a Nhiquela Shop possui.
                 </p>
                 <h5 className='howitworks link'><b >Comodidade</b></h5>
                 <p>
