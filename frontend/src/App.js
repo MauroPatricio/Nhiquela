@@ -86,6 +86,7 @@ import { getError } from './utils';
 import { useTranslation } from 'react-i18next';
 import OrderHistoryBySellerScreen from './screens/OrderHistoryBySellerScreen';
 import ReturnPolicy from './screens/ReturnPolicy';
+import NhiquelaBenef from './screens/NhiquelaBenef';
 
 export  function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -706,13 +707,23 @@ export  function App() {
                 }
               />
 
+<Route
+                path="/benefits"
+                element={
+                    <NhiquelaBenef />
+                }
+              />  
+
             <Route
                 path="/returnpolicy"
                 element={
                     <ReturnPolicy />
                 }
               />  
-            </Routes>        
+            </Routes>  
+
+
+                  
             <ScrollTopButton />
 
             {userInfo&&<ChatBox  userInfo={userInfo}/>}

@@ -107,7 +107,9 @@ export default function Footer() {
 
               />
        
-
+       <p>
+            <Link to="/benefits" className="text-white link-none">{t('benefits')}</Link>
+          </p>
           <p>
             <Link to="/help" className="text-white link-none">{t('howtobuy')}</Link>
           </p>

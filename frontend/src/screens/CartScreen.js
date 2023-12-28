@@ -123,7 +123,7 @@ const formattedDatetime = `${hours}:${minutes}`;
 
 
     if (data.countInStock < quantity) {
-      window.alert(`Desculpe, o Produto já não se encontra disponível`);
+      toast.info(`Desculpe, o produto já não se encontra disponível`)
       return;
     } 
 

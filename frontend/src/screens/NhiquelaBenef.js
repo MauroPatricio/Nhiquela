@@ -1,13 +1,63 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import Card  from 'react-bootstrap/Card';
+import { Helmet } from 'react-helmet-async';
 
 export default function NhiquelaBenef() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  
+
   return (
-    <div style={{ textAlign: 'center'}}>
+    <div style={{ textAlign: 'left'}}>
       
+      <Helmet>
+        <title>Benefícios de comprar na Nhiquela</title>
+      </Helmet>
+
+      <head>
+                <title>Benefícios de comprar na Nhiquela</title>
+            </head>
+            <Card>
+                <Card.Body >
+
+                <h4 className='howitworks link'><b>Benefícios de comprar na Nhiquela</b></h4>
+                <br/>
+                <p>
+                As compras online se tornaram os principais precursores do grande aumento de lojas online. Comprar pela internet tornou-se um hábito e cada vez mais pessoas tem se adaptado a era digital e com principal enfoque o comércio eletrônico. De pequenas a grandes marcas do mercado, o comércio eletrônico oferece uma série de produtos e vantagens para o consumidor. <br/>São muitos os motivos para se optar por fazer compras online, abaixo algumas destas vantagens.
+                </p>
+                <h5 className='howitworks link'><b >Comodidade</b></h5>
+                <p>
+                Pela Nhiquela shop tens a possibilidade de fazer compras sem sair de onde esta economizando assim o seu tempo e dinheiro.
+                </p>
+                <br/>
+
+                <h5 className='howitworks link'><b >Várias formas de pagamento</b></h5>
+                <p>
+                  Temos variadas formas de pagamentos como: Mpesa, e-Mola e BCI. Muitas vezes, as lojas físicas só possuem uma forma de pagamento restrita. O que dificulta muito a sua compra. 
+               </p>
+                <br/>
+
+                <h5 className='howitworks link'><b >Opções diversas de produtos</b></h5>
+                <p>
+                  Possuimos um catálogo amplo de produtos onde o usuário tem a possibilidade de escolher livremente qual produto atende seu gosto, auxiliando assim, na competitividade e disputa de preços.
+               </p>
+                <br/>
+               <h5 className='howitworks link'><b >Opinião de outros usuários</b></h5>
+                <p>
+                Na Nhiquela Shop tens a possibilidade de visualizar os comentários e opiniões de outros usuários sobre a venda ou produto, o que possibilita avaliar e comparar se os produtos oferecidos são realmente satisfatórios garantindo assim maior segurança e clareza na sua compra.
+               </p>
+               <br/>
+               <h5 className='howitworks link'><b >Entregas</b></h5>
+                <p>
+                Possuimos entregadores de confiança e garantimos que a sua encomenda ou pedido chegue em segurança, de forma rápida e fácil.
+               </p>
+               <br/>
+               <h5 className='howitworks link'><b >Acompanhamento de seus pedidos</b></h5>
+                <p>
+                 Pela nossa plataforma tens a possibilidade de um acompanhamento de seus pedidos por SMS's e email's. Facilitando assim, o acompanhamento de cada etapa de seu pedido.
+               </p>
+                </Card.Body>
+                </Card>
       
     </div>
   )
