@@ -277,6 +277,9 @@ export default function PlaceOrderScreen() {
     cart.itemsPriceForSeller = itemsPriceForSeller
 
 
+    useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
 
   const placeOrderHandler = async () => {
 

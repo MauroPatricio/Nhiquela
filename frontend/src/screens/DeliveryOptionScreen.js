@@ -23,6 +23,10 @@ export default function DeliveryOptionScreen() {
   );
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  
+  useEffect(() => {
     if (!address.address) {
       navigate('/address');
     }

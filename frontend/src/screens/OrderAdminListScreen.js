@@ -76,6 +76,9 @@ export default function OrderListScreen() {
   row.code.toLowerCase().includes(searchQuery.toLowerCase())
 );
 
+useEffect(() => {
+  window.scrollTo(0, 0);
+}, []);
 
 
   useEffect(() => {

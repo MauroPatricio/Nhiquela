@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
@@ -23,7 +23,9 @@ export default function AddressScreen() {
 
   const navigate = useNavigate();
 
-    
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
         
 
   const submitHandler = (e) => {

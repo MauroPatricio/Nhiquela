@@ -64,6 +64,10 @@ export default function OrderListBySellerScreen() {
       row.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
+    
   useEffect(() => {
     const fetchData = async () => {
       try {

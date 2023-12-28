@@ -147,6 +147,10 @@ export default function ProductCreateScreen() {
   const [onSalePercentage, setOnSalePercentage] = useState(0);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     dispatch({ type: 'CATEGORIES_REQUEST' });
 
     const fetchData = async () => {

@@ -406,6 +406,11 @@ export default function ProductEditScreen() {
     }
   };
 
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const deleteImageHandler = async (fileName) => {
     setImages(images.filter((x) => x !== fileName));
 

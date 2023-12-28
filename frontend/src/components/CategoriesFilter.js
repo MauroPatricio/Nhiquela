@@ -102,6 +102,10 @@ export default function CategoriesFilter() {
   ];
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  
+  useEffect(() => {
     const fetchData = async () => {
       try {
         dispatch({ type: 'CATEGORIES_REQUEST' });

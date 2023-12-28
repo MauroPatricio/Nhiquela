@@ -69,6 +69,10 @@ const [
 ] = useReducer(reducer, { sellerDetails: '', loading: true, error: '' });
 
 useEffect(() => {
+  window.scrollTo(0, 0);
+}, []);
+
+useEffect(() => {
   const fetchSellerDetails = async () => {
     try {
       if(cartItems.length!==0){

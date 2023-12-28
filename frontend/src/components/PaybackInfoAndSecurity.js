@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { Row, Col } from 'react-bootstrap';
@@ -10,7 +10,9 @@ import { useTranslation } from 'react-i18next';
 export default function PaybackInfoAndSecurity() {
   const { t } = useTranslation();
 
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <>
     

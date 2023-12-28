@@ -274,7 +274,9 @@ export default function OrderScreen() {
     loadingAcceptedByDeliverman
   ]);
 
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
 useEffect(() => {
   const fetchSellerDetails = async () => {

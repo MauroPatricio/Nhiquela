@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -20,6 +20,10 @@ export default function OrderSteps(props) {
 
   // Adicionar condicao para verificar se existe um local storage criado
   // Caso exista ele podera navegar nas telas alternativas
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="container-steps">
       <Row className="steps">

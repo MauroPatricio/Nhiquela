@@ -36,6 +36,10 @@ export default function EmailSentScreen() {
         }
     }
 
+    useEffect(() => {
+        window.scrollTo(0, 0);
+      }, []);
+
   return (
     <Container className="small-container">
         <Helmet><title>Email enviado </title></Helmet>
