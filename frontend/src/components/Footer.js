@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { FaFacebookF } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa";
@@ -42,6 +42,9 @@ export default function Footer() {
     newTab.focus(); 
   };
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>
@@ -84,8 +87,6 @@ export default function Footer() {
             src="nhiquelalogo.png" 
             alt="Nhiquela" ></img>   
         </div>
-
-
             <div className="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
           <h6 className="text-uppercase fw-bold">Nhiquela Shop</h6>
           <hr
@@ -116,6 +117,10 @@ export default function Footer() {
           <p>
             <Link to="/terms" className="text-white link-none">{t('termsandcondition')}</Link>
           </p>
+          <p>
+            <Link to="/returnpolicy" className="text-white link-none">{t('returnpolicy')}</Link>
+          </p>
+          
         </div>
 
         <div className="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4">

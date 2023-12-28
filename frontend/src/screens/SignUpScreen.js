@@ -182,7 +182,9 @@ export default function SignupScreen() {
       toast.error('Por favor, preencha todos os campos.');
     }
   };
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const { userInfo } = state;
   const submitHandler = async (e) => {

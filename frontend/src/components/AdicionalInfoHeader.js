@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { Row, Col } from 'react-bootstrap';
@@ -15,6 +15,11 @@ export default function AdicionalInfoHeader() {
   const { state, } = useContext(Store);
 
   const { userInfo } = state;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <Row className="bg-color-row" style={{ textAlign: 'center', marginBottom: '10px'}}>
     <Col md={12} className='delivery-info' style={{textAlign: 'center', }}>

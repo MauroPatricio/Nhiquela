@@ -1,7 +1,7 @@
 import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 
@@ -223,15 +223,16 @@ orderRouter.post(
     let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
     
     //  Para envio de mensagens
-    // const sellerOfProduct = await User.findById(newOrder.seller);
+    const sellerOfProduct = await User.findById(newOrder.seller);
 
-      // if (newOrder.isPaid){
-      // let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
+      if (newOrder.isPaid){
+        // Enviar sms para o fornecedor
+      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
       //  sendSMSToSellerUSendIt(sellerOfProduct, msg);
-    // }else{
-      //  let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
-      //  sendSMSToUSendIt(sellerOfProduct, msg);
-    // }
+    }else{
+       let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
+      //  sendSMSToUSendItAdmin(msg);
+    }
 
      sendEmailOrderStatus(req,mailText, newOrder, res);
 
@@ -419,7 +420,6 @@ orderRouter.put(
 
         //  Para envio de mensagens
       let msgSeller =`Ola, a Nhiquela Shop gostaria de lhe informar que possui um novo pedido com o codigo ${updateOrder.code}.`;
-
     //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
   }
 
@@ -485,7 +485,7 @@ orderRouter.put(
 
       sendEmailOrderStatus(req,msg, order, res);
 
-//  sendSMSToUSendIt(req, msg);
+      // sendSMSToUSendItAdmin(msg);
       res.send({ message: `Pedido disponível para entrega` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -526,7 +526,7 @@ orderRouter.put(
 
        let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
  
-      //  sendSMSToUSendIt(msg);
+      //  sendSMSToSellerUSendIt(sellerOfProduct,msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
@@ -612,7 +612,7 @@ orderRouter.put(
 
        let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
  
-      //  sendSMSToUSendIt(msg);
+      //  sendSMSToUSendIt(req,msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
@@ -662,8 +662,6 @@ orderRouter.put(
 
       sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
-      // sendSMSToUSendIt(req, msg);
-
       res.send({ message: `Pedido entregue com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -699,7 +697,7 @@ orderRouter.put(
 
       let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
 
-      //  sendSMSToUSendIt(req,msg);    
+        // sendSMSToUSendIt(req,msg);    
 
       const sellerOfProduct = await User.findById(order.seller);
 

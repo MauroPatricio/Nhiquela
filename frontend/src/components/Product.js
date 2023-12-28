@@ -3,7 +3,7 @@ import Card from 'react-bootstrap/Card';
 import { truncateString } from '../utils';
 import Badge from 'react-bootstrap/esm/Badge';
 import { useTranslation } from 'react-i18next';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { Store } from '../Store';
 
 function Product(props) {
@@ -13,6 +13,10 @@ function Product(props) {
   const { state, dispatch: ctxDispatch } = useContext(Store);
 
   const {changelng} = state;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>

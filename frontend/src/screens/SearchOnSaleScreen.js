@@ -49,6 +49,10 @@ export default function SearchOnSaleScreen() {
 
   const [{ loading, error, products, pages, countProducts }, dispatch] =
     useReducer(reducer, { loading: true, error: '' });
+    
+    useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
 
   useEffect(() => {
     const fetchSearchData = async () => {

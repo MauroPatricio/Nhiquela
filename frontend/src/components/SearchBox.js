@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import  Form  from 'react-bootstrap/Form';
 import FormControl from 'react-bootstrap/FormControl';
@@ -20,6 +20,11 @@ export default function SearchBox() {
     e.preventDefault();
     navigate(query ? `search?query=${query}` : '/search');
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div>
       <Form className="d-flex me-auto form-size">

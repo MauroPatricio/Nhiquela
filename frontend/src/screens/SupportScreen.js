@@ -20,7 +20,10 @@ export default function SupportScreen() {
   const [users, setUsers] = useState([]);
   const { userInfo } =  useContext(Store);
 
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  
   useEffect(() => {
     if (uiMessagesRef.current) {
       uiMessagesRef.current.scrollBy({

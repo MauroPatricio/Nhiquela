@@ -63,6 +63,10 @@ export default function SellerScreen() {
   // const sp = new URLSearchParams(search);
   // const page = sp.get('page') || 1 ;
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [
     {
       loadingSeller,

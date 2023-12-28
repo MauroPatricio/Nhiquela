@@ -35,6 +35,9 @@ export default function SignInScreen() {
   const [message, setMessage] = useState('');
   const { t } = useTranslation();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const closeModal = () => {
     setIsModalOpen(false);
