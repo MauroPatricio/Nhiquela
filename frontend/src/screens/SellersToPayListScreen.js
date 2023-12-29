@@ -70,7 +70,6 @@ export default function SellersToPayListScreen() {
     const numericSearchQuery = parseInt(searchQuery);
     if (!isNaN(numericSearchQuery)) {
       const filtered = orders && orders.filter((o) => o.code == numericSearchQuery);
-      console.log(numericSearchQuery)
       if(filtered.length>0){
         setFilteredData(filtered);
       }else{
@@ -95,7 +94,6 @@ export default function SellersToPayListScreen() {
           dispatch({type:'FETCH_SUCCESS', payload: data});
 
         } catch (err) {
-          console.log(err)
           dispatch({type:'FETCH_FAIL', payload: getError(err)})
           toast.error(err.message)
         }

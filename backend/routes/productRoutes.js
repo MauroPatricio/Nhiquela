@@ -192,7 +192,6 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           size : req.body.selectedSizes,
           isActive: user.isApproved
      });
-     console.log(newProduct)
      if(req.body.onSale){  
           newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;
      }
