@@ -23,7 +23,7 @@ export default function PaybackInfoAndSecurity() {
     </Col>
     <Col md={4}>
 <GiBackwardTime className="info-icon-home" />
-           {t('moneybackguarantee')}
+           {t('returnpolicy')}
     </Col>
     <Col md={4}>
         <BsShieldFillCheck className="info-icon-home"/>

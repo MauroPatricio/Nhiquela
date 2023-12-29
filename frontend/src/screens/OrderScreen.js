@@ -218,7 +218,9 @@ export default function OrderScreen() {
     error: '',
   });
 
-
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
 
   useEffect(() => {
@@ -273,10 +275,6 @@ export default function OrderScreen() {
     loadingAvaliableToDeliver,
     loadingAcceptedByDeliverman
   ]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
   
 useEffect(() => {
   const fetchSellerDetails = async () => {

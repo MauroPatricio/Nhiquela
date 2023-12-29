@@ -87,6 +87,7 @@ import { useTranslation } from 'react-i18next';
 import OrderHistoryBySellerScreen from './screens/OrderHistoryBySellerScreen';
 import ReturnPolicy from './screens/ReturnPolicy';
 import NhiquelaBenef from './screens/NhiquelaBenef';
+import SellersToPayListScreen from './screens/SellersToPayListScreen';
 
 export  function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -263,6 +264,12 @@ export  function App() {
                       </LinkContainer>
                       <LinkContainer to="/support">
                         <NavDropdown.Item>{t('Support')}</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/admin/sellerstopay">
+                        <NavDropdown.Item>{t('sellerstopay')}</NavDropdown.Item>
+                      </LinkContainer>
+                      <LinkContainer to="/admin/deliverstopay">
+                        <NavDropdown.Item>{t('deliverstopay')}</NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
 
@@ -692,6 +699,22 @@ export  function App() {
 
               <Route
                 path="/admin/userlist"
+                element={
+                  <AdminRoute>
+                    <UserListScreen />
+                  </AdminRoute>
+                }
+              />
+               <Route
+                path="/admin/sellerstopay"
+                element={
+                  <AdminRoute>
+                    <SellersToPayListScreen />
+                  </AdminRoute>
+                }
+              />
+               <Route
+                path="/admin/deliverstopay"
                 element={
                   <AdminRoute>
                     <UserListScreen />

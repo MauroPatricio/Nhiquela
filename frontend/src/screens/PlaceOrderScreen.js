@@ -109,12 +109,14 @@ export default function PlaceOrderScreen() {
 
   // Função para atualizar o estado de escolha
   const handleEscolhaChange = (event) => {
-    const novaEscolha = event.target.value;
-    setEscolha(novaEscolha);
-    setCustomerNumber(userInfo && userInfo.phoneNumber)
-
-    // Limpar o valor do input quando a escolha mudar
-    setValorInput('');
+    if(userInfo){
+      const novaEscolha = event.target.value;
+      setEscolha(novaEscolha);
+      setCustomerNumber(userInfo && userInfo.phoneNumber)
+  
+      // Limpar o valor do input quando a escolha mudar
+      setValorInput('');
+    }
   };
 
   // Função para lidar com a mudança no campo de input
@@ -349,51 +351,53 @@ const formattedDatetime = `${hours}:${minutes}`;
       if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
         // esta tudo bem passa.
         // Esta dentro do periodo informado
-
-        try {
-          dispatch({ type: 'CREATE_REQUEST' });
-    
-
-          // verifica se o pagamento selecionado e via mpesa ou nao
-          // Caso o pagamento selecionado seja Mpesa 
-          // entao ira apresentar um pop up para o cliente pagar via mpesa
-          // Apos retornar a informacao do pagamento por parte do cliente 
-          // Secto os dados na ordem para informar que este pagamento foi pago
-          // Caso o pagamento nao tenha sido pago com sucesso 
-          // este nao avanca para a tela seguinte e apresenta a mensagem com o motivo do pagamento nao ter sido efectuado com sucesso
-          if(cart.paymentMethod==='Mpesa'){
-            setIsModalMpesa(true)
-            return
-          }
-         
-          const { data } = await axios.post(
-            '/api/orders',
-            {
-              orderItems: cart.cartItems,
-              address: cart.address,
-              paymentMethod: cart.paymentMethod,
-              itemsPrice: cart.itemsPrice,
-              ivaTax: cart.ivaTax,
-              siteTax: cart.siteTax,
-              taxPrice: cart.taxPrice,
-              totalPrice: cart.totalPrice,
-              addressPrice: cart.addressPrice,
-              itemsPriceForSeller: cart.itemsPriceForSeller,
-              isPaid: false
-
-            },
-            {
-              headers: {
-                authorization: `Bearer ${userInfo.token}`,
-              },
+        if(userInfo){
+          
+          try {
+            dispatch({ type: 'CREATE_REQUEST' });
+      
+  
+            // verifica se o pagamento selecionado e via mpesa ou nao
+            // Caso o pagamento selecionado seja Mpesa 
+            // entao ira apresentar um pop up para o cliente pagar via mpesa
+            // Apos retornar a informacao do pagamento por parte do cliente 
+            // Secto os dados na ordem para informar que este pagamento foi pago
+            // Caso o pagamento nao tenha sido pago com sucesso 
+            // este nao avanca para a tela seguinte e apresenta a mensagem com o motivo do pagamento nao ter sido efectuado com sucesso
+            if(cart.paymentMethod==='Mpesa'){
+              setIsModalMpesa(true)
+              return
             }
-          );
-          ctxDispatch({ type: 'CART_CLEAR' });
-          dispatch({ type: 'CREATE_SUCCESS' });
-          navigate(`/order/${data.order._id}`);
-          toast.success('Pedido efectuado com sucesso');
-        } catch (err) {
-          toast.error(getError(err));
+           
+            const { data } = await axios.post(
+              '/api/orders',
+              {
+                orderItems: cart.cartItems,
+                address: cart.address,
+                paymentMethod: cart.paymentMethod,
+                itemsPrice: cart.itemsPrice,
+                ivaTax: cart.ivaTax,
+                siteTax: cart.siteTax,
+                taxPrice: cart.taxPrice,
+                totalPrice: cart.totalPrice,
+                addressPrice: cart.addressPrice,
+                itemsPriceForSeller: cart.itemsPriceForSeller,
+                isPaid: false
+  
+              },
+              {
+                headers: {
+                  authorization: `Bearer ${userInfo.token}`,
+                },
+              }
+            );
+            ctxDispatch({ type: 'CART_CLEAR' });
+            dispatch({ type: 'CREATE_SUCCESS' });
+            navigate(`/order/${data.order._id}`);
+            toast.success('Pedido efectuado com sucesso');
+          } catch (err) {
+            toast.error(getError(err));
+          }
         }
       }
     }else{
@@ -603,7 +607,7 @@ const formattedDatetime = `${hours}:${minutes}`;
           checked={escolha === "opcao1"}
           onChange={handleEscolhaChange}
         />
-        {userInfo.phoneNumber}
+        {userInfo && userInfo.phoneNumber}
       </label>
 <br/>
       <label>

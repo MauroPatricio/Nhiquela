@@ -131,10 +131,10 @@ export default function OrderHistoryBySellerScreen() {
           <table className="table">
             <thead>
               <tr>
-                <th>Código do pedido</th>
                 <th>Data e Hora</th>
+                <th>Código do pedido</th>
                 <th>Valor a receber</th>
-                 {/* <th>Pago</th> */}
+                 <th>Foi pago?</th>
                 {/* <th>Entregue</th>
                 <th>Estado do Pedido</th> */}
                 {/* <th>Acções</th> */}
@@ -143,14 +143,14 @@ export default function OrderHistoryBySellerScreen() {
             <tbody>
               {filteredData.map((o) => (
                 <tr key={o._id}>
-                  <td>Nº {o.code}</td>
                   <td>{formatedDate(o.createdAt)}</td>
+                  <td>Nº {o.code}</td>
                   <td>{o.itemsPriceForSeller} MT</td>
-                  {/* <td>{o.isPaid ?  <Badge bg="success" variant="success">
+                  <td>{o.isSupplierPaid ?  <Badge bg="success" variant="success">
                         Sim
                       </Badge> : <Badge bg="danger" variant="danger">
                       Não
-                      </Badge>}</td> */}
+                      </Badge>}</td>
 
                   {/* <td>{o.isDelivered ? <Badge bg="success" variant="success">
                         Sim

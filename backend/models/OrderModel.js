@@ -88,6 +88,9 @@ const orderSchema = new mongoose.Schema(
     isDeletedByDeliverman: { type: Boolean, default: false },
     isDeletedByAdmin: { type: Boolean, default: false },
     isDeletedByRequester: { type: Boolean, default: false },
+    isSupplierPaid: { type: Boolean, default: false },
+    isDeliverPaid: { type: Boolean, default: false }
+
   },
   {
     timestamps: true,

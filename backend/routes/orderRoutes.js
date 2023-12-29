@@ -43,6 +43,52 @@ orderRouter.get(
   })
 );
 
+// All Orders sorted by seller
+orderRouter.get(
+  '/sellersorderstopay',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const page = req.query.page || 1;
+    const pageSize = 10    
+    
+    const orders = await Order.find({
+      isPaid: {$eq: true},
+      deleted: { $eq: false},
+    }).populate('user', 'name').populate('seller').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+
+    const countOrders = await Order.countDocuments({
+      isPaid: {$eq: true},
+      deleted: { $eq: false },
+    });
+
+    const  pages = Math.ceil(countOrders/pageSize);
+    res.send({orders, pages});
+  })
+);
+
+// All Orders sorted by deliver
+orderRouter.get(
+  '/deliverorderstopay',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const page = req.query.page || 1;
+    const pageSize = 10    
+    
+    const orders = await Order.find({
+      isPaid: {$eq: true},
+      deleted: { $eq: false},
+    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+
+    const countOrders = await Order.countDocuments({
+      isPaid: {$eq: true},
+      deleted: { $eq: false },
+    });
+
+    const  pages = Math.ceil(countOrders/pageSize);
+    res.send({orders, pages});
+  })
+);
+
 
 orderRouter.get(
   '/sellerview',
@@ -493,6 +539,55 @@ orderRouter.put(
   })
 );
 
+
+
+
+// Actualizar quando o fornecedor e pago
+orderRouter.put(
+  '/:id/updatesupplierpayment',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.isSupplierPaid = true;
+      await order.save();
+
+      let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+
+      // sendEmailOrderStatus(req,msg, order, res);
+
+      // sendSMSToUSendItAdmin(msg);
+      res.send({ message: `Fornecedor pago com sucesso` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+// Actualizar quando o fornecedor e pago
+orderRouter.put(
+  '/:id/updatedeliverpayment',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.isDeliverPaid = true;
+      await order.save();
+
+      // let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+
+      // sendEmailOrderStatus(req,msg, order, res);
+
+      // sendSMSToUSendItAdmin(msg);
+      res.send({ message: `Entregador pago com sucesso` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
 // Pedido aceite pelo entregador
 orderRouter.put(
   '/:id/acceptedByDeliveryman',
@@ -653,7 +748,7 @@ orderRouter.put(
 
        //  Para envio de mensagens
 
-      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar na Nhiquela Shop.`;
+      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
  
       //  sendSMSToUSendIt(req,msg);
 
