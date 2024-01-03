@@ -22,8 +22,7 @@ userRouter.get(
       
       const users = await User.find().skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
       const countUsers = await User.countDocuments();
-      const  pages = Math.ceil(countUsers/pageSize);
-  
+      const pages = Math.ceil(countUsers/pageSize);
   
       res.send({users, pages});
     }catch(e){

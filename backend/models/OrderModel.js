@@ -5,7 +5,7 @@ const orderSchema = new mongoose.Schema(
     orderItems: [
       {
         slug: {type: String},
-        quantity: { type: String, require: true },
+        quantity: { type: String},
         seller: {type: String},
         image: {type: String},
         images: [String],
@@ -24,7 +24,7 @@ const orderSchema = new mongoose.Schema(
         discount: {type: Number},
         color:  {type: String}, // vermelho, preto, castanho, azul
         size:  {type: String}, // S, M, L, XL, XXL or 20,21,22,23,24, [...] 40,41,42,43
-        qualityType: {type: String}, // Original, Replica
+        qualityType: {type: String}, // Original, primeira linha,Replica
         conditionStatus: {type: String}, // Novo, usado
     
         product: {
@@ -43,12 +43,14 @@ const orderSchema = new mongoose.Schema(
       alternativePhoneNumber: { type: String }
     },
     deliveryman: {
+      id:{type: mongoose.Schema.Types.ObjectId, ref: 'User'},
       photo: { type: String },
       name: { type: String},
       phoneNumber: {type: Number},
       transport_type: {type: String},
       transport_color: {type: String},
       transport_registration: {type: String},
+      pricetopay: { type: Number },
     },
     paymentMethod: { type: String, require: true },
     paymentResult: {

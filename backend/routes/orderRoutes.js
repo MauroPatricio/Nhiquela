@@ -77,11 +77,13 @@ orderRouter.get(
     const orders = await Order.find({
       isPaid: {$eq: true},
       deleted: { $eq: false},
-    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+      deliveryman: { $exists: true }
+    }).populate('user', 'name').populate('deliveryman.id').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
     const countOrders = await Order.countDocuments({
       isPaid: {$eq: true},
       deleted: { $eq: false },
+      deliveryman: { $exists: true }
     });
 
     const  pages = Math.ceil(countOrders/pageSize);
@@ -603,6 +605,7 @@ orderRouter.put(
       if(user_deliver.isDeliveryMan){
 
         order.deliveryman = {
+          id: user_deliver._id,
           photo: user_deliver.deliveryman.photo,
           name:  user_deliver.deliveryman.name,
           phoneNumber:  user_deliver.deliveryman.phoneNumber,
