@@ -425,7 +425,7 @@ let dayNumber = 0;
 
         {isDeliveryMan && (
           <div>
-
+            <h2><b>Detalhes do veículo</b></h2>
         <Form.Group className="mb-3" controlId="transportType">
           <FontAwesomeIcon icon={faCar} /> <Form.Label>{t('vehicletype')}</Form.Label>
             <Form.Select aria-label="Tipo de veículo"
@@ -441,7 +441,7 @@ let dayNumber = 0;
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="colorTransport">
-          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('colortype')}</Form.Label>
+          <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('color')}</Form.Label>
             <Form.Select aria-label="Cor do veículo"
           value={deliveryMantransportColor}
           onChange={(e)=>setDeliveryMantransportColor(e.target.value)} required>

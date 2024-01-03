@@ -88,6 +88,9 @@ import OrderHistoryBySellerScreen from './screens/OrderHistoryBySellerScreen';
 import ReturnPolicy from './screens/ReturnPolicy';
 import NhiquelaBenef from './screens/NhiquelaBenef';
 import SellersToPayListScreen from './screens/SellersToPayListScreen';
+import DeliverersToPayListScreen from './screens/DeliverersToPayListScreen';
+import OrderDeliverman from './screens/OrderDeliverman';
+
 
 export  function App() {
   const { state, dispatch: ctxDispatch } = useContext(Store);
@@ -172,6 +175,8 @@ export  function App() {
                       </Badge>
                     )}
                   </Link>
+
+                 
               <Navbar.Collapse  id="collapse basic-navbar-nav">
                 <Nav  className="mr-auto nav-cart w-100 justify-content-end">
                   {userInfo ? (
@@ -198,6 +203,8 @@ export  function App() {
                         </NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
+
+                    
                   ) : (
                     <Link className="nav-link" to="/signin">
                       {t('login')}
@@ -222,11 +229,10 @@ export  function App() {
                         </NavDropdown.Item>
                       </LinkContainer>
                       <LinkContainer to="/orderhistorybycustomer/seller">
-                        <NavDropdown.Item>{t('orderhistory')}</NavDropdown.Item>
+                        <NavDropdown.Item>{t('paymentfromnhiquela')}</NavDropdown.Item>
                       </LinkContainer>
                     </NavDropdown>
                   )}
-
                   {userInfo && userInfo.isAdmin && (
                     <NavDropdown title="Admin" id="admin-nav-dropdown">
                       <LinkContainer to="/admin/dashboard">
@@ -271,10 +277,14 @@ export  function App() {
                       <LinkContainer to="/admin/deliverstopay">
                         <NavDropdown.Item>{t('deliverstopay')}</NavDropdown.Item>
                       </LinkContainer>
+                  
                     </NavDropdown>
+        
+        )}
+              {/* {userInfo && <Nav.Link as={Link} to="/orderdeliverman"><b className='link'>Solicitar entregador</b></Nav.Link>} */}
 
-                    
-                  )}
+                            
+
                   <Link to="/cart" className="nav-link  hide-cart">
                     <FontAwesomeIcon icon={faCartShopping}></FontAwesomeIcon>
                     {cart.cartItems.length > 0 && (
@@ -290,6 +300,10 @@ export  function App() {
                       </Badge>
                     )}
                   </Link>
+
+                
+
+
                 </Nav>
               </Navbar.Collapse>
               
@@ -341,6 +355,15 @@ export  function App() {
                     <DeliveryOptionScreen />
                 }
               />
+
+<Route
+                path="/orderdeliverman"
+                element={
+                    <OrderDeliverman />
+                }
+              />
+
+
               <Route
                 path="/payment"
                 element={
@@ -717,7 +740,7 @@ export  function App() {
                 path="/admin/deliverstopay"
                 element={
                   <AdminRoute>
-                    <UserListScreen />
+                    <DeliverersToPayListScreen />
                   </AdminRoute>
                 }
               />

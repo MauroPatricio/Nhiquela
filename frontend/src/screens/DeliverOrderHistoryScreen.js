@@ -40,7 +40,7 @@ const reducer = (state, action) => {
   }
 };
 
-export default function OrderHistoryBySellerScreen() {
+export default function DeliverOrderHistoryScreen() {
   const [{ loading, error, orders, loadingDelete, successDelete, pages }, dispatch] =
     useReducer(reducer, {
       loading: true,

@@ -259,7 +259,7 @@ export default function PlaceOrderScreen() {
     cart.cartItems.reduce((a, c) => c.onSale?a + c.quantity * c.discount:a + c.quantity * c.price, 0)
   );
 
-  cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 250 : 350;
+  cart.addressPrice = cart && cart.deliveryOptionValue === 'withoutDelivery'?0:cart.address.city === 'Maputo Cidade' ? 200 : 350;
   cart.siteTax = 40;
   cart.ivaTax = round2(0.16 * cart.itemsPrice);
 

@@ -18,12 +18,23 @@ import { Link } from 'react-router-dom';
 
 const reducer= (state, action) =>{
   switch(action.type){
-    case 'FETCH_REQUEST':
-        return {...state, loading: true};
-    case 'FETCH_SUCCESS':
-          return {...state, orders: action.payload.orders, pages: action.payload.pages,  loading: false};
-    case 'FETCH_FAIL':
-        return {...state, error: action.payload, loading: false};
+      case 'FETCH_REQUEST':
+          return {...state, loading: true};
+      case 'FETCH_SUCCESS':
+            return {...state, orders: action.payload.orders, pages: action.payload.pages,  loading: false};
+      case 'FETCH_FAIL':
+          return {...state, error: action.payload, loading: false};
+
+
+      case 'UPDATE_PAYMENT_REQUEST':
+          return {...state, loadingUpdate: true};
+      case 'UPDATE_PAYMENT_SUCCESS':
+            return {...state,  updateSuccess: true};
+      case 'UPDATE_PAYMENT_FAIL':
+          return {...state, loadingUpdate: false, loading: false};
+  
+          case 'UPDATE_RESET':
+            return {...state, loadingUpdate: false, loading: false, updateSuccess: false};
 
         case 'DELETE_REQUEST':
           return {...state, loadingDelete: true};
@@ -41,7 +52,7 @@ const reducer= (state, action) =>{
 }
 
 export default function DeliverersToPayListScreen() {
-  const [{loading, error, orders, loadingDelete, successDelete, pages}, dispatch] = useReducer(reducer,{
+  const [{loading, error, orders, loadingDelete, successDelete, pages, updateSuccess}, dispatch] = useReducer(reducer,{
     loading: true, error: '', orders: []
   })
   const {state} = useContext(Store);
@@ -81,6 +92,7 @@ export default function DeliverersToPayListScreen() {
           const {data} = await axios.get(`/api/orders/deliverorderstopay?page=${page}`,{
             headers: {Authorization: `Bearer ${userInfo.token}`}
           })
+          console.log(data)
           dispatch({type:'FETCH_SUCCESS', payload: data});
 
         } catch (err) {
@@ -95,7 +107,30 @@ export default function DeliverersToPayListScreen() {
       fetchData();
     }
 
-  }, [userInfo, successDelete, page]);
+    if(updateSuccess){
+      dispatch({type:'UPDATE_RESET'});
+    }else{
+      fetchData();
+    }
+
+  }, [userInfo, successDelete, page, updateSuccess]);
+
+
+  const updateOrderHandler = async (id) => {
+    try {
+      dispatch({ type: 'UPDATE_PAYMENT_REQUEST' });
+      const { data } = await axios.put(
+        `/api/orders/${id}/updatedeliverpayment`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'UPDATE_PAYMENT_SUCCESS'});
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'UPDATE_PAYMENT_FAIL' });
+    }
+  };
 
   const deleteHandler = async (id)=>{
     if(window.confirm('Tem a certeza que deseja remover este pedido?')){
@@ -132,30 +167,21 @@ export default function DeliverersToPayListScreen() {
             <tr>
               <th>Nome</th>
               <th>Número de telefone</th>
-              <th>É fornecedor?</th>
-              <th>Foi aprovado?</th>
-              <th>É administrador?</th>
-              <th>É entregador?</th>
-              <th>Foi banido?</th>
-
+              <th>Valor por pagar</th>
+              <th>Foi pago?</th>
               <th>Acções</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.map((u)=>(
               <tr key={u._id}>
-                <td>{u.name}</td>
-                <td>{u.phoneNumber}</td>
-                <td>{u.isSeller? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
-                <td>{u.isApproved? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
-
-                <td>{u.isAdmin?  <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
-                <td>{u.isDeliveryMan?  <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
-                <td>{u.isBanned?  <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
-
+                <td>{u.deliveryman && u.deliveryman.name}</td>
+                <td>{u.deliveryman && u.deliveryman.phoneNumber}</td>
+                <td>{u.deliveryman && u.deliveryman.pricetopay}</td>
+                <td>{u.isDeliverPaid? <Badge bg="success" variant="success">Sim</Badge>: <Badge bg="danger" variant="danger">Não</Badge>}</td>
                 <td>
                         <Button type="button" variant='light'
-                        onClick={()=>navigate(`/api/orders/${u._id}`)}>
+                        onClick={()=>updateOrderHandler(u._id)}>
                   <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
                         </Button>&nbsp;
                         <Button type="button" variant='light'
@@ -171,7 +197,7 @@ export default function DeliverersToPayListScreen() {
         </table>
  <div>
  {[...Array(pages).keys()].map((x)=>(
-     <Link className={x + 1 === Number(page)? 'btn text-bold': 'btn'} key={x+1} to={`/admin/userlist?page=${x+1}`}>
+     <Link className={x + 1 === Number(page)? 'btn text-bold': 'btn'} key={x+1} to={`/admin/deliverstopay?page=${x+1}`}>
          {x+1}
      </Link>
  ))}

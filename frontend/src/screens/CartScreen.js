@@ -140,7 +140,9 @@ const formattedDatetime = `${hours}:${minutes}`;
     });
   }
 
-  const checkOutHandler = () => {
+  const checkOutHandler = async () => {
+
+   
      // Get the current time
      const currentTime = new Date();
      const currentDay = currentTime.getDay();

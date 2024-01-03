@@ -42,7 +42,7 @@ const reducer= (state, action) =>{
 
 export default function UserListScreen() {
   const [{loading, error, users, loadingDelete, successDelete, pages}, dispatch] = useReducer(reducer,{
-    loading: true, error: '', users: []
+    loading: true, error: ''
   })
   const {state} = useContext(Store);
   const {userInfo} = state;
@@ -50,7 +50,6 @@ export default function UserListScreen() {
   const {search} =useLocation();
   const sp = new URLSearchParams(search);
   const page = sp.get('page') || 1 ;
-
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredData, setFilteredData] = useState([]);
     
@@ -70,9 +69,6 @@ export default function UserListScreen() {
       setFilteredData(users);
     }
   }, [searchQuery, users]);
-
-
-
 
   useEffect(()=>{
     const fetchData = async () =>{
@@ -96,6 +92,37 @@ export default function UserListScreen() {
     }
 
   }, [userInfo, successDelete, page]);
+
+
+  // const filteredData =
+  // users && users.filter((row) =>row.phoneNumber ===searchQuery
+  //   );
+  
+    // const numericSearchQuery = parseInt(searchQuery);
+    // if (!isNaN(numericSearchQuery)) {
+      
+    //   const filtered = users && users.filter(u =>u.phoneNumber === numericSearchQuery);
+
+    //   // const filtered =
+    //   // users &&
+    //   // users.filter((row) =>
+    //   //   row.code.includes(searchQuery)
+    //   // );
+
+  
+    //   if(filtered.length>0){
+
+    //     setFilteredData(filtered);
+    //   }else{
+    //     setFilteredData(users);
+    //   }
+    // } else {
+    //   // If the searchQuery is not a valid number, set filteredData to the original user data.
+    //   setFilteredData(users);
+    // }
+
+
+
 
   const deleteHandler = async (id)=>{
     if(window.confirm('Tem a certeza que deseja remover este Utilizador?')){
@@ -142,7 +169,7 @@ export default function UserListScreen() {
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((u)=>(
+            {filteredData && filteredData.map((u)=>(
               <tr key={u._id}>
                 <td>{u.name}</td>
                 <td>{u.phoneNumber}</td>

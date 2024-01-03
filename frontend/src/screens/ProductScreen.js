@@ -117,6 +117,48 @@ function ProductScreen() {
   }, [categories]);
 
 
+  const addOnCartAndRedirectHandler = async () => {
+    const existItem = cart.cartItems.find((x) => x._id === product._id);
+    const quantity = existItem ? existItem.quantity + 1 : 1;
+    const { data } = await axios.get(`/api/products/${product._id}`);
+
+
+    if (!selectedColor) {
+      toast.error('Por favor, Informe a cor que deseja');
+      return;
+    }
+
+    if (!selectedSize) {
+      toast.error('Por favor, Informe o tamanho que deseja');
+      return;
+    }
+  
+
+    if (data.countInStock < quantity) {
+      toast.error('Desculpe, o Produto não está disponível');
+      // window.alert(`Desculpe, o Produto não está disponível`);
+      return;
+    }
+
+    product.color=selectedColor
+    product.size=selectedSize
+
+    
+    if(cart.cartItems.length > 0 && product.seller._id !== cart.cartItems[0].seller._id){
+      ctxDispatch({
+        type: 'ADD_ITEM_FAIL',
+        payload: t('onlyonesupplier'),
+      });
+    }else{
+      ctxDispatch({
+        type: 'ADD_ITEM_ON_CART',
+        payload: { ...product, quantity: quantity },
+      });
+    }
+navegate('/cart')
+  };
+
+
   const addOnCartHandler = async () => {
     const existItem = cart.cartItems.find((x) => x._id === product._id);
     const quantity = existItem ? existItem.quantity + 1 : 1;
@@ -156,7 +198,7 @@ function ProductScreen() {
       });
     }
 
-    navegate('/cart');
+    navegate(`/seller/${product.seller._id}`);
   };
 
   const submitHandler = async (e) => {
@@ -258,7 +300,7 @@ function ProductScreen() {
 
             <ListGroup.Item>{t('quantity')}: {product.countInStock} {t('unit')}</ListGroup.Item>
 
-            <ListGroup.Item>{t('price')}:  
+            <ListGroup.Item>{t('priceperunit')}:  
               {product.onSale ? (
                 <>
                 <b style={{color: '#a435f0'}}>{product.discount} MT</b>
@@ -293,7 +335,7 @@ function ProductScreen() {
                       value={selectedColor}
                       onChange={(e)=>setSelectedColor(e.target.value)} required>
                         <option value="">{t('select')}</option>
-                        {product && product.color.map(color => (
+                        {product && product.color && product.color.map(color => (
                         <option key={color._id} value={color.name}>
                           {color.name}
                         </option>
@@ -328,7 +370,7 @@ function ProductScreen() {
                       value={selectedSize}
                       onChange={(e)=>setSelectedSize(e.target.value)} required>
                         <option value="">{t('select')}</option>
-                        {product && product.size.map(size => (
+                        {product && product.size && product.size.map(size => (
                         <option key={size._id} value={size.name}>
                           {size.name}
                         </option>
@@ -428,7 +470,15 @@ function ProductScreen() {
                 {product.countInStock > 0 && product.seller && (
                   <div className="d-grid">
                     <Button className='customButtom' variant='light' onClick={addOnCartHandler}  >
-                     {t('addoncart')}
+                     {t('addoncartandseeseller')}
+                    </Button>
+                  </div>
+                )}
+                <br/>
+                 {product.countInStock > 0 && product.seller && (
+                  <div className="d-grid">
+                    <Button className='customButtom' variant='light' onClick={addOnCartAndRedirectHandler}  >
+                     {t('addoncartandredirect')}
                     </Button>
                   </div>
                 )}
@@ -444,7 +494,7 @@ function ProductScreen() {
         <h2 ref={reviewsRef}>Comentários</h2>
         <div className="mb-3">
           {product.reviews.length === 0 && (
-            <MessageBox> Sem Comentários</MessageBox>
+            <MessageBox> Sem comentários</MessageBox>
           )}
         </div>
       </div>
@@ -479,7 +529,7 @@ function ProductScreen() {
             &nbsp;
             <FloatingLabel
               controlId="floatingTextarea"
-              label="Seu Comentário"
+              label="Seu comentário"
               className="mb-3"
             >
               <Form.Control

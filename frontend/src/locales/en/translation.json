@@ -147,9 +147,11 @@
     "productdetails":"Product details",
     "publicationdate":"Publication date",
     "price":"Price",
-    "quantity":"Quantity",
+    "priceperunit":"Price per unit",
+
+    "quantity":"Available quantity",
     "unit":"Unit(s)",
-    "status":"Status",
+    "status":"Condition",
     "designation":"Designation",
     "brand":"Brand/Flavor",
     "available":"Available",
@@ -200,7 +202,14 @@
     "returnpolicy":"Return policy",
     "benefits":"Benefits of buying at Nhiquela",
     "sellerstopay":"Suppliers to pay",
-    "deliverstopay":"Deliverers to pay"
+    "deliverstopay":"Deliverers to pay",
+    "guarantee":"Guarantee",
+    "paymentfromnhiquela":"Payment history",
+    "addoncartandredirect":"Add and view cart",
+    "addoncartandseeseller":"Add and see more",
+    "requestdeliveryman":"Request delivery person"
+
+
 
 
 
