@@ -202,7 +202,14 @@ table {
 }
 @media (min-width: 992px){
 
-  
+  .modal {
+    position: absolute;
+    top: 60%;
+    left: 40%;
+    transform: translate(-50%, -50%);
+    /* width: 600px;
+    height: 400px; */
+  }
 
   .img-carousel{
     height: 320px;
@@ -246,6 +253,15 @@ table {
   (max-width: 393px),
   (max-width: 412px),
   (max-width: 540px), (max-width: 992px) {
+
+    .modal {
+      position: absolute;
+      top: 50%;
+      left: 47%;
+      transform: translate(-50%, -50%);
+      /* width: 600px;
+      height: 400px; */
+    }
 
     .img-carousel{
       height: 300px;
@@ -637,11 +653,3 @@ select:focus {
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Add a subtle box shadow */
 }
 
-.modal {
-  position: absolute;
-  top: 50%;
-  left: 47%;
-  transform: translate(-50%, -50%);
-  /* width: 600px;
-  height: 400px; */
-}

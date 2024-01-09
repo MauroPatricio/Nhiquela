@@ -66,6 +66,10 @@ export default function PlaceOrderScreen() {
   const { cart, userInfo } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalMpesa, setIsModalMpesa] = useState(false);
+  const [isModalStock, setIsModalStock] = useState(false);
+  const [itemOutOfStock, setItemOutOfStock] = useState([]);
+
+
   let [customerNumber, setCustomerNumber] = useState(null);
 
 
@@ -80,6 +84,13 @@ export default function PlaceOrderScreen() {
   const closeModalMpesa = () => {
     setIsModalMpesa(false);
   };
+
+  const closeModalStock = () =>{
+    setIsModalStock(false)
+    setIsModalMpesa(false);
+    setIsModalOpen(false);
+    return
+  }
 
 
   
@@ -126,13 +137,19 @@ export default function PlaceOrderScreen() {
   };
   
   const paymentMpesa = async () => {
-
+   
     if(valorInput){
         customerNumber = valorInput
     }
     customerNumber = '258'+customerNumber;
 
     const amount = cart.totalPrice;
+
+    // validar a quantidade disponviel em stock
+    // Caso o valor em stock disponivel seja maior que a quantidade selecionado ele deve avancar;
+    // Caso nao deve emitir uma mensagem informando que a quantidade disponivel em stock e tanto e pede que se reduza
+    // A quantidade para o disponivel em stock
+
     try{
     dispatch({ type: 'CREATE_MPESA_REQUEST' });
 
@@ -284,7 +301,17 @@ export default function PlaceOrderScreen() {
     }, []);
 
   const placeOrderHandler = async () => {
+    cart.cartItems.map(async item =>{
+      const { data } = await axios.get(`/api/products/${item._id}`);
 
+      if(data.countInStock< item.quantity){
+        setIsModalStock(true)
+        setIsModalMpesa(false)
+        setIsModalOpen(false)
+        setItemOutOfStock(item)
+        return
+      }
+    });
 
     // Get the current time
     const currentTime = new Date();
@@ -295,54 +322,6 @@ const hours = currentTime.getHours().toString().padStart(2, '0'); // Get the hou
 const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the minutes and pad with leading 0 if needed
 
 const formattedDatetime = `${hours}:${minutes}`;
-
-
-
-    // pego a variavel do dia de semana actual 
-
-    // Crio um ciclo e verificar se o dia de semana actual com os dias de semana preenchidos pelo fornecedor sao iguais
-    // caso o dia de semana seja igual com o dia de semana adicionado pelo fornecedor
-    // O sistema verifica se a hora actual do sistema e a hora definida pelo fornecedor esta  entre a hora de abertura e fecho
-    // caso esteja a hora esteja entre o sistema regista o pedido
-    // caso nao o sistema emite uma mensagem informando que "Nao podemos efectuar o seu registo pois a loja neste momento encontra-se fechada" e nao regista o pedido
-    // Caso o dia de semana actual e o dia de semana disponivel na listagem forem diferentes
-
-
-    // if(seller && seller.seller.workDayAndTime.length===0){
-    //   try {
-    //     dispatch({ type: 'CREATE_REQUEST' });
-    //    // if()
-  
-       
-    //     const { data } = await axios.post(
-    //       '/api/orders',
-    //       {
-    //         orderItems: cart.cartItems,
-    //         address: cart.address,
-    //         paymentMethod: cart.paymentMethod,
-    //         itemsPrice: cart.itemsPrice,
-    //         ivaTax: cart.ivaTax,
-    //         siteTax: cart.siteTax,
-    //         taxPrice: cart.taxPrice,
-    //         totalPrice: cart.totalPrice,
-    //         addressPrice: cart.addressPrice,
-    //         itemsPriceForSeller: cart.itemsPriceForSeller
-    //       },
-    //       {
-    //         headers: {
-    //           authorization: `Bearer ${userInfo.token}`,
-    //         },
-    //       }
-    //     );
-    //     ctxDispatch({ type: 'CART_CLEAR' });
-    //     dispatch({ type: 'CREATE_SUCCESS' });
-    //     navigate(`/order/${data.order._id}`);
-    //     toast.success('Pedido efectuado com sucesso');
-    //   } catch (err) {
-    //     toast.error(getError(err));
-    //   }
-    // }
-
     
     seller && seller.seller && seller.seller.workDayAndTime.map(async workday=>{
       
@@ -642,6 +621,20 @@ const formattedDatetime = `${hours}:${minutes}`;
           </Button>
           <Button variant="danger" onClick={closeModalMpesa}>
             Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      <Modal show={isModalStock}  className='modal' >
+        <Modal.Header closeButton onClick={closeModalStock}>
+          <Modal.Title>Produto indisponível</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+        O produto <b>{itemOutOfStock.name}</b> já não está disponível ou está fora de estoque.<br/>Se deseja prosseguir com o pagamento dos restantes produtos deverá remover este produto da carrinha.
+       
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="info" onClick={closeModalStock}>
+            Ok
           </Button>
         </Modal.Footer>
       </Modal>

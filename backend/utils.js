@@ -267,7 +267,7 @@ const test ='nhiquelaservicosconsultoria@gmail.com'
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ test, email],       
-  subject: `Nhiquela Shop - Acompanhar Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
 };
 

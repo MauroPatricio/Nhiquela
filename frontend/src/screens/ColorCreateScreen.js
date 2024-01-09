@@ -50,6 +50,7 @@ export default function ColorCreateScreen() {
             dispatch({type: 'CREATE_REQUEST'});
             await axios.post(`/api/colors/`,{
                 name,
+                nome
             }, {
                 headers: {Authorization: `Bearer ${userInfo.token}`}
             });
@@ -75,7 +76,7 @@ return (
 
         <Form.Group className='mb-3' controlId='nome'>
         <Form.Label>Nome(pt)</Form.Label>
-        <Form.Control value={name} onChange={(e)=>setNome(e.target.value)} required/>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
         </Form.Group>
 
         <Form.Group className='mb-3' controlId='name'>

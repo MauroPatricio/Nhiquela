@@ -37,6 +37,7 @@ export default function SizeCreateScreen() {
     const [{loading, error, loadingCreate}, dispatch] = useReducer(reducer, {loading: false, error:''});
  
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
 
 
     const submitHandler = async (e)=>{
@@ -46,11 +47,12 @@ export default function SizeCreateScreen() {
             dispatch({type: 'CREATE_REQUEST'});
             await axios.post(`/api/sizes/`,{
                 name,
+                nome
             }, {
                 headers: {Authorization: `Bearer ${userInfo.token}`}
             });
             dispatch({type: 'CREATE_SUCCESS'});
-            toast.success('Tamanho Criado com Sucesso');
+            toast.success('Tamanho criado com sucesso');
             navigate('/sizeList/');
 
         }catch(err){
@@ -71,6 +73,11 @@ return (
 
         <Form.Group className='mb-3' controlId='name'>
         <Form.Label>Nome</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
+        <Form.Group className='mb-3' controlId='name'>
+        <Form.Label>Name</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

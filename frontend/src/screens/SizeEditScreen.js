@@ -52,6 +52,8 @@ export default function SizeEditScreen() {
     const [{loading, error, loadingEdit}, dispatch] = useReducer(reducer, {loadingEdit: false, error:''});
  
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
+
     const [isActive, setIsActive] = useState(false);
 
 
@@ -61,6 +63,8 @@ export default function SizeEditScreen() {
                 dispatch({type: 'FETCH_REQUEST'})
                 const {data} = await axios.get(`/api/sizes/${sizeId}`,{headers: {Authorization: `Bearer ${userInfo.token}`}});
                 setName(data.name);
+                setNome(data.nome);
+
                 setIsActive(data.isActive);
               
                 dispatch({type: 'FETCH_SUCCESS', payload: data});
@@ -106,8 +110,13 @@ return (
     {loading? (<LoadingBox></LoadingBox>):error?<MessageBox>{error}</MessageBox>:<>
     <Form onSubmit={submitHandler}>
 
+    <Form.Group className='mb-3' controlId='name'>
+        <Form.Label>Nome (pt)</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
         <Form.Group className='mb-3' controlId='name'>
-        <Form.Label>Nome</Form.Label>
+        <Form.Label>Name (en)</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 

@@ -38,6 +38,8 @@ export default function QualityTypeCreateScreen() {
     const [{loading, error, loadingCreate}, dispatch] = useReducer(reducer, {loading: false, error:''});
  
     const [name, setName] = useState('');
+    const [nome, setNome] = useState('');
+
     const [description, setDescription] = useState('');
     
 
@@ -48,6 +50,7 @@ export default function QualityTypeCreateScreen() {
             dispatch({type: 'CREATE_REQUEST'});
             await axios.post(`/api/qualitytype/`,{
                 name,
+                nome,
                 description
             }, {
                 headers: {Authorization: `Bearer ${userInfo.token}`}
@@ -74,8 +77,15 @@ return (
     <Form onSubmit={submitHandler}>
 
 
+
+    <Form.Group className='mb-3' controlId='name'>
+        <Form.Label>Nome (pt)</Form.Label>
+        <Form.Control value={nome} onChange={(e)=>setNome(e.target.value)} required/>
+        </Form.Group>
+
+
         <Form.Group className='mb-3' controlId='name'>
-        <Form.Label>Nome</Form.Label>
+        <Form.Label>Name (en)</Form.Label>
         <Form.Control value={name} onChange={(e)=>setName(e.target.value)} required/>
         </Form.Group>
 
