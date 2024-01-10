@@ -13,6 +13,8 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -159,6 +161,15 @@ export default function ProductEditScreen() {
   const [selectedColors, setSelectedColors] =useState([]);
   const [selectedSizes, setSelectedSizes] =useState([]);
 
+  const [isGuaranteed, setIsGuaranteed] = useState(false);
+  const [isOrdered, setIsOrdered] = useState(false);
+  
+  const [orderPeriod, setOrderPeriod] = useState('');
+  const [guaranteedPeriod, setGuaranteedPeriod] = useState('');
+
+  const { t } = useTranslation();
+
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -186,6 +197,11 @@ export default function ProductEditScreen() {
         setSelectedColors(data.color);
         setSelectedSizes(data.size);
         setPriceFromSeller(data.priceFromSeller)
+
+        setIsGuaranteed(data.isGuaranteed)
+        setIsOrdered(data.isOrdered)
+        setOrderPeriod(data.orderPeriod)
+        setGuaranteedPeriod(data.guaranteedPeriod)
 
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: err });
@@ -366,7 +382,11 @@ export default function ProductEditScreen() {
           qualityTyp,
           selectedColors,
           selectedSizes,
-          priceFromSeller
+          priceFromSeller,
+          isGuaranteed,
+          isOrdered,
+          orderPeriod, 
+          guaranteedPeriod,
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -688,10 +708,44 @@ export default function ProductEditScreen() {
               </Form.Group>
             )}
 
-            {/* <Form.Group className='mb-3' controlId='image'>
-        <Form.Label>Imagem</Form.Label>
-        <Form.Control value={image} onChange={(e)=>setImage(e.target.value)} required/>
-        </Form.Group> */}
+<Form.Check
+          className="mb-3"
+          type="checkbox"
+          id="isGuaranteed"
+          label={t('withguarantee')}
+          checked={isGuaranteed}
+          onChange={(e) => setIsGuaranteed(e.target.checked)}
+        ></Form.Check>
+
+      {isGuaranteed && <Form.Group className="mb-3" controlId="guaranteedPeriod">
+              <Form.Label>{t('warrantyperiod')}</Form.Label>
+              <Form.Control
+                value={guaranteedPeriod}
+                onChange={(e) => setGuaranteedPeriod(e.target.value)}
+                required={isGuaranteed}
+              />
+            </Form.Group>}
+
+
+
+
+            <Form.Check
+          className="mb-3"
+          type="checkbox"
+          id="isOrdered"
+          label={t('byorder')}
+          checked={isOrdered}
+          onChange={(e) => setIsOrdered(e.target.checked)}
+        ></Form.Check>
+
+      {isOrdered && <Form.Group className="mb-3" controlId="orderPeriod">
+              <Form.Label>{t('orderperiod')}</Form.Label>
+              <Form.Control
+                value={orderPeriod}
+                onChange={(e) => setOrderPeriod(e.target.value)}
+                required={isOrdered}
+              />
+            </Form.Group>}
 
             <img
               style={{

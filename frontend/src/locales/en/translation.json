@@ -208,7 +208,13 @@
     "addoncartandredirect":"Add and view cart",
     "addoncartandseeseller":"Add and see more",
     "requestdeliveryman":"Request delivery person",
-    "takestoreinperson":"No delivery [take it to the store in person]"
+    "takestoreinperson":"No delivery [take it to the store in person]",
+    "withguarantee":"With guarantee",
+    "warrantyperiod":"Warranty period",
+    "byorder":"By order?",
+    "orderperiod":"Estimated product delivery days"
+
+
 
 
 

@@ -146,6 +146,14 @@ export default function ProductCreateScreen() {
   const [onSale, setOnSale] = useState(false);
   const [onSalePercentage, setOnSalePercentage] = useState(0);
 
+  const [isGuaranteed, setIsGuaranteed] = useState(false);
+  const [isOrdered, setIsOrdered] = useState(false);
+  
+  const [orderPeriod, setOrderPeriod] = useState('');
+  const [guaranteedPeriod, setGuaranteedPeriod] = useState('');
+
+  
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -320,7 +328,11 @@ export default function ProductCreateScreen() {
           onSale,
           onSalePercentage,
           selectedColors,
-          selectedSizes
+          selectedSizes,
+          isGuaranteed,
+          isOrdered,
+          orderPeriod, 
+          guaranteedPeriod,
         },
         {
           headers: { Authorization: `Bearer ${userInfo.token}` },
@@ -638,6 +650,49 @@ export default function ProductCreateScreen() {
                 </Form.Select>
               </Form.Group>
             )}
+
+
+      <Form.Check
+          className="mb-3"
+          type="checkbox"
+          id="isGuaranteed"
+          label={t('withguarantee')}
+          checked={isGuaranteed}
+          onChange={(e) => setIsGuaranteed(e.target.checked)}
+        ></Form.Check>
+
+      {isGuaranteed && <Form.Group className="mb-3" controlId="guaranteedPeriod">
+              <Form.Label>{t('warrantyperiod')}</Form.Label>
+              <Form.Control
+                value={guaranteedPeriod}
+                onChange={(e) => setGuaranteedPeriod(e.target.value)}
+                required={isGuaranteed}
+              />
+            </Form.Group>}
+
+
+
+
+            <Form.Check
+          className="mb-3"
+          type="checkbox"
+          id="isOrdered"
+          label={t('byorder')}
+          checked={isOrdered}
+          onChange={(e) => setIsOrdered(e.target.checked)}
+        ></Form.Check>
+
+      {isOrdered && <Form.Group className="mb-3" controlId="orderPeriod">
+              <Form.Label>{t('orderperiod')}</Form.Label>
+              <Form.Control
+                value={orderPeriod}
+                onChange={(e) => setOrderPeriod(e.target.value)}
+                required={isOrdered}
+              />
+            </Form.Group>}
+
+
+
 
             {image && (
               <img

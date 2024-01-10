@@ -208,7 +208,12 @@
    "addoncartandredirect":"Adicionar e ver carrinha",
    "addoncartandseeseller":"Adicionar e ver mais produtos",
    "requestdeliveryman":"Solicitar entregador",
-   "takestoreinperson":"Sem entrega - [Leve pessoalmente na loja]"
+   "takestoreinperson":"Sem entrega - [Leve pessoalmente na loja]",
+   "withguarantee":"Possui garantia?",
+   "warrantyperiod":"Período da garantia",
+   "byorder":"Solicita-se por encomenda?",
+   "orderperiod":"Dias estimados para entrega do produto"
+
 
 
 

@@ -104,10 +104,14 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
       product.conditionStatus = req.body.conditionStatu;
       product.color = req.body.selectedColors;
       product.size = req.body.selectedSizes;
+      product.isOrdered = req.body.isOrdered;
+      product.orderPeriod = req.body.orderPeriod;
+      product.isGuaranteed =  req.body.isGuaranteed;
+      product.guaranteedPeriod = req.body.guaranteedPeriod;
 
       product.save();
 
-      res.send({message: 'Produto Actualizado com Sucesso'});
+      res.send({message: 'Produto actualizado com Sucesso'});
      }else{
       res.status(404).send({message: 'Produto não encontrado'});
  
@@ -190,7 +194,11 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
           conditionStatus : req.body.conditionStatu,
           color : req.body.selectedColors,
           size : req.body.selectedSizes,
-          isActive: user.isApproved
+          isOrdered: req.body.isOrdered,
+          orderPeriod: req.body.orderPeriod,
+          isGuaranteed:  req.body.isGuaranteed,
+          guaranteedPeriod: req.body.guaranteedPeriod,
+          isActive: user.isApproved,
      });
      if(req.body.onSale){  
           newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;

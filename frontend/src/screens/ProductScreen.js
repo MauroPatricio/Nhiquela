@@ -300,6 +300,12 @@ navegate('/cart')
 
             <ListGroup.Item>{t('quantity')}: {product.countInStock} {t('unit')}</ListGroup.Item>
 
+            {product.isGuaranteed &&<ListGroup.Item>{t('withguarantee')}: {product.guaranteedPeriod} </ListGroup.Item>}
+
+
+            {product.isOrdered &&<ListGroup.Item>{t('orderperiod')}: {product.orderPeriod} </ListGroup.Item>}
+
+
             <ListGroup.Item>{t('priceperunit')}:  
               {product.onSale ? (
                 <>
