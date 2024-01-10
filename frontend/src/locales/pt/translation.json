@@ -107,7 +107,7 @@
     "deliveryfee":"Taxa de entrega",
     "changedelivoptions":"Alterar opções de entrega",
     "priceofproducts":"Preço dos produtos",
-    "trackorder":"Acompanhento do pedido",
+    "trackorder":"Acompanhamento do pedido",
     "request":"Requisitar",
     "shopping":"Fazer compras",
     "shoppingcart":"Carrinha de compras",
@@ -207,7 +207,8 @@
    "paymentfromnhiquela":"Histórico de pagamentos",
    "addoncartandredirect":"Adicionar e ver carrinha",
    "addoncartandseeseller":"Adicionar e ver mais produtos",
-   "requestdeliveryman":"Solicitar entregador"
+   "requestdeliveryman":"Solicitar entregador",
+   "takestoreinperson":"Sem entrega - [Leve pessoalmente na loja]"
 
 
 

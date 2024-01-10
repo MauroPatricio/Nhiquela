@@ -61,7 +61,7 @@ export default function DeliveryOptionScreen() {
 
               <Form.Check
                 type="radio"
-                label={t('nodelivery')}
+                label={t('takestoreinperson')}
                 id="without"
                 value="withoutDelivery"
                 checked={deliveryOption === 'withoutDelivery'}

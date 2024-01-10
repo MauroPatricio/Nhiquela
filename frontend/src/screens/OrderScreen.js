@@ -678,15 +678,35 @@ useEffect(() => {
                        </Col>
                        </Row>
                        <Row>
-                       <Col>
-                       {order.paymentMethod !== 'Mpesa' &&
+                       {order.paymentMethod === 'Mpesa' &&
+                     (
+                      <MessageBox variant="">
+                                {t('forconfirmyourorder')} {' '} 
+                                <b>{order.totalPrice} MT</b> {t('onaccountnumber')} <b>853600036</b>
+                      </MessageBox>
+                    )}
+                       {order.paymentMethod === 'Emola' &&
                      (
                       <MessageBox variant="">
                                 {t('forconfirmyourorder')} {' '} 
                                 <b>{order.totalPrice} MT</b> {t('onaccountnumber')} <b>879300036</b>
                       </MessageBox>
                     )}
-                       </Col>
+                    
+                       {order.paymentMethod === 'BCI' &&
+                     (
+                      <MessageBox variant="">
+                                {t('forconfirmyourorder')} {' '} 
+                                <b>{order.totalPrice} MT</b> {t('onaccountnumber')} <b>123456789</b>
+                      </MessageBox>
+                    )}
+                     {order.paymentMethod === 'BIM' &&
+                     (
+                      <MessageBox variant="">
+                                {t('forconfirmyourorder')} {' '} 
+                                <b>{order.totalPrice} MT</b> {t('onaccountnumber')} <b>155555555</b>
+                      </MessageBox>
+                    )}
                   </Row>
                 </ListGroup.Item>
 
