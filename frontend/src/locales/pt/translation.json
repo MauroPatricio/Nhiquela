@@ -147,8 +147,9 @@
     "publicationdate":"Data de publicação",
     "price":"Preço",
     "priceperunit":"Preço por unidade",
-
     "quantity":"Quantidade disponível",
+    "quantityavailible":"Quantidade disponível",
+
     "unit":"unidade(s)",
     "status":"Condição",
     "designation":"Qualidade do produto",
@@ -209,10 +210,17 @@
    "addoncartandseeseller":"Adicionar e ver mais produtos",
    "requestdeliveryman":"Solicitar entregador",
    "takestoreinperson":"Sem entrega - [Leve pessoalmente na loja]",
-   "withguarantee":"Possui garantia?",
-   "warrantyperiod":"Período da garantia",
+   "withguarantee":"Tem garantia?",
+   "warrantyperiod":"Prazo de garantia",
    "byorder":"Solicita-se por encomenda?",
-   "orderperiod":"Dias estimados para entrega do produto"
+   "orderperiod":"Dias estimados para entrega do produto",
+   "yes":"Sim",
+   "no":"Não",
+   "quantityinstock":"Quantidade em estoque",
+   "makeorder":"Por encomenda",
+   "deliveryestimate":"Estimativa de entrega"
+
+
 
 
 

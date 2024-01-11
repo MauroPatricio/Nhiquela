@@ -212,7 +212,13 @@
     "withguarantee":"With guarantee",
     "warrantyperiod":"Warranty period",
     "byorder":"By order?",
-    "orderperiod":"Estimated product delivery days"
+    "orderperiod":"Estimated product delivery days",
+    "yes":"Yes",
+    "quantityinstock":"Quantity in stock",
+    "makeorder":"By order",
+    "deliveryestimate":"Delivery estimate"
+
+
 
 
 

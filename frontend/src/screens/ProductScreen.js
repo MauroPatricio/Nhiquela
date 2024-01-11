@@ -291,20 +291,26 @@ navegate('/cart')
               <ListGroup.Item>
                  {t('publicationdate')}: {formatedDate(product.createdAt)}            
             </ListGroup.Item>
-            
-           {product.qualityType && <ListGroup.Item>{t('designation')}: {product.qualityType.name} </ListGroup.Item>}
 
-           {product.conditionStatus &&<ListGroup.Item>{t('status')}: {product.conditionStatus.name} </ListGroup.Item>}
+            {product.isOrdered &&<ListGroup.Item>{t('makeorder')}:<Badge bg='info'>{t('yes')}</Badge>  </ListGroup.Item>}
+
+            {product.isOrdered &&<ListGroup.Item>{t('deliveryestimate')}: <Badge bg='info'>{product.orderPeriod}</Badge> </ListGroup.Item>}
+
+            {product.isGuaranteed &&<ListGroup.Item>{t('withguarantee')}: <Badge bg='info'>{t('yes')}</Badge></ListGroup.Item>}
+
+            {product.isGuaranteed &&<ListGroup.Item>{t('warrantyperiod')}: <Badge bg='info'>{product.guaranteedPeriod}</Badge></ListGroup.Item>}
+
+            
+           {product.conditionStatus &&<ListGroup.Item>{t('status')}: <Badge bg="success">{product.conditionStatus.name}</Badge> </ListGroup.Item>}
 
             <ListGroup.Item>{t('brand')}: {product.brand}</ListGroup.Item>
 
+           {product.qualityType && <ListGroup.Item>{t('designation')}: {product.qualityType.name} </ListGroup.Item>}
+
             <ListGroup.Item>{t('quantity')}: {product.countInStock} {t('unit')}</ListGroup.Item>
 
-            {product.isGuaranteed &&<ListGroup.Item>{t('withguarantee')}: {product.guaranteedPeriod} </ListGroup.Item>}
 
-
-            {product.isOrdered &&<ListGroup.Item>{t('orderperiod')}: {product.orderPeriod} </ListGroup.Item>}
-
+  
 
             <ListGroup.Item>{t('priceperunit')}:  
               {product.onSale ? (
@@ -426,7 +432,7 @@ navegate('/cart')
                 <ListGroup.Item>
                                 <Row>
                                                   <Col>
-                                                    {product && product.onSale && <Badge bg='success' >{t('onsale')}</Badge> }
+                                                    {product && product.onSale && <span>{t('onsale')}</span> }
                                                     </Col>
                                                     <Col>
                                                     {product && product.onSale && <Badge bg='success'><span>{product.onSalePercentage*100}% {t('discount')}</span> </Badge>}
@@ -439,7 +445,7 @@ navegate('/cart')
         
 
                   <Row>
-                    <Col>{t('status')}</Col>
+                    <Col>{t('quantityinstock')}</Col>
                     <Col>
                       {product.countInStock > 0 && product.seller!== null ? (
                         <Badge bg="success">{t('available')}</Badge>
