@@ -548,7 +548,7 @@ useEffect(() => {
         </Col>
         <Col md={4}>
           <Card className="mb-3">
-            {!userInfo.isDeliveryMan &&<Card.Body>
+            {!userInfo.isDeliveryMan || userInfo.isAdmin &&<Card.Body>
               <Card.Title>{t('ordersummary')}</Card.Title>
               <ListGroup variant="flush">
                 <ListGroup.Item>

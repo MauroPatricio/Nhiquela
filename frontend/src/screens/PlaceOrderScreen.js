@@ -67,6 +67,7 @@ export default function PlaceOrderScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalMpesa, setIsModalMpesa] = useState(false);
   const [isModalStock, setIsModalStock] = useState(false);
+  const [isModalDelayOrder, setIsModalDelayOrder] = useState(false);
   const [itemOutOfStock, setItemOutOfStock] = useState([]);
 
 
@@ -81,14 +82,27 @@ export default function PlaceOrderScreen() {
     setIsModalOpen(false);
   };
 
+  const redirectCart = () =>{
+        navigate('/cart');
+  }
+
   const closeModalMpesa = () => {
     setIsModalMpesa(false);
+    dispatch({ type: 'CREATE_MPESA_FAIL' });
+
   };
 
   const closeModalStock = () =>{
     setIsModalStock(false)
     setIsModalMpesa(false);
     setIsModalOpen(false);
+    setIsModalDelayOrder(false)
+    return
+  }
+
+  const closeModalDelay = () =>{
+
+    setIsModalDelayOrder(false)
     return
   }
 
@@ -297,21 +311,38 @@ export default function PlaceOrderScreen() {
 
 
     useEffect(() => {
+
+      cart.cartItems.map(async item =>{
+        const { data } = await axios.get(`/api/products/${item._id}`);
+  
+        if(data.countInStock< item.quantity){
+          setItemOutOfStock(item)
+          setIsModalStock(true)
+          setIsModalMpesa(false)
+          setIsModalOpen(false)
+          return
+        }
+        if(cart.paymentMethod==='Emola' && item.isOrdered &&  cart.cartItems.length > 1){
+          setItemOutOfStock(item)
+          setIsModalDelayOrder(true)
+          return
+        }
+        if(cart.paymentMethod==='BCI' && item.isOrdered &&  cart.cartItems.length > 1){
+          setItemOutOfStock(item)
+          setIsModalDelayOrder(true)
+          return
+        }
+        if(cart.paymentMethod==='Dinheiro' && item.isOrdered &&  cart.cartItems.length > 1){
+          setItemOutOfStock(item)
+          setIsModalDelayOrder(true)
+          return
+        }
+      });
       window.scrollTo(0, 0);
     }, []);
 
   const placeOrderHandler = async () => {
-    cart.cartItems.map(async item =>{
-      const { data } = await axios.get(`/api/products/${item._id}`);
-
-      if(data.countInStock< item.quantity){
-        setIsModalStock(true)
-        setIsModalMpesa(false)
-        setIsModalOpen(false)
-        setItemOutOfStock(item)
-        return
-      }
-    });
+    
 
     // Get the current time
     const currentTime = new Date();
@@ -331,6 +362,22 @@ const formattedDatetime = `${hours}:${minutes}`;
         // esta tudo bem passa.
         // Esta dentro do periodo informado
         if(userInfo){
+          cart.cartItems.map(async item =>{
+            const { data } = await axios.get(`/api/products/${item._id}`);
+      
+            if(data.countInStock< item.quantity){
+              setItemOutOfStock(item)
+              setIsModalStock(true)
+              setIsModalMpesa(false)
+              setIsModalOpen(false)
+              return
+            }
+            if(cart.paymentMethod==='Emola' && item.isOrdered){
+              setItemOutOfStock(item)
+              setIsModalDelayOrder(true)
+              return
+            }
+          });
           
           try {
             dispatch({ type: 'CREATE_REQUEST' });
@@ -343,7 +390,7 @@ const formattedDatetime = `${hours}:${minutes}`;
             // Secto os dados na ordem para informar que este pagamento foi pago
             // Caso o pagamento nao tenha sido pago com sucesso 
             // este nao avanca para a tela seguinte e apresenta a mensagem com o motivo do pagamento nao ter sido efectuado com sucesso
-            if(cart.paymentMethod==='Mpesa'){
+            if(cart.paymentMethod==='Mpesa' &&  cart.cartItems.length > 1){
               setIsModalMpesa(true)
               return
             }
@@ -635,6 +682,22 @@ const formattedDatetime = `${hours}:${minutes}`;
         <Modal.Footer>
           <Button variant="info" onClick={closeModalStock}>
             Ok
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      <Modal show={isModalDelayOrder}  className='modal' >
+        <Modal.Header closeButton onClick={closeModalDelay}>
+          <Modal.Title>Produtos por encomenda</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+        O produto <b>{itemOutOfStock.name}</b> é processado sob encomenda com prazo de entrega estimado "<b>{itemOutOfStock.orderPeriod}</b>". <br/> Isso causará atrasos na entrega de outros produtos.<br/>
+        Caso queira recebê-lo(s) imediatamente, deverá retirá-lo da carrinha, clicando em <b>alterar</b>. <br/> Se deseja continuar com o produto na carrinha, basta clicar em <b>continuar</b>.</Modal.Body>
+        <Modal.Footer>
+          <Button variant="success" onClick={closeModalDelay}>
+            Continuar
+          </Button>
+          <Button variant="info" onClick={redirectCart}>
+            Alterar
           </Button>
         </Modal.Footer>
       </Modal>
