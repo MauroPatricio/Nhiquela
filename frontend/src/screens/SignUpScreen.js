@@ -104,6 +104,8 @@ export default function SignupScreen() {
   const [accountNumber, setAccountNumber] = useState('');
   const [alternativeAccountType, setAlternativeAccountType] = useState('');
   const [alternativeAccountNumber, setAlternativeAccountNumber] = useState('');
+  const [checkedTerms, setCheckedTerms] = useState(false);
+
 
   const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira','Sexta-feira','Sábado'];
   const [workDaysWithTime, setWorkDaysWithTime] = useState([]);
@@ -528,9 +530,6 @@ export default function SignupScreen() {
           />
         </Form.Group>
 
-
-       
-
         <Form.Group className="mb-3" controlId="sellerLocation">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('province')}</Form.Label>
             <Form.Select aria-label="Provincia"
@@ -623,7 +622,18 @@ export default function SignupScreen() {
           </>
         )}
 
-        
+<Form.Check 
+        type="checkbox"
+        label= {<span>
+        Li e concordo com os{' '}
+        <a href="/terms">termos e condições</a>
+      </span>}
+        id="myCheckbox"
+        required
+        value={checkedTerms}
+        onChange={(e) => setCheckedTerms(e.target.checked)}
+      />    
+
         <div className="mb-3">
           <Button className='customButtom' variant='light' disabled={loadingUser} type="submit">{t('create')}</Button>
           {loadingUser&&<LoadingBox></LoadingBox>}

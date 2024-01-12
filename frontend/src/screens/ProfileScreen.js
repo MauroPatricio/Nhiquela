@@ -472,8 +472,6 @@ let dayNumber = 0;
           )}
 
 
-
-
         <Form.Check
           className="mb-3"
           type="checkbox"
@@ -482,8 +480,6 @@ let dayNumber = 0;
           checked={isUpdatePassword}
           onChange={(e) => setIsUpdatePassword(e.target.checked)}
         ></Form.Check>
-
-
 
         {isUpdatePassword && (
           <>

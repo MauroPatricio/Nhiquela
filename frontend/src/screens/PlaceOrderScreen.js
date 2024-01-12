@@ -382,15 +382,7 @@ const formattedDatetime = `${hours}:${minutes}`;
           try {
             dispatch({ type: 'CREATE_REQUEST' });
       
-  
-            // verifica se o pagamento selecionado e via mpesa ou nao
-            // Caso o pagamento selecionado seja Mpesa 
-            // entao ira apresentar um pop up para o cliente pagar via mpesa
-            // Apos retornar a informacao do pagamento por parte do cliente 
-            // Secto os dados na ordem para informar que este pagamento foi pago
-            // Caso o pagamento nao tenha sido pago com sucesso 
-            // este nao avanca para a tela seguinte e apresenta a mensagem com o motivo do pagamento nao ter sido efectuado com sucesso
-            if(cart.paymentMethod==='Mpesa' &&  cart.cartItems.length > 1){
+           if(cart.paymentMethod==='Mpesa'){
               setIsModalMpesa(true)
               return
             }
