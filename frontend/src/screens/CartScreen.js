@@ -152,7 +152,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         
         const formattedDatetime = `${hours}:${minutes}`;
 
-        if(seller && seller.seller.workDayAndTime.length==0){
+        if(seller && seller.seller!==undefined && seller.seller.workDayAndTime.length==0){
           toast.error(`Não é possível registrar o seu pedido em uma loja fechada. `)
           return;
         }

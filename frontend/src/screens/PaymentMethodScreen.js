@@ -77,14 +77,14 @@ export default function PaymentMethodScreen() {
               ></Form.Check>
 
 
-              <Form.Check
+              {/* <Form.Check
                 type="radio"
                 label="BCI"
                 id="BCI"
                 value="BCI"
                 checked={paymentMethodName === 'BCI'}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-              ></Form.Check>
+              ></Form.Check> */}
 
               {/* <Form.Check
                 type="radio"

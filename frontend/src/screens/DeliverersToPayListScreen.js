@@ -92,7 +92,6 @@ export default function DeliverersToPayListScreen() {
           const {data} = await axios.get(`/api/orders/deliverorderstopay?page=${page}`,{
             headers: {Authorization: `Bearer ${userInfo.token}`}
           })
-          console.log(data)
           dispatch({type:'FETCH_SUCCESS', payload: data});
 
         } catch (err) {
