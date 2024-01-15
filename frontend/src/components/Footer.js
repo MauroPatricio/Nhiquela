@@ -132,11 +132,9 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p>
-           <i className="fas fa-print mr-3"></i> +258 853600036<br/>
-           </p>
+          <p><i className="fas fa-print mr-3"></i> +258 853600036<br/> </p>
          <p><i className="fas fa-print mr-3"></i> +258 879300036<br/></p>
-          <p><i className="fas fa-envelope mr-3"></i>geral@nhiquelashop.co.mz<br/></p>
+          <p><i className="fas fa-envelope mr-3"></i>{t('emaillang')}<br/></p>         
           <p><i className="fas fa-home mr-3"></i> {t('mozambique')},{t('maputocity')}</p>
 
         </div>

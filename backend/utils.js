@@ -9,13 +9,26 @@ export const baseUrl = ()=> process.env.BASE_URL ? process.env.BASE_URL : proces
 'http://localhost:3000': 'https://nhiquelashop.co.mz';
 
 
+// const transporter = nodemailer.createTransport({
+//   host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
+//   port: 587,
+//   secure: false,
+//   auth: {
+//     user: 'mauro.patricio1@gmail.com',      // Your email address
+//     pass: 'kfgg cmdk hvsp ctil',         // Your email password
+//   },
+//   tls:{
+//     rejectUnauthorized: false
+//   }
+// });
+
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   auth: {
-    user: 'mauro.patricio1@gmail.com',      // Your email address
-    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+    user: 'nhiquelaservicosconsultoria@gmail.com',      // Your email address
+    pass: 'trpw julu dkfb hzyb',         // Your email password
   },
   tls:{
     rejectUnauthorized: false
@@ -262,10 +275,10 @@ export const sendEmailOrderStatus = async (req, msg, order, res)=>{
 
 
   if(email){
-const test ='nhiquelaservicosconsultoria@gmail.com'
+const test ='mauro.patricio1@gmail.com'
 // Email message configuration
 const mailOptions = {
-  from: 'Nhiquela Shop <mauro.patricio1@gmail.com>',      // Your email address
+  from: 'Nhiquela Shop <nhiquelaservicosconsultoria@gmail.com>',      // Your email address
   to: [ test, email],       
   subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,

@@ -131,7 +131,7 @@ export default function SellerScreen() {
 
                    
                        <br/>
-                      <FontAwesomeIcon icon={faClockFour}/> <span style={{color:'green'}}> {t('workdays')}: </span>{sellerDetails.seller.workDayAndTime.map((workDay)=>(
+                      <FontAwesomeIcon icon={faClockFour}/> <span style={{color:'green'}}> {userInfo && t('workdays')}: </span>{userInfo && sellerDetails.seller.workDayAndTime.map((workDay)=>(
                 <Col  key={workDay.dayOfWeek}>
                   {workDay.dayOfWeek} - {workDay.opentime} - {workDay.closetime}
                 </Col>
@@ -144,9 +144,9 @@ export default function SellerScreen() {
 
                      
 
-                    <b>{t('address')}:</b> {sellerDetails.seller.province && sellerDetails.seller.province.name},{sellerDetails.seller.address}<br/>
+                    <b>{userInfo && t('address')}:</b> {userInfo && sellerDetails.seller.province && sellerDetails.seller.province.name},{userInfo && sellerDetails.seller.address}<br/>
                    
-                    <b>{t('specialty')}:</b>  {sellerDetails.seller.description}<br/><br/>
+                    <b>{userInfo && t('specialty')}:</b>  {userInfo && sellerDetails.seller.description}<br/><br/>
                      {userInfo && userInfo.isAdmin &&  <b>Numero(s) telefone para transferencia(s):</b>}{ userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.phoneNumberAccount} {userInfo && userInfo.isAdmin && ';'}{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativePhoneNumberAccount}<br/>
                       
                      {userInfo && userInfo.isAdmin && <b>Numero(s) conta para transferencia(s):</b> }{userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountType} {userInfo && userInfo.isAdmin && '-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.accountNumber}{ userInfo && userInfo.isAdmin &&';'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountType} {userInfo && userInfo.isAdmin && '-'} {userInfo && userInfo.isAdmin && sellerDetails.seller && sellerDetails.seller.alternativeAccountNumber}<br/>

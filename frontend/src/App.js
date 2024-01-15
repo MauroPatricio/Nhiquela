@@ -90,6 +90,7 @@ import NhiquelaBenef from './screens/NhiquelaBenef';
 import SellersToPayListScreen from './screens/SellersToPayListScreen';
 import DeliverersToPayListScreen from './screens/DeliverersToPayListScreen';
 import OrderDeliverman from './screens/OrderDeliverman';
+import LanguageSwitcher from './LanguageSwitcher';
 
 
 export  function App() {
