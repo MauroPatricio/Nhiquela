@@ -503,7 +503,9 @@ const formattedDatetime = `${hours}:${minutes}`;
                         />
                         <p></p>
                         <Link className="link link-none" to={`/product/${item.slug}`}>
-                        {t('product')}: <b>{item.name}</b><br/>{t('color')}:<b>{item.color}</b>{' '} {t('size')}:<b>{item.size}</b>
+                        {t('product')}: <b>{item.name}</b><br/>{t('color')}:<b>{item.color}</b>{' '} {t('size')}:<b>{item.size}</b><br/>
+                        {' '} {item.onSale && t('deliveryestimate')}{item.onSale && ':'}{item.onSale && item.orderPeriod}
+
                         </Link>
                       </Col>
                       <Col mb={2}>

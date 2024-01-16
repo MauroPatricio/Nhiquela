@@ -26,6 +26,15 @@ const orderSchema = new mongoose.Schema(
         size:  {type: String}, // S, M, L, XL, XXL or 20,21,22,23,24, [...] 40,41,42,43
         qualityType: {type: String}, // Original, primeira linha,Replica
         conditionStatus: {type: String}, // Novo, usado
+        isGuaranteed:  { type: Boolean, default: false },
+        guaranteedPeriod:  { type: String },
+        isOrdered: { type: Boolean, default: false },
+        orderPeriod: { type: String },
+        priceComission: {type: Number},
+        comissionPercentage: {type: Number},
+        priceFromSeller: {type: Number},
+        nome: {type: String},
+        name: {type: String},
     
         product: {
           type: mongoose.Schema.Types.ObjectId,

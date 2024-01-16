@@ -147,7 +147,7 @@ export default function Footer() {
        style={{backgroundColor: 'rgba(0, 0, 0, 0.2)'}}
 
        >
-    © 2023 {t('reservedrights')} {' '}
+    © 2024 {t('reservedrights')} {' '}
     {/* <a className="text-white" href="https://deliveryshop.herokuapp.com/">nhiquelashop.co.mz</a > */}
   </div>
   </footer>

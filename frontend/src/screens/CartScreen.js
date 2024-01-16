@@ -161,7 +161,7 @@ const formattedDatetime = `${hours}:${minutes}`;
         // return;
         // }
 
-    seller.seller.workDayAndTime.map(async workday=>{
+        seller && seller.seller!==undefined &&  seller.seller.workDayAndTime.map(async workday=>{
 
         if(workday.dayNumber === currentDay){
           // esta tudo bem passa.
@@ -209,6 +209,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                       <p></p>
                       <Link className="link-none" to={`/product/${item.slug}`}>
                       {t('product')}: <b>{item.name}</b>{' '} {t('color')}:  <b>{item.color}</b>{' '} {t('size')}:  <b>{item.size}</b>
+                      {' '} {item.onSale && t('deliveryestimate')}{item.onSale && ':'}{item.onSale && item.orderPeriod}
                       </Link>
                  
                     </Col>
