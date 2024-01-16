@@ -189,6 +189,7 @@ orderRouter.get(
             _id: "$orderItems.slug",
             slug: { $first: "$orderItems.slug" },
             name: { $first: "$orderItems.name" },
+            nome: { $first: "$orderItems.nome" },
             image: { $first: "$orderItems.image" },
             price: { $first: "$orderItems.price" },
             onSale: { $first: "$orderItems.onSale" },

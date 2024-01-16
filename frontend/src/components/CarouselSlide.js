@@ -1,12 +1,13 @@
 import axios from 'axios';
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 
 import { Link } from 'react-router-dom';
-import { getError } from '../utils';
+import { getError, truncateString } from '../utils';
 import { useReducer } from 'react';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { useTranslation } from 'react-i18next';
+import { Store } from '../Store';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -32,6 +33,10 @@ export default function CarouselSlide() {
     loadingPopular: true,
     error: '',
   });
+
+  const { state, dispatch: ctxDispatch } = useContext(Store);
+
+  const {changelng} = state;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -65,7 +70,7 @@ export default function CarouselSlide() {
                       {p && p.onSale &&  <span className="sale"><b>{t('onsale')}</b></span>}
                       {p && p.onSale &&  <span className="sale-percentage"><b>{p.onSalePercentage*100}%</b></span>}
            
-          <p>{p.name}</p>
+        <br/><b>{changelng=='pt'?truncateString(p.nome,30):truncateString(p.name,30)}</b>
         </div>
         </Link>
       ))}

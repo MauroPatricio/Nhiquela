@@ -188,10 +188,6 @@ export function HomeScreen() {
 
 {showCaroselTopSellers && <Carousel showArrows infiniteLoop={true} autoPlay showThumbs={false}  showIndicators={false} className='carousel-custom'>
       {topSellers && topSellers.map((seller) => (
-
-        
-
-
         <Col key={seller._id} sm={2} md={4} lg={3} className="mb-3">
         <Product seller={seller}></Product>
       </Col>
