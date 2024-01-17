@@ -1,5 +1,5 @@
 // LanguageSwitcher.js
-import React, { useContext, useEffect, useReducer } from 'react';
+import React, { useContext, useEffect } from 'react';
 import i18n from 'i18next';
 import { Store } from './Store';
 
@@ -16,7 +16,7 @@ export default function LanguageSwitcher () {
 
   useEffect(()=>{
     handleChangeLanguage()
-  },[changelng])
+  },[changelng,handleChangeLanguage])
 
   let handleChangeLanguage = (event) => {
     let selectedLanguage = '';

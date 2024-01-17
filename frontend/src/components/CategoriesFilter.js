@@ -76,7 +76,7 @@ export default function CategoriesFilter() {
   });
 
 
-  const { state, dispatch: ctxDispatch } = useContext(Store);
+  const { state } = useContext(Store);
 
   const {changelng} = state;
 

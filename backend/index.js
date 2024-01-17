@@ -21,14 +21,14 @@ import paymentRoutes from './routes/paymentRoutes.js';
 dotenv.config();
 
 // Conectando com a database MongoDB Atlas
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connectei me ao MongoDB com SUCESSO');
-  })
-  .catch((err) => {
-    console.log(err.message);
-  });
+// mongoose
+//   .connect(process.env.MONGODB_URI)
+//   .then(() => {
+//     console.log('Connectei me ao MongoDB com SUCESSO');
+//   })
+//   .catch((err) => {
+//     console.log(err.message);
+//   });
 
 const app = express();
 

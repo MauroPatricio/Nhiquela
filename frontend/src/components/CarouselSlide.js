@@ -34,7 +34,7 @@ export default function CarouselSlide() {
     error: '',
   });
 
-  const { state, dispatch: ctxDispatch } = useContext(Store);
+  const { state } = useContext(Store);
 
   const {changelng} = state;
 
