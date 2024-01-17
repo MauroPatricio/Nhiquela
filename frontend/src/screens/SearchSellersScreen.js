@@ -8,6 +8,8 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useLocation } from 'react-router-dom';
 import { getError } from '../utils';
 import Button from 'react-bootstrap/Button';
+import { useTranslation } from 'react-i18next';
+
 
 import Product from '../components/Product';
 import CategoriesFilter from '../components/CategoriesFilter';
@@ -44,7 +46,8 @@ export default function SearchSellersScreen() {
   const order = searchParams.get('order') || 'newest';
   const page = searchParams.get('page') || 1;
   const province = searchParams.get('province') || 'all';
-  
+  const { t } = useTranslation();
+
 
 
   const [{ loading, error, sellers, pages, countSellers }, dispatch] =
@@ -102,7 +105,7 @@ export default function SearchSellersScreen() {
                   </div>
                 </Col>
               </Row>
-              {sellers.length === 0 && (<MessageBox> fornecedores não encontrados</MessageBox>)}
+              {sellers.length === 0 && (<MessageBox> {t('suppliersnotfound')}</MessageBox>)}
             <Row>
               {sellers.map((seller)=>(
                 <Col sm={6} lg={3} className="mb-3" key={seller._id}>
