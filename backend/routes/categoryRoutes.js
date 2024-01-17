@@ -38,7 +38,7 @@ categoryRouter.post(
     const category = await newCategory.save();
     res
       .status(201)
-      .send({ message: 'Nova Categoria criada com sucesso', category });
+      .send({ message: 'Nova categoria criada com sucesso', category });
   })
 );
 
