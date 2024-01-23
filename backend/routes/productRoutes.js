@@ -86,9 +86,9 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
      const productId = req.params.id;
      const product = await Product.findById(productId);
      if(product){
-      product.nome = req.body.nome;
-      product.name = req.body.name;
-      product.slug = req.body.slug;
+      product.nome = req.body.nome!=null?req.body.nome.trim():req.body.nome;
+      product.name = req.body.name!=null?req.body.name.trim(): req.body.name;
+      product.slug = req.body.slug!=null?req.body.slug.trim():req.body.slug;
       product.priceFromSeller = priceFromSeller;
       product.priceComission = priceComission;
       product.price = priceWithComission;
@@ -171,9 +171,9 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
      const priceWithComission = parseFloat(priceComission+priceFromSeller);
 
      const newProduct = new Product({
-          nome: req.body.nome,
-          name: req.body.name,
-          slug: req.body.slug,
+          nome: req.body.nome!=null?req.body.nome.trim():req.body.nome,
+          name: req.body.name!=null?req.body.name.trim(): req.body.name,
+          slug: req.body.slug!=null?req.body.slug.trim():req.body.slug,
           seller: req.user._id,
           image: req.body.image,
           images: req.body.images,
