@@ -637,7 +637,7 @@ export default function ProductEditScreen() {
                 {qualityTypes &&
                   qualityTypes.map((quality) => (
                     <option key={quality._id} value={quality._id}>
-                      {quality.name}
+                      {quality.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -656,7 +656,7 @@ export default function ProductEditScreen() {
                 {conditionStatus &&
                   conditionStatus.map((condition) => (
                     <option key={condition._id} value={condition._id}>
-                      {condition.name}
+                      {condition.nome}
                     </option>
                   ))}
               </Form.Select>
