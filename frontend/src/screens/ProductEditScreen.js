@@ -569,7 +569,7 @@ export default function ProductEditScreen() {
                 {colors &&
                   colors.map((color) => (
                     <option key={color._id} value={color._id}>
-                      {color.name}
+                      {color.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -579,7 +579,7 @@ export default function ProductEditScreen() {
            <ul>
               {selectedColors.map((item, index) => (
                 <li key={index}>
-                  {item.name}
+                  {item.nome}
                   <Button
                         variant="light"
                         onClick={() => removeColor(index)}
@@ -602,7 +602,7 @@ export default function ProductEditScreen() {
                 {sizes &&
                   sizes.map((size) => (
                     <option key={size._id} value={size._id}>
-                      {size.name}
+                      {size.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -611,7 +611,7 @@ export default function ProductEditScreen() {
            <ul>
               {selectedSizes.map((item, index) => (
                 <li key={index}>
-                  {item.name}
+                  {item.nome}
                   <Button
                         variant="light"
                         onClick={() => removeSize(index)}

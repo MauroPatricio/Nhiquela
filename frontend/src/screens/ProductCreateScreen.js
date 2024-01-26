@@ -458,7 +458,7 @@ export default function ProductCreateScreen() {
                 {categories &&
                   categories.map((category) => (
                     <option key={category._id} value={category._id}>
-                      {category.name}
+                      {category.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -514,7 +514,7 @@ export default function ProductCreateScreen() {
                 {colors &&
                   colors.map((color) => (
                     <option key={color._id} value={color._id}>
-                      {color.name}
+                      {color.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -524,7 +524,7 @@ export default function ProductCreateScreen() {
            <ul>
               {selectedColors.map((item, index) => (
                 <li key={index}>
-                  {item.name}
+                  {item.nome}
                   <Button
                         variant="light"
                         onClick={() => removeColor(index)}
@@ -547,7 +547,7 @@ export default function ProductCreateScreen() {
                 {sizes &&
                   sizes.map((size) => (
                     <option key={size._id} value={size._id}>
-                      {size.name}
+                      {size.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -556,7 +556,7 @@ export default function ProductCreateScreen() {
            <ul>
               {selectedSizes.map((item, index) => (
                 <li key={index}>
-                  {item.name}
+                  {item.nome}
                   <Button
                         variant="light"
                         onClick={() => removeSize(index)}
@@ -583,7 +583,7 @@ export default function ProductCreateScreen() {
                 {qualityTypes &&
                   qualityTypes.map((quality) => (
                     <option key={quality._id} value={quality._id}>
-                      {quality.name}
+                      {quality.nome}
                     </option>
                   ))}
               </Form.Select>
@@ -602,7 +602,7 @@ export default function ProductCreateScreen() {
                 {conditionStatus &&
                   conditionStatus.map((condition) => (
                     <option key={condition._id} value={condition._id}>
-                      {condition.name}
+                      {condition.nome}
                     </option>
                   ))}
               </Form.Select>
