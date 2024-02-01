@@ -219,7 +219,20 @@
    "quantityinstock":"Quantidade em estoque",
    "makeorder":"Por encomenda",
    "deliveryestimate":"Estimativa de entrega",
-   "emaillang":"geral@nhiquelashop.co.mz"
+   "emaillang":"geral@nhiquelashop.co.mz",
+   "ordername":"Nome do solicitante",
+   "orderphone":"Telefone do solicitante",
+   "transporttypetoroder":"Tipo de transporte a solicitar",
+   "typeofgoodtodeliver":"Tipo de bem a ser entregue",
+
+   "origin":"Endereço origem",
+   "destination":"Endereço destino",
+   "requestdeliverman": "Solicitar entregador",
+   "detailsofdeliver":"Detalhes da sua encomenda",
+   "immediatedeliveries":"Entregas imediatas",
+   "deliveryrequesthistory":"Histórico de solicitações de entregadores",
+   "alldeliveryrequesthistory":"Histórico de todas solicitações de entregadores"
+
 
 
 

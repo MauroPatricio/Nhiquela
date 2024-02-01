@@ -2,28 +2,17 @@ import mongoose from 'mongoose';
 
 const requestDeliverSchema = new mongoose.Schema(
   {
-    deliveryAddress: {
-      fullName: { type: String, require: true },
-      city: { type: String, require: true },
-      address: { type: String, require: true },
-      referenceAddress: { type: String, require: true },
-      phoneNumber: { type: String },
-      alternativePhoneNumber: { type: String }
-    },
-    deliveryman: {
-      photo: { type: String },
-      name: { type: String},
-      phoneNumber: {type: Number},
-      transport_type: {type: String},
-      transport_color: {type: String},
-      transport_registration: {type: String},
-    },
+    name: { type: String, require: true },
+    phoneNumber: { type: String, require: true },
+    goodType: { type: String, require: true },
+    transportType: { type: String, require: true },
+    deliverCity:{ type: String, require: true },
+    origin: { type: String, require: true },
+    destination: { type: String, require: true },
+    paymentOption: { type: String, require: true },
+    description: { type: String, require: true },
     paymentMethod: { type: String, require: true },
     deliveryPrice: { type: Number, require: true },
-    addressPrice: { type: Number, require: true },
-    totalPrice: { type: Number, require: true },
-    ivaTax:{ type: Number, require: true },
-    siteTax: { type: Number, require: true },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -51,6 +40,6 @@ const requestDeliverSchema = new mongoose.Schema(
   }
 );
 
-const resquestDeliver = mongoose.model('RequestDeliver', requestDeliverSchema);
+const ResquestDeliver = mongoose.model('RequestDeliver', requestDeliverSchema);
 
-export default resquestDeliver;
+export default ResquestDeliver;

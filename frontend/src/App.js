@@ -89,7 +89,11 @@ import ReturnPolicy from './screens/ReturnPolicy';
 import NhiquelaBenef from './screens/NhiquelaBenef';
 import SellersToPayListScreen from './screens/SellersToPayListScreen';
 import DeliverersToPayListScreen from './screens/DeliverersToPayListScreen';
-import OrderDeliverman from './screens/OrderDeliverman';
+import RequestDeliverman from './screens/RequestDelivermanScreen';
+import RequestDelivermanConfirmScreen from './screens/RequestDelivermanConfirmScreen';
+import RequestDelivermanProgressScreen from './screens/RequestDelivermanProgressScreen';
+import RequestDelivermanHistoryByUserScreen from './screens/RequestDelivermanHistoryByUserScreen';
+import RequestDelivermanHistoryByAdminScreen from './screens/RequestDelivermanHistoryByAdminScreen';
 
 
 export  function App() {
@@ -184,19 +188,34 @@ export  function App() {
                       <LinkContainer to="/profile">
                         <NavDropdown.Item>{t('profile')}</NavDropdown.Item>
                       </LinkContainer>
+                    
                       {userInfo && !userInfo.isDeliveryMan && (
                         <LinkContainer to="/orderHistory">
                           <NavDropdown.Item>{t('myorders')}</NavDropdown.Item>
                         </LinkContainer>
                       )}
+
                       {userInfo && userInfo.isDeliveryMan && (
-                        <LinkContainer to="/delivery/orderlist">
-                          <NavDropdown.Item>
-                          {t('orderstodeliver')}
-                            
-                          </NavDropdown.Item>
+                                              <LinkContainer to="/delivery/orderlist">
+                                                <NavDropdown.Item>
+                                                {t('orderstodeliver')}
+                                                  
+                                                </NavDropdown.Item>
+                                              </LinkContainer>
+                                            )}
+
+
+                        <LinkContainer to="/requestdelivermanhistory">
+                          <NavDropdown.Item>{t('deliveryrequesthistory')}</NavDropdown.Item>
                         </LinkContainer>
-                      )}
+
+
+                        <LinkContainer to="/allrequestdelivermanhistory">
+                          <NavDropdown.Item>{t('alldeliveryrequesthistory')}</NavDropdown.Item>
+                        </LinkContainer>
+
+                 
+                    
                       <LinkContainer to="/signin">
                         <NavDropdown.Item onClick={signOutHandler}>
                           <b>{t('logout')}</b>
@@ -205,10 +224,14 @@ export  function App() {
                     </NavDropdown>
 
                     
-                  ) : (
+                  ) : (<>
+                  
+                    { <Nav.Link as={Link} to="/requestdeliverman"><b className='link'>Solicitar entregador</b></Nav.Link>}
+
                     <Link className="nav-link" to="/signin">
                       {t('login')}
                     </Link>
+                  </>
                   )}
 
 
@@ -281,7 +304,7 @@ export  function App() {
                     </NavDropdown>
         
         )}
-              {/* {userInfo && <Nav.Link as={Link} to="/orderdeliverman"><b className='link'>Solicitar entregador</b></Nav.Link>} */}
+              {userInfo && <Nav.Link as={Link} to="/requestdeliverman"><b className='link'>{t('requestdeliveryman')}</b></Nav.Link>}
 
                             
 
@@ -357,11 +380,43 @@ export  function App() {
               />
 
 <Route
-                path="/orderdeliverman"
+                path="/requestdeliverman"
                 element={
-                    <OrderDeliverman />
+                    <RequestDeliverman />
                 }
               />
+
+
+<Route
+                path="/requestdelivermanconfirm"
+                element={
+                    <RequestDelivermanConfirmScreen />
+                }
+              />
+
+<Route
+                path="/requestdelivermanprogress/:id"
+                element={
+                    <RequestDelivermanProgressScreen />
+                }
+              />
+
+
+<Route
+                path="/requestdelivermanhistory"
+                element={
+                    <RequestDelivermanHistoryByUserScreen />
+                }
+              />
+
+<Route
+                path="/allrequestdelivermanhistory"
+                element={
+                    <RequestDelivermanHistoryByAdminScreen />
+                }
+              />
+
+
 
 
               <Route

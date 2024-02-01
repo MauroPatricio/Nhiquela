@@ -7,6 +7,10 @@ const initialState = {
     ? JSON.parse(localStorage.getItem('userInfo'))
     : null,
 
+    requestDeliverman: localStorage.getItem('requestDeliverman') 
+    ? JSON.parse(localStorage.getItem('requestDeliverman'))
+    : null,
+
   cart: {
     address: localStorage.getItem('address') 
       ? JSON.parse(localStorage.getItem('address'))
@@ -60,6 +64,8 @@ function reducer(state, action) {
       case 'ADD_ITEM_FAIL':{
         return {...state, error: action.payload}
       }
+
+  
 
     case 'REMOVE_ITEM_ON_CART': {
       const cartItems = state.cart.cartItems.filter(
@@ -159,6 +165,11 @@ function reducer(state, action) {
       };
     }
 
+
+    case 'ADD_REQUEST_DELIVERMAN':{
+      localStorage.setItem('requestDeliverman', JSON.stringify(action.payload));
+      return {...state, requestDeliverman: action.payload}
+    }
 
 
     case 'ORDERS_BY_SELLER': {

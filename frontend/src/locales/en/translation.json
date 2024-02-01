@@ -217,7 +217,22 @@
     "quantityinstock":"Quantity in stock",
     "makeorder":"By order",
     "deliveryestimate":"Delivery estimate",
-    "emaillang":"info@nhiquelashop.co.mz"
+    "emaillang":"info@nhiquelashop.co.mz",
+    "ordername":"Requester name",
+    "orderphone":"Requester Phone",
+    "transporttypetoroder":"Type of transport to request",
+    "typeofgoodtodeliver":"Type of good to be delivered",
+    "origin":"origin address",
+    "destination":"Destination address",
+    "requestdeliverman": "Request deliverman",
+    "detailsofdeliver":"Delivery Details",
+    "immediatedeliveries":"Immediate deliveries",
+    "deliveryrequesthistory":"Delivery driver request history",
+    "alldeliveryrequesthistory":"All Delivery driver request history"
+
+    
+
+  
 
 
 

@@ -23,7 +23,7 @@ export default function AdicionalInfoHeader() {
   return (
     <Row className="bg-color-row" style={{ textAlign: 'center', marginBottom: '10px'}}>
     <Col md={12} className='delivery-info' style={{textAlign: 'center', }}>
-    <b>{t('delivertime')} <FontAwesomeIcon icon={faClock}/> 7:30 {t('as')} 18:00</b>
+    <b>{t('delivertime')} <FontAwesomeIcon icon={faClock}/> 7:30 {t('as')} 18:30</b>
     </Col>
     <Col md={12}style={{textAlign: 'center',  marginBottom: '10px'}}>
      {userInfo && userInfo.isSeller && !userInfo.isApproved && <b className='not-approved-seller' >{t('sellernotauthorizedyet')}</b>}

@@ -35,6 +35,12 @@ const orderSchema = new mongoose.Schema(
         priceFromSeller: {type: Number},
         nome: {type: String},
         name: {type: String},
+        phoneNumber: {type: String},
+        goodType: {type: String},
+        transportType: {type: String},
+        deliverCity: {type: String},
+        origin: {type: String},
+        destination: {type: String},
     
         product: {
           type: mongoose.Schema.Types.ObjectId,
