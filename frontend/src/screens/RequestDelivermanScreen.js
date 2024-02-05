@@ -98,7 +98,7 @@ export default function RequestDelivermanScreen() {
   const paymentOptions = [
     { _id: 1, name: 'Mpesa' },    
     { _id: 2, name: 'Emola' },
-    { _id: 3, name: 'BCI' }
+    // { _id: 3, name: 'BCI' }
 
   ];
 
