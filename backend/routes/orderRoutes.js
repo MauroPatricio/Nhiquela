@@ -277,10 +277,10 @@ orderRouter.post(
       if (newOrder.isPaid){
         // Enviar sms para o fornecedor
       let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
-      //  sendSMSToSellerUSendIt(sellerOfProduct, msg);
+        sendSMSToSellerUSendIt(sellerOfProduct, msg);
     }else{
        let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
-      //  sendSMSToUSendItAdmin(msg);
+        sendSMSToUSendItAdmin(msg);
     }
 
      sendEmailOrderStatus(req,mailText, newOrder, res);

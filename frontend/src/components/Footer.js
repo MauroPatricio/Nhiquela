@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom';
 
 import LanguageSwitcher from './../LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPhone, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 
 
@@ -132,10 +134,11 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p><i className="fas fa-print mr-3"></i> +258 853600036<br/> </p>
-         <p><i className="fas fa-print mr-3"></i> +258 879300036<br/></p>
-          <p><i className="fas fa-envelope mr-3"></i>{t('emaillang')}<br/></p>         
-          <p><i className="fas fa-home mr-3"></i> {t('mozambique')},{t('maputocity')}</p>
+          <p> <FontAwesomeIcon icon={faPhone} ></FontAwesomeIcon>{' '}{t('hotline')}: +258 846891062<br/> </p>
+          <p> +258 853600036<br/> </p>
+          <p> +258 879300036<br/></p>
+          <p>{t('emaillang')}<br/></p>         
+          <p> {t('mozambique')},{t('maputocity')}</p>
 
         </div>
       </div>
