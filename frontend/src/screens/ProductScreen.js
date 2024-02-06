@@ -349,7 +349,7 @@ navegate('/cart')
                         <option value="">{t('select')}</option>
                         {product && product.color && product.color.map(color => (
                         <option key={color._id} value={color.name}>
-                          {color.nome}
+                          {changelng==='pt'?color.nome:color.name}
                         </option>
                     ))}
                       </Form.Select>
@@ -384,7 +384,7 @@ navegate('/cart')
                         <option value="">{t('select')}</option>
                         {product && product.size && product.size.map(size => (
                         <option key={size._id} value={size.name}>
-                          {size.name}
+                          {changelng==='pt'?size.nome:size.name}
                         </option>
                     ))}
                       </Form.Select>
@@ -503,10 +503,10 @@ navegate('/cart')
  
 
       <div className="my-3">
-        <h2 ref={reviewsRef}>Comentários</h2>
+        <h2 ref={reviewsRef}>{t('comments')}</h2>
         <div className="mb-3">
           {product.reviews.length === 0 && (
-            <MessageBox> Sem comentários</MessageBox>
+            <MessageBox> {t('nocomments')}</MessageBox>
           )}
         </div>
       </div>
@@ -524,13 +524,13 @@ navegate('/cart')
         {userInfo ? (
           <Form onSubmit={submitHandler}>
             <Form.Group>
-              <Form.Label>Pontuação</Form.Label>
+              <Form.Label>{t('rating')}</Form.Label>
               <Form.Select
                 aria-label="Rating"
                 value={rating}
                 onChange={(e) => setRating(e.target.value)}
               >
-                <option value="">Seleccione</option>
+                <option value="">{t('select')}</option>
                 <option value="1">1 - Péssimo</option>
                 <option value="2">2 - Aceitável</option>
                 <option value="3">3 - Bom</option>
@@ -553,19 +553,19 @@ navegate('/cart')
             </FloatingLabel>
             <div className="mb-3">
               <Button disabled={loadingCreateReview} className='customButtom' variant="light" type="submit">
-                Comentar
+                {t('comment')}
               </Button>
               {loadingCreateReview && <LoadingBox></LoadingBox>}
             </div>
           </Form>
         ) : (
           <MessageBox>
-            Por favor{' '}
+            {t('please')}{' '}
             <Link className="link" to={`/signin?redirect=/product/${product.slug}`}>
               {' '}
-              Faça login
+              {t('login')}
             </Link>{' '}
-            para deixar o seu comentário
+            {t('leaveyourcomment')}
           </MessageBox>
         )}
       </div>

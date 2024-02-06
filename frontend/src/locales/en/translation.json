@@ -229,7 +229,14 @@
     "immediatedeliveries":"Immediate deliveries",
     "deliveryrequesthistory":"Delivery driver request history",
     "alldeliveryrequesthistory":"All Delivery driver request history",
-    "hotline":"Hotline"
+    "hotline":"Hotline",
+    "comments":"Comments",
+    "comment":"Comment",
+    "nocomments":"No comments",
+    "rating":"Rating",
+    "leaveyourcomment":"to leave your comment",
+    "please":"Please"
+
 
     
 

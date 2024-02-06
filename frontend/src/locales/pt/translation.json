@@ -232,7 +232,13 @@
    "immediatedeliveries":"Entregas imediatas",
    "deliveryrequesthistory":"Histórico de solicitações de entregadores",
    "alldeliveryrequesthistory":"Histórico de todas solicitações de entregadores",
-   "hotline":"Linha de atendimento"
+   "hotline":"Linha de atendimento",
+   "comments":"Comentários",
+   "comment":"Comentar",
+   "nocomments":"Sem comentários",
+   "rating":"Pontuação",
+   "leaveyourcomment":"para deixar o seu comentário",
+   "please":"Por favor"
 
 
 
