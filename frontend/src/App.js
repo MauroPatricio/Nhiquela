@@ -226,7 +226,7 @@ export  function App() {
                     
                   ) : (<>
                   
-                    { <Nav.Link as={Link} to="/requestdeliverman"><b className='link'>Solicitar entregador</b></Nav.Link>}
+                    { <Nav.Link as={Link} to="/requestdeliverman"><b className='link'>{t('requestdeliverman')}</b></Nav.Link>}
 
                     <Link className="nav-link" to="/signin">
                       {t('login')}

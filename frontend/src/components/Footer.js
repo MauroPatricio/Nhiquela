@@ -138,7 +138,7 @@ export default function Footer() {
           <p> +258 853600036<br/> </p>
           <p> +258 879300036<br/></p>
           <p>{t('emaillang')}<br/></p>         
-          <p> {t('mozambique')},{t('maputocity')}</p>
+          <p> {t('mozambique')},{t('maputocity')}, Malhangalene</p>
 
         </div>
       </div>

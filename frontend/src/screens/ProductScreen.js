@@ -95,7 +95,7 @@ function ProductScreen() {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
 
-  const { cart, userInfo } = state;
+  const { cart, userInfo, changelng} = state;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -270,7 +270,7 @@ navegate('/cart')
           <ListGroup variant="flush">
             <ListGroup.Item>
               <Helmet>
-                <title>{product.name}</title>
+                <title>{changelng==='pt'?product.nome:product.name}</title>
               </Helmet>
               <h1>{product.name}</h1>
             </ListGroup.Item>
@@ -301,11 +301,11 @@ navegate('/cart')
             {product.isGuaranteed &&<ListGroup.Item>{t('warrantyperiod')}: <Badge bg='info'>{product.guaranteedPeriod}</Badge></ListGroup.Item>}
 
             
-           {product.conditionStatus &&<ListGroup.Item>{t('status')}: <Badge bg="success">{product.conditionStatus.name}</Badge> </ListGroup.Item>}
+           {product.conditionStatus &&<ListGroup.Item>{t('status')}: <Badge bg="success">{changelng==='pt'?product.conditionStatus.nome: product.conditionStatus.name}</Badge> </ListGroup.Item>}
 
             <ListGroup.Item>{t('brand')}: {product.brand}</ListGroup.Item>
 
-           {product.qualityType && <ListGroup.Item>{t('designation')}: {product.qualityType.name} </ListGroup.Item>}
+           {product.qualityType && <ListGroup.Item>{t('designation')}: {changelng==='pt'?product.qualityType.nome:product.qualityType.name} </ListGroup.Item>}
 
             <ListGroup.Item>{t('quantity')}: {product.countInStock} {t('unit')}</ListGroup.Item>
 
@@ -349,7 +349,7 @@ navegate('/cart')
                         <option value="">{t('select')}</option>
                         {product && product.color && product.color.map(color => (
                         <option key={color._id} value={color.name}>
-                          {color.name}
+                          {color.nome}
                         </option>
                     ))}
                       </Form.Select>
