@@ -14,6 +14,9 @@ import axios from 'axios';
 import RequestDeliverSteps from '../components/RequestDeliverSteps.js';
 import Badge from 'react-bootstrap/Badge';
 import ListGroup from 'react-bootstrap/ListGroup';
+import { toast } from 'react-toastify';
+import LoadingBox from '../components/LoadingBox.js';
+import  Button  from 'react-bootstrap/Button';
 
 
 
@@ -25,6 +28,83 @@ const reducer = (state, action) => {
       return { ...state, loading: false, requestDeliv: action.payload, error: '' };
     case 'FETCH_FAIL':
       return { ...state, loading: false, error: action.payload };
+
+
+      case 'PAYMENT_REQUEST':
+        return { ...state, loadingPayment: true };
+      case 'PAYMENT_SUCCESS':
+        return {
+          ...state,
+          loadingPayment: false,
+          successPayment: action.payload,
+        };
+      case 'PAYMENT_FAIL':
+        return {
+          ...state,
+          loadingPayment: false,
+          errorPayment: action.payload,
+        };
+
+
+        case 'ACCEPTED_BY_DELIVERMAN_REQUEST':
+          return { ...state, loadingAcceptedByDeliverman: true };
+        case 'ACCEPTED_BY_DELIVERMAN_SUCCESS':
+          return { ...state, loadingAcceptedByDeliverman: false, successAcceptedByDeliverman: true };
+        case 'ACCEPTED_BY_DELIVERMAN_FAIL':
+          return {
+            ...state,
+            loadingAcceptedByDeliverman: false,
+            successAcceptedByDeliverman: false,
+            errorAcceptedByDeliverman: action.payload,
+          };
+
+
+          case 'CONFIRM_IN_TRANSIT_REQUEST':
+            return { ...state, loadingInTransit: true };
+            
+            case 'CONFIRM_IN_TRANSIT_SUCCESS':
+            return {
+              ...state,
+              loadingInTransit: false,
+              successInTransit: action.payload,
+            };
+      
+            case 'CONFIRM_IN_TRANSIT_FAIL':
+              return {
+                ...state,
+                loadingInTransit: false,
+                errorInTransit: action.payload,
+              };
+
+
+
+              case 'CONFIRM_DESTINATION_REQUEST':
+                return { ...state, loadingDestination: true };
+              case 'CONFIRM_DESTINATION_SUCCESS':
+                return {
+                  ...state,
+                  loadingDestination: false,
+                  successDestination: action.payload,
+                };
+              case 'CONFIRM_DESTINATION_FAIL':
+                return {
+                  ...state,
+                  loadingDestination: false,
+                  errorDestination: action.payload,
+                };
+
+
+                case 'DELIVER_REQUEST':
+      return { ...state, loadingDeliver: true };
+    case 'DELIVER_SUCCESS':
+      return { ...state, loadingDeliver: false, successDeliver: true };
+    case 'DELIVER_FAIL':
+      return {
+        ...state,
+        loadingDeliver: false,
+        successDeliver: false,
+        errorDeliver: action.payload,
+      };
 
     default:
       return state;
@@ -38,7 +118,7 @@ export default function RequestDelivermanProgressScreen() {
 
   const { id: requestDelivId } = params;
 
-  const [{ loading, requestDeliv }, dispatch] = useReducer(reducer, { loading: false, requestDeliv: {}});
+  const [{ loading, requestDeliv, loadingPayment, loadingDeliver, loadingInTransit, loadingDestination}, dispatch] = useReducer(reducer, { loading: false, requestDeliv: {}});
   const { state, dispatch: ctxDispatch } = useContext(Store);
   const navigate = useNavigate();
   const { userInfo} = state;
@@ -101,6 +181,96 @@ export default function RequestDelivermanProgressScreen() {
     // loadingAvaliableToDeliver,
     // loadingAcceptedByDeliverman
   ]);
+
+
+  const acceptedByDelivermanHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'ACCEPTED_BY_DELIVERMAN_REQUEST' });
+      const { data } = await axios.put(
+        `/api/requestdeliver/${requestDelivId}/acceptedByDeliveryman`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'ACCEPTED_BY_DELIVERMAN_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'ACCEPTED_BY_DELIVERMAN_FAIL' });
+    }
+  };
+
+
+  const inTransitOrderHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'CONFIRM_IN_TRANSIT_REQUEST' });
+      const { data } = await axios.put(
+        `/api/requestdeliver/${requestDelivId}/intransit`,
+        {userInfo},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'CONFIRM_IN_TRANSIT_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'CONFIRM_IN_TRANSIT_FAIL' });
+    }
+  };
+
+  
+  const confirmArriveDestinationOrderHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'CONFIRM_DESTINATION_REQUEST' });
+      const { data } = await axios.put(
+        `/api/requestdeliver/${requestDelivId}/confirmDestination`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'CONFIRM_DESTINATION_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'CONFIRM_DESTINATION_FAIL' });
+    }
+  };
+
+
+  const deliverOrderHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'DELIVER_REQUEST' });
+      const { data } = await axios.put(
+        `/api/requestdeliver/${requestDelivId}/deliver`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'DELIVER_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'DELIVER_FAIL' });
+    }
+  };
+
+  
+  const payOrderHandler = async (e) => {
+    e.preventDefault();
+    try {
+      dispatch({ type: 'PAYMENT_REQUEST' });
+      const { data } = await axios.put(
+        `/api/requestdeliver/${requestDelivId}/pay`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      dispatch({ type: 'PAYMENT_SUCCESS', payload: data });
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(getError(err));
+      dispatch({ type: 'PAYMENT_FAIL' });
+    }
+  };
 
 
   return (
@@ -180,6 +350,23 @@ export default function RequestDelivermanProgressScreen() {
             </Card.Body>
           </Card>
 
+
+          {requestDeliv.deliveryman && (
+            <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>{t('deliverdetails')}</Card.Title>
+              <Card.Text>
+              <strong>{t('name')}:</strong>{' '}{ requestDeliv.deliveryman.name}<br/>
+              <strong>{t('phone')}:</strong> {' '}{ requestDeliv.deliveryman.phoneNumber}<br/>
+              <strong>{t('transport')}:</strong>{' '}{ requestDeliv.deliveryman.transport_type}<br/>
+              <strong>{t('registration')}:</strong>{' '}{ requestDeliv.deliveryman.transport_registration}<br/>
+              <strong>{t('color')}:</strong>{' '}{ requestDeliv.deliveryman.transport_color}<br/>
+              </Card.Text>
+             
+            </Card.Body>
+          </Card>
+          )}
+
           <Card className="mb-3">
             {!userInfo.isDeliveryMan || userInfo.isAdmin &&<Card.Body>
               <Card.Title>{t('ordersummary')}</Card.Title>
@@ -209,8 +396,117 @@ export default function RequestDelivermanProgressScreen() {
             </Card.Body>}
           </Card>
 
+
+    
+          {userInfo.isAdmin && !requestDeliv.isPaid && requestDeliv.status !== 'Cancelado' && (
+            <ListGroup.Item>
+              {loadingPayment && <LoadingBox></LoadingBox>}
+              <div className="d-grid">
+                <Button
+                  className="customButtom"
+                  variant="light"
+                  type="button"
+                  onClick={payOrderHandler}
+                >
+                  Confirmar pagamento
+                </Button>
+              </div>
+            </ListGroup.Item>
+          )}
+
+
+          &nbsp;
+          {(userInfo.isAdmin) &&
+            !requestDeliv.isDelivered &&
+            requestDeliv.status === 'Pendente' &&
+            requestDeliv.status !=='Em trânsito' &&
+            requestDeliv.status !== 'No destino indicado' &&
+            requestDeliv.isPaid && (
+              <ListGroup.Item>
+                {loadingDeliver && <LoadingBox></LoadingBox>}
+                <div className="d-grid">
+                  <Button
+                    className="customButtom"
+                    variant="light"
+                    type="button"
+                    onClick={acceptedByDelivermanHandler}
+                  >
+                   Aceite pelo entregador
+                  </Button>
+                </div>
+              </ListGroup.Item>
+            )}
+
+          &nbsp;
+          {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
+            !requestDeliv.isDelivered &&
+            requestDeliv.status === 'Aceite pelo entregador' &&
+            requestDeliv.status !=='Em trânsito' &&
+            requestDeliv.status !== 'No destino indicado' &&
+            requestDeliv.isPaid && (
+              <ListGroup.Item>
+                {loadingInTransit && <LoadingBox></LoadingBox>}
+                <div className="d-grid">
+                  <Button
+                    className="customButtom"
+                    variant="light"
+                    type="button"
+                    onClick={inTransitOrderHandler}
+                  >
+                    Em trânsito
+                  </Button>
+                </div>
+              </ListGroup.Item>
+            )}
+
+          &nbsp;
+        {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
+        
+        requestDeliv.status==='Em trânsito' &&
+        requestDeliv.status !== 'Aceite' &&
+        requestDeliv.status !== 'Pronto' &&
+        requestDeliv.status !== 'No destino indicado' &&   !requestDeliv.isDelivered &&
+        requestDeliv.isPaid && (
+            <ListGroup.Item>
+              {loadingDestination && <LoadingBox></LoadingBox>}
+              <div className="d-grid">
+                <Button
+                  className="customButtom"
+                  variant="light"
+                  type="button"
+                  onClick={confirmArriveDestinationOrderHandler}
+                >
+                  No destino indicado
+                </Button>
+              </div>
+            </ListGroup.Item>
+          )}
+
+
+        &nbsp;
+          {(userInfo.isAdmin ||
+            userInfo.isDeliveryMan
+           ) &&
+            !requestDeliv.isDelivered &&
+            requestDeliv.isInTransit &&
+            requestDeliv.status === 'No destino indicado' &&
+            requestDeliv.isPaid && (
+              <ListGroup.Item>
+                {loadingDeliver && <LoadingBox></LoadingBox>}
+                <div className="d-grid">
+                  <Button
+                    className="customButtom"
+                    variant="light"
+                    type="button"
+                    onClick={deliverOrderHandler}
+                  >
+                    Confirmar entrega
+                  </Button>
+                </div>
+              </ListGroup.Item>
+            )}
+
         </Col>
-      
       </Row>
 
     </div>

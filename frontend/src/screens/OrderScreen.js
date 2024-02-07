@@ -719,7 +719,7 @@ useEffect(() => {
             </Card.Body>
           </Card>
 }
-{order.status === 'Cancelado' &&
+        {order.status === 'Cancelado' &&
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>{t('reasonforcancel')}</Card.Title>
@@ -763,7 +763,7 @@ useEffect(() => {
 
 
 
-      <Modal show={show} onHide={handleClose}>
+        <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>{t('reasonforcancel')}</Modal.Title>
         </Modal.Header>
@@ -835,7 +835,7 @@ useEffect(() => {
             )}
 
 
-    &nbsp;
+          &nbsp;
           {(userInfo.isAdmin || userInfo.isDeliveryMan) &&
             !order.isDelivered &&
             order.status === 'Aceite pelo entregador' &&
@@ -858,7 +858,7 @@ useEffect(() => {
             )}
 
 
-&nbsp;
+          &nbsp;
           {(userInfo.isAdmin || !userInfo.isSeller) &&
             !order.isDelivered &&
             order.status === 'Pronto' &&
@@ -880,7 +880,7 @@ useEffect(() => {
               </ListGroup.Item>
             )}
 
-&nbsp;
+          &nbsp;
           {(userInfo.isAdmin || userInfo.isSeller) &&
             !order.isDelivered &&
             order.status === 'Aceite' &&

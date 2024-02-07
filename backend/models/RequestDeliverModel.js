@@ -34,6 +34,17 @@ const requestDeliverSchema = new mongoose.Schema(
     isDeletedBySeller: { type: Boolean, default: false },
     isDeletedByDeliverman: { type: Boolean, default: false },
     isDeletedByAdmin: { type: Boolean, default: false },
+
+    deliveryman: {
+      id:{type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+      photo: { type: String },
+      name: { type: String},
+      phoneNumber: {type: Number},
+      transport_type: {type: String},
+      transport_color: {type: String},
+      transport_registration: {type: String},
+      pricetopay: { type: Number },
+    },
   },
   {
     timestamps: true,

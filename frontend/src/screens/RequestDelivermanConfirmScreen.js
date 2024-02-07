@@ -281,7 +281,7 @@ export default function RequestDelivermanConfirmScreen() {
             paymentOption:  requestDeliverman.paymentOption,
             description:  requestDeliverman.description,
             paymentMethod:  requestDeliverman.paymentMethod,
-            deliveryPrice:  requestDeliverman.deliveryPrice,
+            deliveryPrice:  priceToPay,
             user: userInfo._id,
             stepStatus: 1
           },
