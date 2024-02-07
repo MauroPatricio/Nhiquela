@@ -1,7 +1,7 @@
 import express from 'express';
 import RequestDeliv from '../models/RequestDeliverModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 
 
@@ -95,7 +95,7 @@ requestDeliver.post(
       if (newOrder.isPaid){
         // Enviar sms para o fornecedor
       let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
-        sendSMSToSellerUSendIt(sellerOfProduct, msg);
+      sendSMSToUSendItDeliverman(sellerOfProduct, msg);
     }else{
        let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
         sendSMSToUSendItAdmin(msg);
