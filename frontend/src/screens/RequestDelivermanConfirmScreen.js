@@ -237,7 +237,7 @@ export default function RequestDelivermanConfirmScreen() {
   };
 
 
-  const priceToPay= requestDeliverman.deliverCity === 'Maputo Cidade' ? 200 : 350;
+  const priceToPay= requestDeliverman.deliverCity === 'Maputo Cidade' ? 150 : 300;
 
 
   const placeOrderHandler = async () => {
