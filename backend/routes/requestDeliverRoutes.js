@@ -239,10 +239,12 @@ requestDeliver.put(
 
        let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
  
-      //  sendSMSToSellerUSendIt(sellerOfProduct,msg);
+       sendSMSToUSendIt(req, msg)
+      
 
-      // enviar email para o cliente
-      // sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
+       let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
+    
+      sendEmailOrderStatus(req,mailText, updateOrder, res);
 
 
       res.send({ message: `Aceite pelo entregador`, order: updateOrder });
@@ -268,10 +270,15 @@ requestDeliver.put(
 
         //  Para envio de mensagens
 
-        let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr nos detalhes do pedido`;
+        let msg =`Ola ${req.user.name},\n \n A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
  
-        //  sendSMSToUSendIt(req,msg);
-        //  ENVIAR EMAIL PARA O CLIENTE E SMS
+ 
+        sendSMSToUSendIt(req, msg)
+       
+ 
+        let mailText = `A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.. \n \n Atenciosamente, \n Nhiquela Shop`; 
+     
+       sendEmailOrderStatus(req,mailText, order, res);
 
         
       res.send({ message: `Pedido em trânsito` });
@@ -298,12 +305,16 @@ requestDeliver.put(
 
        let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
  
-      //  sendSMSToUSendIt(req,msg);
+ 
+       sendSMSToUSendIt(req, msg)
+      
 
-      // sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
+       let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
+    
+      sendEmailOrderStatus(req,mailText, order, res);
 
 
-      res.send({ message: `No destino indicado`, order: updateOrder });
+      res.send({ message: `No destino indicado`, order: order });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -341,7 +352,11 @@ requestDeliver.put(
 
       let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
  
-       sendSMSToUSendIt(req,msg);
+      sendSMSToUSendIt(req,msg);
+
+      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
+    
+      sendEmailOrderStatus(req,mailText, updateOrder, res);
 
       res.send({ message: `Pedido entregue com sucesso` });
     } else {

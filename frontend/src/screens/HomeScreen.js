@@ -13,6 +13,7 @@ import Button from 'react-bootstrap/Button';
 import CarouselSlide from '../components/CarouselSlide';
 import { Carousel } from 'react-responsive-carousel';
 import { t } from 'i18next';
+import Emphasis from '../components/emphasis';
 
 
 const reducer = (state, action) => {
@@ -159,10 +160,9 @@ export function HomeScreen() {
   return (
     <div>
       <Container>
-  
         <Row>
           <Col md={3}>
-      
+   
             <CategoriesFilter></CategoriesFilter>
 
           </Col>

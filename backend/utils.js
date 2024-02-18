@@ -149,7 +149,8 @@ export  const sendSMSToUSendIt= async (req,msgText) =>{
   const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
 
 
-  const clientPhoneNumber = req.body.phoneNumber;
+  const clientPhoneNumber = req.user.phoneNumber;
+
   const concatNumber = '258'+clientPhoneNumber;
 
   // Definição dos parametros do sendMessage para o pedido the SOAP
@@ -190,7 +191,10 @@ export  const sendSMSToUSendIt= async (req,msgText) =>{
     const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
   
   
-     const clientPhoneNumber = 871480518;
+    // const clientPhoneNumber = 871480518; // Valgy
+     const clientPhoneNumber = 840387051; // Valter 
+     
+
    // const clientPhoneNumber = 840575992;
   
     const concatNumber = '258'+clientPhoneNumber;
