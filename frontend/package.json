@@ -5,10 +5,14 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^5.7.1",
+    "@capacitor/core": "^5.7.1",
+    "@capacitor/ios": "^5.7.1",
     "@fortawesome/fontawesome-free": "^6.4.0",
     "@fortawesome/fontawesome-svg-core": "^6.4.0",
     "@fortawesome/free-solid-svg-icons": "^6.4.0",
     "@fortawesome/react-fontawesome": "^0.2.0",
+    "@ionic/react": "^7.7.3",
     "@react-google-maps/api": "^2.18.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
@@ -16,6 +20,7 @@
     "axios": "^1.4.0",
     "bootstrap": "^5.2.3",
     "bson": "^5.2.0",
+    "expo-cli": "^6.3.10",
     "font-awesome": "^4.7.0",
     "html2pdf.js": "^0.10.1",
     "i18next": "^23.7.6",
@@ -45,7 +50,8 @@
     "redux-thunk": "^2.4.2",
     "slick-carousel": "^1.8.1",
     "socket.io-client": "^4.6.1",
-    "web-vitals": "^3.3.1"
+    "web-vitals": "^3.3.1",
+    "expo": "^50.0.0"
   },
   "engines": {
     "node": "18.16.0"
@@ -75,6 +81,8 @@
     ]
   },
   "devDependencies": {
+    "@capacitor/cli": "^5.7.0",
+    "@types/react-native": "^0.73.0",
     "npm-force-resolutions": "0.0.10"
   },
   "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
