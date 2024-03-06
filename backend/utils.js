@@ -191,8 +191,8 @@ export  const sendSMSToUSendIt= async (req,msgText) =>{
     const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
   
   
-    // const clientPhoneNumber = 871480518; // Valgy
-     const clientPhoneNumber = 840387051; // Valter 
+     const clientPhoneNumber = 871480518; // Valgy
+     //const clientPhoneNumber = 840387051; // Valter 
      
 
    // const clientPhoneNumber = 840575992;

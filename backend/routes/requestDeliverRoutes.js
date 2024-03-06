@@ -311,7 +311,7 @@ requestDeliver.put(
 
        let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
-      sendEmailOrderStatus(req,mailText, order, res);
+       sendEmailOrderStatus(req,mailText, order, res);
 
 
       res.send({ message: `No destino indicado`, order: order });
@@ -386,10 +386,12 @@ requestDeliver.put(
       //  Para envio de mensagens
 
       let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
+ 
+      sendSMSToUSendIt(req,msg);
 
-        // sendSMSToUSendIt(req,msg);   
-        
-        // enviar email e mensagem para o cliente
+      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
+    
+      sendEmailOrderStatus(req,mailText, updateOrder, res);
 
 
       res.send({ message: `Pedido cancelado com sucesso` });
