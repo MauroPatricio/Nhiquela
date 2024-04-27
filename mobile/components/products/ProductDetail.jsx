@@ -4,6 +4,9 @@ import {Ionicons, SimpleLineIcons, MaterialCommunityIcons, Fontisto  } from '@ex
 import {useNavigation} from '@react-navigation/native'
 import {useRoute} from '@react-navigation/native'
 import { Badge } from 'react-native-paper'
+import { LogBox } from 'react-native'
+
+// LogBox.ignoreLogs(['Non-serializable values were found in navigation state'])
 
 const ProductDetail = ({navigation}) => {
 

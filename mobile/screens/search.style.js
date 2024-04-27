@@ -7,8 +7,10 @@ const styles = StyleSheet.create({
         backgroundColor: "white",
         borderRadius: 10,
         marginVertical: 9,
-        marginTop: 21
-    },
+        marginTop: 21,
+        marginHorizontal: 12,
+        height: 50
+        },
     searchIcon:{
         marginHorizontal: 10,
         color: "black",
@@ -16,8 +18,8 @@ const styles = StyleSheet.create({
     },
     searchWrapper:{
         flex: 1,
-        backgroundColor: "red",
-        marginRight: 5,
+        backgroundColor: "#F5F5F5",
+        // marginRight: 5,
         borderRadius: 2
     },
     searchInput: {
