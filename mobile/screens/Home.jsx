@@ -6,6 +6,7 @@ import {Ionicons} from "@expo/vector-icons"
 import { Welcome } from './Index';
 import ProductRow from '../components/products/ProductRow';
 import CarouselAnimation from '../components/CarouselAnimation';
+import ProductView from '../components/products/ProductView';
 
 
 
@@ -28,11 +29,12 @@ const Home = () => {
         </View>
         </View>
       </View>
-      <ScrollView>
+      {/* <ScrollView> */}
         <Welcome/>
       <CarouselAnimation/>
+      <ProductView/>
       <ProductRow/>
-      </ScrollView>
+      {/* </ScrollView> */}
     </SafeAreaView>
   )
 }

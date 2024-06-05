@@ -33,6 +33,20 @@ const styles = StyleSheet.create({
         borderRadius: 12,
          alignItems: "center",
          marginTop: 10 
+    },
+    searchImage:{
+        resizeMode:  "contain",
+        width: 100,
+        height: 100,
+        alignContent: "center",
+        alignItems: "center",
+        marginTop: 220,
+        marginLeft: 130,
+        opacity: 1
+    },
+    Text:{
+        marginTop: 300,
+        marginLeft: 130
     }
 })
 

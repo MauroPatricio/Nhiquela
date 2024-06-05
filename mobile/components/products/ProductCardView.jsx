@@ -7,7 +7,9 @@ import { Badge } from 'react-native-paper';
 
 
 const ProductCardView = ({item}) => {
+
 const navigation = useNavigation();
+const productDetail = item.item
 return (
     <TouchableOpacity onPress={()=>navigation.navigate("ProductDetail", {item})}>
      <View style={styles.container}>
