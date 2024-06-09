@@ -9,7 +9,7 @@ const BackBtn = ({onPress}) => {
    <TouchableOpacity onPress={onPress}>
             <Ionicons name = 'chevron-back-circle'
             size={30}
-            color={"black"}
+            color={"#7F00FF"}
             style
             />
    </TouchableOpacity>

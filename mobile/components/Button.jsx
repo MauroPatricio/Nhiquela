@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
 import React from 'react'
+import { BackgroundImage } from 'react-native-elements/dist/config'
 
-const Button = ({title, onPress}) => {
+const Button = ({title, onPress, isValid, loader}) => {
   return (
-   <TouchableOpacity style={styles.btnStyle}>
-    <Text style={styles.btnTxt}>{title}</Text>
+   <TouchableOpacity onPress={onPress} style={styles.btnStyle(isValid)}>
+   {loader? <Text style={styles.btnTxt}>{title}</Text>: <ActivityIndicator/>}
    </TouchableOpacity>
   )
 }
@@ -19,13 +20,15 @@ const styles = StyleSheet.create({
             color: "white",
             fontWeight: "600"
 },
-btnStyle: {
-    height: 50,
-    width: "100%",
-    marginVertical: 20,
-    backgroundColor: "#7F00FF",
-    alignItems: "center",
-    borderRadius: 12
-}
+btnStyle:(backgroundColor)=>({
+    
+        height: 50,
+        width: "100%",
+        marginVertical: 10,
+        backgroundColor: backgroundColor,
+        alignItems: "center",
+        borderRadius: 12
+    
+})
 }
 )

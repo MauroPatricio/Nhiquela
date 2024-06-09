@@ -9,7 +9,7 @@ const ProductView = () => {
     <View style={styles.item}>
       <Text style={styles.text}>Novos Produtos</Text>
       <TouchableOpacity onPress={()=>{navigation.navigate("ProductList")}} style={styles.icon}>
-        <Ionicons name='list' size={24} color={"black"}/>
+        <Ionicons name='list-circle' size={30} color={"black"}/>
       </TouchableOpacity>
 
     </View>

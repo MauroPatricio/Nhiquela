@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
 
   container:{
       flex: 1,
-      backgroundColor: '#F5F5F5'
+      backgroundColor: '#F8F8F8'
   },
   cover: {
     height: 290,

@@ -6,6 +6,7 @@ import NewProducts from './screens/NewProducts';
 import ProductList from './components/products/ProductList';
 import LoginPage from './screens/LoginPage';
 import BackBtn from './components/BackBtn'
+import SignUp from './screens/SignUp';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,11 @@ export default function App() {
 
 <Stack.Screen name='Login'
           component={LoginPage}
+          options={{headerShown: false}}
+          />
+
+<Stack.Screen name='SignUp'
+          component={SignUp}
           options={{headerShown: false}}
           />
 

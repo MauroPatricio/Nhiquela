@@ -7,7 +7,8 @@ textStyle:{
 },
 appBarWrapper:{
         marginHorizontal: 22,
-        marginTop: 12
+        marginTop: 12,
+        
 },
 appBar: {
     flexDirection: "row",

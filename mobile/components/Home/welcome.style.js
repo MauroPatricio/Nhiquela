@@ -9,7 +9,13 @@ welcomeText:(color,size, top)=>({
     fontWeight: 'bold',
     fontSize: size,
     marginTop: top,
-    marginHorizontal:12,
+    marginHorizontal:25,
+    color: color
+}),
+welcomeText2:(color,size, top)=>({
+    fontSize: size,
+    marginTop: top,
+    marginHorizontal:25,
     color: color
 }),
 searchContainer:{

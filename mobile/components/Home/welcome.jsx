@@ -9,8 +9,9 @@ const navigation = useNavigation();
 
    <View>
      <View style={styles.container}>
-      <Text style={styles.welcomeText('black', 30, 5)}>Nhiquela Shop</Text>
-      <Text style={styles.welcomeText('grey', 16,0)}>Tudo em suas mãos</Text>
+      <Text style={styles.welcomeText('black', 30, 5)}><Text style={{color: '#7F00FF'}}>NHIQUELA</Text>SHOP</Text>
+
+      <Text style={styles.welcomeText2('black', 14,0)}>TUDO EM SUAS MAOS</Text>
     </View>
     <View style={styles.searchContainer}>
         <TouchableOpacity>

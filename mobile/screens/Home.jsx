@@ -13,7 +13,7 @@ import ProductView from '../components/products/ProductView';
 
 const Home = () => {
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{backgroundColor: "#F8F8F8"}}>
       <View style={styles.appBarWrapper}>
         <View style={styles.appBar}>
           <Ionicons name="location-outline" size={24}/>
