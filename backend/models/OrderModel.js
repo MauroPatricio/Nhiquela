@@ -106,7 +106,8 @@ const orderSchema = new mongoose.Schema(
     isDeletedByAdmin: { type: Boolean, default: false },
     isDeletedByRequester: { type: Boolean, default: false },
     isSupplierPaid: { type: Boolean, default: false },
-    isDeliverPaid: { type: Boolean, default: false }
+    isDeliverPaid: { type: Boolean, default: false },
+    customerId: {type: String, required: true}
 
   },
   {

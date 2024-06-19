@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
  import mongoose from 'mongoose';
 import seedRoutes from './routes/seedRoutes.js';
@@ -18,6 +19,9 @@ import colorRoutes from './routes/colorRoutes.js';
 import sizeRoutes from './routes/sizeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
+import bodyParser from 'body-parser';
+import cartRoutes from './routes/cartRoutes.js';
+
 // Carregando o ficheiro .env
 dotenv.config();
 
@@ -33,9 +37,15 @@ mongoose
 
 const app = express();
 
+// ADD THIS
+app.use(cors());
 
 
-
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -56,6 +66,7 @@ app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/requestdeliver', requestDeliverRoutes);
+app.use('/api/carts', cartRoutes);
 
 
 const __dirname = path.resolve();

@@ -152,32 +152,10 @@ const formattedDatetime = `${hours}:${minutes}`;
         
         const formattedDatetime = `${hours}:${minutes}`;
 
-        if(seller && seller.seller!==undefined && seller.seller.workDayAndTime.length==0){
-          toast.error(`Não é possível registrar o seu pedido em uma loja fechada. `)
-          return;
-        }
-        // if(storeOpen){
-        // toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
-        // return;
-        // }
+        navigate('/address');
 
-        seller && seller.seller!==undefined &&  seller.seller.workDayAndTime.map(async workday=>{
 
-        if(workday.dayNumber === currentDay){
-          // esta tudo bem passa.
-          // Esta dentro do periodo informado
-          if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-            setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
-            // isStoreOpen(true)
-            navigate('/address');
-            return
-        }
-  
-      }else{
-        // toast.error(`Não é possível registrar o seu pedido na loja esta fechada. `)
-        return;
-      }
-  })}
+  }
   return (
     <div>
       <Helmet>

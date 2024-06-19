@@ -7,11 +7,14 @@ const modelSchema = new mongoose.Schema({
     password: {type: String, required: true},
     resetToken: {type: String},
     phoneNumber: {type: Number, required: true, unique: true},
-    isAdmin: {type: Boolean, default: false, required: true},
+    isAdmin: {type: Boolean, default: false},
     isDeliveryMan: {type: Boolean, default: false},
     isSeller: {type: Boolean, default: false},
     isBanned: {type: Boolean, default: false},
     isApproved: {type: Boolean, default: false},
+    location: {type: String},
+    latitude: {type: String},
+    longitude: {type: String},
     seller:{
         name: {type: String},
         logo: {type: String},
@@ -20,6 +23,8 @@ const modelSchema = new mongoose.Schema({
         numReviews: {type: Number, default: 0, },
         province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province',  default: null},
         address: {type: String},
+        latitude: {type: String},
+        longitude: {type: String},
         workDayAndTime: [
             {
               dayNumber: Number,

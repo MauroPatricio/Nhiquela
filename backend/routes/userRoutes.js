@@ -274,6 +274,7 @@ userRouter.post(
   '/signin',
   expressAsyncHandler(async (req, res) => {
     let user = null;
+
     if (req.body.phoneNumber.includes("@")){
       user = await User.findOne({ email: req.body.phoneNumber });
 
