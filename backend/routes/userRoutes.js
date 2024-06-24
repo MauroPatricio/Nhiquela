@@ -55,7 +55,7 @@ userRouter.get(
     try{
 
       const sellers = await User.find({ isSeller: true, isApproved: true, isBanned: false }).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1})
-        .sort({ 'seller.rating': -1 });
+        .sort({ 'seller.rating': -1 }).populate('seller.province');
       
       const countSellers = await User.countDocuments({ isSeller: true, isApproved: true, isBanned: false });
       const pages = Math.ceil(countSellers/pageSize);
