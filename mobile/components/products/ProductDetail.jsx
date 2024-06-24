@@ -24,16 +24,16 @@ const ProductDetail = ({navigation}) => {
         }
     }
   return (
-    <ScrollView>
-
-    <View style={styles.container}>
+      
+          <ScrollView>
+      <View style={styles.container}>
       <View style={styles.upperRow}>
             <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='chevron-back-circle' size={30}/>
+                <Ionicons name='chevron-back-circle' color={'#3e2465'} size={30}/>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='heart' size={30}/>
+                <Ionicons name='heart' color={'red'} size={30}/>
             </TouchableOpacity>
       </View>
 
@@ -130,7 +130,7 @@ size={20}
 
       </View>
     </View>
-    </ScrollView> 
+                    </ScrollView> 
   )
 }
 

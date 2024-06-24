@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
-import React from 'react'
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import styles from './home.style';
 import {Ionicons} from "@expo/vector-icons"
@@ -7,19 +7,51 @@ import { Welcome } from './Index';
 import ProductRow from '../components/products/ProductRow';
 import CarouselAnimation from '../components/CarouselAnimation';
 import ProductView from '../components/products/ProductView';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Categories from '../components/Categories';
+import SellersView from '../components/SellersView';
 
 
 
+const Home = (navigation) => {
 
-const Home = () => {
+  const [userData, setUserData] = useState(null);
+  const [userLogin, setUserLogin] = useState(false);
+
+
+  useEffect(()=>{
+    checkIfUserExist();
+    },[])
+
+    const checkIfUserExist = async() =>{
+      const id = await AsyncStorage.getItem('id');
+      const userId = `user${JSON.parse(id)}`;
+
+      try{
+        const currentUser = await AsyncStorage.getItem(userId);
+
+        if(currentUser !== null){
+          const parseData = JSON.parse(currentUser);
+          setUserData(parseData);
+          setUserLogin(true);
+        }
+      }catch(error){
+        console.log(error)
+      }
+    }
+
+
   return (
-    <SafeAreaView style={{backgroundColor: "#F8F8F8"}}>
+    <SafeAreaView style={{backgroundColor: "white"}}>
       <View style={styles.appBarWrapper}>
         <View style={styles.appBar}>
-          <Ionicons name="location-outline" size={24}/>
+          <Image
+            source={require('../assets/default1.jpg')}
+            style={styles.cover}
+            />
+            <Text style={styles.location}>{userData!==null? `Olá, ${userData.name.length<50?userData.name:userData.name.substring(0, 40) + '...'}`: 'Faça login'}</Text>
 
-        <Text style={styles.location}>Maputo</Text>
-        <View style={{alignItems: "flex-end"}} >
+          <View style={{alignItems: "flex-end"}} >
           <View style={styles.cartCount}>
             <Text style={styles.cartNumber}>8</Text>
           </View>
@@ -28,15 +60,23 @@ const Home = () => {
       </TouchableOpacity>
         </View>
         </View>
+        {/* <View style={styles.locationView}>
+
+          <Ionicons name="location-outline" size={24}/>
+          <Text >Maputo</Text>
+        </View> */}
       </View>
-      {/* <ScrollView> */}
         <Welcome/>
-      <CarouselAnimation/>
+      <ScrollView >
+        <Categories/>
+      {/* <CarouselAnimation/> */}
+        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si'/>
       <ProductView/>
-      <ProductRow/>
-      {/* </ScrollView> */}
+            <ProductRow/>
+      </ScrollView>
     </SafeAreaView>
   )
 }
 
 export default Home
+

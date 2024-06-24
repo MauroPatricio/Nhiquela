@@ -7,11 +7,14 @@ import ProductList from './components/products/ProductList';
 import LoginPage from './screens/LoginPage';
 import BackBtn from './components/BackBtn'
 import SignUp from './screens/SignUp';
+import SellerScreen from './components/SellerScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
+
+   
     <NavigationContainer>
         <Stack.Navigator>
           <Stack.Screen name='Bottom Navigation'
@@ -45,8 +48,15 @@ export default function App() {
           options={{headerShown: false}}
           />
 
+
+<Stack.Screen name='SellerScreen'
+          component={SellerScreen}
+          options={{headerShown: false}}
+          />
+
         </Stack.Navigator>
   </NavigationContainer>
   );
+
 }
 

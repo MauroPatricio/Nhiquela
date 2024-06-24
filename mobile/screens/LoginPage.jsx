@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity} from 'react-native'
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert} from 'react-native'
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn'
@@ -8,7 +8,7 @@ import { Formik } from 'formik';
 import {MaterialCommunityIcons} from '@expo/vector-icons'
 import * as Yup from 'yup'
 import api from '../hooks/createConnectionApi';
-
+import AsyncStorage from '@react-native-async-storage/async-storage'
 const validationSchema = Yup.object().shape({
     phoneNumber: Yup.string()
       .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
@@ -39,15 +39,20 @@ const  LoginPage = ({navigation}) => {
     setLoader(true);
     try{
         const data = values;
-        const response = await api.post('/login', data);
+        const response = await api.post('/users/signin', data);
 
         if(response.status==200){
             setLoader(false);
-            setResponseData(response)
-            await <AsyncStorage></AsyncStorage>.setItem()
+            setResponseData(response.data)
+            await AsyncStorage.setItem(`user${responseData._id}`, JSON.stringify(responseData))
+            await AsyncStorage.setItem(`id`, JSON.stringify(responseData._id))
+            navigation.replace('Bottom Navigation')
         }
 
     }catch(error){
+        Alert.alert("Informe o número de telefone ou a senha correcta")
+    }finally{
+        setLoader(false);
 
     }
   }
@@ -125,15 +130,13 @@ const  LoginPage = ({navigation}) => {
                     )}
                 </View>   
                 <View>
-                <Button loader={loader} title={"Entrar"} onPress={isValid? handleSubmit: ()=>{}} isValid={isValid?'#7F00FF':'red'}/>
+                <Button  loader={loader} title={"Entrar"} onPress={isValid? handleSubmit: (values)=>login(values)} isValid={isValid?'#7F00FF':'red'}/>
                 <Text style={styles.registration} onPress={()=>navigation.navigate('SignUp')}>Registrar</Text>
 
                 </View>
                 </View>
                 
         )}
-                            
-         
                     </Formik>
                 </View>
             </SafeAreaView>
@@ -146,8 +149,8 @@ export default LoginPage
 
 const styles = StyleSheet.create({
     cover: {
-        height: 480/2.4,
-        width: 320,
+        height: 50,
+        width: 50,
         resizeMode: "contain",
         marginBottom: 0,
         backgroundColor: 'white'

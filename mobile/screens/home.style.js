@@ -7,16 +7,25 @@ textStyle:{
 },
 appBarWrapper:{
         marginHorizontal: 22,
-        marginTop: 12,
+        marginTop: 20,
         
 },
 appBar: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+
 },
 location:{
-    fontSize: 15
+    fontSize: 15,
+    marginRight: 110,
+    fontWeight: "500"
+},
+locationView: {
+    flexDirection: "row",
+    // // justifyContent: "space-between",
+    alignItems: "center",
+    paddingLeft: '12%'
 },
 cartCount: {
     position: "absolute",
@@ -27,13 +36,21 @@ cartCount: {
     alignItems: "center",
     backgroundColor: "#3e2465",
     justifyContent: 'center',
-    zIndex: 999
+    zIndex: 999,
+    
 },
 cartNumber: {
     fontWeight: '600',
     fontSize: 10,
-    color: 'white'
-}
+    color: 'white',
+
+},
+cover:{
+    width: 40,
+    height:40,
+    borderRadius: 120,
+
+  }
 })
 
 

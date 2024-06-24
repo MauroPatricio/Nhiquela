@@ -2,10 +2,47 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert} fro
 import React, {useState, useEffect} from 'react'
 import { StatusBar } from 'expo-status-bar'
 import {AntDesign, MaterialCommunityIcons, SimpleLineIcons} from "@expo/vector-icons"
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const Profile = ({navigation}) => {
-  const {userData, setUserData} = useState(null);
-  const {userLogin, setUserLogin} = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [userLogin, setUserLogin] = useState(false);
+
+  useEffect(()=>{
+    checkIfUserExist();
+    }, [])
+
+    const checkIfUserExist = async() =>{
+      const id = await AsyncStorage.getItem('id');
+      const userId = `user${JSON.parse(id)}`;
+      try{
+        const currentUser = await AsyncStorage.getItem(userId);
+        setUserLogin(false);
+        if(currentUser !== null){
+          const parseData = JSON.parse(currentUser);
+          setUserData(parseData);
+          setUserLogin(true);
+        }
+      }catch(error){
+        navigation.navigate('Login')
+      }
+    }
+
+    const userLogout = async ()=> {
+      const id = await AsyncStorage.getItem('id');
+      const userId = `user${JSON.parse(id)}`;
+      // try{
+        // setUserLogin(false);
+        await AsyncStorage.removeItem(userId);
+        await AsyncStorage.removeItem('id');
+
+        navigation.replace('Bottom Navigation')
+
+      // }catch(error){
+      //   navigation.navigate('Login')
+      // }
+    }
+
 
   const logout = () => {
     Alert.alert(
@@ -13,7 +50,7 @@ const Profile = ({navigation}) => {
       "Tem a certeza que deseja sair?",
       [
         {
-          text: "Continuar", onPress: () => console.log("cancelado")
+          text: "Continuar", onPress: () => userLogout()
         },
         {
           text: "Cancelar", onPress: () => console.log("cancelado")
@@ -70,21 +107,24 @@ const Profile = ({navigation}) => {
               />
             </View>
             <View style={styles.profileContainer}>
-            <Image source={require('../assets/luvas.jpg')}
+            <Image source={require('../assets/default1.jpg')}
               style={styles.profile}
               />
               <Text style={styles.name}> 
                   {userLogin === true ? userData.name: "Por favor faça o login!"}
               </Text>
-              {true?(<TouchableOpacity onPress={()=>{navigation.navigate('Login')}}>
+
+              {userLogin === false?(<TouchableOpacity onPress={()=>{navigation.navigate('Login')}}>
                     <View style={styles.loginBtn}>
                       <Text style={styles.menuText}>Entrar</Text>
                     </View>
-                 </TouchableOpacity>):(<View style={styles.loginBtn} onPress={()=>{navigation.navigate('Login')}}>
-              <Text style={styles.menuText}>mauro.patricio1@gmail.com</Text>
-            </View>)}
-            
-            {false?(
+                 </TouchableOpacity>):
+                 (<View style={styles.loginBtn} onPress={()=>{navigation.navigate('Login')}}>
+                    {/* <Text style={styles.menuText}>{userData?.email}</Text> */}
+                    <Text style={styles.menuText}>{userData?.email}</Text>
+
+                  </View>)}
+            {userLogin!==true?(
                     <View></View>):(
                     <View  style={styles.menuWrapper}>
                     <TouchableOpacity onPress={()=>{}}>

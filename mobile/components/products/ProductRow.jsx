@@ -6,7 +6,7 @@ const ProductRow = () => {
     const {data, isLoading, error} = useFetch();
 
   return (
-    <ScrollView>
+    <>
       {isLoading?(<ActivityIndicator 
                   size={24}
                   color={'black'}
@@ -21,7 +21,7 @@ const ProductRow = () => {
                   
                   }
 
-    </ScrollView>
+    </>
   )
 }
 

@@ -15,6 +15,7 @@ return (
      <View style={styles.container}>
         <View style={styles.imageContainer}>
     <Image source={{uri: item.item.image,
+    
 }}
     style={styles.image}/>
      <View style={styles.details}>
@@ -42,17 +43,17 @@ export default ProductCardView
 
 const styles = StyleSheet.create({
     container: {
-        width: 182,
-        // height:240,
-        // marginEnd: 22,
-        borderRadius: 50,
-
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f5f5f5',
+        
     },
     imageContainer: {
         flex: 1,
-        width: 170,
+         width: 170,
         marginLeft: 12/2,
-        marginTop: 12/2,
+        marginTop: 5,
         borderRadius: 12,
         overflow:"hidden",
         backgroundColor: "white"

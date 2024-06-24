@@ -9,9 +9,9 @@ const navigation = useNavigation();
 
    <View>
      <View style={styles.container}>
-      <Text style={styles.welcomeText('black', 30, 5)}><Text style={{color: '#7F00FF'}}>NHIQUELA</Text>SHOP</Text>
+      <Text style={styles.welcomeText('black', 30, 0)}><Text style={{color: '#7F00FF'}}>NHIQUELA</Text>SHOP</Text>
 
-      <Text style={styles.welcomeText2('black', 14,0)}>TUDO EM SUAS MAOS</Text>
+      <Text style={styles.welcomeText2('black', 11,0)}>TUDO EM SUAS MÃOS</Text>
     </View>
     <View style={styles.searchContainer}>
         <TouchableOpacity>
@@ -28,7 +28,6 @@ const navigation = useNavigation();
         </View>
         <View>
             <TouchableOpacity style={styles.searchBtn}>
-                <Ionicons name="camera-outline" size={24}/>
             </TouchableOpacity>
         </View>
     </View>

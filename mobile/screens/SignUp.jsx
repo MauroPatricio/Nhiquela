@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity} from 'react-native'
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert} from 'react-native'
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn'
@@ -7,6 +7,7 @@ import Button from '../components/Button'
 import { Formik } from 'formik';
 import {MaterialCommunityIcons} from '@expo/vector-icons'
 import * as Yup from 'yup'
+import api from '../hooks/createConnectionApi';
 
 const validationSchema = Yup.object().shape({
     phoneNumber: Yup.string()
@@ -41,7 +42,24 @@ const SignUp = ({navigation}) => {
     });
     const [hideText, setHideText] = useState(false);
 
-  
+  const submitRegistration = async (values) => {
+    setLoader(true);
+    try{
+        const data = values;
+        const response = await api.post('/users/signup', data);
+      
+        if(response.status==200){
+            navigation.navigate('Login')
+        }
+
+    }catch(error){
+        // console.log(error.response.data)
+        Alert.alert(error.response.data.message)
+    }finally{
+        setLoader(false);
+
+    }
+  }
 
   return (
     <ScrollView  style={{backgroundColor: 'white'}}>
@@ -52,11 +70,11 @@ const SignUp = ({navigation}) => {
             source={require('../assets/nhiquela.png')}
             style={styles.cover}
             />
-            <Text style={styles.title}>NOVO REGISTRO</Text>
+            <Text style={styles.title}>NOVO REGISTO</Text>
             <Formik
                 initialValues={{phoneNumber: '', password: '', name:'', email:''}}
                 validationSchema={validationSchema}
-                onSubmit={(values)=>console.log(values)}
+                onSubmit={(values)=>submitRegistration(values)}
                 >
     {({ handleChange, handleBlur, touched,handleSubmit, values, errors, isValid, setFieldTouched  }) => (
         <View>
@@ -171,7 +189,7 @@ const SignUp = ({navigation}) => {
             )}
         </View>   
         <View>
-        <Button title={"Registrar"} onPress={isValid? handleSubmit: ()=>{}} isValid={isValid?'#7F00FF':'red'}/>
+        <Button title={"Registar"} onPress={isValid? handleSubmit: ()=>{}} isValid={isValid?'#7F00FF':'red'} loader={loader}/>
         
         </View>
         </View>
