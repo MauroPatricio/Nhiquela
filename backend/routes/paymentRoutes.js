@@ -13,9 +13,9 @@ const paymentRouter = express.Router();
 
 paymentRouter.get(
     '/',
-    expressAsyncHandler(async ( res) => {
+    expressAsyncHandler(async ( req, res) => {
     const payments = await PaymentMethod.find({ isActive: true }).sort({shortName: 'asc'});
-    res.send({payments});
+    res.send(payments);
     })
   );
 

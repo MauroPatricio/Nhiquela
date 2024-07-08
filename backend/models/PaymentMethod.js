@@ -14,7 +14,9 @@ const paymentMethodSchema = new mongoose.Schema(
     NUIB: { type: Number },
     NUIT: { type: Number },
     logo: { type: String },
-  },
+    isActive:  { type: Boolean, default: true },
+
+    },
   {
     timestamps: true,
   }
