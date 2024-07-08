@@ -10,13 +10,16 @@ import ProductView from '../components/products/ProductView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Categories from '../components/Categories';
 import SellersView from '../components/SellersView';
+import { useSelector } from 'react-redux'
+import { selectBasketItems, selectBasketTotal } from '../features/basketSlice'
+import {useNavigation} from '@react-navigation/native'
 
 
-
-const Home = (navigation) => {
-
+const Home = () => {
+  const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
+  const items = useSelector(selectBasketItems);
 
 
   useEffect(()=>{
@@ -53,10 +56,10 @@ const Home = (navigation) => {
 
           <View style={{alignItems: "flex-end"}} >
           <View style={styles.cartCount}>
-            <Text style={styles.cartNumber}>8</Text>
+            <Text style={styles.cartNumber}>{items.length}</Text>
           </View>
-      <TouchableOpacity>
-          <Ionicons name="cart-outline" size={24}/>
+      <TouchableOpacity onPress={()=>navigation.navigate('Cart')}>
+          <Ionicons name="cart-outline" size={26}/>
       </TouchableOpacity>
         </View>
         </View>
@@ -72,7 +75,8 @@ const Home = (navigation) => {
       {/* <CarouselAnimation/> */}
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si'/>
       <ProductView/>
-            <ProductRow/>
+      { /*Aqui devo rever o erro de Flatlist nesse ProductRow*/ }
+            <ProductRow/> 
       </ScrollView>
     </SafeAreaView>
   )

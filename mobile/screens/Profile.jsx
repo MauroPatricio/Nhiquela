@@ -100,7 +100,7 @@ const Profile = ({navigation}) => {
 
     <View style={styles.container}>
           <View style={styles.container}>
-            <StatusBar backgroundColor='blue'/>
+            <StatusBar backgroundColor='white'/>
             <View style={{width: '100%'}}>
               <Image source={require('../assets/nhiquela.png')}
               style={styles.cover}

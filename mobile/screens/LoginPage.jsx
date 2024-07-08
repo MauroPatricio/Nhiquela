@@ -65,7 +65,7 @@ const  LoginPage = ({navigation}) => {
                     source={require('../assets/nhiquela.png')}
                     style={styles.cover}
                     />
-                    <Text style={styles.title}>SEJA BEM VINDO</Text>
+                    <Text style={styles.title}>Login</Text>
                     <Formik
                         initialValues={{phoneNumber: '', password: ''}}
                         validationSchema={validationSchema}
@@ -149,11 +149,13 @@ export default LoginPage
 
 const styles = StyleSheet.create({
     cover: {
-        height: 50,
-        width: 50,
+        height: 200,
+        width: 320,
         resizeMode: "contain",
         marginBottom: 0,
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        alignContent: 'center',
+        alignItems: 'center',
     },
     title:{
     alignItems: "center",

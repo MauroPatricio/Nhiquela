@@ -8,6 +8,12 @@ import LoginPage from './screens/LoginPage';
 import BackBtn from './components/BackBtn'
 import SignUp from './screens/SignUp';
 import SellerScreen from './components/SellerScreen';
+import SellerProduct from './components/SellerProduct';
+import { store } from './store';
+import { Provider } from 'react-redux';
+import Cart from './screens/Cart';
+import PaymentMethods from './screens/PaymentMethod';
+import PaymentMethod from './screens/PaymentMethod';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +22,8 @@ export default function App() {
 
    
     <NavigationContainer>
+      <Provider store={store}>
+
         <Stack.Navigator>
           <Stack.Screen name='Bottom Navigation'
           component={ButtomTabNavegation}
@@ -54,7 +62,21 @@ export default function App() {
           options={{headerShown: false}}
           />
 
+<Stack.Screen name='SellerProduct'
+          component={SellerProduct}
+          options={{headerShown: false}}
+          />
+
+<Stack.Screen name='PaymentMethod'
+          component={PaymentMethod}
+          options={{presentation:'modal',headerShown: false}}
+          />
+<Stack.Screen name='Cart'
+          component={Cart}
+          options={{headerShown: false}}
+          />
         </Stack.Navigator>
+        </Provider>
   </NavigationContainer>
   );
 

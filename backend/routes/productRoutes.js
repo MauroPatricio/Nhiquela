@@ -369,6 +369,22 @@ productRoutes.get('/slug/:slug',async (req, res)=>{
 });
 
 
+// Get Products by userId
+productRoutes.get('/productsBySeller/:id', async (req, res) => {
+     try {
+         const user = await User.findById(req.params.id);
+         if (user) {
+             const products = await Product.find({ seller: req.params.id }); // Fetch products by userId
+             res.send(products);
+         } else {
+             res.status(404).send({ message: 'Fornecedor não encontrado' });
+         }
+     } catch (error) {
+         res.status(500).send({ message: 'Erro no servidor', error: error.message });
+     }
+ });
+
+
 productRoutes.get('/admin',
 isAuth, 
 expressAsyncHandler(async (req, res)=>{
@@ -397,7 +413,7 @@ productRoutes.get('/categories',async (req, res)=>{
 // Porduct by Id
 productRoutes.get('/:id',async (req, res)=>{
  
-   const product = await Product.findById(req.params.id).populate('seller color size');
+   const product = await Product.findById(req.params.id).populate('seller color size category province qualityType conditionStatus');
    if(product){
         res.send(product);
    }else{
@@ -406,7 +422,7 @@ productRoutes.get('/:id',async (req, res)=>{
 });
 
 
-// Porduct by Id
+// Post reviews of product by Id
 productRoutes.post('/:id/reviews',isAuth, expressAsyncHandler( async (req, res)=>{
  
      const product = await Product.findById(req.params.id);

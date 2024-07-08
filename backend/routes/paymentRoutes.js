@@ -5,10 +5,46 @@ import mpesa from 'mpesa-node-api';
 import Payment from '../models/PaymentModel.js'
 import config from '../config.js';
 import { isAuth } from '../utils.js';
+import PaymentMethod from '../models/PaymentMethod.js';
 
 
 const paymentRouter = express.Router();
 
+
+paymentRouter.get(
+    '/',
+    expressAsyncHandler(async ( res) => {
+    const payments = await PaymentMethod.find({ isActive: true }).sort({shortName: 'asc'});
+    res.send({payments});
+    })
+  );
+
+
+  paymentRouter.post(
+    '/',
+    // isAuth,
+    expressAsyncHandler(async (req, res) => {
+      const newPaymentMethod = new PaymentMethod({
+        shortName: req.body.shortName,
+        fullName:  req.body.fullName,
+        description: req.body.description,
+        accountNumber: req.body.accountNumber,
+        accountNumberAlternative: req.body.accountNumberAlternative,
+        shortCode: req.body.shortCode,
+        NIB: req.body.NIB,
+        NUIB: req.body.NUIB,
+        NUIT: req.body.NUIT,
+        logo: req.body.logo,
+        isActive: true,
+      });
+  
+  
+      const paymentMethod = await newPaymentMethod.save();
+      res
+        .status(201)
+        .send({ message: 'Novo tipo de pagamento criado com sucesso', paymentMethod });
+    })
+  );
 
 
 paymentRouter.post('/mpesa',expressAsyncHandler(async (req,response)=>{

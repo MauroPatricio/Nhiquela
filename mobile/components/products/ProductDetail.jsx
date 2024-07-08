@@ -27,19 +27,29 @@ const ProductDetail = ({navigation}) => {
       
           <ScrollView>
       <View style={styles.container}>
-      <View style={styles.upperRow}>
+      {/* <View style={styles.upperRow}>
             <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='chevron-back-circle' color={'#3e2465'} size={30}/>
+                <Ionicons name='chevron-back-circle' color={'#3e2465'} size={35} style={styles.icon} />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='heart' color={'red'} size={30}/>
+                <Ionicons name='heart' color={'red'} size={35}/>
             </TouchableOpacity>
-      </View>
+      </View> */}
 
       <Image source={{uri:item.item.image}}
       style={styles.image}
       />
+        <View style={styles.icons}>
+
+        <TouchableOpacity onPress={()=>navigation.goBack()}>
+        <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={()=>navigation.goBack()}>
+        <Ionicons name='heart' size={35} style={styles.heart}/>
+        </TouchableOpacity>
+        </View>
       <View style={styles.details}>
         <View style={styles.titleRow}>
             <Text style={styles.title}>{item.item.nome}</Text>
@@ -141,6 +151,7 @@ const styles = StyleSheet.create({
 container: {
     flex:1
 },
+
 
 upperRow:{
     // flex:1 , 
@@ -257,6 +268,25 @@ addCart:{
         alignItems: "center",
         justifyContent: "center"
     },
+    icons:{
+        position: 'absolute',
+        top: 30,
+        // marginLeft: 10,
+        flexDirection: "row",
+        justifyContent: 'space-between', // Distributes space between the icons
+        alignItems: 'center',
+      },
+    back:{
+        marginLeft: 20,
+        color: 'black',
+        backgroundColor: 'white',
+        borderRadius: 22
+      },
+    heart:{
+        marginLeft: 240,
+        color: 'red'
+    
+      }
 
 
 })

@@ -2,7 +2,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import { StarIcon } from 'react-native-heroicons/outline'
 import {Ionicons} from "@expo/vector-icons"
-
+import {useNavigation} from '@react-navigation/native'
 const SellerCard = ({
     id,
     name,
@@ -15,8 +15,23 @@ const SellerCard = ({
     latitude,
     longitude,
 }) => {
+
+  const navigation = useNavigation();
+
   return (
-    <TouchableOpacity style={styles.card} onPress={()=>{}}>
+  
+    <TouchableOpacity style={styles.card} onPress={()=>{navigation.navigate('SellerScreen', {   
+      id,
+      name,
+      logo,
+      description,
+      rating,
+      numReviews,
+      province,
+      address,
+      latitude,
+      longitude,
+      })}}>
       <View  style={styles.card_template}>
 
                   <View style={styles.imageContainer}>
@@ -39,6 +54,8 @@ const SellerCard = ({
           </View>
       </View>
     </TouchableOpacity>
+
+    
   )
 }
 

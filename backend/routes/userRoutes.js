@@ -12,8 +12,8 @@ const userRouter = express.Router();
 // All Users
 userRouter.get(
   '/',
-  isAuth,
-  isAdmin,
+  // isAuth,
+  // isAdmin,
   expressAsyncHandler(async (req, res) => {
     try{
 

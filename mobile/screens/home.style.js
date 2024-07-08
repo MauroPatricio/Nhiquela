@@ -7,7 +7,7 @@ textStyle:{
 },
 appBarWrapper:{
         marginHorizontal: 22,
-        marginTop: 20,
+        marginTop: 10,
         
 },
 appBar: {
@@ -34,7 +34,7 @@ cartCount: {
     height: 16,
     borderRadius: 8,
     alignItems: "center",
-    backgroundColor: "#3e2465",
+    backgroundColor: '#7F00FF',
     justifyContent: 'center',
     zIndex: 999,
     

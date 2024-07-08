@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { selectSeller } from '../features/sellerSlice'
 import { removeFromBasket, selectBasketItems } from '../features/basketSlice'
 import { CircleStackIcon, XCircleIcon } from 'react-native-heroicons/outline'
-import CartDetails from '../components/CartDetails'
 
 const Cart = () => {
 
@@ -27,10 +26,6 @@ const Cart = () => {
   }, [items])
 
   return (
-<>
-
-  
-<CartDetails/>
     <SafeAreaView style={styles.container}>
  <View style={styles.cart}>
     <View style={styles.header}>
@@ -46,6 +41,8 @@ const Cart = () => {
     <ScrollView >
       <Text style={styles.itemsLength}>{items.length} produto(s) na carrinha</Text>
       {Object.entries(groupedItemsInTheCart).map(([key, items])=>(
+     
+
             <View  key={key} style={styles.itemLine} >
                     <Text style={{color: 'grey', marginTop: 15}}>{items.length}x</Text>
               <Image
@@ -57,12 +54,18 @@ const Cart = () => {
                 <Text style={styles.remove}>Remover</Text>
               </TouchableOpacity>
             </View>
+
       ))}
     </ScrollView>
+    <View style={styles.footer}>
+          <View style={styles.componentFooter}>
+            <Text style={styles.footerName}>Subtotal</Text>
+            <Text style={styles.footerPrice}>100 MT</Text>
+          </View>
+    </View> 
 </View>
 
 </SafeAreaView>
-</>
   )
 }
 
@@ -135,7 +138,6 @@ const styles = StyleSheet.create({
 
 
   cart:{
-    paddingBottom: 250
   },
 
   title: {
