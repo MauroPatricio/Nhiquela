@@ -3,7 +3,8 @@ import { createSlice, configureStore } from '@reduxjs/toolkit'
 const basketSlice = createSlice({
   name: 'basket',
   initialState: {
-    items: []
+    items: [],
+    payment:0
   },
   reducers: {
     addToBasket: (state, action) => {
@@ -20,11 +21,15 @@ const basketSlice = createSlice({
         }
 
         state.items = newBasket;
-    }
+    },
+    addTotalToPay: (state, action) => {
+
+      state.payment = action.payload
+    },
   }
 })
 
-export const { addToBasket, removeFromBasket } = basketSlice.actions
+export const { addToBasket, removeFromBasket, addTotalToPay } = basketSlice.actions
 
 export const selectBasketItems = (state) => state.basket.items;
 
@@ -32,6 +37,11 @@ export const selectBasketItemsWithId = (state, id) => state.basket.items.filter(
 
 export const selectBasketTotal = (state) =>
     state.basket.items.reduce((total, item) => (total += item.price), 0)
+
+export const selectTotalToPay = (state) => state.basket.payment;
+
+
+
 
 export default basketSlice.reducer;
 // const store = configureStore({

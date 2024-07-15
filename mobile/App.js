@@ -14,6 +14,9 @@ import { Provider } from 'react-redux';
 import Cart from './screens/Cart';
 import PaymentMethods from './screens/PaymentMethod';
 import PaymentMethod from './screens/PaymentMethod';
+import MpesaScreen from './screens/MpesaScreen';
+import SuccessPayment from './screens/SuccessPayment';
+import FailedPayment from './screens/FailedPayment';
 
 const Stack = createNativeStackNavigator();
 
@@ -71,10 +74,30 @@ export default function App() {
           component={PaymentMethod}
           options={{presentation:'modal',headerShown: false}}
           />
+          
 <Stack.Screen name='Cart'
           component={Cart}
           options={{headerShown: false}}
           />
+
+
+<Stack.Screen name='MpesaScreen'
+          component={MpesaScreen}
+          options={{headerShown: false}}
+          />
+
+          
+<Stack.Screen name='SuccessPayment'
+          component={SuccessPayment}
+          options={{headerShown: false}}
+          />
+          
+<Stack.Screen name='FailedPayment'
+          component={FailedPayment}
+          options={{headerShown: false}}
+          />
+
+
         </Stack.Navigator>
         </Provider>
   </NavigationContainer>

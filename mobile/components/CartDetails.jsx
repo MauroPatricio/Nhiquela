@@ -1,18 +1,23 @@
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import {  StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
-import { useSelector } from 'react-redux'
-import { selectBasketItems, selectBasketTotal } from '../features/basketSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import {  addTotalToPay, selectBasketItems, selectBasketTotal, selectTotalToPay } from '../features/basketSlice'
 import {useNavigation} from '@react-navigation/native'
 
-const CartDetails = () => {
+const CartDetails =  () => {
     const items = useSelector(selectBasketItems);
     const navigation = useNavigation();
     const basketTotal = useSelector(selectBasketTotal);
+    const totalToPay = basketTotal + 40 + 150;
+    // const total = useSelector(selectTotalToPay);
 
+    const dispatch = useDispatch()
+
+
+    dispatch(addTotalToPay(totalToPay))
     if (items.length===0) return null;
     
   return (
-
     <View style={styles.popupContent}>
            <View style={styles.barPopup}>
             <Text style={styles.length}>Serviços financeiros</Text>
@@ -28,10 +33,10 @@ const CartDetails = () => {
        </View>
        <View style={styles.barPopup}>
             <Text style={styles.totalDescript}>Total a pagar</Text>
-            <Text style={styles.totalPrice}>{basketTotal + 40 + 150 } MT</Text>
+            <Text style={styles.totalPrice}>{totalToPay} MT</Text>
        </View>
        <TouchableOpacity style={styles.barPayment} onPress={()=>navigation.navigate('PaymentMethod')}>
-        <Text style={styles.payment}>Pagar</Text>
+        <Text style={styles.payment}>Efectuar pagamento</Text>
        </TouchableOpacity>
     </View>
   )

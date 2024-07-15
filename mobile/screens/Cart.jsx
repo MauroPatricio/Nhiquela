@@ -5,7 +5,7 @@ import {useNavigation} from '@react-navigation/native'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectSeller } from '../features/sellerSlice'
 import { removeFromBasket, selectBasketItems } from '../features/basketSlice'
-import { CircleStackIcon, XCircleIcon } from 'react-native-heroicons/outline'
+import { XCircleIcon } from 'react-native-heroicons/outline'
 import CartDetails from '../components/CartDetails'
 
 const Cart = () => {
