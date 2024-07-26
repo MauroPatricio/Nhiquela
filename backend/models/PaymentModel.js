@@ -12,6 +12,7 @@ const paymentSchema = new mongoose.Schema(
     reference: { type: String, require: true },
     paid: { type: Boolean, require: true },
     receiverNumber: { type: String, require: true },
+    descriptionOfPayment: { type: String},
 
   },
   {

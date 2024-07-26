@@ -13,6 +13,9 @@ const requestDeliverSchema = new mongoose.Schema(
     description: { type: String, require: true },
     paymentMethod: { type: String, require: true },
     deliveryPrice: { type: Number, require: true },
+    latitude: { type: Number},
+    longitude: { type: Number},
+
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
