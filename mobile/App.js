@@ -17,6 +17,12 @@ import PaymentMethod from './screens/PaymentMethod';
 import MpesaScreen from './screens/MpesaScreen';
 import SuccessPayment from './screens/SuccessPayment';
 import FailedPayment from './screens/FailedPayment';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import MapScreen from './screens/MapScreen';
+import {KeyboardAvoidingView, Platform} from 'react-native'
+import RideOptionsCard from './components/RideOptionsCard';
+import TransportType from './components/TransportType';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -25,80 +31,106 @@ export default function App() {
 
    
     <NavigationContainer>
+
       <Provider store={store}>
+        <SafeAreaProvider>
+<KeyboardAvoidingView  
+behavior={Platform.OS === 'ios'? 'padding': 'height'}
+keyboardVerticalOffset={Platform.OS === 'ios'? -64: 0}
+style={{flex: 1}}>
 
         <Stack.Navigator>
-          <Stack.Screen name='Bottom Navigation'
-          component={ButtomTabNavegation}
-          options={{headerShown: false}}
-          />
+            <Stack.Screen name='Bottom Navigation'
+            component={ButtomTabNavegation}
+            options={{headerShown: false}}
+            />
 
-<Stack.Screen name='ProductDetail'
-          component={ProductDetail}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='ProductDetail'
+            component={ProductDetail}
+            options={{headerShown: false}}
+            />
 
-<Stack.Screen name='ProductList'
-          component={NewProducts}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='ProductList'
+            component={NewProducts}
+            options={{headerShown: false}}
+            />
 
-<Stack.Screen name='ProductList2'
-          component={ProductList}
-          options={{headerShown: false}}
-          />
-
-
-<Stack.Screen name='Login'
-          component={LoginPage}
-          options={{headerShown: false}}
-          />
-
-<Stack.Screen name='SignUp'
-          component={SignUp}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='ProductList2'
+            component={ProductList}
+            options={{headerShown: false}}
+            />
 
 
-<Stack.Screen name='SellerScreen'
-          component={SellerScreen}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='Login'
+            component={LoginPage}
+            options={{headerShown: false}}
+            />
 
-<Stack.Screen name='SellerProduct'
-          component={SellerProduct}
-          options={{headerShown: false}}
-          />
-
-<Stack.Screen name='PaymentMethod'
-          component={PaymentMethod}
-          options={{presentation:'modal',headerShown: false}}
-          />
-          
-<Stack.Screen name='Cart'
-          component={Cart}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='SignUp'
+            component={SignUp}
+            options={{headerShown: false}}
+            />
 
 
-<Stack.Screen name='MpesaScreen'
-          component={MpesaScreen}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='SellerScreen'
+            component={SellerScreen}
+            options={{headerShown: false}}
+            />
 
-          
-<Stack.Screen name='SuccessPayment'
-          component={SuccessPayment}
-          options={{headerShown: false}}
-          />
-          
-<Stack.Screen name='FailedPayment'
-          component={FailedPayment}
-          options={{headerShown: false}}
-          />
+  <Stack.Screen name='SellerProduct'
+            component={SellerProduct}
+            options={{headerShown: false}}
+            />
+
+  <Stack.Screen name='PaymentMethod'
+            component={PaymentMethod}
+            options={{presentation:'modal',headerShown: false}}
+            />
+            
+  <Stack.Screen name='Cart'
+            component={Cart}
+            options={{headerShown: false}}
+            />
 
 
+  <Stack.Screen name='MpesaScreen'
+            component={MpesaScreen}
+            options={{headerShown: false}}
+            />
+
+            
+  <Stack.Screen name='SuccessPayment'
+            component={SuccessPayment}
+            options={{headerShown: false}}
+            />
+            
+  <Stack.Screen name='FailedPayment'
+            component={FailedPayment}
+            options={{headerShown: false}}
+            />
+
+  <Stack.Screen name='MapScreen'
+            component={MapScreen}
+            options={{headerShown: false}}
+            />
+
+<Stack.Screen name='RideOptionsCard'
+            component={RideOptionsCard}
+            options={{headerShown: false}}
+            />
+
+
+<Stack.Screen name='TransportType'
+            component={TransportType}
+            options={{headerShown: false}}
+            />
         </Stack.Navigator>
+</KeyboardAvoidingView>
+
+
+
+        </SafeAreaProvider>
+
         </Provider>
   </NavigationContainer>
   );

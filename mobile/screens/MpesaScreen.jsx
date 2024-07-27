@@ -36,6 +36,8 @@ const MpesaScreen = () => {
   const amount = parseInt(totalToPay)
   
   const navigation = useNavigation();
+  const items = useSelector(selectBasketItems);
+  const itemsPrice = useSelector(selectBasketTotal);
 
   const checkIfUserExist = async() =>{
     const id = await AsyncStorage.getItem('id');
@@ -74,15 +76,63 @@ const MpesaScreen = () => {
       setPaymentInfo(data)
       if(data.paid){
         setLoading(false);
+
+        const order = await api.post(
+          '/orders',
+          {
+            orderItems: items,
+            address: '',
+            paymentMethod: 'Mpesa',
+            itemsPrice: itemsPrice,
+            ivaTax: 0,
+            siteTax: 0,
+            taxPrice: 0,
+            totalPrice: amount,
+            addressPrice: 150,
+            // itemsPriceForSeller: cart.itemsPriceForSeller,
+            isPaid: data.paid,
+            paidAt: Date.now(),
+            stepStatus: 1
+          },
+          {
+            headers: {
+              authorization: `Bearer ${userData.token}`,
+            },
+          }
+        );
+
+
         navigation.replace('SuccessPayment')
 
       }else{
 
         setLoading(false);
-        // navigation.replace('FailedPayment',{data})
-        navigation.replace('SuccessPayment')
+  
+        const order = await api.post(
+          '/orders',
+          {
+            orderItems: items,
+            address: '',
+            paymentMethod: 'Mpesa',
+            itemsPrice: itemsPrice,
+            ivaTax: itemsPrice*0.16,
+            siteTax: 45,
+            taxPrice: 40,
+            totalPrice: amount,
+            addressPrice: 150,
+            // itemsPriceForSeller: cart.itemsPriceForSeller,
+            isPaid: false,
+            paidAt: Date.now(),
+            stepStatus: 1
+          },
+          {
+            headers: {
+              authorization: `Bearer ${userData.token}`,
+            },
+          }
+        );
 
-
+        // navigation.replace('FailedPayment',{paymentInfo})
 
       }
     }catch(error){

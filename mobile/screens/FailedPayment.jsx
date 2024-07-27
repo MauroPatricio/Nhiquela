@@ -9,7 +9,7 @@ import {MaterialCommunityIcons} from '@expo/vector-icons'
 
 const FailedPayment = () => {
   const {params: {
-        data
+    paymentInfo
           } }= useRoute();
 
           const navigation = useNavigation()
@@ -18,21 +18,21 @@ const FailedPayment = () => {
 
           useEffect(()=>{
 
-            if(data.code == 'INS-4'){
+            if(paymentInfo.code == 'INS-4'){
               setErrorMessage('Conta inactiva')
             }
             
-            if(data.code == 'INS-9'){
+            if(paymentInfo.code == 'INS-9'){
               setErrorMessage('Demora na resposta do pagamento')
             }
-            if(data.code == 'INS-2006'){
+            if(paymentInfo.code == 'INS-2006'){
               setErrorMessage('Saldo Insuficiente')
             }
-            if(data.code == 'INS-2051'){
+            if(paymentInfo.code == 'INS-2051'){
               setErrorMessage('Número de telefone inválido')
             }
             
-          },[data])
+          },[paymentInfo])
 
   return (
     <SafeAreaView>

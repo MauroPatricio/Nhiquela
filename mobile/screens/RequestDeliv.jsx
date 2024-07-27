@@ -1,13 +1,38 @@
-import { View, Text } from 'react-native'
+import { StyleSheet, Text, View, Image} from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import NavOptions from '../components/NavOptions'
+import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import NavFavourites from '../components/NavFavourites';
+
 
 const RequestDeliv = () => {
+
   return (
-    <SafeAreaView>
-      <Text>RequestDeliv</Text>
+    <SafeAreaView style={styles.container}>
+    <NavOptions/>
+    {/* <NavFavourites/> */}
     </SafeAreaView>
   )
 }
 
 export default RequestDeliv
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: 'white',
+    flex:0
+  },
+  google:{
+    marginTop:10
+  },
+  title: {
+    fontWeight: '600',
+    fontSize: 30,
+    marginTop: 30,
+    marginBottom: 30,
+    marginLeft: 10
+  },
+  
+})
