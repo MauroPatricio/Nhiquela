@@ -262,7 +262,8 @@ orderRouter.post(
       status: 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
-      stepStatus: req.body.stepStatus
+      stepStatus: req.body.stepStatus,
+      customerId: req.user._id
     });
 
 
