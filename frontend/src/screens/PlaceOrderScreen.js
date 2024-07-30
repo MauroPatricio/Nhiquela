@@ -343,7 +343,6 @@ export default function PlaceOrderScreen() {
 
   const placeOrderHandler = async () => {
     
-
     // Get the current time
     const currentTime = new Date();
     const currentDay = currentTime.getDay();
@@ -354,11 +353,8 @@ const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the
 
 const formattedDatetime = `${hours}:${minutes}`;
     
-    seller && seller.seller && seller.seller.workDayAndTime.map(async workday=>{
       
-      if(workday.dayNumber === currentDay){
 
-      if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
         // esta tudo bem passa.
         // Esta dentro do periodo informado
         if(userInfo){
@@ -417,12 +413,9 @@ const formattedDatetime = `${hours}:${minutes}`;
             toast.error(getError(err));
           }
         }
-      }
-    }else{
-      // toast.error(`Nao e possivel registar o seu pedido a loja esta fechada. `)
-      return;
-    }
-    })
+      
+
+
     // Compare the current time with the threshold
     // const isPastThreshold =
     //   currentHour > thresholdHour ||

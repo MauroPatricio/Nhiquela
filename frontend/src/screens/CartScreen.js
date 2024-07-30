@@ -103,19 +103,19 @@ const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Get the
 
 const formattedDatetime = `${hours}:${minutes}`;
 
-    if(seller &&  seller.seller!==undefined){
+    // if(seller &&  seller.seller!==undefined){
 
-      seller.seller.workDayAndTime.map(async workday=>{
+    //   seller.seller.workDayAndTime.map(async workday=>{
 
-        if(workday.dayNumber === currentDay){
+    //     if(workday.dayNumber === currentDay){
 
-                if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
-                      setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
-                      return
-                }
-              }
-      })
-    }
+    //             if(workday.opentime <=formattedDatetime  && formattedDatetime<=workday.closetime){
+    //                   setSellerDayInfo(<span style={{color: 'green'}}>[{t('openstore')}]</span>)
+    //                   return
+    //             }
+    //           }
+    //   })
+    // }
   }, [seller]);
 
   async function updateCartHandler(item, quantity) {
