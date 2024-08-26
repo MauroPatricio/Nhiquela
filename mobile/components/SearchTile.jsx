@@ -17,7 +17,7 @@ const SearchTile = (item) => {
             <Text style={styles.seller}>{item.item.seller.name.length<20?item.item.seller.name: item.item.seller.name.substring(0, 25)+`...`}
             </Text>
             <Text style={styles.price}>{item.item.price} MT</Text>
-
+            
         </View>
         </TouchableOpacity>
     </View>
