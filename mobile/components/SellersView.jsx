@@ -91,8 +91,9 @@ const styles = StyleSheet.create({
     fontSize: 19
   },
   text:{
-    fontSize: 15,
-    marginLeft: 15
+    fontSize: 13,
+    marginLeft: 15,
+    letterSpacing: 1.2
   },
   container: {
     shadowColor: 'rgba(0,0,0, .2)',
