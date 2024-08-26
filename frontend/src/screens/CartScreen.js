@@ -184,6 +184,7 @@ const formattedDatetime = `${hours}:${minutes}`;
                         alt={item.name}
                         className="img-fluid rounded img-thumbnail"
                       ></img>
+                      
                       <p></p>
                       <Link className="link-none" to={`/product/${item.slug}`}>
                       {t('product')}: <b>{item.name}</b>{' '} {t('color')}:  <b>{item.color}</b>{' '} {t('size')}:  <b>{item.size}</b>

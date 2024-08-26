@@ -108,7 +108,7 @@ const orderSchema = new mongoose.Schema(
     isSupplierPaid: { type: Boolean, default: false },
     isDeliverPaid: { type: Boolean, default: false },
     // customerId: {type: String, required: true}
-
+//
   },
   {
     timestamps: true,
