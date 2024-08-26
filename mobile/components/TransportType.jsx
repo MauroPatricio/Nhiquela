@@ -19,54 +19,51 @@ const data = [
       id: '1',
       title: 'Motorizada para entregas',
       image:'image1',
-      screen: 'RideOptionsCard',
-      price: 150
+      screen: 'MapScreen',
+      price: 150,
+      type: 1
     },{
       id: '2',
       title: 'Carro para entregas',
       image:'image2',
       screen: 'MapScreen',
-      price: 300
+      price: 300,
+      type: 2
     }
     ,{
         id: '3',
         title: 'Camião',
         image:'image3',
         screen: 'MapScreen',
-        price: 3500
+        price: 3500,
+        type: 3
       }
       ,{
         id: '4',
         title: 'Reboque',
         image:'image4',
         screen: 'MapScreen',
-        price: 4000
+        price: 4000,
+        type: 4
       }
   ]
 const TransportType = () => {
     const dispatch = useDispatch();
 
     const navigation = useNavigation();
-    const origin = useSelector(selectOrigin);
-    const destination = useSelector(selectDestination);
+    const origin = 'teste';
+    // const destination = useSelector(selectDestination);
 
-    const travelTimeInfo = useSelector(selectTravelTimeInfo);
+    // const travelTimeInfo = useSelector(selectTravelTimeInfo);
     const [selected, setSelected] = useState(null);
 
 
   return (
 <SafeAreaView>
 
-<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 5, marginRight: 5}}>
-
-<Text>Distancia: {travelTimeInfo.distance.text}</Text>
-<Text>Estimativa de chegada: {travelTimeInfo.duration.text}</Text>
-</View>
-
-{console.log(travelTimeInfo)}
-    <Text style={styles.type}>Tipo de transporte a solicitar:</Text>
-
-    <FlatList
+<Text style={styles.title2}>Solicitar transporte</Text>
+ <Text style={styles.type}>Tipo de transporte a solicitar:</Text>
+ <FlatList
       // horizontal
       keyExtractor={(item)=> item.id}
       numColumns={2}
@@ -74,8 +71,8 @@ const TransportType = () => {
       data={data}
   
       renderItem={({item})=>(
-        //   <TouchableOpacity style={styles.container} onPress={()=> navigation.navigate(item.screen, item)}
-        <TouchableOpacity style={styles.container && item.id === selected?.id && {backgroundColor:'grey'}} onPress={()=> setSelected(item)}
+          <TouchableOpacity style={styles.container} onPress={()=> navigation.navigate(item.screen, item)}
+        // <TouchableOpacity style={styles.container && item.id === selected?.id && {backgroundColor:'grey'}} onPress={()=> setSelected(item)}
           disabled={!origin}
           >
             <View style={!origin && styles.component}>
@@ -86,7 +83,7 @@ const TransportType = () => {
               resizeMode="cover"
               />
               <Text style={styles.title}>{item.title}</Text>
-                           <Text style={{fontWeight:'500'}}>{item.price} MT</Text>
+                           {/* <Text style={{fontWeight:'500'}}>{item.price} MT</Text> */}
               <Icon 
               name='arrowright'
               type='antdesign' color={'black'}
@@ -97,13 +94,8 @@ const TransportType = () => {
               
       )}
       />
-  <View>
-<TouchableOpacity style={{backgroundColor: '#7F00FF'}}>
-    <Text style={{color: 'white'}}>{selected?.title}</Text>
-</TouchableOpacity>
-</View>
 
-      </SafeAreaView>
+</SafeAreaView>
   )
 }
 
@@ -111,44 +103,50 @@ export default TransportType
 
 const styles = StyleSheet.create({
 
-    googlePlaces:{
-
+  container2:{
+      flex:1,
+      backgroundColor: 'white'
     },
       container: {
           // alignItems: 'center',
           marginBottom: 15,
-          marginLeft: 12,
+          marginLeft: 10,
           backgroundColor: '#F0F0F0',
           margin: 2,
+        
           // marginBottom: 10
       },
       image:{
           aspectRatio: 1,
           resizeMode: 'cover',
         //   width: 50,
-          height: 100,
+          height: 150,
           marginRight: 10,
-          marginLeft:12
+          marginLeft:10
       
       },
       title: {
           textAlign: 'center',
           fontWeight: '500',
-          width:100
+          // width:100
           // marginBottom: 10
+          
       },
       icon: {
           // backgroundColor: '#808080',
           backgroundColor:'black',
           padding: 5,
           borderRadius: 22,
+                backgroundColor: 'white'
+
       },    
     type: {
   
       textAlign: 'center',
       marginBottom: 30,
       marginTop: 10,
-  
+        backgroundColor: 'white'
+
     },
     component:{
       opacity: 0.1
@@ -158,6 +156,6 @@ const styles = StyleSheet.create({
       fontSize: 30,
       marginTop: 30,
       marginBottom: 30,
-      marginLeft: 10
+      marginLeft: 10,
     },
 })

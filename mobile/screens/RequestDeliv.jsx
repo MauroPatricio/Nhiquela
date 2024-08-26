@@ -5,13 +5,16 @@ import NavOptions from '../components/NavOptions'
 import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import NavFavourites from '../components/NavFavourites';
+import TransportType from '../components/TransportType';
 
 
 const RequestDeliv = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-    <NavOptions/>
+          <TransportType/>
+
+    {/* <NavOptions/> */}
     {/* <NavFavourites/> */}
     </SafeAreaView>
   )
@@ -22,7 +25,7 @@ export default RequestDeliv
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    flex:0
+    flex:1
   },
   google:{
     marginTop:10

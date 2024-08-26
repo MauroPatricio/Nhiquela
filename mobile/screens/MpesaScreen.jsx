@@ -137,8 +137,8 @@ const MpesaScreen = () => {
       }
     }catch(error){
       setLoading(false);
-      const errorMessage = error
-      navigation.navigate('FailedPayment')
+      const errorMessage = error.response.data
+      console.log(errorMessage)
 
     }
 }

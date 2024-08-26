@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/MauroPatricio/ecommerce/issues"
   },
-  "homepage": "https://github.com/MauroPatricio/ecommerce#readme"
+  "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
+  "dependencies": {
+    "react-native-open-maps": "^0.4.3"
+  }
 }

@@ -15,32 +15,32 @@ const Map = () => {
     const travelTimeInfo = useSelector(selectTravelTimeInfo);
 
     const mapRef =useRef(null);
-    const dispatch =useDispatch();
-        useEffect(()=>{
-      if (!origin || !destination) return;
-      // zoom & fit the markers
-      mapRef.current.fitToSuppliedMarkers(["origin", "destination"],
-        {edgePadding:{top: 200, right: 100, bottom: 100, left: 100}}
-      );
-    }, [origin, destination])
+    // const dispatch =useDispatch();
+    //     useEffect(()=>{
+    //   if (!origin || !destination) return;
+    //   // zoom & fit the markers
+    //   mapRef.current.fitToSuppliedMarkers(["origin", "destination"],
+    //     {edgePadding:{top: 200, right: 100, bottom: 100, left: 100}}
+    //   );
+    // }, [origin, destination])
 
-    useEffect(()=>{
-      if (!origin || !destination) return;
+    // useEffect(()=>{
+    //   if (!origin || !destination) return;
 
 
-      const getTravelTime = async () =>{
-        fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?units
-          =imperial&origins=${origin.description}&destinations=${destination.description}&key=${EXPO_GOOGLE_MAPS_APIKEY}`)
-          .then((res)=>res.json())
-          .then((data)=>{
-            dispatch(setTravelTimeInfo(data.rows[0].elements[0]));
-            console.log(data)
-          })
-      }
+    //   const getTravelTime = async () =>{
+    //     fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?units
+    //       =imperial&origins=${origin.description}&destinations=${destination.description}&key=${EXPO_GOOGLE_MAPS_APIKEY}`)
+    //       .then((res)=>res.json())
+    //       .then((data)=>{
+    //         dispatch(setTravelTimeInfo(data.rows[0].elements[0]));
+    //         console.log(data)
+    //       })
+    //   }
 
-      getTravelTime()
+    //   getTravelTime()
      
-    }, [origin, destination, EXPO_GOOGLE_MAPS_APIKEY])
+    // }, [origin, destination, EXPO_GOOGLE_MAPS_APIKEY])
 
   return (
   
@@ -54,7 +54,7 @@ const Map = () => {
         longitudeDelta:0.005,
     }}>
 
- {origin && destination && (
+ {/* {origin && destination && (
   <MapViewDirections
       origin={origin.description}
       destination={destination.description}
@@ -62,9 +62,9 @@ const Map = () => {
       strokeWidth={3}
       strokeColor='#7F00FF'
   />
-)}
+)} */}
 
-{origin?.location &&(
+{/* {origin?.location &&(
     <Marker
     coordinate={{
         latitude: origin?.location.lat,
@@ -75,10 +75,10 @@ const Map = () => {
     description={origin?.description}
     identifier='origin'
     />
-)}
+)} */}
 
 
-{destination?.location &&(
+{/* {destination?.location &&(
     <Marker
     coordinate={{
         latitude: destination?.location.lat,
@@ -89,7 +89,7 @@ const Map = () => {
     description={destination?.description}
     identifier='destination'
     />
-)}
+)} */}
         </MapView> 
   )
 }

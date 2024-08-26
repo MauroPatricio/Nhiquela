@@ -22,7 +22,7 @@ import MapScreen from './screens/MapScreen';
 import {KeyboardAvoidingView, Platform} from 'react-native'
 import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
-
+import GeoLocation from 'react-native-get-location'
 
 const Stack = createNativeStackNavigator();
 
