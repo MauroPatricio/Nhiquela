@@ -14,43 +14,43 @@ const Categories = () => {
 
   const fechtData = async () => {
 
-      try{
-        setLoading(true);
-  
-        const response = await api.get('/categories');
+    try {
+      setLoading(true);
 
-        if(response.status==200){
-            setLoading(false);
-            setCategories(response.data.categories)
-        }
-      }catch(error){
+      const response = await api.get('/categories');
+
+      if (response.status == 200) {
         setLoading(false);
+        setCategories(response.data.categories)
       }
-}
+    } catch (error) {
+      setLoading(false);
+    }
+  }
 
-  useEffect(()=>{
+  useEffect(() => {
 
     fechtData()
-  
+
   }, [])
 
   return (
-    <ScrollView 
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={styles.wrapper}
-    contentContainerStyle={{
-      paddingHorizontal: 15,
-      // paddingTop: 10,
-      // marginBottom: 5
-    }}>
-           
-      {categories?.map(categorie =>(
-            <CategoryCard key={categorie._id} title={categorie.nome} />
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.wrapper}
+      contentContainerStyle={{
+        paddingHorizontal: 15,
+        // paddingTop: 10,
+        // marginBottom: 5
+      }}>
+
+      {categories?.map(categorie => (
+        <CategoryCard key={categorie._id} title={categorie.nome} />
       ))}
 
-     </ScrollView> 
-   
+    </ScrollView>
+
   )
 }
 
@@ -58,18 +58,18 @@ export default Categories
 
 const styles = StyleSheet.create({
 
-  image:{
+  image: {
     aspectRatio: 1,
     resizeMode: 'cover'
-},
-cover: {
-  height: 50,
-  width: 50,
-  resizeMode: "contain",
-  marginBottom: 0,
-  backgroundColor: 'white'
-},
-wrapper:{
-  // marginBottom: 122
-}
+  },
+  cover: {
+    height: 50,
+    width: 50,
+    resizeMode: "contain",
+    marginBottom: 0,
+    backgroundColor: 'white'
+  },
+  wrapper: {
+    // marginBottom: 122
+  }
 })
