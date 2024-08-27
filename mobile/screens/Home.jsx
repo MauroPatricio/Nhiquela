@@ -74,9 +74,12 @@ const Home = () => {
         <Categories />
         {/* <CarouselAnimation/> */}
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
-        <ProductView />
+        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
+        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
+        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
+        {/* <ProductView /> */}
         { /*Aqui devo rever o erro de Flatlist nesse ProductRow*/}
-        <ProductRow />
+        {/* <ProductRow /> */}
       </ScrollView>
     </SafeAreaView>
   )

@@ -21,7 +21,7 @@ const SellerCard = ({
   const getShortDescription = (text, wordLimit) => {
     const words = text.split(' ');
     if (words.length > wordLimit) {
-      return words.slice(0, wordLimit).join(' ') + '...';
+      return words.slice(0, wordLimit).join(' ') + '... ';
     }
     return text;
   };
@@ -50,13 +50,13 @@ const SellerCard = ({
           <Text style={styles.name}>{name}</Text>
 
           <Text style={styles.description}>
-            {getShortDescription(description, 10)} {/* Limite de 10 palavras */}
+            {getShortDescription(description, 7)}
           </Text>
 
-          <View style={styles.location}>
+          {/* <View style={styles.location}>
             <Ionicons name="location-outline" color="#7F00FF" size={18} />
             <Text style={styles.locationText}>{address}</Text>
-          </View>
+          </View> */}
 
           <View style={styles.rating}>
             <StarIcon color="darkorange" opacity={0.9} size={18} />
@@ -72,13 +72,13 @@ export default SellerCard;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#E6E6FA',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     shadowColor: 'grey',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 10,
     margin: 10,
     width: 200,
   },
@@ -88,11 +88,11 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 120,
+    height: 170,
     resizeMode: 'cover',
   },
   textContainer: {
-    padding: 12,
+    padding: 2,
   },
   name: {
     fontSize: 16,
