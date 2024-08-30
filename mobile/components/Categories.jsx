@@ -1,38 +1,10 @@
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
 import CategoryCard from './CategoryCard'
-import api from '../hooks/createConnectionApi';
 
-const Categories = () => {
-
-  const [categories, setCategories] = useState(null);
+const Categories = ({ categories, onCategorySelect }) => {
   const [loading, setLoading] = useState(null);
-
   const [error, setError] = useState(null);
-
-
-
-  const fechtData = async () => {
-
-    try {
-      setLoading(true);
-
-      const response = await api.get('/categories');
-
-      if (response.status == 200) {
-        setLoading(false);
-        setCategories(response.data.categories)
-      }
-    } catch (error) {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-
-    fechtData()
-
-  }, [])
 
   return (
     <ScrollView
@@ -41,23 +13,25 @@ const Categories = () => {
       style={styles.wrapper}
       contentContainerStyle={{
         paddingHorizontal: 15,
-        // paddingTop: 10,
-        // marginBottom: 5
-      }}>
-
-      {categories?.map(categorie => (
-        <CategoryCard key={categorie._id} title={categorie.nome} />
+      }}
+    >
+       {categories?.map((category, index) => (
+        <TouchableOpacity
+          key={category._id}
+          onPress={() => onCategorySelect(index)}
+        >
+          <CategoryCard
+            title={category.nome}
+          />
+        </TouchableOpacity>
       ))}
-
     </ScrollView>
-
   )
 }
 
 export default Categories
 
 const styles = StyleSheet.create({
-
   image: {
     aspectRatio: 1,
     resizeMode: 'cover'

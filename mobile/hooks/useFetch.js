@@ -15,6 +15,7 @@ const useFetch = () => {
             const result = await api.get('/products');
             setData(result.data)
             setIsLoading(false);
+            
         }catch(error){
             setError(error)
         }finally{

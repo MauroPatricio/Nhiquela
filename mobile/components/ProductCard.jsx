@@ -1,0 +1,105 @@
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { StarIcon } from 'react-native-heroicons/outline';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { Badge } from 'react-native-paper';
+
+const ProductCard = ({
+  id,
+  name,
+  logo,
+  description,
+  rating,
+  numReviews,
+  province,
+  address,
+  latitude,
+  longitude,
+  item
+}) => {
+  const navigation = useNavigation();
+
+  const getShortDescription = (text, wordLimit) => {
+    const words = text.split(' ');
+    if (words.length > wordLimit) {
+      return words.slice(0, wordLimit).join(' ') + '... ';
+    }
+    return text;
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("ProductDetail", { item })}>
+      <View style={styles.card_template}>
+        <Image source={{ uri: logo }} style={styles.image} />
+
+        <View style={styles.details}>
+          <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
+          <Text style={styles.supplier} numberOfLines={1}>{getShortDescription(item.item.description, )}</Text>
+
+          <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
+          <Text>
+            {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
+          </Text>
+
+        </View>
+        <TouchableOpacity style={styles.addBtn}>
+          <Ionicons name='cart' size={25}
+            color={'#3e2465'}
+          />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+export default ProductCard;
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    shadowColor: 'grey',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 10,
+    margin: 10,
+    width: 200,
+  },
+  card_template: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: 170,
+    resizeMode: 'cover',
+  },
+  textContainer: {
+    padding: 2,
+  },
+  details: {
+    padding: 12
+},
+title: {
+    fontSize: 12,
+    fontWeight: '800'
+},
+supplier: {
+    fontSize: 12,
+    fontWeight: '600'
+
+},
+price: {
+    fontSize: 12,
+    fontWeight: '400'
+},
+addBtn: {
+    position: "absolute",
+    bottom: 10,
+    right: 12
+}
+});

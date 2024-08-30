@@ -1,30 +1,72 @@
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import styles from './home.style';
-import { Ionicons } from "@expo/vector-icons"
-import { Welcome } from './Index';
-import ProductRow from '../components/products/ProductRow';
-import CarouselAnimation from '../components/CarouselAnimation';
-import ProductView from '../components/products/ProductView';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from "@expo/vector-icons";
 import Categories from '../components/Categories';
 import SellersView from '../components/SellersView';
-import { useSelector } from 'react-redux'
-import { selectBasketItems, selectBasketTotal } from '../features/basketSlice'
-import { useNavigation } from '@react-navigation/native'
-
+import ProductHomeView from '../components/ProductHomeView';
+import style from './home.style';
+import api from '../hooks/createConnectionApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { useSelector } from 'react-redux';
+import { selectBasketItems } from '../features/basketSlice';
+import { Welcome } from './Index';
 
 const Home = () => {
-  const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
-  const [userLogin, setUserLogin] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
-
 
   useEffect(() => {
     checkIfUserExist();
-  }, [])
+    fetchData();
+    fetchProductData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await api.get('/categories');
+      if (response.status === 200) {
+        setCategories(response.data.categories || []);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchProductData = async () => {
+    try {
+      const response = await api.get('/products/bycategory');
+      if (response.status === 200) {
+        const products = response.data || [];
+        setProducts(products);
+
+        const categoriesMap = new Map();
+        products.forEach(product => {
+          const category = product.categoryDetails;
+          if (!categoriesMap.has(category._id)) {
+            categoriesMap.set(category._id, {
+              ...category,
+              products: []
+            });
+          }
+          categoriesMap.get(category._id).products.push(product);
+        });
+
+        const categoriesWithProducts = Array.from(categoriesMap.values())
+          .filter(category => category.products.length > 0);
+
+        setCategories(categoriesWithProducts);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
@@ -32,58 +74,111 @@ const Home = () => {
 
     try {
       const currentUser = await AsyncStorage.getItem(userId);
-
       if (currentUser !== null) {
         const parseData = JSON.parse(currentUser);
         setUserData(parseData);
-        setUserLogin(true);
       }
     } catch (error) {
-      console.log(error)
+      console.error(error);
     }
-  }
+  };
 
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setBottomSheetOpen(true);
+    bottomSheetRef.current?.expand();
+  };
+
+  const handleCloseBottomSheet = () => {
+    setBottomSheetOpen(false);
+    bottomSheetRef.current?.close();
+  };
 
   return (
     <SafeAreaView style={{ backgroundColor: "white" }}>
-      <View style={styles.appBarWrapper}>
-        <View style={styles.appBar}>
+      <View style={style.appBarWrapper}>
+        <View style={style.appBar}>
           <Image
             source={require('../assets/default1.jpg')}
-            style={styles.cover}
+            style={style.cover}
           />
-          <Text style={styles.location}>{userData !== null ? `Olá, ${userData.name.length < 50 ? userData.name : userData.name.substring(0, 40) + '...'}` : 'Faça login'}</Text>
-
-          <View style={{ alignItems: "flex-end" }} >
-            <View style={styles.cartCount}>
-              <Text style={styles.cartNumber}>{items.length}</Text>
+          <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
+          <View style={{ alignItems: "flex-end" }}>
+            <View style={style.cartCount}>
+              <Text style={style.cartNumber}>{items.length}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
               <Ionicons name="cart-outline" size={26} />
             </TouchableOpacity>
           </View>
         </View>
-        {/* <View style={styles.locationView}>
-
-          <Ionicons name="location-outline" size={24}/>
-          <Text >Maputo</Text>
-        </View> */}
       </View>
-      <Welcome />
-      <ScrollView >
-        <Categories />
-        {/* <CarouselAnimation/> */}
+      <Welcome/>
+
+      <ScrollView>
+        <Categories categories={categories} onCategorySelect={handleCategorySelect} />
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
-        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
-        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
-        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
-        {/* <ProductView /> */}
-        { /*Aqui devo rever o erro de Flatlist nesse ProductRow*/}
-        {/* <ProductRow /> */}
+        {categories.map((category) => {
+          const match = category.nome.match(/\((.*?)\)/);
+          const description = match ? match[1] : '';
+          const title = category.nome.replace(/\(.*?\)/, '').trim();
+          const allProductsByCategories = category.products || [];
+          
+          return (
+            <View
+              key={category._id}
+            >
+              <ProductHomeView
+                title={title}
+                description={description}
+                categoryid={category._id}
+                products={allProductsByCategories}
+              />
+            </View>
+          );
+        })}
+        <View style={{ marginBottom: 250 }} />
       </ScrollView>
+
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1} 
+        snapPoints={[0.1, '50%']} 
+        enablePanDownToClose={true} 
+        onClose={() => handleCloseBottomSheet()}
+      >
+        
+        {selectedCategory && (
+          <View style={styles.bottomSheetContent}>
+            <Text style={styles.bottomSheetTitle}>Produtos em {selectedCategory.nome}</Text>
+            {selectedCategory.products.map(product => (
+              <View key={product._id} style={styles.productContainer}>
+                <Text>{product.name}</Text>
+                
+              </View>
+            ))}
+          </View>
+        )}
+      </BottomSheet>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default Home
+const styles = StyleSheet.create({
+  bottomSheetContent: {
+    flex: 1,
+    padding: 16,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  productContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+});
 
+export default Home;
