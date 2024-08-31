@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import Categories from '../components/Categories';
@@ -8,10 +8,13 @@ import ProductHomeView from '../components/ProductHomeView';
 import style from './home.style';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BottomSheet from '@gorhom/bottom-sheet';
 import { useSelector } from 'react-redux';
 import { selectBasketItems } from '../features/basketSlice';
 import { Welcome } from './Index';
+import BottomSheetComponent from '../components/BottomSheetComponent';
+import { Badge } from 'react-native-paper';
+
+import { useNavigation } from "@react-navigation/native"
 
 const Home = () => {
   const [userData, setUserData] = useState(null);
@@ -21,6 +24,8 @@ const Home = () => {
   const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
   const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
+
+  const navigation = useNavigation();
 
   useEffect(() => {
     checkIfUserExist();
@@ -113,21 +118,45 @@ const Home = () => {
           </View>
         </View>
       </View>
-      <Welcome/>
+      <Welcome />
 
       <ScrollView>
-        <Categories categories={categories} onCategorySelect={handleCategorySelect} />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 15,
+          }}
+        >
+          {categories
+            .sort((a, b) => {
+              const titleA = a.nome.replace(/\(.*?\)/, '').trim().toUpperCase();
+              const titleB = b.nome.replace(/\(.*?\)/, '').trim().toUpperCase();
+              if (titleA < titleB) return -1;
+              if (titleA > titleB) return 1;
+              return 0;
+            })
+            .map((category) => {
+              const title = category.nome.replace(/\(.*?\)/, '').trim();
+              return (
+                <TouchableOpacity style={styles.wrapper} onPress={() => handleCategorySelect(category)}>
+                  <Text style={styles.title}>{title}</Text>
+                </TouchableOpacity>
+              );
+            })}
+        </ScrollView>
+
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
+
         {categories.map((category) => {
           const match = category.nome.match(/\((.*?)\)/);
           const description = match ? match[1] : '';
           const title = category.nome.replace(/\(.*?\)/, '').trim();
           const allProductsByCategories = category.products || [];
-          
+
           return (
-            <View
-              key={category._id}
-            >
+            <View key={category._id}>
               <ProductHomeView
                 title={title}
                 description={description}
@@ -140,26 +169,45 @@ const Home = () => {
         <View style={{ marginBottom: 250 }} />
       </ScrollView>
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1} 
-        snapPoints={[0.1, '50%']} 
-        enablePanDownToClose={true} 
-        onClose={() => handleCloseBottomSheet()}
+      <BottomSheetComponent
+        isOpen={isBottomSheetOpen}
+        toggleSheet={handleCloseBottomSheet}
       >
-        
         {selectedCategory && (
           <View style={styles.bottomSheetContent}>
             <Text style={styles.bottomSheetTitle}>Produtos em {selectedCategory.nome}</Text>
-            {selectedCategory.products.map(product => (
-              <View key={product._id} style={styles.productContainer}>
-                <Text>{product.name}</Text>
-                
-              </View>
-            ))}
+            <ScrollView showsVerticalScrollIndicator={false}>
+
+              {selectedCategory.products.map((product) => {
+                const item = { item: product };
+                return (
+                  <TouchableOpacity key={product._id} style={styles.productContainer} onPress={() => navigation.navigate("ProductDetail", { item })}>
+                    <View style={styles.productRow}>
+                      <Image
+                        source={{ uri: product.image }}
+                        style={styles.logo}
+                      />
+                      <View style={styles.productDetails}>
+                        <Text style={styles.productBrand}>{product.brand}</Text>
+                        <Text style={styles.productDescription}>{product.description}</Text>
+                        <View style={styles.ratingRow}>
+                          <Text>
+                            {product.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : product.countInStock !== 0 ? product.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
+                        </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.productPrice}>MT {product.price}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={{marginBottom: 210}} />
+              
+            </ScrollView>
           </View>
         )}
-      </BottomSheet>
+      </BottomSheetComponent>
+
     </SafeAreaView>
   );
 };
@@ -168,6 +216,7 @@ const styles = StyleSheet.create({
   bottomSheetContent: {
     flex: 1,
     padding: 16,
+    height: 150
   },
   bottomSheetTitle: {
     fontSize: 18,
@@ -178,6 +227,67 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
+  },
+  wrapper: {
+    letterSpacing: 1,
+    marginRight: 7,
+    backgroundColor: '#E6E6FA',
+    padding: 6,
+    borderRadius: 15,
+    borderWidth: 0.5,
+    borderColor: '#4B0082',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
+    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center'
+
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: 'medium',
+    color: '#4B0082',
+  },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    marginRight: 10,
+  },
+  productDetails: {
+    flex: 1,
+  },
+  productBrand: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  productDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  numReviewsText: {
+    fontSize: 12,
+    color: '#aaa',
+    marginLeft: 4,
+  },
+  productPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
   },
 });
 

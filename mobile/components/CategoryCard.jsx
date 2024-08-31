@@ -6,7 +6,7 @@ const CategoryCard = ({ imgUrl, title, onPress }) => {
 
   return (
     <TouchableOpacity style={styles.wrapper} onPress={onPress}>
-      {imgUrl && <Image source={{ uri: imgUrl }} style={styles.cover} />}
+      {imgUrl != null && <Image source={{ uri: imgUrl }} style={styles.cover} />}
       <Text style={styles.title}>{formattedTitle}</Text>
     </TouchableOpacity>
   );
