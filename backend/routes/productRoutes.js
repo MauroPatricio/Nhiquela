@@ -32,7 +32,8 @@ productRoutes.get('/bycategory', async (req, res) => {
              'categoryDetails.name': 1, // Sort by category title in ascending order
            },
          },
-       ]);
+       ]).populate(  [  { path: 'seller'},
+          { path: 'category' }, { path: 'province' },  { path: 'qualityType' },  { path: 'conditionStatus' },  { path: 'size' },  { path: 'color' }]).skip(pageSize *(page -1)).limit(pageSize).sort({category: 1, createdAt: -1});
    
        res.json(productsByCategory);
      } catch (error) {
