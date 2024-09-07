@@ -28,12 +28,33 @@ productRoutes.get('/bycategory', async (req, res) => {
            $unwind: '$categoryDetails',
          },
          {
+          $lookup: {
+            from: 'users', // Join with the sellers collection
+            localField: 'seller', // Field from the Product collection
+            foreignField: '_id', // Field from the Seller collection
+            as: 'sellerDetails', // Alias for the joined data
+          },
+        },
+        {
+          $unwind: '$sellerDetails', // Unwind the sellerDetails array
+        },
+        {
+          $lookup: {
+            from: 'provinces', // Join with the sellers collection
+            localField: 'province', // Field from the Product collection
+            foreignField: '_id', // Field from the Seller collection
+            as: 'provinceDetails', // Alias for the joined data
+          },
+        },
+        {
+          $unwind: '$provinceDetails', // Unwind the provinceDetails array
+        },
+         {
            $sort: {
              'categoryDetails.name': 1, // Sort by category title in ascending order
            },
          },
-       ]).populate('seller');
-   
+       ])
        res.json(productsByCategory);
      } catch (error) {
        res.status(500).json({ error: 'Ocorreu um erro no servidor' });
