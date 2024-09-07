@@ -137,7 +137,7 @@ const Home = () => {
               if (titleA > titleB) return 1;
               return 0;
             })
-            .map((category) => {
+            ?.map((category) => {
               const title = category.nome.replace(/\(.*?\)/, '').trim();
               return (
                 <TouchableOpacity style={styles.wrapper} onPress={() => handleCategorySelect(category)}>
@@ -149,7 +149,7 @@ const Home = () => {
 
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
 
-        {categories.map((category) => {
+        {categories?.map((category) => {
           const match = category.nome.match(/\((.*?)\)/);
           const description = match ? match[1] : '';
           const title = category.nome.replace(/\(.*?\)/, '').trim();
@@ -162,6 +162,7 @@ const Home = () => {
                 description={description}
                 categoryid={category._id}
                 products={allProductsByCategories}
+                key={category._id}
               />
             </View>
           );
@@ -178,7 +179,7 @@ const Home = () => {
             <Text style={styles.bottomSheetTitle}>Produtos em {selectedCategory.nome}</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-              {selectedCategory.products.map((product) => {
+              {selectedCategory.products?.map((product) => {
                 const item = { item: product };
                 return (
                   <TouchableOpacity key={product._id} style={styles.productContainer} onPress={() => navigation.navigate("ProductDetail", { item })}>
@@ -196,7 +197,7 @@ const Home = () => {
                         </Text>
                         </View>
                       </View>
-                      <Text style={styles.productPrice}>MT {product.price}</Text>
+                      <Text style={styles.productPrice}>{product.price} MT</Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -231,24 +232,27 @@ const styles = StyleSheet.create({
   wrapper: {
     letterSpacing: 1,
     marginRight: 7,
-    backgroundColor: '#E6E6FA',
+    backgroundColor: '#7F00FF',
     padding: 6,
     borderRadius: 15,
-    borderWidth: 0.5,
+    // borderWidth: 0.5,
     borderColor: '#4B0082',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
-    elevation: 5,
-    justifyContent: 'center',
-    alignItems: 'center'
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.8,
+    // shadowRadius: 3,
+    // elevation: 5,
+    // justifyContent: 'center',
+    // alignItems: 'center'
 
   },
   title: {
     fontSize: 14,
-    fontWeight: 'medium',
-    color: '#4B0082',
+    fontWeight: 'bold',
+    color: 'white',
+    marginLeft:8,
+    marginRight: 8
+
   },
   productRow: {
     flexDirection: 'row',
@@ -263,11 +267,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productBrand: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   productDescription: {
-    fontSize: 14,
+
+    fontSize: 15,
+    fontWeight: '500',
     color: '#666',
   },
   ratingRow: {
@@ -285,8 +291,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   productPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '500',
     color: '#000',
   },
 });

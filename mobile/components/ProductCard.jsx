@@ -4,6 +4,8 @@ import { StarIcon } from 'react-native-heroicons/outline';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Badge } from 'react-native-paper';
+import { addToBasket, selectBasketItemsWithId } from '../features/basketSlice';
+import { useDispatch, useSelector } from 'react-redux';
 
 const ProductCard = ({
   id,
@@ -16,9 +18,13 @@ const ProductCard = ({
   address,
   latitude,
   longitude,
+  countInStock,
   item
 }) => {
   const navigation = useNavigation();
+
+  const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
+
 
   const getShortDescription = (text, wordLimit) => {
     const words = text.split(' ');
@@ -27,6 +33,25 @@ const ProductCard = ({
     }
     return text;
   };
+
+  const dispatch = useDispatch();
+
+  const addItemToBasket = () => {
+
+      if ( countInStock == items.length ) return;
+      dispatch(addToBasket({id,                 
+          name,
+          image,
+          images,
+          description,
+          rating,
+          numReviews,
+          province,
+          address,
+          price,
+          onSale,
+          countInStock}));
+  }
 
   return (
     <TouchableOpacity
@@ -38,16 +63,18 @@ const ProductCard = ({
         <View style={styles.details}>
           <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
           <Text style={styles.supplier} numberOfLines={1}>{getShortDescription(item.item.description, )}</Text>
+          <Text style={styles.countInStock} numberOfLines={1}>{console.log(item.item.seller)} unidade(s)</Text>
 
+          <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text>
           <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
           <Text>
             {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
           </Text>
 
         </View>
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={()=> addItemToBasket(item._id)} >
           <Ionicons name='cart' size={25}
-            color={'#3e2465'}
+            color={'#7F00FF'}
           />
         </TouchableOpacity>
       </View>
@@ -93,9 +120,13 @@ supplier: {
     fontWeight: '600'
 
 },
+countInStock:{
+    fontSize: 14,
+    // fontWeight: '700'
+},
 price: {
-    fontSize: 12,
-    fontWeight: '400'
+    fontSize: 17,
+    fontWeight: '700'
 },
 addBtn: {
     position: "absolute",

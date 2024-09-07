@@ -12,6 +12,11 @@ const RequestDeliv = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+
+{/* <View>
+
+      <Text style={{ textAlign:'center', top: 300, fontWeight: '600', fontSize: '100'}}>Brevemente</Text>
+</View> */}
           <TransportType/>
 
     {/* <NavOptions/> */}
