@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
         alignContent: "center",
         alignItems: "center",
         marginTop: 220,
-        marginLeft: 130,
         opacity: 1
     },
     Text:{
