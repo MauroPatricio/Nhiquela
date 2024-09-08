@@ -93,9 +93,9 @@ useLayoutEffect(()=>{
                 <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={()=>navigation.goBack()}>
+            {/* <TouchableOpacity onPress={()=>navigation.goBack()}>
                 <Ionicons name='heart' size={35} style={styles.heart}/>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           <View style={styles.view}>
               <View style={styles.rating}>

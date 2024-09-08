@@ -51,7 +51,7 @@ const TransportType = () => {
     const dispatch = useDispatch();
 
     const navigation = useNavigation();
-    const origin = 'teste';
+    const origin = '';
     // const destination = useSelector(selectDestination);
 
     // const travelTimeInfo = useSelector(selectTravelTimeInfo);

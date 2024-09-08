@@ -4,7 +4,9 @@ import {Ionicons, SimpleLineIcons, MaterialCommunityIcons, Fontisto  } from '@ex
 import {useNavigation} from '@react-navigation/native'
 import {useRoute} from '@react-navigation/native'
 import { Badge } from 'react-native-paper'
-import { LogBox } from 'react-native'
+
+import {   addToBasket, removeFromBasket,selectBasketItemsWithId } from '../../features/basketSlice';
+import { useDispatch, useSelector } from 'react-redux'
 
 // LogBox.ignoreLogs(['Non-serializable values were found in navigation state'])
 
@@ -14,15 +16,47 @@ const ProductDetail = ({navigation}) => {
     const {item} = route.params;
     // const navigation = useNavigation();
     const [count, setCount] = useState(1);
-    const increment = () =>{
-        setCount(count +1)
-    }
+    const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
+    
+    
+     const id =item._id                
+     const name=item.nome
+     const image=item.image
+     const images=item.images
+     const description=item.description
+     const rating=item.rating
+     const numReviews=item.numReviews
+     const province=item.province
+      const address=item.address
+      const price=item.price
+      const onSale=item.onSale
+      const countInStock=item.countInStock
+        
+        const dispatch = useDispatch();
 
-    const decrement = () =>{
-        if(count > 1){
-            setCount(count -1)
+        const addItemToBasket = () => {
+
+            if ( countInStock == items.length ) return;
+            dispatch(addToBasket({id,                 
+                name,
+                image,
+                images,
+                description,
+                rating,
+                numReviews,
+                province,
+                address,
+                price,
+                onSale,
+                countInStock}));
         }
-    }
+
+        const removeItem = () => {
+            if (items.length == 0){
+                return;
+            }
+            dispatch(removeFromBasket({id}))
+        }
   return (
       
           <ScrollView>
@@ -46,9 +80,9 @@ const ProductDetail = ({navigation}) => {
         <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={()=>navigation.goBack()}>
+        {/* <TouchableOpacity onPress={()=>navigation.goBack()}>
         <Ionicons name='heart' size={35} style={styles.heart}/>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         </View>
       <View style={styles.details}>
         <View style={styles.titleRow}>
@@ -59,7 +93,7 @@ const ProductDetail = ({navigation}) => {
         </View>
         <View style = {styles.ratingRow}>
         <View style={styles.rating}>
-        {[1,2,3,4,5].map((index)=>(
+        {[item.item.rating].map((index)=>(
                         
                         <Ionicons
                         key={index}
@@ -68,13 +102,13 @@ const ProductDetail = ({navigation}) => {
                         name="star"
                         />
                     ))}
-                    <Text>(4.9)</Text>
+                    <Text>{item.item.rating}</Text>
                     </View>
 
 
             <View style={styles.rating}>
               
-                <TouchableOpacity onPress={()=>{decrement()}}>
+                <TouchableOpacity onPress={()=> removeItem(item._id)}>
                     <SimpleLineIcons
                     name='minus'
                     size={20}/>
@@ -82,7 +116,7 @@ const ProductDetail = ({navigation}) => {
                 
                 <Text style={styles.ratingText}>{count}</Text>
                 
-                <TouchableOpacity onPress={()=>{increment()}}>
+                <TouchableOpacity onPress={()=> addItemToBasket(item._id)} >
                     <SimpleLineIcons
                     name='plus'
                     size={20}/>
@@ -109,7 +143,7 @@ const ProductDetail = ({navigation}) => {
                             name="location-outline"
                             size={20}
                             />
-                            <Text> {item.item.province.name}</Text>
+                            <Text> {item.item.province?.name}</Text>
                     </View>
 
                     <View style={{flexDirection: "row"}}>
@@ -118,17 +152,17 @@ const ProductDetail = ({navigation}) => {
 name="truck-delivery-outline"
 size={20}
 />
-<Text> Free delivery</Text>
+<Text> Entrega disponível</Text>
 </View>
                 </View>
             </View>
 
             <View style={styles.cartRow}>
-                <TouchableOpacity onPress={()=>{}} style={styles.cartBtn}>
+                <TouchableOpacity style={styles.cartBtn}  onPress={() => navigation.navigate("ProductDetail", { item })}>
                     <Text style={styles.cartText}>Pagar</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={()=>{}} style={styles.addCart}>
+                <TouchableOpacity onPress={()=> addItemToBasket()} style={styles.addCart}>
 
                     <Ionicons name="cart-outline"
                     size={24}
@@ -140,7 +174,7 @@ size={20}
 
       </View>
     </View>
-                    </ScrollView> 
+ </ScrollView> 
   )
 }
 
@@ -149,7 +183,9 @@ export default ProductDetail
 
 const styles = StyleSheet.create({
 container: {
-    flex:1
+    flex:1,
+    backgroundColor: 'white'
+
 },
 
 
@@ -186,15 +222,17 @@ title: {
 },
 priceWrapper:{
     marginLeft: 10,
-    marginRight: 10,
-    marginTop: 15,
-    backgroundColor: "#3e2465",
-    borderRadius: 10,
-    alignItems: "center"
+    // marginRight: 10,
+    // marginTop: 15,
+    // backgroundColor: "#7F00FF",
+    // borderRadius: 10,
+    // alignItems: "center"
 },
 price:{
+    fontSize: 20,
     padding: 10,
-    color: "white"
+    color: "#7F00FF",
+    fontWeight: '800'
 },
 ratingRow:{
     paddingBottom: 12,
@@ -249,7 +287,7 @@ cartRow:{
 cartBtn: {
     padding: 10,
     width: 250,
-    backgroundColor: '#3e2465',
+    backgroundColor: '#7F00FF',
     borderRadius: 22,
     marginLeft:22
 },
@@ -263,7 +301,7 @@ addCart:{
         height: 37,
         borderRadius: 50,
         // margin: 12,
-        backgroundColor: '#3e2465',
+        backgroundColor: '#7F00FF',
         marginLeft:20,
         alignItems: "center",
         justifyContent: "center"

@@ -9,7 +9,6 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
 
   const [isloading, setLoading] = useState(false);
 
-
   return (
     <View>
       <View style={styles.sellerWrapper}>
@@ -24,9 +23,8 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
             paddingHorizontal: 1,
           }}
           showsHorizontalScrollIndicator={false}>
-          {products != null && products.map((item, index) => {
+          {products != null && products?.map((item, index) => {
             const item2 = { item: item }
-
             return (
               <>
                 <ProductCard
@@ -40,6 +38,8 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
                   address={''}
                   latitude={''}
                   longitude={''}
+                  countInStock={item.countInStock}
+                  seller={item.seller}
                   item={item2}
                 />
               </>
