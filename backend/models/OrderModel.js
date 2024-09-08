@@ -2,6 +2,13 @@ import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema(
   {
+    sellers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Assuming there's a Seller model in your database
+        // required: true
+      }
+    ],
     orderItems: [
       {
         slug: {type: String},
