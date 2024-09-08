@@ -36,6 +36,7 @@ const Home = () => {
   const fetchData = async () => {
     try {
       const response = await api.get('/categories');
+      
       if (response.status === 200) {
         setCategories(response.data.categories || []);
       }
@@ -48,6 +49,7 @@ const Home = () => {
     try {
       const response = await api.get('/products/bycategory');
       if (response.status === 200) {
+        console.log(response.data)
         const products = response.data || [];
         setProducts(products);
 
@@ -150,19 +152,22 @@ const Home = () => {
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
 
         {categories?.map((category) => {
+
+const randomNum = Math.random();
+
           const match = category.nome.match(/\((.*?)\)/);
           const description = match ? match[1] : '';
           const title = category.nome.replace(/\(.*?\)/, '').trim();
           const allProductsByCategories = category.products || [];
 
           return (
-            <View key={category._id}>
+            <View >
               <ProductHomeView
                 title={title}
                 description={description}
                 categoryid={category._id}
                 products={allProductsByCategories}
-                key={category._id}
+                key={randomNum}
               />
             </View>
           );
