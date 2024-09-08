@@ -6,6 +6,7 @@ import { isAuth, isSellerOrAdmin } from '../utils.js';
 import User from '../models/UserModel.js';
 
 
+
 import {v2 as cloudinary} from 'cloudinary';
 
 const productRoutes = express.Router();
@@ -41,7 +42,7 @@ productRoutes.get('/bycategory', async (req, res) => {
         
         {
           $lookup: {
-            from: 'qualityTypes', // Join with the sellers collection
+            from: 'qualitytypes', // Join with the sellers collection
             localField: 'qualityType', // Field from the Product collection
             foreignField: '_id', // Field from the Seller collection
             as: 'qualityTypeDetails', // Alias for the joined data
@@ -53,7 +54,7 @@ productRoutes.get('/bycategory', async (req, res) => {
 
         {
           $lookup: {
-            from: 'conditionStatuses', // Join with the sellers collection
+            from: 'conditionstatuses', // Join with the sellers collection
             localField: 'conditionStatus', // Field from the Product collection
             foreignField: '_id', // Field from the Seller collection
             as: 'conditionStatusDetails', // Alias for the joined data
