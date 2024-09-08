@@ -38,6 +38,30 @@ productRoutes.get('/bycategory', async (req, res) => {
         {
           $unwind: '$sellerDetails', // Unwind the sellerDetails array
         },
+        
+        {
+          $lookup: {
+            from: 'qualityTypes', // Join with the sellers collection
+            localField: 'qualityType', // Field from the Product collection
+            foreignField: '_id', // Field from the Seller collection
+            as: 'qualityTypeDetails', // Alias for the joined data
+          },
+        },
+        {
+          $unwind: '$qualityTypeDetails', // Unwind the qualityTypeDetails array
+        },
+
+        {
+          $lookup: {
+            from: 'conditionStatuses', // Join with the sellers collection
+            localField: 'conditionStatus', // Field from the Product collection
+            foreignField: '_id', // Field from the Seller collection
+            as: 'conditionStatusDetails', // Alias for the joined data
+          },
+        },
+        {
+          $unwind: '$conditionStatusDetails', // Unwind the conditionStatusDetails array
+        },
         {
           $lookup: {
             from: 'provinces', // Join with the sellers collection

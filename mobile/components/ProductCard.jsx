@@ -19,6 +19,7 @@ const ProductCard = ({
   latitude,
   longitude,
   countInStock,
+  seller,
   item
 }) => {
   const navigation = useNavigation();
@@ -63,7 +64,7 @@ const ProductCard = ({
         <View style={styles.details}>
           <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
           <Text style={styles.supplier} numberOfLines={1}>{getShortDescription(item.item.description, )}</Text>
-          <Text style={styles.countInStock} numberOfLines={1}>{console.log(item.item.seller)} unidade(s)</Text>
+          {/* <Text style={styles.countInStock} numberOfLines={1}>{console.log(seller)}</Text> */}
 
           <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text>
           <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
@@ -112,8 +113,8 @@ const styles = StyleSheet.create({
     padding: 12
 },
 title: {
-    fontSize: 12,
-    fontWeight: '800'
+    fontSize: 15,
+    fontWeight: '500'
 },
 supplier: {
     fontSize: 12,
@@ -125,7 +126,7 @@ countInStock:{
     // fontWeight: '700'
 },
 price: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '700'
 },
 addBtn: {

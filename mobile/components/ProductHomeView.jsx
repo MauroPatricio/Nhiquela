@@ -9,7 +9,6 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
 
   const [isloading, setLoading] = useState(false);
 
-
   return (
     <View>
       <View style={styles.sellerWrapper}>
@@ -40,7 +39,7 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
                   latitude={''}
                   longitude={''}
                   countInStock={item.countInStock}
-                  seller={item}
+                  seller={item.seller}
                   item={item2}
                 />
               </>
