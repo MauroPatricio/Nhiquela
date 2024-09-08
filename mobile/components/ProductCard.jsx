@@ -26,7 +26,6 @@ const ProductCard = ({
 
   const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
 
-
   const getShortDescription = (text, wordLimit) => {
     const words = text.split(' ');
     if (words.length > wordLimit) {
@@ -63,10 +62,10 @@ const ProductCard = ({
 
         <View style={styles.details}>
           <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
-          <Text style={styles.supplier} numberOfLines={1}>{getShortDescription(item.item.description, )}</Text>
-          {/* <Text style={styles.countInStock} numberOfLines={1}>{console.log(seller)}</Text> */}
+          {/* <Text numberOfLines={1}>{getShortDescription(item.item.description, )}</Text> */}
+          <Text style={styles.supplier} numberOfLines={1}>{seller.seller.name}</Text>
 
-          <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text>
+          {/* <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text> */}
           <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
           <Text>
             {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}

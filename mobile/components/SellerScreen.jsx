@@ -121,22 +121,25 @@ useLayoutEffect(()=>{
           </View>
           <View style={{paddingBottom: 90}}>
           {productsBySeller && productsBySeller.map((product)=>(
-
-                          <SellerProduct   
-                            key={product._id}
-                            id ={product._id}                  
-                            name={product.nome}
-                            image={product.image}
-                            images={product.images}
-                            description={product.description}
-                            rating={product.rating}
-                            numReviews={product.numReviews}
-                            province={product.province}
-                            address={product.address}
-                            price={product.price}
-                            onSale={product.onSale}
-                            countInStock={product.countInStock}
-                        />
+            <>
+            
+                                      <SellerProduct   
+                                        key={product._id}
+                                        id ={product._id}                  
+                                        name={product.nome}
+                                        image={product.image}
+                                        images={product.images}
+                                        description={product.description}
+                                        rating={product.rating}
+                                        numReviews={product.numReviews}
+                                        province={product.province}
+                                        address={product.address}
+                                        price={product.price}
+                                        onSale={product.onSale}
+                                        countInStock={product.countInStock}
+                                        seller={product.seller.seller.name}
+                                    />
+            </>
           ))}
             </View>
 

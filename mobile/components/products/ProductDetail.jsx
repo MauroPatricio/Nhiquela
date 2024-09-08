@@ -7,6 +7,8 @@ import { Badge } from 'react-native-paper'
 
 import {   addToBasket, removeFromBasket,selectBasketItemsWithId } from '../../features/basketSlice';
 import { useDispatch, useSelector } from 'react-redux'
+import BasketIcon from '../BasketIcon'
+
 
 // LogBox.ignoreLogs(['Non-serializable values were found in navigation state'])
 
@@ -16,21 +18,24 @@ const ProductDetail = ({navigation}) => {
     const {item} = route.params;
     // const navigation = useNavigation();
     const [count, setCount] = useState(1);
-    const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
+    const items = useSelector((state) =>selectBasketItemsWithId(state, item.item._id));
     
     
-     const id =item._id                
-     const name=item.nome
-     const image=item.image
-     const images=item.images
-     const description=item.description
-     const rating=item.rating
-     const numReviews=item.numReviews
-     const province=item.province
-      const address=item.address
-      const price=item.price
-      const onSale=item.onSale
-      const countInStock=item.countInStock
+     const id =item.item._id                
+     const name=item.item.nome
+     const image=item.item.image
+     const images=item.item.images
+     const description=item.item.description
+     const rating=item.item.rating
+     const numReviews=item.item.numReviews
+     const province=item.item.province
+      const address=item.item.address
+      const price=item.item.price
+      const onSale=item.item.onSale
+      const countInStock=item.item.countInStock
+      const sellerDetail = item.item.sellerDetails
+      const seller = sellerDetail.seller.name
+
         
         const dispatch = useDispatch();
 
@@ -48,7 +53,8 @@ const ProductDetail = ({navigation}) => {
                 address,
                 price,
                 onSale,
-                countInStock}));
+                countInStock,
+                seller}));
         }
 
         const removeItem = () => {
@@ -58,8 +64,10 @@ const ProductDetail = ({navigation}) => {
             dispatch(removeFromBasket({id}))
         }
   return (
-      
+      <>
+                   <BasketIcon/>
           <ScrollView>
+
       <View style={styles.container}>
       {/* <View style={styles.upperRow}>
             <TouchableOpacity onPress={()=>navigation.goBack()}>
@@ -80,17 +88,32 @@ const ProductDetail = ({navigation}) => {
         <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
         </TouchableOpacity>
 
-        {/* <TouchableOpacity onPress={()=>navigation.goBack()}>
-        <Ionicons name='heart' size={35} style={styles.heart}/>
-        </TouchableOpacity> */}
+     
+
+{/* <View style={{ alignItems: "flex-end" }}>
+            <View style={styles.cartCount}>
+              <Text style={styles.cartNumber}>{items.length}</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+              <Ionicons name="cart-outline" size={35} style={styles.cartoutline}/>
+            </TouchableOpacity>
+          </View> */}
         </View>
       <View style={styles.details}>
+      <View style={styles.countInStock}>
+        <Text style={{fontWeight: '500', top: 20, fontSize: 20, bottom: 10, fontWeight: '700'}}>Fornecedor: {item.item.sellerDetails.seller.name}</Text>
+        </View>
         <View style={styles.titleRow}>
             <Text style={styles.title}>{item.item.nome}</Text>
         </View>
         <View style={styles.priceWrapper}>
             <Text style={styles.price}>{item.item.price} MT</Text>
         </View>
+       
+        <View style={styles.countInStock}>
+        <Text>{countInStock} unidade(s) disponivel/(is)</Text>
+        </View>
+
         <View style = {styles.ratingRow}>
         <View style={styles.rating}>
         {[item.item.rating].map((index)=>(
@@ -111,7 +134,7 @@ const ProductDetail = ({navigation}) => {
                 <TouchableOpacity onPress={()=> removeItem(item._id)}>
                     <SimpleLineIcons
                     name='minus'
-                    size={20}/>
+                    size={25}/>
                 </TouchableOpacity>
                 
                 <Text style={styles.ratingText}>{count}</Text>
@@ -119,11 +142,11 @@ const ProductDetail = ({navigation}) => {
                 <TouchableOpacity onPress={()=> addItemToBasket(item._id)} >
                     <SimpleLineIcons
                     name='plus'
-                    size={20}/>
+                    size={25}/>
                 </TouchableOpacity>
             </View>
         </View>
-        <Text style={{marginLeft: 20, marginTop: 10}}>
+        <Text style={{marginLeft: 20}}>
             {item.item.isOrdered?<Badge style={{color: 'white', backgroundColor: 'green'}}> Por encomenda </Badge>:item.item.countInStock !== 0 ?item.item.countInStock +` unidade(s)`: <Badge bg='danger'>Sem stock</Badge> }
         </Text>  
             <View style={styles.descriptionWraper}>
@@ -143,7 +166,7 @@ const ProductDetail = ({navigation}) => {
                             name="location-outline"
                             size={20}
                             />
-                            <Text> {item.item.province?.name}</Text>
+                            <Text> {item.item.provinceDetails?.name}</Text>
                     </View>
 
                     <View style={{flexDirection: "row"}}>
@@ -156,25 +179,29 @@ size={20}
 </View>
                 </View>
             </View>
+            <View style={{marginBottom:50, backgroundColor:'white'}}>
+            </View>
 
-            <View style={styles.cartRow}>
-                <TouchableOpacity style={styles.cartBtn}  onPress={() => navigation.navigate("ProductDetail", { item })}>
-                    <Text style={styles.cartText}>Pagar</Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity onPress={()=> addItemToBasket()} style={styles.addCart}>
+            {/* <View style={styles.cartRow}>
+            <TouchableOpacity style={styles.cartBtn}  onPress={() => navigation.navigate("Cart", { item })}>
+                <Text style={styles.cartText}>Pagar</Text>
+            </TouchableOpacity>
+
+                {/* <TouchableOpacity onPress={()=> addItemToBasket()} style={styles.addCart}>
 
                     <Ionicons name="cart-outline"
                     size={24}
                     color="white"
                     />
                </TouchableOpacity>
-            </View>
+            </View> */}
 
 
       </View>
     </View>
  </ScrollView> 
+      </>
   )
 }
 
@@ -187,8 +214,12 @@ container: {
     backgroundColor: 'white'
 
 },
-
-
+cartoutline:{
+    marginLeft:250,
+    color: 'white',
+    borderRadius:28,
+    backgroundColor: '#F0777F'
+},
 upperRow:{
     // flex:1 , 
     marginHorizontal: 20,
@@ -210,15 +241,21 @@ details:{
 },
 titleRow:{
     marginHorizontal: 20,
-    paddingBottom: 12,
+    // paddingBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    top: 20
+    marginTop: 20,
 },
 title: {
-    fontWeight: "800",
-    fontSize: 20
+    fontWeight: "500",
+    fontSize: 20,
+    // bottom: 10
+
+},
+countInStock:{
+    marginLeft: 20,
+    fontSize:18
 },
 priceWrapper:{
     marginLeft: 10,
@@ -230,7 +267,7 @@ priceWrapper:{
 },
 price:{
     fontSize: 20,
-    padding: 10,
+    marginLeft: 10,
     color: "#7F00FF",
     fontWeight: '800'
 },
@@ -239,10 +276,29 @@ ratingRow:{
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    top: 5
+    // top: 5
+},
+
+cartCount: {
+    position: "absolute",
+    bottom: 16,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: '#7F00FF',
+    justifyContent: 'center',
+    zIndex: 999,
+
+},
+cartNumber: {
+    fontWeight: '600',
+    fontSize: 10,
+    color: 'white',
+
 },
 rating:{
-    top:9,
+    // top:9,
     justifyContent: "flex-start",
     flexDirection: "row",
     marginLeft: 20,
@@ -255,11 +311,12 @@ ratingText:{
     
 },
 descriptionWraper:{
-    marginTop: 24,
+    marginTop: 14,
     marginHorizontal: 22,
 },
 description: {
-    fontSize: 19,
+    fontSize: 15,
+    fontWeight: '500'
 },
 descText: {
 textAlign: "justify",
@@ -282,7 +339,7 @@ cartRow:{
     flexDirection: "row",
     // justifyContent: "space-around",
     alignItems: "center",
-    width: 22,
+    width: 25,
 },
 cartBtn: {
     padding: 10,
@@ -322,7 +379,14 @@ addCart:{
       },
     heart:{
         marginLeft: 240,
-        color: 'red'
+        // color: 'red',
+        // bottom: 18,
+        // width: 18,
+        // height: 18,
+        borderRadius: 22,
+        alignItems: "center",
+        backgroundColor: 'white',
+        justifyContent: 'center',
     
       }
 

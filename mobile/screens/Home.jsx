@@ -161,7 +161,7 @@ const randomNum = Math.random();
           const allProductsByCategories = category.products || [];
 
           return (
-            <View >
+            <View key={randomNum}>
               <ProductHomeView
                 title={title}
                 description={description}

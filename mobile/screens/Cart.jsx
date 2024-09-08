@@ -7,6 +7,7 @@ import { selectSeller } from '../features/sellerSlice'
 import { removeFromBasket, selectBasketItems } from '../features/basketSlice'
 import { XCircleIcon } from 'react-native-heroicons/outline'
 import CartDetails from '../components/CartDetails'
+import BottomSheetComponent from '../components/BottomSheetComponent';
 
 const Cart = () => {
 
@@ -46,17 +47,25 @@ const Cart = () => {
     <ScrollView >
       <Text style={styles.itemsLength}>{items.length} produto(s) na carrinha</Text>
       {Object.entries(groupedItemsInTheCart).map(([key, items])=>(
-            <View  key={key} style={styles.itemLine} >
+        <>
+        
+    
+  <Text style={styles.sellerName}>Fornecedor: {items[0].name.length<50?items[0].seller: items[0].seller.substring(0, 25)+`...`}</Text>
+        <View  key={key} style={styles.itemLine} >
+
                     <Text style={{color: 'grey', marginTop: 15}}>{items.length}x</Text>
               <Image
               source={{uri: items[0].image, height:50, width:50}}
+
               />
               <Text style={styles.itemName}>{items[0].name.length<20?items[0].name: items[0].name.substring(0, 25)+`...`}</Text>
+
               <Text style={styles.price}>{items[0].price} MT</Text>
               <TouchableOpacity onPress={() => dispatch(removeFromBasket({id: items[0].id}))} >
                 <Text style={styles.remove}>Remover</Text>
               </TouchableOpacity>
             </View>
+        </>
       ))}
     </ScrollView>
 </View>
@@ -133,6 +142,8 @@ const styles = StyleSheet.create({
         marginTop:2
   },
 
+  
+
 
   cart:{
     paddingBottom: 250
@@ -175,7 +186,8 @@ const styles = StyleSheet.create({
     marginTop: 15
   },
   sellerName:{
-    top: 12,
+    // top: 12,
+    bottom: 5,
     fontWeight: '500'
   },
   remove:{

@@ -18,7 +18,8 @@ const SellerProduct = ({
     address,
     price,
     onSale,
-    countInStock}) => {
+    countInStock,
+seller}) => {
 
         const [isPressed, setIsPressed] = useState(false); 
 
@@ -40,7 +41,8 @@ const SellerProduct = ({
                 address,
                 price,
                 onSale,
-                countInStock}));
+                countInStock,
+                seller}));
         }
 
         const removeItem = () => {

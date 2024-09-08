@@ -53,6 +53,7 @@
     "react-redux": "^9.1.2",
     "react-simple-image-slider": "^2.4.1",
     "react-slideshow-image": "^4.3.1",
+    "reselect": "^5.1.1",
     "typescript": "~5.3.3",
     "uuid": "^10.0.0",
     "yup": "^1.4.0"

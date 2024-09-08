@@ -34,12 +34,12 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
                   description={item.description}
                   rating={item.rating}
                   numReviews={''}
-                  province={''}
-                  address={''}
+                  province={item.ProviceDetails}
+                  address={item.address}
                   latitude={''}
                   longitude={''}
                   countInStock={item.countInStock}
-                  seller={item.seller}
+                  seller={item.sellerDetails}
                   item={item2}
                 />
               </>
