@@ -312,7 +312,7 @@ orderRouter.get(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     
-    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false });
+    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false }).sort({createdAt: -1});
     res.send(orders);
   })
 );
