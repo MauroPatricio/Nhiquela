@@ -35,7 +35,7 @@ const Search = () => {
       <View style={styles.searchContainer}>
         <View style={styles.searchWrapper}>
           <TextInput
-            style={[styles.searchInput, {borderWidth: 1, padding: 5, borderRadius: 15, backgroundColor: '#4B0082', color: '#ffffff' }]}
+            style={[styles.searchInput, {borderWidth: 0, padding: 5, borderRadius: 15, backgroundColor: '#7F00FF', color: '#ffffff' }]}
             value={searchKey}
             placeholderTextColor={'#ffffff'}
             onChangeText={setSearchKey}
@@ -46,7 +46,7 @@ const Search = () => {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size={'large'} color={'#4B0082'} />
+        <ActivityIndicator size={'large'} color={'#7F00FF'} />
       ) : searchKey.length === 0 ? (
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <Image

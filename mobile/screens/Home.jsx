@@ -49,7 +49,6 @@ const Home = () => {
     try {
       const response = await api.get('/products/bycategory');
       if (response.status === 200) {
-        console.log(response.data)
         const products = response.data || [];
         setProducts(products);
 

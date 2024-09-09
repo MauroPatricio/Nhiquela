@@ -24,6 +24,8 @@ import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
 import GeoLocation from 'react-native-get-location'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Importe GestureHandlerRootView
+import OrderDetailsScreen from './screens/OrderDetailScreen';
+import OrderList from './screens/OrderList';
 
 const Stack = createNativeStackNavigator();
 
@@ -123,6 +125,18 @@ style={{flex: 1}}>
 
 <Stack.Screen name='TransportType'
             component={TransportType}
+            options={{headerShown: false}}
+            />
+
+
+<Stack.Screen name='OrderDetailsScreen'
+            component={OrderDetailsScreen}
+            options={{headerShown: false}}
+            />
+
+
+<Stack.Screen name='OrderList'
+            component={OrderList}
             options={{headerShown: false}}
             />
         </Stack.Navigator>

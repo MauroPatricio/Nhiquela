@@ -137,7 +137,9 @@ useLayoutEffect(()=>{
                                         price={product.price}
                                         onSale={product.onSale}
                                         countInStock={product.countInStock}
-                                        seller={product.seller.seller.name}
+                                        seller={product.seller._id}
+                                        sellerName={product.seller.seller.name}
+
                                     />
             </>
           ))}

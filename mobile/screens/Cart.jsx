@@ -49,8 +49,9 @@ const Cart = () => {
       {Object.entries(groupedItemsInTheCart).map(([key, items])=>(
         <>
         
+
     
-  <Text style={styles.sellerName}>Fornecedor: {items[0].name.length<50?items[0].seller: items[0].seller.substring(0, 25)+`...`}</Text>
+  <Text style={styles.sellerName}>Fornecedor: {items[0].sellerName.length<50?items[0].sellerName: items[0].sellerName.substring(0, 25)+`...`}</Text>
         <View  key={key} style={styles.itemLine} >
 
                     <Text style={{color: 'grey', marginTop: 15}}>{items.length}x</Text>
