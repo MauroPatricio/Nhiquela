@@ -67,15 +67,18 @@ const MpesaScreen = () => {
     try{
       setLoading(true);
 
-      const { data } = await api.post(`/payments/mpesa`, {customerNumber, amount},  {
-        headers: {
-          authorization: `Bearer ${userData.token}`,
-        },
+      const data = false;
+
+      // const { data } = await api.post(`/payments/mpesa`, {customerNumber, amount},  {
+      //   headers: {
+      //     authorization: `Bearer ${userData.token}`,
+      //   },
               
-      });
-      console.log(data)
+      // });
       setPaymentInfo(data)
-      if(data.paid){
+
+      // if(data.paid){
+        if(data){
         setLoading(false);
 
         const order = await api.post(
@@ -138,8 +141,8 @@ const MpesaScreen = () => {
       }
     }catch(error){
       setLoading(false);
-      const errorMessage = error.response.data
-      console.log(errorMessage)
+      const errorMessage = error.response
+      console.log(error)
 
     }
 }

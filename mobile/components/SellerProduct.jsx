@@ -6,7 +6,7 @@ import { selectBasketItemsWithId } from '../features/basketSlice';
 import { addToBasket, removeFromBasket } from '../features/basketSlice';
 
 
-const SellerProduct = ({
+const  SellerProduct = ({
     id,                 
     name,
     image,
@@ -19,7 +19,8 @@ const SellerProduct = ({
     price,
     onSale,
     countInStock,
-seller}) => {
+seller,
+sellerName}) => {
 
         const [isPressed, setIsPressed] = useState(false); 
 
@@ -42,7 +43,8 @@ seller}) => {
                 price,
                 onSale,
                 countInStock,
-                seller}));
+                seller,
+                sellerName}));
         }
 
         const removeItem = () => {

@@ -34,7 +34,8 @@ const ProductDetail = ({navigation}) => {
       const onSale=item.item.onSale
       const countInStock=item.item.countInStock
       const sellerDetail = item.item.sellerDetails
-      const seller = sellerDetail.seller.name
+      const seller = sellerDetail._id
+      const sellerName = sellerDetail.seller.name
 
         
         const dispatch = useDispatch();
@@ -54,7 +55,8 @@ const ProductDetail = ({navigation}) => {
                 price,
                 onSale,
                 countInStock,
-                seller}));
+                seller,
+                sellerName}));
         }
 
         const removeItem = () => {
@@ -101,7 +103,30 @@ const ProductDetail = ({navigation}) => {
         </View>
       <View style={styles.details}>
       <View style={styles.countInStock}>
-        <Text style={{fontWeight: '500', top: 20, fontSize: 20, bottom: 10, fontWeight: '700'}}>Fornecedor: {item.item.sellerDetails.seller.name}</Text>
+      <View style={{marginBottom: 10}}>
+                <View style={styles.location}>
+                    <View style={{flexDirection: "row"}}>
+
+                            <Ionicons
+                            name="location-outline"
+                            size={20}
+                            />
+                            <Text> {item.item.provinceDetails?.name}</Text>
+                    </View>
+
+                    <View style={{flexDirection: "row"}}>
+
+                    <MaterialCommunityIcons
+                    name="truck-delivery-outline"
+                    size={20}
+                    />
+                    <Text> Entrega disponível</Text>
+                    </View>
+                </View>
+            </View>
+        <Text style={{fontWeight: '500', fontSize: 15}}>Fornecedor: {item.item.sellerDetails.seller.name}</Text>
+        {/* <Text style={{fontWeight: '500', top: 20, fontSize: 20, bottom: 10, fontWeight: '700'}}>Local: {item.item.sellerDetails.seller.address}</Text> */}
+
         </View>
         <View style={styles.titleRow}>
             <Text style={styles.title}>{item.item.nome}</Text>
@@ -146,6 +171,7 @@ const ProductDetail = ({navigation}) => {
                 </TouchableOpacity>
             </View>
         </View>
+        
         <Text style={{marginLeft: 20}}>
             {item.item.isOrdered?<Badge style={{color: 'white', backgroundColor: 'green'}}> Por encomenda </Badge>:item.item.countInStock !== 0 ?item.item.countInStock +` unidade(s)`: <Badge bg='danger'>Sem stock</Badge> }
         </Text>  
@@ -158,27 +184,7 @@ const ProductDetail = ({navigation}) => {
                 </Text>
             </View>
 
-            <View style={{marginBottom: 10}}>
-                <View style={styles.location}>
-                    <View style={{flexDirection: "row"}}>
-
-                            <Ionicons
-                            name="location-outline"
-                            size={20}
-                            />
-                            <Text> {item.item.provinceDetails?.name}</Text>
-                    </View>
-
-                    <View style={{flexDirection: "row"}}>
-
-<MaterialCommunityIcons
-name="truck-delivery-outline"
-size={20}
-/>
-<Text> Entrega disponível</Text>
-</View>
-                </View>
-            </View>
+            
             <View style={{marginBottom:50, backgroundColor:'white'}}>
             </View>
 
@@ -328,7 +334,7 @@ location: {
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#F0F8FF",
-    padding: 5,
+    padding: 10,
     borderRadius: 25,
     marginLeft: 22,
     marginRight: 25,
