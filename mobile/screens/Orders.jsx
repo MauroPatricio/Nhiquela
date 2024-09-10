@@ -9,7 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons";
 
-
+ 
 const Orders = () => {
   const navigation = useNavigation();
 
@@ -28,7 +28,7 @@ const Orders = () => {
       if(currentUser !== null){
         const parseData = JSON.parse(currentUser);
         setUserData(parseData);
-        setUserLogin(true);
+        setUserLogin(true);    
       }
     }catch(error){
       console.log(error)
@@ -92,9 +92,10 @@ const Orders = () => {
 
         orders && orders.map((item)=>{
           return(
+           
 
     <TouchableOpacity style={styles.container} onPress={()=>{navigation.navigate('OrderDetailsScreen', {item})}}>
-   
+     
         <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
         <View>
         <Text style={styles.code}>{item.code}</Text>
@@ -104,7 +105,7 @@ const Orders = () => {
         <Text style={styles.price}>{item.totalPrice} MT</Text>
         <Text style={styles.status}>{item.status}</Text>
         </View>
-   
+       
       
       </TouchableOpacity>
       

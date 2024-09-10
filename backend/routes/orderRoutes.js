@@ -243,7 +243,7 @@ orderRouter.post(
   isAuth,
   expressAsyncHandler(async (req, res) => {
 
-    console.log(req)
+    // console.log(req)
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,
       orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id})),
@@ -504,7 +504,7 @@ orderRouter.put(
     //  sendSMSToUSendIt(req, msg);
     sendEmailOrderStatus(req,msg, order, res);
 
-      res.send({ message: `Pedido aceite com sucesso` });
+      res.send({ order, message: `Pedido aceite com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -536,7 +536,7 @@ orderRouter.put(
       sendEmailOrderStatus(req,msg, order, res);
 
       // sendSMSToUSendItAdmin(msg);
-      res.send({ message: `Pedido disponível para entrega` });
+      res.send({ order, message: `Pedido disponível para entrega` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -562,7 +562,7 @@ orderRouter.put(
       // sendEmailOrderStatus(req,msg, order, res);
 
       // sendSMSToUSendItAdmin(msg);
-      res.send({ message: `Fornecedor pago com sucesso` });
+      res.send({ order, message: `Fornecedor pago com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -585,7 +585,7 @@ orderRouter.put(
       // sendEmailOrderStatus(req,msg, order, res);
 
       // sendSMSToUSendItAdmin(msg);
-      res.send({ message: `Entregador pago com sucesso` });
+      res.send({ order, message: `Entregador pago com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -631,7 +631,7 @@ orderRouter.put(
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
 
-      res.send({ message: `Aceite pelo entregador`, order: updateOrder });
+      res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -686,7 +686,7 @@ orderRouter.put(
       sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
 
         
-      res.send({ message: `Pedido em trânsito` });
+      res.send({ order, message: `Pedido em trânsito` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
