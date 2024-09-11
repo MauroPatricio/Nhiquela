@@ -50,11 +50,12 @@ const Profile = ({navigation}) => {
       "Tem a certeza que deseja sair?",
       [
         {
-          text: "Continuar", onPress: () => userLogout()
-        },
-        {
           text: "Cancelar", onPress: () => console.log("cancelado")
         },
+        {
+          text: "Continuar", onPress: () => userLogout()
+        },
+       
         
 
       ]

@@ -1,77 +1,65 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
-import Categories from '../components/Categories';
-import SellersView from '../components/SellersView';
-import ProductHomeView from '../components/ProductHomeView';
-import style from './home.style';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector } from 'react-redux';
 import { selectBasketItems } from '../features/basketSlice';
 import { Welcome } from './Index';
-import BottomSheetComponent from '../components/BottomSheetComponent';
-import { Badge } from 'react-native-paper';
-
-import { useNavigation } from "@react-navigation/native"
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import style from './home.style'
 
 const Home = () => {
   const [userData, setUserData] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
-  const bottomSheetRef = useRef(null);
-  const items = useSelector(selectBasketItems);
+  const [orders, setOrders] = useState([]);
+  const [availableStatuses, setAvailableStatuses] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState(null); // Add state to track selected status
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
 
   const navigation = useNavigation();
 
   useEffect(() => {
     checkIfUserExist();
-    fetchData();
-    fetchProductData();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const response = await api.get('/categories');
-      
-      if (response.status === 200) {
-        setCategories(response.data.categories || []);
-      }
-    } catch (error) {
-      console.error(error);
+  useEffect(() => {
+    if (userData) {
+      fetchData();
     }
+  }, [userData]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
   };
 
-  const fetchProductData = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  // Fetch Orders
+  const fetchData = async () => {
+    setIsLoading(true);
+
     try {
-      const response = await api.get('/products/bycategory');
+      if (userData == null) return;
+      const response = await api.get(`/orders/sellerview?seller=${userData._id}`, {
+        headers: { authorization: `Bearer ${userData.token}` },
+      });
       if (response.status === 200) {
-        console.log(response.data)
-        const products = response.data || [];
-        setProducts(products);
-
-        const categoriesMap = new Map();
-        products.forEach(product => {
-          const category = product.categoryDetails;
-          if (!categoriesMap.has(category._id)) {
-            categoriesMap.set(category._id, {
-              ...category,
-              products: []
-            });
-          }
-          categoriesMap.get(category._id).products.push(product);
-        });
-
-        const categoriesWithProducts = Array.from(categoriesMap.values())
-          .filter(category => category.products.length > 0);
-
-        setCategories(categoriesWithProducts);
+        setOrders(response.data.orders);
+        const statuses = Array.from(new Set(response.data.orders.map(order => order.status)));
+        setAvailableStatuses(statuses);
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,19 +78,25 @@ const Home = () => {
     }
   };
 
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    setBottomSheetOpen(true);
-    bottomSheetRef.current?.expand();
+  const handleStatusSelect = (status) => {
+    setSelectedStatus(status); // Set the selected status
   };
 
-  const handleCloseBottomSheet = () => {
-    setBottomSheetOpen(false);
-    bottomSheetRef.current?.close();
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
   };
+
+  const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white" }}>
+    <SafeAreaView style={{ backgroundColor: "white" }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
           <Image
@@ -110,20 +104,13 @@ const Home = () => {
             style={style.cover}
           />
           <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
-          <View style={{ alignItems: "flex-end" }}>
-            <View style={style.cartCount}>
-              <Text style={style.cartNumber}>{items.length}</Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-              <Ionicons name="cart-outline" size={26} />
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
+
       <Welcome />
 
       <ScrollView>
-
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 10 }}>Pedidos</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -131,175 +118,99 @@ const Home = () => {
             paddingHorizontal: 15,
           }}
         >
-          {categories
-            .sort((a, b) => {
-              const titleA = a.nome.replace(/\(.*?\)/, '').trim().toUpperCase();
-              const titleB = b.nome.replace(/\(.*?\)/, '').trim().toUpperCase();
-              if (titleA < titleB) return -1;
-              if (titleA > titleB) return 1;
-              return 0;
-            })
-            ?.map((category) => {
-              const title = category.nome.replace(/\(.*?\)/, '').trim();
-              return (
-                <TouchableOpacity style={styles.wrapper} onPress={() => handleCategorySelect(category)}>
-                  <Text style={styles.title}>{title}</Text>
-                </TouchableOpacity>
-              );
-            })}
+          {availableStatuses?.map((status) => (
+            <TouchableOpacity key={status} style={styles.wrapper} onPress={() => handleStatusSelect(status)}>
+              <View>
+                <Text style={{ color: 'white', fontWeight: '700', margin: 1 }}>{status}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
-        <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
+        <View style={{ marginBottom: 10 }} />
 
-        {categories?.map((category) => {
+        <ScrollView
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 15,
+          }}
+        >
+          {filteredOrders?.map((order) => (
+            <TouchableOpacity key={order._id} style={styles.container} onPress={() => navigation.navigate('OrderDetail', { order })}>
+              <View>
+                <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
+              </View>
+              <View>
+                <Text style={styles.code}>{order.code}</Text>
+              </View>
+              <View>
+                <Text style={styles.createAt}>{formatDate(order.createdAt)}</Text>
+                <Text style={styles.price}>{order.totalPrice} MT</Text>
+                <Text style={styles.status}>{order.status}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-const randomNum = Math.random();
-
-          const match = category.nome.match(/\((.*?)\)/);
-          const description = match ? match[1] : '';
-          const title = category.nome.replace(/\(.*?\)/, '').trim();
-          const allProductsByCategories = category.products || [];
-
-          return (
-            <View key={randomNum}>
-              <ProductHomeView
-                title={title}
-                description={description}
-                categoryid={category._id}
-                products={allProductsByCategories}
-                key={randomNum}
-              />
-            </View>
-          );
-        })}
         <View style={{ marginBottom: 250 }} />
       </ScrollView>
-
-      <BottomSheetComponent
-        isOpen={isBottomSheetOpen}
-        toggleSheet={handleCloseBottomSheet}
-      >
-        {selectedCategory && (
-          <View style={styles.bottomSheetContent}>
-            <Text style={styles.bottomSheetTitle}>Produtos em {selectedCategory.nome}</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-
-              {selectedCategory.products?.map((product) => {
-                const item = { item: product };
-                return (
-                  <TouchableOpacity key={product._id} style={styles.productContainer} onPress={() => navigation.navigate("ProductDetail", { item })}>
-                    <View style={styles.productRow}>
-                      <Image
-                        source={{ uri: product.image }}
-                        style={styles.logo}
-                      />
-                      <View style={styles.productDetails}>
-                        <Text style={styles.productBrand}>{product.brand}</Text>
-                        <Text style={styles.productDescription}>{product.description}</Text>
-                        <View style={styles.ratingRow}>
-                          <Text>
-                            {product.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : product.countInStock !== 0 ? product.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
-                        </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.productPrice}>{product.price} MT</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-              <View style={{marginBottom: 210}} />
-              
-            </ScrollView>
-          </View>
-        )}
-      </BottomSheetComponent>
-
     </SafeAreaView>
   );
 };
 
+export default Home;
+
 const styles = StyleSheet.create({
-  bottomSheetContent: {
-    flex: 1,
-    padding: 16,
-    height: 150
-  },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  productContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
   wrapper: {
     letterSpacing: 1,
     marginRight: 7,
     backgroundColor: '#7F00FF',
     padding: 6,
     borderRadius: 15,
-    // borderWidth: 0.5,
-    borderColor: '#4B0082',
+  },
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#7F00FF',
+    borderRadius: 5,
     shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.8,
-    // shadowRadius: 3,
-    // elevation: 5,
-    // justifyContent: 'center',
-    // alignItems: 'center'
-
+    shadowOffset: { width: 3, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+    marginBottom: 10,
+    padding: 7,
   },
-  title: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  cartIcon: {
+    color: '#7F00FF',
+    padding: 20,
+    borderRadius: 22,
+    backgroundColor: 'white',
+  },
+  code: {
+    fontWeight: '500',
+    fontSize: 17,
     color: 'white',
-    marginLeft:8,
-    marginRight: 8
-
-  },
-  productRow: {
-    flexDirection: 'row',
+    marginLeft: 10,
+    alignContent: 'center',
     alignItems: 'center',
+    textAlign: 'center',
+    top: 20,
   },
-  logo: {
-    width: 50,
-    height: 50,
-    marginRight: 10,
-  },
-  productDetails: {
-    flex: 1,
-  },
-  productBrand: {
+  status: {
+    fontWeight: '700',
     fontSize: 15,
-    fontWeight: 'bold',
+    color: 'white',
+    marginLeft: 10,
   },
-  productDescription: {
-
+  price: {
+    color: 'white',
     fontSize: 15,
-    fontWeight: '500',
-    color: '#666',
+    marginLeft: 10,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  numReviewsText: {
-    fontSize: 12,
-    color: '#aaa',
-    marginLeft: 4,
-  },
-  productPrice: {
+  createAt: {
+    color: 'white',
     fontSize: 15,
-    fontWeight: '500',
-    color: '#000',
+    marginLeft: 10,
   },
 });
-
-export default Home;

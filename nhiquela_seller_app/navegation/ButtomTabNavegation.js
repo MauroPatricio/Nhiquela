@@ -8,6 +8,9 @@ import Orders from '../screens/Orders';
 import RequestDeliv from '../screens/RequestDeliv';
 import Cart from '../screens/Cart';
 import Profile from '../screens/Profile';
+import NewProduct from '../screens/NewProduct';
+import ProductList from '../components/products/ProductList';
+import ProductListSeller from '../components/products/ProductListSeller';
 
 const Tab = createBottomTabNavigator();
 
@@ -36,16 +39,16 @@ const ButtomTabNavegation = () => {
         />
       }}} />
 
-      <Tab.Screen name="Search" component={Search}
+      <Tab.Screen name="ProductListSeller" component={ProductListSeller}
       options={{tabBarIcon: ({focused})=>{
-        return <Ionicons name={focused? "search": "search-outline"}
+        return <Ionicons name={focused? "list-circle-outline": "list"}
         size={24}
         color={focused?'#7F00FF':"black"}
         />
       }}} />
 
 
-<Tab.Screen name="RequestDeliv" component={RequestDeliv}
+<Tab.Screen name="NewProduct" component={NewProduct}
       options={{tabBarIcon: ({focused})=>{
         return <Ionicons name={focused? "add-circle": "add-circle-outline"}
         size={50}
