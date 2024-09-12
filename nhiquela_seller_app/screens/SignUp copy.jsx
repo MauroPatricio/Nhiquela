@@ -1,7 +1,7 @@
 
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet, Image, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, StyleSheet, Image, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Formik, FieldArray } from 'formik';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
@@ -10,7 +10,6 @@ import BackBtn from '../components/BackBtn';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import Toast from 'react-native-toast-message';
 
 
 // Validation schema
@@ -65,7 +64,7 @@ const SignUp = ({navigation}) => {
   const [errorMsg, setErrorMsg] = useState(null);
 
 
-  const handleImagePicker = async (setFieldValue) => {
+  const handleImagePicker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Erro', 'Permissão para acessar a galeria é necessária!');
@@ -82,9 +81,10 @@ const SignUp = ({navigation}) => {
       const uri = result.assets[0].uri;
       setImage(uri);
       const uploadedImage = await uploadImage(uri);
-      setFieldValue('seller.logo', uploadedImage); // Update the seller's logo in Formik state
+      setFieldValue('sellerLogo', uploadedImage);
     }
   };
+
 
   useEffect(() => {
     (async () => {
@@ -101,27 +101,35 @@ const SignUp = ({navigation}) => {
     })();
   }, []);
 
-  const uploadImage = async (uri) => {
-    const bodyFormData = new FormData();
-    bodyFormData.append('file', {
-      uri,
-      name: 'image.jpg', // You can set the actual file name here
-      type: 'image/jpeg' // Adjust the MIME type if necessary
-    });
 
+  const uploadImage = async (uri)=>{
+
+    // let formData = new FormData();
+    // formData.append('file', {
+    //   uri,
+    //   name: 'image.jpg',  // You can set the actual file name here
+    //   type: 'image/jpeg'  // Adjust the MIME type if necessary
+    // });
+
+    const file = uri;
+    const bodyFormData = new FormData();
+    bodyFormData.append('file', file);
+  
     try {
+  
+      // Send the request to upload the image
       const { data } = await api.post('upload', bodyFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       setSellerLogo(data.secure_url);
-      return data.secure_url; // Return the uploaded image URL
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Erro', 'Falha ao enviar a imagem.');
+    }catch(error){
+        console.log(error)
     }
-  };
+  
+  
+  }
 
 
   return (
@@ -141,7 +149,6 @@ const SignUp = ({navigation}) => {
           confirmPassword: '',
           phoneNumber: '',
           location: '',
-          isSeller: true,
           seller: {
             name: '',
             logo: '',
@@ -164,45 +171,14 @@ const SignUp = ({navigation}) => {
         onSubmit={async (values) => {
           try {
             const { data } = await api.post('users/signup', values);
-
-            Toast.show({
-                type: 'success',
-                text1: 'Perfil criado com sucesso',
-                position: 'top',
-                visibilityTime: 4000, // Time for how long the toast will show
-                autoHide: true,
-                topOffset: 30,
-                bottomOffset: 40,
-                style: {
-                    
-                backgroundColor: '#4CAF50', // Green background for success
-                borderLeftWidth: 10,
-                borderLeftColor: '#00C851', // Left border accent for success
-                },
-                text1Style: {
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: 'black', // Text color
-                
-                },
-              });
-
             navigation.navigate('Home');
           } catch (error) {
-            const errorMessage = error.response.data.message || 'Ocorreu um erro inesperado.';
-            Alert.alert('Erro', errorMessage);
-
-            Toast.show({
-                type: 'error',
-                text1: errorMessage,
-                // text2: 'Clique em Registar',
-                position: 'top',
-              });
+            Alert.alert('Erro', error.message);
           }
           // Submit logic goes here
         }}
       >
-        {({ handleChange, handleBlur, handleSubmit,setFieldValue, values, errors, touched }) => (
+        {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
           <>
             {/* User Details */}
             <Text style={{fontSize: 18, fontWeight: '500', paddingTop:15, paddingBottom: 5}}>Dados do representante</Text>
@@ -222,7 +198,7 @@ const SignUp = ({navigation}) => {
             </View>
                 {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-            <Text style={{fontSize: 18, fontWeight: '500', paddingTop:15, paddingBottom: 5}}>Dados de acesso</Text>
+            <Text style={{fontSize: 18, fontWeight: '500', paddingTop:15, paddingBottom: 5}}>Detalhes do estabelecimento</Text>
 
             <Text>Número de telefone</Text>
             <View style={styles.inputWrapper(touched.phoneNumber? '#7F00FF':'black')}>
@@ -231,8 +207,6 @@ const SignUp = ({navigation}) => {
               onBlur={handleBlur('phoneNumber')}
               value={values.phoneNumber}
               keyboardType="numeric"
-              style={{flex:1}}
-
             />
             </View>
             {touched.phoneNumber && errors.phoneNumber && <Text style={styles.error}>{errors.phoneNumber}</Text>}
@@ -244,8 +218,6 @@ const SignUp = ({navigation}) => {
             <View style={styles.inputWrapper(touched.email? '#7F00FF':'black')}>
 
             <TextInput
-                            style={{flex:1}}
-
               onChangeText={handleChange('email')}
               onBlur={handleBlur('email')}
               value={values.email}
@@ -257,8 +229,6 @@ const SignUp = ({navigation}) => {
             <Text>Senha</Text>
             <View style={styles.inputWrapper(touched.password? '#7F00FF':'black')}>
             <TextInput
-                            style={{flex:1}}
-
               onChangeText={handleChange('password')}
               onBlur={handleBlur('password')}
               value={values.password}
@@ -271,7 +241,6 @@ const SignUp = ({navigation}) => {
             <Text>Confirmar Senha</Text>
             <View style={styles.inputWrapper(touched.password? '#7F00FF':'black')}>
             <TextInput
-                            style={{flex:1}}
                 placeholder="Confirmar Senha"
                 secureTextEntry
                 value={values.confirmPassword}
@@ -282,21 +251,25 @@ const SignUp = ({navigation}) => {
               {touched.confirmPassword && errors.confirmPassword && <Text style={styles.error}>{errors.confirmPassword}</Text>}
 
 
-           
+            <Text>Localização</Text>
 
-            <Text style={{fontSize: 18, fontWeight: '500', paddingTop:15, paddingBottom: 5}}>Detalhes do estabelecimento</Text>
-
-            
+            <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
+            <TextInput
+              onChangeText={handleChange('location')}
+              onBlur={handleBlur('location')}
+              value={values.location}
+            />
+            </View>
+            {touched.location && errors.location && <Text style={styles.error}>{errors.location}</Text>}
 
               {/* Upload da Logo */}
-              {image && <Image source={{ uri: image }} style={styles.logo} />}
-          <Button title="Adicionar a Logo da Loja" onPress={() => handleImagePicker(setFieldValue)} />
+          <Button title="Adicionar a Logo da Loja" onPress={handleImagePicker} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
 
             {/* Seller Details */}
             <Text>Nome da empresa</Text>
             <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
             <TextInput
-             style={{flex:1}}
               onChangeText={handleChange('seller.name')}
               onBlur={handleBlur('seller.name')}
               value={values.seller.name}
@@ -308,12 +281,10 @@ const SignUp = ({navigation}) => {
             <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
 
             <TextInput
-              style={{flex:1}}
               onChangeText={handleChange('seller.description')}
               onBlur={handleBlur('seller.description')}
               value={values.seller.description}
             />
-            {console.log(values.seller.description)}
             </View>
 
             {touched.seller?.description && errors.seller?.description && (
@@ -339,22 +310,9 @@ const SignUp = ({navigation}) => {
                     }}
             />
 
-<Text>Localização</Text>
-
-<View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
-<TextInput
-  style={{flex:1}}
-  onChangeText={handleChange('location')}
-  onBlur={handleBlur('location')}
-  value={values.location}
-/>
-</View>
-{touched.location && errors.location && <Text style={styles.error}>{errors.location}</Text>}
-
             <Text>Endereço da loja [Rua/Av.]</Text>
             <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
             <TextInput
-                            style={{flex:1}}
               onChangeText={handleChange('seller.address')}
               onBlur={handleBlur('seller.address')}
               value={values.seller.address}
@@ -367,7 +325,6 @@ const SignUp = ({navigation}) => {
             <Text>Numero de conta da empresa</Text>
             <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
             <TextInput
-               style={{flex:1}}
               onChangeText={handleChange('seller.phoneNumberAccount')}
               onBlur={handleBlur('seller.phoneNumberAccount')}
               value={values.seller.phoneNumberAccount}
@@ -451,13 +408,6 @@ const SignUp = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
-    logo: {
-        width: 100,
-        height: 100,
-        resizeMode: 'contain',
-        marginTop: 8,
-        marginBottom: 8,
-      },
     cover: {
         height: 100,
         width: 320,

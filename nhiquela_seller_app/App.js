@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import ButtomTabNavegation from './navegation/ButtomTabNavegation';
 import ProductDetail from './components/products/ProductDetail';
-import NewProducts from './screens/NewProducts';
+import NewProducts from './screens/NewProduct';
 import ProductList from './components/products/ProductList';
 import LoginPage from './screens/LoginPage';
 import BackBtn from './components/BackBtn'
@@ -24,6 +24,11 @@ import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
 import GeoLocation from 'react-native-get-location'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Importe GestureHandlerRootView
+import OrderDetail from './screens/OrderDetail';
+import NewProduct from './screens/NewProduct';
+import ProductListSeller from './components/products/ProductListSeller';
+import PaymentsHistory from './screens/PaymentsHistory';
+import Toast from 'react-native-toast-message';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,15 +56,24 @@ style={{flex: 1}}>
             options={{headerShown: false}}
             />
 
-  <Stack.Screen name='ProductList'
-            component={NewProducts}
+  <Stack.Screen name='NewProduct'
+            component={NewProduct}
             options={{headerShown: false}}
             />
 
-  <Stack.Screen name='ProductList2'
-            component={ProductList}
+
+<Stack.Screen name='ProductListSeller'
+            component={ProductListSeller}
             options={{headerShown: false}}
             />
+
+
+<Stack.Screen name='PaymentsHistory'
+            component={PaymentsHistory}
+            options={{headerShown: false}}
+            />
+
+
 
 
   <Stack.Screen name='Login'
@@ -88,8 +102,8 @@ style={{flex: 1}}>
             options={{presentation:'modal',headerShown: false}}
             />
             
-  <Stack.Screen name='Cart'
-            component={Cart}
+  <Stack.Screen name='OrderDetail'
+            component={OrderDetail}
             options={{headerShown: false}}
             />
 
@@ -130,9 +144,11 @@ style={{flex: 1}}>
 
 
 
+        <Toast ref={(ref) => Toast.setRef(ref)} />
         </SafeAreaProvider>
 
         </Provider>
+
   </NavigationContainer>
   );
 

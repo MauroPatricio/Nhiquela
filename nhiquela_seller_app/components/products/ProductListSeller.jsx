@@ -1,52 +1,40 @@
-import { View, Text, StyleSheet, FlatList, ScrollView, Image,TouchableOpacity } from 'react-native'
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import api from './../../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../hooks/createConnectionApi';
-import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-
-const Orders = () => {
+const ProductListSeller = () => {
   const [userData, setUserData] = useState(null);
+  const [productsOfSeller, setProductsOfSeller] = useState([]);
+  const [isLoading, setIsLoading] = useState(true); // Start loading by default
 
-  const [ordersHistory, setOrdersHistory] = useState(null);
-
-  const [isLoading, setIsLoading] = useState(false); // Store available statuses
-
-      
   useEffect(() => {
     checkIfUserExist();
   }, []);
-
 
   useEffect(() => {
     if (userData) {
       fetchData();
     }
-  }, [userData]);  
-  
-
+  }, [userData]);
 
   const fetchData = async () => {
     setIsLoading(true); // Start loading
     try {
-      const response = await api.get(`orders/sellerview?seller=${userData._id}`, {
+      const response = await api.get(`products?seller=${userData._id}`, {
         headers: { authorization: `Bearer ${userData.token}` },
       });
 
-      if(response.status==200){
-        console.log(response.data.orders)
-        setOrdersHistory(response.data.orders)
+      if (response.status === 200) {
+        setProductsOfSeller(response.data.products);
       }
-
-     
     } catch (error) {
       console.error(error);
     } finally {
       setIsLoading(false); // End loading
     }
   };
-
 
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
@@ -63,20 +51,17 @@ const Orders = () => {
     }
   };
 
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  };
-
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", top: 30, flex:1 }}>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40 }}>Histórico de pedidos</Text>
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40 }}>Lista de produtos</Text>
 
     <ScrollView
     showsHorizontalScrollIndicator={false}
@@ -84,20 +69,16 @@ const Orders = () => {
       paddingHorizontal: 15,
     }}
     >
-      {ordersHistory && ordersHistory.length > 0 ? (ordersHistory.map((product)=>(
-        <TouchableOpacity key={product._id} style={styles.container} >
-        <View>
-          <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
+      {productsOfSeller.length > 0 ? (productsOfSeller.map((product)=>(
+        <TouchableOpacity onPress={()=>{}}>
+
+        <View key={product._id}  style={styles.wrapper}>
+                 <Image source={{ uri: product.image }} style={styles.image} />
+                 <Text style={styles.title}>{product.name}</Text>
+                 <Text style={styles.price}>{product.price} MT</Text>
         </View>
-        <View>
-          <Text style={styles.code}>{product.code}</Text>
-        </View>
-        <View>
-          <Text style={styles.status}>{formatDate(product.createdAt)}</Text>
-          <Text style={styles.status}>{product.totalPrice} MT</Text>
-          <Text style={styles.status}>{product.status}</Text>
-        </View>
-      </TouchableOpacity>
+
+        </TouchableOpacity>
       )))
       
       : (
@@ -109,9 +90,7 @@ const Orders = () => {
   );
 };
 
-export default Orders;
-
-
+export default ProductListSeller;
 
 const styles = StyleSheet.create({
 
@@ -132,8 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10
+    alignItems: 'center'
 
   },
   container: {
@@ -151,7 +129,7 @@ const styles = StyleSheet.create({
   },
   cartIcon: {
     color: '#7F00FF',
-    padding: 20,
+    // padding: 20,
     borderRadius: 22,
     backgroundColor: 'white',
   },
@@ -174,6 +152,6 @@ const styles = StyleSheet.create({
   price: {
     // color: 'white',
     fontSize: 15,
-    // marginLeft: 10,
+    fontWeight: '600'
   }
 });
