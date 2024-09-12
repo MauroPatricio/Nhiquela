@@ -339,6 +339,7 @@ if (!userExist) {
       });
 
       if (newUser.isSeller) {
+        console.log(req.body.seller)
         const seller = {
           name: req.body.sellerName || req.body.seller.name,
           logo: req.body.sellerLogo || req.body.seller.logo,
@@ -353,7 +354,7 @@ if (!userExist) {
           alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller.alternativeAccountNumber,
           workDayAndTime: req.body.workDaysWithTime || req.body.seller.workDayAndTime,
           latitude:  req.body.seller.latitude,
-          longitude:  req.body.seller.latitude,
+          longitude:  req.body.seller.longitude,
 
         };
         newUser.seller = seller;
