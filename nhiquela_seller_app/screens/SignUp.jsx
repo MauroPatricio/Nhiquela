@@ -153,6 +153,8 @@ const SignUp = ({navigation}) => {
             accountNumber: '',
             alternativeAccountType: '',
             alternativeAccountNumber: '',
+            latitude: location?.coords.latitude,
+            longitude: location?.coords.longitude,
             checkedTerms: false,
 
             workDayAndTime: [
@@ -313,7 +315,6 @@ const SignUp = ({navigation}) => {
               onBlur={handleBlur('seller.description')}
               value={values.seller.description}
             />
-            {console.log(values.seller.description)}
             </View>
 
             {touched.seller?.description && errors.seller?.description && (
