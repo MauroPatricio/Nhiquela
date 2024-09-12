@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, FlatList } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ScrollView, Image,TouchableOpacity } from 'react-native'
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
+import { Ionicons } from "@expo/vector-icons";
 
 
 const Orders = () => {
@@ -22,7 +23,7 @@ const Orders = () => {
     if (userData) {
       fetchData();
     }
-  }, [userData]);
+  }, [userData]);  
   
 
 
@@ -34,6 +35,7 @@ const Orders = () => {
       });
 
       if(response.status==200){
+        console.log(response.data.orders)
         setOrdersHistory(response.data.orders)
       }
 
@@ -62,21 +64,47 @@ const Orders = () => {
   };
 
 
-  return (
-    <SafeAreaView>
-      <Text>Lista de Pedidos</Text>
- {/* {isLoading ? (
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
 
-        <ActivityIndicator size={'large'} color={'#4B0082'} />
-      ) :
-       (
-        <FlatList
-          style={{ marginHorizontal: 12 }}
-          data={searchResults}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => <SearchTile item={item} />}
-        />
-      )} */}
+    return `${day}/${month}/${year}`;
+  };
+
+
+  return (
+    <SafeAreaView style={{ backgroundColor: "white", top: 30, flex:1 }}>
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40 }}>Histórico de pedidos</Text>
+
+    <ScrollView
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={{
+      paddingHorizontal: 15,
+    }}
+    >
+      {ordersHistory && ordersHistory.length > 0 ? (ordersHistory.map((product)=>(
+        <TouchableOpacity key={product._id} style={styles.container} >
+        <View>
+          <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
+        </View>
+        <View>
+          <Text style={styles.code}>{product.code}</Text>
+        </View>
+        <View>
+          <Text style={styles.status}>{formatDate(product.createdAt)}</Text>
+          <Text style={styles.status}>{product.totalPrice} MT</Text>
+          <Text style={styles.status}>{product.status}</Text>
+        </View>
+      </TouchableOpacity>
+      )))
+      
+      : (
+             <Text>Nao possui nenhum produto disponivel.</Text>
+           )}
+      
+    </ScrollView>
     </SafeAreaView>
   );
 };
@@ -86,50 +114,66 @@ export default Orders;
 
 
 const styles = StyleSheet.create({
-    searchContainer:{
-        flexDirection: "row",
-        justifyContent: "center",
-        backgroundColor: "white",
-        borderRadius: 10,
-        marginVertical: 9,
-        marginTop: 21,
-        marginHorizontal: 12,
-        height: 50
-        },
-    searchIcon:{
-        marginHorizontal: 10,
-        color: "black",
-        marginTop: 10
-    },
-    searchWrapper:{
-        flex: 1,
-        backgroundColor: "#F5F5F5",
-        // marginRight: 5,
-        borderRadius: 2
-    },
-    searchInput: {
-    width: "100%",
-    paddingHorizontal: 12,
-    marginTop: 9
-    },
-    searchBtn:{
-        width: 50,
-        height: "100%",
-        borderRadius: 12,
-         alignItems: "center",
-         marginTop: 10 
-    },
-    searchImage:{
-        resizeMode:  "contain",
-        width: 100,
-        height: 100,
-        alignContent: "center",
-        alignItems: "center",
-        marginTop: 220,
-        opacity: 1
-    },
-    Text:{
-        marginTop: 300,
-        marginLeft: 130
-    }
-})
+
+  loadingContainer:{
+      top: 100
+  },
+  image: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    // marginBottom: 10,
+    resizeMode: 'cover',
+  },
+  wrapper: {
+    // letterSpacing: 1,
+    backgroundColor: '#DCDCDC',
+    padding: 10,
+    borderRadius: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10
+
+  },
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#7F00FF',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 3, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+    marginBottom: 10,
+    padding: 7,
+  },
+  cartIcon: {
+    color: '#7F00FF',
+    padding: 20,
+    borderRadius: 22,
+    backgroundColor: 'white',
+  },
+  code: {
+    fontWeight: '500',
+    fontSize: 17,
+    color: 'white',
+    marginLeft: 10,
+    alignContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    top: 20,
+  },
+  status: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: 'white',
+    marginLeft: 10,
+  },
+  price: {
+    // color: 'white',
+    fontSize: 15,
+    // marginLeft: 10,
+  }
+});

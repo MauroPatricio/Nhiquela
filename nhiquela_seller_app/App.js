@@ -28,6 +28,7 @@ import OrderDetail from './screens/OrderDetail';
 import NewProduct from './screens/NewProduct';
 import ProductListSeller from './components/products/ProductListSeller';
 import PaymentsHistory from './screens/PaymentsHistory';
+import Toast from 'react-native-toast-message';
 
 const Stack = createNativeStackNavigator();
 
@@ -143,9 +144,11 @@ style={{flex: 1}}>
 
 
 
+        <Toast ref={(ref) => Toast.setRef(ref)} />
         </SafeAreaProvider>
 
         </Provider>
+
   </NavigationContainer>
   );
 

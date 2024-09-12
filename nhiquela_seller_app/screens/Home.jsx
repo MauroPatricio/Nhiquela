@@ -94,7 +94,7 @@ const Home = () => {
   const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white" }}
+    <SafeAreaView style={{ backgroundColor: "white" , flex:1}}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={style.appBarWrapper}>
@@ -167,6 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7F00FF',
     padding: 6,
     borderRadius: 15,
+    
   },
   container: {
     flexDirection: 'row',

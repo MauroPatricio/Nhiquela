@@ -128,7 +128,7 @@ const Profile = ({navigation}) => {
             {userLogin!==true?(
                     <View></View>):(
                     <View  style={styles.menuWrapper}>
-                    <TouchableOpacity onPress={()=>{}}>
+                    {/* <TouchableOpacity onPress={()=>{}}>
                         <View style={styles.menuItem(0.2)}>
                             <MaterialCommunityIcons
                             name="heart-outline"
@@ -137,20 +137,20 @@ const Profile = ({navigation}) => {
                             />
                             <Text style={styles.menuText2}>Favoritos</Text>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     <TouchableOpacity onPress={()=>{}}>
                         <View style={styles.menuItem(0.2)}>
                             <MaterialCommunityIcons
-                            name="truck-delivery-outline"
+                            name="cash"
                             size={28}
                             // color={"red"}
                             />
-                            <Text style={styles.menuText2}>Pedidos</Text>
+                            <Text style={styles.menuText2}>Pagamentos da Nhiquela</Text>
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={()=>{}}>
+                    {/* <TouchableOpacity onPress={()=>{}}>
                         <View style={styles.menuItem(0.2)}>
                             <MaterialCommunityIcons
                             name="cart"
@@ -161,15 +161,7 @@ const Profile = ({navigation}) => {
                         </View>
                     </TouchableOpacity>
 
-                    {/* <TouchableOpacity onPress={()=>{clearCache()}}>
-                        <View style={styles.menuItem(0.2)}>
-                            <MaterialCommunityIcons
-                            name="cached"
-                            size={28}
-                            />
-                            <Text style={styles.menuText2}>Limpar registros</Text>
-                        </View>
-                    </TouchableOpacity> */}
+                  */}
                     <TouchableOpacity onPress={()=>{deleteAccount()}}>
                         <View style={styles.menuItem(0.2)}>
                             <AntDesign
