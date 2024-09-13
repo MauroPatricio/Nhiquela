@@ -318,7 +318,7 @@ userRouter.post(
 );
 
 userRouter.post(
-  '/signup',
+  '/T',
   expressAsyncHandler(async (req, res) => {
     const userExist = await User.findOne({ phoneNumber: req.body.phoneNumber });
     const emailExist = await User.findOne({ email: req.body.email });
@@ -339,7 +339,6 @@ if (!userExist) {
       });
 
       if (newUser.isSeller) {
-        console.log(req.body.seller)
         const seller = {
           name: req.body.sellerName || req.body.seller.name,
           logo: req.body.sellerLogo || req.body.seller.logo,
