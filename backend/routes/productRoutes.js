@@ -199,8 +199,14 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 
 
 // Post 
-productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
 
+// Comentei porque estava a dar erro de token depois devo verificar o que esta a acontecer mo iSAuth ou isSellerOrAdmin
+// productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
+
+
+     productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
+
+          console.log(req.body)
      if(!req.body.image){
           res.status(404).send({message: 'A imagem do produto é obrigatória'});
           return
