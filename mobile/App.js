@@ -26,6 +26,7 @@ import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
 import OrderDetailsScreen from './screens/OrderDetailScreen';
 import OrderList from './screens/OrderList';
+import FailedPayment from './screens/FailedPayment';
 
 const Stack = createNativeStackNavigator();
 
@@ -107,10 +108,10 @@ style={{flex: 1}}>
             options={{headerShown: false}}
             />
             
-  {/* <Stack.Screen name='FailedPayment'
+  <Stack.Screen name='FailedPayment'
             component={FailedPayment}
             options={{headerShown: false}}
-            /> */}
+            />
 
   <Stack.Screen name='MapScreen'
             component={MapScreen}

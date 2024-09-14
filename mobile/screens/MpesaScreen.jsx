@@ -23,10 +23,13 @@ const MpesaScreen = () => {
   const [userData, setUserData] = useState(null);
   const [loader, setLoader] = useState(false);
   const totalToPay = useSelector(selectTotalToPay);
-  const amount = parseInt(totalToPay);
+  const amount = parseFloat(totalToPay);
   const navigation = useNavigation();
   const items = useSelector(selectBasketItems);
   const itemsPrice = useSelector(selectBasketTotal);
+
+  const [paymentInfo, setPaymentInfo] = useState('100');
+
 
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
@@ -47,10 +50,12 @@ const MpesaScreen = () => {
       setLoader(true);
       // payment logic here
       setLoader(false);
-      navigation.replace('SuccessPayment');
+      navigation.replace('FailedPayment', paymentInfo);
+      // navigation.replace('SuccessPayment');
     } catch (error) {
       setLoader(false);
-      console.log(error);
+      navigation.replace('FailedPayment', paymentInfo);
+
     }
   };
 
