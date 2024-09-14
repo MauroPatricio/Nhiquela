@@ -28,7 +28,9 @@ const orderSchema = new mongoose.Schema(
         description: {type: String},
         price: {type: Number},
         priceWithComission: {type: Number},
-        countInStock: {type: Number},
+        countInStock: {type: Number,  
+          default: 0, // Valor padrão caso nenhum seja enviado
+          min: [0, 'countInStock deve ser um valor positivo']},
         rating: {type: Number},
         numReviews: {type: Number},
         onSale: { type: Boolean },

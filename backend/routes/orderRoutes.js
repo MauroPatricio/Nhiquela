@@ -244,6 +244,12 @@ orderRouter.post(
   expressAsyncHandler(async (req, res) => {
 
     console.log(req.body)
+    const countInStock = parseInt(req.body.countInStock, 10);
+
+  
+    if (isNaN(countInStock)) {
+      return res.status(400).json({ message: 'countInStock deve ser um número válido' });
+    }
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,
       orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id})),
@@ -303,6 +309,8 @@ orderRouter.post(
     const order = await newOrder.save();
 
     res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
+
+    
   })
 );
 
