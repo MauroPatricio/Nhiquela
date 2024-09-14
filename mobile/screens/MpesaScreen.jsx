@@ -10,7 +10,9 @@ import * as Yup from 'yup';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/Button';
 import api from '../hooks/createConnectionApi';
-import { selectBasketItems, selectBasketTotal, selectTotalToPay } from '../features/basketSlice';
+import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice} from '../features/basketSlice';
+import Toast from 'react-native-toast-message';
+
 
 const validationSchema = Yup.object().shape({
   customerNumber: Yup.string()
@@ -27,8 +29,10 @@ const MpesaScreen = () => {
   const navigation = useNavigation();
   const items = useSelector(selectBasketItems);
   const itemsPrice = useSelector(selectBasketTotal);
+  const iva = useSelector(selectIva);
+  const deliveryPrice  = useSelector(selectDeliverPrice);
 
-  const [paymentInfo, setPaymentInfo] = useState('100');
+  const [paymentInfo, setPaymentInfo] = useState('');
 
 
   const checkIfUserExist = async () => {
@@ -46,12 +50,114 @@ const MpesaScreen = () => {
   }, []);
 
   const makeThePayment = async (values) => {
+    if (userData == null) {
+      
+      Toast.show({
+        type: 'error',
+        text1: 'Por favor, faça o login',
+        position: 'top',
+        visibilityTime: 4000, // Time for how long the toast will show
+        autoHide: true,
+        topOffset: 30,
+        bottomOffset: 40,
+        style: {
+            
+        backgroundColor: '#4CAF50', // Green background for success
+        borderLeftWidth: 10,
+        borderLeftColor: '#00C851', // Left border accent for success
+        },
+        text1Style: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: 'black', // Text color
+        
+        },
+      });
+      
+
+      return;
+    }
     try {
       setLoader(true);
+
+      
+      const customerNumber = '258'+values.customerNumber;
+      
+      // const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
+      //   headers: {
+      //     authorization: `Bearer ${userData.token}`,
+      //   },
+      // });
+
+      
+      
+      // setPaymentInfo(data)
+      // if (true){
+        // console.log('Passei daqui+')
+
+        // colocar os dados da ordem para gravar
+        // const order = await api.post(
+        //   'orders',
+        //   {
+        //     orderItems: items,
+        //     address: 'Proximo a entrada versalhes',
+        //     paymentMethod: 'Mpesa',
+        //     itemsPrice: itemsPrice,
+        //     ivaTax: iva,
+        //     siteTax: 0,
+        //     taxPrice: 0,
+        //     totalPrice: itemsPrice + deliveryPrice,
+        //     addressPrice: deliveryPrice,
+        //     itemsPriceForSeller: itemsPrice,
+        //     isPaid: true,
+        //     paidAt: Date.now(),
+        //     stepStatus: 1
+        //   },
+        //   {
+        //     headers: {
+        //       authorization: `Bearer ${userData.token}`,
+        //     },
+        //   }
+        // );
+
+
+        const orderData = {
+          orderItems: items,  // Lista de itens do pedido
+          address: 'Proximo a entrada Versalhes',  // Endereço de entrega
+          paymentMethod: 'Mpesa',  // Método de pagamento
+          itemsPrice: 200,  // Preço total dos itens (soma dos preços dos produtos)
+          deliveryPrice: 50,  // Preço de entrega
+          taxPrice: 10,  // Taxas adicionais (impostos)
+          totalPrice: 260,  // Preço total do pedido (itens + entrega + taxas)
+          ivaTax: 20,  // Imposto IVA (se aplicável)
+          siteTax: 5,  // Taxa do site (se houver)
+          addressPrice: 50,  // Preço do endereço/entrega (pode ser o mesmo que deliveryPrice)
+          itemsPriceForSeller: 200,  // Preço dos itens para o vendedor (sem taxas)
+          isPaid: true,  // Pedido pago ou não
+          paidAt: new Date(),  // Data e hora do pagamento
+          stepStatus: 1,  // Status inicial do pedido
+        };
+      
+
+        console.log(orderData)
+
+
+        try {
+          const response = await api.post('orders', orderData, {
+            headers: {
+              authorization: `Bearer ${userData.token}`,  // Token de autenticação
+            },
+          });
+      
+          console.log('Pedido criado com sucesso:', response.data);
+        } catch (error) {
+          console.error('Erro ao criar pedido:', error);
+        }
+
+
       // payment logic here
       setLoader(false);
-      navigation.replace('FailedPayment', paymentInfo);
-      // navigation.replace('SuccessPayment');
+      navigation.replace('SuccessPayment');
     } catch (error) {
       setLoader(false);
       navigation.replace('FailedPayment', paymentInfo);

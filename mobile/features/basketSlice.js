@@ -6,7 +6,9 @@ const basketSlice = createSlice({
   name: 'basket',
   initialState: {
     items: [],
-    payment: 0
+    payment: 0,
+    iva: 0,
+    deliverPrice: 0
   },
   reducers: {
     addToBasket: (state, action) => {
@@ -24,10 +26,20 @@ const basketSlice = createSlice({
     addTotalToPay: (state, action) => {
       state.payment = action.payload;
     },
+
+    addIva: (state, action) => {
+      state.iva = action.payload;
+    },
+
+    addDeliverPrice: (state, action) => {
+      state.deliverPrice = action.payload;
+    },
+
+
   },
 });
 
-export const { addToBasket, removeFromBasket, addTotalToPay } = basketSlice.actions;
+export const { addToBasket, removeFromBasket, addTotalToPay, addIva, addDeliverPrice } = basketSlice.actions;
 
 // Selectors
 export const selectBasketItems = (state) => state.basket.items;
@@ -39,6 +51,14 @@ export const selectBasketTotal = (state) =>
   state.basket.items.reduce((total, item) => total + item.price, 0);
 
 export const selectTotalToPay = (state) => state.basket.payment;
+
+export const selectIva = (state) => state.basket.iva;
+
+export const selectDeliverPrice = (state) => state.basket.deliverPrice;
+
+
+
+
 
 // Basket reducer
 export default basketSlice.reducer;

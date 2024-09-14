@@ -62,8 +62,8 @@ useEffect(()=>{
         numReviews={seller.seller.numReviews}
         province={seller.seller.province}
         address={seller.seller.address}
-        latitude={''}
-        longitude={''}
+        latitude={seller.seller.latitude}
+        longitude={seller.seller.longitude}
         />
         ))}
 

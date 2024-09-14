@@ -27,6 +27,7 @@ import TransportType from './components/TransportType';
 import OrderDetailsScreen from './screens/OrderDetailScreen';
 import OrderList from './screens/OrderList';
 import FailedPayment from './screens/FailedPayment';
+import Toast from 'react-native-toast-message';
 
 const Stack = createNativeStackNavigator();
 
@@ -145,7 +146,7 @@ style={{flex: 1}}>
 </KeyboardAvoidingView>
 
 
-
+<Toast ref={(ref) => Toast.setRef(ref)} />
         </SafeAreaProvider>
 
         </Provider>

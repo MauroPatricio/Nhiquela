@@ -20,7 +20,7 @@ const PaymentMethod = () => {
     try{
       setLoading(true);
 
-      const response = await api.get(`/payments`);
+      const response = await api.get(`payments`);
 
       if(response.status==200){
         setLoading(false);

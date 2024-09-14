@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTotalToPay, selectBasketItems, selectBasketTotal } from '../features/basketSlice';
+import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice } from '../features/basketSlice';
 import { useNavigation } from '@react-navigation/native';
 import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,19 +21,22 @@ const CartDetails = () => {
     const financialFees = 40
 
     // Define a price per kilometer
-    const pricePerKm = 100; // e.g., 10 MT per km
-
+    const pricePerKm = 10; // e.g., 10 MT per km
+    const minDelivPrice = 100
     
     const iva = basketTotal * 0.16;
     const subtotal = basketTotal + financialFees + iva
     // Calculate total price to pay based on distance
 
-    console.log(distance)
     // const parseTo = dis
-    const distancePrice = (distance? (distance * pricePerKm) : 0)
+    const distancePrice = (distance? (distance * pricePerKm) : 0).toFixed(2)
 
-    const distanceTo = (distance ? (distance * pricePerKm) : 0)
-    const totalToPay = subtotal + distanceTo;
+
+    const distanceToPay = (distance < 10)? minDelivPrice: minDelivPrice + distancePrice;
+      
+    // const deliverToPay = distance * pricePerKm
+
+    const totalToPay = subtotal + distanceToPay;
 
 
     useEffect(() => {
@@ -66,6 +69,9 @@ const CartDetails = () => {
     // Dispatch the total price to pay to the Redux store
     useEffect(() => {
         dispatch(addTotalToPay(totalToPay));
+        dispatch(addIva(iva));
+        dispatch(addDeliverPrice(distanceToPay));
+
     }, [totalToPay, dispatch]);
 
     if (items.length === 0) return null;
@@ -142,7 +148,7 @@ const CartDetails = () => {
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Custo de entrega</Text>
-                <Text style={styles.total}>{distance ? (distance * pricePerKm).toFixed(2) : 'Calculando...'} MT</Text>
+                <Text style={styles.total}>{distance ? distanceToPay : 'Calculando...'} MT</Text>
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.totalDescript}>Total a pagar</Text>
@@ -252,11 +258,11 @@ const styles = StyleSheet.create({
         color: 'grey',
     },
     totalDescript: {
-        color: 'black',
+        color: '#7F00FF',
         fontWeight: '600',
     },
     totalPrice: {
-        color: 'black',
+        color: '#7F00FF',
         fontWeight: '600',
     },
 });

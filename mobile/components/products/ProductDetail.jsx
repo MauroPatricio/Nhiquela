@@ -29,12 +29,14 @@ const ProductDetail = ({ navigation }) => {
   const seller = sellerDetail._id;
   const sellerName = sellerDetail.seller.name;
 
+  const _id = id
+
   const dispatch = useDispatch();
 
   const addItemToBasket = () => {
     if (count < countInStock) {
       setCount(count + 1);
-      dispatch(addToBasket({ id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName }));
+      dispatch(addToBasket({ _id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName }));
     }
   };
 
@@ -42,7 +44,7 @@ const ProductDetail = ({ navigation }) => {
     if (count > 1) {
       setCount(count - 1);
     } else {
-      dispatch(removeFromBasket({ id }));
+      dispatch(removeFromBasket({ _id }));
     }
   };
 

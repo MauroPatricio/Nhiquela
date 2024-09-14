@@ -36,10 +36,12 @@ const ProductCard = ({
 
   const dispatch = useDispatch();
 
+  const _id =id
+
   const addItemToBasket = () => {
 
       if ( countInStock == items.length ) return;
-      dispatch(addToBasket({id,                 
+      dispatch(addToBasket({_id,                 
           name,
           image,
           images,
