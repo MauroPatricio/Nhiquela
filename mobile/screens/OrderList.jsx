@@ -18,15 +18,15 @@ return (
 
       <TouchableOpacity style={styles.container} onPress={()=>{navigation.navigate('OrderDetailsScreen', {item})}} key={item._id}>
         <View style={styles.image}>
-        <Image source={{uri: item.item.image}}
+        <Image source={{uri: item.item?.image}}
         style={styles.productImg}/>
         </View>
         <View style={styles.textContainer}>
-            <Text style={styles.productTitle}>{item.item.name.length<30?item.item.name: item.item.name.substring(0, 30)+`...`}</Text>
+            <Text style={styles.productTitle}>{item.item?.name.length<30?item.item?.name: item.item?.name.substring(0, 30)+`...`}</Text>
             
-            <Text style={styles.seller}>{item.item.seller.name.length<20?item.item.seller.name: item.item.seller.name.substring(0, 25)+`...`}
+            <Text style={styles.seller}>{item.item?.seller.name.length<20?item.item?.seller.name: item.item?.seller.name.substring(0, 25)+`...`}
             </Text>
-            <Text style={styles.price}>{item.item.price} MT</Text>
+            <Text style={styles.price}>{item.item?.price} MT</Text>
             
         </View>
         </TouchableOpacity>

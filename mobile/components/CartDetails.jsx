@@ -58,7 +58,7 @@ const CartDetails =  () => {
             <Text style={styles.totalPrice}>{totalToPay} MT</Text>
        </View> */}
        <TouchableOpacity style={styles.barPayment} onPress={()=>handleOpenBottomSheet(true)}>
-        <Text style={styles.payment}>Informar endereço de entrega</Text>
+        <Text style={styles.payment}>Informar destino de entrega</Text>
        </TouchableOpacity>
 
 

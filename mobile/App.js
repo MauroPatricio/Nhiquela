@@ -12,18 +12,18 @@ import SellerProduct from './components/SellerProduct';
 import { store } from './store';
 import { Provider } from 'react-redux';
 import Cart from './screens/Cart';
-import PaymentMethods from './screens/PaymentMethod';
+// import PaymentMethods from './screens/PaymentMethod';
 import PaymentMethod from './screens/PaymentMethod';
 import MpesaScreen from './screens/MpesaScreen';
 import SuccessPayment from './screens/SuccessPayment';
-import FailedPayment from './screens/FailedPayment';
+// import FailedPayment from './screens/FailedPayment';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import MapScreen from './screens/MapScreen';
 import {KeyboardAvoidingView, Platform, StyleSheet} from 'react-native'
 import RideOptionsCard from './components/RideOptionsCard';
+// import GeoLocation from 'react-native-get-location'
+// import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Importe GestureHandlerRootView
 import TransportType from './components/TransportType';
-import GeoLocation from 'react-native-get-location'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Importe GestureHandlerRootView
 import OrderDetailsScreen from './screens/OrderDetailScreen';
 import OrderList from './screens/OrderList';
 
@@ -84,18 +84,18 @@ style={{flex: 1}}>
             component={SellerProduct}
             options={{headerShown: false}}
             />
-
+ 
   <Stack.Screen name='PaymentMethod'
             component={PaymentMethod}
             options={{presentation:'modal',headerShown: false}}
             />
-            
+           
   <Stack.Screen name='Cart'
             component={Cart}
             options={{headerShown: false}}
             />
 
-
+ 
   <Stack.Screen name='MpesaScreen'
             component={MpesaScreen}
             options={{headerShown: false}}
@@ -107,15 +107,16 @@ style={{flex: 1}}>
             options={{headerShown: false}}
             />
             
-  <Stack.Screen name='FailedPayment'
+  {/* <Stack.Screen name='FailedPayment'
             component={FailedPayment}
             options={{headerShown: false}}
-            />
+            /> */}
 
   <Stack.Screen name='MapScreen'
             component={MapScreen}
             options={{headerShown: false}}
             />
+          
 
 <Stack.Screen name='RideOptionsCard'
             component={RideOptionsCard}
@@ -133,7 +134,7 @@ style={{flex: 1}}>
             component={OrderDetailsScreen}
             options={{headerShown: false}}
             />
-
+ 
 
 <Stack.Screen name='OrderList'
             component={OrderList}

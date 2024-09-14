@@ -83,15 +83,20 @@ const styles = StyleSheet.create({
     flex:1,
     backgroundColor: 'white',
   },
-    header:{
-    borderWidth:1 ,
-    borderTopColor: 'white',
-    borderLeftColor: 'white',
-    borderRightColor:'white',
+  header: {
+    borderWidth: 0,
+    borderBottomWidth: 1,
     borderBottomColor: '#7F00FF',
-    padding:20,
+    padding: 20,
     marginBottom: 10,
-},
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5, // Adds a subtle shadow
+  },
   footer: {
     position: 'absolute',
     alignContent: 'center',

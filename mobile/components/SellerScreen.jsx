@@ -152,89 +152,112 @@ useLayoutEffect(()=>{
 }
 
 export default SellerScreen
-
 const styles = StyleSheet.create({
-  upperRow:{
-    // flex:1 , 
+  upperRow: {
     marginHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     top: 60,
     zIndex: 999,
-    
-},
-  logo:{
-    // position: 'relative'
   },
-
-  icons:{
+  logo: {
+    width: '100%',
+    height: 300,
+    // borderRadius: 20, // Rounded corners for the logo
+    overflow: 'hidden',
+  },
+  icons: {
     position: 'absolute',
     top: 30,
-    // marginLeft: 10,
     flexDirection: "row",
-    justifyContent: 'space-between', // Distributes space between the icons
+    justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%', // Ensure icons are spread across the width
+    paddingHorizontal: 20,
   },
-
   icon: {
-
     backgroundColor: 'white',
     color: '#3e2465',
     borderRadius: 20,
-    
   },
-  back:{
-    marginLeft: 20,
+  back: {
     color: 'black',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Slight transparency for a modern look
+    borderRadius: 22,
+    padding: 5,
+  },
+  heart: {
+    color: 'red',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Slight transparency for a modern look
+    borderRadius: 22,
+    padding: 5,
+  },
+  view: {
     backgroundColor: 'white',
-    borderRadius: 22
+    padding: 20,
+    borderRadius: 20, // Rounded corners for the view container
+    elevation: 3, // Shadow for a raised effect
   },
-  heart:{
-    marginLeft: 240,
-    color: 'red'
-
-  },
-  view:{
-    backgroundColor: 'white',
-  },
-
-  sellerName:{
-    textAlign: "left",
+  sellerName: {
     fontSize: 30,
-    fontWeight: '500',
-    marginLeft: 10
+    fontWeight: '700',
+    color: '#333333', // Darker color for better readability
   },
   details: {
-    flexDirection: 'row'
-  },
-  avaliation: {
     flexDirection: 'row',
-    alignItems: 'center',
-    alignContent: "center"
+    marginTop: 5,
   },
   address: {
-    // marginLeft: 20,
     flexDirection: 'row',
-    width: 340
-
-
+    alignItems: 'center',
+    marginTop: 5,
   },
-  description:{
-    marginTop: 2,
-    marginLeft: 10,
-    width: 350
+  description: {
+    marginTop: 5,
+    fontSize: 16,
+    color: '#666666', // Grey for less emphasis
   },
-  rating:{
-    flexDirection: "row"
+  rating: {
+    flexDirection: "row",
+    alignItems: 'center',
+    marginTop: 5,
   },
   title: {
-    marginTop: 10,
-    marginLeft: 7,
+    marginTop: 20,
+    marginLeft: 10,
     marginBottom: 12,
-    textAlign: 'left',
+    fontWeight: '600',
+    fontSize: 22,
+    color: '#7F00FF', // Highlight color for the title
+  },
+  productContainer: {
+    marginBottom: 20,
+    backgroundColor: '#F9F9F9', // Light grey for product cards
+    borderRadius: 15,
+    padding: 15,
+    elevation: 2, // Shadow effect for product cards
+  },
+  productImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 15,
+    marginBottom: 10,
+  },
+  productName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  productPrice: {
+    fontSize: 16,
     fontWeight: '500',
-    fontSize: 20
-  }
+    color: '#7F00FF',
+  },
+  productRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+});
 
-})

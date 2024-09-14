@@ -62,7 +62,7 @@ const  LoginPage = ({navigation}) => {
                 <View>
                     <BackBtn onPress={()=>navigation.goBack()}/>
                     <Image
-                    source={require('../assets/nhiquela.png')}
+                    source={require('../assets/nhiquela2.png')}
                     style={styles.cover}
                     />
                     <Text style={styles.title}>Login</Text>
@@ -146,65 +146,88 @@ const  LoginPage = ({navigation}) => {
 
 export default LoginPage
 
-
 const styles = StyleSheet.create({
     cover: {
-        height: 200,
-        width: 320,
-        resizeMode: "contain",
-        marginBottom: 0,
-        backgroundColor: 'white',
-        alignContent: 'center',
-        alignItems: 'center',
+      height: 200,
+      width: 320,
+      resizeMode: "contain",
+      marginBottom: 0,
+      backgroundColor: 'white',
+      alignSelf: 'center',
+      marginVertical: 30,
     },
-    title:{
-    alignItems: "center",
-    fontWeight: "500",
-     textAlign: "center",
-     fontSize: 18,
-      marginBottom: 15,
-     color: 'grey'
+    title: {
+      fontWeight: "600",
+      textAlign: "center",
+      fontSize: 22,
+      marginBottom: 25,
+      color: '#4A4A4A',
+      letterSpacing: 1,
     },
-    wrapper:{
-        marginBottom: 20,
-        // marginHorizontal: 20
+    wrapper: {
+    //   marginBottom: 20,
     },
-    label:{
-        fontSize: 12,
-        marginBottom: 5,
-        marginEnd: 2,
-        // textAlign:"right",
-        color: '#7F00FF'
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      marginBottom: 5,
+      marginEnd: 2,
+      color: '#7F00FF',
     },
-    inputWrapper:(borderColor) =>({
-        borderColor: borderColor,
-        backgroundColor: '#F8F8F8',
-        borderWidth: 1,
-        height: 50,
-        borderRadius: 12,
-        flexDirection: 'row',
-        paddingHorizontal: 15,
-        alignItems: 'center'
+    inputWrapper: (borderColor) => ({
+      borderColor: borderColor,
+      backgroundColor: '#F8F8F8',
+      borderWidth: 0.5,
+      height: 55,
+      borderRadius: 12,
+      flexDirection: 'row',
+      paddingHorizontal: 15,
+      alignItems: 'center',
+      shadowColor: '#7F00FF',
+      shadowOpacity: 0.1,
+      shadowRadius: 5,
+      elevation: 3,
     }),
     errorMessage: {
-        color:'red',
-        marginTop: 5,
-        marginLeft: 6,
-        fontSize: 10
+      color: 'red',
+      marginTop: 5,
+      marginLeft: 6,
+      fontSize: 12,
     },
     registration: {
-        marginTop:20,
-        textAlign: "center",
-        fontWeight: "500",
-        borderWidth:1,
-        borderColor:'grey',
-        borderWidth: 1,
-        height: 50,
-        borderRadius: 12,
-        flexDirection: 'row',
-        paddingHorizontal: 15,
-        padding:15,
-        color: 'grey'
-    
-    }
-})
+      marginTop: 25,
+      textAlign: "center",
+      fontWeight: "500",
+      borderColor: '#7F00FF',
+      borderWidth: 1.5,
+      height: 50,
+      borderRadius: 12,
+      justifyContent: 'center',
+      color: '#7F00FF',
+      paddingVertical: 10,
+      fontSize: 16,
+    },
+    iconStyle: {
+      marginRight: 10,
+    },
+    loginButton: {
+      backgroundColor: '#7F00FF',
+      borderRadius: 12,
+      height: 50,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    loginButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    forgotPasswordText: {
+      textAlign: 'center',
+      color: '#4A4A4A',
+      marginTop: 10,
+      fontSize: 14,
+    },
+  });
+  
