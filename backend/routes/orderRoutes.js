@@ -255,13 +255,13 @@ orderRouter.post(
       siteTax: req.body.siteTax,
       addressPrice: req.body.addressPrice,
       itemsPriceForSeller: req.body.itemsPriceForSeller,
-      user: req.user?req.user._id: req.body._id,
+      user: req.user?req.user._id: req.body.user._id,
       code: generateCode(),
       status: 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
       stepStatus: req.body.stepStatus,
-      customerId:  req.user?req.user._id: req.body._id,
+      customerId:  req.user?req.user._id: req.body.user._id,
     });
 
     // Prepare the email content
