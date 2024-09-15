@@ -83,73 +83,54 @@ const MpesaScreen = () => {
       
       const customerNumber = '258'+values.customerNumber;
       
-      // const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
-      //   headers: {
-      //     authorization: `Bearer ${userData.token}`,
-      //   },
-      // });
+      const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
+        headers: {
+          authorization: `Bearer ${userData.token}`,
+        },
+      });
 
       
       
-      // setPaymentInfo(data)
+      setPaymentInfo(data)
       // if (true){
         // console.log('Passei daqui+')
 
         // colocar os dados da ordem para gravar
-        const order =  {
-            orderItems: items,
-            address: '',
-            paymentMethod: 'Mpesa',
-            itemsPrice: itemsPrice,
-            ivaTax: iva,
-            siteTax: 0,
-            taxPrice: 0,
-            totalPrice: itemsPrice + deliveryPrice,
-            addressPrice: deliveryPrice,
-            itemsPriceForSeller: itemsPrice,
-            isPaid: true,
-            paidAt: Date.now(),
-            stepStatus: 1,
-            user: userData,
-            customerId: userData,
+        if(paymentInfo.isPaid){
+
+          const order =  {
+              orderItems: items,
+              address: '',
+              paymentMethod: 'Mpesa',
+              itemsPrice: itemsPrice,
+              ivaTax: iva,
+              siteTax: 0,
+              taxPrice: 0,
+              totalPrice: itemsPrice + deliveryPrice,
+              addressPrice: deliveryPrice,
+              itemsPriceForSeller: itemsPrice,
+              isPaid: true,
+              paidAt: Date.now(),
+              stepStatus: 1,
+              user: userData,
+              customerId: userData,
+            }
+  
+  
+          try {
+            const response = await api.post('orders', order, {
+              headers: {
+                authorization: `Bearer ${userData.token}`,  // Token de autenticação
+              },
+            });
+        
+            console.log('Pedido criado com sucesso:', response.data);
+          } catch (error) {
+            console.error('Erro ao criar pedido:', error.data.message);
           }
-
-
-          console.log(order)
-      
-
-        // const orderData = {
-        //   orderItems: items,  // Lista de itens do pedido
-        //   address: 'Proximo a entrada Versalhes',  // Endereço de entrega
-        //   paymentMethod: 'Mpesa',  // Método de pagamento
-        //   itemsPrice: 200,  // Preço total dos itens (soma dos preços dos produtos)
-        //   deliveryPrice: 50,  // Preço de entrega
-        //   taxPrice: 10,  // Taxas adicionais (impostos)
-        //   totalPrice: 260,  // Preço total do pedido (itens + entrega + taxas)
-        //   ivaTax: 20,  // Imposto IVA (se aplicável)
-        //   siteTax: 5,  // Taxa do site (se houver)
-        //   addressPrice: 50,  // Preço do endereço/entrega (pode ser o mesmo que deliveryPrice)
-        //   itemsPriceForSeller: 200,  // Preço dos itens para o vendedor (sem taxas)
-        //   isPaid: true,  // Pedido pago ou não
-        //   paidAt: new Date(),  // Data e hora do pagamento
-        //   stepStatus: 1,  // Status inicial do pedido
-        // };
-      
-
-        console.log(order)
-
-
-        // try {
-        //   const response = await api.post('orders', order, {
-        //     headers: {
-        //       authorization: `Bearer ${userData.token}`,  // Token de autenticação
-        //     },
-        //   });
-      
-        //   console.log('Pedido criado com sucesso:', response.data);
-        // } catch (error) {
-        //   console.error('Erro ao criar pedido:', error.data.message);
-        // }
+        }else{
+          navigation.replace('FailedPayment', paymentInfo);
+        }
 
 
       // payment logic here

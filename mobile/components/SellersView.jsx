@@ -53,6 +53,8 @@ useEffect(()=>{
         <SellerCard
         key={seller._id}
         id ={seller._id}
+        _id ={seller._id}
+
         // name={seller.seller.nome.length<50?seller.seller.nome:seller.seller.nome.substring(0, 40) + '...'}
 
         name={seller.seller.name}

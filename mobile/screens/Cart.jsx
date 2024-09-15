@@ -82,6 +82,8 @@ const styles = StyleSheet.create({
     container:{
     flex:1,
     backgroundColor: 'white',
+    paddingHorizontal: 10
+
   },
   header: {
     borderWidth: 0,
@@ -195,7 +197,8 @@ const styles = StyleSheet.create({
     // top: 12,
     bottom: 5,
     fontWeight: '500',
-    color: '#7F00FF'
+    color: '#7F00FF',
+    paddingHorizontal: 10
   },
   remove:{
     color: '#7F00FF',
