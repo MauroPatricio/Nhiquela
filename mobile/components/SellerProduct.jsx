@@ -19,6 +19,7 @@ const  SellerProduct = ({
     price,
     onSale,
     countInStock,
+    quantity,
 seller,
 sellerName}) => {
 
@@ -31,7 +32,11 @@ sellerName}) => {
         const _id = id
 
         const addItemToBasket = () => {
+            const currentQuantity = items.length; // Current quantity of the item in the basket
 
+            if (currentQuantity >= countInStock) {
+              return; // Prevent adding if the stock is exhausted
+            }
             if ( countInStock == items.length ) return;
             dispatch(addToBasket({id,_id,                 
                 name,
@@ -46,7 +51,10 @@ sellerName}) => {
                 onSale,
                 countInStock,
                 seller,
-                sellerName}));
+                sellerName,
+                quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+
+            }));
         }
 
         const removeItem = () => {

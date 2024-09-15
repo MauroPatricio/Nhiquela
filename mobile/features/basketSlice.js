@@ -13,6 +13,7 @@ const basketSlice = createSlice({
   reducers: {
     addToBasket: (state, action) => {
       state.items.push(action.payload);  // Push is simpler here
+      console.log(action.payload)
     },
     removeFromBasket: (state, action) => {
       const index = state.items.findIndex((item) => item.id === action.payload.id);

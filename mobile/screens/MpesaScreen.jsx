@@ -96,95 +96,67 @@ const MpesaScreen = () => {
         // console.log('Passei daqui+')
 
         // colocar os dados da ordem para gravar
-        // const order = await api.post(
-        //   'orders',
-        //   {
-        //     orderItems: items,
-        //     address: 'Proximo a entrada versalhes',
-        //     paymentMethod: 'Mpesa',
-        //     itemsPrice: itemsPrice,
-        //     ivaTax: iva,
-        //     siteTax: 0,
-        //     taxPrice: 0,
-        //     totalPrice: itemsPrice + deliveryPrice,
-        //     addressPrice: deliveryPrice,
-        //     itemsPriceForSeller: itemsPrice,
-        //     isPaid: true,
-        //     paidAt: Date.now(),
-        //     stepStatus: 1
-        //   },
-        //   {
+        const order =  {
+            orderItems: items,
+            address: '',
+            paymentMethod: 'Mpesa',
+            itemsPrice: itemsPrice,
+            ivaTax: iva,
+            siteTax: 0,
+            taxPrice: 0,
+            totalPrice: itemsPrice + deliveryPrice,
+            addressPrice: deliveryPrice,
+            itemsPriceForSeller: itemsPrice,
+            isPaid: true,
+            paidAt: Date.now(),
+            stepStatus: 1,
+            user: userData,
+            customerId: userData,
+          }
+
+
+          console.log(order)
+      
+
+        // const orderData = {
+        //   orderItems: items,  // Lista de itens do pedido
+        //   address: 'Proximo a entrada Versalhes',  // Endereço de entrega
+        //   paymentMethod: 'Mpesa',  // Método de pagamento
+        //   itemsPrice: 200,  // Preço total dos itens (soma dos preços dos produtos)
+        //   deliveryPrice: 50,  // Preço de entrega
+        //   taxPrice: 10,  // Taxas adicionais (impostos)
+        //   totalPrice: 260,  // Preço total do pedido (itens + entrega + taxas)
+        //   ivaTax: 20,  // Imposto IVA (se aplicável)
+        //   siteTax: 5,  // Taxa do site (se houver)
+        //   addressPrice: 50,  // Preço do endereço/entrega (pode ser o mesmo que deliveryPrice)
+        //   itemsPriceForSeller: 200,  // Preço dos itens para o vendedor (sem taxas)
+        //   isPaid: true,  // Pedido pago ou não
+        //   paidAt: new Date(),  // Data e hora do pagamento
+        //   stepStatus: 1,  // Status inicial do pedido
+        // };
+      
+
+        console.log(order)
+
+
+        // try {
+        //   const response = await api.post('orders', order, {
         //     headers: {
-        //       authorization: `Bearer ${userData.token}`,
+        //       authorization: `Bearer ${userData.token}`,  // Token de autenticação
         //     },
-        //   }
-        // );
-
-      // const orderData =  {
-      //     "address": "Proximo a entrada Versalhes",
-      //     "addressPrice": 50,
-      //     "deliveryPrice": 50,
-      //     "isPaid": true,
-      //     "itemsPrice": 200,
-      //     "itemsPriceForSeller": 200,
-      //     "ivaTax": 20,
-      //     "orderItems": [{
-      //       "_id": "65af72640b324e9d45df28ca",
-      //       "address": "",
-      //       "countInStock": 5,
-      //       "description": "N/A",
-      //       "image": "https://res.cloudinary.com/dajwznqco/image/upload/v1705995980/fqvnnvlbiezubu0m8z8k.jpg",
-      //       "name": "Salgados",
-      //       "price": 275,
-      //       "seller": "65aa4c8b1548a8f7f11b54f0",
-      //       "sellerName": "Confeitaria"
-      //     }],
-      //     "paidAt": "2024-09-15T00:24:15.080Z",
-      //     "paymentMethod": "Mpesa",
-      //     "siteTax": 5,
-      //     "stepStatus": 1,
-      //     "taxPrice": 10,
-      //     "totalPrice": 260
-      //   }
-
-        const orderData = {
-          orderItems: items,  // Lista de itens do pedido
-          address: 'Proximo a entrada Versalhes',  // Endereço de entrega
-          paymentMethod: 'Mpesa',  // Método de pagamento
-          itemsPrice: 200,  // Preço total dos itens (soma dos preços dos produtos)
-          deliveryPrice: 50,  // Preço de entrega
-          taxPrice: 10,  // Taxas adicionais (impostos)
-          totalPrice: 260,  // Preço total do pedido (itens + entrega + taxas)
-          ivaTax: 20,  // Imposto IVA (se aplicável)
-          siteTax: 5,  // Taxa do site (se houver)
-          addressPrice: 50,  // Preço do endereço/entrega (pode ser o mesmo que deliveryPrice)
-          itemsPriceForSeller: 200,  // Preço dos itens para o vendedor (sem taxas)
-          isPaid: true,  // Pedido pago ou não
-          paidAt: new Date(),  // Data e hora do pagamento
-          stepStatus: 1,  // Status inicial do pedido
-        };
+        //   });
       
-
-        console.log(orderData)
-
-
-        try {
-          const response = await api.post('orders', orderData, {
-            headers: {
-              authorization: `Bearer ${userData.token}`,  // Token de autenticação
-            },
-          });
-      
-          console.log('Pedido criado com sucesso:', response.data);
-        } catch (error) {
-          console.error('Erro ao criar pedido:', error);
-        }
+        //   console.log('Pedido criado com sucesso:', response.data);
+        // } catch (error) {
+        //   console.error('Erro ao criar pedido:', error.data.message);
+        // }
 
 
       // payment logic here
       setLoader(false);
       navigation.replace('SuccessPayment');
     } catch (error) {
+      console.log(error.data)
       setLoader(false);
       navigation.replace('FailedPayment', paymentInfo);
 

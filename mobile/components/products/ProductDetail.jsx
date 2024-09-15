@@ -34,9 +34,18 @@ const ProductDetail = ({ navigation }) => {
   const dispatch = useDispatch();
 
   const addItemToBasket = () => {
+    const currentQuantity = items.length; // Current quantity of the item in the basket
+
+    if (currentQuantity >= countInStock) {
+      return; // Prevent adding if the stock is exhausted
+    }
     if (count < countInStock) {
       setCount(count + 1);
-      dispatch(addToBasket({id, _id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName }));
+      dispatch(addToBasket({id, _id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName, 
+        quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+
+      
+      }));
     }
   };
 
