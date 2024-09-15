@@ -281,36 +281,46 @@ orderRouter.post(
     sendEmailOrderStatus(req, mailText, newOrder, res);
 
     // Update stock levels for each ordered product
-    for (let o of req.body.orderItems) {
-      // Fetch the product by its ID
-      const product = await Product.findById(o.product);
-
-      // Check if product exists and quantity is a valid number
-      if (!product) {
-        res.status(404).send({ message: `Product not found: ${o.product}` });
-        return;
-      }
-      if (typeof o.quantity !== 'number' || isNaN(o.quantity)) {
-        res.status(400).send({ message: `Invalid quantity for product: ${o.product}` });
-        return;
-      }
-
-      // Ensure stock doesn't go below 0
-      const newCountInStock = product.countInStock - o.quantity;
-      if (newCountInStock < 0) {
-        res.status(400).send({ message: `Insufficient stock for product: ${product.name}` });
-        return;
-      }
-
-      product.countInStock = newCountInStock;
-
-      // Save updated product
-      await product.save();
+    try {
+      // Use Promise.all to handle updates concurrently
+      await Promise.all(
+        req.body.orderItems.map(async (item) => {
+          // Fetch the product by its ID
+          const product = await Product.findById(item._id);
+    
+          // Check if the product exists and quantity is a valid number
+          if (!product) {
+            throw new Error(`Product not found: ${item._id}`);
+          }
+          if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
+            throw new Error(`Invalid quantity for product: ${item.name}`);
+          }
+    
+          // Ensure stock doesn't go below 0
+          const newCountInStock = product.countInStock - item.quantity;
+          if (newCountInStock < 0) {
+            throw new Error(`Insufficient stock for product: ${product.name}`);
+          }
+    
+          // Update product stock
+          product.countInStock = newCountInStock;
+    
+          // Save updated product
+          await product.save();
+        })
+      );
+    
+       // Save the order
+       const order = await newOrder.save();
+       res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
+       
+    } catch (error) {
+      // Handle errors during the product update
+      res.status(400).send({ message: error.message });
     }
+    
 
-    // Save the order
-    const order = await newOrder.save();
-    res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
+ 
   })
 );
 
