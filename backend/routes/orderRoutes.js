@@ -278,7 +278,7 @@ orderRouter.post(
     // }
 
     // Send email to the customer
-    sendEmailOrderStatus(req, mailText, newOrder, res);
+    // sendEmailOrderStatus(req, mailText, newOrder, res);
 
     // Update stock levels for each ordered product
     try {
