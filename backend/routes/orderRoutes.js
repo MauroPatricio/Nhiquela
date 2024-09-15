@@ -269,35 +269,43 @@ orderRouter.post(
 
     // Notify the seller or admin depending on the payment status
     const sellerOfProduct = await User.findById(newOrder.seller);
-    if (newOrder.isPaid) {
-      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
-      sendSMSToSellerUSendIt(sellerOfProduct, msg);
-    } else {
-      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
-      sendSMSToUSendItAdmin(msg);
-    }
+    // if (newOrder.isPaid) {
+    //   let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
+    //   sendSMSToSellerUSendIt(sellerOfProduct, msg);
+    // } else {
+    //   let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
+    //   sendSMSToUSendItAdmin(msg);
+    // }
 
     // Send email to the customer
     sendEmailOrderStatus(req, mailText, newOrder, res);
 
     // Update stock levels for each ordered product
     for (let o of req.body.orderItems) {
-      const product = await Product.findById(o._id); // Ensure you're accessing the correct product ID
+      // Fetch the product by its ID
+      const product = await Product.findById(o.product);
 
-      if (product && product.countInStock > 0) {
-        product.countInStock = product.countInStock - o.quantity;
-
-        // Prevent the stock from going below 0
-        if (product.countInStock < 0) {
-          product.countInStock = 0;
-        }
-
-        await product.save(); // Save the updated stock level
-      } else {
-        // Handle case when product is out of stock or not found
-        res.status(400).send({ message: `Product ${o.name} is out of stock or not found.` });
+      // Check if product exists and quantity is a valid number
+      if (!product) {
+        res.status(404).send({ message: `Product not found: ${o.product}` });
         return;
       }
+      if (typeof o.quantity !== 'number' || isNaN(o.quantity)) {
+        res.status(400).send({ message: `Invalid quantity for product: ${o.product}` });
+        return;
+      }
+
+      // Ensure stock doesn't go below 0
+      const newCountInStock = product.countInStock - o.quantity;
+      if (newCountInStock < 0) {
+        res.status(400).send({ message: `Insufficient stock for product: ${product.name}` });
+        return;
+      }
+
+      product.countInStock = newCountInStock;
+
+      // Save updated product
+      await product.save();
     }
 
     // Save the order
