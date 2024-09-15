@@ -240,7 +240,7 @@ orderRouter.get(
 
 orderRouter.post(
   '/',
-  isAuth,
+  // isAuth,
   expressAsyncHandler(async (req, res) => {
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,
@@ -313,7 +313,7 @@ orderRouter.post(
        // Save the order
        const order = await newOrder.save();
        res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
-       
+
     } catch (error) {
       // Handle errors during the product update
       res.status(400).send({ message: error.message });
