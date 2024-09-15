@@ -246,7 +246,10 @@ orderRouter.post(
     console.log(req.body)
     const countInStock = parseInt(req.body.countInStock, 10);
 
-  
+    console.log('countInStock')
+
+    console.log(countInStock)
+
     if (isNaN(countInStock)) {
       return res.status(400).json({ message: 'countInStock deve ser um número válido' });
     }
