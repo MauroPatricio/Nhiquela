@@ -286,6 +286,8 @@ orderRouter.post(
       await Promise.all(
         req.body.orderItems.map(async (item) => {
           // Fetch the product by its ID
+          console.log(item)
+  
           const product = await Product.findById(item._id);
     
           // Check if the product exists and quantity is a valid number
