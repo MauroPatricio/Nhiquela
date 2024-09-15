@@ -242,20 +242,9 @@ orderRouter.post(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-
-    console.log(req.body)
-    const countInStock = parseInt(req.body.countInStock, 10);
-
-    console.log('countInStock')
-
-    console.log(countInStock)
-
-    if (isNaN(countInStock)) {
-      return res.status(400).json({ message: 'countInStock deve ser um número válido' });
-    }
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,
-      orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id})),
+      orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id })),
       deliveryAddress: req.body.address,
       paymentMethod: req.body.paymentMethod,
       itemsPrice: req.body.itemsPrice,
@@ -275,47 +264,48 @@ orderRouter.post(
       customerId: req.user._id
     });
 
+    // Prepare the email content
+    let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`;
 
-   
-    
-    
-    let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
-    
-    //  Para envio de mensagens
+    // Notify the seller or admin depending on the payment status
     const sellerOfProduct = await User.findById(newOrder.seller);
-
-      if (newOrder.isPaid){
-        // Enviar sms para o fornecedor
-      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
-        sendSMSToSellerUSendIt(sellerOfProduct, msg);
-    }else{
-       let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
-        sendSMSToUSendItAdmin(msg);
+    if (newOrder.isPaid) {
+      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
+      sendSMSToSellerUSendIt(sellerOfProduct, msg);
+    } else {
+      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
+      sendSMSToUSendItAdmin(msg);
     }
 
-     sendEmailOrderStatus(req,mailText, newOrder, res);
+    // Send email to the customer
+    sendEmailOrderStatus(req, mailText, newOrder, res);
 
-    req.body.orderItems.map(async o=>{
+    // Update stock levels for each ordered product
+    for (let o of req.body.orderItems) {
+      const product = await Product.findById(o._id); // Ensure you're accessing the correct product ID
 
-      const product = await Product.findById(o);
+      if (product && product.countInStock > 0) {
+        product.countInStock = product.countInStock - o.quantity;
 
+        // Prevent the stock from going below 0
+        if (product.countInStock < 0) {
+          product.countInStock = 0;
+        }
 
-      if(product.countInStock > 0){
-        product.countInStock = product.countInStock - o.quantity
-
-        await product.save();
-
+        await product.save(); // Save the updated stock level
+      } else {
+        // Handle case when product is out of stock or not found
+        res.status(400).send({ message: `Product ${o.name} is out of stock or not found.` });
+        return;
       }
+    }
 
-    })
-
+    // Save the order
     const order = await newOrder.save();
-
     res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
-
-    
   })
 );
+
 
 // get orders by user id
 orderRouter.get(
