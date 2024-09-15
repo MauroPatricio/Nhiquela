@@ -33,7 +33,7 @@ sellerName}) => {
         const addItemToBasket = () => {
 
             if ( countInStock == items.length ) return;
-            dispatch(addToBasket({_id,                 
+            dispatch(addToBasket({id,_id,                 
                 name,
                 image,
                 images,

@@ -84,7 +84,7 @@ const CartDetails = () => {
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>IVA (16%)</Text>
-                <Text style={styles.total}>{iva} MT</Text>
+                <Text style={styles.total}>{iva.toFixed(2)} MT</Text>
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>
@@ -140,7 +140,7 @@ const CartDetails = () => {
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>IVA (16%)</Text>
-                <Text style={styles.total}>{iva} MT</Text>
+                <Text style={styles.total}>{iva.toFixed(2)} MT</Text>
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>

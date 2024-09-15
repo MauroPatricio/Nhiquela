@@ -19,7 +19,7 @@ const Cart = () => {
 
   useEffect(()=>{
     const groupedItems = items.reduce((results, item)=>{
-      (results[item.id] = results[item.id]|| []).push(item);
+      (results[item._id] = results[item._id]|| []).push(item);
       return results
     },{});
 
@@ -54,7 +54,7 @@ const Cart = () => {
   <Text style={styles.sellerName}>Fornecedor: {items[0].sellerName.length<50?items[0].sellerName: items[0].sellerName.substring(0, 25)+`...`}</Text>
         <View  key={key} style={styles.itemLine} >
 
-                    <Text style={{color: 'black', marginTop: 15}}>{items.length}X</Text>
+                    <Text style={{color: 'grey', marginTop: 15}}>{items.length}x</Text>
               <Image
               source={{uri: items[0].image, height:50, width:50}}
 
@@ -77,117 +77,144 @@ const Cart = () => {
 }
 
 export default Cart
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
+    container:{
+    flex:1,
+    backgroundColor: 'white',
   },
   header: {
+    borderWidth: 0,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#7F00FF',
     padding: 20,
+    marginBottom: 10,
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-    marginBottom: 20,
-  },
-  title: {
-    fontWeight: '700',
-    textAlign: 'center',
-    fontSize: 20,
-    color: '#4A4A4A',
-  },
-  subtitle: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#A0A0A0',
-    marginTop: 5,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 15,
-    right: 20,
-    backgroundColor: '#7F00FF',
-    borderRadius: 50,
-    padding: 5,
-    elevation: 3,
-  },
-  icon: {
-    color: '#FFFFFF',
-  },
-  cart: {
-    paddingHorizontal: 15,
-    paddingBottom: 100,
-  },
-  itemsLength: {
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 16,
-    color: '#4A4A4A',
-    marginBottom: 15,
-  },
-  itemLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  itemName: {
-    flex: 1,
-    marginLeft: 10,
-    color: '#4A4A4A',
-    fontWeight: '500',
-  },
-  sellerName: {
-    fontSize: 14,
-    color: '#7F00FF',
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  price: {
-    fontWeight: '600',
-    fontSize: 16,
-    color: '#4A4A4A',
-    marginTop: 5,
-  },
-  remove: {
-    color: '#FF4D4D',
-    fontWeight: '500',
-    marginLeft: 10,
+    shadowRadius: 3,
+    elevation: 5, // Adds a subtle shadow
   },
   footer: {
     position: 'absolute',
+    alignContent: 'center',
+    bottom: 0,
+    fontWeight: '500',
+    width: '100%',
+    zIndex: 500,
+    padding:10,
     bottom: 0,
     width: '100%',
-    padding: 15,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'white',
+    marginTop: 10,
+    // padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#e7e7e7',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    justifyContent: 'space-between',
+    borderWidth:3 ,
+    borderTopColor: '#7F00FF',
+    borderLeftColor: 'white',
+    borderRightColor:'white',
+    borderBottomColor: 'white',
+    borderRadius: 5,
+  },
+  itemsLength:{
+        textAlign: 'center',
+        fontWeight: '400',
+        fontSize: 18,
+        marginTop: 10,
+        marginBottom: 15
+  },
+  itemLine:{
+        flexDirection: 'row',
+        justifyContent:'space-between',
+        flexDirection: 'row',
+        padding: 10,
+        backgroundColor: '#fff',
+        borderRadius: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 5,
+        marginBottom: 10,
+  },
+  itemName:{
+        width:80,
+        marginTop:2
+  },
+
+  
+
+
+  cart:{
+    paddingBottom: 250
+  },
+
+  title: {
+      fontWeight: '500',
+      textAlign: 'center',
+      fontSize: 18,
+  },
+  subtitle: {
+    fontWeight: '500',
+    textAlign: 'center',
+    color: 'grey'
+  },
+  closeButton:{
+    position: 'absolute',
+    top: 9,
+    right:40,
+    backgroundColor: '#7F00FF',
+    borderRadius: 50,
+    marginTop: 10
+
+  },
+  icon: {
+    color: 'white',
+    // marginTop: 10
+  },
+  image:{
+    marginLeft: 20
+  },
+  sellerDescription:{
+    flexDirection: 'row',
+    textAlign: 'center',
+    justifyContent: 'space-between',
+    padding: 4,
+    backgroundColor: '#F5F5F5'
+  },
+  price:{
+    marginTop: 15
+  },
+  sellerName:{
+    // top: 12,
+    bottom: 5,
+    fontWeight: '500',
+    color: '#7F00FF'
+  },
+  remove:{
+    color: '#7F00FF',
+    fontWeight: '500',
+    marginTop: 15
+
+  },
+
+  componentFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 10,
+    marginTop:10,
+    marginLeft: 5,
+    marginRight: 5
   },
-  footerName: {
-    fontWeight: '600',
-    fontSize: 16,
-    color: '#4A4A4A',
+  footerName:{
+    fontWeight: '500'
   },
-  footerPrice: {
-    fontWeight: '700',
-    fontSize: 18,
-    color: '#7F00FF',
-  },
-});
+  footerPrice:{
+    fontWeight: '500'
+  }
+})

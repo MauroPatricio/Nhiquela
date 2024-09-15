@@ -36,7 +36,7 @@ const ProductDetail = ({ navigation }) => {
   const addItemToBasket = () => {
     if (count < countInStock) {
       setCount(count + 1);
-      dispatch(addToBasket({ _id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName }));
+      dispatch(addToBasket({id, _id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName }));
     }
   };
 

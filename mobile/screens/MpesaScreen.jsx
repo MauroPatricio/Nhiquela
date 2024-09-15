@@ -120,6 +120,32 @@ const MpesaScreen = () => {
         //   }
         // );
 
+      // const orderData =  {
+      //     "address": "Proximo a entrada Versalhes",
+      //     "addressPrice": 50,
+      //     "deliveryPrice": 50,
+      //     "isPaid": true,
+      //     "itemsPrice": 200,
+      //     "itemsPriceForSeller": 200,
+      //     "ivaTax": 20,
+      //     "orderItems": [{
+      //       "_id": "65af72640b324e9d45df28ca",
+      //       "address": "",
+      //       "countInStock": 5,
+      //       "description": "N/A",
+      //       "image": "https://res.cloudinary.com/dajwznqco/image/upload/v1705995980/fqvnnvlbiezubu0m8z8k.jpg",
+      //       "name": "Salgados",
+      //       "price": 275,
+      //       "seller": "65aa4c8b1548a8f7f11b54f0",
+      //       "sellerName": "Confeitaria"
+      //     }],
+      //     "paidAt": "2024-09-15T00:24:15.080Z",
+      //     "paymentMethod": "Mpesa",
+      //     "siteTax": 5,
+      //     "stepStatus": 1,
+      //     "taxPrice": 10,
+      //     "totalPrice": 260
+      //   }
 
         const orderData = {
           orderItems: items,  // Lista de itens do pedido
