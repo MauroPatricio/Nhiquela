@@ -287,6 +287,12 @@ orderRouter.post(
         req.body.orderItems.map(async (item) => {
           // Fetch the product by its ID
           console.log(item)
+
+          // Check if the item is defined
+          if (!item || !item._id) {
+            throw new Error(`Invalid item: ${JSON.stringify(item)}`);
+          }
+          
   
           const product = await Product.findById(item._id);
     
