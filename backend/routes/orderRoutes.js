@@ -255,13 +255,13 @@ orderRouter.post(
       siteTax: req.body.siteTax,
       addressPrice: req.body.addressPrice,
       itemsPriceForSeller: req.body.itemsPriceForSeller,
-      user: req.user._id,
+      user: req.user?req.user._id: req.body._id,
       code: generateCode(),
       status: 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
       stepStatus: req.body.stepStatus,
-      customerId: req.user._id
+      customerId:  req.user?req.user._id: req.body._id,
     });
 
     // Prepare the email content
@@ -286,7 +286,6 @@ orderRouter.post(
       await Promise.all(
         req.body.orderItems.map(async (item) => {
           // Fetch the product by its ID
-          console.log(item)
 
           // Check if the item is defined
           if (!item || !item._id) {
