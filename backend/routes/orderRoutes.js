@@ -240,7 +240,7 @@ orderRouter.get(
 
 orderRouter.post(
   '/',
-  // isAuth,
+  isAuth,
   expressAsyncHandler(async (req, res) => {
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,

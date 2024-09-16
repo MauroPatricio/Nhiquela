@@ -324,7 +324,7 @@ userRouter.post(
     const emailExist = await User.findOne({ email: req.body.email });
 
 if(emailExist){
-  res.status(409).send({ message: 'Já existe um email idêntico registrado' });
+  res.status(409).send({ message: 'Já existe um email idêntico registado' });
   return;
 }
 
@@ -374,7 +374,7 @@ if (!userExist) {
       return;
     }
 
-    res.status(409).send({ message: 'Número de Registo existente' });
+    res.status(409).send({ message: 'Número de registo existente' });
   })
 );
 

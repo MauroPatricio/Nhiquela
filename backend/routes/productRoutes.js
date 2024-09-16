@@ -204,7 +204,7 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 // productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
 
 
-     productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
+     productRoutes.post('/', expressAsyncHandler( async (req, res) => {
 
           console.log(req.body)
      if(!req.body.image){
