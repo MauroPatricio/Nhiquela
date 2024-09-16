@@ -19,7 +19,9 @@ const SellerProduct = ({
     price,
     onSale,
     countInStock,
-seller}) => {
+seller, quantity}) => {
+
+    const _id = id
 
         const [isPressed, setIsPressed] = useState(false); 
 
@@ -28,9 +30,14 @@ seller}) => {
         const dispatch = useDispatch();
 
         const addItemToBasket = () => {
+            const currentQuantity = items.length; // Current quantity of the item in the basket
 
+            if (currentQuantity >= countInStock) {
+              return; // Prevent adding if the stock is exhausted
+            }
+        
             if ( countInStock == items.length ) return;
-            dispatch(addToBasket({id,                 
+            dispatch(addToBasket({id, _id,                 
                 name,
                 image,
                 images,
@@ -42,7 +49,9 @@ seller}) => {
                 price,
                 onSale,
                 countInStock,
-                seller}));
+                seller,
+                quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+            }));
         }
 
         const removeItem = () => {

@@ -36,10 +36,17 @@ const ProductCard = ({
 
   const dispatch = useDispatch();
 
+  const _id = id
   const addItemToBasket = () => {
 
+    const currentQuantity = items.length; // Current quantity of the item in the basket
+
+    if (currentQuantity >= countInStock) {
+      return; // Prevent adding if the stock is exhausted
+    }
+
       if ( countInStock == items.length ) return;
-      dispatch(addToBasket({id,                 
+      dispatch(addToBasket({id,_id,                 
           name,
           image,
           images,
@@ -50,7 +57,9 @@ const ProductCard = ({
           address,
           price,
           onSale,
-          countInStock}));
+          countInStock,
+          quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+          }));
   }
 
   return (

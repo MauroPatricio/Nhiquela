@@ -11,6 +11,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import Toast from 'react-native-toast-message';
+import { Picker } from '@react-native-picker/picker';
 
 
 // Validation schema
@@ -42,14 +43,16 @@ const validationSchema = Yup.object().shape({
     accountNumber: Yup.number().nullable(),
     alternativeAccountType: Yup.string().nullable(),
     alternativeAccountNumber: Yup.number().nullable(),
-    workDayAndTime: Yup.array().of(
-        Yup.object().shape({
-          dayNumber: Yup.number().required('O número do dia é obrigatório'),
-          dayOfWeek: Yup.string().required('O dia da semana é obrigatório'),
-          opentime: Yup.string().required('Horário de funcionamento e obrigação'),
-          closetime: Yup.string().required('Os horários de encerramento são obrigatórios'),
-        })
-      )
+    province: Yup.string().required('Informe a localização do estabelecimento'),
+
+    // workDayAndTime: Yup.array().of(
+    //     Yup.object().shape({
+    //       dayNumber: Yup.number().required('O número do dia é obrigatório'),
+    //       dayOfWeek: Yup.string().required('O dia da semana é obrigatório'),
+    //       opentime: Yup.string().required('Horário de funcionamento e obrigação'),
+    //       closetime: Yup.string().required('Os horários de encerramento são obrigatórios'),
+    //     })
+    //   )
   }),
 });
 
@@ -61,6 +64,8 @@ const SignUp = ({navigation}) => {
   const [sellerLogo, setSellerLogo] = useState(null);
   const [fieldValue, setFieldValue] = useState(null);
   const [location, setLocation] = useState(null);
+  const [provinces, setProvinces] = useState(null);
+  const [loading, setLoading] = useState(null);
 
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -87,11 +92,26 @@ const SignUp = ({navigation}) => {
   };
 
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true); // Start loading before the fetch
+      try {
+        const { data } = await api.get('provinces');
+        setProvinces(data.provinces); // Update the provinces state
+        setLoading(false); // End loading after successful fetch
+      } catch (err) {
+        setError(err.message); // Set error message
+        setLoading(false); // End loading even after error
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
     (async () => {
       // Request permission to access location
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Permissão para acessar localização negada');
         return;
       }
 
@@ -118,10 +138,26 @@ const SignUp = ({navigation}) => {
       setSellerLogo(data.secure_url);
       return data.secure_url; // Return the uploaded image URL
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       Alert.alert('Erro', 'Falha ao enviar a imagem.');
     }
   };
+
+
+  useEffect(() => {
+    (async () => {
+      // Pedir permissão para acessar a localização
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permissão para acessar a localização foi negada.');
+        return;
+      }
+
+      // Obter a localização atual
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+    })();
+  }, []); // O array vazio significa que o useEffect será chamado apenas uma vez quando o componente for montado
 
 
   return (
@@ -129,7 +165,7 @@ const SignUp = ({navigation}) => {
         <ScrollView >
         <BackBtn onPress={()=>navigation.goBack()}/>
             <Image
-            source={require('../assets/nhiquela.png')}
+            source={require('../assets/nhiquela2.png')}
             style={styles.cover}
             />
             <Text style={styles.title}>NOVO REGISTO</Text>
@@ -153,17 +189,23 @@ const SignUp = ({navigation}) => {
             accountNumber: '',
             alternativeAccountType: '',
             alternativeAccountNumber: '',
-            latitude: location?.coords.latitude,
-            longitude: location?.coords.longitude,
+            latitude: '',
+            longitude: '',
             checkedTerms: false,
+            province: '',
 
-            workDayAndTime: [
-                { dayNumber: '', dayOfWeek: '', opentime: '', closetime: '' },
-              ]
+
+            // workDayAndTime: [
+            //     { dayNumber: '', dayOfWeek: '', opentime: '', closetime: '' },
+            //   ]
           },
         }}
         validationSchema={validationSchema}
         onSubmit={async (values) => {
+
+          values.seller.latitude = location?.coords.latitude;
+          values.seller.longitude = location?.coords.latitude
+
           try {
             const { data } = await api.post('users/signup', values);
 
@@ -189,10 +231,10 @@ const SignUp = ({navigation}) => {
                 },
               });
 
-            navigation.navigate('Home');
+            navigation.navigate('Login');
           } catch (error) {
             const errorMessage = error.response.data.message || 'Ocorreu um erro inesperado.';
-            Alert.alert('Erro', errorMessage);
+            // Alert.alert('Erro', errorMessage);
 
             Toast.show({
                 type: 'error',
@@ -203,31 +245,37 @@ const SignUp = ({navigation}) => {
           }
           // Submit logic goes here
         }}
+
+        
       >
         {({ handleChange, handleBlur, handleSubmit,setFieldValue, values, errors, touched }) => (
+          
           <>
             {/* User Details */}
             <Text style={{fontSize: 18, fontWeight: '500', paddingTop:15, paddingBottom: 5}}>Dados do representante</Text>
 
-            <Text>Nome e Apelido</Text>
+            <Text style={styles.label}>Nome e apelido</Text>
           
 
-                 <View style={styles.inputWrapper(touched.name? '#7F00FF':'black')}>
+                 <View style={styles.inputWrapper(touched.name? '#7F00FF':'#7F00FF')}>
              
                 <TextInput 
                 autoCapitalize='none'
                 autoCorrect={false}
                 style={{flex:1}}
                 value={values.name}
-                onChangeText={handleChange('name')}
+                onChangeText={(text) => {
+                  const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s]/g, ''); // Permitir apenas letras e espaços
+                  setFieldValue('name', filteredText); // Atualiza o campo de nome com o texto filtrado
+                }}
                 />
             </View>
                 {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
             <Text style={{fontSize: 18, fontWeight: '500', paddingTop:15, paddingBottom: 5}}>Dados de acesso</Text>
 
-            <Text>Número de telefone</Text>
-            <View style={styles.inputWrapper(touched.phoneNumber? '#7F00FF':'black')}>
+            <Text style={styles.label}>Número de telefone</Text>
+            <View style={styles.inputWrapper(touched.phoneNumber? '#7F00FF':'#7F00FF')}>
             <TextInput
               onChangeText={handleChange('phoneNumber')}
               onBlur={handleBlur('phoneNumber')}
@@ -241,9 +289,9 @@ const SignUp = ({navigation}) => {
 
 
 
-            <Text>Email</Text>
+            <Text  style={styles.label}>Email</Text>
 
-            <View style={styles.inputWrapper(touched.email? '#7F00FF':'black')}>
+            <View style={styles.inputWrapper(touched.email? '#7F00FF':'#7F00FF')}>
 
             <TextInput
                             style={{flex:1}}
@@ -256,8 +304,8 @@ const SignUp = ({navigation}) => {
             </View>
             {touched.email && errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-            <Text>Senha</Text>
-            <View style={styles.inputWrapper(touched.password? '#7F00FF':'black')}>
+            <Text  style={styles.label}>Senha</Text>
+            <View style={styles.inputWrapper(touched.password? '#7F00FF':'#7F00FF')}>
             <TextInput
                             style={{flex:1}}
 
@@ -270,8 +318,8 @@ const SignUp = ({navigation}) => {
             {touched.password && errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
    
-            <Text>Confirmar Senha</Text>
-            <View style={styles.inputWrapper(touched.password? '#7F00FF':'black')}>
+            <Text  style={styles.label}>Confirmar Senha</Text>
+            <View style={styles.inputWrapper(touched.password? '#7F00FF':'#7F00FF')}>
             <TextInput
                             style={{flex:1}}
                 placeholder="Confirmar Senha"
@@ -291,23 +339,32 @@ const SignUp = ({navigation}) => {
             
 
               {/* Upload da Logo */}
-              {image && <Image source={{ uri: image }} style={styles.logo} />}
-          <Button title="Adicionar a Logo da Loja" onPress={() => handleImagePicker(setFieldValue)} />
+              {image ? (
+  <Image source={{ uri: image }} style={styles.logo} />
+) : (
+  <Text style={{color: 'red'}}>É obrigatório a imagem</Text>
+)}
+          <TouchableOpacity style={styles.button} onPress={() => handleImagePicker(setFieldValue)}>
+            <Text style={styles.buttonText}>Adicionar a logo da empresa</Text>
+          </TouchableOpacity>
 
             {/* Seller Details */}
-            <Text>Nome da empresa</Text>
-            <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
+            <Text  style={styles.label}>Nome da empresa</Text>
+            <View style={styles.inputWrapper(touched.location? '#7F00FF':'#7F00FF')}>
             <TextInput
              style={{flex:1}}
-              onChangeText={handleChange('seller.name')}
-              onBlur={handleBlur('seller.name')}
+             onChangeText={(text) => {
+              const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s]/g, ''); // Permitir apenas letras e espaços
+              setFieldValue('seller.name', filteredText); // Atualiza o campo de nome com o texto filtrado
+            }}
+             onBlur={handleBlur('seller.name')}
               value={values.seller.name}
             />
             </View>
             {touched.seller?.name && errors.seller?.name && <Text style={styles.error}>{errors.seller?.name}</Text>}
 
-            <Text>Descrição da loja [Especialidade]</Text>
-            <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
+            <Text  style={styles.label}>Descrição do estabelecimento [Especialidade]</Text>
+            <View style={styles.inputWrapper(touched.location? '#7F00FF':'#7F00FF')}>
 
             <TextInput
               style={{flex:1}}
@@ -322,38 +379,28 @@ const SignUp = ({navigation}) => {
             )}
 
 
-            <Text>Your current location:</Text>
-                {errorMsg ? (
-                    <Text>{errorMsg}</Text>
-                ) : (
-                    location && (
-                    <Text>
-                        Latitude: {location.coords.latitude}, Longitude: {location.coords.longitude}
-                    </Text>
-                    )
-                )}
-                <Button
-                    title="Actualizar localizacao"
-                    onPress={async () => {
-                    let currentLocation = await Location.getCurrentPositionAsync({});
-                    setLocation(currentLocation);
-                    }}
-            />
+           
 
-<Text>Localização</Text>
+{/* <Text  style={styles.label}>Localização</Text> */}
 
-<View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
-<TextInput
-  style={{flex:1}}
-  onChangeText={handleChange('location')}
-  onBlur={handleBlur('location')}
-  value={values.location}
-/>
-</View>
-{touched.location && errors.location && <Text style={styles.error}>{errors.location}</Text>}
+{/* <View style={styles.inputWrapper(touched.location? '#7F00FF':'#7F00FF')}> */}
+          <Picker
+            selectedValue={values.province}
+            onValueChange={(itemValue) => setFieldValue('seller.province', itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Localização do estabelecimento" value="" />
+            {provinces && provinces.map((province) => (
+              <Picker.Item key={province._id} label={province.name} value={province._id} />
+            ))}
+          </Picker>
+{/* </View> */}
+{touched.seller?.province && errors.seller?.province && (
+            <Text style={styles.error}>{errors.seller.province}</Text> // Mensagem de erro
+          )}
 
-            <Text>Endereço da loja [Rua/Av.]</Text>
-            <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
+            <Text  style={styles.label}>Endereço do estabelecimento [Rua/Av.]</Text>
+            <View style={styles.inputWrapper(touched.location? '#7F00FF':'#7F00FF')}>
             <TextInput
                             style={{flex:1}}
               onChangeText={handleChange('seller.address')}
@@ -365,8 +412,8 @@ const SignUp = ({navigation}) => {
               <Text style={styles.error}>{errors.seller?.address}</Text>
             )}
 
-            <Text>Numero de conta da empresa</Text>
-            <View style={styles.inputWrapper(touched.location? '#7F00FF':'black')}>
+            <Text  style={styles.label}>Número de conta da empresa [MPESA]</Text>
+            <View style={styles.inputWrapper(touched.location? '#7F00FF':'#7F00FF')}>
             <TextInput
                style={{flex:1}}
               onChangeText={handleChange('seller.phoneNumberAccount')}
@@ -380,7 +427,7 @@ const SignUp = ({navigation}) => {
             </View>
 
               {/* Work Day and Time Fields */}
-              <FieldArray name="seller.workDayAndTime">
+              {/* <FieldArray name="seller.workDayAndTime">
               {({ remove, push }) => (
                 <View>
                   <Text style={styles.sectionTitle}>Work Days and Time</Text>
@@ -440,9 +487,31 @@ const SignUp = ({navigation}) => {
                   <Button title="Adicionar dias de trabalho" onPress={() => push({ dayNumber: '', dayOfWeek: '', opentime: '', closetime: '' })} />
                 </View>
               )}
-            </FieldArray>
+            </FieldArray> */}
 
-            <Button onPress={handleSubmit} title="Submit" />
+{/* <Text>Sua posição actual:</Text>
+                {errorMsg ? (
+                    <Text>{errorMsg}</Text>
+                ) : (
+                    location && (
+                    <Text>
+                        Latitude: {location.coords.latitude}, Longitude: {location.coords.longitude}
+                    </Text>
+                    )
+                )} */}
+                {/* <Button
+                    title="Actualizar localizacao"
+                    onPress={async () => {
+                    let currentLocation = await Location.getCurrentPositionAsync({});
+                    setLocation(currentLocation);
+                    }}
+            /> */}
+
+            <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+            <Text style={styles.buttonText}>Registar</Text>
+          </TouchableOpacity>
+          <View style={{ marginBottom: 210 }} />
+
           </>
         )}
       </Formik>
@@ -450,77 +519,133 @@ const SignUp = ({navigation}) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
-    logo: {
-        width: 100,
-        height: 100,
-        resizeMode: 'contain',
-        marginTop: 8,
-        marginBottom: 8,
-      },
-    cover: {
-        height: 100,
-        width: 320,
-        resizeMode: "contain",
-        marginBottom: 0,
-        backgroundColor: 'white'
-    },
   container: {
     padding: 20,
-    flex:1,
-    backgroundColor: 'white'
+    flex: 1,
+    backgroundColor: 'white', // Softer light background for modern feel
   },
-  input: {
-    height: 40,
-    borderColor: 'gray',
+  cover: {
+    height: 120,
+    width: '100%',
+    resizeMode: 'contain',
+    marginBottom: 20,
+  },
+   label: {
+    color: '#7F00FF'
+   },
+  title: {
+    fontWeight: '800',
+    fontSize: 26, // Slightly larger, stronger font for prominence
+    textAlign: 'center',
+    color: '#7F00FF', // Sleek dark violet for branding
+    marginBottom: 25,
+  },
+  inputWrapper: (borderColor) => ({
+    borderColor: borderColor || '#7F00FF',
+    backgroundColor: '#FFF',
     borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 8,
+    height: 55,
+    borderRadius: 15, // Smoother corners for a modern feel
+    flexDirection: 'row',
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    // marginBottom: 20, // Additional spacing for cleaner layout
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4, // Softer shadow for more depth
+    elevation: 3,
+  }),
+  input: {
+    flex: 1,
+    fontSize: 17,
+    color: '#333', // Darker text for better contrast
+    paddingLeft: 10,
   },
   error: {
     color: 'red',
-    marginBottom: 10,
+    fontSize: 13,
+    marginBottom: 12,
+    marginLeft: 5,
   },
-  title:{
-    alignItems: "center",
-    fontWeight: "500",
-     textAlign: "center",
-     fontSize: 18,
-      marginBottom: 15,
-     color: 'grey'
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+    borderRadius: 15,
+    alignSelf: 'center',
+    marginVertical: 15,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginVertical: 20,
+    color: '#7F00FF', // Modern purple accent
+    textAlign: 'center',
+  },
+  removeButton: {
+    backgroundColor: '#FF4500', // Vibrant orange-red for emphasis
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
+    marginTop: 15,
+  },
+  removeText: {
+    color: '#FFF',
+    fontWeight: '700',
+    textAlign: 'center',
+    fontSize: 15,
+  },
+  dayContainer: {
+    padding: 12,
+    marginBottom: 15,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5, // Elevated effect for modern, card-like design
+  },
+  button: {
+    backgroundColor: '#4CAF50', // Fresh green for action buttons
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.8, // Spacing for elegance
+  },
+    button: {
+      backgroundColor: '#7F00FF', // Vibrant purple color
+      paddingVertical: 15,
+      paddingHorizontal: 30, // Added horizontal padding for a wider button
+      borderRadius: 12, // Rounded corners for a modern look
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: 10, // Spacing from other elements
+      shadowColor: '#7F00FF', // Subtle shadow with the same color for depth
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 5, // Shadow effect for Android
     },
-    wrapper:{
-        marginBottom: 20,
-        // marginHorizontal: 20
+    buttonText: {
+      color: '#FFF', // White text for contrast
+      fontSize: 18, // Slightly larger text for emphasis
+      fontWeight: '700', // Bold for strong CTA
+      letterSpacing: 1, // Spaced letters for elegance
     },
-    label:{
-        fontSize: 12,
-        marginBottom: 5,
-        marginEnd: 2,
-        // textAlign:"right",
-        color: '#7F00FF'
-    },
-    inputWrapper:(borderColor) =>({
-        borderColor: borderColor,
-        backgroundColor: '#F8F8F8',
-        borderWidth: 1,
-        height: 50,
-        borderRadius: 12,
-        flexDirection: 'row',
-        paddingHorizontal: 15,
-        alignItems: 'center'
-    }),
-    errorMessage: {
-        color:'red',
-        marginTop: 5,
-        marginLeft: 6,
-        fontSize: 10
-    },
-    registration: {
-        textAlign: "center",
-        fontWeight: "500"
-    }
+
+  
 });
 
 export default SignUp;

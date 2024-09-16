@@ -49,6 +49,7 @@ const Profile = ({navigation}) => {
       "Sair",
       "Tem a certeza que deseja sair?",
       [
+
         {
           text: "Cancelar", onPress: () => console.log("cancelado")
         },
@@ -103,7 +104,7 @@ const Profile = ({navigation}) => {
           <View style={styles.container}>
             <StatusBar backgroundColor='white'/>
             <View style={{width: '100%'}}>
-              <Image source={require('../assets/nhiquela.png')}
+              <Image source={require('../assets/nhiquela2.png')}
               style={styles.cover}
               />
             </View>
@@ -122,7 +123,7 @@ const Profile = ({navigation}) => {
                  </TouchableOpacity>):
                  (<View style={styles.loginBtn} onPress={()=>{navigation.navigate('Login')}}>
                     {/* <Text style={styles.menuText}>{userData?.email}</Text> */}
-                    <Text style={styles.menuText}>{userData?.email}</Text>
+                    <Text style={styles.menuText}>{userData?.phoneNumber}</Text>
 
                   </View>)}
             {userLogin!==true?(
@@ -139,16 +140,16 @@ const Profile = ({navigation}) => {
                         </View>
                     </TouchableOpacity> */}
 
-                    <TouchableOpacity onPress={()=>{}}>
+                    {/* <TouchableOpacity onPress={()=>{}}>
                         <View style={styles.menuItem(0.2)}>
                             <MaterialCommunityIcons
-                            name="cash"
+                            name="truck-delivery-outline"
                             size={28}
                             // color={"red"}
                             />
-                            <Text style={styles.menuText2}>Pagamentos da Nhiquela</Text>
+                            <Text style={styles.menuText2}>Pedidos</Text>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     {/* <TouchableOpacity onPress={()=>{}}>
                         <View style={styles.menuItem(0.2)}>
@@ -159,9 +160,17 @@ const Profile = ({navigation}) => {
                             />
                             <Text style={styles.menuText2}>Carinha de compras</Text>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
-                  */}
+                    {/* <TouchableOpacity onPress={()=>{clearCache()}}>
+                        <View style={styles.menuItem(0.2)}>
+                            <MaterialCommunityIcons
+                            name="cached"
+                            size={28}
+                            />
+                            <Text style={styles.menuText2}>Limpar registros</Text>
+                        </View>
+                    </TouchableOpacity> */}
                     <TouchableOpacity onPress={()=>{deleteAccount()}}>
                         <View style={styles.menuItem(0.2)}>
                             <AntDesign
@@ -201,70 +210,85 @@ const Profile = ({navigation}) => {
 
 export default Profile
 
-
 const styles = StyleSheet.create({
-
-  container:{
-      flex: 1,
-      backgroundColor: '#F8F8F8'
+  container: {
+    flex: 1,
+    backgroundColor: '#F3F4F6', // Light grey background for better contrast
+    paddingBottom: 20, // Add some padding at the bottom for the scroll view
   },
   cover: {
-    height: 290,
+    height: 300,
     width: "100%",
-    resizeMode: "cover"
+    resizeMode: "cover",
+    overflow: 'hidden',
   },
-  profileContainer:{
+  profileContainer: {
     flex: 1,
-    alignItems: "center"
+    alignItems: "center",
+    marginTop: -50, // Bring the profile image up
   },
   profile: {
-    height: 155,
-    width: 155,
-    borderRadius: 999,
-    borderColor: "#F5F5F5",
-    marginTop: -80
+    height: 160,
+    width: 160,
+    borderRadius: 80, // Circular profile picture
+    borderWidth: 4,
+    borderColor: "#FFFFFF", // White border around profile picture
+    shadowColor: '#000', // Adding shadow for depth
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5, // Elevation for Android
   },
   name: {
-    fontWeight: "600",
-    marginVertical: 5
+    fontWeight: "700",
+    fontSize: 18,
+    marginVertical: 10,
+    color: "#333", // Darker text for better readability
   },
-  loginBtn:{
-    backgroundColor: "#7F00FF",
-    padding: 5,
+  loginBtn: {
+    backgroundColor: "#7F00FF", // Gradient background color for buttons
+    padding: 10,
     borderWidth: 0.4,
     borderColor: "white",
     borderRadius: 24,
+    width: '80%', // Full width for buttons
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10, // Space between buttons
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  menuText:{
-    // marginTop: 23,
-    marginLeft: 50,
-    marginRight: 50,
+  menuText: {
     fontWeight: "600",
-    fontSize: 14,
-    lineHeight: 19,
-    padding:10,
-    color: "white"
+    fontSize: 16,
+    lineHeight: 22,
+    color: "white",
   },
-  menuWrapper:{
+  menuWrapper: {
     marginTop: 20,
     width: '100%',
-    // backgroundColor: "#e6e6e6",
-    // borderRadius: 1
+    paddingHorizontal: 20, // Padding for menu items
   },
   menuItem: (borderBottomWidth) => ({
     borderBottomWidth: borderBottomWidth,
     flexDirection: "row",
-    paddingVertical: 10,
-    paddingHorizontal: 35,
-    borderColor: "blue",
-    borderBottomWidth: 0.3
-
+    paddingVertical: 15,
+    borderColor: "#E0E0E0", // Subtle border color
+    alignItems: 'center', // Center items vertically
   }),
-  menuText2:{
-    marginLeft: 30,
-    marginTop:4,
-    fontSize: 15,
-    fontWeight: "500"
-  }
-      
-  })
+  menuText2: {
+    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333", // Dark text for contrast
+  },
+});
