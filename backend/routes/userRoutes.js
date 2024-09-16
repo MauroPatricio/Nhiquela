@@ -318,13 +318,13 @@ userRouter.post(
 );
 
 userRouter.post(
-  '/T',
+  '/',
   expressAsyncHandler(async (req, res) => {
     const userExist = await User.findOne({ phoneNumber: req.body.phoneNumber });
     const emailExist = await User.findOne({ email: req.body.email });
 
 if(emailExist){
-  res.status(409).send({ message: 'Já existe um email idêntico registado' });
+  res.status(409).send({ message: 'Já existe um email idêntico registrado' });
   return;
 }
 
@@ -374,7 +374,7 @@ if (!userExist) {
       return;
     }
 
-    res.status(409).send({ message: 'Número de registo existente' });
+    res.status(409).send({ message: 'Número de Registo existente' });
   })
 );
 
