@@ -318,7 +318,7 @@ userRouter.post(
 );
 
 userRouter.post(
-  '/',
+  '/signup',
   expressAsyncHandler(async (req, res) => {
     const userExist = await User.findOne({ phoneNumber: req.body.phoneNumber });
     const emailExist = await User.findOne({ email: req.body.email });
