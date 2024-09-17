@@ -231,8 +231,7 @@ const SignUp = ({navigation}) => {
                 },
               });
 
-            navigation.navigate('Login');
-          } catch (error) {
+Me          } catch (error) {
             const errorMessage = error.response.data.message || 'Ocorreu um erro inesperado.';
             // Alert.alert('Erro', errorMessage);
 

@@ -60,8 +60,8 @@ const ProductListSeller = () => {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white", top: 30, flex:1 }}>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40 }}>Lista de produtos</Text>
+    <SafeAreaView style={{ backgroundColor: "white",  flex:1 }}>
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40, marginTop: 30,color: '#7F00FF' }}>Lista de produtos</Text>
 
     <ScrollView
     showsHorizontalScrollIndicator={false}
@@ -82,7 +82,7 @@ const ProductListSeller = () => {
       )))
       
       : (
-             <Text>Nao possui nenhum produto disponivel.</Text>
+             <Text>Não possui nenhum produto disponível.</Text>
            )}
       
     </ScrollView>

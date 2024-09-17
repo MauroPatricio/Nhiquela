@@ -110,7 +110,7 @@ const Home = () => {
       <Welcome />
 
       <ScrollView>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 10 }}>Pedidos</Text>
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 20, marginBottom: 10, color:'#7F00FF' }}>Pedidos</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -129,28 +129,33 @@ const Home = () => {
 
         <View style={{ marginBottom: 10 }} />
 
-        <ScrollView
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 15,
-          }}
-        >
-          {filteredOrders?.map((order) => (
-            <TouchableOpacity key={order._id} style={styles.container} onPress={() => navigation.navigate('OrderDetail', { order })}>
-              <View>
-                <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
-              </View>
-              <View>
-                <Text style={styles.code}>{order.code}</Text>
-              </View>
-              <View>
-                <Text style={styles.createAt}>{formatDate(order.createdAt)}</Text>
-                <Text style={styles.price}>{order.totalPrice} MT</Text>
-                <Text style={styles.status}>{order.status}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Verifique se filteredOrders tem pedidos */}
+          {filteredOrders && filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <TouchableOpacity
+                key={order._id}
+                style={styles.container}
+                onPress={() => navigation.navigate('OrderDetail', { order })}
+              >
+                <View>
+                  <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
+                </View>
+                <View>
+                  <Text style={styles.code}>{order.code}</Text>
+                </View>
+                <View>
+                  <Text style={styles.createAt}>{formatDate(order.createdAt)}</Text>
+                  <Text style={styles.price}>{order.totalPrice} MT</Text>
+                  <Text style={styles.status}>{order.status}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            // Mostrar mensagem se não houver pedidos
+            <View style={styles.emptyMessageContainer}>
+              <Text style={styles.emptyMessage}>Não possui nenhum pedido de momento.</Text>
+            </View>
+          )}
 
         <View style={{ marginBottom: 250 }} />
       </ScrollView>
@@ -168,6 +173,11 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 15,
     
+  },
+
+  emptyMessage:{ 
+    textAlign: 'center',
+    marginTop: 100
   },
   container: {
     flexDirection: 'row',

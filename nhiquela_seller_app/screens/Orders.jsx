@@ -75,8 +75,8 @@ const Orders = () => {
 
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white", top: 30, flex:1 }}>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40 }}>Histórico de pedidos</Text>
+    <SafeAreaView style={{ backgroundColor: "white",  flex:1 }}>
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40, color: '#7F00FF' ,marginTop: 30,}}>Histórico de pedidos</Text>
 
     <ScrollView
     showsHorizontalScrollIndicator={false}
@@ -101,7 +101,7 @@ const Orders = () => {
       )))
       
       : (
-             <Text>Nao possui nenhum produto disponivel.</Text>
+             <Text>Não possui nenhum pedido disponível</Text>
            )}
       
     </ScrollView>
