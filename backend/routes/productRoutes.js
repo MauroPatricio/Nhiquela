@@ -207,57 +207,68 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
      // productRoutes.post('/', expressAsyncHandler( async (req, res) => {
 
           console.log(req.body)
-     if(!req.body.image){
-          res.status(404).send({message: 'A imagem do produto é obrigatória'});
-          return
-     }
 
-     const comission_price = parseFloat(process.env.COMISSION_PRICE)
+          try{
 
-     const user = await User.findById( req.user._id);
-
-     const priceFromSeller = parseFloat(req.body.price);
-
-     const priceComission = parseFloat(priceFromSeller*comission_price);
-
-     const priceWithComission = parseFloat(priceComission+priceFromSeller);
-
-     const newProduct = new Product({
-          nome: req.body.nome!=null?req.body.nome.trim():req.body.nome,
-          name: req.body.name!=null?req.body.name.trim(): req.body.name,
-          slug: req.body.slug!=null?req.body.slug.trim():req.body.slug,
-          seller: req.user._id,
-          image: req.body.image,
-          images: req.body.images,
-          priceFromSeller: req.body.price,
-          comissionPercentage: comission_price,
-          priceComission: priceComission,
-          price: priceWithComission,
-          category: req.body.category,
-          province: req.body.province,
-          brand: req.body.brand,
-          countInStock: req.body.countInStock,
-          rating: req.body.rating,
-          numReviews: req.body.numReviews,
-          description: req.body.description,
-          onSale: req.body.onSale,
-          onSalePercentage: req.body.onSalePercentage,
-          qualityType :req.body.qualityTyp,
-          conditionStatus : req.body.conditionStatu,
-          color : req.body.selectedColors,
-          size : req.body.selectedSizes,
-          isOrdered: req.body.isOrdered,
-          orderPeriod: req.body.orderPeriod,
-          isGuaranteed:  req.body.isGuaranteed,
-          guaranteedPeriod: req.body.guaranteedPeriod,
-          isActive: user.isApproved,
-     });
-     if(req.body.onSale){  
-          newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;
-     }
-
-     const product = await newProduct.save();
-     res.send({message: 'Produto criado', product});
+               if(!req.body.image){
+                    res.status(404).send({message: 'A imagem do produto é obrigatória'});
+                    return
+               }
+          
+               const comission_price = parseFloat(process.env.COMISSION_PRICE)
+          
+               const user = await User.findById( req.user._id);
+          
+               const priceFromSeller = parseFloat(req.body.price);
+          
+               const priceComission = parseFloat(priceFromSeller*comission_price);
+          
+               const priceWithComission = parseFloat(priceComission+priceFromSeller);
+          
+               const newProduct = new Product({
+                    nome: req.body.nome!=null?req.body.nome.trim():req.body.nome,
+                    name: req.body.name!=null?req.body.name.trim(): req.body.name,
+                    slug: req.body.slug!=null?req.body.slug.trim():req.body.slug,
+                    seller: req.user._id,
+                    image: req.body.image,
+                    images: req.body.images,
+                    priceFromSeller: req.body.price,
+                    comissionPercentage: comission_price,
+                    priceComission: priceComission,
+                    price: priceWithComission,
+                    category: req.body.category,
+                    province: req.body.province,
+                    brand: req.body.brand,
+                    countInStock: req.body.countInStock,
+                    rating: req.body.rating,
+                    numReviews: req.body.numReviews,
+                    description: req.body.description,
+                    onSale: req.body.onSale,
+                    onSalePercentage: req.body.onSalePercentage,
+                    qualityType :req.body.qualityTyp,
+                    conditionStatus : req.body.conditionStatu,
+                    color : req.body.selectedColors,
+                    size : req.body.selectedSizes,
+                    isOrdered: req.body.isOrdered,
+                    orderPeriod: req.body.orderPeriod,
+                    isGuaranteed:  req.body.isGuaranteed,
+                    guaranteedPeriod: req.body.guaranteedPeriod,
+                    isActive: user.isApproved,
+               });
+               if(req.body.onSale){  
+                    newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;
+               }
+          
+               const product = await newProduct.save();
+          
+               if(product){
+                    res.send({message: 'Produto criado', product});
+               }else{
+                    res.status(404).send({message: 'Produto não criado'});
+               }
+          }catch(error){
+               res.status(500).send({ message: 'Erro no servidor', error: error.message });
+          }
 }));
 
 
