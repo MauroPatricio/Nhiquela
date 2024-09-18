@@ -1,13 +1,17 @@
-import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import api from './../../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 const ProductListSeller = () => {
   const [userData, setUserData] = useState(null);
   const [productsOfSeller, setProductsOfSeller] = useState([]);
-  const [isLoading, setIsLoading] = useState(true); // Start loading by default
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // State for RefreshControl
+
+  const navigation = useNavigation();
 
   useEffect(() => {
     checkIfUserExist();
@@ -20,7 +24,7 @@ const ProductListSeller = () => {
   }, [userData]);
 
   const fetchData = async () => {
-    setIsLoading(true); // Start loading
+    setIsLoading(true); 
     try {
       const response = await api.get(`products?seller=${userData._id}`, {
         headers: { authorization: `Bearer ${userData.token}` },
@@ -32,7 +36,8 @@ const ProductListSeller = () => {
     } catch (error) {
       console.error(error);
     } finally {
-      setIsLoading(false); // End loading
+      setIsLoading(false);
+      setRefreshing(false); // Stop the refreshing indicator
     }
   };
 
@@ -51,68 +56,78 @@ const ProductListSeller = () => {
     }
   };
 
+  const onRefresh = () => {
+    setRefreshing(true); // Start the refreshing indicator
+    fetchData(); // Fetch new data
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#7F00FF" />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={{ backgroundColor: "white",  flex:1 }}>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40, marginTop: 30,color: '#7F00FF' }}>Lista de produtos</Text>
+      <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40, marginTop: 30,color: '#7F00FF' }}>
+        Lista de produtos
+      </Text>
 
-    <ScrollView
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{
-      paddingHorizontal: 15,
-    }}
-    >
-      {productsOfSeller.length > 0 ? (productsOfSeller.map((product)=>(
-        <TouchableOpacity onPress={()=>{}}>
-
-        <View key={product._id}  style={styles.wrapper}>
-                 <Image source={{ uri: product.image }} style={styles.image} />
-                 <Text style={styles.title}>{product.name}</Text>
-                 <Text style={styles.price}>{product.price} MT</Text>
-        </View>
-
-        </TouchableOpacity>
-      )))
-      
-      : (
-             <Text>Não possui nenhum produto disponível.</Text>
-           )}
-      
-    </ScrollView>
+      <ScrollView
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {productsOfSeller.length > 0 ? (
+          productsOfSeller.map((product) => (
+            <TouchableOpacity key={product._id} onPress={() => navigation.navigate('ProductSellerDetail', {product})}>
+              <View style={styles.wrapper}>
+                <Image source={{ uri: product.image }} style={styles.image} />
+                <Text style={styles.title}>{product.name}</Text>
+                <Text style={styles.price}>{product.price} MT</Text>
+              </View>
+            </TouchableOpacity>
+            
+          ))
+        ) : (
+          <Text style={styles.noProductsText}>Não possui nenhum produto disponível.</Text>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
+
 export default ProductListSeller;
-
 const styles = StyleSheet.create({
-
-  loadingContainer:{
-      top: 100
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     borderRadius: 8,
-    // marginBottom: 10,
+    marginRight: 15,
     resizeMode: 'cover',
   },
   wrapper: {
-    // letterSpacing: 1,
-    backgroundColor: '#DCDCDC',
-    padding: 10,
-    borderRadius: 15,
+    backgroundColor: '#7F00FF',
+    padding: 15,
+    borderRadius: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-
+    alignItems: 'center',
+    marginBottom: 7,
+    shadowColor: '#7F00FF',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 6,
+    elevation: 5,
   },
   container: {
     flexDirection: 'row',
@@ -127,31 +142,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 7,
   },
-  cartIcon: {
-    color: '#7F00FF',
-    // padding: 20,
-    borderRadius: 22,
-    backgroundColor: 'white',
-  },
-  code: {
-    fontWeight: '500',
-    fontSize: 17,
+  title: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
     color: 'white',
-    marginLeft: 10,
-    alignContent: 'center',
-    alignItems: 'center',
-    textAlign: 'center',
-    top: 20,
-  },
-  status: {
-    fontWeight: '700',
-    fontSize: 15,
-    color: 'white',
-    marginLeft: 10,
   },
   price: {
-    // color: 'white',
-    fontSize: 15,
-    fontWeight: '600'
-  }
+    fontSize: 16,
+    fontWeight: '700',
+    color: 'white',
+  },
+  noProductsText: {
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#888',
+  },
 });

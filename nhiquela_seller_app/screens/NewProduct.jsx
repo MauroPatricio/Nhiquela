@@ -7,9 +7,11 @@ import Toast from 'react-native-toast-message';
 import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
 
-const NewProduct = ({navigation}) => {
+const NewProduct = () => {
 
+  const navigation = useNavigation()
   const [provinces, setProvinces] = useState(null);
   const [categories, setCategories] = useState(null);
 const [image, setImage] = useState(null)
@@ -19,25 +21,51 @@ const [colors, setColors] = useState(null);
 const [sizes, setSizes] = useState(null);
 const [userData, setUserData] = useState(null);
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (values, resetForm) => {
 
     if(userData == null) return;
     try {
 
-      console.log(userData.token)
-      //  const response = await api.post('products/', values, 
-      //   {
-      //     headers: { Authorization: `Bearer ${userData.token}` }
-      //   });
-      // if (response.status === 200) {
-      //   alert('Product created successfully');
+      // console.log(userData.token)
+       const response = await api.post('products/', values, 
+        {
+          headers: { Authorization: `Bearer ${userData.token}` }
+        });
+      if (response.status === 200) {
 
-      //   navigation.navigate('ProductList');
+        Toast.show({
+          type: 'success',
+          text1: 'Produto criado com sucesso',
+          position: 'top',
+          visibilityTime: 4000, // Time for how long the toast will show
+          autoHide: true,
+          topOffset: 30,
+          bottomOffset: 40,
+          style: {
+              
+          backgroundColor: '#4CAF50', // Green background for success
+          borderLeftWidth: 10,
+          borderLeftColor: '#7F00FF', // Left border accent for success
+          },
+          text1Style: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: 'black', // Text color
+          
+          },
+        });
 
-      // }
+        resetForm(); // Limpa o formulário após a submissão
+
+        navigation.navigate('ProductListSeller');
+
+      }
     } catch (error) {
-      console.error(error);
-      alert('Error creating product');
+      const errorMessage = error.response?.data.error; // Acessa a mensagem de erro enviada
+
+      console.error(errorMessage);
+
+      alert(errorMessage);
     }
   };
 
@@ -132,6 +160,8 @@ const [userData, setUserData] = useState(null);
     price: Yup.number()
       .typeError('O preço deve ser um número')
       .required('O preço é obrigatório'),
+      image: Yup.string()
+      .required('A imagem do produto é obrigatória'),
     category: Yup.string()
       .required('A categoria é obrigatória'),
     province: Yup.string()
@@ -201,14 +231,14 @@ const [userData, setUserData] = useState(null);
         }}
         validationSchema={validationSchema}
 
-        onSubmit={handleSubmit}
-      >
-        {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
+        onSubmit={(values, { resetForm }) => handleSubmit(values, resetForm)}
+        >
+        {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors, resetForm }) => (
           <>
 
         
 <Picker
-            selectedValue={values.categorie || ''} // Verificação segura do campo
+            selectedValue={values.category || ''} // Verificação segura do campo
             onValueChange={(itemValue) => setFieldValue('category', itemValue)} // Atualizando seller.categorie
             style={styles.picker}
           >
@@ -219,8 +249,8 @@ const [userData, setUserData] = useState(null);
           </Picker>
 
                       {/* </View> */}
-                      {touched.categorie && errors.categorie && (
-                                <Text style={styles.error}>{errors.categorie}</Text> // Mensagem de erro
+                      {touched.category && errors.category && (
+                                <Text style={styles.error}>{errors.category}</Text> // Mensagem de erro
                               )}
 
           <Picker
@@ -279,6 +309,11 @@ const [userData, setUserData] = useState(null);
 ) : (
   <Text style={{color: 'red'}}>Adicione a imagem</Text>
 )}
+
+  {/* </View> */}
+  {touched.image && errors.image && (
+                                <Text style={styles.error}>{errors.image}</Text> // Mensagem de erro
+                              )}
       
 
 
@@ -360,7 +395,10 @@ const [userData, setUserData] = useState(null);
                     <TextInput
                       style={styles.input}
                       placeholder="Número de dias de entrega do produto"
-                      onChangeText={handleChange('orderPeriod')}
+                      onChangeText={(text) => {
+                        const filteredText = text.replace(/[^0-9]/g, ''); // Permitir apenas letras e espaços
+                        setFieldValue('orderPeriod', filteredText); // Atualiza o campo de nome com o texto filtrado
+                      }}
                       onBlur={handleBlur('orderPeriod')}
                       value={values.orderPeriod}
                     />
@@ -381,6 +419,8 @@ const [userData, setUserData] = useState(null);
                 style={styles.input}
                 placeholder="Período de garantia (meses)"
                 onChangeText={handleChange('guaranteedPeriod')}
+
+               
                 onBlur={handleBlur('guaranteedPeriod')}
                 value={values.guaranteedPeriod}
               />
@@ -414,6 +454,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     textAlign: 'center',
     marginTop: 200
+  },
+
+  error:{
+    color: 'red'
   },
 
   logo: {
@@ -477,14 +521,14 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   submitButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#7F00FF',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
   },
   submitButtonText: {
-    color: '#7F00FF',
+    color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },

@@ -29,6 +29,7 @@ import NewProduct from './screens/NewProduct';
 import ProductListSeller from './components/products/ProductListSeller';
 import PaymentsHistory from './screens/PaymentsHistory';
 import Toast from 'react-native-toast-message';
+import ProductSellerDetail from './components/products/ProductSellerDetail';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +67,14 @@ style={{flex: 1}}>
             component={ProductListSeller}
             options={{headerShown: false}}
             />
+
+
+<Stack.Screen name='ProductSellerDetail'
+            component={ProductSellerDetail}
+            options={{headerShown: false}}
+            />
+
+
 
 
 <Stack.Screen name='PaymentsHistory'
