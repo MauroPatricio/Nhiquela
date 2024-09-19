@@ -70,7 +70,7 @@ export default function CarouselSlide() {
                       {p && p.onSale &&  <span className="sale"><b>{t('onsale')}</b></span>}
                       {p && p.onSale &&  <span className="sale-percentage"><b>{p.onSalePercentage*100}%</b></span>}
            
-        <br/><b>{changelng=='pt'?truncateString(p.nome,30):truncateString(p.name,30)}</b>
+        <br/><b>{changelng=='pt'?truncateString(p.nome,30):truncateString(p.nome,30)}</b>
         </div>
         </Link>
       ))}
