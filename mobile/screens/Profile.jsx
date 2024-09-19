@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20, // Add some padding at the bottom for the scroll view
   },
   cover: {
-    height: 250,
+    height: 300,
     width: "100%",
     resizeMode: "cover",
     overflow: 'hidden',

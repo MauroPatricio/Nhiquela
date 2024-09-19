@@ -1,121 +1,143 @@
-import {useRoute} from '@react-navigation/native'
+import {useNavigation, useRoute} from '@react-navigation/native'
 import React from 'react';
-import { View, Text, StyleSheet,  Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet,  Image, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import {Ionicons, SimpleLineIcons, MaterialCommunityIcons, Fontisto  } from '@expo/vector-icons'
 
 const OrderDetailsScreen = () => {
-  const {params: {
-    item
-          } }= useRoute();
+  const { params: { item } } = useRoute();
 
-  const order = item
+  const order = item;
 
-      return (
-     
-    <ScrollView style={styles.container}>
-      <Text style={styles.heading}>Detalhes do pedido</Text>
-      
-      <Text style={styles.label}>Codigo do pedido: <Text style={styles.value}>{order.code}</Text></Text>
-      <Text style={styles.label}>Forma de pagamento: <Text style={styles.value}>{order.paymentMethod}</Text></Text>
-      <Text style={styles.label}>Preco total pago: <Text style={styles.price}>{order.totalPrice} MT</Text></Text>
-      <Text style={styles.label}>Estado: <Text style={styles.value}>{order.status}</Text></Text>
-      {/* <Text style={styles.label}>Items Price: <Text style={styles.value}>${order.itemsPrice}</Text></Text>
-      <Text style={styles.label}>Site Tax: <Text style={styles.value}>${order.siteTax}</Text></Text>
-      <Text style={styles.label}>IVA Tax: <Text style={styles.value}>${order.ivaTax}</Text></Text>
-      <Text style={styles.label}>Address Price: <Text style={styles.value}>${order.addressPrice}</Text></Text> */}
+  const navigation = useNavigation();
 
-      <Text style={styles.subheading}>Produtos:</Text>
-      {order.orderItems.map((item, index) => (
-        <View key={index} style={styles.itemContainer}>
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
-          <View style={styles.itemDetails}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemDescription}>{item.description}</Text>
-            <Text style={styles.itemPrice}>Preco: {item.price}MT</Text>
-            <Text style={styles.itemStock}>disponivel: {item.countInStock}</Text>
-            <Text style={styles.itemRating}>pontuacao: {item.rating}</Text>
-          </View>
-        </View>
-      ))}
-    <View style={{marginBottom: 210}} />
-    </ScrollView>
+
+  return (
+    <>
+    
+    
+        <View style={styles.icons}>
+
+      <TouchableOpacity onPress={()=>navigation.goBack()}>
+        <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
+      </TouchableOpacity>
+      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingTop:1 }}>
+      <ScrollView style={styles.container}>
+        <Text style={styles.heading}>Detalhes do pedido</Text>
+
+        <Text style={styles.label}>Codigo do pedido: <Text style={styles.value}>{order.code}</Text></Text>
+        <Text style={styles.label}>Forma de pagamento: <Text style={styles.value}>{order.paymentMethod}</Text></Text>
+        <Text style={styles.label}>Estado: <Text style={styles.value}>{order.status}</Text></Text>
+        <Text style={styles.label}>Preço total pago: <Text style={styles.price}>{order.totalPrice} MT</Text></Text>
+        <Text style={styles.label}>Preço total pago: <Text style={styles.price}>{order} MT</Text></Text>
+
+        <Text style={styles.subheading}>Produtos:</Text>
+        {order.orderItems.map((item, index) => (
+         <View style={styles.itemContainer}>
+           <Image source={{ uri: item.image }} style={styles.itemImage} />
+           <View style={styles.itemDetails}>
+             {/* <Text style={styles.itemNumber}>Produto {index + 1}</Text> Increment starts from 1 */}
+             <Text style={styles.itemName}>{item.name}</Text>
+             <Text style={styles.itemDescription}>{item.description}</Text>
+             <Text style={styles.itemStock}>Quantidade solicitada: {item.quantity}</Text>
+             <Text style={styles.itemPrice}>Preço: {item.price}MT</Text>
+           </View>
+         </View>
+        ))}
+        <View style={{ marginBottom: 210 }} />
+      </ScrollView>
+    </SafeAreaView>
+    </>
   );
 };
-
 const styles = StyleSheet.create({
+  back: {
+    color: 'black',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Slight transparency for a modern look
+    borderRadius: 22,
+    padding: 5,
+  },
   container: {
-    flex: 1,
     padding: 16,
-    backgroundColor: 'white',
-    top:20
+    backgroundColor: '#F9FAFC', // Soft background for clean, modern feel
+    flexGrow: 1,
   },
   heading: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 16,
-    top:10
+    color: '#4A00E0', // Vibrant accent color for the heading
+    marginBottom: 20,
+    textAlign: 'center',
   },
   subheading: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#333', // Darker shade for subheading to contrast nicely
     marginVertical: 12,
+    // paddingHorizontal: 5,
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginVertical: 4,
+    fontWeight: '600',
+    color: '#555', // Softer text color for labels
+    marginBottom: 6,
+    paddingHorizontal: 5,
   },
   value: {
-    fontWeight: 'bold',
-    
-
+    fontWeight: '700',
+    color: '#333', // High contrast for important values
   },
   price: {
-    fontWeight: 'bold',
-    
-
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4A00E0', // Highlight the price with accent color
   },
   itemContainer: {
     flexDirection: 'row',
-    marginVertical: 8,
-    padding: 8,
+    marginVertical: 5,
+    // padding: 15,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 6, // Stronger elevation for more depth
   },
   itemImage: {
     width: 100,
     height: 100,
-    borderRadius: 8,
+    borderRadius: 12,
+    backgroundColor: '#F1F1F1', // Subtle background for images
   },
   itemDetails: {
     marginLeft: 16,
     flex: 1,
-    justifyContent: 'space-around',
+    justifyContent: 'center',
   },
   itemName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333', // Item name stands out in bold
   },
   itemDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#777', // Softer color for less important text
+    marginVertical: 4,
   },
   itemPrice: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: '#4A00E0', // Accent color to highlight the price
+    marginTop: 5,
   },
   itemStock: {
     fontSize: 14,
-    color: '#333',
-  },
-  itemRating: {
-    fontSize: 14,
-    color: '#333',
+    color: '#555',
+    marginTop: 5,
   },
 });
+
+
 
 export default OrderDetailsScreen;

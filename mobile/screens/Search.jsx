@@ -31,7 +31,7 @@ const Search = () => {
   }, [searchKey]);
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{backgroundColor: 'white', flex:1}}>
       <View style={styles.searchContainer}>
         <View style={styles.searchWrapper}>
           <TextInput

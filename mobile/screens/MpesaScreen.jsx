@@ -2,7 +2,7 @@ import { StyleSheet, Text, TextInput, View , Image, TouchableOpacity } from 'rea
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import * as Yup from 'yup';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/Button';
 import api from '../hooks/createConnectionApi';
-import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice} from '../features/basketSlice';
+import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice, clearBasket} from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
 
 
@@ -31,8 +31,8 @@ const MpesaScreen = () => {
   const itemsPrice = useSelector(selectBasketTotal);
   const iva = useSelector(selectIva);
   const deliveryPrice  = useSelector(selectDeliverPrice);
-
   const [paymentInfo, setPaymentInfo] = useState('');
+  const dispatch = useDispatch();
 
 
   const checkIfUserExist = async () => {
@@ -83,11 +83,12 @@ const MpesaScreen = () => {
       
       const customerNumber = '258'+values.customerNumber;
       
-      const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
-        headers: {
-          authorization: `Bearer ${userData.token}`,
-        },
-      });
+      // const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
+      //   headers: {
+      //     authorization: `Bearer ${userData.token}`,
+      //   },
+      // });
+      const data =true
 
       
       
@@ -96,17 +97,17 @@ const MpesaScreen = () => {
         // console.log('Passei daqui+')
 
         // colocar os dados da ordem para gravar
-        if(paymentInfo.isPaid){
+        if(data){
 
           const order =  {
               orderItems: items,
               address: '',
-              paymentMethod: 'Mpesa',
+              paymentMethod: 'Mpesa', 
               itemsPrice: itemsPrice,
               ivaTax: iva,
               siteTax: 0,
               taxPrice: 0,
-              totalPrice: itemsPrice + deliveryPrice,
+              totalPrice: totalToPay ,
               addressPrice: deliveryPrice,
               itemsPriceForSeller: itemsPrice,
               isPaid: true,
@@ -125,6 +126,9 @@ const MpesaScreen = () => {
             });
         
             console.log('Pedido criado com sucesso:', response.data);
+
+            dispatch(clearBasket()); // Clear the basket
+
           } catch (error) {
             console.error('Erro ao criar pedido:', error.data.message);
           }

@@ -8,7 +8,8 @@ const basketSlice = createSlice({
     items: [],
     payment: 0,
     iva: 0,
-    deliverPrice: 0
+    deliverPrice: 0,
+    sellers:[]
   },
   reducers: {
     addToBasket: (state, action) => {
@@ -35,12 +36,20 @@ const basketSlice = createSlice({
     addDeliverPrice: (state, action) => {
       state.deliverPrice = action.payload;
     },
+    
+    addSellers: (state, action) => {
+      state.sellers = action.payload;
+    },
 
-
+    clearBasket: (state, action) => {
+      state.items = [];
+    }
+    
+    
   },
 });
 
-export const { addToBasket, removeFromBasket, addTotalToPay, addIva, addDeliverPrice } = basketSlice.actions;
+export const { addToBasket, removeFromBasket, addTotalToPay, addIva, addDeliverPrice, addSellers, clearBasket } = basketSlice.actions;
 
 // Selectors
 export const selectBasketItems = (state) => state.basket.items;
@@ -57,6 +66,7 @@ export const selectIva = (state) => state.basket.iva;
 
 export const selectDeliverPrice = (state) => state.basket.deliverPrice;
 
+export const selectSellers = (state) => state.basket.sellers;
 
 
 
