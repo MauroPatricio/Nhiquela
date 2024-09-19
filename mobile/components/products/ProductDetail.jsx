@@ -10,7 +10,7 @@ import BasketIcon from '../BasketIcon';
 const ProductDetail = ({ navigation }) => {
   const route = useRoute();
   const { item } = route.params;
-  const [count, setCount] = useState(1);
+  const [count, setCount] = useState(0); // Start count at 0
   const items = useSelector((state) => selectBasketItemsWithId(state, item.item._id));
 
   const id = item.item._id;
@@ -29,30 +29,43 @@ const ProductDetail = ({ navigation }) => {
   const seller = sellerDetail._id;
   const sellerName = sellerDetail.seller.name;
 
-  const _id = id
+  const _id = id;
 
   const dispatch = useDispatch();
 
   const addItemToBasket = () => {
     const currentQuantity = items.length; // Current quantity of the item in the basket
 
-    if (currentQuantity >= countInStock) {
+    if (currentQuantity + count >= countInStock) {
       return; // Prevent adding if the stock is exhausted
     }
-    if (count < countInStock) {
-      setCount(count + 1);
-      dispatch(addToBasket({id, _id, name, image, images, description, rating, numReviews, province, address, price, onSale, countInStock, seller, sellerName, 
-        quantity: currentQuantity + 1 // Increase quantity by 1 when adding
-
-      
-      }));
-    }
+    
+    setCount(count + 1); // Increase count by 1
+    dispatch(addToBasket({
+      id,
+      _id,
+      name,
+      image,
+      images,
+      description,
+      rating,
+      numReviews,
+      province,
+      address,
+      price,
+      onSale,
+      countInStock,
+      seller,
+      sellerName,
+      quantity: currentQuantity + count + 1 // Update quantity
+    }));
   };
 
   const removeItem = () => {
-    if (count > 1) {
+    if (count > 0) { // Allow removal only if count is greater than 0
       setCount(count - 1);
-    } else {
+    }
+    if (count === 1) {
       dispatch(removeFromBasket({ _id }));
     }
   };
@@ -82,7 +95,7 @@ const ProductDetail = ({ navigation }) => {
               </View>
 
               <View style={styles.countControl}>
-                <TouchableOpacity onPress={removeItem} disabled={count === 1}>
+                <TouchableOpacity onPress={removeItem} disabled={count === 0}>
                   <SimpleLineIcons name='minus' size={25} />
                 </TouchableOpacity>
                 <Text style={styles.countText}>{count}</Text>
@@ -112,7 +125,6 @@ const ProductDetail = ({ navigation }) => {
     </>
   );
 };
-
 export default ProductDetail;
 
 const styles = StyleSheet.create({

@@ -18,13 +18,17 @@ const CartDetails = () => {
     const [sellerLocation, setSellerLocation] = useState({ latitude: -25.9692, longitude: 32.5732 }); // example seller location
     const [distance, setDistance] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
+    const [location, setLocation] = useState(null);
+
     const financialFees = 40
 
     // Define a price per kilometer
     const pricePerKm = 10; // e.g., 10 MT per km
     const minDelivPrice = 100
     
-    const iva = basketTotal * 0.16;
+    // const iva = basketTotal * 0.16;  -- IVA irei aplicar futuramente
+    const iva = 0;
+
     const subtotal = basketTotal + financialFees + iva
     // Calculate total price to pay based on distance
 
@@ -38,6 +42,22 @@ const CartDetails = () => {
 
     const totalToPay = subtotal + distanceToPay;
 
+
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Nao tem acesso a locatizacao');
+        return;
+      }
+
+      // If permission is granted, get the location
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+    };
+
+    requestLocationPermission();
+  }, []);
 
     useEffect(() => {
         if (userLocation && sellerLocation) {
@@ -80,12 +100,12 @@ const CartDetails = () => {
         <View style={styles.popupContent}>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Subtotal</Text>
-                <Text style={styles.total}>{basketTotal} MT</Text>
+                <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} MT</Text>
             </View>
-            <View style={styles.barPopup}>
+            {/* <View style={styles.barPopup}>
                 <Text style={styles.length}>IVA (16%)</Text>
                 <Text style={styles.total}>{iva.toFixed(2)} MT</Text>
-            </View>
+            </View> */}
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>
                 <Text style={styles.total}>{financialFees} MT</Text>
@@ -138,10 +158,10 @@ const CartDetails = () => {
                 <Text style={styles.length}>Subtotal</Text>
                 <Text style={styles.total}>{basketTotal} MT</Text>
             </View>
-            <View style={styles.barPopup}>
+            {/* <View style={styles.barPopup}>
                 <Text style={styles.length}>IVA (16%)</Text>
                 <Text style={styles.total}>{iva.toFixed(2)} MT</Text>
-            </View>
+            </View> */}
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>
                 <Text style={styles.total}>{financialFees} MT</Text>
@@ -152,7 +172,7 @@ const CartDetails = () => {
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.totalDescript}>Total a pagar</Text>
-                <Text style={styles.totalPrice}>{totalToPay.toFixed(2)} MT</Text>
+                <Text style={styles.totalPrice}>{parseFloat(totalToPay).toFixed(2)} MT</Text>
             </View>
                         </ScrollView>
                     </View>
