@@ -80,6 +80,7 @@ const ProductSellerDetail = () => {
 export default ProductSellerDetail;
 const styles = StyleSheet.create({
   back: {
+    top:40,
     color: '#7F00FF',
   },
   icons: {

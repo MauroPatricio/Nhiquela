@@ -56,8 +56,8 @@ const validationSchema = Yup.object().shape({
   }),
 });
 
-const SignUp = ({navigation}) => {
-//   const navigation = useNavigation();
+const SignUp = () => {
+  const navigation = useNavigation();
   const route = useRoute();
   const [workDaysWithTime, setWorkDaysWithTime] = useState([]);
   const [image, setImage] = useState(null);
@@ -204,10 +204,10 @@ const SignUp = ({navigation}) => {
         onSubmit={async (values) => {
 
           values.seller.latitude = location?.coords.latitude;
-          values.seller.longitude = location?.coords.latitude
+          values.seller.longitude = location?.coords.longitude
 
           try {
-            const { data } = await api.post('users/signup', values);
+             await api.post('users/signup', values);
 
             Toast.show({
                 type: 'success',
@@ -230,9 +230,10 @@ const SignUp = ({navigation}) => {
                 
                 },
               });
-
-Me          } catch (error) {
-            const errorMessage = error.response.data.message || 'Ocorreu um erro inesperado.';
+              navigation.navigate('NewProduct')
+          } catch (error) {
+          
+            const errorMessage = error?.response?.data?.message || 'Ocorreu um erro inesperado.';
             // Alert.alert('Erro', errorMessage);
 
             Toast.show({
@@ -247,7 +248,7 @@ Me          } catch (error) {
 
         
       >
-        {({ handleChange, handleBlur, handleSubmit,setFieldValue, values, errors, touched }) => (
+        {({ handleChange, handleBlur, handleSubmit,setFieldValue,values, errors, touched }) => (
           
           <>
             {/* User Details */}
