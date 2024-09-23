@@ -9,14 +9,14 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: size,
         marginTop: top,
-        marginHorizontal: 25,
+        marginHorizontal: 15,
         color: color,
 
     }),
     welcomeText2: (color, size, top) => ({
         fontSize: size,
         marginTop: top,
-        marginHorizontal: 25,
+        marginHorizontal: 15,
         color: color,
         fontWeight: "700"
     }),

@@ -42,6 +42,14 @@ const Home = () => {
     }, [])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      // Fetch the orders when the screen is focused
+      filteredOrders
+        }, [])
+  );
+
+
   // Fetch Orders
   const fetchData = async () => {
     setIsLoading(true);
@@ -94,7 +102,7 @@ const Home = () => {
   const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white" , flex:1}}
+    <SafeAreaView style={{ backgroundColor: "white" , flex:1, paddingLeft:10, paddingRight: 10}}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={style.appBarWrapper}>
@@ -104,7 +112,9 @@ const Home = () => {
             style={style.cover}
           />
           <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
+
         </View>
+          <Text style={{paddingTop:11, paddingBottom: 19, fontSize:20, fontWeight: '500'}}>{userData ? userData.seller.name: ''}</Text>
       </View>
 
       <Welcome />
@@ -170,7 +180,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginRight: 7,
     backgroundColor: '#7F00FF',
-    padding: 6,
+    padding: 10,
     borderRadius: 15,
     
   },
@@ -183,14 +193,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#7F00FF',
-    borderRadius: 5,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 3, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 5,
     marginBottom: 10,
-    padding: 7,
+    padding: 10,
   },
   cartIcon: {
     color: '#7F00FF',

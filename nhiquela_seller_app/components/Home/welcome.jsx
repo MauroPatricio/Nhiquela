@@ -8,12 +8,12 @@ const welcome = () => {
   return (
 
     <View>
-      <View style={styles.container}>
+      <View style={{paddingBottom:30}}>
         <Text style={styles.welcomeText('black', 30, 0)}><Text style={{ color: '#7F00FF' }}>NHIQUELA</Text>SHOP</Text>
 
         <Text style={styles.welcomeText2('black', 11, 0)}>TUDO EM SUAS MÃOS</Text>
       </View>
-      <View style={styles.searchContainer}>
+      {/* <View style={styles.searchContainer}>
         <TouchableOpacity>
           <Feather name="search" size={24}
             style={styles.searchIcon} />
@@ -30,7 +30,7 @@ const welcome = () => {
           <TouchableOpacity style={styles.searchBtn}>
           </TouchableOpacity>
         </View>
-      </View>
+      </View> */}
     </View>
   )
 }

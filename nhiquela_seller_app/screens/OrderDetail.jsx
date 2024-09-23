@@ -74,7 +74,6 @@ const OrderDetail = ({navigation}) => {
               );
 
               setCurrentOrder(data.order) 
-              console.log(data)
           
               // Handle success response
               console.log('Pedido Aceite com sucesso', data);
@@ -277,14 +276,14 @@ const OrderDetail = ({navigation}) => {
             <Text style={styles.itemText}>Marca/Sabor: {item.brand}</Text>
             {/* <Text style={styles.itemText}>Categoria: {item.category.nome}</Text> */}
             <Text style={styles.itemText}>Preço: {item.price} MT</Text>
-            <Text style={styles.itemText}>Quantidade: {item.quantity}</Text>
-            <Text style={styles.itemText}>Cor: {item.color}</Text>
-            <Text style={styles.itemText}>Tamanho: {item.size}</Text>
+            <Text style={styles.itemText}>Quantidade: {item.quantity} solicitada</Text>
+            {/* <Text style={styles.itemText}>Cor: {item.color}</Text>
+            <Text style={styles.itemText}>Tamanho: {item.size}</Text> */}
             {/* <Text style={styles.itemText}>Condition: {item.conditionStatus}</Text> */}
             {/* <Text style={styles.itemText}>Quality: {item.qualityType}</Text> */}
             {/* <Text style={styles.itemText}>In Stock: {item.countInStock}</Text> */}
             {/* <Text style={styles.itemText}>Rating: {item.rating} ({item.numReviews} Reviews)</Text> */}
-            <Text style={styles.itemText}>Em promoção:  {item.onSale ? 'Sim' : 'Nao'}</Text>
+            <Text style={styles.itemText}>Em promoção:  {item.onSale ? 'Sim' : 'Não'}</Text>
             {item.onSale && (
               <Text style={styles.itemText}>Desconto: {item.onSalePercentage}%</Text>
             )}

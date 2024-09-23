@@ -73,7 +73,6 @@ const MpesaScreen = () => {
         },
               
       });
-      console.log(data)
       setPaymentInfo(data)
       if(data.paid){
         setLoading(false);
