@@ -87,6 +87,38 @@ productRoutes.get('/bycategory', async (req, res) => {
    });
 
 
+//by products/byCategoryId
+productRoutes.get('/bycategory/:id', async (req, res) => {
+     try {
+       const { id } = req.params;
+       const page = parseInt(req.query.page) || 1;  // Default to page 1 if not provided
+       const pageSize = 10;  // Number of products per page
+   
+       // Find products that match the given categoryId and implement pagination
+       const products = await Product.find({ category: id })
+         .populate('seller color size category province qualityType conditionStatus')
+         .skip((page - 1) * pageSize)  // Skip the products from previous pages
+         .limit(pageSize);  // Limit the results to the number of products per page
+   
+       const totalProducts = await Product.countDocuments({ category: id });  // Get total products in category
+   
+       if (products.length > 0) {
+         res.status(200).json({
+           totalPages: Math.ceil(totalProducts / pageSize),
+           currentPage: page,
+           totalProducts,
+           products,
+         });
+       } else {
+         res.status(404).send({ message: 'Nenhum produto encontrado para esta categoria' });
+       }
+     } catch (error) {
+       res.status(500).send({ message: 'Erro ao buscar produtos pela categoria', error });
+     }
+   });
+   
+
+
 // All Products
 productRoutes.get('/', async (req, res) => {
      try{
