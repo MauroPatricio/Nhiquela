@@ -13,7 +13,6 @@ const productRoutes = express.Router();
 
 
 
-//by category
 productRoutes.get('/bycategory', async (req, res) => {
      try {
        const productsByCategory = await Product.aggregate([
@@ -29,62 +28,41 @@ productRoutes.get('/bycategory', async (req, res) => {
            $unwind: '$categoryDetails',
          },
          {
-          $lookup: {
-            from: 'users', // Join with the sellers collection
-            localField: 'seller', // Field from the Product collection
-            foreignField: '_id', // Field from the Seller collection
-            as: 'sellerDetails', // Alias for the joined data
-          },
-        },
-        {
-          $unwind: '$sellerDetails', // Unwind the sellerDetails array
-        },
-        
-        {
-          $lookup: {
-            from: 'qualitytypes', // Join with the sellers collection
-            localField: 'qualityType', // Field from the Product collection
-            foreignField: '_id', // Field from the Seller collection
-            as: 'qualityTypeDetails', // Alias for the joined data
-          },
-        },
-        {
-          $unwind: '$qualityTypeDetails', // Unwind the qualityTypeDetails array
-        },
-
-        {
-          $lookup: {
-            from: 'conditionstatuses', // Join with the sellers collection
-            localField: 'conditionStatus', // Field from the Product collection
-            foreignField: '_id', // Field from the Seller collection
-            as: 'conditionStatusDetails', // Alias for the joined data
-          },
-        },
-        {
-          $unwind: '$conditionStatusDetails', // Unwind the conditionStatusDetails array
-        },
-        {
-          $lookup: {
-            from: 'provinces', // Join with the sellers collection
-            localField: 'province', // Field from the Product collection
-            foreignField: '_id', // Field from the Seller collection
-            as: 'provinceDetails', // Alias for the joined data
-          },
-        },
-        {
-          $unwind: '$provinceDetails', // Unwind the provinceDetails array
-        },
-         {
-           $sort: {
-             'categoryDetails.name': 1, // Sort by category title in ascending order
+           $lookup: {
+             from: 'users',
+             localField: 'seller',
+             foreignField: '_id',
+             as: 'sellerDetails',
            },
          },
-       ])
+         {
+           $unwind: '$sellerDetails',
+         },
+         {
+           $lookup: {
+             from: 'provinces',
+             localField: 'province',
+             foreignField: '_id',
+             as: 'provinceDetails',
+           },
+         },
+         {
+           $unwind: '$provinceDetails',
+         },
+         // Sort products within each category by their creation date in descending order
+         {
+           $sort: {
+             'categoryDetails.name': 1, // Sort by category name in ascending order
+             'createdAt': -1,            // Sort by product creation date in descending order
+           },
+         },
+       ]);
        res.json(productsByCategory);
      } catch (error) {
        res.status(500).json({ error: 'Ocorreu um erro no servidor' });
      }
    });
+   
 
 
 //by products/byCategoryId
@@ -238,7 +216,6 @@ productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, r
 
      // productRoutes.post('/', expressAsyncHandler( async (req, res) => {
 
-          console.log(req.body)
 
           try{
 
