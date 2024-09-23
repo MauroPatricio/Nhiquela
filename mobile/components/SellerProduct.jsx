@@ -2,8 +2,7 @@ import { StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native'
 import React, { useState } from 'react'
 import { MinusCircleIcon, PlusCircleIcon } from 'react-native-heroicons/outline';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectBasketItemsWithId } from '../features/basketSlice';
-import { addToBasket, removeFromBasket } from '../features/basketSlice';
+import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, checkIfSellerExists, getItemsBySellerId } from '../features/basketSlice';
 
 
 const  SellerProduct = ({
@@ -55,6 +54,14 @@ sellerName}) => {
                 quantity: currentQuantity + 1 // Increase quantity by 1 when adding
 
             }));
+
+
+            const sellerExists = checkIfSellerExists(seller._id);
+
+            if (!sellerExists) {
+              // Dispatch the action to add the seller to the basket
+              dispatch(addSellers({seller}));
+            }
         }
 
         const removeItem = () => {
@@ -62,6 +69,13 @@ sellerName}) => {
                 return;
             }
             dispatch(removeFromBasket({id}))
+
+            const remainingItemsFromSeller = getItemsBySellerId(seller._id);
+
+      if (remainingItemsFromSeller.length === 0) {
+        // Dispatch the action to remove the seller if no more products are in the basket
+        dispatch(removeSeller({ sellerId: seller._id }));
+      }
         }
 
   return (

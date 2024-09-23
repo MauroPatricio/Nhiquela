@@ -14,7 +14,6 @@ const basketSlice = createSlice({
   reducers: {
     addToBasket: (state, action) => {
       state.items.push(action.payload);  // Push is simpler here
-      console.log(action.payload)
     },
     removeFromBasket: (state, action) => {
       const index = state.items.findIndex((item) => item.id === action.payload.id);
@@ -36,23 +35,38 @@ const basketSlice = createSlice({
     addDeliverPrice: (state, action) => {
       state.deliverPrice = action.payload;
     },
-    
-    addSellers: (state, action) => {
-      state.sellers = action.payload;
-    },
 
     clearBasket: (state, action) => {
       state.items = [];
+    },
+
+    clearSellers: (state, action) => {
+      state.sellers = [];
+    },
+
+    removeSeller: (state, action) => {
+      // Filter out the seller by their sellerId
+      state.sellers = state.sellers.filter(seller => seller.sellerId !== action.payload);
+    },
+    
+    addSellers: (state, action) => {
+      // Check if the seller already exists in the sellers array
+      const sellerExists = state.sellers.find(seller => seller.sellerId === action.payload.sellerId);
+      
+      if (!sellerExists) {
+        // Add the seller if they do not exist in the array
+        state.sellers = [...state.sellers, action.payload];
+      }
     }
     
     
   },
 });
 
-export const { addToBasket, removeFromBasket, addTotalToPay, addIva, addDeliverPrice, addSellers, clearBasket } = basketSlice.actions;
+export const { addToBasket, removeFromBasket, addTotalToPay, addIva, addDeliverPrice, addSellers, removeSeller, clearBasket, clearSellers } = basketSlice.actions;
 
 // Selectors
-export const selectBasketItems = (state) => state.basket.items;
+export const selectBasketItems = (state) => state.basket.items || [];
 
 export const selectBasketItemsWithId = (state, id) =>
   state.basket.items.filter((item) => item.id === id);
@@ -66,7 +80,17 @@ export const selectIva = (state) => state.basket.iva;
 
 export const selectDeliverPrice = (state) => state.basket.deliverPrice;
 
-export const selectSellers = (state) => state.basket.sellers;
+export const selectSellers = (state) => state.basket.sellers || [];
+
+
+export const checkIfSellerExists = (sellerId) => {
+  return (state) => state.basket.sellers.some(seller => seller.sellerId === sellerId);
+};
+
+export const getItemsBySellerId = (sellerId) => {
+  return (state) => state.basket.items.filter(item => item.seller._id === sellerId);
+};
+
 
 
 

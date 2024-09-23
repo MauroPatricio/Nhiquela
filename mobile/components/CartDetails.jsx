@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice } from '../features/basketSlice';
+import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers } from '../features/basketSlice';
 import { useNavigation } from '@react-navigation/native';
 import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ const CartDetails = () => {
     const items = useSelector(selectBasketItems);
     const navigation = useNavigation();
     const basketTotal = useSelector(selectBasketTotal);
+    const sellers = useSelector(selectSellers)
     const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
     const bottomSheetRef = useRef(null);
     const [sellerLocation, setSellerLocation] = useState({ latitude: -25.9692, longitude: 32.5732 }); // example seller location
@@ -43,11 +44,14 @@ const CartDetails = () => {
     const totalToPay = subtotal + distanceToPay;
 
 
+    console.log(sellers )
+
+
   useEffect(() => {
     const requestLocationPermission = async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Nao tem acesso a locatizacao');
+        setErrorMsg('Nao tem acesso a localizacao');
         return;
       }
 

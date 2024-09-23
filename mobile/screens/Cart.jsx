@@ -30,7 +30,8 @@ const Cart = () => {
   return (
 <>
 
-  
+{console.log(groupedItemsInTheCart)}
+
 <CartDetails/>
 <SafeAreaView style={styles.container}>
         <View style={styles.cart}>
@@ -69,7 +70,15 @@ const Cart = () => {
                   <Text style={styles.price}>{parseFloat(groupedItems[0].price).toFixed(2)} MT</Text>
                   
                   <TouchableOpacity
-                    onPress={() => dispatch(removeFromBasket({ id: groupedItems[0]._id }))}
+                    onPress={() => {
+                      const itemInBasket = items.find((basketItem) => basketItem._id === groupedItems[0]._id);
+                      
+                      if (itemInBasket) {
+                        dispatch(removeFromBasket({ id: groupedItems[0]._id }));
+                      } else {
+                        console.warn(`Can't remove product (id: ${groupedItems[0]._id}) as it's not in the basket!`);
+                      }
+                    }}
                   >
                     <Text style={styles.remove}>Remover</Text>
                   </TouchableOpacity>

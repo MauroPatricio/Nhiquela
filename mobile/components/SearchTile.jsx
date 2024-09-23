@@ -12,10 +12,14 @@ const SearchTile = (item) => {
         style={styles.productImg}/>
         </View>
         <View style={styles.textContainer}>
-            <Text style={styles.productTitle}>{item.item.name.length<30?item.item.name: item.item.name.substring(0, 30)+`...`}</Text>
+            {
+                item.item.name!==null? <Text style={styles.productTitle}>{item.item.name.length<30?item.item.name: item.item.name.substring(0, 30)+`...`}</Text>:
+                <Text style={styles.productTitle}>{item.item.nome.length<30?item.item.nome: item.item.nome.substring(0, 30)+`...`}</Text>
+            }
             
-            <Text style={styles.seller}>{item.item.seller.name.length<20?item.item.seller.name: item.item.seller.name.substring(0, 25)+`...`}
-            </Text>
+            {item.item.seller !==null?<Text style={styles.seller}>{item.item.seller.name.length<20?item.item.seller.name: item.item.seller.name.substring(0, 25)+`...`}
+            </Text>:''}
+  
             <Text style={styles.price}>{item.item.price} MT</Text>
             
         </View>

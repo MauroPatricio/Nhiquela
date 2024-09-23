@@ -63,7 +63,6 @@ const TransportType = () => {
 <Text>Estimativa de chegada: {travelTimeInfo.duration.text}</Text>
 </View>
 
-{console.log(travelTimeInfo)}
     <Text style={styles.type}>Tipo de transporte a solicitar:</Text>
 
     <FlatList

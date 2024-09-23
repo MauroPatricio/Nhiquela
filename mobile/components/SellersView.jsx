@@ -1,11 +1,12 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import {ArrowRightIcon} from 'react-native-heroicons/outline'
 import SellerCard from './SellerCard'
 import api from '../hooks/createConnectionApi';
+import { useNavigation } from '@react-navigation/native';
 
 const SellersView = ({title, description}) => {
-
+  const navigation = useNavigation()
 
   const [isloading, setLoading] = useState(false);
   const [sellers, setSellers] = useState(null);
@@ -38,7 +39,10 @@ useEffect(()=>{
     <View>
     <View style={styles.sellerWrapper}>
       <Text style={styles.title}>{title}</Text>
-      <ArrowRightIcon color={"#7F00FF"}/>
+      <TouchableOpacity onPress={()=> navigation.navigate('SellersList',{sellers})}>
+      <ArrowRightIcon color={"#7F00FF"} size={30} />
+
+      </TouchableOpacity>
     </View>
     <View>
       <Text style={styles.text}>{description}</Text>
@@ -49,6 +53,7 @@ useEffect(()=>{
       }}
       showsHorizontalScrollIndicator={false}>
         {sellers!=null && sellers?.map(seller=>(
+
 
         <SellerCard
         key={seller._id}
@@ -67,7 +72,9 @@ useEffect(()=>{
         latitude={seller.seller.latitude}
         longitude={seller.seller.longitude}
         />
-        ))}
+        )
+        
+        )}
 
       </ScrollView>
     </View>

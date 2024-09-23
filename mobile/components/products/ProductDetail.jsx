@@ -1,48 +1,50 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import React, { useState } from 'react';
-import { Ionicons, SimpleLineIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Badge } from 'react-native-paper';
-import { addToBasket, removeFromBasket, selectBasketItemsWithId } from '../../features/basketSlice';
+import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, checkIfSellerExists, getItemsBySellerId } from '../../features/basketSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import BasketIcon from '../BasketIcon';
 
-const ProductDetail = ({ navigation }) => {
+const ProductDetail = () => {
   const route = useRoute();
-  const { item } = route.params;
+  const item = route.params?.item || {}; // Fallback in case `item` is undefined
+
+  const navigation = useNavigation()
+
+  // Destructure properties from `item` or `item.item`
+  const itemData = item.item !== undefined ? item.item : item;
+  const {
+    _id,
+    name = itemData?.name || itemData?.nome,
+    image,
+    images,
+    description,
+    rating,
+    numReviews,
+    countInStock,
+    province,
+    price,
+    onSale,
+    seller = itemData?.sellerDetails || itemData?.seller,
+  } = itemData;
+
   const [count, setCount] = useState(0); // Start count at 0
-  const items = useSelector((state) => selectBasketItemsWithId(state, item.item._id));
 
-  const id = item.item._id;
-  const name = item.item.nome;
-  const image = item.item.image;
-  const images = item.item.images;
-  const description = item.item.description;
-  const rating = item.item.rating;
-  const numReviews = item.item.numReviews;
-  const province = item.item.province;
-  const address = item.item.address;
-  const price = item.item.price;
-  const onSale = item.item.onSale;
-  const countInStock = item.item.countInStock;
-  const sellerDetail = item.item.sellerDetails;
-  const seller = sellerDetail._id;
-  const sellerName = sellerDetail.seller.name;
-
-  const _id = id;
-
+  const items = useSelector((state) => selectBasketItemsWithId(state, _id));
   const dispatch = useDispatch();
 
-  const addItemToBasket = () => {
-    const currentQuantity = items.length; // Current quantity of the item in the basket
+  const sellerName = seller?.name;
 
+  const addItemToBasket = () => {
+    const currentQuantity = items.length;
     if (currentQuantity + count >= countInStock) {
       return; // Prevent adding if the stock is exhausted
     }
-    
+
     setCount(count + 1); // Increase count by 1
-    dispatch(addToBasket({
-      id,
+    dispatch(addToBasket({id:_id,
       _id,
       name,
       image,
@@ -51,22 +53,31 @@ const ProductDetail = ({ navigation }) => {
       rating,
       numReviews,
       province,
-      address,
       price,
       onSale,
       countInStock,
       seller,
       sellerName,
-      quantity: currentQuantity + count + 1 // Update quantity
+      quantity: currentQuantity + count + 1
     }));
+
+    const sellerExists = checkIfSellerExists(seller._id);
+    if (!sellerExists) {
+      dispatch(addSellers({ seller }));
+    }
   };
 
   const removeItem = () => {
-    if (count > 0) { // Allow removal only if count is greater than 0
+    if (count > 0) {
       setCount(count - 1);
     }
     if (count === 1) {
       dispatch(removeFromBasket({ _id }));
+
+      const remainingItemsFromSeller = getItemsBySellerId(seller._id);
+      if (remainingItemsFromSeller.length === 0) {
+        dispatch(removeSeller({ sellerId: seller._id }));
+      }
     }
   };
 
@@ -75,56 +86,58 @@ const ProductDetail = ({ navigation }) => {
       <BasketIcon />
       <ScrollView>
         <View style={styles.container}>
-          <Image source={{ uri: item.item.image }} style={styles.image} />
+          <Image source={{ uri: image }} style={styles.image} />
           <View style={styles.icons}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name='chevron-back-circle' size={35} style={styles.back} />
+              <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
             </TouchableOpacity>
           </View>
           <View style={styles.details}>
-            <Text style={styles.title}>{item.item.nome}</Text>
-            <Text style={styles.price}>{item.item.price} MT</Text>
+            <Text style={styles.title}>{name}</Text>
+            <Text style={styles.price}>{price} MT</Text>
             <Text>{countInStock} unidade(s) disponível(is)</Text>
 
             <View style={styles.ratingRow}>
               <View style={styles.rating}>
-                {[...Array(Math.round(item.item.rating))].map((_, index) => (
+                {[...Array(Math.round(rating))].map((_, index) => (
                   <Ionicons key={index} size={15} color="gold" name="star" />
                 ))}
-                <Text>{item.item.rating}</Text>
+                <Text>{rating}</Text>
               </View>
 
               <View style={styles.countControl}>
                 <TouchableOpacity onPress={removeItem} disabled={count === 0}>
-                  <SimpleLineIcons name='minus' size={25} />
+                  <SimpleLineIcons name="minus" size={25} />
                 </TouchableOpacity>
                 <Text style={styles.countText}>{count}</Text>
-                <TouchableOpacity onPress={addItemToBasket} disabled={count >= countInStock}>
-                  <SimpleLineIcons name='plus' size={25} />
+                <TouchableOpacity onPress={addItemToBasket} disabled={count >= countInStock || countInStock === 0}>
+                  <SimpleLineIcons name="plus" size={25} />
                 </TouchableOpacity>
               </View>
             </View>
 
             <Text style={{ marginLeft: 20 }}>
-              {item.item.isOrdered ? (
+              {itemData.isOrdered ? (
                 <Badge style={{ color: 'white', backgroundColor: 'green' }}>Por encomenda</Badge>
-              ) : item.item.countInStock !== 0 ? (
-                `${item.item.countInStock} unidade(s)`
+              ) : countInStock !== 0 ? (
+                `${countInStock} unidade(s)`
               ) : (
-                <Badge bg='danger'>Sem stock</Badge>
+                <Badge bg="danger">Sem stock</Badge>
               )}
             </Text>
 
             <View style={styles.descriptionWrapper}>
               <Text style={styles.description}>Descrição</Text>
-              <Text style={styles.descText}>{item.item.description}</Text>
+              <Text style={styles.descText}>{description}</Text>
             </View>
           </View>
         </View>
+        <View style={{ marginBottom: 100 }} />
       </ScrollView>
     </>
   );
 };
+
 export default ProductDetail;
 
 const styles = StyleSheet.create({
@@ -146,7 +159,10 @@ const styles = StyleSheet.create({
     width: '90%',
   },
   back: {
-    color: '#7F00FF',
+    color: 'black',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 22,
+    padding: 5,
   },
   details: {
     padding: 20,
@@ -178,8 +194,22 @@ const styles = StyleSheet.create({
   countControl: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F4F4F4',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    width: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   countText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
     marginHorizontal: 10,
   },
   descriptionWrapper: {

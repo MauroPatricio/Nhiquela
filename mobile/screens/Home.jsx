@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
@@ -12,7 +12,7 @@ import { selectBasketItems } from '../features/basketSlice';
 import { Welcome } from './Index';
 import BottomSheetComponent from '../components/BottomSheetComponent';
 import { Badge } from 'react-native-paper';
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 const Home = () => {
   const [userData, setUserData] = useState(null);
@@ -28,6 +28,14 @@ const Home = () => {
     fetchData();
     fetchProductData();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Re-fetch data when the screen is focused
+      fetchData();
+      fetchProductData();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {
@@ -156,6 +164,8 @@ const Home = () => {
           return (
             <View key={category._id}>
               <ProductHomeView
+                  key={`producthomeview-${category._id}`} // Unique key for ProductHomeView
+
                 title={category.nome.replace(/\(.*?\)/, '').trim()}
                 description={description}
                 categoryid={category._id}

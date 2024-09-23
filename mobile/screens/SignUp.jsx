@@ -7,6 +7,8 @@ import { Formik } from 'formik';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
+import {registerNotification} from '../hooks/createConnectionApi';
+import { registerIndieID, unregisterIndieDevice } from 'native-notify';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -27,11 +29,31 @@ const SignUp = ({ navigation }) => {
   const [loader, setLoader] = useState(false);
   const [hideText, setHideText] = useState(true);
 
+
   const submitRegistration = async (values) => {
     setLoader(true);
     try {
       const response = await api.post('/users/signup', values);
       if (response.status === 200) {
+
+        // registerIndieID('put your unique user ID here as a string', 23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+
+
+
+      //   const response = await registerNotification({
+      //     nickname: response.data.name,
+      //     email: response.data.email,
+      //     password: response.data.password,
+      //     passwordConfirm: response.data.password,
+      //   });
+      
+      // const fcm = await deviceStorage.loadItem('FCMToken');
+      
+      // await register({
+      //     tokenID: fcm,
+      //     user: response?.data?.data?.user._id,
+      // });
+
         navigation.navigate('Login');
       }
     } catch (error) {

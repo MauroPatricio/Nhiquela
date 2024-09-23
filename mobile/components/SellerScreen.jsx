@@ -9,6 +9,7 @@ import SellerProduct from './SellerProduct'
 import BasketIcon from './BasketIcon'
 import { useDispatch } from 'react-redux'
 import { setSeller } from '../features/sellerSlice'
+import MapView, { Marker } from 'react-native-maps'; // Import MapView and Marker
 
 const SellerScreen = () => {
   const {params: {
@@ -27,9 +28,11 @@ const SellerScreen = () => {
   const navigation = useNavigation();
 
   const sellerId = id;
+  console.log({id})
   const [productsBySeller, setProductsBySeller] = useState(null);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  const [sellerLocation, setSellerLocation] = useState({  latitude, longitude}); // example seller location
 
 
 useEffect(()=>{
@@ -98,6 +101,7 @@ useLayoutEffect(()=>{
             </TouchableOpacity> */}
           </View>
           <View style={styles.view}>
+      
               <View style={styles.rating}>
               <Text style={styles.sellerName}>{name}</Text>
                   <StarIcon color={'gold'} opacity={12} size={22}/>
@@ -137,7 +141,7 @@ useLayoutEffect(()=>{
                                         price={product.price}
                                         onSale={product.onSale}
                                         countInStock={product.countInStock}
-                                        seller={product.seller._id}
+                                        seller={product.seller}
                                         sellerName={product.seller.seller.name}
 
                                     />

@@ -60,7 +60,7 @@ const SellerCard = ({
 
           <View style={styles.rating}>
             <StarIcon color="darkorange" opacity={0.9} size={18} />
-            <Text style={styles.ratingText}>{rating} ({numReviews} reviews)</Text>
+            <Text style={styles.ratingText}>{rating} ({numReviews} comentários)</Text>
           </View>
         </View>
       </View>

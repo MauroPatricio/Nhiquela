@@ -36,7 +36,7 @@ const ProductCard = ({
 
   const dispatch = useDispatch();
 
-  const _id =id
+  const _id = id
 
   const addItemToBasket = () => {
     const currentQuantity = items.length; // Current quantity of the item in the basket
@@ -82,7 +82,7 @@ const ProductCard = ({
           </Text>
 
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={()=> addItemToBasket(item._id)} >
+        <TouchableOpacity style={styles.addBtn} >
           <Ionicons name='cart' size={25}
             color={'#7F00FF'}
           />

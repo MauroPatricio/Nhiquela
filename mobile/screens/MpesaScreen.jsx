@@ -12,6 +12,7 @@ import Button from '../components/Button';
 import api from '../hooks/createConnectionApi';
 import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice, clearBasket} from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
+import axios from 'axios';
 
 
 const validationSchema = Yup.object().shape({
@@ -22,6 +23,7 @@ const validationSchema = Yup.object().shape({
 });
 
 const MpesaScreen = () => {
+
   const [userData, setUserData] = useState(null);
   const [loader, setLoader] = useState(false);
   const totalToPay = useSelector(selectTotalToPay);
@@ -54,24 +56,35 @@ const MpesaScreen = () => {
       
       Toast.show({
         type: 'error',
-        text1: 'Por favor, faça o login',
+        text1: 'Atenção!',
+        text2: 'Por favor, faça o login para continuar.',
         position: 'top',
-        visibilityTime: 4000, // Time for how long the toast will show
+        visibilityTime: 6000, // Increase visibility time for emphasis
         autoHide: true,
-        topOffset: 30,
+        topOffset: 50,
         bottomOffset: 40,
+        onPress: () => {
+          navigation.navigate('Login'); // Navigate to the login screen
+        },
         style: {
-            
-        backgroundColor: '#4CAF50', // Green background for success
-        borderLeftWidth: 10,
-        borderLeftColor: '#00C851', // Left border accent for success
+          backgroundColor: '#FF5733', // Bold, attention-grabbing red color
+          borderLeftWidth: 10,
+          borderLeftColor: '#C70039', // Deeper red accent for emphasis
+          borderRadius: 10, // Rounded corners for modern look
+          padding: 10, // Extra padding for visibility
         },
         text1Style: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'black', // Text color
-        
+          fontSize: 15, // Larger font for title
+          fontWeight: 'bold',
+          color: 'black', // High contrast text
         },
+        text2Style: {
+          fontSize: 16,
+          color: 'black', // Secondary message with same color
+        },
+        renderLeftIcon: () => (
+          <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
+        ), // Adding a warning icon
       });
       
 
@@ -79,8 +92,6 @@ const MpesaScreen = () => {
     }
     try {
       setLoader(true);
-
-      
       const customerNumber = '258'+values.customerNumber;
       
       // const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
@@ -128,6 +139,15 @@ const MpesaScreen = () => {
             console.log('Pedido criado com sucesso:', response.data);
 
             dispatch(clearBasket()); // Clear the basket
+
+
+            axios.post(`https://app.nativenotify.com/api/indie/notification`, {
+              subID: userData._id,
+              appId: 23641,
+              appToken: 'P1NYLd6lOOHkdLzDZK0kV3',
+              title: 'Pedido criado com sucesso',
+              message: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`
+         });
 
           } catch (error) {
             console.error('Erro ao criar pedido:', error.data.message);

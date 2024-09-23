@@ -28,12 +28,40 @@ import OrderDetailsScreen from './screens/OrderDetailScreen';
 import OrderList from './screens/OrderList';
 import FailedPayment from './screens/FailedPayment';
 import Toast from 'react-native-toast-message';
+import { useEffect } from 'react';
+import registerNNPushToken from 'native-notify';
+import messaging from '@react-native-firebase/messaging';
+import ProductListByCategory from './components/products/ProductListByCategory';
+import SellersList from './components/SellersList';
+
+
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
-  return (
 
+
+
+// const registerDeviceForMessaging = async () => {
+//   await messaging().registerDeviceForRemoteMessages();
+//   const token = await messaging().getToken();
+
+//   await deviceStorage.saveItem('FCMToken', token);
+
+//   console.log('FCM Token: ', token);
+//   // Register the token
+//   // await register(token);
+// };
+
+
+export default function App() {
+  // useEffect(() => {
+  //  registerNNPushToken(23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+  // }, []);
+  
+   registerNNPushToken(23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+
+      
+  return (
    
     <NavigationContainer>
 
@@ -86,6 +114,12 @@ style={{flex: 1}}>
             component={SellerProduct}
             options={{headerShown: false}}
             />
+
+
+<Stack.Screen name='SellersList'
+            component={SellersList}
+            options={{headerShown: false}}
+            />
  
   <Stack.Screen name='PaymentMethod'
             component={PaymentMethod}
@@ -100,6 +134,11 @@ style={{flex: 1}}>
  
   <Stack.Screen name='MpesaScreen'
             component={MpesaScreen}
+            options={{headerShown: false}}
+            />
+
+<Stack.Screen name='ProductListByCategory'
+            component={ProductListByCategory}
             options={{headerShown: false}}
             />
 
@@ -143,7 +182,12 @@ style={{flex: 1}}>
             options={{headerShown: false}}
             />
         </Stack.Navigator>
+
+
 </KeyboardAvoidingView>
+
+
+
 
 
 <Toast ref={(ref) => Toast.setRef(ref)} />

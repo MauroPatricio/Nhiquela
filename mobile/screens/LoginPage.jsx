@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { registerIndieID, unregisterIndieDevice } from 'native-notify';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -36,6 +37,9 @@ const LoginPage = ({ navigation }) => {
         setResponseData(response.data);
         await AsyncStorage.setItem(`user${response.data._id}`, JSON.stringify(response.data));
         await AsyncStorage.setItem('id', JSON.stringify(response.data._id));
+
+        registerIndieID(response.data._id, 23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+
         navigation.replace('Bottom Navigation');
       }
     } catch (error) {

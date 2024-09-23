@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
         //  color:'#6b7280'
     },
     activeRadio: {
-        backgroundColor: '#7F00FF' + '11'
+        backgroundColor: '#7F00FF' + '40'
     },
     activeText: {
         color: '#374151'

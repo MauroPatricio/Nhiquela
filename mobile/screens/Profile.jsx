@@ -3,6 +3,7 @@ import React, {useState, useEffect} from 'react'
 import { StatusBar } from 'expo-status-bar'
 import {AntDesign, MaterialCommunityIcons, SimpleLineIcons} from "@expo/vector-icons"
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import {  unregisterIndieDevice } from 'native-notify';
 
 const Profile = ({navigation}) => {
   const [userData, setUserData] = useState(null);
@@ -35,6 +36,9 @@ const Profile = ({navigation}) => {
         // setUserLogin(false);
         await AsyncStorage.removeItem(userId);
         await AsyncStorage.removeItem('id');
+
+        unregisterIndieDevice(userId, 23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+
 
         navigation.replace('Bottom Navigation')
 
