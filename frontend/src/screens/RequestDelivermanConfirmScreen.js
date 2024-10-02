@@ -293,7 +293,6 @@ export default function RequestDelivermanConfirmScreen() {
         );
         // ctxDispatch({ type: 'CART_CLEAR' });
         // dispatch({ type: 'CREATE_SUCCESS' });
-        console.log(order)
         navigate(`/requestdelivermanprogress/${order.data.requestDeliv._id}`);
         toast.success('Pedido efectuado com sucesso');
     

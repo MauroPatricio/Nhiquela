@@ -527,7 +527,6 @@ useEffect(() => {
                           className="img-fluid rounded  img-thumbnail"
                         ></img>{' '}
                         <Link className="link link-none" to={`/product/${item.slug}`}>
-                          {console.log(item)}
                         <br/>{t('product')}: <b>{item.name}</b><br/>{t('color')}:  <b>{item.color}</b>{' '} {t('size')}:  <b>{item.size}</b><br/>
                         {' '} {item.onSale && t('deliveryestimate')}{item.onSale && ':'}{item.onSale && item.orderPeriod}
 
