@@ -134,7 +134,7 @@ export default function Footer() {
               style={{backgroundColor: '#7c4dff', width: '60px', height: '2px'}}
 
               />
-          <p> <FontAwesomeIcon icon={faPhone} ></FontAwesomeIcon>{' '}{t('hotline')}: +258 846891062<br/> </p>
+          <p> <FontAwesomeIcon icon={faPhone} ></FontAwesomeIcon>{' '}{t('hotline')}: +258 853600036<br/> </p>
           <p> +258 853600036<br/> </p>
           <p> +258 879300036<br/></p>
           <p>{t('emaillang')}<br/></p>         

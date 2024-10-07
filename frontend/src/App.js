@@ -226,7 +226,7 @@ export  function App() {
                     
                   ) : (<>
                   
-                    { <Nav.Link as={Link} to="/requestdeliverman"><b className='link'>{t('requestdeliverman')}</b></Nav.Link>}
+                    {/* { <Nav.Link as={Link} to="/requestdeliverman"><b className='link'>{t('requestdeliverman')}</b></Nav.Link>} */}
 
                     <Link className="nav-link" to="/signin">
                       {t('login')}
@@ -341,7 +341,7 @@ export  function App() {
           <Container className={expanded ? 'collapse-open' : ''}>
             <Routes>
               <Route path="/" element={<HomeScreen />} />
-              <Route path="/product/:slug" element={<ProductScreen />} />
+              <Route path="/products/:id" element={<ProductScreen />} />
               <Route path="/cart" element={<CartScreen />} />
               <Route path="/signin" element={<SignInScreen />} />
               <Route path="/signup" element={<SignupScreen />} />

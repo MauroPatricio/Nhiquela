@@ -27,7 +27,6 @@ export default function SearchBox() {
 
   return (
     <div>
-      <Form className="d-flex me-auto form-size">
         <InputGroup>
           <FormControl
             type="text"
@@ -42,7 +41,6 @@ export default function SearchBox() {
             <FontAwesomeIcon icon={faSearch}></FontAwesomeIcon>
           </Button>
         </InputGroup>
-      </Form>
     </div>
   );
 }
