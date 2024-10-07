@@ -580,7 +580,7 @@ orderRouter.put(
 
     if (order) {
       order.isAvailableToDeliver = true;
-      order.status = 'Disponivel para entrega';
+      order.status = 'Disponível para entrega';
       order.stepStatus = 3;
       if(order.addressPrice === 0){
         order.status = 'Finalizado';
