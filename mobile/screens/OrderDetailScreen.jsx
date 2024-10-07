@@ -28,17 +28,22 @@ const OrderDetailsScreen = () => {
           <Text style={styles.label}>
             Estado: <Text style={styles.value}>{order.status}</Text>
           </Text>
+         
+
           <Text style={styles.label}>
-            Preço total pago: <Text style={styles.price}>{order.totalPrice} MT</Text>
+            Valor da entrega: <Text style={styles.price}>{order.addressPrice} MT</Text>
+          </Text>
+          <Text style={styles.label}>
+            Taxa de Serviços financeiros: <Text style={styles.price}>40 MT</Text>
           </Text>
 
           <Text style={styles.label}>
-            Valor da entrega: <Text style={styles.price}>{order.deliveryPrice} MT</Text>
+            Valor total pago: <Text style={styles.price}>{order.totalPrice} MT</Text>
           </Text>
 
           
 
-          <Text style={styles.subheading}>Produtos:</Text>
+          <Text style={styles.subheading}>Produtos solicitados:</Text>
           {order.orderItems.map((item, index) => (
             <View style={styles.itemContainer} key={index}>
               <Image source={{ uri: item.image }} style={styles.itemImage} />
@@ -47,6 +52,7 @@ const OrderDetailsScreen = () => {
                 <Text style={styles.itemDescription}>{item.description}</Text>
                 <Text style={styles.itemStock}>Quantidade solicitada: {item.quantity}</Text>
                 <Text style={styles.itemPrice}>Preço: {item.price}MT</Text>
+                
               </View>
             </View>
           ))}

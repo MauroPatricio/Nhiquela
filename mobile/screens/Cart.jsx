@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import {useNavigation} from '@react-navigation/native'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectSeller } from '../features/sellerSlice'
-import { removeFromBasket, selectBasketItems } from '../features/basketSlice'
+import { removeFromBasket, removeSeller, selectBasketItems } from '../features/basketSlice'
 import { XCircleIcon } from 'react-native-heroicons/outline'
 import CartDetails from '../components/CartDetails'
 import BottomSheetComponent from '../components/BottomSheetComponent';
@@ -26,8 +26,6 @@ const Cart = () => {
     setGroupedItemsInTheCart(groupedItems)
 
   }, [items])
-
-  console.log(groupedItemsInTheCart)
   return (
 <>
 
@@ -74,8 +72,9 @@ const Cart = () => {
                       const itemInBasket = items.find((basketItem) => basketItem._id === groupedItems[0]._id);
                       
                       if (itemInBasket) {
-                        console.log(itemInBasket)
                         dispatch(removeFromBasket({ _id: groupedItems[0]._id }));
+                        dispatch(removeSeller( groupedItems[0].seller._id ));
+
                       } else {
                         console.warn(`Can't remove product (id: ${groupedItems[0]._id}) as it's not in the basket!`);
                       }

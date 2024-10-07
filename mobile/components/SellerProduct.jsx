@@ -55,13 +55,14 @@ sellerName}) => {
 
             }));
 
+            dispatch(addSellers({ seller }));
 
-            const sellerExists = checkIfSellerExists(seller._id);
+            // const sellerExists = checkIfSellerExists(seller._id);
 
-            if (!sellerExists) {
-              // Dispatch the action to add the seller to the basket
-              dispatch(addSellers({seller}));
-            }
+            // if (!sellerExists) {
+            //   // Dispatch the action to add the seller to the basket
+            //   dispatch(addSellers({seller}));
+            // }
         }
 
         const removeItem = () => {

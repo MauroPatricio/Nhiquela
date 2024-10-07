@@ -33,6 +33,7 @@ const CartDetails = () => {
     const totalToPay = subtotal + distanceToPay;
 
     useEffect(() => {
+        console.log(sellers)
         if (sellers.length > 0) {
             sellers.forEach(seller => {
                 if (seller.seller.latitude && seller.seller.longitude) {
@@ -167,9 +168,10 @@ const CartDetails = () => {
                         </ScrollView>
                     </View>
 
+                    {userLocation && sellerLocation.latitude && sellerLocation.longitude &&(
                     <TouchableOpacity style={styles.barPayment} onPress={() => navigation.navigate('PaymentMethod')}>
                         <Text style={styles.payment}>Finalizar compra</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity>)}
                 </BottomSheetComponent>
             </SafeAreaView>
         </View>
