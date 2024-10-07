@@ -17,6 +17,12 @@ const Cart = () => {
   const dispatch = useDispatch();
   const [groupedItemsInTheCart,setGroupedItemsInTheCart] = useState([]);
 
+
+ 
+
+
+
+
   useEffect(()=>{
     const groupedItems = items.reduce((results, item)=>{
       (results[item.id] = results[item.id]|| []).push(item);
@@ -26,6 +32,11 @@ const Cart = () => {
     setGroupedItemsInTheCart(groupedItems)
 
   }, [items])
+
+  const removeItems=(item)=>{
+    dispatch(removeFromBasket({id: item.id}))
+    dispatch(removeSeller( item.seller._id ));
+  }
 
   return (
 <>
@@ -61,7 +72,7 @@ const Cart = () => {
               <Text style={styles.itemName}>{items[0].name.length<20?items[0].name: items[0].name.substring(0, 25)+`...`}</Text>
 
               <Text style={styles.price}>{items[0].price} MT</Text>
-              <TouchableOpacity onPress={() => dispatch(removeFromBasket({id: items[0].id}))} >
+              <TouchableOpacity onPress={() => removeItems(items[0])} >
                 <Text style={styles.remove}>Remover</Text>
               </TouchableOpacity>
             </View>
