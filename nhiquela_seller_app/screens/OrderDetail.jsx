@@ -95,7 +95,7 @@ const OrderDetail = ({navigation}) => {
           
               // Send the request to accept the order
               const { data } = await api.put(
-                `/orders/${orderId}/availableToDeliver`,
+                `/orders/${orderId}/toDeliv`,
                 {},
                 { headers: { Authorization: `Bearer ${userData.token}` } }
               );
@@ -228,19 +228,34 @@ const OrderDetail = ({navigation}) => {
         </View>
 
         <View style={styles.content}>
-        <Text style={styles.label}>Pago:</Text>
+        <Text style={styles.label}>Pagamento efectuado:</Text>
         <Text style={styles.bold}>{currentOrder.isPaid ? 'Sim' : 'Não'}</Text>
         </View>
 
         
         <View style={styles.content}>
-        <Text style={styles.label}>Pagamento (Dia e hora):</Text>
+        <Text style={styles.label}>Dia e hora do pagamento:</Text>
         <Text style={styles.bold}>{formatDate(currentOrder.paidAt)}</Text>
        </View>
 
         <View style={styles.content}>
         <Text style={styles.label}>Valor total: </Text>
         <Text style={styles.bold}>{currentOrder.totalPrice} MT</Text>
+        </View>
+
+        <View style={styles.content}>
+        <Text style={styles.label}>Nome do cliente: </Text>
+        <Text style={styles.bold}>{currentOrder.user.name}</Text>
+        </View>
+
+        <View style={styles.content}>
+        <Text style={styles.label}>Contacto do cliente: </Text>
+        <Text style={styles.bold}>{currentOrder.user.phoneNumber}</Text>
+        </View>
+
+        <View style={styles.content}>
+        <Text style={styles.label}>Valor da entrega: </Text>
+        <Text style={styles.bold}>{currentOrder.addressPrice} MT</Text>
         </View>
         </View>
 
@@ -263,17 +278,17 @@ const OrderDetail = ({navigation}) => {
       </View> */}
 
 <Text style={{fontSize: 17, fontWeight: '600'
-}}>Produtos</Text>
+}}>Produtos solicitados</Text>
       {currentOrder.orderItems.map(item=>{
         return (
-          <View style={styles.itemContainer}>
+          <View style={styles.itemContainer} key={item._id}>
           {/* Item Image */}
           <Image source={{ uri: item.image }} style={styles.itemImage} />
     
           {/* Item Details */}
           <View style={styles.itemDetails}>
             <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemText}>Marca/Sabor: {item.brand}</Text>
+            {item.brand && <Text style={styles.itemText}>Marca/Sabor: {item.brand}</Text>}
             {/* <Text style={styles.itemText}>Categoria: {item.category.nome}</Text> */}
             <Text style={styles.itemText}>Preço: {item.price} MT</Text>
             <Text style={styles.itemText}>Quantidade: {item.quantity} solicitada</Text>
@@ -329,7 +344,7 @@ const OrderDetail = ({navigation}) => {
       </View>}
 
 
-      {currentOrder.status === 'Aceite' &&
+      {currentOrder.status === 'Pronto' &&
        <View style={styles.buttonContainer}>
         {/* Accept Button */}
         <TouchableOpacity style={styles.acceptButton} onPress={()=>availableToDelivOrder(currentOrder._id)}>

@@ -46,6 +46,7 @@ const Home = () => {
     useCallback(() => {
       // Fetch the orders when the screen is focused
       filteredOrders
+      fetchData
         }, [])
   );
 
@@ -59,6 +60,8 @@ const Home = () => {
       const response = await api.get(`/orders/sellerview?seller=${userData._id}`, {
         headers: { authorization: `Bearer ${userData.token}` },
       });
+
+      console.log(response)
       if (response.status === 200) {
         setOrders(response.data.orders);
         const statuses = Array.from(new Set(response.data.orders.map(order => order.status)));

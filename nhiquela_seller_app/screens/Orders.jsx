@@ -1,56 +1,56 @@
-import { View, Text, StyleSheet, FlatList, ScrollView, Image,TouchableOpacity } from 'react-native'
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
 import { Ionicons } from "@expo/vector-icons";
-
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const Orders = () => {
   const [userData, setUserData] = useState(null);
-
   const [ordersHistory, setOrdersHistory] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); 
+  const navigation = useNavigation();
 
-  const [isLoading, setIsLoading] = useState(false); // Store available statuses
-
-      
   useEffect(() => {
     checkIfUserExist();
   }, []);
-
 
   useEffect(() => {
     if (userData) {
       fetchData();
     }
   }, [userData]);  
-  
 
+  // Refresh the orders when the screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      if (userData) {
+        fetchData();
+      }
+    }, [userData])
+  );
 
   const fetchData = async () => {
-    setIsLoading(true); // Start loading
+    setIsLoading(true); 
     try {
       const response = await api.get(`orders/sellerview?seller=${userData._id}`, {
         headers: { authorization: `Bearer ${userData.token}` },
       });
 
-      if(response.status==200){
-        setOrdersHistory(response.data.orders)
+      if(response.status === 200) {
+        setOrdersHistory(response.data.orders);
       }
-
-     
     } catch (error) {
       console.error(error);
     } finally {
-      setIsLoading(false); // End loading
+      setIsLoading(false); 
     }
   };
-
 
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
     const userId = `user${JSON.parse(id)}`;
-
     try {
       const currentUser = await AsyncStorage.getItem(userId);
       if (currentUser !== null) {
@@ -62,7 +62,6 @@ const Orders = () => {
     }
   };
 
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
@@ -72,68 +71,65 @@ const Orders = () => {
     return `${day}/${month}/${year}`;
   };
 
-
   return (
     <SafeAreaView style={{ backgroundColor: "white",  flex:1 }}>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40, color: '#7F00FF' ,marginTop: 30,}}>Histórico de pedidos</Text>
-
-    <ScrollView
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{
-      paddingHorizontal: 15,
-    }}
-    >
-      {ordersHistory && ordersHistory.length > 0 ? (ordersHistory.map((product)=>(
-        <TouchableOpacity key={product._id} style={styles.container} >
-        <View>
-          <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
-        </View>
-        <View>
-          <Text style={styles.code}>{product.code}</Text>
-        </View>
-        <View>
-          <Text style={styles.status}>{formatDate(product.createdAt)}</Text>
-          <Text style={styles.status}>{product.totalPrice} MT</Text>
-          <Text style={styles.status}>{product.status}</Text>
-        </View>
-      </TouchableOpacity>
-      )))
-      
-      : (
-             <Text>Não possui nenhum pedido disponível</Text>
-           )}
-      
-    </ScrollView>
+      <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 14, marginBottom: 40, color: '#7F00FF', marginTop: 30 }}>
+        Histórico de pedidos
+      </Text>
+      <ScrollView
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+        }}
+      >
+        {ordersHistory && ordersHistory.length > 0 ? (
+          ordersHistory.map((product) => (
+            <TouchableOpacity 
+              key={product._id} 
+              style={styles.container} 
+              onPress={() => navigation.navigate('OrderDetail', { order: product })}
+            >
+              <View>
+                <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
+              </View>
+              <View>
+                <Text style={styles.code}>{product.code}</Text>
+              </View>
+              <View>
+                <Text style={styles.status}>{formatDate(product.createdAt)}</Text>
+                <Text style={styles.status}>{product.totalPrice} MT</Text>
+                <Text style={styles.status}>{product.status}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text>Não possui nenhum pedido disponível</Text>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 export default Orders;
 
-
-
 const styles = StyleSheet.create({
-
-  loadingContainer:{
-      top: 100
+  loadingContainer: {
+    top: 100,
   },
   image: {
     width: 50,
     height: 50,
     borderRadius: 8,
-    // marginBottom: 10,
     resizeMode: 'cover',
   },
   wrapper: {
-    // letterSpacing: 1,
     backgroundColor: '#DCDCDC',
     padding: 10,
     borderRadius: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10
-
+    marginBottom: 10,
   },
   container: {
     flexDirection: 'row',
@@ -159,8 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: 'white',
     marginLeft: 10,
-    alignContent: 'center',
-    alignItems: 'center',
     textAlign: 'center',
     top: 20,
   },
@@ -171,8 +165,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   price: {
-    // color: 'white',
     fontSize: 15,
-    // marginLeft: 10,
-  }
+  },
 });
