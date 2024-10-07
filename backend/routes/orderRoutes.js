@@ -186,7 +186,7 @@ orderRouter.get(
         // Group by the order item properties and calculate the total quantity
         {
           $group: {
-            _id: "$orderItems.slug",
+            _id: "$orderItems._id",
             slug: { $first: "$orderItems.slug" },
             name: { $first: "$orderItems.name" },
             nome: { $first: "$orderItems.nome" },
