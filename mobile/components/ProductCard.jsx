@@ -24,6 +24,7 @@ const ProductCard = ({
 }) => {
   const navigation = useNavigation();
 
+
   const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
 
   const getShortDescription = (text, wordLimit) => {
@@ -38,30 +39,31 @@ const ProductCard = ({
 
   const _id = id
 
-  const addItemToBasket = () => {
-    const currentQuantity = items.length; // Current quantity of the item in the basket
 
-    if (currentQuantity >= countInStock) {
-      return; // Prevent adding if the stock is exhausted
-    }
+  // const addItemToBasket = () => {
+  //   const currentQuantity = items.length; // Current quantity of the item in the basket
 
-      if ( countInStock == items.length ) return;
-      dispatch(addToBasket({id,_id,                 
-          name,
-          image,
-          images,
-          description,
-          rating,
-          numReviews,
-          province,
-          address,
-          price,
-          onSale,
-          countInStock, 
-          quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+  //   if (currentQuantity >= countInStock) {
+  //     return; // Prevent adding if the stock is exhausted
+  //   }
 
-        }));
-  }
+  //     if ( countInStock == items.length ) return;
+  //     dispatch(addToBasket({id,_id,                 
+  //         name,
+  //         image,
+  //         images,
+  //         description,
+  //         rating,
+  //         numReviews,
+  //         province,
+  //         address,
+  //         price,
+  //         onSale,
+  //         countInStock, 
+  //         quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+
+  //       }));
+  // }
 
   return (
     <TouchableOpacity

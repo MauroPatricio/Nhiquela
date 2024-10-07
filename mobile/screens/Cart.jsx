@@ -27,10 +27,10 @@ const Cart = () => {
 
   }, [items])
 
+  console.log(groupedItemsInTheCart)
   return (
 <>
 
-{console.log(groupedItemsInTheCart)}
 
 <CartDetails/>
 <SafeAreaView style={styles.container}>
@@ -51,30 +51,31 @@ const Cart = () => {
             {Object.entries(groupedItemsInTheCart).map(([key, groupedItems]) => (
               <View key={key}>
                 <Text style={styles.sellerName}>
-                  Fornecedor: {groupedItems[0].sellerName.length < 50
-                    ? groupedItems[0].sellerName
-                    : groupedItems[0].sellerName.substring(0, 25) + '...'}
+                  Fornecedor: {groupedItems[0]?.sellerName?.length < 50
+                    ? groupedItems[0]?.sellerName || 'Sem nome do fornecedor'
+                    : (groupedItems[0]?.sellerName || 'Sem nome do fornecedor').substring(0, 25) + '...'}
                 </Text>
 
                 <View style={styles.itemLine}>
                   <Text style={styles.quantity}>{groupedItems.length}x</Text>
                   <Image
-                    source={{ uri: groupedItems[0].image }}
+                    source={{ uri: groupedItems[0]?.image }}
                     style={styles.itemImage}
                   />
                   <Text style={styles.itemName}>
-                    {groupedItems[0].name.length < 20
-                      ? groupedItems[0].name
-                      : groupedItems[0].name.substring(0, 25) + '...'}
+                    {groupedItems[0]?.name?.length < 20
+                      ? groupedItems[0]?.name
+                      : groupedItems[0]?.name.substring(0, 25) + '...'}
                   </Text>
-                  <Text style={styles.price}>{parseFloat(groupedItems[0].price).toFixed(2)} MT</Text>
+                  <Text style={styles.price}>{parseFloat(groupedItems[0]?.price || 0).toFixed(2)} MT</Text>
                   
                   <TouchableOpacity
                     onPress={() => {
                       const itemInBasket = items.find((basketItem) => basketItem._id === groupedItems[0]._id);
                       
                       if (itemInBasket) {
-                        dispatch(removeFromBasket({ id: groupedItems[0]._id }));
+                        console.log(itemInBasket)
+                        dispatch(removeFromBasket({ _id: groupedItems[0]._id }));
                       } else {
                         console.warn(`Can't remove product (id: ${groupedItems[0]._id}) as it's not in the basket!`);
                       }

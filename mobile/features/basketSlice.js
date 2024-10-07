@@ -16,12 +16,12 @@ const basketSlice = createSlice({
       state.items.push(action.payload);  // Push is simpler here
     },
     removeFromBasket: (state, action) => {
-      const index = state.items.findIndex((item) => item.id === action.payload.id);
+      const index = state.items.findIndex((item) => item._id === action.payload._id);
 
       if (index >= 0) {
         state.items.splice(index, 1);  // Directly removing the item from state
       } else {
-        console.warn(`Can't remove product (id: ${action.payload.id}) as it's not in the basket!`);
+        // console.warn(`Can't remove product (id: ${action.payload._id}) as it's not in the basket!`);
       }
     },
     addTotalToPay: (state, action) => {
@@ -46,16 +46,16 @@ const basketSlice = createSlice({
 
     removeSeller: (state, action) => {
       // Filter out the seller by their sellerId
-      state.sellers = state.sellers.filter(seller => seller.sellerId !== action.payload);
+      state.sellers = state.sellers.filter(seller => seller._id !== action.payload);
     },
     
     addSellers: (state, action) => {
       // Check if the seller already exists in the sellers array
-      const sellerExists = state.sellers.find(seller => seller.sellerId === action.payload.sellerId);
+      const sellerExists = state.sellers.find(seller => seller._id === action.payload.seller._id);
       
       if (!sellerExists) {
         // Add the seller if they do not exist in the array
-        state.sellers = [...state.sellers, action.payload];
+        state.sellers = [...state.sellers, action.payload.seller];
       }
     }
     
@@ -84,7 +84,7 @@ export const selectSellers = (state) => state.basket.sellers || [];
 
 
 export const checkIfSellerExists = (sellerId) => {
-  return (state) => state.basket.sellers.some(seller => seller.sellerId === sellerId);
+  return (state) => state.basket.sellers.some(seller => seller._id === sellerId);
 };
 
 export const getItemsBySellerId = (sellerId) => {

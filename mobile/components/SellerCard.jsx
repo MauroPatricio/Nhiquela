@@ -3,6 +3,7 @@ import React from 'react';
 import { StarIcon } from 'react-native-heroicons/outline';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import MapView, { Marker } from 'react-native-maps';
 
 const SellerCard = ({
   id,
@@ -42,27 +43,43 @@ const SellerCard = ({
           latitude,
           longitude,
         });
-      }}>
+      }}
+    >
       <View style={styles.card_template}>
+        {/* Seller Logo */}
         <Image source={{ uri: logo }} style={styles.image} />
 
+        {/* Seller Information */}
         <View style={styles.textContainer}>
           <Text style={styles.name}>{name}</Text>
-
           <Text style={styles.description}>
             {getShortDescription(description, 7)}
           </Text>
 
-          {/* <View style={styles.location}>
-            <Ionicons name="location-outline" color="#7F00FF" size={18} />
-            <Text style={styles.locationText}>{address}</Text>
-          </View> */}
-
           <View style={styles.rating}>
             <StarIcon color="darkorange" opacity={0.9} size={18} />
-            <Text style={styles.ratingText}>{rating} ({numReviews} comentários)</Text>
+            <Text style={styles.ratingText}>
+              {rating} ({numReviews} comentários)
+            </Text>
           </View>
         </View>
+
+        {/* Map showing Seller's location */}
+        {/* <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: latitude,
+            longitude: longitude,
+            latitudeDelta: 0.0022,
+            longitudeDelta: 0.0021,
+          }}
+        >
+          <Marker
+            coordinate={{ latitude, longitude }}
+            title={name}
+            description={address}
+          />
+        </MapView> */}
       </View>
     </TouchableOpacity>
   );
@@ -122,5 +139,11 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 14,
     color: '#555',
+  },
+  map: {
+    width: '100%',
+    height: 150,
+    marginTop: 10,
+    borderRadius: 12,
   },
 });

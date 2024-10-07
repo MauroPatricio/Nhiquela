@@ -13,64 +13,58 @@ const CartDetails = () => {
     const items = useSelector(selectBasketItems);
     const navigation = useNavigation();
     const basketTotal = useSelector(selectBasketTotal);
-    const sellers = useSelector(selectSellers)
+    const sellers = useSelector(selectSellers);
     const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
     const bottomSheetRef = useRef(null);
-    const [sellerLocation, setSellerLocation] = useState({ latitude: -25.9692, longitude: 32.5732 }); // example seller location
+    const [sellerLocation, setSellerLocation] = useState({ latitude: null, longitude: null });
     const [distance, setDistance] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
     const [location, setLocation] = useState(null);
 
-    const financialFees = 40
+    const financialFees = 40;
+    const pricePerKm = 10; // Price per km
+    const minDelivPrice = 100; // Minimum delivery price
+    const iva = 0; // Future IVA implementation
+    const subtotal = basketTotal + financialFees + iva;
 
-    // Define a price per kilometer
-    const pricePerKm = 10; // e.g., 10 MT per km
-    const minDelivPrice = 100
-    
-    // const iva = basketTotal * 0.16;  -- IVA irei aplicar futuramente
-    const iva = 0;
-
-    const subtotal = basketTotal + financialFees + iva
-    // Calculate total price to pay based on distance
-
-    // const parseTo = dis
-    const distancePrice = (distance? (distance * pricePerKm) : 0).toFixed(2)
-
-
-    const distanceToPay = (distance < 10)? minDelivPrice: minDelivPrice + distancePrice;
-      
-    // const deliverToPay = distance * pricePerKm
-
+    // Calculate delivery price
+    const distancePrice = distance ? (distance * pricePerKm).toFixed(2) : 0;
+    const distanceToPay = distance && distance < 10 ? minDelivPrice : minDelivPrice + Number(distancePrice);
     const totalToPay = subtotal + distanceToPay;
 
-
-    console.log(sellers )
-
-
-  useEffect(() => {
-    const requestLocationPermission = async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Nao tem acesso a localizacao');
-        return;
-      }
-
-      // If permission is granted, get the location
-      let currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
-    };
-
-    requestLocationPermission();
-  }, []);
+    useEffect(() => {
+        if (sellers.length > 0) {
+            sellers.forEach(seller => {
+                if (seller.seller.latitude && seller.seller.longitude) {
+                    setSellerLocation({
+                        latitude: parseFloat(seller.seller.latitude),
+                        longitude: parseFloat(seller.seller.longitude)
+                    });
+                }
+            });
+        }
+    }, [sellers]);
 
     useEffect(() => {
-        if (userLocation && sellerLocation) {
+        const requestLocationPermission = async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('No access to location');
+                return;
+            }
+            let currentLocation = await Location.getCurrentPositionAsync({});
+            setLocation(currentLocation);
+        };
+        requestLocationPermission();
+    }, []);
+
+    useEffect(() => {
+        if (userLocation && sellerLocation.latitude && sellerLocation.longitude) {
             const calculatedDistance = haversine(userLocation, sellerLocation, { unit: 'km' });
             setDistance(calculatedDistance);
         }
     }, [userLocation, sellerLocation]);
 
-    // Get user's current location
     const getUserLocation = async () => {
         let currentLocation = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = currentLocation.coords;
@@ -78,7 +72,7 @@ const CartDetails = () => {
     };
 
     const handleOpenBottomSheet = () => {
-        getUserLocation(); // Get location when opening the bottom sheet
+        getUserLocation(); // Get user location when opening the bottom sheet
         setBottomSheetOpen(true);
         bottomSheetRef.current?.expand();
     };
@@ -90,12 +84,10 @@ const CartDetails = () => {
 
     const dispatch = useDispatch();
 
-    // Dispatch the total price to pay to the Redux store
     useEffect(() => {
         dispatch(addTotalToPay(totalToPay));
         dispatch(addIva(iva));
         dispatch(addDeliverPrice(distanceToPay));
-
     }, [totalToPay, dispatch]);
 
     if (items.length === 0) return null;
@@ -106,10 +98,6 @@ const CartDetails = () => {
                 <Text style={styles.length}>Subtotal</Text>
                 <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} MT</Text>
             </View>
-            {/* <View style={styles.barPopup}>
-                <Text style={styles.length}>IVA (16%)</Text>
-                <Text style={styles.total}>{iva.toFixed(2)} MT</Text>
-            </View> */}
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>
                 <Text style={styles.total}>{financialFees} MT</Text>
@@ -117,8 +105,6 @@ const CartDetails = () => {
             <View style={styles.barPopup}>
                 <Text style={styles.totalDescript}>Total a pagar</Text>
                 <Text style={styles.totalPrice}>{subtotal.toFixed(2)} MT</Text>
-
-                {/* <Text style={styles.totalPrice}>{totalToPay.toFixed(2)} MT</Text> */}
             </View>
             <TouchableOpacity style={styles.barPayment} onPress={handleOpenBottomSheet}>
                 <Text style={styles.payment}>Detalhes do destino de entrega</Text>
@@ -143,41 +129,41 @@ const CartDetails = () => {
                                     <Text style={styles.distanceText}>Calculando distância...</Text>
                                 )}
                             </View>
-                            {/* Add the map here */}
-                            <MapView
-                                style={styles.map}
-                                initialRegion={{
-                                    latitude: userLocation ? userLocation.latitude : sellerLocation.latitude,
-                                    longitude: userLocation ? userLocation.longitude : sellerLocation.longitude,
-                                    latitudeDelta: 0.0922,
-                                    longitudeDelta: 0.0421,
-                                }}
-                            >
-                                {userLocation && (
+
+                            {/* Conditional rendering for the map */}
+                            {userLocation && sellerLocation.latitude && sellerLocation.longitude ? (
+                                <MapView
+                                    style={styles.map}
+                                    initialRegion={{
+                                        latitude: userLocation.latitude,
+                                        longitude: userLocation.longitude,
+                                        latitudeDelta: 0.0922,
+                                        longitudeDelta: 0.0421,
+                                    }}
+                                >
                                     <Marker coordinate={userLocation} title="Sua Localização" />
-                                )}
-                                <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
-                            </MapView>
+                                    <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
+                                </MapView>
+                            ) : (
+                                <Text style={styles.locationText}>Localização do vendedor não disponível.</Text>
+                            )}
+
                             <View style={styles.barPopup}>
-                <Text style={styles.length}>Subtotal</Text>
-                <Text style={styles.total}>{basketTotal} MT</Text>
-            </View>
-            {/* <View style={styles.barPopup}>
-                <Text style={styles.length}>IVA (16%)</Text>
-                <Text style={styles.total}>{iva.toFixed(2)} MT</Text>
-            </View> */}
-            <View style={styles.barPopup}>
-                <Text style={styles.length}>Serviços financeiros</Text>
-                <Text style={styles.total}>{financialFees} MT</Text>
-            </View>
-            <View style={styles.barPopup}>
-                <Text style={styles.length}>Custo de entrega</Text>
-                <Text style={styles.total}>{distance ? distanceToPay : 'Calculando...'} MT</Text>
-            </View>
-            <View style={styles.barPopup}>
-                <Text style={styles.totalDescript}>Total a pagar</Text>
-                <Text style={styles.totalPrice}>{parseFloat(totalToPay).toFixed(2)} MT</Text>
-            </View>
+                                <Text style={styles.length}>Subtotal</Text>
+                                <Text style={styles.total}>{basketTotal} MT</Text>
+                            </View>
+                            <View style={styles.barPopup}>
+                                <Text style={styles.length}>Serviços financeiros</Text>
+                                <Text style={styles.total}>{financialFees} MT</Text>
+                            </View>
+                            <View style={styles.barPopup}>
+                                <Text style={styles.length}>Custo de entrega</Text>
+                                <Text style={styles.total}>{distance ? distanceToPay : 'Calculando...'} MT</Text>
+                            </View>
+                            <View style={styles.barPopup}>
+                                <Text style={styles.totalDescript}>Total a pagar</Text>
+                                <Text style={styles.totalPrice}>{parseFloat(totalToPay).toFixed(2)} MT</Text>
+                            </View>
                         </ScrollView>
                     </View>
 

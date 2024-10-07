@@ -32,6 +32,12 @@ const OrderDetailsScreen = () => {
             Preço total pago: <Text style={styles.price}>{order.totalPrice} MT</Text>
           </Text>
 
+          <Text style={styles.label}>
+            Valor da entrega: <Text style={styles.price}>{order.deliveryPrice} MT</Text>
+          </Text>
+
+          
+
           <Text style={styles.subheading}>Produtos:</Text>
           {order.orderItems.map((item, index) => (
             <View style={styles.itemContainer} key={index}>

@@ -116,7 +116,7 @@ const Home = () => {
               <Text style={style.cartNumber}>{items.length}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-              <Ionicons name="cart-outline" size={26} />
+              <Ionicons name="cart-outline" size={30} />
             </TouchableOpacity>
           </View>
         </View>

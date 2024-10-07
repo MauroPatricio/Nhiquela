@@ -11,6 +11,7 @@ const ProductDetail = () => {
   const route = useRoute();
   const item = route.params?.item || {}; // Fallback in case `item` is undefined
 
+
   const navigation = useNavigation()
 
   // Destructure properties from `item` or `item.item`
@@ -27,15 +28,24 @@ const ProductDetail = () => {
     province,
     price,
     onSale,
-    seller = itemData?.sellerDetails || itemData?.seller,
   } = itemData;
+  let seller = itemData?.sellerDetails;
+
+  const id = _id
+
+
+  seller = seller?itemData.sellerDetails:itemData.seller;
+
+
 
   const [count, setCount] = useState(0); // Start count at 0
 
   const items = useSelector((state) => selectBasketItemsWithId(state, _id));
   const dispatch = useDispatch();
 
-  const sellerName = seller?.name;
+  const sellerName = seller?.seller?.name;
+
+  // console.log(seller)
 
   const addItemToBasket = () => {
     const currentQuantity = items.length;
@@ -44,7 +54,7 @@ const ProductDetail = () => {
     }
 
     setCount(count + 1); // Increase count by 1
-    dispatch(addToBasket({id:_id,
+    dispatch(addToBasket({
       _id,
       name,
       image,
@@ -61,10 +71,8 @@ const ProductDetail = () => {
       quantity: currentQuantity + count + 1
     }));
 
-    const sellerExists = checkIfSellerExists(seller._id);
-    if (!sellerExists) {
       dispatch(addSellers({ seller }));
-    }
+    
   };
 
   const removeItem = () => {
@@ -72,12 +80,14 @@ const ProductDetail = () => {
       setCount(count - 1);
     }
     if (count === 1) {
-      dispatch(removeFromBasket({ _id }));
-
-      const remainingItemsFromSeller = getItemsBySellerId(seller._id);
-      if (remainingItemsFromSeller.length === 0) {
-        dispatch(removeSeller({ sellerId: seller._id }));
-      }
+      if (_id) {
+         dispatch(removeFromBasket({ _id }));
+  
+        const remainingItemsFromSeller = getItemsBySellerId(seller._id);
+        if (remainingItemsFromSeller.length === 0) {
+          dispatch(removeSeller({ sellerId: seller._id }));
+        }
+      } 
     }
   };
 
@@ -98,12 +108,23 @@ const ProductDetail = () => {
             <Text>{countInStock} unidade(s) disponível(is)</Text>
 
             <View style={styles.ratingRow}>
-              <View style={styles.rating}>
+              {/* <View style={styles.rating}>
                 {[...Array(Math.round(rating))].map((_, index) => (
                   <Ionicons key={index} size={15} color="gold" name="star" />
                 ))}
                 <Text>{rating}</Text>
-              </View>
+              </View> */}
+
+              <View style={styles.rating}>
+  {rating > 0 && !isNaN(rating) ? (
+    [...Array(Math.round(rating))].map((_, index) => (
+      <Ionicons key={index} size={15} color="gold" name="star" />
+    ))
+  ) : (
+    <Text>Sem pontuações </Text>
+  )}
+  <Text>{rating || 0}</Text>
+</View>
 
               <View style={styles.countControl}>
                 <TouchableOpacity onPress={removeItem} disabled={count === 0}>
