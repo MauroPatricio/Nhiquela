@@ -537,7 +537,7 @@ orderRouter.put(
   })
 );
 
-// disponivel para entrega
+// a comida esta pronta
 orderRouter.put(
   '/:id/availableToDeliver',
   isAuth,
@@ -569,6 +569,39 @@ orderRouter.put(
   })
 );
 
+
+
+// disponivel para entrega
+orderRouter.put(
+  '/:id/toDeliv',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.isAvailableToDeliver = true;
+      order.status = 'Disponivel para entrega';
+      order.stepStatus = 3;
+      if(order.addressPrice === 0){
+        order.status = 'Finalizado';
+        order.isInTransit = true;
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
+      }
+
+      await order.save();
+
+      let msg =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+
+      sendEmailOrderStatus(req,msg, order, res);
+
+      // sendSMSToUSendItAdmin(msg);
+      res.send({ order, message: `Pedido disponível para entrega` });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
 
 
 
