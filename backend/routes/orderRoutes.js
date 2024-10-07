@@ -107,7 +107,7 @@ orderRouter.get(
       deleted: { $eq: false},
       status: { $ne: 'Finalizado' }
 
-    }).populate('user', 'name', 'phoneNumber', 'email').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    }).populate('user').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
