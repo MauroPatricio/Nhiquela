@@ -1,50 +1,249 @@
-import {  StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import {  addTotalToPay, selectBasketItems, selectBasketTotal, selectTotalToPay } from '../features/basketSlice'
-import {useNavigation} from '@react-navigation/native'
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers } from '../features/basketSlice';
+import { useNavigation } from '@react-navigation/native';
+import BottomSheetComponent from './BottomSheetComponent';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import haversine from 'haversine';
+import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps'; // Import MapView and Marker
 
-const CartDetails =  () => {
+const CartDetails = () => {
     const items = useSelector(selectBasketItems);
     const navigation = useNavigation();
     const basketTotal = useSelector(selectBasketTotal);
-    const totalToPay = basketTotal + 40 + 150;
-    // const total = useSelector(selectTotalToPay);
+    const sellers = useSelector(selectSellers);
+    const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
+    const bottomSheetRef = useRef(null);
+    const [sellerLocation, setSellerLocation] = useState({ latitude: null, longitude: null });
+    const [distance, setDistance] = useState(null);
+    const [userLocation, setUserLocation] = useState(null);
+    const [location, setLocation] = useState(null);
 
-    const dispatch = useDispatch()
+    const financialFees = 40;
+    const pricePerKm = 10; // Price per km
+    const minDelivPrice = 100; // Minimum delivery price
+    const iva = 0; // Future IVA implementation
+    const subtotal = basketTotal + financialFees + iva;
 
+    // Calculate delivery price
+    const distancePrice = distance ? (distance * pricePerKm).toFixed(2) : 0;
+    const distanceToPay = distance && distance < 10 ? minDelivPrice : minDelivPrice + Number(distancePrice);
+    const totalToPay = subtotal + distanceToPay;
 
-    dispatch(addTotalToPay(totalToPay))
-    if (items.length===0) return null;
-    
-  return (
-    <View style={styles.popupContent}>
-           <View style={styles.barPopup}>
-            <Text style={styles.length}>Serviços financeiros</Text>
-            <Text style={styles.total}>40 MT</Text>
-       </View>
-       <View style={styles.barPopup}>
-            <Text style={styles.length}>Taxa de entrega</Text>
-            <Text style={styles.total}>150 MT</Text>
-       </View>
-        <View style={styles.barPopup}>
-            <Text style={styles.length}>Subtotal</Text>
-            <Text style={styles.total}>{basketTotal} MT</Text>
-       </View>
-       <View style={styles.barPopup}>
-            <Text style={styles.totalDescript}>Total a pagar</Text>
-            <Text style={styles.totalPrice}>{totalToPay} MT</Text>
-       </View>
-       <TouchableOpacity style={styles.barPayment} onPress={()=>navigation.navigate('PaymentMethod')}>
-        <Text style={styles.payment}>Efectuar pagamento</Text>
-       </TouchableOpacity>
-    </View>
-  )
-}
+    useEffect(() => {
+        console.log(sellers)
+        if (sellers.length > 0) {
+            sellers.forEach(seller => {
+                if (seller.seller.latitude && seller.seller.longitude) {
+                    setSellerLocation({
+                        latitude: parseFloat(seller.seller.latitude),
+                        longitude: parseFloat(seller.seller.longitude)
+                    });
+                }
+            });
+        }
+    }, [sellers]);
 
-export default CartDetails
+    useEffect(() => {
+        const requestLocationPermission = async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('No access to location');
+                return;
+            }
+            let currentLocation = await Location.getCurrentPositionAsync({});
+            setLocation(currentLocation);
+        };
+        requestLocationPermission();
+    }, []);
+
+    useEffect(() => {
+        if (userLocation && sellerLocation.latitude && sellerLocation.longitude) {
+            const calculatedDistance = haversine(userLocation, sellerLocation, { unit: 'km' });
+            setDistance(calculatedDistance);
+        }
+    }, [userLocation, sellerLocation]);
+
+    const getUserLocation = async () => {
+        let currentLocation = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = currentLocation.coords;
+        setUserLocation({ latitude, longitude });
+    };
+
+    const handleOpenBottomSheet = () => {
+        getUserLocation(); // Get user location when opening the bottom sheet
+        setBottomSheetOpen(true);
+        bottomSheetRef.current?.expand();
+    };
+
+    const handleCloseBottomSheet = () => {
+        setBottomSheetOpen(false);
+        bottomSheetRef.current?.close();
+    };
+
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        dispatch(addTotalToPay(totalToPay));
+        dispatch(addIva(iva));
+        dispatch(addDeliverPrice(distanceToPay));
+    }, [totalToPay, dispatch]);
+
+    if (items.length === 0) return null;
+
+    return (
+        <View style={styles.popupContent}>
+            <View style={styles.barPopup}>
+                <Text style={styles.length}>Subtotal</Text>
+                <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} MT</Text>
+            </View>
+            <View style={styles.barPopup}>
+                <Text style={styles.length}>Serviços financeiros</Text>
+                <Text style={styles.total}>{financialFees} MT</Text>
+            </View>
+            <View style={styles.barPopup}>
+                <Text style={styles.totalDescript}>Total a pagar</Text>
+                <Text style={styles.totalPrice}>{subtotal.toFixed(2)} MT</Text>
+            </View>
+            <TouchableOpacity style={styles.barPayment} onPress={handleOpenBottomSheet}>
+                <Text style={styles.payment}>Detalhes do destino de entrega</Text>
+            </TouchableOpacity>
+
+            <SafeAreaView>
+                <BottomSheetComponent isOpen={isBottomSheetOpen} toggleSheet={handleCloseBottomSheet}>
+                    <View style={styles.bottomSheetContent}>
+                        <Text style={styles.bottomSheetTitle}>Endereço de entrega</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View>
+                                {userLocation ? (
+                                    <Text style={styles.locationText}>
+                                        Sua localização: {parseFloat(userLocation.latitude).toFixed(4)}, {parseFloat(userLocation.longitude).toFixed(4)}
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.locationText}>Obtendo localização...</Text>
+                                )}
+                                {distance ? (
+                                    <Text style={styles.distanceText}>Distância até o fornecedor: {distance.toFixed(2)} km</Text>
+                                ) : (
+                                    <Text style={styles.distanceText}>Calculando distância...</Text>
+                                )}
+                            </View>
+
+                            {/* Conditional rendering for the map */}
+                            {userLocation && sellerLocation.latitude && sellerLocation.longitude ? (
+                                <MapView
+                                    style={styles.map}
+                                    initialRegion={{
+                                        latitude: userLocation.latitude,
+                                        longitude: userLocation.longitude,
+                                        latitudeDelta: 0.0922,
+                                        longitudeDelta: 0.0421,
+                                    }}
+                                >
+                                    <Marker coordinate={userLocation} title="Sua Localização" />
+                                    <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
+                                </MapView>
+                            ) : (
+                                <Text style={styles.locationText}>Localização do vendedor não disponível.</Text>
+                            )}
+
+                            <View style={styles.barPopup}>
+                                <Text style={styles.length}>Subtotal</Text>
+                                <Text style={styles.total}>{basketTotal} MT</Text>
+                            </View>
+                            <View style={styles.barPopup}>
+                                <Text style={styles.length}>Serviços financeiros</Text>
+                                <Text style={styles.total}>{financialFees} MT</Text>
+                            </View>
+                            <View style={styles.barPopup}>
+                                <Text style={styles.length}>Custo de entrega</Text>
+                                <Text style={styles.total}>{distance ? distanceToPay : 'Calculando...'} MT</Text>
+                            </View>
+                            <View style={styles.barPopup}>
+                                <Text style={styles.totalDescript}>Total a pagar</Text>
+                                <Text style={styles.totalPrice}>{parseFloat(totalToPay).toFixed(2)} MT</Text>
+                            </View>
+                        </ScrollView>
+                    </View>
+
+                    {userLocation && sellerLocation.latitude && sellerLocation.longitude &&(
+                    <TouchableOpacity style={styles.barPayment} onPress={() => navigation.navigate('PaymentMethod')}>
+                        <Text style={styles.payment}>Finalizar compra</Text>
+                    </TouchableOpacity>)}
+                </BottomSheetComponent>
+            </SafeAreaView>
+        </View>
+    );
+};
+
+export default CartDetails;
 
 const styles = StyleSheet.create({
+    bottomSheetContent: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: '#fff', // Clean white background for the bottom sheet
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 5, // Adds subtle shadow for depth
+    },
+    bottomSheetTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#333', // Darker font color for good contrast
+        marginBottom: 15,
+        textAlign: 'center', // Center the title for better UX
+    },
+    locationText: {
+        fontSize: 16,
+        color: '#555', // Soft grey for secondary info
+        marginBottom: 10,
+        textAlign: 'center',
+        backgroundColor: '#F0F0F0', // Slight background contrast
+        padding: 10,
+        borderRadius: 10, // Rounded corners for a modern look
+    },
+    distanceText: {
+        fontSize: 16,
+        color: '#FF5733', // Highlight distance with a noticeable color
+        marginBottom: 10,
+        textAlign: 'center',
+        fontWeight: '600',
+    },
+    map: {
+        width: '100%',
+        height: 200, // Height of the map
+        marginTop: 15,
+        marginBottom: 15,
+    },
+    scrollView: {
+        flexGrow: 1, // Ensure the scroll view expands fully
+    },
+    barPayment: {
+        backgroundColor: '#7F00FF', // Vibrant purple for the payment button
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        borderRadius: 30, // Rounded for a button-like appearance
+        marginTop: 20,
+        shadowColor: '#7F00FF', // Subtle shadow matching the button color
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.5,
+        shadowRadius: 5,
+        elevation: 5,
+        alignSelf: 'center',
+    },
+    payment: {
+        color: '#fff', // White text for strong contrast
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
     popupContent: {
         position: 'absolute',
         alignContent: 'center',
@@ -54,47 +253,28 @@ const styles = StyleSheet.create({
         zIndex: 500,
         marginLeft: 5,
         paddingRight: 10,
-        
-
- },
+    },
     barPopup: {
         alignItems: 'center',
-        flexDirection: 'row',   
+        flexDirection: 'row',
         padding: 2,
         justifyContent: 'space-between',
-
-        
-    },
-    barPayment: {
-        backgroundColor: '#7F00FF',
-         marginTop: 5,
-         marginBottom: 10,
-        padding: 15,
-        borderRadius: 12,          
     },
     length: {
-
         fontWeight: '600',
         color: 'grey',
-        borderRadius:5
-    },
-    payment:{
-        color: 'white',
-        fontWeight: '600',
-        textAlign: 'center'
-
-   
+        borderRadius: 5,
     },
     total: {
         fontWeight: '600',
         color: 'grey',
     },
-    totalDescript:{
-        color: 'black',
+    totalDescript: {
+        color: '#7F00FF',
         fontWeight: '600',
     },
-    totalPrice:{
-        color: 'black',
+    totalPrice: {
+        color: '#7F00FF',
         fontWeight: '600',
-    }
-})
+    },
+});

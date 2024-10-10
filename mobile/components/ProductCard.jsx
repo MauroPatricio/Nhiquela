@@ -19,12 +19,13 @@ const ProductCard = ({
   latitude,
   longitude,
   countInStock,
+  seller,
   item
 }) => {
   const navigation = useNavigation();
 
-  const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
 
+  const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
 
   const getShortDescription = (text, wordLimit) => {
     const words = text.split(' ');
@@ -36,22 +37,33 @@ const ProductCard = ({
 
   const dispatch = useDispatch();
 
-  const addItemToBasket = () => {
+  const _id = id
 
-      if ( countInStock == items.length ) return;
-      dispatch(addToBasket({id,                 
-          name,
-          image,
-          images,
-          description,
-          rating,
-          numReviews,
-          province,
-          address,
-          price,
-          onSale,
-          countInStock}));
-  }
+
+  // const addItemToBasket = () => {
+  //   const currentQuantity = items.length; // Current quantity of the item in the basket
+
+  //   if (currentQuantity >= countInStock) {
+  //     return; // Prevent adding if the stock is exhausted
+  //   }
+
+  //     if ( countInStock == items.length ) return;
+  //     dispatch(addToBasket({id,_id,                 
+  //         name,
+  //         image,
+  //         images,
+  //         description,
+  //         rating,
+  //         numReviews,
+  //         province,
+  //         address,
+  //         price,
+  //         onSale,
+  //         countInStock, 
+  //         quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+
+  //       }));
+  // }
 
   return (
     <TouchableOpacity
@@ -62,17 +74,17 @@ const ProductCard = ({
 
         <View style={styles.details}>
           <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
-          <Text style={styles.supplier} numberOfLines={1}>{getShortDescription(item.item.description, )}</Text>
-          <Text style={styles.countInStock} numberOfLines={1}>{console.log(item.item.seller)} unidade(s)</Text>
+          {/* <Text numberOfLines={1}>{getShortDescription(item.item.description, )}</Text> */}
+          <Text style={styles.supplier} numberOfLines={1}>{seller.seller.name}</Text>
 
-          <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text>
+          {/* <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text> */}
           <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
           <Text>
             {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
           </Text>
 
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={()=> addItemToBasket(item._id)} >
+        <TouchableOpacity style={styles.addBtn} >
           <Ionicons name='cart' size={25}
             color={'#7F00FF'}
           />
@@ -112,8 +124,8 @@ const styles = StyleSheet.create({
     padding: 12
 },
 title: {
-    fontSize: 12,
-    fontWeight: '800'
+    fontSize: 15,
+    fontWeight: '500'
 },
 supplier: {
     fontSize: 12,
@@ -125,7 +137,7 @@ countInStock:{
     // fontWeight: '700'
 },
 price: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '700'
 },
 addBtn: {

@@ -25,7 +25,7 @@ function Product(props) {
                       {product && product.onSale &&  <span className="sale"><b>{t('onsale')}</b></span>}
                       {product && product.onSale &&  <span className="sale-percentage"><b>{product.onSalePercentage*100}%</b></span>}
 
-          <Link to={`/product/${product.slug}`}>
+          <Link to={`/products/${product._id}`}>
            
           <Card.Img variant="top" style={{height: '190px'}} src={product.image} alt="Card image" />
           </Link>
@@ -39,7 +39,7 @@ function Product(props) {
             ) 
             }
           <div className="product-info small ">
-            <Link className="link-none" to={`/product/${product.slug}`}>
+            <Link className="link-none" to={`/products/${product._id}`}>
               <b>{changelng=='pt'?truncateString(product.nome,30):truncateString(product.name,30)}</b>
               {/* <b>{truncateString(product.name,30)}</b> */}
 

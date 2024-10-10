@@ -1,83 +1,68 @@
-import { StyleSheet, Text, View, Button, TouchableOpacity} from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import {useRoute} from '@react-navigation/native'
-import {useNavigation} from '@react-navigation/native'
-import {Ionicons} from "@expo/vector-icons"
-import {MaterialCommunityIcons} from '@expo/vector-icons'
-import { color } from 'react-native-elements/dist/helpers'
-
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const SuccessPayment = () => {
-          const navigation = useNavigation()
+  const navigation = useNavigation();
+  
   return (
-    <SafeAreaView>
-
-<View style={styles.container}>
-      <MaterialCommunityIcons 
-                        name='check-circle'
-                        size={200}
-                        color={'grey'}
-                        style={styles.iconStyle}
-                        />
-      <View style={styles.errorContainer}>
-        
-      <Text style={styles.title}>Pagamento efectuado com sucesso</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.iconContainer}>
+        <MaterialCommunityIcons 
+          name='check-circle'
+          size={200}
+          color={'#4CAF50'} // Green color for success
+          style={styles.iconStyle}
+        />
       </View>
-        <Button  title="Pagina principal" onPress={()=>navigation.navigate('Home')}  />
-    </View>
+      <View style={styles.messageContainer}>
+        <Text style={styles.title}>Pagamento efectuado com sucesso</Text>
+      </View>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Home')}>
+        <Text style={styles.buttonText}>Página principal</Text>
+      </TouchableOpacity>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default SuccessPayment
+export default SuccessPayment;
 
 const styles = StyleSheet.create({
   container: {
-    // flex: 1,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    marginTop:200
+    backgroundColor: '#f0f4f8', // Light background for contrast
+    padding: 20,
   },
-  icons:{
-    position: 'absolute',
-    top: 50,
-    marginLeft: 25,
-    flexDirection: "row",
-    justifyContent: 'space-between', // Distributes space between the icons
-    alignItems: 'center',
-  },
-  errorContainer: {
-    // padding: 20,
-    // backgroundColor: '#ffe5e5',
-    // borderRadius: 10,
-    // borderWidth: 1,
-    // borderColor: '#ff4d4d',
-    // width: '80%',
-    // alignItems: 'center',
-  },
-  title:{
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 60,
-    textAlign: 'center',
-
-  },
-  errorTitle: {
-    fontSize: 16,
-    // fontWeight: 'bold',
-    // color: '#ff4d4d',
-    marginBottom: 10,
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: '#ff4d4d',
+  iconContainer: {
     marginBottom: 20,
+  },
+  messageContainer: {
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#333', // Darker color for text
     textAlign: 'center',
   },
-  iconStyle:{
-    color:'green'
+  button: {
+    backgroundColor: '#4CAF50', // Green background for button
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    elevation: 3, // Adds shadow on Android
   },
-
-})
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  iconStyle: {
+    color: '#4CAF50', // Consistent icon color
+  },
+});

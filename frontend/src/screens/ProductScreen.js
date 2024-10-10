@@ -60,7 +60,8 @@ function ProductScreen() {
   const { t } = useTranslation();
 
   const params = useParams();
-  const { slug } = params;
+
+  const { id } = params;
   const navegate = useNavigate();
   const reviewsRef = useRef();
   const [{ loading, error, product, loadingCreateReview, categories }, dispatch] =
@@ -75,14 +76,14 @@ function ProductScreen() {
 
     const fetchData = async () => {
       try {
-        const result = await axios.get(`/api/products/slug/${slug}`);
+        const result = await axios.get(`/api/products/${id}`);
         dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
       }
     };
     fetchData();
-  }, [slug]);
+  }, [id]);
 
   
 
@@ -561,7 +562,7 @@ navegate('/cart')
         ) : (
           <MessageBox>
             {t('please')}{' '}
-            <Link className="link" to={`/signin?redirect=/product/${product.slug}`}>
+            <Link className="link" to={`/signin?redirect=/products/${product._id}`}>
               {' '}
               {t('login')}
             </Link>{' '}

@@ -1,330 +1,251 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
-import React, { useState } from 'react'
-import {Ionicons, SimpleLineIcons, MaterialCommunityIcons, Fontisto  } from '@expo/vector-icons'
-import {useNavigation} from '@react-navigation/native'
-import {useRoute} from '@react-navigation/native'
-import { Badge } from 'react-native-paper'
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Badge } from 'react-native-paper';
+import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, checkIfSellerExists, getItemsBySellerId } from '../../features/basketSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import BasketIcon from '../BasketIcon';
 
-import {   addToBasket, removeFromBasket,selectBasketItemsWithId } from '../../features/basketSlice';
-import { useDispatch, useSelector } from 'react-redux'
+const ProductDetail = () => {
+  const route = useRoute();
+  const item = route.params?.item || {}; // Fallback in case `item` is undefined
 
-// LogBox.ignoreLogs(['Non-serializable values were found in navigation state'])
 
-const ProductDetail = ({navigation}) => {
+  const navigation = useNavigation()
 
-    const route = useRoute();
-    const {item} = route.params;
-    // const navigation = useNavigation();
-    const [count, setCount] = useState(1);
-    const items = useSelector((state) =>selectBasketItemsWithId(state, item._id));
+  // Destructure properties from `item` or `item.item`
+  const itemData = item.item !== undefined ? item.item : item;
+  const {
+    _id,
+    name = itemData?.name || itemData?.nome,
+    image,
+    images,
+    description,
+    rating,
+    numReviews,
+    countInStock,
+    province,
+    price,
+    onSale,
+  } = itemData;
+  let seller = itemData?.sellerDetails;
+
+  const id = _id
+
+
+  seller = seller?itemData.sellerDetails:itemData.seller;
+
+
+
+  const [count, setCount] = useState(0); // Start count at 0
+
+  const items = useSelector((state) => selectBasketItemsWithId(state, _id));
+  const dispatch = useDispatch();
+
+  const sellerName = seller?.seller?.name;
+
+  // console.log(seller)
+
+  const addItemToBasket = () => {
+    const currentQuantity = items.length;
+    if (currentQuantity + count >= countInStock) {
+      return; // Prevent adding if the stock is exhausted
+    }
+
+    setCount(count + 1); // Increase count by 1
+    dispatch(addToBasket({
+      _id,
+      name,
+      image,
+      images,
+      description,
+      rating,
+      numReviews,
+      province,
+      price,
+      onSale,
+      countInStock,
+      seller,
+      sellerName,
+      quantity: currentQuantity + count + 1
+    }));
+
+      dispatch(addSellers({ seller }));
     
-    
-     const id =item._id                
-     const name=item.nome
-     const image=item.image
-     const images=item.images
-     const description=item.description
-     const rating=item.rating
-     const numReviews=item.numReviews
-     const province=item.province
-      const address=item.address
-      const price=item.price
-      const onSale=item.onSale
-      const countInStock=item.countInStock
-        
-        const dispatch = useDispatch();
+  };
 
-        const addItemToBasket = () => {
-
-            if ( countInStock == items.length ) return;
-            dispatch(addToBasket({id,                 
-                name,
-                image,
-                images,
-                description,
-                rating,
-                numReviews,
-                province,
-                address,
-                price,
-                onSale,
-                countInStock}));
+  const removeItem = () => {
+    if (count > 0) {
+      setCount(count - 1);
+    }
+    if (count === 1) {
+      if (_id) {
+         dispatch(removeFromBasket({ _id }));
+  
+        const remainingItemsFromSeller = getItemsBySellerId(seller._id);
+        if (remainingItemsFromSeller.length === 0) {
+          dispatch(removeSeller({ sellerId: seller._id }));
         }
+      } 
+    }
+  };
 
-        const removeItem = () => {
-            if (items.length == 0){
-                return;
-            }
-            dispatch(removeFromBasket({id}))
-        }
   return (
-      
-          <ScrollView>
-      <View style={styles.container}>
-      {/* <View style={styles.upperRow}>
-            <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='chevron-back-circle' color={'#3e2465'} size={35} style={styles.icon} />
+    <>
+      <BasketIcon />
+      <ScrollView>
+        <View style={styles.container}>
+          <Image source={{ uri: image }} style={styles.image} />
+          <View style={styles.icons}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
             </TouchableOpacity>
+          </View>
+          <View style={styles.details}>
+            <Text style={styles.title}>{name}</Text>
+            <Text style={styles.price}>{price} MT</Text>
+            <Text>{countInStock} unidade(s) disponível(is)</Text>
 
-            <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='heart' color={'red'} size={35}/>
-            </TouchableOpacity>
-      </View> */}
+            <View style={styles.ratingRow}>
+              {/* <View style={styles.rating}>
+                {[...Array(Math.round(rating))].map((_, index) => (
+                  <Ionicons key={index} size={15} color="gold" name="star" />
+                ))}
+                <Text>{rating}</Text>
+              </View> */}
 
-      <Image source={{uri:item.item.image}}
-      style={styles.image}
-      />
-        <View style={styles.icons}>
-
-        <TouchableOpacity onPress={()=>navigation.goBack()}>
-        <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
-        </TouchableOpacity>
-
-        {/* <TouchableOpacity onPress={()=>navigation.goBack()}>
-        <Ionicons name='heart' size={35} style={styles.heart}/>
-        </TouchableOpacity> */}
-        </View>
-      <View style={styles.details}>
-        <View style={styles.titleRow}>
-            <Text style={styles.title}>{item.item.nome}</Text>
-        </View>
-        <View style={styles.priceWrapper}>
-            <Text style={styles.price}>{item.item.price} MT</Text>
-        </View>
-        <View style = {styles.ratingRow}>
-        <View style={styles.rating}>
-        {[item.item.rating].map((index)=>(
-                        
-                        <Ionicons
-                        key={index}
-                        size={15}
-                        color="gold"
-                        name="star"
-                        />
-                    ))}
-                    <Text>{item.item.rating}</Text>
-                    </View>
-
-
-            <View style={styles.rating}>
-              
-                <TouchableOpacity onPress={()=> removeItem(item._id)}>
-                    <SimpleLineIcons
-                    name='minus'
-                    size={20}/>
-                </TouchableOpacity>
-                
-                <Text style={styles.ratingText}>{count}</Text>
-                
-                <TouchableOpacity onPress={()=> addItemToBasket(item._id)} >
-                    <SimpleLineIcons
-                    name='plus'
-                    size={20}/>
-                </TouchableOpacity>
-            </View>
-        </View>
-        <Text style={{marginLeft: 20, marginTop: 10}}>
-            {item.item.isOrdered?<Badge style={{color: 'white', backgroundColor: 'green'}}> Por encomenda </Badge>:item.item.countInStock !== 0 ?item.item.countInStock +` unidade(s)`: <Badge bg='danger'>Sem stock</Badge> }
-        </Text>  
-            <View style={styles.descriptionWraper}>
-                <Text style={styles.description}>
-                Descrição
-                </Text>
-                <Text style={styles.descText}>
-                    {item.item.description}
-                </Text>
-            </View>
-
-            <View style={{marginBottom: 10}}>
-                <View style={styles.location}>
-                    <View style={{flexDirection: "row"}}>
-
-                            <Ionicons
-                            name="location-outline"
-                            size={20}
-                            />
-                            <Text> {item.item.province?.name}</Text>
-                    </View>
-
-                    <View style={{flexDirection: "row"}}>
-
-<MaterialCommunityIcons
-name="truck-delivery-outline"
-size={20}
-/>
-<Text> Entrega disponível</Text>
+              <View style={styles.rating}>
+  {rating > 0 && !isNaN(rating) ? (
+    [...Array(Math.round(rating))].map((_, index) => (
+      <Ionicons key={index} size={15} color="gold" name="star" />
+    ))
+  ) : (
+    <Text>Sem pontuações </Text>
+  )}
+  <Text>{rating || 0}</Text>
 </View>
-                </View>
-            </View>
 
-            <View style={styles.cartRow}>
-                <TouchableOpacity style={styles.cartBtn}  onPress={() => navigation.navigate("ProductDetail", { item })}>
-                    <Text style={styles.cartText}>Pagar</Text>
+              <View style={styles.countControl}>
+                <TouchableOpacity onPress={removeItem} disabled={count === 0}>
+                  <SimpleLineIcons name="minus" size={25} />
                 </TouchableOpacity>
-
-                <TouchableOpacity onPress={()=> addItemToBasket()} style={styles.addCart}>
-
-                    <Ionicons name="cart-outline"
-                    size={24}
-                    color="white"
-                    />
-               </TouchableOpacity>
+                <Text style={styles.countText}>{count}</Text>
+                <TouchableOpacity onPress={addItemToBasket} disabled={count >= countInStock || countInStock === 0}>
+                  <SimpleLineIcons name="plus" size={25} />
+                </TouchableOpacity>
+              </View>
             </View>
 
+            <Text style={{ marginLeft: 20 }}>
+              {itemData.isOrdered ? (
+                <Badge style={{ color: 'white', backgroundColor: 'green' }}>Por encomenda</Badge>
+              ) : countInStock !== 0 ? (
+                `${countInStock} unidade(s)`
+              ) : (
+                <Badge bg="danger">Sem stock</Badge>
+              )}
+            </Text>
 
-      </View>
-    </View>
- </ScrollView> 
-  )
-}
+            <View style={styles.descriptionWrapper}>
+              <Text style={styles.description}>Descrição</Text>
+              <Text style={styles.descText}>{description}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={{ marginBottom: 100 }} />
+      </ScrollView>
+    </>
+  );
+};
 
-export default ProductDetail
-
+export default ProductDetail;
 
 const styles = StyleSheet.create({
-container: {
-    flex:1,
-    backgroundColor: 'white'
-
-},
-
-
-upperRow:{
-    // flex:1 , 
-    marginHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    top: 50,
-    zIndex: 999,
-},
-image:{
-    aspectRatio: 1,
-    resizeMode: "cover"
-
-},
-details:{
-    marginTop: -20,
-    top:10
-
-},
-titleRow:{
-    marginHorizontal: 20,
-    paddingBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    top: 20
-},
-title: {
-    fontWeight: "800",
-    fontSize: 20
-},
-priceWrapper:{
-    marginLeft: 10,
-    // marginRight: 10,
-    // marginTop: 15,
-    // backgroundColor: "#7F00FF",
-    // borderRadius: 10,
-    // alignItems: "center"
-},
-price:{
-    fontSize: 20,
-    padding: 10,
-    color: "#7F00FF",
-    fontWeight: '800'
-},
-ratingRow:{
-    paddingBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    top: 5
-},
-rating:{
-    top:9,
-    justifyContent: "flex-start",
-    flexDirection: "row",
-    marginLeft: 20,
-    marginRight: 20,
-    alignItems: "center"
-},
-ratingText:{
-    color: "grey",
-    paddingHorizontal: 10,
-    
-},
-descriptionWraper:{
-    marginTop: 24,
-    marginHorizontal: 22,
-},
-description: {
-    fontSize: 19,
-},
-descText: {
-textAlign: "justify",
-marginBottom: 12,
-
-},
-location: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#F0F8FF",
-    padding: 5,
-    borderRadius: 25,
-    marginLeft: 22,
-    marginRight: 25,
-
-},
-cartRow:{
-    paddingBottom: 33,
-    flexDirection: "row",
-    // justifyContent: "space-around",
-    alignItems: "center",
-    width: 22,
-},
-cartBtn: {
-    padding: 10,
-    width: 250,
-    backgroundColor: '#7F00FF',
+  container: {
+    flex: 1,
+    backgroundColor: '#F9F9F9',
+  },
+  image: {
+    width: '100%',
+    height: 350,
+    resizeMode: 'cover',
+  },
+  icons: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '90%',
+  },
+  back: {
+    color: 'black',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 22,
-    marginLeft:22
-},
-cartText: {
-    color: "white",
-    marginLeft: 12
-
-},
-addCart:{
-        width: 37,
-        height: 37,
-        borderRadius: 50,
-        // margin: 12,
-        backgroundColor: '#7F00FF',
-        marginLeft:20,
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    icons:{
-        position: 'absolute',
-        top: 30,
-        // marginLeft: 10,
-        flexDirection: "row",
-        justifyContent: 'space-between', // Distributes space between the icons
-        alignItems: 'center',
-      },
-    back:{
-        marginLeft: 20,
-        color: 'black',
-        backgroundColor: 'white',
-        borderRadius: 22
-      },
-    heart:{
-        marginLeft: 240,
-        color: 'red'
-    
-      }
-
-
-})
+    padding: 5,
+  },
+  details: {
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    elevation: 3,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  price: {
+    fontSize: 22,
+    color: '#7F00FF',
+    fontWeight: '800',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  countControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F4F4F4',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    width: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  countText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginHorizontal: 10,
+  },
+  descriptionWrapper: {
+    marginTop: 20,
+    paddingHorizontal: 15,
+  },
+  description: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  descText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+});

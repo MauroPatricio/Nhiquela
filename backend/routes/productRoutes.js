@@ -6,13 +6,13 @@ import { isAuth, isSellerOrAdmin } from '../utils.js';
 import User from '../models/UserModel.js';
 
 
+
 import {v2 as cloudinary} from 'cloudinary';
 
 const productRoutes = express.Router();
 
 
 
-//by category
 productRoutes.get('/bycategory', async (req, res) => {
      try {
        const productsByCategory = await Product.aggregate([
@@ -28,17 +28,73 @@ productRoutes.get('/bycategory', async (req, res) => {
            $unwind: '$categoryDetails',
          },
          {
-           $sort: {
-             'categoryDetails.name': 1, // Sort by category title in ascending order
+           $lookup: {
+             from: 'users',
+             localField: 'seller',
+             foreignField: '_id',
+             as: 'sellerDetails',
            },
          },
-       ]).populate('seller');
-   
+         {
+           $unwind: '$sellerDetails',
+         },
+         {
+           $lookup: {
+             from: 'provinces',
+             localField: 'province',
+             foreignField: '_id',
+             as: 'provinceDetails',
+           },
+         },
+         {
+           $unwind: '$provinceDetails',
+         },
+         // Sort products within each category by their creation date in descending order
+         {
+           $sort: {
+             'categoryDetails.name': 1, // Sort by category name in ascending order
+             'createdAt': -1,            // Sort by product creation date in descending order
+           },
+         },
+       ]);
        res.json(productsByCategory);
      } catch (error) {
        res.status(500).json({ error: 'Ocorreu um erro no servidor' });
      }
    });
+   
+
+
+//by products/byCategoryId
+productRoutes.get('/bycategory/:id', async (req, res) => {
+     try {
+       const { id } = req.params;
+       const page = parseInt(req.query.page) || 1;  // Default to page 1 if not provided
+       const pageSize = 10;  // Number of products per page
+   
+       // Find products that match the given categoryId and implement pagination
+       const products = await Product.find({ category: id })
+         .populate('seller color size category province qualityType conditionStatus')
+         .skip((page - 1) * pageSize)  // Skip the products from previous pages
+         .limit(pageSize);  // Limit the results to the number of products per page
+   
+       const totalProducts = await Product.countDocuments({ category: id });  // Get total products in category
+   
+       if (products.length > 0) {
+         res.status(200).json({
+           totalPages: Math.ceil(totalProducts / pageSize),
+           currentPage: page,
+           totalProducts,
+           products,
+         });
+       } else {
+         res.status(404).send({ message: 'Nenhum produto encontrado para esta categoria' });
+       }
+     } catch (error) {
+       res.status(500).send({ message: 'Erro ao buscar produtos pela categoria', error });
+     }
+   });
+   
 
 
 // All Products
@@ -153,59 +209,75 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
 
 
 // Post 
+
+// Comentei porque estava a dar erro de token depois devo verificar o que esta a acontecer mo iSAuth ou isSellerOrAdmin
 productRoutes.post('/',isAuth,isSellerOrAdmin,expressAsyncHandler( async (req, res) => {
 
-     if(!req.body.image){
-          res.status(404).send({message: 'A imagem do produto é obrigatória'});
-          return
-     }
 
-     const comission_price = parseFloat(process.env.COMISSION_PRICE)
+     // productRoutes.post('/', expressAsyncHandler( async (req, res) => {
 
-     const user = await User.findById( req.user._id);
 
-     const priceFromSeller = parseFloat(req.body.price);
+          try{
 
-     const priceComission = parseFloat(priceFromSeller*comission_price);
-
-     const priceWithComission = parseFloat(priceComission+priceFromSeller);
-
-     const newProduct = new Product({
-          nome: req.body.nome!=null?req.body.nome.trim():req.body.nome,
-          name: req.body.name!=null?req.body.name.trim(): req.body.name,
-          slug: req.body.slug!=null?req.body.slug.trim():req.body.slug,
-          seller: req.user._id,
-          image: req.body.image,
-          images: req.body.images,
-          priceFromSeller: req.body.price,
-          comissionPercentage: comission_price,
-          priceComission: priceComission,
-          price: priceWithComission,
-          category: req.body.category,
-          province: req.body.province,
-          brand: req.body.brand,
-          countInStock: req.body.countInStock,
-          rating: req.body.rating,
-          numReviews: req.body.numReviews,
-          description: req.body.description,
-          onSale: req.body.onSale,
-          onSalePercentage: req.body.onSalePercentage,
-          qualityType :req.body.qualityTyp,
-          conditionStatus : req.body.conditionStatu,
-          color : req.body.selectedColors,
-          size : req.body.selectedSizes,
-          isOrdered: req.body.isOrdered,
-          orderPeriod: req.body.orderPeriod,
-          isGuaranteed:  req.body.isGuaranteed,
-          guaranteedPeriod: req.body.guaranteedPeriod,
-          isActive: user.isApproved,
-     });
-     if(req.body.onSale){  
-          newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;
-     }
-
-     const product = await newProduct.save();
-     res.send({message: 'Produto criado', product});
+               if(!req.body.image){
+                    res.status(404).send({message: 'A imagem do produto é obrigatória'});
+                    return
+               }
+          
+               const comission_price = parseFloat(process.env.COMISSION_PRICE)
+          
+               const user = await User.findById( req.user._id);
+          
+               const priceFromSeller = parseFloat(req.body.price);
+          
+               const priceComission = parseFloat(priceFromSeller*comission_price);
+          
+               const priceWithComission = parseFloat(priceComission+priceFromSeller);
+          
+               const newProduct = new Product({
+                    nome: req.body.nome!=null?req.body.nome.trim():req.body.nome,
+                    name: req.body.name!=null?req.body.name.trim(): req.body.name,
+                    slug: req.body.slug!=null?req.body.slug.trim():req.body.slug,
+                    seller: req.user._id,
+                    image: req.body.image,
+                    images: req.body.images,
+                    priceFromSeller: req.body.price,
+                    comissionPercentage: comission_price,
+                    priceComission: priceComission,
+                    price: priceWithComission,
+                    category: req.body.category,
+                    province: req.body.province,
+                    brand: req.body.brand,
+                    countInStock: req.body.countInStock,
+                    rating: req.body.rating,
+                    numReviews: req.body.numReviews,
+                    description: req.body.description,
+                    onSale: req.body.onSale,
+                    onSalePercentage: req.body.onSalePercentage,
+                    qualityType :req.body.qualityTyp,
+                    conditionStatus : req.body.conditionStatu,
+                    color : req.body.selectedColors,
+                    size : req.body.selectedSizes,
+                    isOrdered: req.body.isOrdered,
+                    orderPeriod: req.body.orderPeriod,
+                    isGuaranteed:  req.body.isGuaranteed,
+                    guaranteedPeriod: req.body.guaranteedPeriod,
+                    isActive: user.isApproved,
+               });
+               if(req.body.onSale){  
+                    newProduct.discount = newProduct.price - newProduct.price*newProduct.onSalePercentage;
+               }
+          
+               const product = await newProduct.save();
+          
+               if(product){
+                    res.send({message: 'Produto criado', product});
+               }else{
+                    res.status(404).send({message: 'Produto não criado'});
+               }
+          }catch(error){
+               res.status(500).send({ message: 'Erro no servidor', error: error.message });
+          }
 }));
 
 

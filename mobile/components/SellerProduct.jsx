@@ -2,11 +2,10 @@ import { StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native'
 import React, { useState } from 'react'
 import { MinusCircleIcon, PlusCircleIcon } from 'react-native-heroicons/outline';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectBasketItemsWithId } from '../features/basketSlice';
-import { addToBasket, removeFromBasket } from '../features/basketSlice';
+import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, checkIfSellerExists, getItemsBySellerId } from '../features/basketSlice';
 
 
-const SellerProduct = ({
+const  SellerProduct = ({
     id,                 
     name,
     image,
@@ -18,7 +17,10 @@ const SellerProduct = ({
     address,
     price,
     onSale,
-    countInStock}) => {
+    countInStock,
+    quantity,
+seller,
+sellerName}) => {
 
         const [isPressed, setIsPressed] = useState(false); 
 
@@ -26,10 +28,16 @@ const SellerProduct = ({
         
         const dispatch = useDispatch();
 
-        const addItemToBasket = () => {
+        const _id = id
 
+        const addItemToBasket = () => {
+            const currentQuantity = items.length; // Current quantity of the item in the basket
+
+            if (currentQuantity >= countInStock) {
+              return; // Prevent adding if the stock is exhausted
+            }
             if ( countInStock == items.length ) return;
-            dispatch(addToBasket({id,                 
+            dispatch(addToBasket({id,_id,                 
                 name,
                 image,
                 images,
@@ -40,7 +48,21 @@ const SellerProduct = ({
                 address,
                 price,
                 onSale,
-                countInStock}));
+                countInStock,
+                seller,
+                sellerName,
+                quantity: currentQuantity + 1 // Increase quantity by 1 when adding
+
+            }));
+
+            dispatch(addSellers({ seller }));
+
+            // const sellerExists = checkIfSellerExists(seller._id);
+
+            // if (!sellerExists) {
+            //   // Dispatch the action to add the seller to the basket
+            //   dispatch(addSellers({seller}));
+            // }
         }
 
         const removeItem = () => {
@@ -48,6 +70,13 @@ const SellerProduct = ({
                 return;
             }
             dispatch(removeFromBasket({id}))
+
+            const remainingItemsFromSeller = getItemsBySellerId(seller._id);
+
+      if (remainingItemsFromSeller.length === 0) {
+        // Dispatch the action to remove the seller if no more products are in the basket
+        dispatch(removeSeller({ sellerId: seller._id }));
+      }
         }
 
   return (

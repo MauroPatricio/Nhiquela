@@ -1,20 +1,24 @@
-import { ScrollView, StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native'
+import { ScrollView, StyleSheet, Text, View, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { ArrowRightIcon } from 'react-native-heroicons/outline'
 import ProductCard from './ProductCard';
+import { useNavigation } from '@react-navigation/native';
 
 
 const ProductHomeView = ({ title, description, categoryid, products }) => {
 
+  const navigation = useNavigation();
 
   const [isloading, setLoading] = useState(false);
-
 
   return (
     <View>
       <View style={styles.sellerWrapper}>
         <Text style={styles.title}>{title}</Text>
-        <ArrowRightIcon color={"#7F00FF"} />
+        <TouchableOpacity  onPress={()=>{ navigation.navigate('ProductListByCategory',{title, categoryid})}}>
+
+        <ArrowRightIcon color={"#7F00FF"} size={30} />
+        </TouchableOpacity>
       </View>
       <View>
         <Text style={styles.text}>{description}</Text>
@@ -35,12 +39,12 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
                   description={item.description}
                   rating={item.rating}
                   numReviews={''}
-                  province={''}
-                  address={''}
+                  province={item.ProviceDetails}
+                  address={item.address}
                   latitude={''}
                   longitude={''}
                   countInStock={item.countInStock}
-                  seller={item}
+                  seller={item.sellerDetails}
                   item={item2}
                 />
               </>

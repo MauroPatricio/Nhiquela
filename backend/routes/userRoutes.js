@@ -91,23 +91,27 @@ userRouter.put(
       user.isSeller = req.body.isSeller ;
 
       if (req.body.isSeller) {
-        user.seller.name = req.body.sellerName || user.seller.name;
-        user.seller.description =req.body.sellerDescription || user.seller.description;
-        user.seller.logo = req.body.sellerLogo || user.seller.logo;
-        user.seller.opentime= req.body.opentime ||user.seller.opentime;
-        user.seller.closetime= req.body.closetime|| user.seller.closetime;
-        user.seller.province=  req.body.sellerLocation|| user.seller.province;
-        user.seller.address=req.body.sellerAddress || user.seller.address;
-        user.seller.phoneNumberAccount=req.body.phoneNumberAccount || user.seller.phoneNumberAccount;
-        user.seller.alternativePhoneNumberAccount=req.body.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount;
+        user.seller.name = req.body.sellerName || req.body.seller.name || user.seller.name;
+        user.seller.description =req.body.sellerDescription|| req.body.seller.description || user.seller.description;
+        user.seller.logo = req.body.sellerLogo ||req.body.seller.logo || user.seller.logo;
+        user.seller.opentime= req.body.opentime || req.body.seller.opentime ||user.seller.opentime;
+        user.seller.closetime= req.body.closetime|| req.body.seller.closetime || user.seller.closetime;
+        user.seller.province=  req.body.sellerLocation|| req.body.seller.province || user.seller.province;
+        user.seller.address=req.body.sellerAddress || req.body.seller.address ||user.seller.address;
+        user.seller.phoneNumberAccount=req.body.phoneNumberAccount|| req.body.seller.phoneNumberAccount|| user.seller.phoneNumberAccount;
+        user.seller.alternativePhoneNumberAccount=req.body.alternativePhoneNumberAccount|| req.body.seller.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount;
         
-        user.seller.accountType=req.body.accountType || user.seller.accountType;
-        user.seller.accountNumber=req.body.accountNumber || user.seller.accountNumber;
+        user.seller.accountType=req.body.accountType || req.body.seller.accountType || user.seller.accountType;
+        user.seller.accountNumber=req.body.accountNumber || req.body.seller.accountNumber || user.seller.accountNumber;
 
-        user.seller.alternativeAccountType=req.body.alternativeAccountType || user.seller.alternativeAccountType;
-        user.seller.alternativeAccountNumber=req.body.alternativeAccountNumber || user.seller.alternativeAccountNumber;
 
-        user.seller.workDayAndTime = req.body.workDaysWithTime || user.seller.workDaysWithTime;
+        user.seller.latitude=req.body.latitude || req.body.seller.latitude || user.seller.latitude;
+        user.seller.longitude=req.body.longitude || req.body.seller.longitude || user.seller.longitude;
+
+        user.seller.alternativeAccountType=req.body.alternativeAccountType || req.body.seller.alternativeAccountType || user.seller.alternativeAccountType;
+        user.seller.alternativeAccountNumber=req.body.alternativeAccountNumber || req.body.seller.alternativeAccountNumber || user.seller.alternativeAccountNumber;
+
+        user.seller.workDayAndTime = req.body.workDaysWithTime || req.body.seller.workDayAndTime   || user.seller.workDaysWithTime;
       }else{
         user.seller.name = "";
         user.seller.description = "";
@@ -336,18 +340,20 @@ if (!userExist) {
 
       if (newUser.isSeller) {
         const seller = {
-          name: req.body.sellerName,
-          logo: req.body.sellerLogo,
-          description: req.body.sellerDescription,
-          province: req.body.sellerLocation,
-          address:  req.body.sellerAddress,
-          phoneNumberAccount:  req.body.phoneNumberAccount,
-          alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount,
-          accountType:  req.body.accountType,
-          accountNumber: req.body.accountNumber,
-          alternativeAccountType: req.body.alternativeAccountType,
-          alternativeAccountNumber: req.body.alternativeAccountNumber,
-          workDayAndTime: req.body.workDaysWithTime
+          name: req.body.sellerName || req.body.seller.name,
+          logo: req.body.sellerLogo || req.body.seller.logo,
+          description: req.body.sellerDescription || req.body.seller.description,
+          province: req.body.sellerLocation || req.body.seller.province,
+          address:  req.body.sellerAddress || req.body.seller.address,
+          phoneNumberAccount:  req.body.phoneNumberAccount || req.body.seller.phoneNumberAccount,
+          alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount  || req.body.seller.alternativePhoneNumberAccount,
+          accountType:  req.body.accountType  || req.body.seller.accountType,
+          accountNumber: req.body.accountNumber|| req.body.seller.accountNumber,
+          alternativeAccountType: req.body.alternativeAccountType || req.body.seller.alternativeAccountType,
+          alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller.alternativeAccountNumber,
+          workDayAndTime: req.body.workDaysWithTime || req.body.seller.workDayAndTime,
+          latitude:  req.body.seller.latitude,
+          longitude:  req.body.seller.longitude,
 
         };
         newUser.seller = seller;

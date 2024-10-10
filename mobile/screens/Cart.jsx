@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import {useNavigation} from '@react-navigation/native'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectSeller } from '../features/sellerSlice'
-import { removeFromBasket, selectBasketItems } from '../features/basketSlice'
+import { removeFromBasket, removeSeller, selectBasketItems } from '../features/basketSlice'
 import { XCircleIcon } from 'react-native-heroicons/outline'
 import CartDetails from '../components/CartDetails'
+import BottomSheetComponent from '../components/BottomSheetComponent';
 
 const Cart = () => {
 
@@ -18,50 +19,75 @@ const Cart = () => {
 
   useEffect(()=>{
     const groupedItems = items.reduce((results, item)=>{
-      (results[item.id] = results[item.id]|| []).push(item);
+      (results[item._id] = results[item._id]|| []).push(item);
       return results
     },{});
 
     setGroupedItemsInTheCart(groupedItems)
 
   }, [items])
-
   return (
 <>
 
-  
-<CartDetails/>
-    <SafeAreaView style={styles.container}>
- <View style={styles.cart}>
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.title}>Carrinha</Text>
-        <Text style={styles.subtitle}>Produtos</Text>
-      </View>
-      <TouchableOpacity onPress={()=>navigation.goBack()} style={styles.closeButton}>
-          <XCircleIcon style={styles.icon} height={35} width={35}/>
-      </TouchableOpacity>
-    </View>
-   
-    <ScrollView >
-      <Text style={styles.itemsLength}>{items.length} produto(s) na carrinha</Text>
-      {Object.entries(groupedItemsInTheCart).map(([key, items])=>(
-            <View  key={key} style={styles.itemLine} >
-                    <Text style={{color: 'grey', marginTop: 15}}>{items.length}x</Text>
-              <Image
-              source={{uri: items[0].image, height:50, width:50}}
-              />
-              <Text style={styles.itemName}>{items[0].name.length<20?items[0].name: items[0].name.substring(0, 25)+`...`}</Text>
-              <Text style={styles.price}>{items[0].price} MT</Text>
-              <TouchableOpacity onPress={() => dispatch(removeFromBasket({id: items[0].id}))} >
-                <Text style={styles.remove}>Remover</Text>
-              </TouchableOpacity>
-            </View>
-      ))}
-    </ScrollView>
-</View>
 
-</SafeAreaView>
+<CartDetails/>
+<SafeAreaView style={styles.container}>
+        <View style={styles.cart}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Carrinho</Text>
+              <Text style={styles.subtitle}>Produtos</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+              <XCircleIcon style={styles.icon} height={35} width={35} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView>
+            <Text style={styles.itemsLength}>{items.length} produto(s) no carrinho</Text>
+
+            {Object.entries(groupedItemsInTheCart).map(([key, groupedItems]) => (
+              <View key={key}>
+                <Text style={styles.sellerName}>
+                  Fornecedor: {groupedItems[0]?.sellerName?.length < 50
+                    ? groupedItems[0]?.sellerName || 'Sem nome do fornecedor'
+                    : (groupedItems[0]?.sellerName || 'Sem nome do fornecedor').substring(0, 25) + '...'}
+                </Text>
+
+                <View style={styles.itemLine}>
+                  <Text style={styles.quantity}>{groupedItems.length}x</Text>
+                  <Image
+                    source={{ uri: groupedItems[0]?.image }}
+                    style={styles.itemImage}
+                  />
+                  <Text style={styles.itemName}>
+                    {groupedItems[0]?.name?.length < 20
+                      ? groupedItems[0]?.name
+                      : groupedItems[0]?.name.substring(0, 25) + '...'}
+                  </Text>
+                  <Text style={styles.price}>{parseFloat(groupedItems[0]?.price || 0).toFixed(2)} MT</Text>
+                  
+                  <TouchableOpacity
+                    onPress={() => {
+                      const itemInBasket = items.find((basketItem) => basketItem._id === groupedItems[0]._id);
+                      
+                      if (itemInBasket) {
+                        dispatch(removeFromBasket({ _id: groupedItems[0]._id }));
+                        dispatch(removeSeller( groupedItems[0].seller._id ));
+
+                      } else {
+                        console.warn(`Can't remove product (id: ${groupedItems[0]._id}) as it's not in the basket!`);
+                      }
+                    }}
+                  >
+                    <Text style={styles.remove}>Remover</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </SafeAreaView> 
 </>
   )
 }
@@ -72,16 +98,23 @@ const styles = StyleSheet.create({
     container:{
     flex:1,
     backgroundColor: 'white',
+    paddingHorizontal: 10
+
   },
-    header:{
-    borderWidth:1 ,
-    borderTopColor: 'white',
-    borderLeftColor: 'white',
-    borderRightColor:'white',
+  header: {
+    borderWidth: 0,
+    borderBottomWidth: 1,
     borderBottomColor: '#7F00FF',
-    padding:20,
+    padding: 20,
     marginBottom: 10,
-},
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5, // Adds a subtle shadow
+  },
   footer: {
     position: 'absolute',
     alignContent: 'center',
@@ -133,6 +166,13 @@ const styles = StyleSheet.create({
         marginTop:2
   },
 
+  itemImage: {
+    width: 50,
+    height: 50,
+    marginRight: 10,
+    borderRadius: 5,
+  },
+
 
   cart:{
     paddingBottom: 250
@@ -175,8 +215,11 @@ const styles = StyleSheet.create({
     marginTop: 15
   },
   sellerName:{
-    top: 12,
-    fontWeight: '500'
+    // top: 12,
+    bottom: 5,
+    fontWeight: '500',
+    color: '#7F00FF',
+    paddingHorizontal: 10
   },
   remove:{
     color: '#7F00FF',

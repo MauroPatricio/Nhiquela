@@ -21,6 +21,25 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
 import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import { fileURLToPath } from 'url';
+
+import admin from 'firebase-admin';
+import { dirname } from 'path';
+import { readFile } from 'fs/promises';
+
+// Get the current directory of the module
+// Define the path to the service account JSON file
+const serviceAccountPath = new URL('./reactnativepushnotificat-a322b-firebase-adminsdk-n3ra9-635e334e58.json', import.meta.url);
+
+// Read the service account JSON file
+const serviceAccount = await readFile(serviceAccountPath, 'utf-8').then(JSON.parse);
+
+
+// Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // Carregando o ficheiro .env
 dotenv.config();
@@ -67,7 +86,7 @@ app.use('/api/sizes', sizeRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/requestdeliver', requestDeliverRoutes);
 app.use('/api/carts', cartRoutes);
-
+app.use('/api/notifications', notificationRoutes);
 
 const __dirname = path.resolve();
 // const rootDir = path.join(__dirname, '..');

@@ -18,7 +18,7 @@ const BasketIcon = () => {
 
             <Text style={styles.length}>{items.length}</Text>
             <Text style={styles.cart}>Ver carrinha</Text>
-            <Text style={styles.total}>{basketTotal} MT</Text>
+            <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} MT</Text>
        </TouchableOpacity>
     </View>
   )

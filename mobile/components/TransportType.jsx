@@ -59,10 +59,14 @@ const TransportType = () => {
 
 
   return (
-<SafeAreaView>
+<SafeAreaView style={{backgroundColor: 'white'}}>
+<>
 
-<Text style={styles.title2}>Solicitar transporte</Text>
- <Text style={styles.type}>Tipo de transporte a solicitar:</Text>
+{/* <Text style={styles.title2}>Solicitar transporte</Text>
+ <Text style={styles.type}>Tipo de transporte a solicitar:</Text> */}
+
+ <Text style={styles.title2}>BREVEMENTE</Text>
+ {/* <Text style={styles.type}>Tipo de transporte a solicitar:</Text> */}
  <FlatList
       // horizontal
       keyExtractor={(item)=> item.id}
@@ -94,6 +98,7 @@ const TransportType = () => {
               
       )}
       />
+</>
 
 </SafeAreaView>
   )
@@ -149,13 +154,14 @@ const styles = StyleSheet.create({
 
     },
     component:{
-      opacity: 0.1
+      opacity: 0.01
     },
     title2: {
-      fontWeight: '600',
+      fontWeight: '800',
       fontSize: 30,
       marginTop: 30,
       marginBottom: 30,
       marginLeft: 10,
+      color: '#7F00FF'
     },
 })

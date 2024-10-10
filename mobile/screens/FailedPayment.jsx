@@ -18,14 +18,15 @@ const FailedPayment = () => {
 
           useEffect(()=>{
 
-            if(paymentInfo.code == 'INS-4'){
+            if (paymentInfo== null) return;
+            if(paymentInfo?.code == 'INS-4'){
               setErrorMessage('Conta inactiva')
             }
             
-            if(paymentInfo.code == 'INS-9'){
+            if(paymentInfo?.code == 'INS-9'){
               setErrorMessage('Demora na resposta do pagamento')
             }
-            if(paymentInfo.code == 'INS-2006'){
+            if(paymentInfo?.code == 'INS-2006'){
               setErrorMessage('Saldo Insuficiente')
             }
             if(paymentInfo.code == 'INS-2051'){
@@ -57,7 +58,11 @@ const FailedPayment = () => {
         <Text style={styles.errorMessage}> {errorMessage}</Text>
         </Text>
       </View>
-        <Button title="Voltar" onPress={()=>navigation.goBack()}  />
+      <View style={styles.buttonContainer}>
+  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.button}>
+    <Text style={styles.buttonText}>Voltar</Text>
+  </TouchableOpacity>
+</View>
     </View>
     </SafeAreaView>
   )
@@ -111,6 +116,19 @@ const styles = StyleSheet.create({
   },
   iconStyle:{
     color:'red'
+  },
+  buttonContainer: {
+    backgroundColor: '#7F00FF',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    marginTop: 30,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 
 })

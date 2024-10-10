@@ -2,6 +2,19 @@ import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema(
   {
+    code: {type: String},
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      require: true,
+    },
+    sellers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Assuming there's a Seller model in your database
+        // required: true
+      }
+    ],
     orderItems: [
       {
         slug: {type: String},
@@ -15,7 +28,9 @@ const orderSchema = new mongoose.Schema(
         description: {type: String},
         price: {type: Number},
         priceWithComission: {type: Number},
-        countInStock: {type: Number},
+        countInStock: {type: Number,  
+          default: 0, // Valor padrão caso nenhum seja enviado
+          min: [0, 'countInStock deve ser um valor positivo']},
         rating: {type: Number},
         numReviews: {type: Number},
         onSale: { type: Boolean },
@@ -50,10 +65,10 @@ const orderSchema = new mongoose.Schema(
       },
     ],
     deliveryAddress: {
-      fullName: { type: String, require: true },
-      city: { type: String, require: true },
-      address: { type: String, require: true },
-      referenceAddress: { type: String, require: true },
+      fullName: { type: String, require: false },
+      city: { type: String, require: false },
+      address: { type: String, require: false },
+      referenceAddress: { type: String, require: false },
       phoneNumber: { type: String },
       alternativePhoneNumber: { type: String }
     },
@@ -75,18 +90,13 @@ const orderSchema = new mongoose.Schema(
       email_address: String,
       phoneNumer: Number,
     },
-    itemsPrice: { type: Number, require: true },
-    itemsPriceForSeller: { type: Number, require: true },
-    deliveryPrice: { type: Number, require: true },
-    addressPrice: { type: Number, require: true },
-    totalPrice: { type: Number, require: true },
-    ivaTax:{ type: Number, require: true },
-    siteTax: { type: Number, require: true },
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      require: true,
-    },
+    itemsPrice: { type: Number, require: false },
+    itemsPriceForSeller: { type: Number, require: false },
+    deliveryPrice: { type: Number, require: false },
+    addressPrice: { type: Number, require: false },
+    totalPrice: { type: Number, require: false },
+    ivaTax:{ type: Number, require: false },
+    siteTax: { type: Number, require: false },
     seller: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
     isPaid: { type: Boolean, default: false },
     paidAt: { type: Date },
@@ -98,7 +108,6 @@ const orderSchema = new mongoose.Schema(
     deliveredAt: { type: Date },
     status:{type: String},
     stepStatus:{type: Number},
-    code: {type: String},
     deleted: { type: Boolean, default: false },
     canceledReason: { type: String},
     isDeletedBySeller: { type: Boolean, default: false },

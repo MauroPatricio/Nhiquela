@@ -1,72 +1,176 @@
-.App {
+/* Global Styles */
+body {
+  background-color: #ffffff;
+  font-family: 'Roboto', sans-serif;
+  color: #333;
+}
+
+/* Main Color Theme */
+:root {
+  --main-color: #7F00FF;
+  --accent-color: #5A00CC;
+  --light-color: #E8E1FF;
+  --text-color: #333;
+  --bg-color: #ffffff;
+}
+
+/* Container for the form */
+.small-conteiner {
+  background-color: var(--bg-color);
+  border-radius: 10px;
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+  max-width: 450px;
+  margin: 50px auto;
+  padding: 30px;
+}
+
+/* Header styling */
+h1.my-3 {
   text-align: center;
+  color: var(--main-color);
+  font-size: 26px;
+  margin-bottom: 30px;
+  font-weight: 600;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* Form styles */
+form {
+  margin-top: 20px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+form label {
+  font-weight: bold;
+  color: var(--text-color);
 }
 
+form .form-control {
+  border-radius: 5px;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid var(--light-color);
+  margin-top: 5px;
+  transition: border 0.3s ease;
+}
+
+form .form-control:focus {
+  border-color: var(--main-color);
+  box-shadow: 0px 0px 6px rgba(127, 0, 255, 0.3);
+}
+
+/* Input fields with icons */
+.form-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mz-flag {
+  height: 20px;
+  width: 30px;
+}
+
+.fa-mobile, .fa-lock {
+  color: var(--main-color);
+  font-size: 20px;
+}
+
+/* Button styles */
+.customButtom {
+  background-color: var(--main-color);
+  color: white;
+  border-radius: 5px;
+  padding: 12px 18px;
+  font-size: 16px;
+  border: none;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.customButtom:hover {
+  background-color: var(--accent-color);
+  transform: translateY(-2px);
+  cursor: pointer;
+}
+
+/* Links styles */
+.link {
+  color: var(--main-color);
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+/* Modal Styles */
+.modal .modal-header {
+  background-color: var(--main-color);
+  color: white;
+}
+
+.modal .modal-footer .btn-danger {
+  background-color: var(--main-color);
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.modal .modal-footer .btn-danger:hover {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+/* Footer link adjustments */
+.mb-3 {
+  text-align: center;
+  margin-top: 15px;
+  color: var(--text-color);
+}
+
+/* App Header */
 .App-header {
-  background-color: #282c34;
+  background-color: var(--main-color);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
   color: white;
 }
 
-.black-icon{
-  color: black;
-
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+  animation: App-logo-spin infinite 20s linear;
 }
 
 .App-link {
-  color: #61dafb;
+  color: var(--light-color);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.text-bold{
-  font-weight: bold;
-  color: black;
-}
-
-
-.site-background{
-   background-color: rgb(254, 254, 254); 
-}
-
+/* Modal Styles */
 .modal {
   position: fixed;
-  /* top: 0; */
-  /* left: 0; */
+  top: 0;
+  left: 0;
   width: 100%;
-  /* height: 100%; */
-  /* background-color: rgba(0, 0, 0, 0.4); */
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  /* /* margin-bottom: 50%; */
-  /* margin-top: 50%; */
+  z-index: 1000;
 }
 
-
+.modal-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  max-width: 90%;
+  width: 400px;
+}
 
 .close-btn {
   position: absolute;
@@ -78,4 +182,46 @@
 
 .close-btn:hover {
   color: #333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .App-header {
+    font-size: calc(8px + 2vmin);
+  }
+
+  .App-logo {
+    height: 30vmin;
+  }
+
+  .modal-content {
+    width: 90%;
+  }
+}
+
+@media (max-width: 576px) {
+  .small-conteiner {
+    width: 100%;
+    margin: 20px;
+    padding: 20px;
+  }
+
+  form {
+    font-size: 14px;
+  }
+
+  .customButtom {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .App-header {
+    font-size: calc(6px + 2vmin);
+  }
+
+  .close-btn {
+    font-size: 14px;
+  }
 }
