@@ -449,6 +449,9 @@ useEffect(() => {
       <h4>{t('order')} №: {order.code}</h4>
       <Row>
         <Col md={8}>
+        {order.deliveryAddress &&
+         ( 
+          <>
           <Card className="mb-3">
             <Card.Body>
               <Card.Title>{t('deliverydetails')}</Card.Title>
@@ -490,6 +493,9 @@ useEffect(() => {
               )}
             </Card.Body>
           </Card>
+          </>
+          )
+          }
 
           {order.addressPrice!==0 && order.deliveryman && (
             <Card className="mb-3">
