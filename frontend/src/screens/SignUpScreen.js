@@ -93,6 +93,8 @@ export default function SignupScreen() {
   const [sellerDescription, setSellerDescription] = useState('');
   const [sellerLocation, setSellerLocation] = useState('');
   const [sellerAddress, setSellerAddress] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
 
   const [sellerLogo, setSellerLogo] = useState('');
   const [opentime, setOpentime] = useState('');
@@ -123,6 +125,25 @@ export default function SignupScreen() {
 
 
   const { state, dispatch: ctxDispatch } = useContext(Store);
+
+
+
+  // Função para capturar a geolocalização do usuário
+  const handleGeolocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+        },
+        (error) => {
+          toast.error('Erro ao obter localização: ' + error.message);
+        }
+      );
+    } else {
+      toast.error('Geolocalização não é suportada neste navegador.');
+    }
+  };
 
 
   const [
@@ -220,6 +241,12 @@ export default function SignupScreen() {
     
     }
 
+     // Validate latitude and longitude for sellers
+      if (isSeller && (!latitude || !longitude)) {
+        toast.error('Latitude e longitude são obrigatórias para vendedores.');
+        return;
+      }
+
     try {
       ctxDispatch({ type: 'USER_REQUEST' });
 
@@ -240,7 +267,9 @@ export default function SignupScreen() {
         accountNumber,
         alternativeAccountType,
         alternativeAccountNumber,
-        workDaysWithTime
+        workDaysWithTime,
+        latitude,
+        longitude
       });
       ctxDispatch({ type: 'USER_SIGNIN', payload: data });
       navigate(redirect || '/');
@@ -530,6 +559,21 @@ export default function SignupScreen() {
           />
         </Form.Group>
 
+
+       
+
+        {latitude && longitude && (
+          <div className="mt-3">
+            <p>
+              {t('latitude')}: {latitude} &nbsp; {t('longitude')}: {longitude}
+            </p>
+          </div>
+        )}
+           {/* Botão para capturar geolocalização */}
+        <Button variant="secondary" onClick={handleGeolocation}>
+          {t('getlocation')}
+        </Button>
+
         <Form.Group className="mb-3" controlId="sellerLocation">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('province')}</Form.Label>
             <Form.Select aria-label="Provincia"
@@ -543,6 +587,9 @@ export default function SignupScreen() {
         ))}
           </Form.Select>
         </Form.Group>
+
+
+      
 
         <Form.Group className="mb-3" controlId="address">
           <FontAwesomeIcon icon={faTextSlash} /> <Form.Label>{t('storeaddress')}</Form.Label>

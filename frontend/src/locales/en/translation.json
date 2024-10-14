@@ -235,7 +235,9 @@
     "nocomments":"No comments",
     "rating":"Rating",
     "leaveyourcomment":"to leave your comment",
-    "please":"Please"
+    "please":"Please",
+    "getlocation": "Get latitude and Longitude"
+
 
 
     
