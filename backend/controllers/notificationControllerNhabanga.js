@@ -1,6 +1,6 @@
-import User from '../models/UserModel'; // Modelo de usuário onde está salvo o pushToken
+import User from '../models/UserModel.js'; // Modelo de usuário onde está salvo o pushToken
 import { Expo } from 'expo-server-sdk';
-import NotificationNhabanga from '../models/NotificationModelNhabanga'; // Corrigido o nome para consistência
+import NotificationNhabanga from '../models/NotificationModelNhabanga.js'; // Corrigido o nome para consistência
 
 const expo = new Expo();
 

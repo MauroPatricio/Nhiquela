@@ -1,6 +1,6 @@
-const User = require('../models/UserModel');
+import User from '../models/UserModel.js';
 
-const updatePushToken = async (req, res) => {
+export const updatePushToken = async (req, res) => {
     const { pushToken } = req.body;
     const { id } = req.params;
   
@@ -30,6 +30,6 @@ const updatePushToken = async (req, res) => {
     }
   };
 
-  module.exports = {
-    updatePushToken
-  };
+
+
+  

@@ -7,7 +7,7 @@ import Product from '../models/ProductModel.js';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'
 
-const userController = require('../controllers/userController.js')
+import {updatePushToken} from '../controllers/userController.js'
 
 const userRouter = express.Router();
 
@@ -401,6 +401,6 @@ userRouter.delete(
 );
 
 //Rota de update do pushToken
-userRouter.patch('/updatePushToken/:id', userController.updatePushToken);
+userRouter.patch('/updatePushToken/:id', updatePushToken);
 
 export default userRouter;
