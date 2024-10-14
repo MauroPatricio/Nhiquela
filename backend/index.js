@@ -22,6 +22,9 @@ import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
 import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+
+import notificationRoutesNhabanga from './routes/notificationRoutesNhabanga.js';
+
 import { fileURLToPath } from 'url';
 
 import admin from 'firebase-admin';
@@ -87,6 +90,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/requestdeliver', requestDeliverRoutes);
 app.use('/api/carts', cartRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+//Nhabanga
+app.use('/api/notificationsNhabanga', notificationRoutesNhabanga);
 
 const __dirname = path.resolve();
 // const rootDir = path.join(__dirname, '..');

@@ -15,6 +15,7 @@ const modelSchema = new mongoose.Schema({
     location: {type: String},
     latitude: {type: String},
     longitude: {type: String},
+    pushToken: {type: String},
     seller:{
         name: {type: String},
         logo: {type: String},
