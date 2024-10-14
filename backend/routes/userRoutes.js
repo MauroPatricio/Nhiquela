@@ -352,8 +352,8 @@ if (!userExist) {
           alternativeAccountType: req.body.alternativeAccountType || req.body.seller.alternativeAccountType,
           alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller.alternativeAccountNumber,
           workDayAndTime: req.body.workDaysWithTime || req.body.seller.workDayAndTime,
-          latitude:  req.body.seller.latitude,
-          longitude:  req.body.seller.longitude,
+          latitude:   req.body.latitude || req.body.seller.latitude,
+          longitude:  req.body.longitude ||  req.body.seller.longitude,
 
         };
         newUser.seller = seller;
