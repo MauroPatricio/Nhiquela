@@ -1,10 +1,10 @@
-const User = require('../models/UserModel'); // Modelo de usuário onde está salvo o pushToken
-const { Expo } = require('expo-server-sdk');
+import User from '../models/UserModel'; // Modelo de usuário onde está salvo o pushToken
+import { Expo } from 'expo-server-sdk';
+import NotificationNhabanga from '../models/NotificationModelNhabanga'; // Corrigido o nome para consistência
+
 const expo = new Expo();
 
-const NotificationModel = require('../models/NotificationModelNhabanga');
-
-const createNotification = async (req, res) => {
+export const createNotification = async (req, res) => {
   try {
     const { message, receiver_id, sender_id } = req.body;
 
@@ -12,7 +12,7 @@ const createNotification = async (req, res) => {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
-    const newNotification = new NotificationModel({
+    const newNotification = new NotificationNhabanga({
       message,
       receiver_id,
       sender_id,
@@ -23,7 +23,7 @@ const createNotification = async (req, res) => {
     const receiver = await User.findById(receiver_id);
     if (!receiver || !receiver.pushToken) {
       return res.status(400).json({ error: 'Push token do receptor não encontrado' });
-    } 
+    }
 
     const sentSuccessfully = await sendPushNotification(receiver.pushToken, message);
     
@@ -63,7 +63,3 @@ async function sendPushNotification(pushToken, message) {
     return false;
   }
 }
-
-module.exports = {
-  createNotification
-};
