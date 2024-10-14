@@ -41,7 +41,7 @@ const Home = () => {
 
   const updatePushToken = async (userId, newPushToken) => {
     try {
-      const response = await api.patch(`/auth/updatePushToken/${userId}`, {
+      const response = await api.patch(`/updatePushToken/${userId}`, {
         pushToken: newPushToken,
       });
       console.log('PushToken atualizado com sucesso:', response.data);
