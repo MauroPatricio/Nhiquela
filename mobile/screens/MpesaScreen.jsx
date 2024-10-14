@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextInput, View , Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Image, TouchableOpacity } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,9 +10,11 @@ import * as Yup from 'yup';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/Button';
 import api from '../hooks/createConnectionApi';
-import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice, clearBasket} from '../features/basketSlice';
+import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice, clearBasket } from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
+
+import * as Notifications from 'expo-notifications';
 
 
 const validationSchema = Yup.object().shape({
@@ -24,6 +26,39 @@ const validationSchema = Yup.object().shape({
 
 const MpesaScreen = () => {
 
+  const configurarNotificacoes = async () => {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      await Notifications.requestPermissionsAsync();
+    }
+  };
+
+  const mostrarNotificacao = (response) => {
+    Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Pedido criado com sucesso",
+        body: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`, // A mensagem recebida do backend
+        sound: true,
+      },
+      trigger: null,
+    });
+  };
+
+
+  const checkForNewMessages = (response) => {
+    try {
+      mostrarNotificacao(response);
+    } catch (error) {
+      console.error('Erro ao buscar novas mensagens:', error);
+    }
+  };
+
+  useEffect(() => {
+    configurarNotificacoes(); 
+  }, []);
+
+
+
   const [userData, setUserData] = useState(null);
   const [loader, setLoader] = useState(false);
   const totalToPay = useSelector(selectTotalToPay);
@@ -32,7 +67,7 @@ const MpesaScreen = () => {
   const items = useSelector(selectBasketItems);
   const itemsPrice = useSelector(selectBasketTotal);
   const iva = useSelector(selectIva);
-  const deliveryPrice  = useSelector(selectDeliverPrice);
+  const deliveryPrice = useSelector(selectDeliverPrice);
   const [paymentInfo, setPaymentInfo] = useState('');
   const dispatch = useDispatch();
 
@@ -53,7 +88,7 @@ const MpesaScreen = () => {
 
   const makeThePayment = async (values) => {
     if (userData == null) {
-      
+
       Toast.show({
         type: 'error',
         text1: 'Atenção!',
@@ -86,75 +121,81 @@ const MpesaScreen = () => {
           <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
         ), // Adding a warning icon
       });
-      
+
 
       return;
     }
     try {
       setLoader(true);
-      const customerNumber = '258'+values.customerNumber;
-      
+      const customerNumber = '258' + values.customerNumber;
+
       // const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
       //   headers: {
       //     authorization: `Bearer ${userData.token}`,
       //   },
       // });
-      const data =true
+      const data = true
 
-      
-      
+
+
       setPaymentInfo(data)
-      // if (true){
-        // console.log('Passei daqui+')
 
-        // colocar os dados da ordem para gravar
-        if(data){
+      if (data) {
 
-          const order =  {
-              orderItems: items,
-              address: '',
-              paymentMethod: 'Mpesa', 
-              itemsPrice: itemsPrice,
-              ivaTax: iva,
-              siteTax: 0,
-              taxPrice: 0,
-              totalPrice: totalToPay ,
-              addressPrice: deliveryPrice,
-              itemsPriceForSeller: itemsPrice,
-              isPaid: true,
-              paidAt: Date.now(),
-              stepStatus: 1,
-              user: userData,
-              customerId: userData,
-            }
-  
-  
-          try {
-            const response = await api.post('orders', order, {
-              headers: {
-                authorization: `Bearer ${userData.token}`,  // Token de autenticação
-              },
-            });
-        
-            console.log('Pedido criado com sucesso:', response.data);
-
-            dispatch(clearBasket()); // Clear the basket
-
-
-            axios.post(`https://app.nativenotify.com/api/indie/notification`, {
-              subID: userData._id,
-              appId: 23641,
-              appToken: 'P1NYLd6lOOHkdLzDZK0kV3',
-              title: 'Pedido criado com sucesso',
-              message: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`
-         });
-
-          } catch (error) {
-            console.error('Erro ao criar pedido:', error.data.message);
-          }
-        }else{
-          navigation.replace('FailedPayment', paymentInfo);
+        const order = {
+          orderItems: items,
+          address: '',
+          paymentMethod: 'Mpesa',
+          itemsPrice: itemsPrice,
+          ivaTax: iva,
+          siteTax: 0,
+          taxPrice: 0,
+          totalPrice: totalToPay,
+          addressPrice: deliveryPrice,
+          itemsPriceForSeller: itemsPrice,
+          isPaid: true,
+          paidAt: Date.now(),
+          stepStatus: 1,
+          user: userData,
+          customerId: userData,
         }
+
+
+        try {
+          const response = await api.post('orders', order, {
+            headers: {
+              authorization: `Bearer ${userData.token}`,  // Token de autenticação
+            },
+          });
+
+          console.log('Pedido criado com sucesso:', response.data);
+
+          dispatch(clearBasket()); // Clear the basket
+
+          checkForNewMessages(response);
+
+          // axios.post(`https://app.nativenotify.com/api/indie/notification`, {
+          //   subID: response.data.order.seller,
+          //   appId: 23641,
+          //   appToken: 'P1NYLd6lOOHkdLzDZK0kV3',
+          //   title: 'Pedido criado com sucesso',
+          //   message: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`
+          // });
+
+          const mensagem = `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
+          
+          const resposta = await api.post('/notificationsNhabanga', {
+            message: mensagem,
+            receiver_id: response.data.order.seller,
+            sender_id: response.data.order.user,
+          });
+
+        } catch (error) {
+          console.error('Erro ao criar pedido:', error);
+        }
+      } else {
+        navigation.replace('FailedPayment', paymentInfo);
+      }
 
 
       // payment logic here
@@ -185,7 +226,7 @@ const MpesaScreen = () => {
           <>
             <View style={styles.container}>
               <Image source={require('../assets/Mpesa.png')} style={styles.cover} />
-              
+
               <Text style={styles.label}>
                 <MaterialCommunityIcons name="cellphone" size={20} color="grey" style={styles.iconStyle} /> Número de telefone:
               </Text>
@@ -219,7 +260,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: 'white',
-    paddingTop:100
+    paddingTop: 100
   },
   icons: {
     position: 'absolute',

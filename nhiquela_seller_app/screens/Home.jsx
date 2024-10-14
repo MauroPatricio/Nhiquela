@@ -10,24 +10,123 @@ import { Welcome } from './Index';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import style from './home.style'
 
+import * as Notifications from 'expo-notifications';
+
+import * as TaskManager from 'expo-task-manager';
+import axios from 'axios';
+
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+
 const Home = () => {
+
+  const [expoPushToken, setExpoPushToken] = useState('');
+  const [notification, setNotification] = useState(false);
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
   const [userData, setUserData] = useState(null);
   const [orders, setOrders] = useState([]);
   const [availableStatuses, setAvailableStatuses] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState(null); // Add state to track selected status
+  const [selectedStatus, setSelectedStatus] = useState(null); 
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
+
+  const updatePushToken = async (userId, newPushToken) => {
+    try {
+      const response = await api.patch(`/auth/updatePushToken/${userId}`, {
+        pushToken: newPushToken,
+      });
+      console.log('PushToken atualizado com sucesso:', response.data);
+    } catch (error) {
+      console.error('Erro ao atualizar o PushToken:', error.response ? error.response.data : error.message);
+    }
+  };
+
+ async function registerForPushNotificationsAsync() {
+  let token;
+
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    alert('Falha ao obter permissões para notificações push!');
+    return;
+  }
+
+
+    const projectId = 'f7ebc3a6-f69d-401a-bd83-08bf94789df9'; 
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    console.log('Push Token:', token);
+    console.log(userData._id);
+    updatePushToken(userData._id, token)
+    return token;
+}
+
+let lastNotificationTime = null;
+
+const mostrarNotificacao = (mensagem) => {
+  const now = new Date();
+  if (!lastNotificationTime || (now - lastNotificationTime) > 5000) {
+    Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Pedido de cliente recebido",
+        body: mensagem,
+        sound: true,
+      },
+      trigger: null, 
+    });
+    lastNotificationTime = now;
+  }
+};
+
+
+useEffect(() => {
+  
+  registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
+
+  notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    if (!notification || notification.request.content.body !== 'mensagem ja tratada') {
+      setNotification(notification);
+    }
+  });
+  
+
+  // Listener para quando o usuário clica ou interage com uma notificação
+  responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    console.log(response);
+  });
+
+  return () => {
+    Notifications.removeNotificationSubscription(notificationListener.current);
+    Notifications.removeNotificationSubscription(responseListener.current);
+  };
+}, []);
+
+
 
   const navigation = useNavigation();
 
-  useEffect(() => {
-    checkIfUserExist();
-  }, []);
 
   useEffect(() => {
     if (userData) {
       fetchData();
     }
+    checkIfUserExist();
   }, [userData]);
 
   const onRefresh = async () => {
@@ -46,7 +145,7 @@ const Home = () => {
     useCallback(() => {
       // Fetch the orders when the screen is focused
       filteredOrders
-        }, [])
+    }, [])
   );
 
 
@@ -103,7 +202,7 @@ const Home = () => {
   const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white" , flex:1, paddingLeft:10, paddingRight: 10}}
+    <SafeAreaView style={{ backgroundColor: "white", flex: 1, paddingLeft: 10, paddingRight: 10 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={style.appBarWrapper}>
@@ -112,16 +211,16 @@ const Home = () => {
             source={require('../assets/default1.jpg')}
             style={style.cover}
           />
-          <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
+          <Text>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
 
         </View>
-          <Text style={{paddingTop:11, paddingBottom: 19, fontSize:20, fontWeight: '500'}}>{userData ? userData.seller.name: ''}</Text>
+        <Text style={{ paddingTop: 11, paddingBottom: 19, fontSize: 20, fontWeight: '500' }}>{userData ? userData.seller.name : ''}</Text>
       </View>
 
       <Welcome />
 
       <ScrollView>
-        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 20, marginBottom: 10, color:'#7F00FF' }}>Pedidos</Text>
+        <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 20, marginBottom: 10, color: '#7F00FF' }}>Pedidos</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -141,32 +240,32 @@ const Home = () => {
         <View style={{ marginBottom: 10 }} />
 
         {/* Verifique se filteredOrders tem pedidos */}
-          {filteredOrders && filteredOrders.length > 0 ? (
-            filteredOrders.map((order) => (
-              <TouchableOpacity
-                key={order._id}
-                style={styles.container}
-                onPress={() => navigation.navigate('OrderDetail', { order })}
-              >
-                <View>
-                  <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
-                </View>
-                <View>
-                  <Text style={styles.code}>{order.code}</Text>
-                </View>
-                <View>
-                  <Text style={styles.createAt}>{formatDate(order.createdAt)}</Text>
-                  <Text style={styles.price}>{order.totalPrice} MT</Text>
-                  <Text style={styles.status}>{order.status}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            // Mostrar mensagem se não houver pedidos
-            <View style={styles.emptyMessageContainer}>
-              <Text style={styles.emptyMessage}>Não possui nenhum pedido de momento.</Text>
-            </View>
-          )}
+        {filteredOrders && filteredOrders.length > 0 ? (
+          filteredOrders.map((order) => (
+            <TouchableOpacity
+              key={order._id}
+              style={styles.container}
+              onPress={() => navigation.navigate('OrderDetail', { order })}
+            >
+              <View>
+                <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
+              </View>
+              <View>
+                <Text style={styles.code}>{order.code}</Text>
+              </View>
+              <View>
+                <Text style={styles.createAt}>{formatDate(order.createdAt)}</Text>
+                <Text style={styles.price}>{order.totalPrice} MT</Text>
+                <Text style={styles.status}>{order.status}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          // Mostrar mensagem se não houver pedidos
+          <View style={styles.emptyMessageContainer}>
+            <Text style={styles.emptyMessage}>Não possui nenhum pedido de momento.</Text>
+          </View>
+        )}
 
         <View style={{ marginBottom: 250 }} />
       </ScrollView>
@@ -183,10 +282,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#7F00FF',
     padding: 10,
     borderRadius: 15,
-    
+
   },
 
-  emptyMessage:{ 
+  emptyMessage: {
     textAlign: 'center',
     marginTop: 100
   },
