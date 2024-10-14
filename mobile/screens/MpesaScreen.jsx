@@ -136,18 +136,18 @@ const MpesaScreen = () => {
               },
             });
         
-            console.log('Pedido criado com sucesso:', response.data);
+            // console.log('Pedido criado com sucesso:', response.data);
 
             dispatch(clearBasket()); // Clear the basket
 
 
-            axios.post(`https://app.nativenotify.com/api/indie/notification`, {
-              subID: userData._id,
-              appId: 23641,
-              appToken: 'P1NYLd6lOOHkdLzDZK0kV3',
-              title: 'Pedido criado com sucesso',
-              message: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`
-         });
+        //     axios.post(`https://app.nativenotify.com/api/indie/notification`, {
+        //       subID: userData._id,
+        //       appId: 23641,
+        //       appToken: 'P1NYLd6lOOHkdLzDZK0kV3',
+        //       title: 'Pedido criado com sucesso',
+        //       message: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`
+        //  });
 
           } catch (error) {
             console.error('Erro ao criar pedido:', error.data.message);

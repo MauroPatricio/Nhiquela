@@ -1,3 +1,7 @@
+/*
+* CRIADO POR MAURO FERNANDES PATRICIO
+*/
+
 import { StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native'
 import React, { useState } from 'react'
 import { MinusCircleIcon, PlusCircleIcon } from 'react-native-heroicons/outline';

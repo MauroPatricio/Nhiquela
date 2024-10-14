@@ -1,3 +1,6 @@
+/*
+* CRIADO POR MAURO FERNANDES PATRICIO
+*/
 import { View, Text, TouchableOpacity, TextInput } from 'react-native'
 import React from 'react'
 import styles from './welcome.style'

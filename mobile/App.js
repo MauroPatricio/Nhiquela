@@ -29,7 +29,7 @@ import OrderList from './screens/OrderList';
 import FailedPayment from './screens/FailedPayment';
 import Toast from 'react-native-toast-message';
 import { useEffect } from 'react';
-import registerNNPushToken from 'native-notify';
+// import registerNNPushToken from 'native-notify';
 import messaging from '@react-native-firebase/messaging';
 import ProductListByCategory from './components/products/ProductListByCategory';
 import SellersList from './components/SellersList';
@@ -58,7 +58,7 @@ export default function App() {
   //  registerNNPushToken(23641, 'P1NYLd6lOOHkdLzDZK0kV3');
   // }, []);
   
-   registerNNPushToken(23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+  //  registerNNPushToken(23641, 'P1NYLd6lOOHkdLzDZK0kV3');
 
       
   return (
