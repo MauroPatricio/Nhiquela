@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import SellersView from '../components/SellersView';
@@ -19,6 +19,7 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
   const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
   const navigation = useNavigation();
@@ -102,6 +103,14 @@ const Home = () => {
     bottomSheetRef.current?.close();
   };
 
+  // Handle refresh when the user pulls down
+  const onRefresh = async () => {
+    setRefreshing(true);  // Start the refreshing indicator
+    await fetchData();    // Fetch new category data
+    await fetchProductData();  // Fetch new product data
+    setRefreshing(false); // Stop the refreshing indicator
+  };
+
   return (
     <SafeAreaView style={{ backgroundColor: "white" }}>
       <View style={style.appBarWrapper}>
@@ -123,7 +132,15 @@ const Home = () => {
       </View>
       <Welcome />
 
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}  // Bind the refreshing state
+            onRefresh={onRefresh}    // Pull-to-refresh action
+            colors={['#7F00FF']}     // Optional: Set the refresh control color
+          />
+        }
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -158,14 +175,12 @@ const Home = () => {
           const description = match ? match[1] : '';
           const allProductsByCategories = category.products || [];
 
-          // Only render categories that contain products
           if (allProductsByCategories.length === 0) return null;
 
           return (
             <View key={category._id}>
               <ProductHomeView
-                  key={`producthomeview-${category._id}`} // Unique key for ProductHomeView
-
+                key={`producthomeview-${category._id}`}
                 title={category.nome.replace(/\(.*?\)/, '').trim()}
                 description={description}
                 categoryid={category._id}
@@ -224,6 +239,8 @@ const Home = () => {
     </SafeAreaView>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   bottomSheetContent: {

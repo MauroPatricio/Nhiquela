@@ -4,10 +4,10 @@
     "slug": "nhiquela_seller",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/nhiquela.png",
+    "icon": "./assets/nhiquela2.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/nhiquela.png",
+      "image": "./assets/nhiquela2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -48,7 +48,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "f7ebc3a6-f69d-401a-bd83-08bf94789df9"
+        "projectId": "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0"
       }
     }
   }

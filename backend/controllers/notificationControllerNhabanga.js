@@ -22,7 +22,7 @@ export const createNotification = async (req, res) => {
 
     const receiver = await User.findById(receiver_id);
     if (!receiver || !receiver.pushToken) {
-      return res.status(400).json({ error: 'Push token do receptor não encontrado' });
+      return res.status(503).json({ error: 'Push token do receptor não encontrado' });
     }
 
     const sentSuccessfully = await sendPushNotification(receiver.pushToken, message);

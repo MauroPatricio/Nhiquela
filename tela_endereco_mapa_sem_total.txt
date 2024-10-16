@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers } from '../features/basketSlice';
+import { addTotalToPay, selectBasketItems, selectBasketTotal } from '../features/basketSlice';
 import { useNavigation } from '@react-navigation/native';
 import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,72 +13,27 @@ const CartDetails = () => {
     const items = useSelector(selectBasketItems);
     const navigation = useNavigation();
     const basketTotal = useSelector(selectBasketTotal);
-    const sellers = useSelector(selectSellers);
     const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
     const bottomSheetRef = useRef(null);
-    const [sellerLocation, setSellerLocation] = useState({ latitude: -27.9655, longitude: 32.5832 });
+    const [sellerLocation, setSellerLocation] = useState({ latitude: -25.9692, longitude: 32.5732 }); // example seller location
     const [distance, setDistance] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
-    const [location, setLocation] = useState(null);
 
-    const financialFees = 40;
-    const pricePerKm = 10; // Price per km
-    const minDelivPrice = 100; // Minimum delivery price
-    const iva = 0; // Future IVA implementation
-    const subtotal = basketTotal + financialFees + iva;
+    // Define a price per kilometer
+    const pricePerKm = 10; // e.g., 10 MT per km
 
-    // Calculate delivery price
-    const distancePrice = distance ? (distance * pricePerKm).toFixed(2) : 0;
-    const distanceToPay = distance && distance < 10 ? minDelivPrice : minDelivPrice + Number(distancePrice);
-    const totalToPay = subtotal + distanceToPay;
-
-    // useEffect(() => {
-    //     if (sellers.length > 0) {
-    //         sellers.forEach(seller => {
-    //             if (seller.seller.latitude && seller.seller.longitude) {
-    //                 setSellerLocation({
-    //                     latitude: parseFloat(seller.seller.latitude),
-    //                     longitude: parseFloat(seller.seller.longitude)
-    //                 });
-    //             }
-    //         });
-    //     }
-    // }, [sellers]);
-
-    const calculateLatitudeDelta = (distance) => {
-        if (distance < 1) return 0.01; // Very close (zoom in)
-        if (distance < 5) return 0.05; // Closer distance
-        if (distance < 10) return 0.1; // Medium distance
-        return 0.2; // Farther distance (zoom out)
-    };
-    
-    const calculateLongitudeDelta = (distance) => {
-        if (distance < 1) return 0.01; // Very close (zoom in)
-        if (distance < 5) return 0.05; // Closer distance
-        if (distance < 10) return 0.1; // Medium distance
-        return 0.2; // Farther distance (zoom out)
-    };
+    // Calculate total price to pay based on distance
+    const totalToPay = basketTotal + (distance ? (distance * pricePerKm) : 0) + 40 + 150;
+    const iva = basketTotal * 0.16;
 
     useEffect(() => {
-        const requestLocationPermission = async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                console.log('No access to location');
-                return;
-            }
-            let currentLocation = await Location.getCurrentPositionAsync({});
-            setLocation(currentLocation);
-        };
-        requestLocationPermission();
-    }, []);
-
-    useEffect(() => {
-        if (userLocation && sellerLocation.latitude && sellerLocation.longitude) {
+        if (userLocation && sellerLocation) {
             const calculatedDistance = haversine(userLocation, sellerLocation, { unit: 'km' });
             setDistance(calculatedDistance);
         }
     }, [userLocation, sellerLocation]);
 
+    // Get user's current location
     const getUserLocation = async () => {
         let currentLocation = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = currentLocation.coords;
@@ -86,7 +41,7 @@ const CartDetails = () => {
     };
 
     const handleOpenBottomSheet = () => {
-        getUserLocation(); // Get user location when opening the bottom sheet
+        getUserLocation(); // Get location when opening the bottom sheet
         setBottomSheetOpen(true);
         bottomSheetRef.current?.expand();
     };
@@ -98,10 +53,9 @@ const CartDetails = () => {
 
     const dispatch = useDispatch();
 
+    // Dispatch the total price to pay to the Redux store
     useEffect(() => {
         dispatch(addTotalToPay(totalToPay));
-        dispatch(addIva(iva));
-        dispatch(addDeliverPrice(distanceToPay));
     }, [totalToPay, dispatch]);
 
     if (items.length === 0) return null;
@@ -110,18 +64,22 @@ const CartDetails = () => {
         <View style={styles.popupContent}>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Subtotal</Text>
-                <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} MT</Text>
+                <Text style={styles.total}>{basketTotal} MT</Text>
+            </View>
+            <View style={styles.barPopup}>
+                <Text style={styles.length}>IVA (16%)</Text>
+                <Text style={styles.total}>{iva} MT</Text>
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>
-                <Text style={styles.total}>{financialFees} MT</Text>
+                <Text style={styles.total}>40 MT</Text>
             </View>
             <View style={styles.barPopup}>
                 <Text style={styles.totalDescript}>Total a pagar</Text>
-                <Text style={styles.totalPrice}>{subtotal.toFixed(2)} MT</Text>
+                <Text style={styles.totalPrice}>{totalToPay.toFixed(2)} MT</Text>
             </View>
             <TouchableOpacity style={styles.barPayment} onPress={handleOpenBottomSheet}>
-                <Text style={styles.payment}>Detalhes do destino de entrega</Text>
+                <Text style={styles.payment}>Informe o destino de entrega</Text>
             </TouchableOpacity>
 
             <SafeAreaView>
@@ -143,48 +101,27 @@ const CartDetails = () => {
                                     <Text style={styles.distanceText}>Calculando distância...</Text>
                                 )}
                             </View>
-
-                            {/* Conditional rendering for the map */}
-                            {userLocation && sellerLocation.latitude && sellerLocation.longitude ? (
-                                <MapView
-                                    style={styles.map}
-                                    initialRegion={{
-                                        latitude: userLocation.latitude,
-                                        longitude: userLocation.longitude,
-                                        latitudeDelta: 0.0922,
-                                        longitudeDelta: 0.0421,
-                                    }}
-                                >
+                            {/* Add the map here */}
+                            <MapView
+                                style={styles.map}
+                                initialRegion={{
+                                    latitude: userLocation ? userLocation.latitude : sellerLocation.latitude,
+                                    longitude: userLocation ? userLocation.longitude : sellerLocation.longitude,
+                                    latitudeDelta: 0.0922,
+                                    longitudeDelta: 0.0421,
+                                }}
+                            >
+                                {userLocation && (
                                     <Marker coordinate={userLocation} title="Sua Localização" />
-                                    <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
-                                </MapView>
-                            ) : (
-                                <Text style={styles.locationText}>Localização do vendedor não disponível.</Text>
-                            )}
-
-                            <View style={styles.barPopup}>
-                                <Text style={styles.length}>Subtotal</Text>
-                                <Text style={styles.total}>{basketTotal} MT</Text>
-                            </View>
-                            <View style={styles.barPopup}>
-                                <Text style={styles.length}>Serviços financeiros</Text>
-                                <Text style={styles.total}>{financialFees} MT</Text>
-                            </View>
-                            <View style={styles.barPopup}>
-                                <Text style={styles.length}>Custo de entrega</Text>
-                                <Text style={styles.total}>{distance ? distanceToPay : 'Calculando...'} MT</Text>
-                            </View>
-                            <View style={styles.barPopup}>
-                                <Text style={styles.totalDescript}>Total a pagar</Text>
-                                <Text style={styles.totalPrice}>{parseFloat(totalToPay).toFixed(2)} MT</Text>
-                            </View>
+                                )}
+                                <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
+                            </MapView>
                         </ScrollView>
                     </View>
 
-                    {userLocation && sellerLocation.latitude && sellerLocation.longitude &&(
                     <TouchableOpacity style={styles.barPayment} onPress={() => navigation.navigate('PaymentMethod')}>
                         <Text style={styles.payment}>Finalizar compra</Text>
-                    </TouchableOpacity>)}
+                    </TouchableOpacity>
                 </BottomSheetComponent>
             </SafeAreaView>
         </View>
@@ -283,11 +220,11 @@ const styles = StyleSheet.create({
         color: 'grey',
     },
     totalDescript: {
-        color: '#7F00FF',
+        color: 'black',
         fontWeight: '600',
     },
     totalPrice: {
-        color: '#7F00FF',
+        color: 'black',
         fontWeight: '600',
     },
 });

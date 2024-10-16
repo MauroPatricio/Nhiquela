@@ -50,7 +50,7 @@ const Search = () => {
       ) : searchKey.length === 0 ? (
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <Image
-            source={require('../assets/search1.png')}
+            source={require('../assets/search.png')}
             style={styles.searchImage}
           />
           <Text >Inicie sua pesquisa</Text>

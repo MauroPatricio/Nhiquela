@@ -191,7 +191,7 @@ const MpesaScreen = () => {
           });
 
         } catch (error) {
-          console.error('Erro ao criar pedido:', error);
+          console.error('Erro ao enviar pedido:', error);
         }
       } else {
         navigation.replace('FailedPayment', paymentInfo);

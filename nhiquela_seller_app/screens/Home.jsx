@@ -39,89 +39,6 @@ const Home = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const updatePushToken = async (userId, newPushToken) => {
-    try {
-      const response = await api.patch(`/updatePushToken/${userId}`, {
-        pushToken: newPushToken,
-      });
-      console.log('PushToken atualizado com sucesso:', response.data);
-    } catch (error) {
-      console.error('Erro ao atualizar o PushToken:', error.response ? error.response.data : error.message);
-    }
-  };
-
- async function registerForPushNotificationsAsync() {
-  let token;
-
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    alert('Falha ao obter permissões para notificações push!');
-    return;
-  }
-
-
-    const projectId = 'f7ebc3a6-f69d-401a-bd83-08bf94789df9'; 
-    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    console.log('Push Token:', token);
-    console.log(userData._id);
-    updatePushToken(userData._id, token)
-    return token;
-}
-
-let lastNotificationTime = null;
-
-const mostrarNotificacao = (mensagem) => {
-  const now = new Date();
-  if (!lastNotificationTime || (now - lastNotificationTime) > 5000) {
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Pedido de cliente recebido",
-        body: mensagem,
-        sound: true,
-      },
-      trigger: null, 
-    });
-    lastNotificationTime = now;
-  }
-};
-
-
-useEffect(() => {
-  
-  registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
-
-  notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-    if (!notification || notification.request.content.body !== 'mensagem ja tratada') {
-      setNotification(notification);
-    }
-  });
-  
-
-  // Listener para quando o usuário clica ou interage com uma notificação
-  responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log(response);
-  });
-
-  return () => {
-    Notifications.removeNotificationSubscription(notificationListener.current);
-    Notifications.removeNotificationSubscription(responseListener.current);
-  };
-}, []);
-
-
-
-  const navigation = useNavigation();
-
-
   useEffect(() => {
     if (userData) {
       fetchData();
@@ -147,6 +64,94 @@ useEffect(() => {
       filteredOrders
     }, [])
   );
+
+  const updatePushToken = async (userId, newPushToken) => {
+    try {
+      if(userId == null){
+        return;
+      }
+      const response = await api.patch(`/users/updatePushToken/${userId}`, {
+        pushToken: newPushToken,
+      });
+      console.log('PushToken atualizado com sucesso:', response.data);
+    } catch (error) {
+      console.log(error)
+      console.error('Erro ao atualizar o PushToken:', error.response ? error.response.data : error.message);
+    }
+  };
+
+  async function registerForPushNotificationsAsync() {
+    let token;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+  
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+  
+    if (finalStatus !== 'granted') {
+      alert('Falha ao obter permissões para notificações push!');
+      return;
+    }
+  
+    const projectId = '92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0'; // Seu projectId
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    console.log('Push Token:', token);
+  
+    // Aqui você está atualizando o token do usuário
+    updatePushToken(userData._id, token);
+  
+    return token;
+  }
+
+let lastNotificationTime = null;
+
+const mostrarNotificacao = (mensagem) => {
+  const now = new Date();
+  if (!lastNotificationTime || (now - lastNotificationTime) > 5000) {
+    Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Pedido de cliente recebido",
+        body: mensagem,
+        sound: true,
+      },
+      trigger: null, 
+    });
+    lastNotificationTime = now;
+  }
+};
+
+
+useEffect(() => {
+  
+  registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
+
+  notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    if (!notification || notification.request.content.body !== 'mensagem ja tratada') {
+      mostrarNotificacao(notification.request.content.body);
+      setNotification(notification);
+    }
+  });
+
+  // Listener para quando o usuário clica ou interage com uma notificação
+  responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    console.log(response);
+   // mostrarNotificacao(response);
+  });
+
+  return () => {
+    Notifications.removeNotificationSubscription(notificationListener.current);
+    Notifications.removeNotificationSubscription(responseListener.current);
+  };
+}, []);
+
+
+
+  const navigation = useNavigation();
+
+
+
 
 
   // Fetch Orders
@@ -203,7 +208,7 @@ useEffect(() => {
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", flex: 1, paddingLeft: 10, paddingRight: 10 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+   
     >
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
