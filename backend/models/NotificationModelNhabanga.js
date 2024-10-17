@@ -17,6 +17,10 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  orderID: {
+    type: String,
+    required: true,
+  }
 });
 
 const NotificationNhabanga = mongoose.model('NotificationNhabanga', notificationSchema);

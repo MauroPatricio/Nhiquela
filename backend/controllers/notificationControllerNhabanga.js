@@ -6,7 +6,7 @@ const expo = new Expo();
 
 export const createNotification = async (req, res) => {
   try {
-    const { message, receiver_id, sender_id } = req.body;
+    const { message, receiver_id, sender_id, orderID } = req.body;
 
     if (!message || !receiver_id || !sender_id) {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
@@ -17,6 +17,7 @@ export const createNotification = async (req, res) => {
       receiver_id,
       sender_id,
       send_status: false, 
+      orderID
     });
     await newNotification.save();
 
@@ -25,7 +26,7 @@ export const createNotification = async (req, res) => {
       return res.status(503).json({ error: 'Push token do receptor não encontrado' });
     }
 
-    const sentSuccessfully = await sendPushNotification(receiver.pushToken, message);
+    const sentSuccessfully = await sendPushNotification(receiver.pushToken, message, orderID);
     
     if (sentSuccessfully) {
       newNotification.send_status = true;
@@ -39,7 +40,7 @@ export const createNotification = async (req, res) => {
   }
 };
 
-async function sendPushNotification(pushToken, message) {
+async function sendPushNotification(pushToken, message, messageID) {
 
   if (!Expo.isExpoPushToken(pushToken)) {
     console.error('Push token inválido:', pushToken);
@@ -51,7 +52,7 @@ async function sendPushNotification(pushToken, message) {
     sound: 'default',
     title: 'Solicitação efectuada',
     body: message,
-    data: { extraData: 'qualquer dado adicional' },
+    data: { extraData: messageID },
   }];
 
   try {
