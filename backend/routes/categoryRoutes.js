@@ -17,7 +17,8 @@ categoryRouter.get(
 
     const categories = await Category.find({ isActive: true }).sort({nome: 'asc'});
 
-    res.send({categories});
+    res.status(200)
+    .send({categories});
   })
 );
 
