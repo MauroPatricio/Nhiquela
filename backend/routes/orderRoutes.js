@@ -319,6 +319,7 @@ orderRouter.post(
     
        // Save the order
        const order = await newOrder.save();
+
        res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
 
     } catch (error) {
