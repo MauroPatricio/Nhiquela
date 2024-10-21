@@ -16,7 +16,7 @@ const CartDetails = () => {
     const sellers = useSelector(selectSellers);
     const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
     const bottomSheetRef = useRef(null);
-    const [sellerLocation, setSellerLocation] = useState({ latitude: -27.9655, longitude: 32.5832 });
+    const [sellerLocation, setSellerLocation] = useState({ latitude: null, longitude: null });
     const [distance, setDistance] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
     const [location, setLocation] = useState(null);
@@ -32,18 +32,18 @@ const CartDetails = () => {
     const distanceToPay = distance && distance < 10 ? minDelivPrice : minDelivPrice + Number(distancePrice);
     const totalToPay = subtotal + distanceToPay;
 
-    // useEffect(() => {
-    //     if (sellers.length > 0) {
-    //         sellers.forEach(seller => {
-    //             if (seller.seller.latitude && seller.seller.longitude) {
-    //                 setSellerLocation({
-    //                     latitude: parseFloat(seller.seller.latitude),
-    //                     longitude: parseFloat(seller.seller.longitude)
-    //                 });
-    //             }
-    //         });
-    //     }
-    // }, [sellers]);
+    useEffect(() => {
+        if (sellers.length > 0) {
+            sellers.forEach(seller => {
+                if (seller.seller.latitude && seller.seller.longitude) {
+                    setSellerLocation({
+                        latitude: parseFloat(seller.seller.latitude),
+                        longitude: parseFloat(seller.seller.longitude)
+                    });
+                }
+            });
+        }
+    }, [sellers]);
 
     const calculateLatitudeDelta = (distance) => {
         if (distance < 1) return 0.01; // Very close (zoom in)

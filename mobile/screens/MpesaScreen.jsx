@@ -12,7 +12,6 @@ import Button from '../components/Button';
 import api from '../hooks/createConnectionApi';
 import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice, clearBasket } from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
-import axios from 'axios';
 
 import * as Notifications from 'expo-notifications';
 
@@ -168,7 +167,7 @@ const MpesaScreen = () => {
             },
           });
 
-          console.log('Pedido criado com sucesso:', response.data);
+          // console.log('Pedido criado com sucesso:', response.data);
 
           dispatch(clearBasket()); // Clear the basket
 
@@ -184,11 +183,12 @@ const MpesaScreen = () => {
 
           const mensagem = `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
           
-          const resposta = await api.post('/notificationsNhabanga', {
-            message: mensagem,
-            receiver_id: response.data.order.seller,
-            sender_id: response.data.order.user,
-          });
+          // const resposta = await api.post('/notificationsNhabanga', {
+          //   message: mensagem,
+          //   receiver_id: response.data.order.seller,
+          //   sender_id: response.data.order.user,
+          //   orderID: response.data.order._id
+          // });
 
         } catch (error) {
           console.error('Erro ao enviar pedido:', error);
