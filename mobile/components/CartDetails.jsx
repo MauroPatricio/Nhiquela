@@ -21,6 +21,9 @@ const CartDetails = () => {
     const [userLocation, setUserLocation] = useState(null);
     const [location, setLocation] = useState(null);
 
+    const [address, setAddress] = useState(null);
+
+
     const financialFees = 40;
     const pricePerKm = 10; // Price per km
     const minDelivPrice = 100; // Minimum delivery price
@@ -44,20 +47,6 @@ const CartDetails = () => {
             });
         }
     }, [sellers]);
-
-    const calculateLatitudeDelta = (distance) => {
-        if (distance < 1) return 0.01; // Very close (zoom in)
-        if (distance < 5) return 0.05; // Closer distance
-        if (distance < 10) return 0.1; // Medium distance
-        return 0.2; // Farther distance (zoom out)
-    };
-    
-    const calculateLongitudeDelta = (distance) => {
-        if (distance < 1) return 0.01; // Very close (zoom in)
-        if (distance < 5) return 0.05; // Closer distance
-        if (distance < 10) return 0.1; // Medium distance
-        return 0.2; // Farther distance (zoom out)
-    };
 
     useEffect(() => {
         const requestLocationPermission = async () => {
@@ -129,6 +118,13 @@ const CartDetails = () => {
                     <View style={styles.bottomSheetContent}>
                         <Text style={styles.bottomSheetTitle}>Endereço de entrega</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
+
+                        <TextInput 
+                            style={styles.inputField}
+                            placeholder="Insira o endereço de entrega"
+                            value={address}
+                            onChangeText={setAddress} // Set the address
+                        />
                             <View>
                                 {userLocation ? (
                                     <Text style={styles.locationText}>
@@ -212,6 +208,13 @@ const styles = StyleSheet.create({
         color: '#333', // Darker font color for good contrast
         marginBottom: 15,
         textAlign: 'center', // Center the title for better UX
+    },
+    inputField: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 15,
     },
     locationText: {
         fontSize: 16,

@@ -4,6 +4,8 @@ import User from '../models/UserModel.js';
 import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
+import  axios  from 'axios' // Ensure axios is imported
+import { createNotification } from '../controllers/notificationControllerNhabanga.js';
 
 
 
@@ -316,6 +318,22 @@ orderRouter.post(
           await product.save();
         })
       );
+
+
+      // const mensagem = `Novo pedido recebido com o código: ${order.code}`;
+     const mensagem = `O seu pedido com o código ${order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
+     const receiver_id = order.seller
+     const sender_id = order.user
+     const orderID =  order._id
+      
+      await createNotification(
+        mensagem,
+        receiver_id,
+        sender_id,
+        orderID,
+      );
+
+
     
        // Save the order
        const order = await newOrder.save();
