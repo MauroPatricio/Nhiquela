@@ -308,12 +308,12 @@ orderRouter.post(
       console.log(order.user);
       console.log(order._id);
 
-      await createNotification(
-        mensagem,
-        order.seller,
-        order.user,
-        order._id
-      );
+      await createNotification({
+        message: mensagem,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
 
       // Respond with success message
       res.status(201).send({ message: 'Novo pedido criado com sucesso', order });

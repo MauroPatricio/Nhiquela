@@ -39,6 +39,7 @@ const expo = new Expo();
 //     return res.status(500).json({ error: 'Erro ao criar notificação', details: error.message });
 //   }
 // };
+
 export const createNotification = async ({ message, receiver_id, sender_id, orderID }) => {
 
   console.log(message);
