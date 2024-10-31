@@ -4,39 +4,72 @@ import NotificationNhabanga from '../models/NotificationModelNhabanga.js'; // Co
 
 const expo = new Expo();
 
-export const createNotification = async (req, res) => {
-  try {
-    const { message, receiver_id, sender_id, orderID } = req.body;
+// export const createNotification = async (req, res) => {
+//   try {
+//     const { message, receiver_id, sender_id, orderID } = req.body;
 
+//     if (!message || !receiver_id || !sender_id) {
+//       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+//     }
+
+//     const newNotification = new NotificationNhabanga({
+//       message,
+//       receiver_id,
+//       sender_id,
+//       send_status: false, 
+//       orderID
+//     });
+//     await newNotification.save();
+
+//     const receiver = await User.findById(receiver_id);
+//     if (!receiver || !receiver.pushToken) {
+//       return res.status(503).json({ error: 'Push token do receptor não encontrado' });
+//     }
+
+//     const sentSuccessfully = await sendPushNotification(receiver.pushToken, message, orderID);
+    
+//     if (sentSuccessfully) {
+//       newNotification.send_status = true;
+//       await newNotification.save();
+//     }
+
+//     return res.status(201).json({ message: 'Notificação criada e enviada com sucesso', notification: newNotification });
+//   } catch (error) {
+//     console.error('Erro ao criar notificação:', error);
+//     return res.status(500).json({ error: 'Erro ao criar notificação', details: error.message });
+//   }
+// };
+export const createNotification = async ({ message, receiver_id, sender_id, orderID }) => {
+  try {
     if (!message || !receiver_id || !sender_id) {
-      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+      throw new Error('Todos os campos são obrigatórios');
     }
 
     const newNotification = new NotificationNhabanga({
       message,
       receiver_id,
       sender_id,
-      send_status: false, 
-      orderID
+      send_status: false,
+      orderID,
     });
     await newNotification.save();
 
     const receiver = await User.findById(receiver_id);
     if (!receiver || !receiver.pushToken) {
-      return res.status(503).json({ error: 'Push token do receptor não encontrado' });
+      throw new Error('Push token do receptor não encontrado');
     }
 
     const sentSuccessfully = await sendPushNotification(receiver.pushToken, message, orderID);
-    
+
     if (sentSuccessfully) {
       newNotification.send_status = true;
       await newNotification.save();
     }
 
-    return res.status(201).json({ message: 'Notificação criada e enviada com sucesso', notification: newNotification });
+    console.log('Notificação criada e enviada com sucesso:', newNotification);
   } catch (error) {
     console.error('Erro ao criar notificação:', error);
-    return res.status(500).json({ error: 'Erro ao criar notificação', details: error.message });
+    throw new Error('Erro ao criar notificação');
   }
 };
 
