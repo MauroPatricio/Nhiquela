@@ -40,6 +40,12 @@ const expo = new Expo();
 //   }
 // };
 export const createNotification = async ({ message, receiver_id, sender_id, orderID }) => {
+
+  console.log(message);
+  console.log(receiver_id)
+  console.log(sender_id)
+  console.log(orderID)
+
   try {
     if (!message || !receiver_id || !sender_id) {
       throw new Error('Todos os campos são obrigatórios');
