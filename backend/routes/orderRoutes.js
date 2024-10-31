@@ -239,11 +239,11 @@ orderRouter.get(
     res.send({orders, pages});
   })
 );
-
 orderRouter.post(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {
+    // Create a new order object
     const newOrder = new Order({
       seller: req.body.orderItems[0].seller,
       orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id })),
@@ -257,96 +257,65 @@ orderRouter.post(
       siteTax: req.body.siteTax,
       addressPrice: req.body.addressPrice,
       itemsPriceForSeller: req.body.itemsPriceForSeller,
-      user: req.user?req.user._id: req.body.user._id,
+      user: req.user ? req.user._id : req.body.user._id,
       code: generateCode(),
       status: 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
       stepStatus: req.body.stepStatus,
-      customerId:  req.user?req.user._id: req.body.user._id,
+      customerId: req.user ? req.user._id : req.body.user._id,
     });
 
-    // Prepare the email content
-    // let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`;
-
-    // Notify the seller or admin depending on the payment status
-    const sellerOfProduct = await User.findById(newOrder.seller);
-    // if (newOrder.isPaid) {
-    //   let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
-    //   sendSMSToSellerUSendIt(sellerOfProduct, msg);
-    // } else {
-    //   let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`;
-    //   sendSMSToUSendItAdmin(msg);
-    // }
-
-    // Send email to the customer
-    // sendEmailOrderStatus(req, mailText, newOrder, res);
-
-    // Update stock levels for each ordered product
     try {
-      // Use Promise.all to handle updates concurrently
+      // Update stock levels for each ordered product
       await Promise.all(
         req.body.orderItems.map(async (item) => {
-          // Fetch the product by its ID
-
           // Check if the item is defined
           if (!item || !item._id) {
             throw new Error(`Invalid item: ${JSON.stringify(item)}`);
           }
-          
-  
+
           const product = await Product.findById(item._id);
-    
-          // Check if the product exists and quantity is a valid number
+          
+          // Ensure product exists and quantity is valid
           if (!product) {
             throw new Error(`Product not found: ${item._id}`);
           }
           if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
             throw new Error(`Invalid quantity for product: ${item.name}`);
           }
-    
+
           // Ensure stock doesn't go below 0
           const newCountInStock = product.countInStock - item.quantity;
           if (newCountInStock < 0) {
             throw new Error(`Insufficient stock for product: ${product.name}`);
           }
-    
-          // Update product stock
+
+          // Update and save product stock
           product.countInStock = newCountInStock;
-    
-          // Save updated product
           await product.save();
         })
       );
 
+      // Save the order
+      const order = await newOrder.save();
 
-      // const mensagem = `Novo pedido recebido com o código: ${order.code}`;
-     const mensagem = `O seu pedido com o código ${order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
-     const receiver_id = order.seller
-     const sender_id = order.user
-     const orderID =  order._id
-      
+      // Create a notification after the order is saved
+      const mensagem = `O seu pedido com o código ${order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
       await createNotification(
         mensagem,
-        receiver_id,
-        sender_id,
-        orderID,
+        order.seller,
+        order.user,
+        order._id
       );
 
-
-    
-       // Save the order
-       const order = await newOrder.save();
-
-       res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
-
+      // Respond with success message
+      res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
+      
     } catch (error) {
-      // Handle errors during the product update
+      // Handle errors during product update or order save
       res.status(400).send({ message: error.message });
     }
-    
-
- 
   })
 );
 
