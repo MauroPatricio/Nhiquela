@@ -476,7 +476,7 @@ orderRouter.put(
       };
 
       
-      const updateOrder = await order.save();
+      const order = await order.save();
 
 
       const sellerOfProduct = await User.findById(order.seller);
@@ -485,6 +485,14 @@ orderRouter.put(
       //  Para envio de mensagens
       let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
       sendEmailOrderToSeller(req,msg, sellerOfProduct, updateOrder, res);
+
+
+      await createNotification({
+        message: msg,
+        receiver_id: updateOrder.seller,
+        sender_id: updateOrder.user,
+        orderID: updateOrder._id,
+      });
 
       if (sellerOfProduct){
 
@@ -522,6 +530,15 @@ orderRouter.put(
     let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
  
     //  sendSMSToUSendIt(req, msg);
+
+    await createNotification({
+      message: msg,
+      receiver_id: order.seller,
+      sender_id: order.user,
+      orderID: order._id,
+    });
+
+
     sendEmailOrderStatus(req,msg, order, res);
 
       res.send({ order, message: `Pedido aceite com sucesso` });
@@ -552,6 +569,15 @@ orderRouter.put(
       const savedOrder = await order.save();
 
       let msg =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+
+      await createNotification({
+        message: msg,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
+  
+  
 
       sendEmailOrderStatus(req,msg, order, res);
 
@@ -587,6 +613,15 @@ orderRouter.put(
 
       let msg =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
+      await createNotification({
+        message: msg,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
+  
+  
+
       sendEmailOrderStatus(req,msg, order, res);
 
       // sendSMSToUSendItAdmin(msg);
@@ -614,6 +649,15 @@ orderRouter.put(
 
       // sendEmailOrderStatus(req,msg, order, res);
 
+      await createNotification({
+        message: msg,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
+  
+  
+
       // sendSMSToUSendItAdmin(msg);
       res.send({ order: savedOrder, message: `Fornecedor pago com sucesso` });
     } else {
@@ -636,6 +680,15 @@ orderRouter.put(
       // let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,msg, order, res);
+
+      await createNotification({
+        message: msg,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
+  
+  
 
       // sendSMSToUSendItAdmin(msg);
       res.send({ order: savedOrder, message: `Entregador pago com sucesso` });
@@ -682,6 +735,15 @@ orderRouter.put(
       //  sendSMSToSellerUSendIt(sellerOfProduct,msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
+
+      await createNotification({
+        message: msg,
+        receiver_id: updateOrder.seller,
+        sender_id: updateOrder.user,
+        orderID: updateOrder._id,
+      });
+  
+  
 
 
       res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
@@ -733,6 +795,14 @@ orderRouter.put(
  
         //  sendSMSToUSendIt(req,msg);
 
+        await createNotification({
+          message: msg,
+          receiver_id: order.seller,
+          sender_id: order.user,
+          orderID: order._id,
+        });
+    
+
         const sellerOfProduct = await User.findById(order.seller);
 
 
@@ -768,6 +838,14 @@ orderRouter.put(
       //  sendSMSToUSendIt(req,msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
+
+      await createNotification({
+        message: msg,
+        receiver_id: updateOrder.seller,
+        sender_id: updateOrder.user,
+        orderID: updateOrder._id,
+      });
+  
 
 
       res.send({ message: `No destino indicado`, order: updateOrder });
@@ -808,6 +886,14 @@ orderRouter.put(
 
       let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
  
+      await createNotification({
+        message: msg,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
+  
+
       //  sendSMSToUSendIt(req,msg);
 
       const sellerOfProduct = await User.findById(order.seller);
@@ -853,6 +939,14 @@ orderRouter.put(
         // sendSMSToUSendIt(req,msg);    
 
       const sellerOfProduct = await User.findById(order.seller);
+
+      await createNotification({
+        message: msg,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      });
+  
 
 
       sendEmailOrderToSeller(req,msg, sellerOfProduct, order, res);
