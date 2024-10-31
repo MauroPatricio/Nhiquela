@@ -303,6 +303,11 @@ orderRouter.post(
       // Create a notification after the order is saved
       const mensagem = `O seu pedido com o código ${order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
      
+      console.log(mensagem);
+      console.log(order.seller);
+      console.log(order.user);
+      console.log(order._id);
+
       await createNotification(
         mensagem,
         order.seller,
