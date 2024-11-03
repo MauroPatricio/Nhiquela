@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers } from '../features/basketSlice';
@@ -7,7 +7,7 @@ import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import haversine from 'haversine';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps'; // Import MapView and Marker
+import MapView, { Marker } from 'react-native-maps';
 
 const CartDetails = () => {
     const items = useSelector(selectBasketItems);
@@ -19,18 +19,14 @@ const CartDetails = () => {
     const [sellerLocation, setSellerLocation] = useState({ latitude: null, longitude: null });
     const [distance, setDistance] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
-    const [location, setLocation] = useState(null);
-
-    const [address, setAddress] = useState(null);
-
+    const [address, setAddress] = useState('');
 
     const financialFees = 40;
-    const pricePerKm = 10; // Price per km
-    const minDelivPrice = 100; // Minimum delivery price
-    const iva = 0; // Future IVA implementation
+    const pricePerKm = 10;
+    const minDelivPrice = 100;
+    const iva = 0;
     const subtotal = basketTotal + financialFees + iva;
 
-    // Calculate delivery price
     const distancePrice = distance ? (distance * pricePerKm).toFixed(2) : 0;
     const distanceToPay = distance && distance < 10 ? minDelivPrice : minDelivPrice + Number(distancePrice);
     const totalToPay = subtotal + distanceToPay;
@@ -56,7 +52,10 @@ const CartDetails = () => {
                 return;
             }
             let currentLocation = await Location.getCurrentPositionAsync({});
-            setLocation(currentLocation);
+            setUserLocation({
+                latitude: currentLocation.coords.latitude,
+                longitude: currentLocation.coords.longitude
+            });
         };
         requestLocationPermission();
     }, []);
@@ -68,14 +67,7 @@ const CartDetails = () => {
         }
     }, [userLocation, sellerLocation]);
 
-    const getUserLocation = async () => {
-        let currentLocation = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = currentLocation.coords;
-        setUserLocation({ latitude, longitude });
-    };
-
     const handleOpenBottomSheet = () => {
-        getUserLocation(); // Get user location when opening the bottom sheet
         setBottomSheetOpen(true);
         bottomSheetRef.current?.expand();
     };
@@ -88,10 +80,12 @@ const CartDetails = () => {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        dispatch(addTotalToPay(totalToPay));
-        dispatch(addIva(iva));
-        dispatch(addDeliverPrice(distanceToPay));
-    }, [totalToPay, dispatch]);
+        if (totalToPay && distanceToPay) {
+            dispatch(addTotalToPay(totalToPay));
+            dispatch(addIva(iva));
+            dispatch(addDeliverPrice(distanceToPay));
+        }
+    }, [totalToPay, distanceToPay, dispatch]);
 
     if (items.length === 0) return null;
 
@@ -118,13 +112,12 @@ const CartDetails = () => {
                     <View style={styles.bottomSheetContent}>
                         <Text style={styles.bottomSheetTitle}>Endereço de entrega</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
-
-                        <TextInput 
-                            style={styles.inputField}
-                            placeholder="Insira o endereço de entrega"
-                            value={address}
-                            onChangeText={setAddress} // Set the address
-                        />
+                            <TextInput
+                                style={styles.inputField}
+                                placeholder="Insira o endereço de entrega"
+                                value={address}
+                                onChangeText={setAddress}
+                            />
                             <View>
                                 {userLocation ? (
                                     <Text style={styles.locationText}>
@@ -140,7 +133,6 @@ const CartDetails = () => {
                                 )}
                             </View>
 
-                            {/* Conditional rendering for the map */}
                             {userLocation && sellerLocation.latitude && sellerLocation.longitude ? (
                                 <MapView
                                     style={styles.map}
@@ -177,10 +169,11 @@ const CartDetails = () => {
                         </ScrollView>
                     </View>
 
-                    {userLocation && sellerLocation.latitude && sellerLocation.longitude &&(
-                    <TouchableOpacity style={styles.barPayment} onPress={() => navigation.navigate('PaymentMethod')}>
-                        <Text style={styles.payment}>Finalizar compra</Text>
-                    </TouchableOpacity>)}
+                    {userLocation && sellerLocation.latitude && sellerLocation.longitude && (
+                        <TouchableOpacity style={styles.barPayment} onPress={() => navigation.navigate('PaymentMethod')}>
+                            <Text style={styles.payment}>Finalizar compra</Text>
+                        </TouchableOpacity>
+                    )}
                 </BottomSheetComponent>
             </SafeAreaView>
         </View>
@@ -188,6 +181,7 @@ const CartDetails = () => {
 };
 
 export default CartDetails;
+
 
 const styles = StyleSheet.create({
     bottomSheetContent: {

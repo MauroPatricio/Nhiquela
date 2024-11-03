@@ -4,7 +4,7 @@
     "slug": "nhiquela_seller",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/nhiquela2.png",
+    "icon": "./assets/nhiquela3.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/nhiquela2.png",
@@ -29,9 +29,10 @@
         "FOREGROUND_SERVICE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/nhiquela.png",
+        "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.mpatricio.nhiquela_seller"
     },
     "ios": {
       "infoPlist": {
