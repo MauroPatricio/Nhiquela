@@ -8,6 +8,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import * as Notifications from 'expo-notifications';
 import axios from 'axios';
+import style from './home.style'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -142,13 +143,13 @@ const Home = () => {
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", flex: 1, paddingLeft: 10, paddingRight: 10 }}>
-      <View style={styles.appBarWrapper}>
+       <View style={styles.appBarWrapper}>
         <View style={styles.appBar}>
-          <Image source={require('../assets/default1.jpg')} style={styles.cover} />
-          <Text>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
+          <Image source={require('../assets/default1.jpg')} style={style.cover} />
+          <Text>{userData ? `Olá, ${userData?.name}` : 'Faça login'}</Text>
         </View>
-        <Text style={{ paddingTop: 11, paddingBottom: 19, fontSize: 20, fontWeight: '500' }}>{userData?.seller?.name || ''}</Text>
-      </View>
+        <Text style={{ paddingTop: 11, paddingBottom: 19, fontSize: 20, fontWeight: '500' }}>{userData?.seller?.name || ''}</Text> 
+      </View> 
 
       <ScrollView>
         <Text style={{ fontSize: 25, fontWeight: '700', marginLeft: 20, marginBottom: 10, color: '#7F00FF' }}>Pedidos</Text>
@@ -188,6 +189,11 @@ const Home = () => {
 export default Home;
 
 const styles = StyleSheet.create({
+  cover: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+  },
   wrapper: {
     marginRight: 7,
     backgroundColor: '#7F00FF',
