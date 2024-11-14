@@ -21,7 +21,7 @@ const CartDetails = () => {
     const [userLocation, setUserLocation] = useState(null);
     const [address, setAddress] = useState('');
 
-    const financialFees = 40;
+    const financialFees = 0;
     const pricePerKm = 10;
     const minDelivPrice = 100;
     const iva = 0;
@@ -95,10 +95,10 @@ const CartDetails = () => {
                 <Text style={styles.length}>Subtotal</Text>
                 <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} MT</Text>
             </View>
-            <View style={styles.barPopup}>
+            {/* <View style={styles.barPopup}>
                 <Text style={styles.length}>Serviços financeiros</Text>
                 <Text style={styles.total}>{financialFees} MT</Text>
-            </View>
+            </View> */}
             <View style={styles.barPopup}>
                 <Text style={styles.totalDescript}>Total a pagar</Text>
                 <Text style={styles.totalPrice}>{subtotal.toFixed(2)} MT</Text>
@@ -154,10 +154,10 @@ const CartDetails = () => {
                                 <Text style={styles.length}>Subtotal</Text>
                                 <Text style={styles.total}>{basketTotal} MT</Text>
                             </View>
-                            <View style={styles.barPopup}>
+                            {/* <View style={styles.barPopup}>
                                 <Text style={styles.length}>Serviços financeiros</Text>
                                 <Text style={styles.total}>{financialFees} MT</Text>
-                            </View>
+                            </View> */}
                             <View style={styles.barPopup}>
                                 <Text style={styles.length}>Custo de entrega</Text>
                                 <Text style={styles.total}>{distance ? distanceToPay : 'Calculando...'} MT</Text>

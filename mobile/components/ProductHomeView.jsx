@@ -32,7 +32,7 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
             const item2 = { item: item }
             return (
               <>
-                <ProductCard
+                <ProductCard 
                   id={item._id}
                   name={item.brand}
                   logo={item.image}

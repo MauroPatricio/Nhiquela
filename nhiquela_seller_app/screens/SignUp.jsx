@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
+import * as Notifications from 'expo-notifications';
 
 
 // Validation schema
@@ -68,6 +69,21 @@ const SignUp = () => {
   const [loading, setLoading] = useState(null);
 
   const [errorMsg, setErrorMsg] = useState(null);
+  const [expoPushToken, setExpoPushToken] = useState('');
+  const [notification, setNotification] = useState(false);
+
+
+
+  const updatePushToken = async (userId, newPushToken) => {
+    
+    try {
+      if (!userId) return;
+      await api.patch(`/users/updatePushToken/${userId}`, { pushToken: newPushToken });
+    } catch (error) {
+      console.error('Erro ao atualizar o PushToken:', error.message);
+    }
+  };
+  
 
 
   const handleImagePicker = async (setFieldValue) => {
@@ -207,7 +223,13 @@ const SignUp = () => {
           values.seller.longitude = location?.coords.longitude
 
           try {
-             await api.post('users/signup', values);
+            const userSeller = await api.post('users/signup', values);
+
+
+            const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
+            let token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+            await updatePushToken(userSeller._id, token);
+            setExpoPushToken(token);
 
             Toast.show({
                 type: 'success',
