@@ -483,15 +483,15 @@ orderRouter.put(
        
 
       //  Para envio de mensagens
-      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
+      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${order.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
       sendEmailOrderToSeller(req,msg, sellerOfProduct, updateOrder, res);
 
 
       await createNotification({
         message: msg,
-        receiver_id: updateOrder.seller,
-        sender_id: updateOrder.user,
-        orderID: updateOrder._id,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
       });
 
       if (sellerOfProduct){
@@ -677,7 +677,7 @@ orderRouter.put(
       order.isDeliverPaid = true;
       const savedOrder = await order.save();
 
-      // let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,msg, order, res);
 
