@@ -8,7 +8,7 @@ export const createNotification = async (req, res) => {
   try {
     const { message, receiver_id, sender_id, orderID } = req.body;
 
-    if (!message || !receiver_id || !sender_id) {
+    if (!message || !receiver_id || !sender_id || !orderID) {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
