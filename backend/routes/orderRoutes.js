@@ -497,11 +497,11 @@ orderRouter.put(
       if (sellerOfProduct){
 
         //  Para envio de mensagens
-      let msgSeller =`Ola, a Nhiquela Shop gostaria de lhe informar que possui um novo pedido com o codigo ${updateOrder.code}.`;
+      let msgSeller =`Ola, a Nhiquela Shop gostaria de lhe informar que possui um novo pedido com o codigo ${order.code}.`;
     //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
   }
 
-      res.send({ message: `Pedido Pago`, order: updateOrder });
+      res.send({ message: `Pedido Pago`, order: order });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
