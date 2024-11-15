@@ -483,12 +483,12 @@ orderRouter.put(
        
 
       //  Para envio de mensagens
-      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${order.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
+      let message =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${order.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
       sendEmailOrderToSeller(req,msg, sellerOfProduct, updateOrder, res);
 
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
@@ -527,12 +527,12 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-    let msg =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
+    let message =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
  
     //  sendSMSToUSendIt(req, msg);
 
     await createNotification({
-      message: msg,
+      message: message,
       receiver_id: order.seller,
       sender_id: order.user,
       orderID: order._id,
@@ -568,10 +568,10 @@ orderRouter.put(
 
       const savedOrder = await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+      let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
@@ -611,10 +611,10 @@ orderRouter.put(
 
       const savedOrder = await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+      let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
@@ -645,12 +645,12 @@ orderRouter.put(
       order.isSupplierPaid = true;
       const savedOrder = await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let message =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,msg, order, res);
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
@@ -677,12 +677,12 @@ orderRouter.put(
       order.isDeliverPaid = true;
       const savedOrder = await order.save();
 
-      let msg =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let message =`Ola, a Nhiquela Shop lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,msg, order, res);
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
@@ -730,14 +730,14 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
+       let message =`Ola, a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
  
       //  sendSMSToSellerUSendIt(sellerOfProduct,msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: updateOrder.seller,
         sender_id: updateOrder.user,
         orderID: updateOrder._id,
@@ -791,12 +791,12 @@ orderRouter.put(
 
         //  Para envio de mensagens
 
-        let msg =`A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr nos detalhes do pedido`;
+        let message =`A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado. Em caso de duvida contacte o entregador pelo nr nos detalhes do pedido`;
  
         //  sendSMSToUSendIt(req,msg);
 
         await createNotification({
-          message: msg,
+          message: message,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
@@ -833,14 +833,14 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
+       let message =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
  
       //  sendSMSToUSendIt(req,msg);
 
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: updateOrder.seller,
         sender_id: updateOrder.user,
         orderID: updateOrder._id,
@@ -884,10 +884,10 @@ orderRouter.put(
 
        //  Para envio de mensagens
 
-      let msg =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
+      let message =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
  
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
@@ -934,14 +934,14 @@ orderRouter.put(
       
       //  Para envio de mensagens
 
-      let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
+      let message =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
 
         // sendSMSToUSendIt(req,msg);    
 
       const sellerOfProduct = await User.findById(order.seller);
 
       await createNotification({
-        message: msg,
+        message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
