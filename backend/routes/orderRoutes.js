@@ -532,10 +532,12 @@ orderRouter.put(
     //  sendSMSToUSendIt(req, msg);
 
     await createNotification({
-      message: message,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
+      body:{
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      }
     });
 
 
@@ -571,10 +573,12 @@ orderRouter.put(
       let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       await createNotification({
+        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        }
       });
   
   
@@ -614,10 +618,12 @@ orderRouter.put(
       let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       await createNotification({
+        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        }
       });
   
   
@@ -650,10 +656,12 @@ orderRouter.put(
       // sendEmailOrderStatus(req,msg, order, res);
 
       await createNotification({
+        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        }
       });
   
   
@@ -682,10 +690,12 @@ orderRouter.put(
       // sendEmailOrderStatus(req,msg, order, res);
 
       await createNotification({
+        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        }
       });
   
   
@@ -737,10 +747,12 @@ orderRouter.put(
       sendEmailOrderToSeller(req,msg,sellerOfProduct, updateOrder, res);
 
       await createNotification({
+        body:{
         message: message,
         receiver_id: updateOrder.seller,
         sender_id: updateOrder.user,
         orderID: updateOrder._id,
+        }
       });
   
   
@@ -796,10 +808,12 @@ orderRouter.put(
         //  sendSMSToUSendIt(req,msg);
 
         await createNotification({
+          body:{
           message: message,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
+          }
         });
     
 
@@ -887,10 +901,12 @@ orderRouter.put(
       let message =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
  
       await createNotification({
+        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        }
       });
   
 
@@ -941,10 +957,12 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
 
       await createNotification({
+        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        }
       });
   
 
