@@ -532,10 +532,12 @@ orderRouter.put(
     //  sendSMSToUSendIt(req, msg);
 
     await createNotification({
-      message: message,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
+      body:{
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      }
     });
 
 
