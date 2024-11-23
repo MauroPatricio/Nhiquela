@@ -20,6 +20,10 @@ const notificationSchema = new mongoose.Schema({
   orderID: {
     type: String,
     required: true,
+  },
+  pushToken: {
+    type: String,
+    required: true
   }
 });
 

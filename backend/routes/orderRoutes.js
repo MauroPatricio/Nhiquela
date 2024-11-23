@@ -480,19 +480,30 @@ orderRouter.put(
 
 
       const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
        
 
       //  Para envio de mensagens
       let message =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${order.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
       sendEmailOrderToSeller(req,message, sellerOfProduct, updateOrder, res);
 
-
+//toSeller
       await createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
+        pushToken: sellerOfProduct.pushToken,
+
       });
+//toOrderClient
+await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+});
 
       if (sellerOfProduct){
 
@@ -530,15 +541,26 @@ orderRouter.put(
     let message =`Ola, a Nhiquela Shop tem o prazer de lhe informar que o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
  
     //  sendSMSToUSendIt(req, message);
+    const sellerOfProduct = await User.findById(order.seller);
+    const clientOfProduct = await User.findById(order.user);
 
-    await createNotification({
-      
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-      
-    });
+//toSeller
+await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: sellerOfProduct.pushToken,
+
+});
+//toOrderClient
+await createNotification({
+message: message,
+receiver_id: order.seller,
+sender_id: order.user,
+orderID: order._id,
+pushToken: clientOfProduct.pushToken
+});
 
 
     // sendEmailOrderStatus(req,message, order, res);
@@ -572,14 +594,26 @@ orderRouter.put(
 
       let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
-      await createNotification({
-        
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        
-      });
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
   
 
@@ -617,12 +651,26 @@ orderRouter.put(
 
       let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
-      await createNotification({
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-      });
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
   
 
@@ -653,14 +701,26 @@ orderRouter.put(
 
       // sendEmailOrderStatus(req,message, order, res);
 
-      await createNotification({
-        
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        
-      });
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
   
 
@@ -687,14 +747,26 @@ orderRouter.put(
 
       // sendEmailOrderStatus(req,message, order, res);
 
-      await createNotification({
-        
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        
-      });
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
   
 
@@ -744,14 +816,26 @@ orderRouter.put(
 
       sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
 
-      await createNotification({
-        
-        message: message,
-        receiver_id: updateOrder.seller,
-        sender_id: updateOrder.user,
-        orderID: updateOrder._id,
-        
-      });
+
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
   
 
@@ -805,17 +889,29 @@ orderRouter.put(
  
         //  sendSMSToUSendIt(req,message);
 
-        await createNotification({
-          
-          message: message,
-          receiver_id: order.seller,
-          sender_id: order.user,
-          orderID: order._id,
-          
-        });
+        const sellerOfProduct = await User.findById(order.seller);
+        const clientOfProduct = await User.findById(order.user);
+    
+    //toSeller
+    await createNotification({
+      message: message,
+      receiver_id: order.seller,
+      sender_id: order.user,
+      orderID: order._id,
+      pushToken: sellerOfProduct.pushToken,
+    
+    });
+    //toOrderClient
+    await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: clientOfProduct.pushToken
+    });
     
 
-        const sellerOfProduct = await User.findById(order.seller);
+       
 
 
       sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
@@ -851,12 +947,26 @@ orderRouter.put(
 
       sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
 
-      await createNotification({
-        message: message,
-        receiver_id: updateOrder.seller,
-        sender_id: updateOrder.user,
-        orderID: updateOrder._id,
-      });
+      
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
 
 
@@ -898,19 +1008,31 @@ orderRouter.put(
 
       let message =`Ola, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
  
-      await createNotification({
-        
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        
-      });
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
   
 
       //  sendSMSToUSendIt(req,message);
 
-      const sellerOfProduct = await User.findById(order.seller);
+      
 
 
       sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
@@ -952,16 +1074,26 @@ orderRouter.put(
 
         // sendSMSToUSendIt(req,message);    
 
-      const sellerOfProduct = await User.findById(order.seller);
-
-      await createNotification({
-        
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        
-      });
+        const sellerOfProduct = await User.findById(order.seller);
+        const clientOfProduct = await User.findById(order.user);
+    
+    //toSeller
+    await createNotification({
+      message: message,
+      receiver_id: order.seller,
+      sender_id: order.user,
+      orderID: order._id,
+      pushToken: sellerOfProduct.pushToken,
+    
+    });
+    //toOrderClient
+    await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: clientOfProduct.pushToken
+    });
   
 
 

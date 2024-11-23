@@ -40,15 +40,16 @@ const expo = new Expo();
 //   }
 // };
 
-export const createNotification = async ({ message, receiver_id, sender_id, orderID }) => {
+export const createNotification = async ({ message, receiver_id, sender_id, orderID, pushToken }) => {
 
   console.log(message);
   console.log(receiver_id)
   console.log(sender_id)
   console.log(orderID)
+  console.log(pushToken)
 
   try {
-    if (!message || !receiver_id || !sender_id) {
+    if (!message || !receiver_id || !sender_id || pushToken) {
       throw new Error('Todos os campos são obrigatórios');
     }
 
@@ -58,15 +59,16 @@ export const createNotification = async ({ message, receiver_id, sender_id, orde
       sender_id,
       send_status: false,
       orderID,
+      pushToken
     });
     await newNotification.save();
 
-    const receiver = await User.findById(receiver_id);
-    if (!receiver || !receiver.pushToken) {
+    
+    if (!pushToken) {
       throw new Error('Push token do receptor não encontrado');
     }
 
-    const sentSuccessfully = await sendPushNotification(receiver.pushToken, message, orderID);
+    const sentSuccessfully = await sendPushNotification(pushToken, message, orderID);
 
     if (sentSuccessfully) {
       console.log("Receptor recebeu mensagem")
