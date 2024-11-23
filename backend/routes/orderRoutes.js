@@ -531,17 +531,17 @@ orderRouter.put(
  
     //  sendSMSToUSendIt(req, msg);
 
-    await createNotification({
-      body:{
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-      }
-    });
+    // await createNotification({
+    //   body:{
+    //     message: message,
+    //     receiver_id: order.seller,
+    //     sender_id: order.user,
+    //     orderID: order._id,
+    //   }
+    // });
 
 
-    sendEmailOrderStatus(req,msg, order, res);
+    // sendEmailOrderStatus(req,msg, order, res);
 
       res.send({ order, message: `Pedido aceite com sucesso` });
     } else {
