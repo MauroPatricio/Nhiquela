@@ -69,8 +69,11 @@ export const createNotification = async ({ message, receiver_id, sender_id, orde
     const sentSuccessfully = await sendPushNotification(receiver.pushToken, message, orderID);
 
     if (sentSuccessfully) {
+      console.log("Receptor recebeu mensagem")
       newNotification.send_status = true;
       await newNotification.save();
+    }else{
+      console.log("Ocorreu um erro e receptor nao recebeu mensagem!")
     }
 
     console.log('Notificação criada e enviada com sucesso:', newNotification);
