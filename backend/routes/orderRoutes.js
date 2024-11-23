@@ -531,14 +531,14 @@ orderRouter.put(
  
     //  sendSMSToUSendIt(req, msg);
 
-    // await createNotification({
-    //   body:{
-    //     message: message,
-    //     receiver_id: order.seller,
-    //     sender_id: order.user,
-    //     orderID: order._id,
-    //   }
-    // });
+    await createNotification({
+      body:{
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+      }
+    });
 
 
     // sendEmailOrderStatus(req,msg, order, res);
@@ -618,12 +618,10 @@ orderRouter.put(
       let message =`Ola, a Nhiquela Shop lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       await createNotification({
-        body:{
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        }
       });
   
   
