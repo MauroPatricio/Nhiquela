@@ -99,9 +99,13 @@ async function sendPushNotification(pushToken, message, messageID) {
   }];
 
   try {
-    const ticketChunk = await expo.sendPushNotificationsAsync(notifications);
-    console.log('Notificação enviada com sucesso:', ticketChunk);
-    return true;
+    if(pushToken.length == 0){
+      console.error('Push token inválido ou nulo');
+    }else{
+      const ticketChunk = await expo.sendPushNotificationsAsync(notifications);
+      console.log('Notificação enviada com sucesso:', ticketChunk);
+      return true;
+    }
   } catch (error) {
     console.error('Erro ao enviar notificação:', error);
     return false;
