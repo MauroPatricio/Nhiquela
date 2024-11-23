@@ -531,8 +531,6 @@ orderRouter.put(
  
     //  sendSMSToUSendIt(req, msg);
 
-    console.log(order)
-
     await createNotification({
       
         message: message,
@@ -628,7 +626,7 @@ orderRouter.put(
   
   
 
-      sendEmailOrderStatus(req,msg, order, res);
+      sendEmailOrderStatus(req,message, order, res);
 
       // sendSMSToUSendItAdmin(msg);
       res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
