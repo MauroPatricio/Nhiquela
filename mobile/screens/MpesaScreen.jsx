@@ -161,7 +161,7 @@ const MpesaScreen = () => {
 
 
         try {
-          const response = await api.post('orders', order, {
+          const response = await api.post('/orders', order, {
             headers: {
               authorization: `Bearer ${userData.token}`,  // Token de autenticação
             },
@@ -181,7 +181,7 @@ const MpesaScreen = () => {
           //   message: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`
           // });
 
-          const mensagem = `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
+          // const mensagem = `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`;
           
           // const resposta = await api.post('/notificationsNhabanga', {
           //   message: mensagem,

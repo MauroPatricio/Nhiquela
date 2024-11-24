@@ -13,8 +13,22 @@ import { Welcome } from './Index';
 import BottomSheetComponent from '../components/BottomSheetComponent';
 import { Badge } from 'react-native-paper';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import FlashMessage, { showMessage } from "react-native-flash-message";
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const Home = () => {
+  
+  const [notification, setNotification] = useState(false);
+  const notificationListener = useRef();
+  const responseListener = useRef();
   const [userData, setUserData] = useState(null);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -25,10 +39,39 @@ const Home = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
+    registerForPushNotificationsAsync();
+
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      // Notifications.scheduleNotificationAsync({
+      //   content: {
+      //     title: "Pedido criado com sucesso",
+      //     body: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`, // A mensagem recebida do backend
+      //     sound: true,
+      //   },
+      //   trigger: null,
+      // });
+      console.log(notification);
+      setNotification(notification);
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const { extraData } = response.notification.request.content.data;
+      if (extraData) {
+        navigation.navigate('OrderDetail', { extraData });
+      }
+    });
+
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener.current);
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
+
+  useEffect(()=>{
     checkIfUserExist();
     fetchData();
     fetchProductData();
-  }, []);
+  }, [])
 
   useFocusEffect(
     useCallback(() => {
@@ -218,6 +261,7 @@ const Home = () => {
                         <Text style={styles.productDescription}>{product.description}</Text>
                         <View style={styles.ratingRow}>
                           <Text>
+
                             {product.isOrdered ? 
                               <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : 
                               product.countInStock !== 0 ? 
@@ -231,6 +275,7 @@ const Home = () => {
                   </TouchableOpacity>
                 );
               })}
+              <FlashMessage position="top" /> 
               <View style={{ marginBottom: 210 }} />
             </ScrollView>
           </View>

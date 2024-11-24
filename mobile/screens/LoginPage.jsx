@@ -10,6 +10,15 @@ import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerIndieID, unregisterIndieDevice } from 'native-notify';
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -21,26 +30,75 @@ const validationSchema = Yup.object().shape({
     .required('Obrigatório'),
 });
 
+
+
 const LoginPage = ({ navigation }) => {
   const [loader, setLoader] = useState(false);
   const [responseData, setResponseData] = useState(null);
   const [hideText, setHideText] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState('');
+
+  const updatePushToken = async (userId, newPushToken) => {
+    try {  
+      
+      if (!userId) throw new Error('User ID is missing');
+      let updateToken = await api.patch(`/users/updatePushToken/${userId}`, { pushToken: newPushToken });
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar o PushToken:', error.message);
+      return false;
+    }
+  };
+  
+  const registerForPushNotificationsAsync = async () => {
+   
+    let dadosUtilizador = await AsyncStorage.getItem('userData');
+    const userData=JSON.parse(dadosUtilizador);
+   
+    if (!userData) return;
+    let token;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+  
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+  
+    if (finalStatus !== 'granted') {
+      alert('Failed to get push token for push notifications!');
+      return;
+    }
+    
+    const projectId = "217ab06d-1e14-42d9-b8be-2e173a4b8c77";
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+   const statusUpdate= await updatePushToken(userData._id, token);
+    setExpoPushToken(token);
+    return statusUpdate;
+
+  };
 
   const login = async (values) => {
     setLoader(true);
     try {
       const data = values;
       const response = await api.post('/users/signin', data);
-
+      
       if (response.status === 200) {
         setLoader(false);
         setResponseData(response.data);
         await AsyncStorage.setItem(`user${response.data._id}`, JSON.stringify(response.data));
+        await AsyncStorage.setItem(`userData`, JSON.stringify(response.data));
         await AsyncStorage.setItem('id', JSON.stringify(response.data._id));
-
+        
         registerIndieID(response.data._id, 23641, 'P1NYLd6lOOHkdLzDZK0kV3');
 
-        navigation.replace('Bottom Navigation');
+        let proceedStatus = registerForPushNotificationsAsync();
+
+        if(proceedStatus){
+          navigation.replace('Bottom Navigation');
+        }
       }
     } catch (error) {
       Alert.alert('Informe o número de telefone ou a senha correcta');
@@ -48,6 +106,8 @@ const LoginPage = ({ navigation }) => {
       setLoader(false);
     }
   };
+
+ 
 
   return (
     <ScrollView style={{ backgroundColor: 'white' }}>

@@ -17,7 +17,12 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app uses your location to provide location-based features."
+        "NSCameraUsageDescription": "This app needs access to your camera to upload images.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {

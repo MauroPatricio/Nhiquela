@@ -30,15 +30,21 @@ import FailedPayment from './screens/FailedPayment';
 import Toast from 'react-native-toast-message';
 import { useEffect } from 'react';
 // import registerNNPushToken from 'native-notify';
-import messaging from '@react-native-firebase/messaging';
+// import messaging from '@react-native-firebase/messaging';
 import ProductListByCategory from './components/products/ProductListByCategory';
 import SellersList from './components/SellersList';
-
+import * as Notifications from 'expo-notifications';
 
 
 const Stack = createNativeStackNavigator();
 
-
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 
 // const registerDeviceForMessaging = async () => {
