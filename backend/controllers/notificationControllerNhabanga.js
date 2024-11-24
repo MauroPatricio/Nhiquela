@@ -101,7 +101,7 @@ async function sendPushNotification(pushToken, message, messageID) {
   }];
 
   try {
-    console.log('seller Pushtoken: ', pushToken)
+    console.log('user Pushtoken: ', pushToken)
     if(pushToken.length == 0){
       console.error('Push token inválido ou nulo');
     }else{
