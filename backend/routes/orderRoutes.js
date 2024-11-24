@@ -313,7 +313,7 @@ orderRouter.post(
   
   //toSeller
   await createNotification({
-    message: message,
+    message: mensagem,
     receiver_id: order.seller,
     sender_id: order.user,
     orderID: order._id,
@@ -322,7 +322,7 @@ orderRouter.post(
   });
   //toOrderClient
   await createNotification({
-  message: message,
+  message: mensagem,
   receiver_id: order.seller,
   sender_id: order.user,
   orderID: order._id,
