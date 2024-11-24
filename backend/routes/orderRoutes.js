@@ -308,12 +308,26 @@ orderRouter.post(
       console.log(order.user);
       console.log(order._id);
 
-      await createNotification({
-        message: mensagem,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-      });
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+  
+  //toSeller
+  await createNotification({
+    message: message,
+    receiver_id: order.seller,
+    sender_id: order.user,
+    orderID: order._id,
+    pushToken: sellerOfProduct.pushToken,
+  
+  });
+  //toOrderClient
+  await createNotification({
+  message: message,
+  receiver_id: order.seller,
+  sender_id: order.user,
+  orderID: order._id,
+  pushToken: clientOfProduct.pushToken
+  });
 
       // Respond with success message
       res.status(201).send({ message: 'Novo pedido criado com sucesso', order });
