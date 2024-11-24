@@ -19,6 +19,24 @@
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
   "dependencies": {
-    "react-native-open-maps": "^0.4.3"
+    "@expo/metro-runtime": "^4.0.0",
+    "expo-constants": "^17.0.3",
+    "expo-device": "^7.0.1",
+    "expo-image-picker": "^16.0.2",
+    "expo-location": "^18.0.1",
+    "expo-notifications": "^0.29.8",
+    "expo-status-bar": "^2.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-native": "^0.76.2",
+    "react-native-gesture-handler": "^2.21.0",
+    "react-native-maps": "^1.20.0",
+    "react-native-open-maps": "^0.4.3",
+    "react-native-pager-view": "^6.5.0",
+    "react-native-reanimated": "^3.16.1",
+    "react-native-safe-area-context": "^4.14.0",
+    "react-native-screens": "^4.1.0",
+    "react-native-svg": "^15.9.0",
+    "react-native-web": "^0.19.13"
   }
 }
