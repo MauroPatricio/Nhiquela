@@ -30,13 +30,20 @@ import ProductListSeller from './components/products/ProductListSeller';
 import PaymentsHistory from './screens/PaymentsHistory';
 import Toast from 'react-native-toast-message';
 import ProductSellerDetail from './components/products/ProductSellerDetail';
-
+import * as Notifications from 'expo-notifications';
 
 import React, {useState, useEffect} from 'react';
 
 
 const Stack = createNativeStackNavigator();
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function App() {
 

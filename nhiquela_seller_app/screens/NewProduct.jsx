@@ -46,7 +46,7 @@ const [userData, setUserData] = useState(null);
       values.size = selectedSizes;
 
       // console.log(userData.token)
-       const response = await api.post('products/', values, 
+       const response = await api.post('/products/', values, 
         {
           headers: { Authorization: `Bearer ${userData.token}` }
         });

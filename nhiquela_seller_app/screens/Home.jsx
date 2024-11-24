@@ -59,19 +59,22 @@ const Home = () => {
     token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     await updatePushToken(userData._id, token);
     setExpoPushToken(token);
+    console.log('Pushtoken: ',token )
   };
 
   useEffect(() => {
     registerForPushNotificationsAsync();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      showMessage({
-        message: "Novo pedido recebido",
-        description: notification.request.content.body,
-        type: "success",
-        icon: "auto",
-        duration: 3000,
-      });
+      // Notifications.scheduleNotificationAsync({
+      //   content: {
+      //     title: "Pedido criado com sucesso",
+      //     body: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`, // A mensagem recebida do backend
+      //     sound: true,
+      //   },
+      //   trigger: null,
+      // });
+      console.log(notification);
       setNotification(notification);
     });
 
