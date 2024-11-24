@@ -49,7 +49,7 @@ export const createNotification = async ({ message, receiver_id, sender_id, orde
   console.log(pushToken)
 
   try {
-    if (!message || !receiver_id || !sender_id || pushToken) {
+    if (!message || !receiver_id || !sender_id || !pushToken) {
       throw new Error('Todos os campos são obrigatórios');
     }
 
