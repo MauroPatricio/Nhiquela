@@ -181,8 +181,8 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
           api_key: process.env.CLOUDINARY_API_KEY,
           api_secret: process.env.CLOUDINARY_API_SECRET,
       });
-
-     const productId = req.params.id;
+      const productId = req.params.id;
+      console.log(`Id: `.productId);
      const product = await Product.findById(productId);
      if(product){
 
