@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Image, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, TouchableWithoutFeedback, Pressable  } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import api from './../../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,8 @@ const ProductListSeller = () => {
   const [productsOfSeller, setProductsOfSeller] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // State for RefreshControl
+  const [selectedProduct, setSelectedProduct] = useState(null); // Track selected product
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility
 
   const navigation = useNavigation();
 
@@ -56,10 +58,23 @@ const ProductListSeller = () => {
     }
   };
 
+  const handleLongPress = (product) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
+
   const onRefresh = () => {
     setRefreshing(true); // Start the refreshing indicator
     fetchData(); // Fetch new data
   };
+
+  const removeItem = async (productId) => {
+    const id = productId;
+    console.log(id)
+    const response = await api.delete(`${id}`, {
+      headers: { authorization: `Bearer ${userData.token}` },
+    });
+  }
 
   if (isLoading) {
     return (
@@ -84,19 +99,63 @@ const ProductListSeller = () => {
       >
         {productsOfSeller.length > 0 ? (
           productsOfSeller.map((product) => (
-            <TouchableOpacity key={product._id} onPress={() => navigation.navigate('ProductSellerDetail', {product})}>
+            <TouchableWithoutFeedback  key={product._id} onPress={() => navigation.navigate('ProductSellerDetail', {product})}
+            onLongPress={() => handleLongPress(product)}
+
+            >
               <View style={styles.wrapper}>
                 <Image source={{ uri: product.image }} style={styles.image} />
                 <Text style={styles.title}>{product.name}</Text>
                 <Text style={styles.price}>{product.price} MT</Text>
               </View>
-            </TouchableOpacity>
+            </TouchableWithoutFeedback >
             
           ))
         ) : (
           <Text style={styles.noProductsText}>Não possui nenhum produto disponível.</Text>
         )}
       </ScrollView>
+      {/* Modal for Long Press Options */}
+        <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Opções</Text>
+            {/* <Pressable 
+              style={styles.modalButton} 
+              onPress={() => {
+                setModalVisible(false);
+                navigation.navigate('EditProduct', { product: selectedProduct });
+              }}
+            >
+              <Text style={styles.modalButtonText}>Editar</Text>
+            </Pressable> */}
+            <Pressable 
+              style={styles.modalButton} 
+              onPress={() => {
+                setModalVisible(false);
+                console.log(`Deleting product: ${selectedProduct._id}`);
+                removeItem(`${selectedProduct._id}`)
+                // Add delete logic here
+
+               
+              }}
+            >
+              <Text style={styles.modalButtonText}>Apagar</Text>
+            </Pressable>
+            <Pressable 
+              style={[styles.modalButton, { backgroundColor: 'gray' }]} 
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -159,5 +218,37 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     color: '#888',
+  },
+
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: 300,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 15,
+  },
+  modalButton: {
+    width: '100%',
+    padding: 10,
+    backgroundColor: '#7F00FF',
+    borderRadius: 8,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

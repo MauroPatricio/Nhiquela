@@ -115,7 +115,7 @@ const ProductDetail = () => {
                 <Text>{rating}</Text>
               </View> */}
 
-              <View style={styles.rating}>
+              {/* <View style={styles.rating}>
   {rating > 0 && !isNaN(rating) ? (
     [...Array(Math.round(rating))].map((_, index) => (
       <Ionicons key={index} size={15} color="gold" name="star" />
@@ -124,7 +124,7 @@ const ProductDetail = () => {
     <Text>Sem pontuações </Text>
   )}
   <Text>{rating || 0}</Text>
-</View>
+</View> */}
 
               <View style={styles.countControl}>
                 <TouchableOpacity onPress={removeItem} disabled={count === 0}>
@@ -213,6 +213,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countControl: {
+    marginTop: 0, 
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

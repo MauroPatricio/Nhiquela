@@ -12,7 +12,7 @@ const welcome = () => {
 
     <View>
       <View style={styles.container}>
-        <Text style={styles.welcomeText('black', 30, 0)}><Text style={{ color: '#7F00FF' }}>NHIQUELA</Text>SHOP</Text>
+        <Text style={styles.welcomeText('black', 30, 0)}><Text style={{ color: '#7F00FF' }}>Nhiquela</Text>App</Text>
 
         <Text style={styles.welcomeText2('black', 11, 0)}>TUDO EM SUAS MÃOS</Text>
       </View>

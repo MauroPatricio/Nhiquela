@@ -29,6 +29,9 @@ const [selectedSizes, setSelectedSizes] = useState([]);
 const [userData, setUserData] = useState(null);
 
   const handleSubmit = async (values, resetForm) => {
+    console.log('Form Values:', values);
+
+    setLoading(true); 
 
     if(userData == null) return;
     try {
@@ -50,6 +53,8 @@ const [userData, setUserData] = useState(null);
         {
           headers: { Authorization: `Bearer ${userData.token}` }
         });
+        setLoading(false); // Start loading before the fetch
+
       if (response.status === 200) {
 
         Toast.show({
@@ -377,7 +382,7 @@ const [userData, setUserData] = useState(null);
     <Picker.Item key={size._id} label={size.nome} value={size} />
   ))}
 </Picker>
-<Text>Tamanhos seleccionados: {selectedSizes.map(size => size.nome).join(', ')}</Text>
+<Text style={styles.size} >Tamanhos seleccionados: {selectedSizes.map(size => size.nome).join(', ')}</Text>
 {errorSize && <p style={{ color: 'red' }}>{errorSize}</p>}
 
                     {/* {touched.size && errors.size && (
@@ -548,14 +553,14 @@ const [userData, setUserData] = useState(null);
             )}
 
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>Criar produto</Text>
+              <Text style={styles.submitButtonText}   disabled={loading} >Criar produto</Text>
             </TouchableOpacity>
 
             <View style={{ marginBottom: 250 }} />
           </>
         )}
       </Formik>
-      :<Text style={styles.notAccepted}> A sua conta ainda não foi autorizada para poder expor os seus produtos. Para mais informações, por favor contacte a NHIQUELA pelo(s) contacto(s) 853600036/879300036.
+      :<Text style={styles.notAccepted}> Caso deseje expor seus produtos a sua conta conta deve ser autorizada, em caso de duvidas para mais informações, por favor contacte a NHIQUELA pelo contacto 853600036.
  </Text>
 }
     </ScrollView>
@@ -575,6 +580,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     textAlign: 'center',
     marginTop: 200
+  },
+
+  size:{
+      marginBottom: 12,
   },
 
   error:{

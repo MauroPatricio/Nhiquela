@@ -13,7 +13,7 @@ const SellersView = ({title, description}) => {
   const [error, setError] =useState(null);
 
 
-  const fechtData = async () => {
+  const fetchData = async () => {
 
     try{
       setLoading(true);
@@ -31,7 +31,7 @@ const SellersView = ({title, description}) => {
 
 useEffect(()=>{
 
-  fechtData()
+  fetchData()
 
 }, [])
 
@@ -62,8 +62,8 @@ useEffect(()=>{
 
         // name={seller.seller.nome.length<50?seller.seller.nome:seller.seller.nome.substring(0, 40) + '...'}
 
-        name={seller.seller.name}
-        logo={seller.seller.logo}
+        name={seller.seller.name}ht
+        logo={seller.seller.logo ? seller.seller.logo  : '../assets/default1.jpg'}
         description={seller.seller.description}
         rating={seller.seller.rating}
         numReviews={seller.seller.numReviews}
