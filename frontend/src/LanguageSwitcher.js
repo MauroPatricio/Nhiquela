@@ -16,7 +16,7 @@ export default function LanguageSwitcher () {
 
   useEffect(()=>{
     handleChangeLanguage()
-  },[changelng, handleChangeLanguage])
+  },[changelng])
 
   let handleChangeLanguage = (event) => {
     let selectedLanguage = '';
