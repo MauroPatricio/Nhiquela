@@ -183,7 +183,7 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
       });
       const productId = req.params.id;
 
-      console.log(`Id: `.productId);
+     console.log(`Id: `.productId);
      const product = await Product.findById(productId);
      if(product){
 
@@ -196,7 +196,7 @@ productRoutes.put('/:id',isAuth, isSellerOrAdmin,expressAsyncHandler( async (req
           } else {
           console.log(`Image deleted successfully. Result: ${result}`);
           }
-          });
+          })
      
       product.deleteOne();
 

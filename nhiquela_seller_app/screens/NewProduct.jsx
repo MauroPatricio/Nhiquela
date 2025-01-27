@@ -37,11 +37,57 @@ const [userData, setUserData] = useState(null);
     try {
       if (!selectedColors) {
         setErrorColor(' Adicione as cores disponiveis do produto.');
+        Toast.show({
+          type: 'success',
+          text1: errorColor,
+          position: 'top',
+          visibilityTime: 4000, // Time for how long the toast will show
+          autoHide: true,
+          topOffset: 30,
+          bottomOffset: 40,
+          style: {
+              
+          backgroundColor: '#4CAF50', // Green background for success
+          borderLeftWidth: 10,
+          borderLeftColor: '#7F00FF', // Left border accent for success
+          },
+          text1Style: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: 'red', // Text color
+          
+          },
+        });
+
+
         return;
       }
 
       if (!selectedSizes) {
         setErrorSize('Adicione os tamanhos disponiveis produto.');
+
+        Toast.show({
+          type: 'success',
+          text1: errorSize,
+          position: 'top',
+          visibilityTime: 4000, // Time for how long the toast will show
+          autoHide: true,
+          topOffset: 30,
+          bottomOffset: 40,
+          style: {
+              
+          backgroundColor: '#4CAF50', // Green background for success
+          borderLeftWidth: 10,
+          borderLeftColor: '#7F00FF', // Left border accent for success
+          },
+          text1Style: {
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: 'red', // Text color
+          
+          },
+        });
+
         return;
       }
 
