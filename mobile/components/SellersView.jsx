@@ -62,7 +62,7 @@ useEffect(()=>{
 
         // name={seller.seller.nome.length<50?seller.seller.nome:seller.seller.nome.substring(0, 40) + '...'}
 
-        name={seller.seller.name}ht
+        name={seller.seller.name}
         logo={seller.seller.logo ? seller.seller.logo  : '../assets/default1.jpg'}
         description={seller.seller.description}
         rating={seller.seller.rating}
