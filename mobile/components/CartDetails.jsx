@@ -112,12 +112,12 @@ const CartDetails = () => {
                     <View style={styles.bottomSheetContent}>
                         <Text style={styles.bottomSheetTitle}>Endereço de entrega</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
-                            <TextInput
+                            {/* <TextInput
                                 style={styles.inputField}
                                 placeholder="Insira o endereço de entrega"
                                 value={address}
                                 onChangeText={setAddress}
-                            />
+                            /> */}
                             <View>
                                 {userLocation ? (
                                     <Text style={styles.locationText}>
@@ -127,7 +127,7 @@ const CartDetails = () => {
                                     <Text style={styles.locationText}>Obtendo localização...</Text>
                                 )}
                                 {distance ? (
-                                    <Text style={styles.distanceText}>Distância até o fornecedor: {distance.toFixed(2)} km</Text>
+                                    <Text style={styles.distanceText}>Distância até ao fornecedor: {distance.toFixed(2)} km</Text>
                                 ) : (
                                     <Text style={styles.distanceText}>Calculando distância...</Text>
                                 )}
