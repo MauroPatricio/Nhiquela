@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "270534563392",
+    "project_id": "reactnativepushnotificat-a322b",
+    "storage_bucket": "reactnativepushnotificat-a322b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:270534563392:android:a5099f1979073d4a8cb1a5",
+        "android_client_info": {
+          "package_name": "com.anonymous.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0g0s4avMQgMVlq8X5jdb_vOsEFDSg9c0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

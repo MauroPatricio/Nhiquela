@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Visa Casa Pro",
+    "slug": "Visa Casa Pro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/nhiquela3.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/visacasa2.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "android": {
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/visacasa2.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.mpatricio.nhiquela_seller"
+    },
+    "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to your camera to upload images.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0"
+      }
+    }
+  }
+}

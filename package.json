@@ -1,0 +1,24 @@
+{
+  "name": "ecommerce",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/index.js",
+    "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MauroPatricio/ecommerce.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MauroPatricio/ecommerce/issues"
+  },
+  "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
+  "dependencies": {
+    "react-native-open-maps": "^0.4.3"
+  }
+}
