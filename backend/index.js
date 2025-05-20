@@ -19,13 +19,11 @@ import colorRoutes from './routes/colorRoutes.js';
 import sizeRoutes from './routes/sizeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
-import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import notificationRoutesNhabanga from './routes/notificationRoutesNhabanga.js';
 import { fileURLToPath } from 'url';
 import admin from 'firebase-admin';
-import { dirname } from 'path';
 import { readFile } from 'fs/promises';
 
 // **Nova importação**
@@ -73,7 +71,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/tipo_estabelecimento', tipoEstabelecimentoRoutes);
 
 // Configuração das demais rotas
-app.use('/api/seed', seedRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRouter);
 app.use('/api/orders', orderRouter);
