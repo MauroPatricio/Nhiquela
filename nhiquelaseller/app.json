@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "NhiquelaPRO",
-    "slug": "nhiquelapr",
+    "slug": "nhiquelap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/nhiquela3.png",
@@ -36,7 +36,7 @@
         "foregroundImage": "./assets/nhiquela3.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mpatricio.nhiquelapr"
+      "package": "com.mpatricio.nhiquelap"
     },
     "ios": {
       "infoPlist": {
@@ -54,7 +54,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "0a4eaeb5-a6df-456c-9b74-bd499a34aeec"
+        "projectId": "3955dd7f-ad17-497a-966b-33dfae1b0b18"
       }
     },
     "owner": "mpatricio"
