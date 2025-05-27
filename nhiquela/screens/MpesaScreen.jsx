@@ -123,7 +123,7 @@ const MpesaScreen = () => {
       const customerNumber = '258' + values.customerNumber;
 
  
-      // const { data } = await api.post(`payments/mpesa`, {customerNumber, amount},  {
+      // const { data } = await api.post(`payments/mpesa/c2b`, {customerNumber, amount},  {
       //   headers: {
       //     authorization: `Bearer ${userData.token}`,
       //   },
