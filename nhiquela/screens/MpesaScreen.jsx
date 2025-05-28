@@ -157,6 +157,15 @@ const MpesaScreen = () => {
           },
         });
 
+        // Apos gravar o pedido retorne a informacao com o valor deduzido com os menos 30% que e uma variavel que ja existe no objecto gravado
+        // Apenas deve-se pegue o pedido gravado e envie para o fornecedor com o preco inicial de registro
+
+      // const { data } = await api.post(`payments/mpesa/b2c`, {customerNumber, amount},  { // Efectuar Pagamento ao fornecedor
+      //   headers: {
+      //     authorization: `Bearer ${userData.token}`,
+      //   },
+      // });
+
         dispatch(clearBasket());
         checkForNewMessages(response);
         navigation.replace('SuccessPayment');
