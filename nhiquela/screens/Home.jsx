@@ -148,16 +148,18 @@ const Home = () => {
         const products = response.data || [];
 
         const categoriesMap = new Map();
-        products.forEach(product => {
-          const category = product.categoryDetails;
-          if (!categoriesMap.has(category._id)) {
-            categoriesMap.set(category._id, {
-              ...category,
-              products: [],
-            });
-          }
-          categoriesMap.get(category._id).products.push(product);
-        });
+      products.forEach(product => {
+      const category = product.categoryDetails;
+      if (category && category._id) {
+        if (!categoriesMap.has(category._id)) {
+          categoriesMap.set(category._id, {
+            ...category,
+            products: [],
+          });
+        }
+        categoriesMap.get(category._id).products.push(product);
+      }
+});
 
         const categoriesWithProducts = Array.from(categoriesMap.values())
           .filter(category => category.products.length > 0);
