@@ -1,6 +1,16 @@
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Image,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Animated,
+} from 'react-native';
 import React, { useState } from 'react';
-import { MinusCircleIcon, PlusCircleIcon } from 'react-native-heroicons/outline';
+import { MinusCircleIcon, PlusCircleIcon, ChevronDownIcon } from 'react-native-heroicons/outline';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addToBasket,
@@ -11,25 +21,21 @@ import {
   getItemsBySellerId,
 } from '../features/basketSlice';
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const SellerProduct = ({
   id,
-  nome,
   name,
   image,
-  images,
   description,
-  rating,
-  numReviews,
-  province,
-  address,
-  priceFromSeller,
-  price,
-  onSale,
   countInStock,
+  price,
   seller,
   sellerName,
 }) => {
-  const [isPressed, setIsPressed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const items = useSelector((state) => selectBasketItemsWithId(id)(state));
   const remainingItemsFromSeller = useSelector((state) =>
@@ -38,140 +44,152 @@ const SellerProduct = ({
 
   const dispatch = useDispatch();
 
-  const addItemToBasket = () => {
-    if (items.length >= countInStock) return; // Impede adicionar se não houver estoque
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+  };
 
+  const addItemToBasket = () => {
+    if (items.length >= countInStock) return;
     dispatch(
       addToBasket({
         id,
         _id: id,
-        nome,
         name,
         image,
-        images,
         description,
-        rating,
-        numReviews,
-        province,
-        address,
-        priceFromSeller,
-        price,
-        onSale,
         countInStock,
+        price,
         seller,
         sellerName,
         quantity: items.length + 1,
       })
     );
-
-    dispatch(addSellers({ seller })); // Adiciona o vendedor à lista de vendedores
+    dispatch(addSellers({ seller }));
   };
 
   const removeItem = () => {
-      if (items.length === 0) return;
-    const _id = id
-    dispatch(removeFromBasket({ _id })); // Remove o item do carrinho
-
+    if (items.length === 0) return;
+    dispatch(removeFromBasket({ _id: id }));
     if (remainingItemsFromSeller.length === 1) {
-      dispatch(removeSeller({ sellerId: seller._id })); // Remove o vendedor se for o último item
+      dispatch(removeSeller({ sellerId: seller._id }));
     }
   };
 
   return (
-    <>
-      <TouchableOpacity
-        style={styles.container}
-        onPress={() => setIsPressed(!isPressed)}
-      >
-        <View style={styles.wrapper}>
-          <View>
-            <Text style={styles.productName}>{name}</Text>
-            <Text style={styles.details}>{description}</Text>
-            <Text>{countInStock} unidade(s)</Text>
-            <Text style={styles.price}>{price} MT</Text>
-          </View>
-          <View>
-            <Image
-              source={{ uri: image }}
-              style={styles.image}
-            />
-          </View>
-        </View>
-      </TouchableOpacity>
+    <TouchableOpacity onPress={toggleExpand} activeOpacity={0.9} style={styles.card}>
+      <Image source={{ uri: image }} style={styles.image} />
 
-      {isPressed && (
-        <View style={styles.circleIcons}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.name}>{name}</Text>
+          <ChevronDownIcon
+            size={20}
+            color="gray"
+            style={[styles.chevron, isExpanded && styles.chevronUp]}
+          />
+        </View>
+
+        <Text style={styles.description}>{description}</Text>
+        <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
+        <Text style={styles.price}>{price} MT</Text>
+      </View>
+
+      {isExpanded && (
+        <View style={styles.actions}>
           <TouchableOpacity onPress={removeItem}>
             <MinusCircleIcon
               size={35}
-              color={items.length > 0 ? 'white' : 'grey'}
-              style={styles.minusIcon}
+              color={items.length > 0 ? 'white' : 'gray'}
+              style={styles.iconButton}
             />
           </TouchableOpacity>
-          <Text>{items.length}</Text>
+
+          <Text style={styles.quantity}>{items.length}</Text>
+
           <TouchableOpacity onPress={addItemToBasket}>
-            <PlusCircleIcon size={35} color="white" style={styles.plusIcon} />
+            <PlusCircleIcon size={35} color="white" style={styles.iconButton} />
           </TouchableOpacity>
         </View>
+        
       )}
-    </>
+
+    </TouchableOpacity>
   );
 };
 
 export default SellerProduct;
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'white',
-    borderWidth: 0.5,
-    borderColor: '#E0E0E0',
-    marginLeft: 10,
-  },
-  wrapper: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  productName: {
-    fontSize: 15,
-    fontWeight: '500',
-    width: 240,
-  },
-  details: {
-    fontSize: 13,
-    color: 'grey',
-    width: 280,
-  },
-  price: {
-    fontWeight: '500',
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 10,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
   },
   image: {
-    height: 70,
-    width: 70,
-    marginTop: 5,
-    marginBottom: 5,
-    borderRadius: 5,
-    marginRight: 5,
+    height: 160,
+    borderRadius: 10,
+    width: '100%',
+    resizeMode: 'cover',
   },
-  minusIcon: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 50,
-    padding: 5,
-    marginRight: 10,
+  content: {
+    marginTop: 12,
   },
-  plusIcon: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 22,
-    padding: 5,
-    marginLeft: 10,
-  },
-  circleIcons: {
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
     flex: 1,
-    alignContent: 'center',
+    marginRight: 8,
+  },
+  chevron: {
+    transform: [{ rotate: '0deg' }],
+    transition: 'transform 0.3s',
+  },
+  chevronUp: {
+    transform: [{ rotate: '180deg' }],
+  },
+  description: {
+    fontSize: 13,
+    color: '#666',
+    marginVertical: 4,
+  },
+  stock: {
+    fontSize: 12,
+    color: '#888',
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginTop: 6,
+    color: '#7F00FF',
+  },
+  actions: {
+    marginTop: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-    marginTop: 10,
+    gap: 20,
   },
+  iconButton: {
+    backgroundColor: '#7F00FF',
+    borderRadius: 50,
+    padding: 6,
+  },
+  quantity: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginHorizontal: 12,
+  }
 });

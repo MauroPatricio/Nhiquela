@@ -3,166 +3,136 @@ import React, { useState } from 'react';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Badge } from 'react-native-paper';
-import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, checkIfSellerExists, getItemsBySellerId } from '../../features/basketSlice';
+import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, getItemsBySellerId } from '../../features/basketSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import BasketIcon from '../BasketIcon';
 
 const ProductDetail = () => {
   const route = useRoute();
-  const item = route.params?.item || {}; // Fallback in case `item` is undefined
+  const item = route.params?.item || {};
+  const navigation = useNavigation();
 
-
-
-  const navigation = useNavigation()
-
-  // Destructure properties from `item` or `item.item`
   const itemData = item.item !== undefined ? item.item : item;
 
   const {
     _id,
-    nome  = itemData?.nome || itemData?.nome,
-    name = itemData?.name || itemData?.name,
+    nome = itemData?.nome,
+    name = itemData?.name,
     image,
-    images,
     description,
     rating,
     numReviews,
     countInStock,
-    province,
     priceFromSeller,
     price,
     onSale,
   } = itemData;
 
+  let seller = itemData?.sellerDetails || itemData?.seller;
+  const id = _id;
 
-  let seller = itemData?.sellerDetails;
-
-  const id = _id
-
-
-  seller = seller?itemData.sellerDetails:itemData.seller;
-
-
-
-  const [count, setCount] = useState(0); // Start count at 0
-
+  const [count, setCount] = useState(0);
   const items = useSelector((state) => selectBasketItemsWithId(state, _id));
   const dispatch = useDispatch();
 
-  const sellerName = seller?.seller?.name;
-
+  const sellerName = seller?.seller?.name || seller?.name;
 
   const addItemToBasket = () => {
     const currentQuantity = items.length;
-    if (currentQuantity + count >= countInStock) {
-      return; // Prevent adding if the stock is exhausted
-    }
+    if (currentQuantity + count >= countInStock) return;
 
-    setCount(count + 1); // Increase count by 1
+    setCount(count + 1);
 
     dispatch(addToBasket({
       _id,
       nome,
       name,
       image,
-      images,
       description,
       rating,
       numReviews,
-      province,
+      countInStock,
       priceFromSeller,
       price,
       onSale,
-      countInStock,
       seller,
       sellerName,
-      quantity: currentQuantity + count + 1
+      quantity: currentQuantity + count + 1,
     }));
 
-      dispatch(addSellers({ seller }));
-    
+    dispatch(addSellers({ seller }));
   };
 
   const removeItem = () => {
-    if (count > 0) {
-      setCount(count - 1);
-    }
+    if (count === 0) return;
+    setCount(count - 1);
+
     if (count === 1) {
-      if (_id) {
-         dispatch(removeFromBasket({ _id }));
-  
-        const remainingItemsFromSeller = getItemsBySellerId(seller._id);
-        if (remainingItemsFromSeller.length === 0) {
-          dispatch(removeSeller({ sellerId: seller._id }));
-        }
-      } 
+      dispatch(removeFromBasket({ _id }));
+
+      const remainingItemsFromSeller = getItemsBySellerId(seller._id);
+      if (remainingItemsFromSeller.length === 0) {
+        dispatch(removeSeller({ sellerId: seller._id }));
+      }
     }
   };
 
   return (
     <>
       <BasketIcon />
-      <ScrollView>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           <Image source={{ uri: image }} style={styles.image} />
-          <View style={styles.icons}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={28} color="#fff" />
+          </TouchableOpacity>
+
           <View style={styles.details}>
-            <Text style={styles.seller}> Fornecedor: {sellerName} </Text>
+            <Text style={styles.seller}>Fornecedor: <Text style={{ fontWeight: '600' }}>{sellerName || 'N/A'}</Text></Text>
             <Text style={styles.title}>{nome}</Text>
-            <Text style={styles.price}>{price} MT</Text>
-            <Text>{countInStock} unidade(s) disponível(is)</Text>
+            <View style={styles.priceRow}>
+              {onSale && <Badge style={styles.saleBadge}>Promoção</Badge>}
+              <Text style={styles.price}>{price} MT</Text>
+            </View>
+            <Text style={styles.stockText}>{countInStock > 0 ? `${countInStock} unidade(s) disponível(is)` : 'Sem stock'}</Text>
 
             <View style={styles.ratingRow}>
-              {/* <View style={styles.rating}>
-                {[...Array(Math.round(rating))].map((_, index) => (
-                  <Ionicons key={index} size={15} color="gold" name="star" />
-                ))}
-                <Text>{rating}</Text>
-              </View> */}
-
-              {/* <View style={styles.rating}>
-  {rating > 0 && !isNaN(rating) ? (
-    [...Array(Math.round(rating))].map((_, index) => (
-      <Ionicons key={index} size={15} color="gold" name="star" />
-    ))
-  ) : (
-    <Text>Sem pontuações </Text>
-  )}
-  <Text>{rating || 0}</Text>
-</View> */}
-
-              <View style={styles.countControl}>
-                <TouchableOpacity onPress={removeItem} disabled={count === 0}>
-                  <SimpleLineIcons name="minus" size={25} />
-                </TouchableOpacity>
-                <Text style={styles.countText}>{count}</Text>
-                <TouchableOpacity onPress={addItemToBasket} disabled={count >= countInStock || countInStock === 0}>
-                  <SimpleLineIcons name="plus" size={25} />
-                </TouchableOpacity>
-              </View>
+              {rating > 0 && !isNaN(rating) ? (
+                [...Array(Math.round(rating))].map((_, idx) => (
+                  <Ionicons key={idx} name="star" size={18} color="#FFD700" />
+                ))
+              ) : (
+                <Text style={styles.noRating}>Sem pontuações</Text>
+              )}
+              <Text style={styles.ratingValue}>{rating?.toFixed(1) || '0.0'}</Text>
+              <Text style={styles.numReviews}>({numReviews || 0} avaliações)</Text>
             </View>
 
-            <Text style={{ marginLeft: 20 }}>
-              {itemData.isOrdered ? (
-                <Badge style={{ color: 'white', backgroundColor: 'green' }}>Por encomenda</Badge>
-              ) : countInStock !== 0 ? (
-                `${countInStock} unidade(s)`
-              ) : (
-                <Badge bg="danger">Sem stock</Badge>
-              )}
-            </Text>
+            <View style={styles.counterContainer}>
+              <TouchableOpacity
+                style={[styles.counterButton, count === 0 && styles.disabledButton]}
+                onPress={removeItem}
+                disabled={count === 0}
+              >
+                <SimpleLineIcons name="minus" size={24} color={count === 0 ? '#aaa' : '#7F00FF'} />
+              </TouchableOpacity>
+              <Text style={styles.countText}>{count}</Text>
+              <TouchableOpacity
+                style={[styles.counterButton, (count >= countInStock || countInStock === 0) && styles.disabledButton]}
+                onPress={addItemToBasket}
+                disabled={count >= countInStock || countInStock === 0}
+              >
+                <SimpleLineIcons name="plus" size={24} color={(count >= countInStock || countInStock === 0) ? '#aaa' : '#7F00FF'} />
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.descriptionWrapper}>
-              <Text style={styles.description}>Descrição</Text>
-              <Text style={styles.descText}>{description}</Text>
+              <Text style={styles.descriptionTitle}>Descrição</Text>
+              <Text style={styles.descriptionText}>{description || 'Sem descrição disponível.'}</Text>
             </View>
           </View>
         </View>
-        <View style={{ marginBottom: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
     </>
   );
@@ -171,98 +141,144 @@ const ProductDetail = () => {
 export default ProductDetail;
 
 const styles = StyleSheet.create({
+  scrollView: {
+    backgroundColor: '#FAFAFA',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
   },
   image: {
     width: '100%',
-    height: 350,
+    height: 360,
     resizeMode: 'cover',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
   },
-  icons: {
+  backButton: {
     position: 'absolute',
-    top: 40,
-    left: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '90%',
-  },
-  back: {
-    color: 'black',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 22,
-    padding: 5,
+    top: 45,
+    left: 15,
+    backgroundColor: 'rgba(127, 0, 255, 0.7)',
+    padding: 8,
+    borderRadius: 25,
+    elevation: 6,
   },
   details: {
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    elevation: 3,
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  price: {
-    fontSize: 22,
-    color: '#7F00FF',
-    fontWeight: '800',
+    marginHorizontal: 20,
+    marginTop: 5,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    padding: 10,
+    // shadowColor: '#7F00FF',
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 5,
   },
   seller: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#7F00FF',
-    fontWeight: '800',
-
+    marginBottom: 6,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 10,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  price: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#7F00FF',
+  },
+  saleBadge: {
+    backgroundColor: '#FF4757',
+    color: '#fff',
+    marginRight: 12,
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  stockText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
   },
   ratingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 15,
+    marginBottom: 18,
   },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  noRating: {
+    fontSize: 14,
+    color: '#AAA',
+    marginRight: 6,
   },
-  countControl: {
-    marginTop: 0, 
-    marginBottom: 14,
+  ratingValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#444',
+    marginLeft: 6,
+  },
+  numReviews: {
+    fontSize: 14,
+    color: '#888',
+    marginLeft: 8,
+  },
+  counterContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F4F4F4',
-    borderRadius: 10,
+    backgroundColor: 'white',
+    borderRadius: 15,
     paddingVertical: 10,
-    paddingHorizontal: 15,
-    width: 140,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    // paddingHorizontal: 20,
+    shadowColor: '#7F00FF',
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+    marginBottom: 25,
+  },
+  counterButton: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    // padding: 6,
+    marginHorizontal: 20,
+    elevation: 3,
+    // shadowColor: '#7F00FF',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  disabledButton: {
+    backgroundColor: '#EEE',
   },
   countText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginHorizontal: 10,
+    fontSize: 22,
+    fontWeight: '700',
+    // color: '#7F00FF',
+    minWidth: 30,
+    textAlign: 'center',
   },
   descriptionWrapper: {
-    marginTop: 20,
-    paddingHorizontal: 15,
+    marginTop: 10,
   },
-  description: {
-    fontSize: 18,
+  descriptionTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
     color: '#333',
+    marginBottom: 8,
   },
-  descText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+  descriptionText: {
+    fontSize: 16,
+    color: '#555',
+    lineHeight: 22,
   },
 });
