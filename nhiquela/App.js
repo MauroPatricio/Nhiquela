@@ -33,6 +33,7 @@ import { useEffect } from 'react';
 import messaging from '@react-native-firebase/messaging';
 import ProductListByCategory from './components/products/ProductListByCategory';
 import SellersList from './components/SellersList';
+import ForgotPassword from './screens/ForgotPassword'
 
 
 
@@ -179,6 +180,12 @@ style={{flex: 1}}>
 
 <Stack.Screen name='OrderList'
             component={OrderList}
+            options={{headerShown: false}}
+            />
+
+
+<Stack.Screen name='ForgotPassword'
+            component={ForgotPassword}
             options={{headerShown: false}}
             />
         </Stack.Navigator>

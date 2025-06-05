@@ -64,6 +64,7 @@ const SellersList = () => {
           address,
           latitude,
           longitude,
+          openstore
         } = item.seller; // Destructure properties from item.seller
     
         // Navigate to the SellerScreen with the seller's details
@@ -78,6 +79,7 @@ const SellersList = () => {
           address,
           latitude,
           longitude,
+          openstore
         });
       }}
     >
@@ -121,85 +123,67 @@ const SellersList = () => {
 
 export default SellersList;
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: 'white', // Keep the background white for contrast
-    },
-    // icons: {
-    //     position: 'absolute',
-    //     top: 30,
-    //     flexDirection: "row",
-    //     justifyContent: 'space-between',
-    //     alignItems: 'center',
-    //     width: '100%', // Ensure icons are spread across the width
-    //     // paddingHorizontal: 20,
-    //   },
-    //   icon: {
-    //     backgroundColor: 'white',
-    //     color: '#3e2465',
-    //     borderRadius: 20,
-    //   },
-    //   back: {
-    //     color: 'black',
-    //     backgroundColor: 'rgba(255, 255, 255, 0.8)', // Slight transparency for a modern look
-    //     borderRadius: 22,
-    //     padding: 5,
-    //   },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#7F00FF', // Main color for the title
-      textAlign: 'center',
-      marginVertical: 20,
-    },
-    listContent: {
-      // paddingVertical: 10,
-      // paddingHorizontal: 15,
-    },
-    sellerCard: {
-      flexDirection: 'row',
-      width: width * 0.9,
-      padding: 15,
-      marginVertical: 10,
-      backgroundColor: '#F0F0F0', // Keep card background white for contrast
-      borderRadius: 12,
-      alignSelf: 'center',
-      shadowColor: 'black',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.15,
-      shadowRadius: 3.84,
-      elevation: 3,
-      borderWidth: 1, // Added border to seller card
-      borderColor: '#7F00FF', // Border color matching the main color
-    },
-    sellerLogo: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      marginRight: 15,
-      borderWidth: 2,
-      borderColor: '#7F00FF', // Border color for logo matching main color
-    },
-    sellerInfo: {
-      flex: 1,
-      justifyContent: 'center',
-    },
-    sellerName: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#333', // Keep name color as dark for contrast
-      marginBottom: 5,
-    },
-    sellerDescription: {
-      fontSize: 14,
-      color: '#666', // Description color for contrast
-    },
-    // Optional: Add styles for loading spinner
-    loadingSpinner: {
-      marginVertical: 20,
-    },
+   container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    backgroundColor: '#fafafa',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#7F00FF',
+    paddingLeft: 20
+  },
+  listContent: {
+    paddingVertical: 10,
+  },
+  sellerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    padding: 15,
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  sellerLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 15,
+    borderWidth: 2,
+    borderColor: '#7F00FF',
+  },
+  sellerInfo: {
+    flex: 1,
+  },
+  sellerName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  sellerDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  loadingSpinner: {
+    marginVertical: 20,
+  },
   });
   

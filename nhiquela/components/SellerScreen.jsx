@@ -1,7 +1,14 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
 import SellerProduct from './SellerProduct';
@@ -12,12 +19,27 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 const SellerScreen = () => {
-  const { params: { id, name, logo, description, rating, numReviews, province, address, latitude, longitude, openstore } } = useRoute();
+  const {
+    params: {
+      id,
+      name,
+      logo,
+      description,
+      rating,
+      numReviews,
+      province,
+      address,
+      latitude,
+      longitude,
+      openstore,
+    },
+  } = useRoute();
   const navigation = useNavigation();
   const sellerId = id;
+
   const [productsBySeller, setProductsBySeller] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [distance, setDistance] = useState("Calculando...");
+  const [distance, setDistance] = useState('Calculando...');
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -29,7 +51,7 @@ const SellerScreen = () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         console.log('Permissão de localização negada');
-        setDistance("Indisponível");
+        setDistance('Indisponível');
         return;
       }
 
@@ -38,9 +60,9 @@ const SellerScreen = () => {
       const userLon = location.coords.longitude;
 
       if (latitude && longitude) {
-        setDistance(calculateDistance(userLat, userLon, parseFloat(latitude), parseFloat(longitude)) + " km");
+        setDistance(calculateDistance(userLat, userLon, parseFloat(latitude), parseFloat(longitude)) + ' km');
       } else {
-        setDistance("Indisponível");
+        setDistance('Indisponível');
       }
     };
 
@@ -51,9 +73,12 @@ const SellerScreen = () => {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return (R * c).toFixed(2);
   };
@@ -62,10 +87,10 @@ const SellerScreen = () => {
     try {
       setLoading(true);
       const response = await api.get(`/products?seller=${sellerId}`);
-      if (response.status == 200) {
-        setLoading(false);
+      if (response.status === 200) {
         setProductsBySeller(response.data.products);
       }
+      setLoading(false);
     } catch (error) {
       setLoading(false);
     }
@@ -76,7 +101,7 @@ const SellerScreen = () => {
   }, []);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ headerShow: false });
+    navigation.setOptions({ headerShown: false });
   }, []);
 
   return (
@@ -84,7 +109,8 @@ const SellerScreen = () => {
       <BasketIcon />
 
       <ScrollView style={{ backgroundColor: '#F5F5F5' }}>
-        <Image source={{ uri: logo, height: 300 }} style={styles.logo} />
+        <Image source={{ uri: logo }} style={styles.logo} />
+
         <View style={styles.icons}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name='chevron-back-circle' size={35} style={styles.back} />
@@ -92,28 +118,28 @@ const SellerScreen = () => {
         </View>
 
         <View style={styles.view}>
-          <View style={styles.rating}>
-            <Text style={styles.sellerName}>{name}</Text>
-            {/* <View style={styles.ratingContainer}>
-              <Ionicons name="star" color={'gold'} size={22} />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View> */}
-          </View>
+          <Text style={styles.sellerName}>{name}</Text>
 
           {latitude && longitude ? (
             <View style={styles.mapContainer}>
               <Text style={styles.mapTitle}>Localização do Fornecedor</Text>
-              <MapView
+              {/* <MapView
                 style={styles.map}
                 initialRegion={{
                   latitude: parseFloat(latitude),
                   longitude: parseFloat(longitude),
-                  latitudeDelta: 0.001,
-                  longitudeDelta: 0.001,
+                  latitudeDelta: 0.005,
+                  longitudeDelta: 0.005,
                 }}
               >
-                <Marker coordinate={{ latitude: parseFloat(latitude), longitude: parseFloat(longitude) }} title="Localização do Vendedor" />
-              </MapView>
+                <Marker
+                  coordinate={{
+                    latitude: parseFloat(latitude),
+                    longitude: parseFloat(longitude),
+                  }}
+                  title="Localização do Vendedor"
+                />
+              </MapView> */}
             </View>
           ) : (
             <Text style={styles.locationText}>Localização do vendedor não disponível.</Text>
@@ -121,14 +147,16 @@ const SellerScreen = () => {
 
           <Text style={styles.distanceText}>Distância: {distance}</Text>
 
-          <Text style={styles.openstore}>{openstore ? 'Estamos abertos' : 'Estamos fechados'}</Text>
+          <Text style={[styles.openstore, { color: openstore ? 'green' : 'red' }]}>
+            {openstore ? 'Estamos abertos' : 'Estamos fechados'}
+          </Text>
 
           <Text style={styles.sectionTitle}>Endereço:</Text>
           <View style={styles.details}>
-            {/* <View style={styles.address}> */}
-              <Ionicons name='location-outline' color="#7F00FF" size={22} />
-              <Text style={styles.addressText}><Text style={{ fontWeight: '500' }}>{province?.name}</Text> - {address}</Text>
-            {/* </View> */}
+            <Ionicons name='location-outline' color="#7F00FF" size={22} />
+            <Text style={styles.addressText}>
+              <Text style={{ fontWeight: '500' }}>{province?.name}</Text> - {address}
+            </Text>
           </View>
 
           <View style={styles.description}>
@@ -137,9 +165,7 @@ const SellerScreen = () => {
           </View>
         </View>
 
-        <View>
-          <Text style={styles.title}>Produtos</Text>
-        </View>
+        <Text style={styles.title}>Produtos</Text>
 
         <View style={styles.productView}>
           {productsBySeller && productsBySeller.map((product) => (
@@ -164,6 +190,8 @@ const SellerScreen = () => {
             />
           ))}
         </View>
+                <Text style={styles.padding}></Text>
+
       </ScrollView>
     </>
   );
@@ -175,12 +203,12 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: 300,
-    overflow: 'hidden',
+    resizeMode: 'cover',
   },
   icons: {
     position: 'absolute',
     top: 30,
-    flexDirection: "row",
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
@@ -209,30 +237,6 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 10,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  ratingText: {
-    fontSize: 16,
-    color: '#666666',
-    marginLeft: 5,
-  },
-  details: {
-    flexDirection: 'column',
-    marginTop: 10,
-  },
-  address: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  addressText: {
-    fontSize: 16,
-    color: '#666666',
-    marginLeft: 5,
-  },
   distanceText: {
     marginTop: 10,
     fontSize: 16,
@@ -243,14 +247,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     fontWeight: '500',
-    // color: openstore ? 'green' : 'red',
   },
-  description: {
+  details: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 10,
   },
-  descriptionText: {
+  addressText: {
     fontSize: 16,
     color: '#666666',
+    marginLeft: 5,
   },
   mapContainer: {
     marginTop: 10,
@@ -266,6 +272,13 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 10,
   },
+  description: {
+    marginTop: 10,
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: '#666666',
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
@@ -274,14 +287,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  productView: {
-    paddingBottom: 90,
-    paddingHorizontal: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#7F00FF',
-    marginBottom: 10,
-  },
+
+  padding:{
+    paddingBottom:100
+  }
 });
