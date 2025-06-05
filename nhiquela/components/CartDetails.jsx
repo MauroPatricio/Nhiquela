@@ -186,18 +186,19 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
                             </View>
 
                             {userLocation && sellerLocation.latitude && sellerLocation.longitude ? (
-                                <MapView
-                                    style={styles.map}
-                                    initialRegion={{
-                                        latitude: userLocation.latitude,
-                                        longitude: userLocation.longitude,
-                                        latitudeDelta: 0.0922,
-                                        longitudeDelta: 0.0421,
-                                    }}
-                                >
-                                    <Marker coordinate={userLocation} title="Sua Localização" />
-                                    <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
-                                </MapView>
+                                <></>
+                                // <MapView
+                                //     style={styles.map}
+                                //     initialRegion={{
+                                //         latitude: userLocation.latitude,
+                                //         longitude: userLocation.longitude,
+                                //         latitudeDelta: 0.0922,
+                                //         longitudeDelta: 0.0421,
+                                //     }}
+                                // >
+                                //     <Marker coordinate={userLocation} title="Sua Localização" />
+                                //     <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
+                                // </MapView>
                             ) : (
                                 <Text style={styles.locationText}>Localização do vendedor não disponível.</Text>
                             )}

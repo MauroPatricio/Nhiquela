@@ -51,7 +51,7 @@ const Search = () => {
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <Image
             source={require('../assets/search.png')}
-            style={styles.searchImage}
+            style={styles.searchImage }
           />
           <Text >Inicie sua pesquisa</Text>
         </View>

@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, SafeAreaView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,12 +31,10 @@ const OrderDetailsScreen = () => {
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
     const userId = `user${JSON.parse(id)}`;
-
     try {
       const currentUser = await AsyncStorage.getItem(userId);
       if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
+        setUserData(JSON.parse(currentUser));
       }
     } catch (error) {
       console.error(error);
@@ -33,27 +42,21 @@ const OrderDetailsScreen = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const cancelOrderPop = async (orderId) => {
     try {
       if (!userData) throw new Error('User is not logged in');
-      const { data } = await api.put(
-        `/orders/${orderId}/cancel`,
-        { message },
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
+      const { data } = await api.put(`/orders/${orderId}/cancel`, { message }, {
+        headers: { Authorization: `Bearer ${userData.token}` }
+      });
       setCurrentOrder(data.order);
-      console.log('Pedido cancelado com sucesso', data);
+      Alert.alert('Sucesso', 'Pedido cancelado com sucesso.');
     } catch (error) {
-      console.error('Não consegui atualizar o pedido', error);
+      console.error('Erro ao cancelar pedido', error);
     } finally {
       setModalVisible(false);
     }
@@ -62,12 +65,11 @@ const OrderDetailsScreen = () => {
   const deleteOrder = async (orderId) => {
     try {
       if (!userData) throw new Error('User is not logged in');
-      const id = orderId;
-      await api.delete(`/orders/${id}`, {
+      await api.delete(`/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${userData.token}` },
       });
       Alert.alert('Sucesso', 'Pedido apagado com sucesso!');
-      navigation.goBack(); // Navigate back after deleting the order
+      navigation.goBack();
     } catch (error) {
       console.error('Erro ao apagar o pedido', error);
       Alert.alert('Erro', 'Não foi possível apagar o pedido.');
@@ -77,327 +79,244 @@ const OrderDetailsScreen = () => {
   const confirmDelivery = async (orderId) => {
     try {
       if (!userData) throw new Error('User is not logged in');
-      const { data } = await api.put(
-        `/orders/${orderId}/deliver`,
-        {},
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
+      const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
+        headers: { Authorization: `Bearer ${userData.token}` }
+      });
       setCurrentOrder(data.order);
-      Alert.alert('Sucesso', 'Pedido marcado como entregue com sucesso!');
+      Alert.alert('Sucesso', 'Pedido entregue com sucesso!');
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
       Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
     }
   };
 
-  const openCancelModal = () => {
-    setModalVisible(true);
-  };
-
   const confirmDeleteOrder = (orderId) => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza que deseja apagar este pedido?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Apagar', onPress: () => deleteOrder(orderId) },
-      ]
-    );
+    Alert.alert('Confirmar Exclusão', 'Deseja apagar este pedido?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Apagar', onPress: () => deleteOrder(orderId) },
+    ]);
   };
 
   const confirmDeliveryOrder = (orderId) => {
-    Alert.alert(
-      'Confirmar Entrega',
-      'Tem certeza que deseja confirmar a entrega deste pedido?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: () => confirmDelivery(orderId) },
-      ]
-    );
+    Alert.alert('Confirmar Entrega', 'Confirmar entrega deste pedido?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Confirmar', onPress: () => confirmDelivery(orderId) },
+    ]);
   };
 
   return (
-    <>
-      <View style={styles.icons}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
+          <Ionicons name="arrow-back" size={28} color="#333" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pedido #{currentOrder.code}</Text>
+        <View style={{ width: 28 }} />
       </View>
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingTop: 1 }}>
-        <ScrollView style={styles.container}>
-          <Text style={styles.heading}>Detalhes do pedido</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Código do pedido:</Text>
-            <Text style={styles.value}>{currentOrder.code}</Text>
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <Text style={styles.label}>Status:</Text>
+          <Text style={styles.value}>{currentOrder.status}</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Estado do pedido:</Text>
-            <Text style={styles.value}>{currentOrder.status}</Text>
-          </View>
+          <Text style={styles.label}>Pagamento:</Text>
+          <Text style={styles.value}>{currentOrder.paymentMethod} - {currentOrder.isPaid ? 'Pago' : 'Pendente'}</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Método de pagamento:</Text>
-            <Text style={styles.value}>{currentOrder.paymentMethod}</Text>
-          </View>
+          <Text style={styles.label}>Data de Pagamento:</Text>
+          <Text style={styles.value}>{formatDate(currentOrder.paidAt)}</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Pagamento efetuado:</Text>
-            <Text style={styles.value}>{currentOrder.isPaid ? 'Sim' : 'Não'}</Text>
-          </View>
+          <Text style={styles.label}>Taxa de entrega:</Text>
+          <Text style={styles.value}>{currentOrder.addressPrice} Mt</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Dia e hora do pagamento:</Text>
-            <Text style={styles.value}>{formatDate(currentOrder.paidAt)}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Taxa de entrega:</Text>
-            <Text style={styles.price}>{currentOrder.addressPrice} Mt</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Total pago:</Text>
-            <Text style={styles.price}>{currentOrder.totalPrice} Mt</Text>
-          </View>
+          <Text style={styles.label}>Total pago:</Text>
+          <Text style={styles.value}>{currentOrder.totalPrice} Mt</Text>
 
           {currentOrder.stepStatus === 7 && (
             <>
-              <Text style={styles.label}>Motivo de cancelamento: </Text>
+              <Text style={styles.label}>Motivo de cancelamento:</Text>
               <Text style={styles.value}>{currentOrder.canceledReason}</Text>
             </>
           )}
+        </View>
 
-          <Text style={styles.subheading}>Produtos solicitados:</Text>
-
-          {currentOrder.orderItems?.map((item, index) => (
-            <View style={styles.itemContainer} key={index}>
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.nome}</Text>
-                <Text style={styles.itemDescription}>Fornecedor: {currentOrder.seller?.seller?.name}</Text>
-                <Text style={styles.itemStock}>Qtd solicitada: {item.quantity} unidade(s)</Text>
-                <Text style={styles.itemPrice}>Preço: {item.price} Mt</Text>
-                <Text style={styles.itemDescription}>{item.description}</Text>
-              </View>
+        <Text style={styles.sectionTitle}>Produtos</Text>
+        {currentOrder.orderItems?.map((item, idx) => (
+          <View style={styles.itemCard} key={idx}>
+            <Image source={{ uri: item.image }} style={styles.image} />
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>{item.nome}</Text>
+              <Text style={styles.itemText}>Qtd: {item.quantity}</Text>
+              <Text style={styles.itemText}>Preço: {item.price} Mt</Text>
+              <Text style={styles.itemText}>Fornecedor: {currentOrder.seller?.seller?.name}</Text>
+              <Text style={styles.itemText}>{item.description}</Text>
             </View>
-          ))}
+          </View>
+        ))}
 
-          {/* Botão de confirmação de entrega (exibido apenas se o status for "em trânsito") */}
-          {currentOrder.status === 'Em trânsito' && (
-            <TouchableOpacity
-              style={styles.deliveryButton}
-              onPress={() => confirmDeliveryOrder(currentOrder._id)}
-            >
-              <Text style={styles.deliveryButtonText}>Confirmar Entrega</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Botão de apagar pedido */}
-
-          {currentOrder.status === 'Entregue' && (
-
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => confirmDeleteOrder(currentOrder._id)}
-          >
-            <Text style={styles.deleteButtonText}>Apagar pedido</Text>
+        {currentOrder.status === 'Em trânsito' && (
+          <TouchableOpacity style={styles.greenButton} onPress={() => confirmDeliveryOrder(currentOrder._id)}>
+            <Text style={styles.buttonText}>Confirmar Entrega</Text>
           </TouchableOpacity>
-          )}
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <View style={styles.modalView}>
-              <Text style={styles.modalText}>Digite o motivo do cancelamento:</Text>
+        )}
+
+        {currentOrder.status === 'Entregue' && (
+          <TouchableOpacity style={styles.redButton} onPress={() => confirmDeleteOrder(currentOrder._id)}>
+            <Text style={styles.buttonText}>Apagar Pedido</Text>
+          </TouchableOpacity>
+        )}
+
+        <Modal animationType="slide" transparent visible={modalVisible}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Motivo do cancelamento</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Motivo"
+                placeholder="Digite aqui..."
                 value={message}
                 onChangeText={setMessage}
               />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.acceptButton]}
-                  onPress={() => cancelOrderPop(currentOrder._id)}
-                >
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.greenButton} onPress={() => cancelOrderPop(currentOrder._id)}>
                   <Text style={styles.buttonText}>Confirmar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.rejectButton]}
-                  onPress={() => setModalVisible(false)}
-                >
+                <TouchableOpacity style={styles.redButton} onPress={() => setModalVisible(false)}>
                   <Text style={styles.buttonText}>Cancelar</Text>
                 </TouchableOpacity>
-                 
               </View>
             </View>
-          </Modal>
-
-          <View style={{ marginBottom: 210 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </>
+          </View>
+        </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  row: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F2F4F8',
+  },
+  headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomColor: '#ddd',
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  scrollContainer: {
+    padding: 16,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   label: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#555',
+    marginBottom: 4,
   },
   value: {
     fontSize: 16,
-    fontWeight: '700',
+    marginBottom: 12,
+    color: '#000',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
     color: '#333',
   },
-  price: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4A00E0',
-  },
-  icons: {
-    paddingTop: 20,
-  },
-  back: {
-    color: 'black',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 22,
-    padding: 10,
-  },
-  container: {
-    padding: 16,
-    backgroundColor: '#F9FAFC',
-    flexGrow: 1,
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#4A00E0',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  subheading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginVertical: 12,
-  },
-  itemContainer: {
+  itemCard: {
     flexDirection: 'row',
-    marginVertical: 5,
     backgroundColor: '#fff',
     borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  itemImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: '#F1F1F1',
+  image: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
   },
-  itemDetails: {
-    marginLeft: 16,
+  itemInfo: {
+    marginLeft: 12,
     flex: 1,
     justifyContent: 'center',
   },
   itemName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
-  itemDescription: {
-    fontSize: 14,
-    color: '#777',
-  },
-  itemPrice: {
-    fontWeight: '600',
-  },
-  itemStock: {
+  itemText: {
     fontSize: 14,
     color: '#555',
   },
-  deleteButton: {
-    backgroundColor: '#FF4444',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  deliveryButton: {
+  greenButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  deliveryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  modalView: {
-    backgroundColor: '#fff',
-    padding: 20,
     borderRadius: 10,
-    shadowOpacity: 0.25,
-    elevation: 5,
-    marginTop: '50%',
     alignItems: 'center',
+    marginTop: 16,
   },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  input: {
-    width: 250,
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingHorizontal: 10,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  modalButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-  },
-  rejectButton: {
+  redButton: {
     backgroundColor: '#F44336',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 16,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 16,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  input: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 12,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
 

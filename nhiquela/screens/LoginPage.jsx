@@ -121,11 +121,20 @@ const LoginPage = ({ navigation }) => {
                   )}
                 </View>
 
+               
+
                 <View>
                   <Button loader={loader} title="Entrar" onPress={isValid ? handleSubmit : null} isValid={isValid ? '#7F00FF' : 'red'} />
+                 {/* <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                  <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+                </TouchableOpacity> */}
                   <Text style={styles.registration} onPress={() => navigation.navigate('SignUp')}>Registrar</Text>
                 </View>
+
+
               </View>
+
+              
             )}
           </Formik>
         </View>
@@ -217,7 +226,8 @@ const styles = StyleSheet.create({
       textAlign: 'center',
       color: '#4A4A4A',
       marginTop: 10,
-      fontSize: 14,
+      fontWeight: '700'
     },
+
   });
   
