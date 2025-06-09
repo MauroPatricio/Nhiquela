@@ -38,10 +38,12 @@ const Home = () => {
   const items = useSelector(selectBasketItems);
   const navigation = useNavigation();
   const [products, setProducts] = useState([]);
+    const [categoriesWithProducts, setCategoriesWithProducts] = useState([]);
+
 
   useEffect(() => {
     checkIfUserExist();
-    fetchData();
+    // fetchData();
     fetchProductData();
     registerForPushNotificationsAsync();
     setupNotificationListeners();
@@ -49,7 +51,7 @@ const Home = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchData();
+      // fetchData();
       fetchProductData();
     }, [])
   );
@@ -130,46 +132,29 @@ const Home = () => {
     };
   };
 
-  const fetchData = async () => {
-    try {
-      const response = await api.get('/categories');
-      if (response.status === 200) {
-        setCategories(response.data.categories || []);
-      }
-    } catch (error) {
-      console.error(error);
+  // const fetchData = async () => {
+  //   try {
+  //     const response = await api.get('/categories');
+  //     if (response.status === 200) {
+  //       setCategories(response.data.categories || []);
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+ const fetchProductData = async () => {
+  try {
+    const response = await api.get('/products/bycategory');
+    if (response.status === 200) {
+      const categories = response.data || [];
+      setCategoriesWithProducts(categories);
     }
-  };
+  } catch (error) {
+    console.error("Erro ao buscar produtos por categoria", error);
+  }
+};
 
-  const fetchProductData = async () => {
-    try {
-      const response = await api.get('/products/bycategory');
-      if (response.status === 200) {
-        const products = response.data || [];
-
-        const categoriesMap = new Map();
-      products.forEach(product => {
-      const category = product.categoryDetails;
-      if (category && category._id) {
-        if (!categoriesMap.has(category._id)) {
-          categoriesMap.set(category._id, {
-            ...category,
-            products: [],
-          });
-        }
-        categoriesMap.get(category._id).products.push(product);
-      }
-});
-
-        const categoriesWithProducts = Array.from(categoriesMap.values())
-          .filter(category => category.products.length > 0);
-
-        setCategories(categoriesWithProducts);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
@@ -222,19 +207,18 @@ const Home = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
+    // await fetchData();
     await fetchProductData();
     setRefreshing(false);
   };
 
   // Usando useMemo para evitar refazer o filtro a cada renderização
-  const filteredCategories = useMemo(() => {
-    return categories
-      .filter((category) => category.products?.length > 0) // Remove categorias sem produtos
+   const filteredCategories = useMemo(() => {
+     return categoriesWithProducts
+      .filter((category) => category.products?.length > 0)
       .map(({ _id, nome, products }) => {
-        const description = nome.match(/\((.*?)\)/)?.[1] || ''; // Extrai descrição
-        const title = nome.replace(/\(.*?\)/, '').trim(); // Remove parênteses do título
-
+        const description = nome.match(/\((.*?)\)/)?.[1] || '';
+        const title = nome.replace(/\(.*?\)/, '').trim();
         return {
           _id,
           title,
@@ -242,7 +226,7 @@ const Home = () => {
           products,
         };
       });
-  }, [categories]);
+  }, [categoriesWithProducts]);
 
   return (
     <SafeAreaView style={{ backgroundColor: "white" }}>
@@ -281,24 +265,17 @@ const Home = () => {
             paddingHorizontal: 15,
           }}
         >
-          {categories
-            .sort((a, b) => {
-              const titleA = a.nome.replace(/\(.*?\)/, '').trim().toUpperCase();
-              const titleB = b.nome.replace(/\(.*?\)/, '').trim().toUpperCase();
-              return titleA.localeCompare(titleB);
-            })
-            .map((category) => {
-              const title = category.nome.replace(/\(.*?\)/, '').trim();
-              return (
-                <TouchableOpacity
-                  key={category._id}
-                  style={styles.wrapper}
-                  onPress={() => handleCategorySelect(category)}
-                >
-                  <Text style={styles.title}>{title}</Text>
-                </TouchableOpacity>
-              );
-            })}
+         {filteredCategories
+  .sort((a, b) => a.title.localeCompare(b.title))
+  .map((category) => (
+    <TouchableOpacity
+      key={category._id}
+      style={styles.wrapper}
+      onPress={() => handleCategorySelect(category)}
+    >
+      <Text style={styles.title}>{category.title}</Text>
+    </TouchableOpacity>
+))}
         </ScrollView>
 
         <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
