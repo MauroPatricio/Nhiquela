@@ -12,6 +12,17 @@ import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
 import * as Notifications from 'expo-notifications';
 
+// Tipos de estabelecimento
+const TIPOS_ESTABELECIMENTO = [
+  { id: 'restaurante', nome: 'Restaurante' },
+  { id: 'hotel', nome: 'Hotel' },
+  { id: 'bar', nome: 'Bar' },
+  { id: 'cafe', nome: 'Café' },
+  { id: 'pastelaria', nome: 'Pastelaria' },
+  { id: 'supermercado', nome: 'Supermercado' },
+  { id: 'outro', nome: 'Outro' },
+];
+
 // Validation schema
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('O nome é obrigatório'),
@@ -33,6 +44,7 @@ const validationSchema = Yup.object().shape({
     address: Yup.string().required('O endereço do estabelecimento é obrigatório'),
     phoneNumberAccount: Yup.string().required('O número de conta é obrigatório'),
     province: Yup.string().required('A localização do estabelecimento é obrigatória'),
+    tipoEstabelecimento: Yup.string().required('O tipo de estabelecimento é obrigatório'),
   }),
 });
 
@@ -42,8 +54,9 @@ const SignUp = () => {
   const [provinces, setProvinces] = useState([]);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // Estado para mostrar/ocultar senha
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Estado para mostrar/ocultar confirmação de senha
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [tiposEstabelecimentos, setTiposEstabelecimentos] = useState([]);
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -58,6 +71,22 @@ const SignUp = () => {
       }
     };
     fetchProvinces();
+  }, []);
+
+
+    useEffect(() => {
+    const fetchTiposEstabelecimentos = async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get('tipoestabelecimentos');
+        setTiposEstabelecimentos(data.tipoestabelecimentos);
+      } catch (error) {
+        console.error('Erro ao buscar Tipos Estabelecimentos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTiposEstabelecimentos();
   }, []);
 
   useEffect(() => {
@@ -126,34 +155,54 @@ const SignUp = () => {
     }
   };
 
-  const handleSubmit = async (values) => {
-    try {
-      values.seller.latitude = location?.coords.latitude;
-      values.seller.longitude = location?.coords.longitude;
-      values.isSeller = true;
-
-      const response = await api.post('users/signup', values);
-
-      const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
-      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      await api.patch(`/users/updatePushToken/${response.data._id}`, { pushToken: token });
-
-      Toast.show({
-        type: 'success',
-        text1: 'Perfil criado com sucesso',
-        position: 'top',
-      });
-      navigation.navigate('NewProduct');
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Ocorreu um erro inesperado.';
-      Toast.show({
-        type: 'error',
-        text1: errorMessage,
-        position: 'top',
-      });
+const handleSubmit = async (values) => {
+  try {
+    if (!location?.coords) {
+      throw new Error('Localização indisponível. Por favor, ative o GPS.');
     }
-  };
 
+    values.seller.latitude = location.coords.latitude;
+    values.seller.longitude = location.coords.longitude;
+    values.isSeller = true;
+
+    // Criação do perfil
+    const response = await api.post('users/signup', values);
+
+    // Permissão para notificações
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      throw new Error('Permissão de notificações não concedida.');
+    }
+
+    const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
+    // const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+
+    // Atualiza o push token do usuário
+    // await api.patch(`/users/updatePushToken/${response.data._id}`, { pushToken: token });
+
+    Toast.show({
+      type: 'success',
+      text1: 'Perfil criado com sucesso',
+      position: 'top',
+    });
+
+    navigation.navigate('NewProduct');
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Ocorreu um erro inesperado.';
+    Toast.show({
+      type: 'error',
+      text1: errorMessage,
+      position: 'top',
+    });
+  }
+};
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -175,6 +224,7 @@ const SignUp = () => {
               address: '',
               phoneNumberAccount: '',
               province: '',
+              tipoEstabelecimento: ''
             },
           }}
           validationSchema={validationSchema}
@@ -229,7 +279,7 @@ const SignUp = () => {
                   value={values.password}
                   onChangeText={handleChange('password')}
                   onBlur={handleBlur('password')}
-                  secureTextEntry={!showPassword} // Alternar entre mostrar/ocultar senha
+                  secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -251,7 +301,7 @@ const SignUp = () => {
                   value={values.confirmPassword}
                   onChangeText={handleChange('confirmPassword')}
                   onBlur={handleBlur('confirmPassword')}
-                  secureTextEntry={!showConfirmPassword} // Alternar entre mostrar/ocultar confirmação de senha
+                  secureTextEntry={!showConfirmPassword}
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -335,6 +385,21 @@ const SignUp = () => {
               </View>
               {touched.seller?.address && errors.seller?.address && (
                 <Text style={styles.error}>{errors.seller?.address}</Text>
+              )}
+
+              <Text style={styles.label}>Tipo de Estabelecimento</Text>
+              <Picker
+                selectedValue={values.seller.tipoEstabelecimento}
+                onValueChange={(itemValue) => setFieldValue('seller.tipoEstabelecimento', itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Selecione o tipo de estabelecimento" value="" />
+                {tiposEstabelecimentos.map((tipo) => (
+                  <Picker.Item key={tipo._id} label={tipo.nome} value={tipo._id} />
+                ))}
+              </Picker>
+              {touched.seller?.tipoEstabelecimento && errors.seller?.tipoEstabelecimento && (
+                <Text style={styles.error}>{errors.seller?.tipoEstabelecimento}</Text>
               )}
 
               <Text style={styles.label}>Número de telefone da empresa para pagamentos [MPESA]</Text>

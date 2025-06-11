@@ -1,7 +1,7 @@
-import { View, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from '@expo/vector-icons';
 import Home from '../screens/Home';
 import Orders from '../screens/Orders';
 import NewProduct from '../screens/NewProduct';
@@ -10,36 +10,35 @@ import Profile from '../screens/Profile';
 
 const Tab = createBottomTabNavigator();
 
-const screenOptions = {
-  tabBarShowLabel: false,
-  tabBarHideOnKeyboard: true,
-  headerShown: false,
-  tabBarStyle: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    left: 0,
-    elevation: 0,
-    height: 70,
-  },
-};
+const CustomTabBarButton = ({ children, onPress }) => (
+  <View style={styles.centerButtonWrapper}>
+    <View style={styles.centerButton}>
+      {children}
+    </View>
+  </View>
+);
 
 const ButtomTabNavegation = () => {
   return (
-    <Tab.Navigator screenOptions={screenOptions}>
+    <Tab.Navigator
+      screenOptions={{
+        tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+      }}
+    >
       <Tab.Screen
         name="Home"
         component={Home}
         options={{
-          tabBarIcon: ({ focused }) => {
-            return (
-              <Ionicons
-                name={focused ? "home" : "home-outline"}
-                size={24}
-                color={focused ? '#7F00FF' : "black"}
-              />
-            );
-          },
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          ),
         }}
       />
 
@@ -47,15 +46,13 @@ const ButtomTabNavegation = () => {
         name="ProductListSeller"
         component={ProductListSeller}
         options={{
-          tabBarIcon: ({ focused }) => {
-            return (
-              <Ionicons
-                name={focused ? "list" : "list-outline"} // Changed icon name
-                size={24}
-                color={focused ? '#7F00FF' : "black"}
-              />
-            );
-          },
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'list' : 'list-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          ),
         }}
       />
 
@@ -63,15 +60,14 @@ const ButtomTabNavegation = () => {
         name="NewProduct"
         component={NewProduct}
         options={{
-          tabBarIcon: ({ focused }) => {
-            return (
-              <Ionicons
-                name={focused ? "add-circle" : "add-circle-outline"}
-                size={50}
-                color={focused ? '#7F00FF' : "#7F00FF"}
-              />
-            );
-          },
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'add-circle' : 'add-circle-outline'}
+              size={50}
+              color="#7F00FF"
+            />
+          ),
+          tabBarButton: (props) => <CustomTabBarButton {...props} />,
         }}
       />
 
@@ -79,15 +75,13 @@ const ButtomTabNavegation = () => {
         name="Orders"
         component={Orders}
         options={{
-          tabBarIcon: ({ focused }) => {
-            return (
-              <Ionicons
-                name={focused ? "file-tray" : "file-tray-outline"} // Changed icon name
-                size={24}
-                color={focused ? '#7F00FF' : "black"}
-              />
-            );
-          },
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'file-tray' : 'file-tray-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          ),
         }}
       />
 
@@ -95,15 +89,13 @@ const ButtomTabNavegation = () => {
         name="Profile"
         component={Profile}
         options={{
-          tabBarIcon: ({ focused }) => {
-            return (
-              <Ionicons
-                name={focused ? "person" : "person-outline"}
-                size={24}
-                color={focused ? '#7F00FF' : "black"}
-              />
-            );
-          },
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          ),
         }}
       />
     </Tab.Navigator>
@@ -111,3 +103,34 @@ const ButtomTabNavegation = () => {
 };
 
 export default ButtomTabNavegation;
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    elevation: 5,
+    height: 70,
+    backgroundColor: 'white',
+    borderTopWidth: 0,
+  },
+  centerButtonWrapper: {
+    top: -20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'white',
+    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+});
