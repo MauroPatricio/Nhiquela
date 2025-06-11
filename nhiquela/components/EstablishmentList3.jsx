@@ -1,42 +1,74 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Dimensions, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import PagerView from 'react-native-pager-view';
+import api from '../hooks/createConnectionApi';
 
 const { width } = Dimensions.get('window');
 
-const SellersList = () => {
+const EstablishmentList = () => {
   const route = useRoute();
-  const { sellers } = route.params || [];
+  const { img, nome, categoryid, tipoestabelecimentos = [] } = route.params || {};
 
   const [currentPage, setCurrentPage] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Handle pagination by setting the current page
   const handlePageChange = (event) => {
     const { position } = event.nativeEvent;
     setCurrentPage(position);
   };
 
+  const fetchProducts = async () => {
+    if (loading || !hasMore || !categoryid) return;
+
+    setLoading(true);
+
+    try {
+      const response = await api.get(`/products/bycategory/${categoryid}?page=${page}`);
+      const data = response.data;
+
+      setProducts((prev) => [...prev, ...data.products]);
+      setTotalPages(data.totalPages);
+      setHasMore(page < data.totalPages);
+      setPage((prevPage) => prevPage + 1);
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setPage(1);
+    setProducts([]);
+    setHasMore(true);
+    fetchProducts();
+  }, [categoryid]);
+
   return (
     <SafeAreaView style={styles.container}>
-      <PagerView 
-        style={styles.pagerView} 
-        initialPage={0} 
+      <PagerView
+        style={styles.pagerView}
+        initialPage={0}
         onPageSelected={handlePageChange}
       >
-        {sellers && sellers.map((seller, index) => (
+        {tipoestabelecimentos.map((seller, index) => (
           <View style={styles.sellerCard} key={index}>
-            <Text style={styles.sellerName}>{seller.name}</Text>
-            <Text style={styles.sellerDescription}>{seller.description}</Text>
-            {/* Add more seller details here */}
+            <Text style={styles.sellerName}>{seller.img}</Text>
+            <Text style={styles.sellerDescription}>{seller.nome}</Text>
+            {/* Você pode adicionar os produtos do seller aqui, se quiser */}
           </View>
         ))}
       </PagerView>
 
       {/* Pagination Dots */}
       <View style={styles.paginationContainer}>
-        {sellers.map((_, index) => (
+        {tipoestabelecimentos.map((_, index) => (
           <TouchableOpacity
             key={index}
             style={[
@@ -50,7 +82,7 @@ const SellersList = () => {
   );
 };
 
-export default SellersList;
+export default EstablishmentList;
 
 const styles = StyleSheet.create({
   container: {

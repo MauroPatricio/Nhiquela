@@ -34,6 +34,7 @@ import messaging from '@react-native-firebase/messaging';
 import ProductListByCategory from './components/products/ProductListByCategory';
 import SellersList from './components/SellersList';
 import ForgotPassword from './screens/ForgotPassword'
+import EstablishmentList from './components/EstablishmentList3';
 
 
 
@@ -158,6 +159,12 @@ style={{flex: 1}}>
             component={MapScreen}
             options={{headerShown: false}}
             />
+
+  <Stack.Screen name='EstablishmentList'
+            component={EstablishmentList}
+            options={{headerShown: false}}
+            />
+            
           
 
 <Stack.Screen name='RideOptionsCard'

@@ -73,7 +73,7 @@ const ProductCard = ({
         <Image source={{ uri: logo }} style={styles.image} />
 
         <View style={styles.details}>
-          <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
+          <Text style={styles.title} numberOfLines={1}>{item.item.name}</Text>
           {/* <Text numberOfLines={1}>{getShortDescription(item.item.description, )}</Text> */}
           <Text style={styles.supplier} numberOfLines={1}>{seller.seller.name}</Text>
 
