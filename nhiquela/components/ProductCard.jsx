@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 10,
-    margin: 10,
-    width: 200,
+    margin: 5,
+    width: 160,
   },
   card_template: {
     borderRadius: 12,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 170,
+    height: 160,
     resizeMode: 'cover',
   },
   textContainer: {

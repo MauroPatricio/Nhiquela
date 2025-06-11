@@ -243,7 +243,7 @@ const Home = () => {
           />
         ))}
 
-        <View style={{ marginBottom: 250 }} />
+        <View style={{ marginBottom: 350 }} />
       </ScrollView>
 
       {selectedCategory && (
@@ -309,8 +309,8 @@ const styles = StyleSheet.create({
     gap: 10
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: 8,
   },
   productBrand: {

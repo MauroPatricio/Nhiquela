@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     // shadowOpacity: 1,
     // shadowRadius: 8,
     // elevation: 10,
-    margin: 12,
+    margin: 5,
     width: 90,
   },
   card_template: {
