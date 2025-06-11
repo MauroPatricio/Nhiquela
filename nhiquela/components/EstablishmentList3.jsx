@@ -1,41 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Dimensions, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Dimensions,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
-import PagerView from 'react-native-pager-view';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
 
 const { width } = Dimensions.get('window');
 
 const EstablishmentList = () => {
   const route = useRoute();
-  const { img, nome, categoryid, tipoestabelecimentos = [] } = route.params || {};
+  const navigation = useNavigation();
+  const { categoryid, tipoestabelecimentos = [] } = route.params || {};
 
-  const [currentPage, setCurrentPage] = useState(0);
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const handlePageChange = (event) => {
-    const { position } = event.nativeEvent;
-    setCurrentPage(position);
-  };
 
   const fetchProducts = async () => {
     if (loading || !hasMore || !categoryid) return;
 
     setLoading(true);
-
     try {
       const response = await api.get(`/products/bycategory/${categoryid}?page=${page}`);
       const data = response.data;
-
       setProducts((prev) => [...prev, ...data.products]);
-      setTotalPages(data.totalPages);
       setHasMore(page < data.totalPages);
-      setPage((prevPage) => prevPage + 1);
+      setPage((prev) => prev + 1);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
     } finally {
@@ -50,34 +50,54 @@ const EstablishmentList = () => {
     fetchProducts();
   }, [categoryid]);
 
+const renderItem = ({ item }) => (
+<TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('SellersByEstablishment' , {
+          id: item._id,
+          name: item.nome,
+          logo: item.logo,
+          description: item.description,
+          address: item.address,
+          contact: item.phoneNumberAccount,
+          openstore: item.openstore
+        })}
+    >
+      <Image
+        source={{ uri: item.img }}
+        style={styles.image}
+        resizeMode="cover"
+      />
+      <View style={styles.cardContent}>
+        <Text style={styles.name}>{item.nome}</Text>
+        <Text style={styles.description}>
+          {item.description?.length > 60
+            ? item.description.slice(0, 60) + '...'
+            : item.description}
+        </Text>
+      </View>
+    </TouchableOpacity>  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <PagerView
-        style={styles.pagerView}
-        initialPage={0}
-        onPageSelected={handlePageChange}
-      >
-        {tipoestabelecimentos.map((seller, index) => (
-          <View style={styles.sellerCard} key={index}>
-            <Text style={styles.sellerName}>{seller.img}</Text>
-            <Text style={styles.sellerDescription}>{seller.nome}</Text>
-            {/* Você pode adicionar os produtos do seller aqui, se quiser */}
-          </View>
-        ))}
-      </PagerView>
-
-      {/* Pagination Dots */}
-      <View style={styles.paginationContainer}>
-        {tipoestabelecimentos.map((_, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.paginationDot,
-              currentPage === index && styles.activeDot,
-            ]}
-          />
-        ))}
+      {/* Cabeçalho */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name='chevron-back-circle' size={35} color="#7F00FF" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Tipos de Estabelecimentos</Text>
       </View>
+
+      {/* Lista de estabelecimentos */}
+      <FlatList
+        data={tipoestabelecimentos}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => index.toString()}
+        contentContainerStyle={styles.listContent}
+        ListFooterComponent={
+          loading ? <ActivityIndicator size="large" color="#7F00FF" /> : null
+        }
+      />
     </SafeAreaView>
   );
 };
@@ -89,50 +109,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  pagerView: {
-    flex: 1,
-    width: '100%',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 15,
+    marginBottom: 10,
+    marginTop: 10,
   },
-  sellerCard: {
-    width: width * 0.9,
-    padding: 20,
-    margin: 10,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    alignSelf: 'center',
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#7F00FF',
+    marginLeft: 10,
+  },
+  listContent: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F8F8',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    alignItems: 'center',
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  sellerName: {
-    fontSize: 18,
+  image: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
+    borderColor: '#7F00FF',
+    marginRight: 15,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 5,
   },
-  sellerDescription: {
+  description: {
     fontSize: 14,
     color: '#666',
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
-    marginHorizontal: 5,
-  },
-  activeDot: {
-    backgroundColor: '#007BFF',
+    marginTop: 4,
   },
 });

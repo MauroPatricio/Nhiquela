@@ -16,7 +16,7 @@ import * as Notifications from 'expo-notifications';
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
 import { io } from "socket.io-client";
-import EstablishmentsView from '../components/EstablishmentsView';
+import EstablishmentsView from '../components/EstablishmentsView1';
 
 const socket = io(`${api}/products`);
 

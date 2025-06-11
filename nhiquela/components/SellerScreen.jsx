@@ -34,6 +34,7 @@ const SellerScreen = () => {
       openstore,
     },
   } = useRoute();
+
   const navigation = useNavigation();
   const sellerId = id;
 

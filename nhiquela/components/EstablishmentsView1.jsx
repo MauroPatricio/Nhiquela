@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { ArrowRightIcon } from 'react-native-heroicons/outline';
 import api from '../hooks/createConnectionApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import EstablishmentCard from './EstablishmentCard';
+import EstablishmentCard from './EstablishmentCard2';
 
 const EstablishmentsView = ({ title }) => {
   const navigation = useNavigation();

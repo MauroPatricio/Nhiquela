@@ -12,12 +12,11 @@ const EstablishmentCard = ({
 }) => {
   const navigation = useNavigation();
   
-
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => {
-        navigation.navigate('SellerScreen', {
+        navigation.navigate('SellersByEstablishment', {
           id,
           img,
           nome
@@ -29,9 +28,8 @@ const EstablishmentCard = ({
         <View style={styles.imageContainer}>
           <Image source={{ uri: img }} style={styles.image} />
         </View>
-
-          <>{nome}</>
       </View>
+          <Text style={{textAlign: 'center', fontWeight:'500'}}>{nome}</Text>
     </TouchableOpacity>
   );
 };
@@ -40,15 +38,15 @@ export default EstablishmentCard;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    shadowColor: 'grey',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 10,
-    margin: 10,
-    width: 200,
+    // backgroundColor: '#ffffff',
+    // borderRadius: 12,
+    // shadowColor: 'grey',
+    // shadowOffset: { width: 0, height: 5 },
+    // shadowOpacity: 1,
+    // shadowRadius: 8,
+    // elevation: 10,
+    margin: 12,
+    width: 90,
   },
   card_template: {
     borderRadius: 12,
@@ -59,7 +57,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 170,
+    height: 60,
     resizeMode: 'cover',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
