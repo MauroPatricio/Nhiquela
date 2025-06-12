@@ -46,39 +46,52 @@ const SellersByEstablishment = () => {
   const truncateDescription = (desc) =>
     desc?.length > 30 ? desc.substring(0, 30) + '...' : desc;
 
-  const renderSeller = ({ item }) => (
-    <TouchableOpacity
-      style={styles.sellerCard}
-      onPress={() => {
-        const {
-          name,
-          logo,
-          description,
-          address,
-          phoneNumberAccount,
-          openstore
-        } = item.seller;
+  const renderSeller = ({ item }) => {
+    const {
+      name,
+      logo,
+      description,
+      rating,
+      numReviews,
+      province,
+      address,
+      latitude,
+      longitude,
+      openstore : isOpen
+    } = item?.seller;
 
-        navigation.navigate('SellerScreen', {
-          id: item._id,
-          name,
-          logo,
-          description,
-          address,
-          contact: phoneNumberAccount,
-          openstore
-        });
-      }}
-    >
-      <Image source={{ uri: item.seller.logo }} style={styles.sellerLogo} />
-      <View style={styles.sellerInfo}>
-        <Text style={styles.sellerName}>{item.seller.name}</Text>
-        <Text style={styles.sellerDescription}>
-          {truncateDescription(item.seller.description || '')}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+const _id =  item._id
+const openstore = item.seller.isOpen
+console.log(item)
+    return (
+      <TouchableOpacity
+        style={styles.sellerCard}
+        onPress={() =>
+          navigation.navigate('SellerScreen', {
+            id: _id,
+            name,
+            logo,
+            description,
+            rating,
+            numReviews,
+            province,
+            address,
+            latitude,
+            longitude,
+            openstore,
+          })
+        }
+      >
+        <Image source={{ uri: logo }} style={styles.sellerLogo} />
+        <View style={styles.sellerInfo}>
+          <Text style={styles.sellerName}>{name}</Text>
+          <Text style={styles.sellerDescription}>
+            {truncateDescription(description || '')}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -93,7 +106,7 @@ const SellersByEstablishment = () => {
       <FlatList
         data={sellers}
         renderItem={renderSeller}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item) => item.seller._id || item._id || Math.random().toString()}
         contentContainerStyle={styles.listContent}
         onEndReached={fetchSellers}
         onEndReachedThreshold={0.5}
@@ -124,7 +137,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#7F00FF',
     paddingLeft: 20,
-    marginBottom: 10
+    marginBottom: 10,
   },
   listContent: {
     paddingVertical: 10,

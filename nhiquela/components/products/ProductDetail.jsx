@@ -88,14 +88,19 @@ const ProductDetail = () => {
           </TouchableOpacity>
 
           <View style={styles.details}>
-            <Text style={styles.seller}>Fornecedor: <Text style={{ fontWeight: '600' }}>{sellerName || 'N/A'}</Text></Text>
+            <Text style={styles.seller}>Fornecedor: <Text style={{ fontWeight: '800' }}>{sellerName || 'N/A'}</Text></Text>
             <Text style={styles.title}>{nome}</Text>
             <View style={styles.priceRow}>
               {onSale && <Badge style={styles.saleBadge}>Promoção</Badge>}
               <Text style={styles.price}>{price} MT</Text>
             </View>
-            <Text style={styles.stockText}>{countInStock > 0 ? `${countInStock} unidade(s) disponível(is)` : 'Sem stock'}</Text>
-
+                  <Text>
+                    {countInStock > 0 ? (
+                      <Text style={styles.badgeInStock}>{countInStock} unidade(s) disponível(is)</Text>
+                    ) : (
+                      <Badge style={styles.badgeOutOfStock}>Sem estoque</Badge>
+                    )}
+                  </Text>
             <View style={styles.ratingRow}>
               {rating > 0 && !isNaN(rating) ? (
                 [...Array(Math.round(rating))].map((_, idx) => (
@@ -178,13 +183,13 @@ const styles = StyleSheet.create({
   seller: {
     fontSize: 16,
     color: '#7F00FF',
-    marginBottom: 6,
+    // marginBottom: 6,
   },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#222',
-    marginBottom: 10,
+    // marginBottom: 10,
   },
   priceRow: {
     flexDirection: 'row',
@@ -197,12 +202,11 @@ const styles = StyleSheet.create({
     color: '#7F00FF',
   },
   saleBadge: {
-    backgroundColor: '#FF4757',
+    backgroundColor: 'green',
     color: '#fff',
     marginRight: 12,
     fontSize: 12,
     paddingHorizontal: 10,
-    paddingVertical: 3,
     borderRadius: 12,
   },
   stockText: {
@@ -280,5 +284,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
     lineHeight: 22,
+  },
+  
+badgeOrdered: {
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+  },
+  badgeInStock: {
+    backgroundColor: '#E0F7FA',
+    color: '#00796B',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+    overflow: 'hidden',
+  },
+  badgeOutOfStock: {
+    backgroundColor: '#FFCDD2',
+    color: '#C62828',
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    fontSize: 13,
   },
 });

@@ -13,10 +13,8 @@ const fetchPicked = (status) => {
         const driver = JSON.parse(data);
         const accessToken = JSON.parse(token)
         setOrderLoading(true);
-        console.log(status);
         const endpoint = `http://localhost:6002/api/orders/picked/${status}/${driver._id}`
 
-        console.log(endpoint);
         try {
             const response = await axios.get(endpoint,
                 {

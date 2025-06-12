@@ -1,134 +1,126 @@
-import { StyleSheet, Text, View, Button, TouchableOpacity} from 'react-native'
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import {useRoute} from '@react-navigation/native'
-import {useNavigation} from '@react-navigation/native'
-import {Ionicons} from "@expo/vector-icons"
-import {MaterialCommunityIcons} from '@expo/vector-icons'
-
+import { useRoute, useNavigation } from '@react-navigation/native'
+import { Ionicons } from "@expo/vector-icons"
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 const FailedPayment = () => {
-  const {params: {
-    paymentInfo
-          } }= useRoute();
+  const { params: { errorData } } = useRoute();
+  const navigation = useNavigation();
+  const [errorMessage, setErrorMessage] = useState('Ocorreu uma falha no pagamento.');
 
-          const navigation = useNavigation()
-          const [errorMessage, setErrorMessage] = useState(null);
+  useEffect(() => {
+    if (!errorData) {
+      setErrorMessage('Falha no processamento do pagamento');
+      return;
+    }
 
-
-          useEffect(()=>{
-
-            if (paymentInfo== null) return;
-            if(paymentInfo?.code == 'INS-4'){
-              setErrorMessage('Conta inactiva')
-            }
-            
-            if(paymentInfo?.code == 'INS-9'){
-              setErrorMessage('Demora na resposta do pagamento')
-            }
-            if(paymentInfo?.code == 'INS-2006'){
-              setErrorMessage('Saldo Insuficiente')
-            }
-            if(paymentInfo.code == 'INS-2051'){
-              setErrorMessage('Número de telefone inválido')
-            }
-            
-          },[paymentInfo])
+    switch (errorData?.code) {
+      case 'INS-4':
+        setErrorMessage('Conta inactiva');
+        break;
+      case 'INS-9':
+        setErrorMessage('Demora na resposta do pagamento');
+        break;
+      case 'INS-2006':
+        setErrorMessage('Saldo insuficiente');
+        break;
+      case 'INS-2051':
+        setErrorMessage('Número de telefone inválido');
+        break;
+      default:
+        setErrorMessage('Erro desconhecido. Tente novamente.');
+    }
+  }, [errorData]);
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.screen}>
+      <TouchableOpacity style={styles.backIcon} onPress={() => navigation.goBack()}>
+        <Ionicons name='chevron-back-circle' size={36} color="#7F00FF" />
+      </TouchableOpacity>
 
-<View style={styles.icons}>
-        <TouchableOpacity onPress={()=>navigation.goBack()}>
-        <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
-    </TouchableOpacity>
-    </View>
+      <View style={styles.container}>
+        <MaterialCommunityIcons
+          name='close-circle-outline'
+          size={120}
+          color="#FF4D4D"
+          style={styles.iconStyle}
+        />
 
-<View style={styles.container}>
-      <MaterialCommunityIcons 
-                        name='close-circle'
-                        size={200}
-                        color={'grey'}
-                        style={styles.iconStyle}
-                        />
-      <View style={styles.errorContainer}>
-        
-      <Text style={styles.title}>Falha no pagamento</Text>
-        <Text style={styles.errorTitle}>Motivo:
-        <Text style={styles.errorMessage}> {errorMessage}</Text>
-        </Text>
+        <Text style={styles.title}>Falha no pagamento</Text>
+        <Text style={styles.subTitle}>Motivo:</Text>
+        <Text style={styles.errorMessage}>{errorMessage}</Text>
+
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.button}>
+          <Text style={styles.buttonText}>Tentar novamente</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.buttonContainer}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.button}>
-    <Text style={styles.buttonText}>Voltar</Text>
-  </TouchableOpacity>
-</View>
-    </View>
     </SafeAreaView>
   )
 }
 
-export default FailedPayment
+export default FailedPayment;
 
 const styles = StyleSheet.create({
-  container: {
-    // flex: 1,
+  screen: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 20,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    marginTop:200
   },
-  icons:{
+  backIcon: {
     position: 'absolute',
-    top: 50,
-    marginLeft: 25,
-    flexDirection: "row",
-    justifyContent: 'space-between', // Distributes space between the icons
+    top: 20,
+    left: 20,
+    zIndex: 10,
+  },
+  container: {
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 5,
+    marginHorizontal: 10,
   },
-  errorContainer: {
-    // padding: 20,
-    // backgroundColor: '#ffe5e5',
-    // borderRadius: 10,
-    // borderWidth: 1,
-    // borderColor: '#ff4d4d',
-    // width: '80%',
-    // alignItems: 'center',
+  iconStyle: {
+    marginBottom: 20,
   },
-  title:{
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#333',
     textAlign: 'center',
-
-  },
-  errorTitle: {
-    fontSize: 16,
-    // fontWeight: 'bold',
-    // color: '#ff4d4d',
     marginBottom: 10,
+  },
+  subTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#444',
+    marginTop: 10,
   },
   errorMessage: {
     fontSize: 16,
-    color: '#ff4d4d',
-    marginBottom: 20,
+    color: '#FF4D4D',
+    marginVertical: 10,
     textAlign: 'center',
+    paddingHorizontal: 10,
   },
-  iconStyle:{
-    color:'red'
-  },
-  buttonContainer: {
+  button: {
     backgroundColor: '#7F00FF',
-    borderRadius: 10,
     paddingVertical: 12,
-    paddingHorizontal: 25,
-    marginTop: 30,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    marginTop: 20,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
   },
-
-})
+});
