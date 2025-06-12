@@ -187,6 +187,8 @@ const OrderDetailsScreen = () => {
           </View>
         </Modal>
       </ScrollView>
+            <View style={{ paddingBottom: 50 }} />
+      
     </SafeAreaView>
   );
 };

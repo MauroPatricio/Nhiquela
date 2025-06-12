@@ -27,6 +27,7 @@ const SellersList = () => {
       const response = await api.get(`users/sellers?page=${page}`);
       const data = await response.data;
 
+
       setSellers((prevSellers) => [...prevSellers, ...data.sellers]); // Append new sellers to the list
       setTotalPages(data.pages); // Set total number of pages
       setHasMore(page < data.pages); // Disable loading more if current page reaches total pages
@@ -55,6 +56,7 @@ const SellersList = () => {
       onPress={() => {
   
         const {
+          _id,
           name,
           logo,
           description,
@@ -66,10 +68,11 @@ const SellersList = () => {
           longitude,
           openstore
         } = item.seller; // Destructure properties from item.seller
+        console.log(item)
     
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {
-          id: item._id, // Pass the ID correctly
+          id: _id, // Pass the ID correctly
           name,
           logo,
           description,

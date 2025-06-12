@@ -122,6 +122,8 @@ const Orders = () => {
           <Text style={styles.noOrdersText}>Sem pedidos disponíveis.</Text>
         </ScrollView>
       )}
+      
+      <View style={{ paddingBottom: 65 }} />
     </SafeAreaView>
   );
 };

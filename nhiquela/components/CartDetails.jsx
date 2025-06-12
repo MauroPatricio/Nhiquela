@@ -173,7 +173,6 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
                             <View>
                                 {userLocation ? (
                                     <Text style={styles.locationText}>
-                                        Sua localização: {parseFloat(userLocation.latitude).toFixed(4)}, {parseFloat(userLocation.longitude).toFixed(4)}
                                     </Text>
                                 ) : (
                                     <Text style={styles.locationText}>Obtendo localização...</Text>
