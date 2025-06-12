@@ -7,7 +7,7 @@ import { selectSeller } from '../features/sellerSlice'
 import { removeFromBasket, removeSeller, selectBasketItems } from '../features/basketSlice'
 import { XCircleIcon } from 'react-native-heroicons/outline'
 import CartDetails from '../components/CartDetails'
-import BottomSheetComponent from '../components/BottomSheetComponent';
+import { TrashIcon } from 'react-native-heroicons/outline';
 
 const Cart = () => {
 
@@ -82,7 +82,7 @@ const Cart = () => {
                       }
                     }}
                   >
-                    <Text style={styles.remove}>Remover</Text>
+<TrashIcon color="#7F00FF" size={28} />
                   </TouchableOpacity>
                 </View>
               </View>

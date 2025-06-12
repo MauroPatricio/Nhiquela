@@ -80,8 +80,15 @@ const ProductCard = ({
           {/* <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text> */}
           <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
           <Text>
-            {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
-          </Text>
+                  {item.item.isOrdered ? (
+                    <Badge style={styles.badgeOrdered}>Por encomenda</Badge>
+                  ) : item.item.countInStock !== 0 ? (
+                    <Text style={styles.badgeInStock}>{item.item.countInStock} unidade(s)</Text>
+                  ) : (
+                    <Badge style={styles.badgeOutOfStock}>Sem estoque</Badge>
+                  )}          
+
+</Text>
 
         </View>
         <TouchableOpacity style={styles.addBtn} >
@@ -144,5 +151,33 @@ addBtn: {
     position: "absolute",
     bottom: 10,
     right: 12
-}
+},
+badgeOrdered: {
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+  },
+  badgeInStock: {
+    backgroundColor: '#E0F7FA',
+    color: '#00796B',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+    overflow: 'hidden',
+  },
+  badgeOutOfStock: {
+    backgroundColor: '#FFCDD2',
+    color: '#C62828',
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    fontSize: 13,
+  },
 });

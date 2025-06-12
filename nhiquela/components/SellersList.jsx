@@ -55,6 +55,7 @@ const SellersList = () => {
       onPress={() => {
   
         const {
+          _id,
           name,
           logo,
           description,
@@ -69,7 +70,7 @@ const SellersList = () => {
     
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {
-          id: item._id, // Pass the ID correctly
+          id: _id, // Pass the ID correctly
           name,
           logo,
           description,

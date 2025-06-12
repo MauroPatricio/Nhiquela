@@ -1,30 +1,47 @@
-import { StyleSheet, Text, TextInput, View, Image, TouchableOpacity, Switch } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Image,
+  TouchableOpacity,
+  Modal,
+  ActivityIndicator,
+  Dimensions,
+} from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Button from '../components/Button';
 import api from '../hooks/createConnectionApi';
-import { selectBasketItems, selectBasketTotal, selectTotalToPay, selectIva, selectDeliverPrice, clearBasket, selectTotalPriceFromSeller } from '../features/basketSlice';
+import {
+  selectBasketItems,
+  selectBasketTotal,
+  selectTotalToPay,
+  selectIva,
+  selectDeliverPrice,
+  clearBasket,
+  selectTotalPriceFromSeller,
+} from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
 
 const validationSchema = Yup.object().shape({
   customerNumber: Yup.string()
-    .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
-    .max(9, 'O número de telefone não pode ser superior a 9 dígitos')
+    .min(9, 'O número de telefone deve ter 9 dígitos')
+    .max(9, 'O número de telefone deve ter 9 dígitos')
     .required('Obrigatório'),
 });
 
 const MpesaScreen = () => {
   const [userData, setUserData] = useState(null);
   const [loader, setLoader] = useState(false);
-  const [isUserWantDelivery, setIsUserWantDelivery] = useState(true); // Delivery preference
+  const [isUserWantDelivery, setIsUserWantDelivery] = useState(true);
   const totalToPay = useSelector(selectTotalToPay);
   const amount = parseFloat(totalToPay);
   const navigation = useNavigation();
@@ -33,47 +50,35 @@ const MpesaScreen = () => {
   const totalPriceFromSeller = useSelector(selectTotalPriceFromSeller);
   const iva = useSelector(selectIva);
   const deliveryPrice = useSelector(selectDeliverPrice);
-  const [paymentInfo, setPaymentInfo] = useState('');
   const dispatch = useDispatch();
 
-
-  const configurarNotificacoes = async () => {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') {
-      await Notifications.requestPermissionsAsync();
-    }
-  };
+  useEffect(() => {
+    const configurarNotificacoes = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        await Notifications.requestPermissionsAsync();
+      }
+    };
+    configurarNotificacoes();
+  }, []);
 
   const mostrarNotificacao = (response) => {
     Notifications.scheduleNotificationAsync({
       content: {
-        title: "Pedido criado com sucesso",
-        body: `O seu pedido com o código ${response.data.order.code} foi criado com sucesso. Por favor! Aguarde pela confirmação do fornecedor.`,
+        title: 'Pedido criado com sucesso',
+        body: `O seu pedido com o código ${response.order.code} foi criado com sucesso.`,
         sound: true,
       },
       trigger: null,
     });
   };
 
-  const checkForNewMessages = (response) => {
-    try {
-      mostrarNotificacao(response);
-    } catch (error) {
-      console.error('Erro ao buscar novas mensagens:', error);
-    }
-  };
-
-  useEffect(() => {
-    configurarNotificacoes();
-  }, []);
-
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
     const userId = `user${JSON.parse(id)}`;
     const currentUser = await AsyncStorage.getItem(userId);
     if (currentUser !== null) {
-      const parseData = JSON.parse(currentUser);
-      setUserData(parseData);
+      setUserData(JSON.parse(currentUser));
     }
   };
 
@@ -82,7 +87,7 @@ const MpesaScreen = () => {
   }, []);
 
   const makeThePayment = async (values) => {
-    if (userData == null) {
+    if (!userData) {
       Toast.show({
         type: 'error',
         text1: 'Atenção!',
@@ -92,9 +97,7 @@ const MpesaScreen = () => {
         autoHide: true,
         topOffset: 50,
         bottomOffset: 40,
-        onPress: () => {
-          navigation.navigate('Login');
-        },
+        onPress: () => navigation.navigate('Login'),
         style: {
           backgroundColor: '#FF5733',
           borderLeftWidth: 10,
@@ -120,67 +123,93 @@ const MpesaScreen = () => {
 
     try {
       setLoader(true);
-      const customerNumber = '258' + values.customerNumber;
 
- 
-      // const { data } = await api.post(`payments/mpesa/c2b`, {customerNumber, amount},  {
-      //   headers: {
-      //     authorization: `Bearer ${userData.token}`,
-      //   },
-      // });
-      const data = true; // Replace with actual API call
-      setPaymentInfo(data);
+      const headers = {
+        authorization: `Bearer ${userData.token}`,
+      };
+      const customerNumber = `258${values.customerNumber}`;
 
-      if (data) {
-        const order = {
-          orderItems: items,
-          address: '',
-          paymentMethod: 'Mpesa',
-          itemsPrice: itemsPrice,
-          ivaTax: iva,
-          siteTax: 0,
-          taxPrice: 0,
-          totalPrice: totalToPay,
-          addressPrice: deliveryPrice, // Include delivery price if delivery is enabled
-          itemsPriceForSeller: totalPriceFromSeller,
-          isPaid: true,
-          paidAt: Date.now(),
-          stepStatus: 1,
-          user: userData,
-          customerId: userData,
-          isUserWantDelivery: isUserWantDelivery
-        };
+      const { data: paymentData } = await api.post(
+        `payments/mpesa/c2b`,
+        { customerNumber, amount },
+        { headers }
+      );
 
-        const response = await api.post('orders', order, {
-          headers: {
-            authorization: `Bearer ${userData.token}`,
-          },
-        });
-
-        // Apos gravar o pedido retorne a informacao com o valor deduzido com os menos 30% que e uma variavel que ja existe no objecto gravado
-        // Apenas deve-se pegue o pedido gravado e envie para o fornecedor com o preco inicial de registro
-
-      // const { data } = await api.post(`payments/mpesa/b2c`, {customerNumber, amount},  { // Efectuar Pagamento ao fornecedor
-      //   headers: {
-      //     authorization: `Bearer ${userData.token}`,
-      //   },
-      // });
-
-        dispatch(clearBasket());
-        checkForNewMessages(response);
-        navigation.replace('SuccessPayment');
-      } else {
-        navigation.replace('FailedPayment', paymentInfo);
+      if (!paymentData.paid) {
+        navigation.replace('FailedPayment', paymentData);
+        return;
       }
+
+      const orderPayload = {
+        orderItems: items,
+        address: '',
+        paymentMethod: 'Mpesa',
+        itemsPrice,
+        ivaTax: iva,
+        siteTax: 0,
+        taxPrice: 0,
+        totalPrice: totalToPay,
+        addressPrice: deliveryPrice,
+        itemsPriceForSeller: totalPriceFromSeller,
+        isPaid: true,
+        paidAt: Date.now(),
+        stepStatus: 1,
+        user: userData,
+        customerId: userData,
+        isUserWantDelivery,
+      };
+
+      const { data: orderResponse } = await api.post('orders', orderPayload, {
+        headers,
+      });
+
+      if (orderResponse?.order?.isPaid) {
+        const sellerNumber = orderResponse.order.seller?.seller?.phoneNumberAccount;
+        const formattedNumber =
+          sellerNumber?.toString().length === 9
+            ? Number('258' + sellerNumber)
+            : sellerNumber;
+
+        if (formattedNumber) {
+          await api.post(
+            `payments/mpesa/b2c`,
+            { sellerNumber: formattedNumber, priceForSeller: orderResponse.order.itemsPriceForSeller },
+            { headers }
+          );
+        }
+      }
+
+      dispatch(clearBasket());
+      mostrarNotificacao(orderResponse);
+      navigation.replace('SuccessPayment');
     } catch (error) {
-      console.log(error.data);
+      console.error('Erro no pagamento:', error);
+
+      let errorData = {
+        message: 'Erro desconhecido. Tente novamente.',
+      };
+
+      if (error.response && error.response.data) {
+        errorData = error.response.data;
+      }
+
+      navigation.replace('FailedPayment', errorData);
+    } finally {
       setLoader(false);
-      navigation.replace('FailedPayment', paymentInfo);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Modal visible={loader} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color="#7F00FF" />
+            <Text style={styles.loadingText}>Processando pagamento...</Text>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.icons}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
@@ -193,39 +222,36 @@ const MpesaScreen = () => {
         onSubmit={(values) => makeThePayment(values)}
       >
         {({ handleChange, handleBlur, touched, handleSubmit, values, errors, isValid }) => (
-          <>
-            <View style={styles.container}>
-              <Image source={require('../assets/Mpesa.png')} style={styles.cover} />
+          <View style={styles.container}>
+            <Image source={require('../assets/Mpesa.png')} style={styles.cover} />
 
-              <Text style={styles.label}>
-                <MaterialCommunityIcons name="cellphone" size={20} color="grey" style={styles.iconStyle} /> Número de telefone:
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={values.customerNumber}
-                onChangeText={handleChange('customerNumber')}
-                onBlur={handleBlur('customerNumber')}
-                placeholder="Informe o número para o pagamento"
-                keyboardType="numeric"
-              />
-              {touched.customerNumber && errors.customerNumber && (
-                <Text style={styles.errorMessage}>{errors.customerNumber}</Text>
-              )}
+            <Text style={styles.label}>
+              <MaterialCommunityIcons name="cellphone" size={20} color="grey" /> Número de telefone:
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={values.customerNumber}
+              onChangeText={handleChange('customerNumber')}
+              onBlur={handleBlur('customerNumber')}
+              placeholder="Informe o número para o pagamento"
+              keyboardType="numeric"
+            />
+            {touched.customerNumber && errors.customerNumber && (
+              <Text style={styles.errorMessage}>{errors.customerNumber}</Text>
+            )}
 
+            <Text style={styles.label}>Total a pagar:</Text>
+            <Text style={styles.amount}>
+              {isUserWantDelivery ? totalToPay.toFixed(2) : (totalToPay - deliveryPrice).toFixed(2)} MT
+            </Text>
 
-              <Text style={styles.label}>Total a pagar:</Text>
-              <Text style={styles.amount}>
-                {isUserWantDelivery ? totalToPay.toFixed(2) : (totalToPay - deliveryPrice).toFixed(2)} MT
-              </Text>
-
-              <Button
-                loader={loader}
-                title="Pagar"
-                onPress={handleSubmit}
-                isValid={isValid ? '#7F00FF' : 'red'}
-              />
-            </View>
-          </>
+            <Button
+              loader={loader}
+              title="Pagar"
+              onPress={handleSubmit}
+              isValid={isValid ? '#7F00FF' : 'red'}
+            />
+          </View>
         )}
       </Formik>
     </SafeAreaView>
@@ -245,6 +271,9 @@ const styles = StyleSheet.create({
     top: 50,
     left: 25,
     zIndex: 10,
+  },
+  back: {
+    color: '#7F00FF',
   },
   cover: {
     width: 300,
@@ -277,13 +306,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    width: '100%',
     marginBottom: 10,
     backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
     elevation: 1,
   },
   errorMessage: {
@@ -296,16 +320,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50',
     marginTop: 5,
+    marginBottom: 20,
   },
-  switchContainer: {
-    flexDirection: 'row',
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
-  switchText: {
+  modalContent: {
+    width: Dimensions.get('window').width * 0.8,
+    backgroundColor: 'white',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    elevation: 10,
+  },
+  loadingText: {
+    marginTop: 20,
     fontSize: 16,
-    color: '#7F00FF',
     fontWeight: '600',
+    color: '#7F00FF',
   },
 });
