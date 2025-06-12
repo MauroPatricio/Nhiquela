@@ -48,7 +48,6 @@ const SellersByEstablishment = () => {
 
   const renderSeller = ({ item }) => {
     const {
-      _id,
       name,
       logo,
       description,
@@ -58,11 +57,12 @@ const SellersByEstablishment = () => {
       address,
       latitude,
       longitude,
-      openstore
+      openstore : isOpen
     } = item?.seller;
 
-    console.log(item.seller)
-
+const _id =  item._id
+const openstore = item.seller.isOpen
+console.log(item)
     return (
       <TouchableOpacity
         style={styles.sellerCard}

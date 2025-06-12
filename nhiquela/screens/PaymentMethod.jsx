@@ -46,7 +46,7 @@ useEffect(()=>{
     </TouchableOpacity>
     </View>
     <View style={styles.container} >
-      <Ionicons name='card' size={100} style={{textAlign: 'center', marginBottom: 10, }}/>
+      <Ionicons name='card' size={100} style={{textAlign: 'center', marginBottom: 10,  }}/>
       <Ionicons name='checkmark-circle' size={40} style={{textAlign: 'center',color: 'green', position:'absolute', top:0,marginLeft: 200}}/>
 
       <Text style={styles.mainHeader}>Selecione a forma de pagamento</Text>
