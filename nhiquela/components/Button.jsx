@@ -4,7 +4,7 @@ import { BackgroundImage } from 'react-native-elements/dist/config'
 
 const Button = ({title, onPress, isValid, loader}) => {
         return (
-   <TouchableOpacity onPress={onPress} style={styles.btnStyle(isValid)}>
+   <TouchableOpacity onPress={onPress} disabled={loader} style={styles.btnStyle(isValid)}>
    {!loader? <Text style={styles.btnTxt}>{title}</Text>: <ActivityIndicator/>}
    </TouchableOpacity>
   )

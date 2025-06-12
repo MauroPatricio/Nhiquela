@@ -73,15 +73,22 @@ const ProductCard = ({
         <Image source={{ uri: logo }} style={styles.image} />
 
         <View style={styles.details}>
-          <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
+          <Text style={styles.title} numberOfLines={1}>{item.item.name}</Text>
           {/* <Text numberOfLines={1}>{getShortDescription(item.item.description, )}</Text> */}
           <Text style={styles.supplier} numberOfLines={1}>{seller.seller.name}</Text>
 
           {/* <Text style={styles.countInStock} numberOfLines={1}>{item.item.countInStock} unidade(s)</Text> */}
           <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
           <Text>
-            {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
-          </Text>
+                  {item.item.isOrdered ? (
+                    <Badge style={styles.badgeOrdered}>Por encomenda</Badge>
+                  ) : item.item.countInStock !== 0 ? (
+                    <Text style={styles.badgeInStock}>{item.item.countInStock} unidade(s)</Text>
+                  ) : (
+                    <Badge style={styles.badgeOutOfStock}>Sem estoque</Badge>
+                  )}          
+
+</Text>
 
         </View>
         <TouchableOpacity style={styles.addBtn} >
@@ -105,8 +112,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 10,
-    margin: 10,
-    width: 200,
+    margin: 5,
+    width: 160,
   },
   card_template: {
     borderRadius: 12,
@@ -114,7 +121,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 170,
+    height: 160,
     resizeMode: 'cover',
   },
   textContainer: {
@@ -144,5 +151,33 @@ addBtn: {
     position: "absolute",
     bottom: 10,
     right: 12
-}
+},
+badgeOrdered: {
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+  },
+  badgeInStock: {
+    backgroundColor: '#E0F7FA',
+    color: '#00796B',
+    fontWeight: '600',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+    overflow: 'hidden',
+  },
+  badgeOutOfStock: {
+    backgroundColor: '#FFCDD2',
+    color: '#C62828',
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    fontSize: 13,
+  },
 });
