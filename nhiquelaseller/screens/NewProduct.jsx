@@ -18,8 +18,8 @@ const NewProduct = () => {
   const [error, setError] = useState(null);
   const [errorColor, setErrorColor] = useState(null);
   const [errorSize, setErrorSize] = useState(null);
-  const [colors, setColors] = useState(null);
-  const [sizes, setSizes] = useState(null);
+  const [colors, setColors] = useState([]);
+  const [sizes, setSizes] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [userData, setUserData] = useState(null);
