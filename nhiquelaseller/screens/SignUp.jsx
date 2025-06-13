@@ -12,17 +12,6 @@ import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
 import * as Notifications from 'expo-notifications';
 
-// Tipos de estabelecimento
-const TIPOS_ESTABELECIMENTO = [
-  { id: 'restaurante', nome: 'Restaurante' },
-  { id: 'hotel', nome: 'Hotel' },
-  { id: 'bar', nome: 'Bar' },
-  { id: 'cafe', nome: 'Café' },
-  { id: 'pastelaria', nome: 'Pastelaria' },
-  { id: 'supermercado', nome: 'Supermercado' },
-  { id: 'outro', nome: 'Outro' },
-];
-
 // Validation schema
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('O nome é obrigatório'),

@@ -1,39 +1,21 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-  TouchableOpacity,
-  RefreshControl,
-  Modal,
-  Pressable,
-  Animated,
-  SafeAreaView,
-} from 'react-native';
-import api from '../../hooks/createConnectionApi';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
-import Toast from 'react-native-toast-message';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import api from '../../hooks/createConnectionApi';
+import { Ionicons } from "@expo/vector-icons";
 
 const ProductListSeller = () => {
   const [userData, setUserData] = useState(null);
   const [productsOfSeller, setProductsOfSeller] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
-  // Use useFocusEffect to refresh data when the screen is focused
   useFocusEffect(
     useCallback(() => {
       if (userData) {
@@ -46,17 +28,16 @@ const ProductListSeller = () => {
     setIsLoading(true);
     try {
       const response = await api.get(`products?seller=${userData._id}`, {
-        headers: { authorization: `Bearer ${userData.token}` },
+        headers: { authorization: `Bearer ${userData?.token}` },
       });
 
-      if (response.status === 200) {
-        setProductsOfSeller(response.data.products);
+      if (response?.status === 200) {
+        setProductsOfSeller(response?.data?.products);
       }
     } catch (error) {
       console.error(error);
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -75,235 +56,148 @@ const ProductListSeller = () => {
     }
   };
 
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleLongPress = (product) => {
-    setSelectedProduct(product);
-    setModalVisible(true);
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
-
-  const removeItem = async (productId) => {
-    try {
-      const response = await api.delete(`products/${productId}`, {
-        headers: { authorization: `Bearer ${userData.token}` },
-      });
-      if (response.status === 200) {
-        fetchData();
-        setModalVisible(false);
-        Toast.show({
-          type: 'success',
-          text1: 'Sucesso',
-          text2: 'Produto excluído com sucesso!',
-          position: 'top',
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: 'Falha ao excluir o produto.',
-        position: 'top',
-      });
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7F00FF" />
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Text style={styles.headerTitle}>Lista de produtos</Text>
+    <SafeAreaView style={styles.safe}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          Meus produtos
+        </Text>
+        <View style={{ width: 28 }}></View>
+      </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7F00FF']} />
-        }
-      >
-        {productsOfSeller.length > 0 ? (
-          productsOfSeller.map((product) => (
-            <TouchableOpacity
+      {/* Loading Indicator */}
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }}/>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll}>
+          {productsOfSeller?.length > 0 ? productsOfSeller?.map((product) => (
+            <TouchableOpacity 
               key={product._id}
+              style={styles.card}
               onPress={() => navigation.navigate('ProductSellerDetail', { product })}
-              onLongPress={() => handleLongPress(product)}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              activeOpacity={0.8}
             >
-              <Animated.View
-                style={[styles.productCard, { transform: [{ scale: scaleAnim }] }]}
-              >
-                <Image source={{ uri: product.image }} style={styles.productImage} />
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.nome}</Text>
-                  <Text style={styles.productPrice}>{product.price} Mt</Text>
-                </View>
-              </Animated.View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.noProductsText}>Não possui nenhum produto disponível.</Text>
-        )}
-      </ScrollView>
 
-      {/* Modal para opções de long press */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Opções</Text>
-            <Pressable
-              style={styles.modalButton}
-              onPress={() => {
-                setModalVisible(false);
-                navigation.navigate('EditProduct', { product: selectedProduct });
-              }}
-            >
-              <Text style={styles.modalButtonText}>Editar</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.modalButton, { backgroundColor: '#FF3B30' }]}
-              onPress={() => {
-                setModalVisible(false);
-                removeItem(selectedProduct._id);
-              }}
-            >
-              <Text style={styles.modalButtonText}>Apagar</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.modalButton, { backgroundColor: '#A9A9A9' }]}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.modalButtonText}>Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+              {/* Barra colorida */}
+              <View style={styles.statusBar} />
+
+              {/* Ícone ou imagem do produto */}
+              <View style={styles.iconWrapper}>
+                {product.image ? (
+                   <Image source={{ uri: product.image }} style={styles.productImage} />
+                 ) : (
+                   <Ionicons name="cube-outline" style={styles.productIcon} />
+                 )}
+
+              </View>
+
+              {/* Detalhes do Produto */}
+              <View style={styles.content}>
+                <Text style={styles.code}>
+                   {product?.nome}
+                </Text>
+                <Text style={styles.createAt}>
+                   {product?.price} MT
+                </Text>
+              </View>
+
+            </TouchableOpacity>
+          )) : <Text style={styles.empty}>
+            Nenhum produto encontrado.
+          </Text>}
+        </ScrollView>
+      )}
+
     </SafeAreaView>
-  );
-};
+  )
+}
 
 export default ProductListSeller;
 
-const styles = StyleSheet.create({
-  safeArea: {
+const styles = StyleSheet.create({  
+  safe: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    marginTop: 50,
+    backgroundColor: '#F2F4F8',
+  },
+  header: {
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
   headerTitle: {
-    fontSize: 25,
-    fontWeight: '700',
-    marginLeft: 16,
-    marginBottom: 20,
-    marginTop: 20,
-    color: '#7F00FF',
+    fontSize: 18,
+    fontWeight:'bold',
+    color: '#333',
   },
-  scrollContainer: {
-    paddingHorizontal: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productCard: {
-    backgroundColor: '#FFFFFF',
+  scroll: {
     padding: 16,
+  },
+  card: {
+    flexDirection:'row',
+    alignItems:'center',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow:'hidden',
+  },
+  statusBar: {
+    width: 6,
+    height:'100%',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    marginRight: 16,
+    backgroundColor: '#7F00FF',
+  },
+  iconWrapper: {
+    backgroundColor: '#edf2ff',
+    padding: 12,
+    borderRadius: 50,
+    marginRight: 16,
+    alignItems:'center',
+    justifyContent:'center',
+  },
+  productIcon: {
+    fontSize: 24,
+    color: '#7F00FF',
   },
   productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
-  productInfo: {
+  content: {
     flex: 1,
   },
-  productName: {
+  code: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight:'bold',
     color: '#333',
+    marginBottom: 4,
   },
-  productPrice: {
+  createAt: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#7F00FF',
-    marginTop: 4,
-  },
-  noProductsText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 18,
-    fontWeight: '500',
     color: '#888',
+    marginBottom: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    width: '80%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    color: '#333',
-  },
-  modalButton: {
-    width: '100%',
-    padding: 12,
-    backgroundColor: '#7F00FF',
-    borderRadius: 8,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: '#FFFFFF',
+  empty: {
+    textAlign:'center',
+    color: '#555',
+    marginTop: 20,
     fontSize: 16,
-    fontWeight: '600',
-  },
-});
+  }
+});  
