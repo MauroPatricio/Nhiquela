@@ -508,9 +508,29 @@ const onRefresh = async () => {
           )}
         </Formik>
       ) : (
-        <Text style={styles.notAccepted}>
-        A sua conta ainda não está autorizada para a publicação de produtos. Para activá-la e começar a vender, entre em contato com a equipe da NHIQUELA através dos números 853600036. Estamos à disposição para ajudar! 
-        </Text>
+      <View style={styles.notAccepted}>
+  <Text style={styles.notAcceptedTitle}>Sua conta está em análise!</Text>
+  
+  <Text style={styles.notAcceptedText}>
+    Para começar a publicar seus produtos e vender na NHIQUELA, precisamos finalizar a ativação da sua conta.
+  </Text>
+
+  <Text style={styles.notAcceptedContact}>
+    Entre em contato conosco pelo <Text style={styles.notAcceptedHighlight}>WhatsApp: 85 3600036</Text>
+  </Text>
+  
+  <Text style={styles.notAcceptedContact}> ou pelo email:
+    <Text style={styles.notAcceptedHighlight}>nhiquelaservicosconsultoria@gmail.com</Text>
+  </Text>
+
+  <Text style={styles.notAcceptedText}>
+    Nossa equipe está pronta para ajudar você a começar suas vendas o mais rápido possível!
+  </Text>
+
+  <Text style={styles.notAcceptedFooter}>
+    Agradecemos sua paciência e interesse em fazer parte da nossa plataforma.
+  </Text>
+</View>
       )}
     </ScrollView>
   );
@@ -528,7 +548,7 @@ const styles = StyleSheet.create({
     color: 'blue',
     textAlign: 'center',
     marginTop: 200,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '500'
   },
   error: {
@@ -607,4 +627,48 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  notAccepted: {
+    backgroundColor: '#F8F9FA', // Fundo claro e moderno
+    padding: 20,
+    borderRadius: 12,
+    margin: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#7F00FF', // Roxo da NHIQUELA como detalhe
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  notAcceptedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2D3748', // Cinza escuro moderno
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  notAcceptedText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4A5568', // Cinza médio para melhor legibilidade
+    marginBottom: 8,
+  },
+  notAcceptedContact: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2D3748',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  notAcceptedHighlight: {
+    color: '#7F00FF', // Destaque na cor da marca
+    fontWeight: '600',
+  },
+  notAcceptedFooter: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#718096', // Cinza mais claro
+    marginTop: 16,
+    textAlign: 'center',
+  }
 });

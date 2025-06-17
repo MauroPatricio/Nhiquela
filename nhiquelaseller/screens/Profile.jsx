@@ -186,6 +186,8 @@ const Profile = ({ navigation }) => {
           )}
         </View>
       </View>
+            <View style={{ marginBottom: 210 }} />
+      
     </ScrollView>
   );
 };

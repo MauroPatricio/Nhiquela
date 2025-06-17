@@ -54,7 +54,7 @@ const LoginPage = ({ navigation }) => {
             source={require('../assets/nhiquela2.png')}
             style={styles.cover}
           />
-          <Text style={styles.title}>Login</Text>
+          <Text style={styles.title}>Login como fornecedor</Text>
           <Formik
             initialValues={{ phoneNumber: '', password: '' }}
             validationSchema={validationSchema}

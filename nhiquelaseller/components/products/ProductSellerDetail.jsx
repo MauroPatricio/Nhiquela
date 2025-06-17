@@ -32,56 +32,66 @@ const ProductSellerDetail = () => {
             <View style={styles.card}>
                 <Text style={styles.name}>{product?.nome}</Text>
 
-                <Text style={styles.category}>
-                    Categoria: {product?.category?.nome || 'Não categorizado'}
-                </Text>
+<Text style={styles.category}>
+    Categoria do Produto: {product?.category?.nome || 'Não categorizado'}
+</Text>
 
-                <Text style={styles.province}>
-                    Localização do produto: {product?.province?.name || 'Não especificada'}
-                </Text>
+<Text style={styles.province}>
+    Localização: {product?.province?.name || 'Não especificada'}
+</Text>
 
-                <Text style={styles.brand}>
-                    Marca/sabor: {product?.brand}
-                </Text>
+<Text style={styles.brand}>
+    Marca ou Sabor: {product?.brand || 'Não especificado'}
+</Text>
 
-                <Text style={[
-                    styles.stock, 
-                    { color: product?.countInStock > 0 ? '#1B5E20' : 'red' }
-                ]}>
-                    {product?.countInStock > 0 ? 
-                      `Quantidade disponível: ${product?.countInStock} unidade(s)` : 
-                      'Fora de estoque'}
-                </Text>
+<Text style={[
+    styles.stock, 
+    { color: product?.countInStock > 0 ? '#1B5E20' : 'red' }
+]}>
+    {product?.countInStock > 0 ? 
+      `Quantidade em Estoque: ${product?.countInStock} unidade(s)` : 
+      'Produto Esgotado'}
+</Text>
 
-                <Text style={styles.price}>
-                    Valor do fornecedor: {product?.priceFromSeller} Mt
-                </Text>
+<Text style={styles.price}>
+    Preço do Fornecedor: {product?.priceFromSeller} Mt
+</Text>
 
-                <Text style={styles.price}>
-                    Preço de Venda: {product?.price} Mt
-                </Text>
+<Text style={styles.price}>
+    Preço de Venda ao Consumidor: {product?.price} Mt
+</Text>
 
-                {product?.onSale && (
-                    <Text style={styles.onSale}>
-                        Em promoção: {product?.onSalePercentage}%
-                    </Text>
-                )}
+{product?.onSale && (
+    <>
+        <Text style={styles.onSale}>
+            Desconto Aplicado: {product?.onSalePercentage}%
+        </Text>
 
-                <Text style={styles.description}>
-                    {product?.description}
-                </Text>
+        <Text style={styles.onSale}>
+            Preço Promocional: {product?.discount} Mt
+        </Text>
 
-                {product?.isGuaranteed && (
-                    <Text style={styles.guarantee}>
-                        Garantia: {product?.guaranteedPeriod} meses
-                    </Text>
-                )}
+        <Text style={styles.onSale}>
+            Valor a receber pelo Vendedor: {product?.sellerEarningsAfterDiscount} Mt
+        </Text>
+    </>
+)}
 
-                {product?.isOrdered && (
-                    <Text style={styles.delivery}>
-                        Entrega em: {product?.orderPeriod} dias
-                    </Text>
-                )}
+<Text style={styles.description}>
+    Descrição: {product?.description}
+</Text>
+
+{product?.isGuaranteed && (
+    <Text style={styles.guarantee}>
+        Garantia: {product?.guaranteedPeriod} meses
+    </Text>
+)}
+
+{product?.isOrdered && (
+    <Text style={styles.delivery}>
+        Prazo de Entrega: {product?.orderPeriod} dias
+    </Text>
+)}
 
             </View>
 
@@ -154,15 +164,15 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     price: {
-        fontSize: 18,
+        fontSize: 15,
         fontWeight: 'bold',
         color: '#6A0DAD',
         marginBottom: 12,
         textAlign: 'center',
     },
     onSale: {
-        fontSize: 18,
-        color: '#E63946',
+        fontSize: 15,
+        color: 'blue',
         fontWeight: 'bold',
         marginBottom: 12,
         textAlign: 'center',

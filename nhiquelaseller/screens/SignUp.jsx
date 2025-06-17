@@ -31,7 +31,10 @@ const validationSchema = Yup.object().shape({
     logo: Yup.string().required('A Logo é obrigatória'),
     description: Yup.string().required('A descrição do estabelecimento é obrigatória'),
     address: Yup.string().required('O endereço do estabelecimento é obrigatório'),
-    phoneNumberAccount: Yup.string().required('O número de conta é obrigatório'),
+
+    phoneNumberAccount: Yup.string()
+      .matches(/^8[45]\d{7}$/, 'O telefone deve ter 9 dígitos e começar com 84 ou 85.')
+      .required('Número de telefone obrigatório'),    
     province: Yup.string().required('A localização do estabelecimento é obrigatória'),
     tipoEstabelecimento: Yup.string().required('O tipo de estabelecimento é obrigatório'),
   }),
@@ -46,6 +49,8 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [tiposEstabelecimentos, setTiposEstabelecimentos] = useState([]);
+  const [locationValue, setLocationValue] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -62,8 +67,7 @@ const SignUp = () => {
     fetchProvinces();
   }, []);
 
-
-    useEffect(() => {
+  useEffect(() => {
     const fetchTiposEstabelecimentos = async () => {
       setLoading(true);
       try {
@@ -78,8 +82,9 @@ const SignUp = () => {
     fetchTiposEstabelecimentos();
   }, []);
 
-  useEffect(() => {
-    (async () => {
+  const getCurrentLocation = async () => {
+    setLocationLoading(true);
+    try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Toast.show({
@@ -91,7 +96,24 @@ const SignUp = () => {
       }
       const currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
-    })();
+      Toast.show({
+        type: 'success',
+        text1: 'Localização atualizada',
+        text2: 'Sua localização foi atualizada com sucesso.',
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao obter localização',
+        text2: 'Não foi possível obter a localização atual.',
+      });
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getCurrentLocation();
   }, []);
 
   const handleImagePicker = async (setFieldValue) => {
@@ -144,54 +166,62 @@ const SignUp = () => {
     }
   };
 
-const handleSubmit = async (values) => {
-  try {
-    if (!location?.coords) {
-      throw new Error('Localização indisponível. Por favor, ative o GPS.');
+  const handleSubmit = async (values) => {
+    try {
+      if (!location?.coords) {
+        throw new Error('Localização indisponível. Por favor, ative o GPS.');
+      }
+      if (!location) {
+        Toast.show({ 
+          type:'error', 
+          text1:'É preciso habilitar a localização para continuar.' 
+        });
+        return;
+      }
+
+      values.seller.latitude = location.coords.latitude;
+      values.seller.longitude = location.coords.longitude;
+      values.isSeller = true;
+
+      // Criação do perfil
+      const response = await api.post('users/signup', values);
+
+      // Permissão para notificações
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        throw new Error('Permissão de notificações não concedida.');
+      }
+
+      const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
+      // const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+
+      // Atualiza o push token do usuário
+      // await api.patch(`/users/updatePushToken/${response.data._id}`, { pushToken: token });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Perfil criado com sucesso',
+        position: 'top',
+      });
+
+      navigation.navigate('NewProduct');
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Ocorreu um erro inesperado.';
+      Toast.show({
+        type: 'error',
+        text1: errorMessage,
+        position: 'top',
+      });
     }
+  };
 
-    values.seller.latitude = location.coords.latitude;
-    values.seller.longitude = location.coords.longitude;
-    values.isSeller = true;
-
-    // Criação do perfil
-    const response = await api.post('users/signup', values);
-
-    // Permissão para notificações
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
-      throw new Error('Permissão de notificações não concedida.');
-    }
-
-    const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
-    // const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-
-    // Atualiza o push token do usuário
-    // await api.patch(`/users/updatePushToken/${response.data._id}`, { pushToken: token });
-
-    Toast.show({
-      type: 'success',
-      text1: 'Perfil criado com sucesso',
-      position: 'top',
-    });
-
-    navigation.navigate('NewProduct');
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message || 'Ocorreu um erro inesperado.';
-    Toast.show({
-      type: 'error',
-      text1: errorMessage,
-      position: 'top',
-    });
-  }
-};
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -405,6 +435,26 @@ const handleSubmit = async (values) => {
                 <Text style={styles.error}>{errors.seller?.phoneNumberAccount}</Text>
               )}
 
+              {/* Location Update Button */}
+              <Text style={styles.label}>Localização GPS</Text>
+              <TouchableOpacity
+                style={[styles.button, locationLoading && styles.buttonDisabled]}
+                onPress={getCurrentLocation}
+                disabled={locationLoading}
+              >
+                <Text style={styles.buttonText}>
+                  {locationLoading ? 'Obtendo localização...' : 'Atualizar Localização'}
+                </Text>
+              </TouchableOpacity>
+              {location?.coords && (
+                <Text style={styles.locationText}>
+                  Latitude: {location.coords.latitude.toFixed(6)}, Longitude: {location.coords.longitude.toFixed(6)}
+                </Text>
+              )}
+              {!location?.coords && (
+                <Text style={styles.error}>Localização não disponível</Text>
+              )}
+
               <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleSubmit}
@@ -509,6 +559,12 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 10,
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 10,
   },
 });
 
