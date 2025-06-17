@@ -196,8 +196,8 @@ const OrderDetail = ({ navigation }) => {
           <Text style={styles.bold}>{currentOrder.addressPrice} MT</Text>
         </View>
         <View style={styles.content}>
-          <Text style={styles.label}>Valor total pago: </Text>
-          <Text style={styles.bold}>{currentOrder.totalPrice} MT</Text>
+          <Text style={styles.label}>Valor recebido: </Text>
+          <Text style={styles.bold}>{currentOrder.itemsPriceForSeller} MT</Text>
         </View>
         <View style={styles.content}>
           <Text style={styles.label}>Nome do cliente: </Text>
@@ -216,24 +216,52 @@ const OrderDetail = ({ navigation }) => {
       </View>
 
       <Text style={{ fontSize: 17, fontWeight: '600' }}>Produtos solicitados</Text>
-      {groupedItemsArray.map(item => (
-        <View style={styles.itemContainer} key={item._id}>
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
-          <View style={styles.itemDetails}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            {item.brand && <Text style={styles.itemText}>Marca/Sabor: {item.brand}</Text>}
-            <Text style={styles.itemText}>Preço: {item.price} MT</Text>
-            <Text style={styles.itemText}>Quantidade: {item.quantity} solicitada</Text>
-            <Text style={styles.itemText}>Em promoção: {item.onSale ? 'Sim' : 'Não'}</Text>
-            {item.onSale && (
-              <Text style={styles.itemText}>Desconto: {item.onSalePercentage}%</Text>
-            )}
-            {item.isGuaranteed && (
-              <Text style={styles.itemText}>Garantia: {item.guaranteedPeriod}</Text>
-            )}
-          </View>
+     {groupedItemsArray.map(item => {
+  // Cálculo do preço original, se estiver em promoção
+  const originalPrice = item.onSale && item.onSalePercentage
+    ? (item.price / (1 - item.onSalePercentage / 100)).toFixed(2)
+    : item.price;
+
+  return (
+    <View style={styles.itemContainer} key={item._id}>
+      <Image source={{ uri: item.image }} style={styles.itemImage} />
+      <View style={styles.itemDetails}>
+        {/* Título e Badge de Promoção */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          {item.onSale && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>Promoção</Text>
+            </View>
+          )}
         </View>
-      ))}
+
+        {/* Marca/Sabor */}
+        {item.brand && <Text style={styles.itemText}>Marca/Sabor: {item.brand}</Text>}
+
+        {/* Preço com ou sem desconto */}
+        {item.onSale  ? (
+          <>
+            <Text style={[styles.itemText, { textDecorationLine: 'line-through', color: 'gray' }]}>
+              Preço venda: {item.priceFromSeller} MT
+            </Text>
+            <Text style={[styles.itemText, { color: 'green', fontWeight: 'bold' }]}>
+              Preço com Desconto: {item.discount} MT
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.itemText}>Preço: {item.price} MT</Text>
+        )}
+
+        <Text style={styles.itemText}>Quantidade solici.: {item.quantity} unid.</Text>
+
+        {item.isGuaranteed && (
+          <Text style={styles.itemText}>Garantia: {item.guaranteedPeriod}</Text>
+        )}
+      </View>
+    </View>
+  );
+})}
 
       {currentOrder.status === 'Pendente' &&
         <View style={styles.buttonContainer}>
@@ -458,6 +486,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  badge: {
+  backgroundColor: '#FF5733',
+  paddingHorizontal: 8,
+  paddingVertical: 2,
+  borderRadius: 5,
+  alignSelf: 'flex-start',
+},
+badgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
 });
 
 export default OrderDetail;
