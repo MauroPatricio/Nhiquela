@@ -49,44 +49,61 @@ const Cart = () => {
             <Text style={styles.itemsLength}>{items.length} produto(s) no carrinho</Text>
 
             {Object.entries(groupedItemsInTheCart).map(([key, groupedItems]) => (
-              <View key={key}>
-                <Text style={styles.sellerName}>
-                  Fornecedor: {groupedItems[0]?.sellerName?.length < 50
-                    ? groupedItems[0]?.sellerName || 'Sem nome do fornecedor'
-                    : (groupedItems[0]?.sellerName || 'Sem nome do fornecedor').substring(0, 25) + '...'}
-                </Text>
+  <View key={key}>
+    <Text style={styles.sellerName}>
+      Fornecedor: {groupedItems[0]?.sellerName?.length < 50
+        ? groupedItems[0]?.sellerName || 'Sem nome do fornecedor'
+        : (groupedItems[0]?.sellerName || 'Sem nome do fornecedor').substring(0, 25) + '...'}
+    </Text>
 
-                <View style={styles.itemLine}>
-                  <Text style={styles.quantity}>{groupedItems.length}x</Text>
-                  <Image
-                    source={{ uri: groupedItems[0]?.image }}
-                    style={styles.itemImage}
-                  />
-                  <Text style={styles.itemName}>
-                    {groupedItems[0]?.name?.length < 20
-                      ? groupedItems[0]?.name
-                      : groupedItems[0]?.name.substring(0, 25) + '...'}
-                  </Text>
-                  <Text style={styles.price}>{parseFloat(groupedItems[0]?.price || 0).toFixed(2)} MT</Text>
-                  
-                  <TouchableOpacity
-                    onPress={() => {
-                      const itemInBasket = items.find((basketItem) => basketItem._id === groupedItems[0]._id);
-                      
-                      if (itemInBasket) {
-                        dispatch(removeFromBasket({ _id: groupedItems[0]._id }));
-                        dispatch(removeSeller( groupedItems[0].seller._id ));
+    <View style={styles.itemLine}>
+      <Text style={styles.quantity}>{groupedItems.length}x</Text>
+      <Image
+        source={{ uri: groupedItems[0]?.image }}
+        style={styles.itemImage}
+      />
+      <Text style={styles.itemName}>
+        {groupedItems[0]?.name?.length < 20
+          ? groupedItems[0]?.name
+          : groupedItems[0]?.name.substring(0, 25) + '...'}
+      </Text>
 
-                      } else {
-                        console.warn(`Can't remove product (id: ${groupedItems[0]._id}) as it's not in the basket!`);
-                      }
-                    }}
-                  >
-<TrashIcon color="#7F00FF" size={28} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
+      <View>
+  {/* Se o desconto for maior que 0, exibe o valor original riscado e o atualizado em verde */}
+  {parseFloat(groupedItems[0]?.discount || 0) > 0 ? (
+    <>
+      <Text style={{ color: 'grey', textDecorationLine:'line-through' }}>
+        {parseFloat(groupedItems[0]?.price || 0).toFixed(2)} MT
+      </Text>
+      <Text style={{ color:'green', fontWeight:'bold' }}>
+        {parseFloat(groupedItems[0]?.discount).toFixed(2)} MT
+      </Text>
+    </>
+  ) : (
+    <Text style={styles.price}>
+      {parseFloat(groupedItems[0]?.price || 0).toFixed(2)} MT
+    </Text>
+  )}
+
+</View>
+
+      <TouchableOpacity
+        onPress={() => {
+          const itemInBasket = items.find((basketItem) => basketItem._id === groupedItems[0]._id);
+
+          if (itemInBasket) {
+            dispatch(removeFromBasket({ _id: groupedItems[0]._id }));
+            dispatch(removeSeller(groupedItems[0].seller._id));
+          } else {
+            console.warn(`Can't remove product (id: ${groupedItems[0]._id}) as it's not in the basket!`);
+          }
+        }}
+      >
+        <TrashIcon color="#7F00FF" size={28} />
+      </TouchableOpacity>
+    </View>
+  </View>
+))}
           </ScrollView>
         </View>
       </SafeAreaView> 

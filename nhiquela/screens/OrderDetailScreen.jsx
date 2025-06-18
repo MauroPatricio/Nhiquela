@@ -140,18 +140,44 @@ const OrderDetailsScreen = () => {
         </View>
 
         <Text style={styles.sectionTitle}>Produtos</Text>
-        {currentOrder.orderItems?.map((item, idx) => (
+            {currentOrder.orderItems?.map((item, idx) => (
           <View style={styles.itemCard} key={idx}>
             <Image source={{ uri: item.image }} style={styles.image} />
             <View style={styles.itemInfo}>
-              <Text style={styles.itemName}>{item.nome}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={styles.itemName}>{item.nome}</Text>
+
+                {/* Badge de promoção */}
+                {item.onSale && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Promoção</Text>
+                  </View>
+                )}
+              </View>
+
               <Text style={styles.itemText}>Qtd: {item.quantity}</Text>
-              <Text style={styles.itemText}>Preço: {item.price} Mt</Text>
+
+              {/* Preço com desconto */}
+              {item.onSale && item.discount > 0 ? (
+                <>
+                  {/* <Text style={[styles.itemText, { textDecorationLine: 'line-through', color: 'gray' }]}>
+                    Preço: {item.price + item.discount} Mt
+                  </Text> */}
+                  <Text style={[styles.itemText, { textDecorationLine: 'line-through', color: 'gray' }]}>
+                    Preço: {item.price} Mt
+                  </Text>
+                  <Text style={[styles.itemText, { color: 'green', fontWeight: 'bold' }]}>Desconto: {item.discount} Mt</Text>
+                </>
+              ) : (
+                <Text style={styles.itemText}>Preço: {item.price} Mt</Text>
+              )}
+
               <Text style={styles.itemText}>Fornecedor: {currentOrder.seller?.seller?.name}</Text>
               <Text style={styles.itemText}>{item.description}</Text>
             </View>
           </View>
         ))}
+
 
         {currentOrder.status === 'Em trânsito' && (
           <TouchableOpacity style={styles.greenButton} onPress={() => confirmDeliveryOrder(currentOrder._id)}>
@@ -320,6 +346,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  badge: {
+  backgroundColor: '#FF5733',
+  borderRadius: 5,
+  paddingHorizontal: 8,
+  paddingVertical: 2,
+  alignSelf: 'flex-start',
+  marginLeft: 8,
+},
+badgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
 });
 
 export default OrderDetailsScreen;

@@ -170,6 +170,7 @@ const SellerScreen = () => {
 
         <View style={styles.productView}>
           {productsBySeller && productsBySeller.map((product) => (
+
             <SellerProduct
               key={product._id}
               id={product._id}
@@ -188,6 +189,10 @@ const SellerScreen = () => {
               countInStock={product.countInStock}
               seller={product.seller}
               sellerName={product.seller.seller.name}
+              discount={product.discount}
+              comissionPercentage={product.comissionPercentage}
+              sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
+
             />
           ))}
         </View>

@@ -68,7 +68,6 @@ const SellersList = () => {
           longitude,
           openstore
         } = item.seller; // Destructure properties from item.seller
-        console.log(item)
     
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {

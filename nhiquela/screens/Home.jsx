@@ -154,6 +154,7 @@ const Home = () => {
               products: item.products,
             };
           });
+
         setFilteredCategories(categories);
       }
     } catch (error) {

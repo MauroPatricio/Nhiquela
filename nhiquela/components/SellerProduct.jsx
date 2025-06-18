@@ -33,7 +33,11 @@ const SellerProduct = ({
   countInStock,
   price,
   seller,
+  discount,
   sellerName,
+  comissionPercentage,
+  sellerEarningsAfterDiscount,
+  onSale
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -62,6 +66,10 @@ const SellerProduct = ({
         price,
         seller,
         sellerName,
+        discount,
+        onSale,
+        comissionPercentage,
+        sellerEarningsAfterDiscount,
         quantity: items.length + 1,
       })
     );
@@ -92,7 +100,34 @@ const SellerProduct = ({
 
         <Text style={styles.description}>{description}</Text>
         <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
-        <Text style={styles.price}>{price} MT</Text>
+        {onSale ? (
+              <View style={{ marginTop: 6 }}>
+                {/* Badge de promoção */}
+                <View style={{ backgroundColor:'green', paddingHorizontal:6, paddingVertical:2, borderRadius:4, alignSelf:'flex-start', marginBottom: 4 }}>
+                  <Text style={{ color:'white', fontWeight:'bold', fontSize: 12 }}>Em promoção</Text>
+                </View>
+
+                {/* Preço original riscado */}
+                <Text style={{ color:'grey', textDecorationLine:'line-through', marginBottom: 5 }}>
+                  {parseFloat(price).toFixed(2)} MT
+                </Text>
+
+                {/* Preço com desconto */}
+                <Text style={{ color:'green', fontWeight:'bold', fontSize: 16 }}>
+                  {parseFloat(discount).toFixed(2)} MT
+                </Text>
+
+                {/* Valor do desconto */}
+                <Text style={{ color:'green', marginTop: 4 }}>
+                  Economiza { (parseFloat(price) - parseFloat(discount)).toFixed(2) } MT
+                </Text>
+
+              </View>
+) : (
+  <Text style={styles.price}>
+    {parseFloat(price).toFixed(2)} MT
+  </Text>
+)}
       </View>
 
       {isExpanded && (

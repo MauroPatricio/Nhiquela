@@ -27,6 +27,8 @@ import {
   selectDeliverPrice,
   clearBasket,
   selectTotalPriceFromSeller,
+  selectPriceFromSeller,
+  selectSellerEarningsAfterDiscount,
 } from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -47,10 +49,12 @@ const MpesaScreen = () => {
   const navigation = useNavigation();
   const items = useSelector(selectBasketItems);
   const itemsPrice = useSelector(selectBasketTotal);
-  const totalPriceFromSeller = useSelector(selectTotalPriceFromSeller);
+  const totalPriceFromSeller = useSelector(selectPriceFromSeller);
+  const totalSellerEarningsAfterDiscount = useSelector(selectSellerEarningsAfterDiscount)
   const iva = useSelector(selectIva);
   const deliveryPrice = useSelector(selectDeliverPrice);
   const dispatch = useDispatch();
+
 
   useEffect(() => {
     const configurarNotificacoes = async () => {
@@ -140,6 +144,9 @@ const MpesaScreen = () => {
         return;
       }
 
+
+      const payoutToSellerWithDelivery = totalSellerEarningsAfterDiscount + deliveryPrice
+
       const orderPayload = {
         orderItems: items,
         address: '',
@@ -150,7 +157,7 @@ const MpesaScreen = () => {
         taxPrice: 0,
         totalPrice: totalToPay,
         addressPrice: deliveryPrice,
-        itemsPriceForSeller: totalPriceFromSeller,
+        itemsPriceForSeller: payoutToSellerWithDelivery,
         isPaid: true,
         paidAt: Date.now(),
         stepStatus: 1,
@@ -162,22 +169,6 @@ const MpesaScreen = () => {
       const { data: orderResponse } = await api.post('orders', orderPayload, {
         headers,
       });
-
-      if (orderResponse?.order?.isPaid) {
-        const sellerNumber = orderResponse.order.seller?.seller?.phoneNumberAccount;
-        const formattedNumber =
-          sellerNumber?.toString().length === 9
-            ? Number('258' + sellerNumber)
-            : sellerNumber;
-
-        if (formattedNumber) {
-          await api.post(
-            `payments/mpesa/b2c`,
-            { sellerNumber: formattedNumber, priceForSeller: orderResponse.order.itemsPriceForSeller },
-            { headers }
-          );
-        }
-      }
 
       dispatch(clearBasket());
       mostrarNotificacao(orderResponse);

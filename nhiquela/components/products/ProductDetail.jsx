@@ -26,6 +26,9 @@ const ProductDetail = () => {
     priceFromSeller,
     price,
     onSale,
+    discount,
+    comissionPercentage,
+    sellerEarningsAfterDiscount
   } = itemData;
 
   let seller = itemData?.sellerDetails || itemData?.seller;
@@ -42,7 +45,6 @@ const ProductDetail = () => {
     if (currentQuantity + count >= countInStock) return;
 
     setCount(count + 1);
-
     dispatch(addToBasket({
       _id,
       nome,
@@ -57,6 +59,9 @@ const ProductDetail = () => {
       onSale,
       seller,
       sellerName,
+      discount,
+      comissionPercentage,
+      sellerEarningsAfterDiscount,
       quantity: currentQuantity + count + 1,
     }));
 
@@ -91,9 +96,34 @@ const ProductDetail = () => {
             <Text style={styles.seller}>Fornecedor: <Text style={{ fontWeight: '800' }}>{sellerName || 'N/A'}</Text></Text>
             <Text style={styles.title}>{nome}</Text>
             <View style={styles.priceRow}>
-              {onSale && <Badge style={styles.saleBadge}>Promoção</Badge>}
-              <Text style={styles.price}>{price} MT</Text>
-            </View>
+  {item.item.onSale && (
+    <>
+      {/* Badge "Promoção" */}
+      <View style={styles.promoBadge}>
+        <Text style={styles.promoText}>
+          Promoção
+        </Text>
+      </View>
+
+      {/* Preço com desconto (maior) */}
+      <Text style={styles.discountPrice}>
+        {item.item.discount} MT
+      </Text>
+
+      {/* Preço original (riscado e menor) */}
+      <Text style={styles.originalPrice}>
+        {item.item.price} MT
+      </Text>
+    </>
+  )}
+
+  {!item.item.onSale && (
+    <Text style={styles.normalPrice}>
+      {item.item.price} MT
+    </Text>
+  )}
+
+</View>
                   <Text>
                     {countInStock > 0 ? (
                       <Text style={styles.badgeInStock}>{countInStock} unidade(s) disponível(is)</Text>
@@ -191,16 +221,53 @@ const styles = StyleSheet.create({
     color: '#222',
     // marginBottom: 10,
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  price: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#7F00FF',
-  },
+priceRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+},
+
+promoBadge: {
+  backgroundColor: 'green',
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 4,
+},
+
+promoText: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 12,
+},
+
+discountPrice: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  color: '#00796B',
+},
+
+originalPrice: {
+  fontSize: 12,
+  color: 'grey',
+  textDecorationLine: 'line-through',
+},
+
+normalPrice: {
+  fontSize: 14,
+  fontWeight: 'bold',
+},
+
+
+saving: {
+  fontSize: 12,
+  color: 'red',
+},
+
+normalPrice: {
+  fontSize: 14,
+  fontWeight: 'bold',
+},
+
   saleBadge: {
     backgroundColor: 'green',
     color: '#fff',

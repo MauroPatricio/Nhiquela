@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import React from 'react';
+import React, { memo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import Home from '../screens/Home';
@@ -10,59 +10,59 @@ import Profile from '../screens/Profile';
 
 const Tab = createBottomTabNavigator();
 
-const CustomTabBarButton = ({ children, onPress }) => (
+const CustomTabBarButton = memo(({ children, onPress }) => (
   <View style={styles.centerButtonWrapper}>
     <View style={styles.centerButton}>
       {children}
     </View>
   </View>
-);
+));
 
 const ButtomTabNavegation = () => {
   return (
     <Tab.Navigator
-      screenOptions={{
-        tabBarShowLabel: false,
-        tabBarHideOnKeyboard: true,
+      screenOptions={{ 
+        tabBarShowLabel: false, 
+        tabBarHideOnKeyboard: true, 
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: styles.tabBar 
       }}
     >
       <Tab.Screen
         name="Home"
         component={Home}
-        options={{
+        options={{ 
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
               size={24}
               color={focused ? '#7F00FF' : 'black'}
             />
-          ),
+          )
         }}
       />
 
       <Tab.Screen
         name="Search"
         component={Search}
-        options={{
+        options={{ 
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? 'search' : 'search-outline'}
               size={24}
               color={focused ? '#7F00FF' : 'black'}
             />
-          ),
+          )
         }}
       />
 
       <Tab.Screen
         name="RequestDeliv"
         component={RequestDeliv}
-        options={{
-          tabBarIcon: ({ focused }) => (
+        options={{ 
+          tabBarIcon: () => (
             <Ionicons
-              name={focused ? 'add-circle' : 'add-circle-outline'}
+              name='add-circle'
               size={50}
               color="#7F00FF"
             />
@@ -74,37 +74,37 @@ const ButtomTabNavegation = () => {
       <Tab.Screen
         name="Orders"
         component={Orders}
-        options={{
+        options={{ 
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
               size={24}
               color={focused ? '#7F00FF' : 'black'}
             />
-          ),
+          )
         }}
       />
 
       <Tab.Screen
         name="Profile"
         component={Profile}
-        options={{
+        options={{ 
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}
               size={24}
               color={focused ? '#7F00FF' : 'black'}
             />
-          ),
+          )
         }}
       />
     </Tab.Navigator>
-  );
+  )
 };
 
 export default ButtomTabNavegation;
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create({ 
   tabBar: {
     position: 'absolute',
     bottom: 0,
