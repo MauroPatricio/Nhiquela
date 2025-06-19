@@ -54,6 +54,7 @@ const MpesaScreen = () => {
   const iva = useSelector(selectIva);
   const deliveryPrice = useSelector(selectDeliverPrice);
   const dispatch = useDispatch();
+  const [userLogin, setUserLogin] = useState(false)
 
 
   useEffect(() => {
@@ -77,14 +78,28 @@ const MpesaScreen = () => {
     });
   };
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
-    const currentUser = await AsyncStorage.getItem(userId);
-    if (currentUser !== null) {
-      setUserData(JSON.parse(currentUser));
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        console.warn('⚠️ ID inconsistente entre userData e id');
+      }
+    } else {
+      console.log('⚠️ Usuário não está logado');
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+  }
+};
+
 
   useEffect(() => {
     checkIfUserExist();

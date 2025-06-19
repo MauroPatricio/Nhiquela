@@ -76,32 +76,31 @@ export default function App() {
       Notifications.removeNotificationSubscription(responseListener.current);
     };
   }, []);
+useEffect(() => {
+  const registerToken = async () => {
+    const deviceToken = await registerForPushNotificationsAsync();
+    if (deviceToken) {
+      try {
+        const userId = await AsyncStorage.getItem('id'); // ✅ Não usar JSON.parse
 
-  useEffect(() => {
-    const registerToken = async () => {
-      const deviceToken = await registerForPushNotificationsAsync();
-      if (deviceToken) {
-        console.log('✅ Expo Push deviceToken:', deviceToken);
-        try {
-          const userId = await AsyncStorage.getItem('id');
-          if (userId) {
-            await api.post('/notifications/savedevicetoken', {
-              deviceToken,
-              userId,
-              platform: Platform.OS,
-            });
-            console.log('📦 deviceToken salvo com sucesso.');
-          } else {
-            console.log('Usuário não logado. Token não será salvo.');
-          }
-        } catch (err) {
-          console.error('❌ Erro ao salvar deviceToken:', err);
+        if (userId) {
+          await api.post('/notifications/savedevicetoken', {
+            deviceToken,
+            userId,
+            platform: Platform.OS,
+          });
+        } else {
+          console.log('Usuário não logado. Token não será salvo.');
         }
+      } catch (err) {
+        console.error('❌ Erro ao salvar deviceToken:', err);
       }
-    };
+    }
+  };
 
-    registerToken();
-  }, []);
+  registerToken();
+}, []);
+
 
   return (
     <NavigationContainer>

@@ -37,6 +37,7 @@ const Home = () => {
   const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
   const navigation = useNavigation();
+  const [userLogin,setUserLogin ] = useState(false);
 
   useEffect(() => {
     checkIfUserExist();
@@ -51,18 +52,27 @@ const Home = () => {
     }, [])
   );
 
-  const checkIfUserExist = async () => {
-    try {
-      const id = await AsyncStorage.getItem('id');
-      const userId = `user${JSON.parse(id)}`;
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        console.warn('⚠️ ID inconsistente entre userData e id');
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      console.log('⚠️ Usuário não está logado');
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+  }
+};
 
   const registerForPushNotificationsAsync = async () => {
     if (!userData) return;

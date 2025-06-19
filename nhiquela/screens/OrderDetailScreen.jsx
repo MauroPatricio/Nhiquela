@@ -22,24 +22,36 @@ const OrderDetailsScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [message, setMessage] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [userLogin,setUserLogin] = useState(false)
   const navigation = useNavigation();
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        console.warn('⚠️ ID inconsistente entre userData e id');
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      console.log('⚠️ Usuário não está logado');
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+  }
+};
+
+
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';

@@ -19,7 +19,6 @@ export async function registerForPushNotificationsAsync() {
     }
 
     deviceToken = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('Expo Push Token:', deviceToken);
   } else {
     Alert.alert('Precisa usar um dispositivo físico');
   }

@@ -31,15 +31,15 @@ const login = async (values) => {
   setLoader(true);
 
   try {
-          const data = values;
+    const data = values;
 
     const response = await api.post('/users/signin', data);
 
     if (response.status === 200) {
       const userData = response.data;
 
-      await AsyncStorage.setItem(`userData`, JSON.stringify(userData));
-      await AsyncStorage.setItem('id', JSON.stringify(userData._id));
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      await AsyncStorage.setItem('id', userData._id);
 
       await registerDeviceToken(userData);
 

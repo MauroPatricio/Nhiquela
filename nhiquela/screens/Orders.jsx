@@ -19,22 +19,32 @@ const Orders = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [userLogin, setUserLogin] = useState(false);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const user = await AsyncStorage.getItem('userData');
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
 
-    const userDataJson = `${JSON.parse(user)}`;
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
 
-    try {
-      const currentUser = await AsyncStorage.getItem(userDataJson);
-      if (currentUser !== null) {
-        setUserData(userDataJson);
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
       }
-    } catch (error) {
-      console.log(error);
+    } else {
+      console.log('⚠️ Usuário não está logado');
+      setIsLoading(false); // ✅ Para o loading se não logado
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+  }
+};
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -52,20 +62,27 @@ const Orders = () => {
   };
 
   const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      console.log(userData)
-      if (!userData) return;
-      const { data } = await api.get('/orders/mine', {
-        headers: { Authorization: `Bearer ${userData.token}` },
-      });
-      setOrders(data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
+  try {
+    setIsLoading(true);
+    if (!userData?.token) {
+      setIsLoading(false); // ✅ Garante fim do loading
+      return;
     }
-  };
+
+    const { data } = await api.get('/orders/mine', {
+      headers: { Authorization: `Bearer ${userData.token}` },
+    });
+
+    setOrders(data || []);
+
+  } catch (error) {
+    console.error('Erro ao buscar pedidos:', error);
+     setIsLoading(false); // ✅ Garante parada mesmo em erro
+
+  } finally {
+    setIsLoading(false); // ✅ Sempre finaliza o loading
+  }
+};
 
   useEffect(() => {
     checkIfUserExist();
