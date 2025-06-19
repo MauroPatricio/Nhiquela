@@ -80,13 +80,13 @@ const Home = () => {
     }
 
     const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    updatePushToken(userData._id, token);
+    const deviceToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    updatePushToken(userData._id, deviceToken);
   };
 
-  const updatePushToken = async (userId, token) => {
+  const updatePushToken = async (userId, deviceToken) => {
     try {
-      await api.patch(`/users/updatePushToken/${userId}`, { pushToken: token });
+      await api.patch(`/users/updateDeviceToken/${userId}`, { deviceToken: deviceToken });
     } catch (error) {
       console.error('Erro ao atualizar o PushToken:', error.message);
     }

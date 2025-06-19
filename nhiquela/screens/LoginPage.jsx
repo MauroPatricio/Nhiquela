@@ -9,7 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { registerIndieID, unregisterIndieDevice } from 'native-notify';
+import registerDeviceToken from '../utils/registerDeviceToken';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -26,28 +26,35 @@ const LoginPage = ({ navigation }) => {
   const [responseData, setResponseData] = useState(null);
   const [hideText, setHideText] = useState(false);
 
-  const login = async (values) => {
-    setLoader(true);
-    try {
-      const data = values;
-      const response = await api.post('/users/signin', data);
+  
+const login = async (values) => {
+  setLoader(true);
 
-      if (response.status === 200) {
-        setLoader(false);
-        setResponseData(response.data);
-        await AsyncStorage.setItem(`user${response.data._id}`, JSON.stringify(response.data));
-        await AsyncStorage.setItem('id', JSON.stringify(response.data._id));
+  try {
+          const data = values;
 
-        registerIndieID(response.data._id, 23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+    const response = await api.post('/users/signin', data);
 
-        navigation.replace('Bottom Navigation');
-      }
-    } catch (error) {
-      Alert.alert('Informe o número de telefone ou a senha correcta');
-    } finally {
-      setLoader(false);
+    if (response.status === 200) {
+      const userData = response.data;
+
+      await AsyncStorage.setItem(`userData`, JSON.stringify(userData));
+      await AsyncStorage.setItem('id', JSON.stringify(userData._id));
+
+      await registerDeviceToken(userData);
+
+      setResponseData(userData);
+      navigation.replace('Bottom Navigation');
     }
-  };
+  } catch (error) {
+    Alert.alert('Erro', 'Informe o número de telefone ou a senha correta.');
+  } finally {
+    setLoader(false);
+  }
+};
+
+
+
 
   return (
     <ScrollView style={{ backgroundColor: 'white' }}>
@@ -230,4 +237,6 @@ const styles = StyleSheet.create({
     },
 
   });
+
+
   

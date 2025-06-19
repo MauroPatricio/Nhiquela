@@ -22,12 +22,14 @@ const Orders = () => {
 
   const checkIfUserExist = async () => {
     const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
+    const user = await AsyncStorage.getItem('userData');
+
+    const userDataJson = `${JSON.parse(user)}`;
 
     try {
-      const currentUser = await AsyncStorage.getItem(userId);
+      const currentUser = await AsyncStorage.getItem(userDataJson);
       if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
+        setUserData(userDataJson);
       }
     } catch (error) {
       console.log(error);
@@ -52,6 +54,7 @@ const Orders = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      console.log(userData)
       if (!userData) return;
       const { data } = await api.get('/orders/mine', {
         headers: { Authorization: `Bearer ${userData.token}` },
