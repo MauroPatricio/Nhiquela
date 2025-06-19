@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import registerDeviceToken from '../utils/registerDeviceToken';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -36,6 +37,8 @@ const LoginPage = ({ navigation }) => {
         setResponseData(response.data);
         await AsyncStorage.setItem(`user${response.data._id}`, JSON.stringify(response.data));
         await AsyncStorage.setItem('id', JSON.stringify(response.data._id));
+        await registerDeviceToken(response.data);
+
         navigation.replace('Bottom Navigation');
       }
     } catch (error) {

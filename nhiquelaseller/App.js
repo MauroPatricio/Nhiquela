@@ -1,42 +1,128 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useEffect, useRef } from 'react';
+import { Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Provider } from 'react-redux';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
+import api from './hooks/createConnectionApi';
+import { store } from './store';
+
+// Importação de telas e componentes
 import ButtomTabNavegation from './navegation/ButtomTabNavegation';
 import ProductDetail from './components/products/ProductDetail';
-import NewProducts from './screens/NewProduct';
-import ProductList from './components/products/ProductList';
+import NewProduct from './screens/NewProduct';
+import ProductListSeller from './components/products/ProductListSeller';
+import ProductSellerDetail from './components/products/ProductSellerDetail';
+import PaymentsHistory from './screens/PaymentsHistory';
 import LoginPage from './screens/LoginPage';
-import BackBtn from './components/BackBtn';
 import SignUp from './screens/SignUp';
 import SellerScreen from './components/SellerScreen';
 import SellerProduct from './components/SellerProduct';
-import { store } from './store';
-import { Provider } from 'react-redux';
-import Cart from './screens/Cart';
-import PaymentMethods from './screens/PaymentMethod';
 import PaymentMethod from './screens/PaymentMethod';
+import OrderDetail from './screens/OrderDetail';
 import MpesaScreen from './screens/MpesaScreen';
 import SuccessPayment from './screens/SuccessPayment';
 import FailedPayment from './screens/FailedPayment';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import MapScreen from './screens/MapScreen';
-import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
-import GeoLocation from 'react-native-get-location';
-import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Importe GestureHandlerRootView
-import OrderDetail from './screens/OrderDetail';
-import NewProduct from './screens/NewProduct';
-import ProductListSeller from './components/products/ProductListSeller';
-import PaymentsHistory from './screens/PaymentsHistory';
-import Toast from 'react-native-toast-message';
-import ProductSellerDetail from './components/products/ProductSellerDetail';
-
-import React, { useState, useEffect } from 'react';
 import EditProductView from './components/products/EditProductView';
+import Cart from './screens/Cart';
 
 const Stack = createNativeStackNavigator();
 
+// 🧠 Função para registrar e obter o token de notificação
+async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    alert('Notificações push só funcionam em dispositivos físicos.');
+    return;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    alert('Permissão para notificações negada!');
+    return;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: Constants.expoConfig.extra.eas.projectId, // ajuste conforme necessário
+  });
+
+  return tokenData.data;
+}
+
+// Configuração para exibir notificações em foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export default function App() {
+  const notificationResponseListener = useRef();
+  const notificationReceivedListener = useRef();
+
+  useEffect(() => {
+    // ✅ Registro e envio do token
+    registerForPushNotificationsAsync().then(async (deviceToken) => {
+      if (deviceToken) {
+        console.log('✅ Expo Push deviceToken:', deviceToken);
+
+        try {
+          const userId = await AsyncStorage.getItem('id');
+          if (userId) {
+            await api.post('/notifications/savedevicetoken', {
+              deviceToken,
+              userId,
+              platform: Platform.OS,
+            });
+            console.log('deviceToken salvo com sucesso.');
+          } else {
+            console.log('Usuário não logado. deviceToken não será salvo.');
+          }
+        } catch (err) {
+          console.error('Erro ao salvar deviceToken:', err);
+        }
+      }
+    });
+
+    // 📥 Notificações recebidas em foreground
+    notificationReceivedListener.current =
+      Notifications.addNotificationReceivedListener(notification => {
+        console.log('📩 Notificação recebida em foreground:', notification);
+        Alert.alert(notification.request.content.title, notification.request.content.body);
+      });
+
+    // 📲 Quando o app é aberto via notificação (background/quit)
+    notificationResponseListener.current =
+      Notifications.addNotificationResponseReceivedListener(response => {
+        console.log('🔁 Usuário tocou na notificação:', response);
+        // Aqui você pode navegar para uma tela com base no conteúdo
+        const data = response.notification.request.content.data;
+        // Exemplo: navigation.navigate('OrderDetail', { orderId: data.orderId });
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(notificationReceivedListener.current);
+      Notifications.removeNotificationSubscription(notificationResponseListener.current);
+    };
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
@@ -48,107 +134,30 @@ export default function App() {
               style={{ flex: 1 }}
             >
               <Stack.Navigator>
-                <Stack.Screen
-                  name="Bottom Navigation"
-                  component={ButtomTabNavegation}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="ProductDetail"
-                  component={ProductDetail}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="NewProduct"
-                  component={NewProduct}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="ProductListSeller"
-                  component={ProductListSeller}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="ProductSellerDetail"
-                  component={ProductSellerDetail}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="PaymentsHistory"
-                  component={PaymentsHistory}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="Login"
-                  component={LoginPage}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="SignUp"
-                  component={SignUp}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="SellerScreen"
-                  component={SellerScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="SellerProduct"
-                  component={SellerProduct}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="PaymentMethod"
-                  component={PaymentMethod}
-                  options={{ presentation: 'modal', headerShown: false }}
-                />
-                <Stack.Screen
-                  name="OrderDetail"
-                  component={OrderDetail}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="MpesaScreen"
-                  component={MpesaScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="SuccessPayment"
-                  component={SuccessPayment}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="FailedPayment"
-                  component={FailedPayment}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="MapScreen"
-                  component={MapScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="RideOptionsCard"
-                  component={RideOptionsCard}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="TransportType"
-                  component={TransportType}
-                  options={{ headerShown: false }}
-                />
-
-<Stack.Screen
-                  name="EditProduct"
-                  component={EditProductView}
-                  options={{ headerShown: false }}
-                />
+                <Stack.Screen name="Bottom Navigation" component={ButtomTabNavegation} options={{ headerShown: false }} />
+                <Stack.Screen name="ProductDetail" component={ProductDetail} options={{ headerShown: false }} />
+                <Stack.Screen name="NewProduct" component={NewProduct} options={{ headerShown: false }} />
+                <Stack.Screen name="ProductListSeller" component={ProductListSeller} options={{ headerShown: false }} />
+                <Stack.Screen name="ProductSellerDetail" component={ProductSellerDetail} options={{ headerShown: false }} />
+                <Stack.Screen name="PaymentsHistory" component={PaymentsHistory} options={{ headerShown: false }} />
+                <Stack.Screen name="Login" component={LoginPage} options={{ headerShown: false }} />
+                <Stack.Screen name="SignUp" component={SignUp} options={{ headerShown: false }} />
+                <Stack.Screen name="SellerScreen" component={SellerScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="SellerProduct" component={SellerProduct} options={{ headerShown: false }} />
+                <Stack.Screen name="PaymentMethod" component={PaymentMethod} options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="OrderDetail" component={OrderDetail} options={{ headerShown: false }} />
+                <Stack.Screen name="MpesaScreen" component={MpesaScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="SuccessPayment" component={SuccessPayment} options={{ headerShown: false }} />
+                <Stack.Screen name="FailedPayment" component={FailedPayment} options={{ headerShown: false }} />
+                <Stack.Screen name="MapScreen" component={MapScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} options={{ headerShown: false }} />
+                <Stack.Screen name="TransportType" component={TransportType} options={{ headerShown: false }} />
+                <Stack.Screen name="EditProduct" component={EditProductView} options={{ headerShown: false }} />
+                <Stack.Screen name="Cart" component={Cart} options={{ headerShown: false }} />
               </Stack.Navigator>
-            </KeyboardAvoidingView>
 
-            {/* Correct usage of Toast */}
-            <Toast />
+              <Toast />
+            </KeyboardAvoidingView>
           </SafeAreaProvider>
         </Provider>
       </NavigationContainer>
