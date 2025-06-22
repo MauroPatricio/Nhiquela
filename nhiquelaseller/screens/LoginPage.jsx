@@ -30,14 +30,17 @@ const LoginPage = ({ navigation }) => {
     setLoader(true);
     try {
       const data = values;
-      const response = await api.post('/users/signin', data);
+      const response = await api.post('/users/signinseller', data);
 
       if (response.status === 200) {
+        const userData = response.data;
+
         setLoader(false);
         setResponseData(response.data);
-        await AsyncStorage.setItem(`user${response.data._id}`, JSON.stringify(response.data));
-        await AsyncStorage.setItem('id', JSON.stringify(response.data._id));
-        await registerDeviceToken(response.data);
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      await AsyncStorage.setItem('id', userData._id);
+
+      await registerDeviceToken(userData);
 
         navigation.replace('Bottom Navigation');
       }

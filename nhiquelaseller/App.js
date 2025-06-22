@@ -34,42 +34,15 @@ import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
 import EditProductView from './components/products/EditProductView';
 import Cart from './screens/Cart';
-
+import { navigationRef } from './navegation/RootNavigation'; // ajuste o caminho conforme seu projeto
 const Stack = createNativeStackNavigator();
 
-// 🧠 Função para registrar e obter o token de notificação
-async function registerForPushNotificationsAsync() {
-  if (!Device.isDevice) {
-    alert('Notificações push só funcionam em dispositivos físicos.');
-    return;
-  }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    alert('Permissão para notificações negada!');
-    return;
-  }
-
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig.extra.eas.projectId, // ajuste conforme necessário
-  });
-
-  return tokenData.data;
-}
-
-// Configuração para exibir notificações em foreground
+// 🔔 Configuração para exibir notificações em foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
@@ -78,44 +51,54 @@ export default function App() {
   const notificationReceivedListener = useRef();
 
   useEffect(() => {
-    // ✅ Registro e envio do token
-    registerForPushNotificationsAsync().then(async (deviceToken) => {
-      if (deviceToken) {
-        console.log('✅ Expo Push deviceToken:', deviceToken);
+    // 🔧 Criação do canal Android
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('order-updates', {
+        name: 'Atualizações de Pedido',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
 
-        try {
-          const userId = await AsyncStorage.getItem('id');
-          if (userId) {
+    const setupNotifications = async () => {
+      const deviceToken = await registerForPushNotificationsAsync();
+      if (deviceToken) {
+        const userId = await AsyncStorage.getItem('id');
+        if (userId) {
+          try {
             await api.post('/notifications/savedevicetoken', {
               deviceToken,
               userId,
               platform: Platform.OS,
             });
-            console.log('deviceToken salvo com sucesso.');
-          } else {
-            console.log('Usuário não logado. deviceToken não será salvo.');
+            console.log('✅ deviceToken salvo com sucesso.');
+          } catch (err) {
+            console.error('❌ Erro ao salvar token:', err);
           }
-        } catch (err) {
-          console.error('Erro ao salvar deviceToken:', err);
         }
       }
-    });
 
-    // 📥 Notificações recebidas em foreground
-    notificationReceivedListener.current =
-      Notifications.addNotificationReceivedListener(notification => {
-        console.log('📩 Notificação recebida em foreground:', notification);
-        Alert.alert(notification.request.content.title, notification.request.content.body);
+      // Foreground notification
+      notificationReceivedListener.current = Notifications.addNotificationReceivedListener(notification => {
+        Toast.show({
+          type: 'info',
+          text1: notification.request.content.title,
+          text2: notification.request.content.body,
+        });
       });
 
-    // 📲 Quando o app é aberto via notificação (background/quit)
-    notificationResponseListener.current =
-      Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('🔁 Usuário tocou na notificação:', response);
-        // Aqui você pode navegar para uma tela com base no conteúdo
-        const data = response.notification.request.content.data;
-        // Exemplo: navigation.navigate('OrderDetail', { orderId: data.orderId });
+      // Quando usuário toca na notificação
+      notificationResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        const data = response.notification?.request?.content?.data;
+        if (data?.orderId && navigationRef.isReady()) {
+          navigate('OrderDetail', { orderId: data.orderId });
+        }
       });
+    };
+
+    setupNotifications();
 
     return () => {
       Notifications.removeNotificationSubscription(notificationReceivedListener.current);
@@ -125,7 +108,7 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Provider store={store}>
           <SafeAreaProvider>
             <KeyboardAvoidingView
@@ -156,11 +139,38 @@ export default function App() {
                 <Stack.Screen name="Cart" component={Cart} options={{ headerShown: false }} />
               </Stack.Navigator>
 
-              <Toast />
+             <Toast ref={(ref) => Toast.setRef(ref)} />
             </KeyboardAvoidingView>
           </SafeAreaProvider>
         </Provider>
       </NavigationContainer>
     </GestureHandlerRootView>
   );
+}
+
+// Função auxiliar
+async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    alert('Use um dispositivo físico para notificações.');
+    return null;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    alert('Permissão para notificações foi negada.');
+    return null;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: Constants.expoConfig?.extra?.eas?.projectId,
+  });
+
+  return tokenData.data;
 }

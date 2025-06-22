@@ -30,6 +30,8 @@ const Home = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
+    const [userLogin,setUserLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const updatePushToken = async (userId, newPushToken) => {
     try {
@@ -112,26 +114,57 @@ const Home = () => {
     };
   }, []);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    if (!id) {
-      navigation.navigate('Login');
-      return;
-    }
+  // const checkIfUserExist = async () => {
+  //   const id = await AsyncStorage.getItem('id');
+  //   if (!id) {
+  //     navigation.navigate('Login');
+  //     return;
+  //   }
 
-    const userId = `user${JSON.parse(id)}`;
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
+  //   const userId = `user${JSON.parse(id)}`;
+  //   try {
+  //     const currentUser = await AsyncStorage.getItem(userId);
+  //     if (currentUser !== null) {
+  //       setUserData(JSON.parse(currentUser));
+  //     } else {
+  //       navigation.navigate('Login');
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     navigation.navigate('Login');
+  //   }
+  // };
+
+
+  
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
       } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
         navigation.navigate('Login');
+
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      setIsLoading(false); // ✅ Para o loading se não logado
       navigation.navigate('Login');
+
     }
-  };
+  } catch (error) {
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+    navigation.navigate('Login');
+
+  }
+};
+
 
   const fetchData = async () => {
     if (!userData) return;
@@ -181,10 +214,17 @@ const Home = () => {
 
   const handleStatusSelect = (status) => setSelectedStatus(status);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-  };
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+};
 
   const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 

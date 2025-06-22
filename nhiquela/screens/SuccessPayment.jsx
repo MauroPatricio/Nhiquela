@@ -1,11 +1,14 @@
 import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
 import React, { useEffect, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 const SuccessPayment = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { orderCode } = route.params || {}; // Recebe o código do pedido
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -35,7 +38,18 @@ const SuccessPayment = () => {
       {/* Mensagem */}
       <Animated.View style={[styles.messageContainer, { opacity: fadeAnim }]}>
         <Text style={styles.title}>Pagamento realizado com sucesso!</Text>
-        <Text style={styles.subtitle}>Obrigado por usar nosso serviço.</Text>
+        <Text style={styles.subtitle}>
+          O seu pedido foi criado com sucesso. Agora é só aguardar a confirmação do fornecedor.
+        </Text>
+        <Text style={styles.subtitle}>
+          Você receberá uma notificação assim que o pedido for aceite.
+        </Text>
+
+        {orderCode && (
+          <Text style={styles.orderCode}>
+            Código do Pedido: <Text style={{ fontWeight: 'bold' }}>{orderCode}</Text>
+          </Text>
+        )}
       </Animated.View>
 
       {/* Botão Página Principal */}
@@ -85,6 +99,13 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#555',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  orderCode: {
+    fontSize: 16,
+    marginTop: 15,
+    color: '#333',
     textAlign: 'center',
   },
   button: {

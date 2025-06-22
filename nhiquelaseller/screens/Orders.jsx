@@ -13,6 +13,8 @@ const Orders = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
 
+  const [userLogin,setUserLogin] = useState(false)
+
   useEffect(() => {
     checkIfUserExist();
   }, []);
@@ -63,20 +65,34 @@ const Orders = () => {
     }
   };
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
 
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
+        navigation.navigate('Login');
+
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      setIsLoading(false); // ✅ Para o loading se não logado
+      navigation.navigate('Login');
+
     }
-  };
+  } catch (error) {
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+    navigation.navigate('Login');
+
+  }
+};
+
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);

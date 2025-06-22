@@ -9,32 +9,48 @@ const Profile = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [isStoreOpen, setIsStoreOpen] = useState(false); // State for store status
+    const [isLoading, setIsLoading] = useState(false);
+
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
+  
   const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
     try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      setUserLogin(false);
-      if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
-        setUserLogin(true);
-        setIsStoreOpen(parseData.seller?.openstore || false); // Initialize store status
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
+  
+      if (storedUserData && storedUserId) {
+        const parsedUserData = JSON.parse(storedUserData);
+  
+        if (parsedUserData._id === storedUserId) {
+          setUserData(parsedUserData); 
+          setIsStoreOpen(parsedUserData.seller?.openstore || false); // Initialize store status
+  
+          setUserLogin(true);
+        } else {
+          setIsLoading(false); // ✅ Para o loading se inconsistente
+          navigation.navigate('Login');
+  
+        }
+      } else {
+        setIsLoading(false); // ✅ Para o loading se não logado
+        navigation.navigate('Login');
+  
       }
     } catch (error) {
+      setIsLoading(false); // ✅ Garante parada mesmo em erro
       navigation.navigate('Login');
+  
     }
   };
 
+
+
   const userLogout = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
-    await AsyncStorage.removeItem(userId);
+    await AsyncStorage.getItem('userData');
     await AsyncStorage.removeItem('id');
     navigation.replace('Bottom Navigation');
   };

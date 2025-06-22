@@ -42,65 +42,80 @@ import ForgotPassword from './screens/ForgotPassword';
 import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
     import AsyncStorage from '@react-native-async-storage/async-storage';
+    import { createNavigationContainerRef } from '@react-navigation/native';
+
+export const navigationRef = createNavigationContainerRef();
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  const notificationListener = useRef();
-  const responseListener = useRef();
+   const responseListener = useRef();
 
-
-  useEffect(() => {
-  const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-    console.log('📥 Notificação recebida em foreground:', notification);
-    // Exemplo: mostrar um alerta ou atualizar o estado
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
   });
 
-  return () => {
-    Notifications.removeNotificationSubscription(foregroundSubscription);
-  };
-}, []);
-
+  useEffect(() => {
+    // Canal de notificacao Android
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('order-updates', {
+        name: 'Atualizações de Pedido',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+  }, []);
 
   useEffect(() => {
-    // ✅ Listener para quando o usuário toca na notificação com o app em background ou fechado
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('🔔 Notificação tocada:', response);
+    // Listener para quando o app estiver em segundo plano ou fechado
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
-      // Aqui você pode redirecionar para uma tela específica
-       navigation.navigate('OrderDetail', { orderId: data.orderId });
+      if (navigationRef.isReady() && data.orderId) {
+        navigationRef.navigate('OrderDetailsScreen', { orderId: data.orderId });
+      }
     });
 
     return () => {
-      // 🧹 Remover o listener ao desmontar
       Notifications.removeNotificationSubscription(responseListener.current);
     };
   }, []);
-useEffect(() => {
-  const registerToken = async () => {
-    const deviceToken = await registerForPushNotificationsAsync();
-    if (deviceToken) {
-      try {
-        const userId = await AsyncStorage.getItem('id'); // ✅ Não usar JSON.parse
 
-        if (userId) {
-          await api.post('/notifications/savedevicetoken', {
-            deviceToken,
-            userId,
-            platform: Platform.OS,
-          });
-        } else {
-          console.log('Usuário não logado. Token não será salvo.');
+
+//   Notifications.addNotificationResponseReceivedListener(response => {
+//   const data = response.notification?.request?.content?.data;
+
+//   if (data?.action === 'navigate' && data?.screen && data?.orderId) {
+//     navigationRef.current?.navigate(data.screen, { orderId: data.orderId });
+//   }
+// });
+
+  useEffect(() => {
+    const registerToken = async () => {
+      const deviceToken = await registerForPushNotificationsAsync();
+      if (deviceToken) {
+        try {
+          const userId = await AsyncStorage.getItem('id');
+          if (userId) {
+            await api.post('/notifications/savedevicetoken', {
+              deviceToken,
+              userId,
+              platform: Platform.OS,
+            });
+          }
+        } catch (err) {
+          console.error('Erro ao salvar token:', err);
         }
-      } catch (err) {
-        console.error('❌ Erro ao salvar deviceToken:', err);
       }
-    }
-  };
+    };
 
-  registerToken();
-}, []);
-
+    registerToken();
+  }, []);
 
   return (
     <NavigationContainer>
@@ -166,7 +181,7 @@ async function registerForPushNotificationsAsync() {
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig.extra.eas.projectId, // ou ID do projeto no app.json se estiver usando EAS
+    projectId: Constants.expoConfig?.extra?.eas?.projectId,
   });
 
   return tokenData.data;

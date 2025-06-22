@@ -12,7 +12,6 @@ async function registerDeviceToken(userData) {
         userId: userData._id,
         platform: Platform.OS,
       });
-      console.log('✅ Token de push salvo com sucesso.');
     } catch (err) {
       console.error('❌ Erro ao salvar token de push:', err);
     }

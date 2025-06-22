@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
+import { sendOrderNotificationToUser } from '../utils/notificationUtils';
+import Toast from 'react-native-toast-message';
 
 const OrderDetailsScreen = () => {
   const { params: { item } } = useRoute();
@@ -88,19 +90,41 @@ const checkIfUserExist = async () => {
     }
   };
 
-  const confirmDelivery = async (orderId) => {
-    try {
-      if (!userData) throw new Error('User is not logged in');
-      const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
-        headers: { Authorization: `Bearer ${userData.token}` }
-      });
-      setCurrentOrder(data.order);
-      Alert.alert('Sucesso', 'Pedido entregue com sucesso!');
-    } catch (error) {
-      console.error('Erro ao confirmar entrega', error);
-      Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
-    }
-  };
+const confirmDelivery = async (orderId) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
+
+    const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
+      headers: { Authorization: `Bearer ${userData.token}` }
+    });
+
+    setCurrentOrder(data.order);
+
+    console.log('Seller'+data.order.seller)
+
+    // Notificar o FORNECEDOR
+    await sendOrderNotificationToUser({
+      userId: data.order.seller._id, // garantir que funcione com ou sem populate
+      orderId: data.order._id,
+      orderCode: data.order.code,
+      title: 'Pedido entregue com sucesso!',
+      body: `O cliente confirmou a recepção do pedido nº ${data.order.code}.`,
+      status: 'Confirmado',
+    });
+
+    Toast.show({
+      type: 'success',
+      text1: 'Confirmação de Recepção',
+      text2: 'O fornecedor será notificado.',
+    });
+
+    // Alert.alert('Sucesso', 'Pedido entregue com sucesso!');
+  } catch (error) {
+    console.error('Erro ao confirmar entrega', error);
+    Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
+  }
+};
+
 
   const confirmDeleteOrder = (orderId) => {
     Alert.alert('Confirmar Exclusão', 'Deseja apagar este pedido?', [

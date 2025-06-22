@@ -8,10 +8,11 @@ import { Ionicons } from "@expo/vector-icons";
 const ProductListSeller = () => {
   const [userData, setUserData] = useState(null);
   const [productsOfSeller, setProductsOfSeller] = useState([]);
-
+  
+  const [userLogin,setUserLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
-
+  
   useEffect(() => {
     checkIfUserExist();
   }, []);
@@ -41,20 +42,29 @@ const ProductListSeller = () => {
     }
   };
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
 
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
+  
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      setIsLoading(false); // ✅ Para o loading se não logado
     }
-  };
+  } catch (error) {
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+  }
+};
 
   return (
     <SafeAreaView style={styles.safe}>

@@ -105,105 +105,102 @@ const checkIfUserExist = async () => {
     checkIfUserExist();
   }, []);
 
-  const makeThePayment = async (values) => {
-    if (!userData) {
-      Toast.show({
-        type: 'error',
-        text1: 'Atenção!',
-        text2: 'Por favor, faça o login para continuar.',
-        position: 'top',
-        visibilityTime: 6000,
-        autoHide: true,
-        topOffset: 50,
-        bottomOffset: 40,
-        onPress: () => navigation.navigate('Login'),
-        style: {
-          backgroundColor: '#FF5733',
-          borderLeftWidth: 10,
-          borderLeftColor: '#C70039',
-          borderRadius: 10,
-          padding: 10,
-        },
-        text1Style: {
-          fontSize: 15,
-          fontWeight: 'bold',
-          color: 'black',
-        },
-        text2Style: {
-          fontSize: 16,
-          color: 'black',
-        },
-        renderLeftIcon: () => (
-          <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
-        ),
-      });
+const makeThePayment = async (values) => {
+  if (!userData) {
+    Toast.show({
+      type: 'error',
+      text1: 'Atenção!',
+      text2: 'Por favor, faça o login para continuar.',
+      position: 'top',
+      visibilityTime: 6000,
+      autoHide: true,
+      topOffset: 50,
+      bottomOffset: 40,
+      onPress: () => navigation.navigate('Login'),
+      style: {
+        backgroundColor: '#FF5733',
+        borderLeftWidth: 10,
+        borderLeftColor: '#C70039',
+        borderRadius: 10,
+        padding: 10,
+      },
+      text1Style: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: 'black',
+      },
+      text2Style: {
+        fontSize: 16,
+        color: 'black',
+      },
+      renderLeftIcon: () => (
+        <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
+      ),
+    });
+    return;
+  }
+
+  try {
+    setLoader(true);
+    const headers = { authorization: `Bearer ${userData.token}` };
+    const customerNumber = `258${values.customerNumber}`;
+
+    // 1. PAGAMENTO
+    const { data: paymentData } = await api.post(
+      `payments/mpesa/c2b`,
+      { customerNumber, amount },
+      { headers }
+    );
+
+    if (!paymentData.paid) {
+      navigation.replace('FailedPayment', paymentData);
       return;
     }
 
-    try {
-      setLoader(true);
+    // 2. CRIAÇÃO DO PEDIDO
+    const payoutToSellerWithDelivery = totalSellerEarningsAfterDiscount + deliveryPrice;
 
-      const headers = {
-        authorization: `Bearer ${userData.token}`,
-      };
-      const customerNumber = `258${values.customerNumber}`;
+    const orderPayload = {
+      orderItems: items,
+      address: '',
+      paymentMethod: 'Mpesa',
+      itemsPrice,
+      ivaTax: iva,
+      siteTax: 0,
+      taxPrice: 0,
+      totalPrice: totalToPay,
+      addressPrice: deliveryPrice,
+      itemsPriceForSeller: payoutToSellerWithDelivery,
+      isPaid: true,
+      paidAt: Date.now(),
+      stepStatus: 1,
+      user: userData,
+      customerId: userData,
+      isUserWantDelivery,
+    };
 
-      const { data: paymentData } = await api.post(
-        `payments/mpesa/c2b`,
-        { customerNumber, amount },
-        { headers }
-      );
-
-      if (!paymentData.paid) {
-        navigation.replace('FailedPayment', paymentData);
-        return;
-      }
+    const { data } = await api.post('orders', orderPayload, { headers });
 
 
-      const payoutToSellerWithDelivery = totalSellerEarningsAfterDiscount + deliveryPrice
-
-      const orderPayload = {
-        orderItems: items,
-        address: '',
-        paymentMethod: 'Mpesa',
-        itemsPrice,
-        ivaTax: iva,
-        siteTax: 0,
-        taxPrice: 0,
-        totalPrice: totalToPay,
-        addressPrice: deliveryPrice,
-        itemsPriceForSeller: payoutToSellerWithDelivery,
-        isPaid: true,
-        paidAt: Date.now(),
-        stepStatus: 1,
-        user: userData,
-        customerId: userData,
-        isUserWantDelivery,
-      };
-
-      const { data: orderResponse } = await api.post('orders', orderPayload, {
-        headers,
+    // 3. Finalização
+    dispatch(clearBasket());
+      navigation.replace('SuccessPayment', {
+        orderCode: data.order?.code, // <-- Passe o código aqui
       });
+  } catch (error) {
+    console.error('Erro no pagamento:', error);
+    const errorData = error.response?.data || {
+      message: 'Erro desconhecido. Tente novamente.',
+    };
+    navigation.replace('FailedPayment', errorData);
+  } finally {
+    setLoader(false);
+  }
+};
 
-      dispatch(clearBasket());
-      mostrarNotificacao(orderResponse);
-      navigation.replace('SuccessPayment');
-    } catch (error) {
-      console.error('Erro no pagamento:', error);
 
-      let errorData = {
-        message: 'Erro desconhecido. Tente novamente.',
-      };
 
-      if (error.response && error.response.data) {
-        errorData = error.response.data;
-      }
 
-      navigation.replace('FailedPayment', errorData);
-    } finally {
-      setLoader(false);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>

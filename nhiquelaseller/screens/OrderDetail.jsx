@@ -4,6 +4,8 @@ import { useRoute } from '@react-navigation/native';
 import BackBtn from '../components/BackBtn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
+import Toast from 'react-native-toast-message';
+import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 
 const OrderDetail = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
@@ -12,25 +14,44 @@ const OrderDetail = ({ navigation }) => {
 
   const { params: { order } } = useRoute();
   const [currentOrder, setCurrentOrder] = useState(order);
+  const [userLogin, setUserLogin] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+
+  
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
 
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
+        navigation.navigate('Login');
+
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      setIsLoading(false); // ✅ Para o loading se não logado
+      navigation.navigate('Login');
+
     }
-  };
+  } catch (error) {
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+    navigation.navigate('Login');
+
+  }
+};
+
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -42,99 +63,161 @@ const OrderDetail = ({ navigation }) => {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
-  const acceptOrder = async (orderId) => {
-    try {
-      if (!userData) {
-        throw new Error('User is not logged in');
-      }
-      const { data } = await api.put(
-        `/orders/${orderId}/accept`,
-        {},
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
-      setCurrentOrder(data.order);
-      console.log('Pedido Aceite com sucesso', data);
-      return data;
-    } catch (error) {
-      console.error('Nao consegui me actualizar o pedido', error);
-      throw error;
-    }
-  };
 
-  const availableToDelivOrder = async (orderId) => {
-    try {
-      if (!userData) {
-        throw new Error('User is not logged in');
-      }
-      const { data } = await api.put(
-        `/orders/${orderId}/toDeliv`,
-        {},
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
-      setCurrentOrder(data.order);
-      return data;
-    } catch (error) {
-      console.error('Nao consegui me actualizar o pedido', error);
-      throw error;
-    }
-  };
+const acceptOrder = async (orderId) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
 
-  const orderInTransit = async (orderId) => {
-    try {
-      if (!userData) {
-        throw new Error('User is not logged in');
-      }
-      const { data } = await api.put(
-        `/orders/${orderId}/intransit`,
-        {},
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
-      setCurrentOrder(data.order);
-      console.log('Pedido a caminho', data);
-      return data;
-    } catch (error) {
-      console.error('Nao consegui me actualizar o pedido', error);
-      throw error;
-    }
-  };
+    const { data } = await api.put(
+      `/orders/${orderId}/accept`,
+      {},
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+    setCurrentOrder(data.order);
 
-  const deleteOrder = async (id) => {
-    try {
-      if (!userData) {
-        throw new Error('User is not logged in');
-      }
-      const { data } = await api.delete(
-        `/orders/${id}`,
-        {},
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
-      setCurrentOrder(data);
-      console.log('Pedido Removido com sucesso', data);
-      return data;
-    } catch (error) {
-      console.error('Nao consegui me actualizar o pedido', error);
-      throw error;
-    }
-  };
+    await sendOrderNotificationToUser({
+      userId: data.order.user._id,
+      orderId: data.order._id,
+      orderCode: data.order.code,
+      title: 'Seu pedido foi aceito!',
+      body: `O pedido nº ${data.order.code} foi aceito pelo fornecedor.`,
+      status: 'Aceito',
+    });
 
-  const cancelOrderPop = async (orderId) => {
-    try {
-      if (!userData) {
-        throw new Error('User is not logged in');
-      }
-      const { data } = await api.put(
-        `/orders/${orderId}/cancel`,
-        { message },
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
-      setCurrentOrder(data.order);
-      console.log('Pedido cancelado com sucesso', data);
-    } catch (error) {
-      console.error('Não consegui atualizar o pedido', error);
-    } finally {
-      setModalVisible(false);
-    }
-  };
+    Toast.show({
+      type: 'success',
+      text1: 'Pedido Aceito',
+      text2: 'O cliente será notificado.',
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao aceitar o pedido', error);
+    throw error;
+  }
+};
+
+
+
+const availableToDelivOrder = async (orderId) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
+
+    const { data } = await api.put(
+      `/orders/${orderId}/toDeliv`,
+      {},
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+    setCurrentOrder(data.order);
+
+    await api.post('/notifications/send-to-user', {
+      userId: data.order.user,
+      title: 'Pedido disponível para entrega',
+      body: `Seu pedido ${data.order.code} está disponível para entrega.`,
+      data: {
+        orderId: data.order._id,
+        type: 'order',
+        status: 'Disponível',
+      },
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao marcar como disponível', error);
+    throw error;
+  }
+};
+
+
+const orderInTransit = async (orderId) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
+
+    const { data } = await api.put(
+      `/orders/${orderId}/intransit`,
+      {},
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+    setCurrentOrder(data.order);
+
+    await api.post('/notifications/send-to-user', {
+      userId: data.order.user,
+      title: 'Pedido a caminho!',
+      body: `Seu pedido ${data.order.code} está a caminho.`,
+      data: {
+        orderId: data.order._id,
+        type: 'order',
+        status: 'A Caminho',
+      },
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao colocar o pedido em trânsito', error);
+    throw error;
+  }
+};
+
+
+const deleteOrder = async (id) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
+
+    const { data } = await api.delete(
+      `/orders/${id}`,
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+    setCurrentOrder(data);
+
+    await api.post('/notifications/send-to-user', {
+      userId: data.user,
+      title: 'Pedido removido',
+      body: `O pedido ${data.code} foi removido.`,
+      data: {
+        orderId: data._id,
+        type: 'order',
+        status: 'Removido',
+      },
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao remover o pedido', error);
+    throw error;
+  }
+};
+
+
+ const cancelOrderPop = async (orderId) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
+
+    const { data } = await api.put(
+      `/orders/${orderId}/cancel`,
+      { message },
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+    setCurrentOrder(data.order);
+
+    await api.post('/notifications/send-to-user', {
+      userId: data.order.user,
+      title: 'Pedido cancelado',
+      body: `O seu pedido ${data.order.code} foi cancelado pelo fornecedor.`,
+      data: {
+        orderId: data.order._id,
+        type: 'order',
+        status: 'Cancelado',
+      },
+    });
+
+    console.log('Pedido cancelado com sucesso', data);
+  } catch (error) {
+    console.error('Erro ao cancelar pedido', error);
+  } finally {
+    setModalVisible(false);
+  }
+};
+
 
   const deleteOrderPop = (orderId) => {
     Alert.alert(
@@ -201,11 +284,11 @@ const OrderDetail = ({ navigation }) => {
         </View>
         <View style={styles.content}>
           <Text style={styles.label}>Nome do cliente: </Text>
-          <Text style={styles.bold}>{currentOrder.user.name}</Text>
+          <Text style={styles.bold}>{currentOrder?.user?.name}</Text>
         </View>
         <View style={styles.content}>
           <Text style={styles.label}>Contacto do cliente: </Text>
-          <Text style={styles.bold}>{currentOrder.user.phoneNumber}</Text>
+          <Text style={styles.bold}>{currentOrder.user?.phoneNumber}</Text>
         </View>
         {currentOrder && currentOrder.stepStatus == 7 &&
           <>
