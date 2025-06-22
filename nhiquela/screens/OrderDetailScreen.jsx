@@ -100,7 +100,6 @@ const confirmDelivery = async (orderId) => {
 
     setCurrentOrder(data.order);
 
-    console.log('Seller'+data.order.seller)
 
     // Notificar o FORNECEDOR
     await sendOrderNotificationToUser({

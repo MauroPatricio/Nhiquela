@@ -32,6 +32,7 @@ import {
 } from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
+import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 
 const validationSchema = Yup.object().shape({
   customerNumber: Yup.string()
@@ -181,6 +182,22 @@ const makeThePayment = async (values) => {
 
     const { data } = await api.post('orders', orderPayload, { headers });
 
+
+       // Notificar o FORNECEDOR
+        await sendOrderNotificationToUser({
+          userId: data.order.seller._id, // garantir que funcione com ou sem populate
+          orderId: data.order._id,
+          orderCode: data.order.code,
+          title: 'Possui um novo pedido!',
+          body: `O cliente solicitou o pedido nº ${data.order.code}.`,
+          status: 'Pendente',
+        });
+    
+        Toast.show({
+          type: 'success',
+          text1: 'Pedido criado',
+          text2: 'O fornecedor será notificado.',
+        });
 
     // 3. Finalização
     dispatch(clearBasket());
