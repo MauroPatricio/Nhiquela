@@ -24,9 +24,12 @@
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
-    <service android:name="io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService" android:exported="true">
+    <service 
+      android:name="io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService"
+      android:exported="true"
+      tools:replace="android:exported">
       <intent-filter>
-        <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
       </intent-filter>
     </service>
     <service android:name="io.invertase.firebase.messaging.ReactNativeFirebaseMessagingHeadlessService" android:exported="false"/>
