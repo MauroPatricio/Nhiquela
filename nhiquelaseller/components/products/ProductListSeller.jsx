@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import api from '../../hooks/createConnectionApi';
@@ -66,6 +66,35 @@ const checkIfUserExist = async () => {
   }
 };
 
+const handleDelete = async (productId) => {
+  try {
+    const confirm = await new Promise((resolve) => {
+      Alert.alert(
+        'Confirmação',
+        'Tem certeza que deseja apagar este produto?',
+        [
+          { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Apagar', style: 'destructive', onPress: () => resolve(true) },
+        ]
+      );
+    });
+
+    if (!confirm) return;
+
+    const response = await api.delete(`products/${productId}`, {
+      headers: { Authorization: `Bearer ${userData.token}` },
+    });
+
+    if (response.status === 200) {
+      setProductsOfSeller(productsOfSeller.filter(p => p._id !== productId));
+    }
+  } catch (error) {
+    console.error('Erro ao apagar produto:', error?.response?.data || error.message);
+    Alert.alert('Erro', 'Não foi possível apagar o produto.');
+  }
+};
+
+
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header */}
@@ -106,20 +135,44 @@ const checkIfUserExist = async () => {
 
               {/* Detalhes do Produto */}
               <View style={styles.content}>
-                <Text style={styles.code}>
-                   {product?.nome}
-                </Text>
-                <Text style={styles.createAt}>
-                   {product?.price} MT
-                </Text>
+                <Text style={styles.code}>{product?.nome}</Text>
+                                <Text style={styles.createAt}>{product?.countInStock} unidade(s)</Text>
+                <Text style={styles.createAt}>{product?.price} MT</Text>
+
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => navigation.navigate('NewProduct', { productToEdit: product })}
+                  >
+                    <Ionicons name="create-outline" size={20} color="#fff" />
+                    <Text style={styles.buttonText}>Editar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(product._id)}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#fff" />
+                    <Text style={styles.buttonText}>Apagar</Text>
+                  </TouchableOpacity>
+
+                </View>
               </View>
 
             </TouchableOpacity>
           )) : <Text style={styles.empty}>
             Nenhum produto encontrado.
           </Text>}
+                      <View style={{ paddingBottom: 100 }} />
+
         </ScrollView>
       )}
+                  <TouchableOpacity
+  style={styles.floatingButton}
+  onPress={() => navigation.navigate('NewProduct')}
+>
+  <Ionicons name="add" size={28} color="#fff" />
+</TouchableOpacity>
 
     </SafeAreaView>
   )
@@ -209,5 +262,49 @@ const styles = StyleSheet.create({
     color: '#555',
     marginTop: 20,
     fontSize: 16,
-  }
+  },
+  buttonRow: {
+  flexDirection: 'row',
+  marginTop: 8,
+  gap: 10,
+},
+editButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#007bff',
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 8,
+},
+deleteButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#dc3545',
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 8,
+},
+buttonText: {
+  color: '#fff',
+  marginLeft: 6,
+  fontSize: 14,
+  fontWeight: 'bold',
+},
+floatingButton: {
+  position: 'absolute',
+  right: 20,
+  bottom: 80,
+  backgroundColor: '#1E90FF',
+  width: 56,
+  height: 56,
+  borderRadius: 28,
+  alignItems: 'center',
+  justifyContent: 'center',
+  elevation: 6,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+},
+
 });  

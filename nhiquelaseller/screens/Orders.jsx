@@ -158,6 +158,7 @@ const checkIfUserExist = async () => {
           )) : <Text style={styles.empty}>
             Nenhum pedido encontrado.
           </Text>}
+          <View style={{ paddingBottom: 100 }} />
         </ScrollView>
       )}
 

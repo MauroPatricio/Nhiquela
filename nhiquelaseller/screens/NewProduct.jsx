@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl  } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl } from 'react-native';
 import { Formik } from 'formik';
 import api from '../hooks/createConnectionApi';
 import { Picker } from '@react-native-picker/picker';
@@ -7,15 +7,28 @@ import Toast from 'react-native-toast-message';
 import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+// import io from 'socket.io-client';
+
+const validationSchema = Yup.object().shape({
+  nome: Yup.string().required('Nome do produto (PT) é obrigatório'),
+  name: Yup.string().required('Nome do produto (EN) é obrigatório'),
+  slug: Yup.string().required('Nome abreviado é obrigatório'),
+  image: Yup.string().required('A imagem do produto é obrigatória'),
+  price: Yup.number().required('Preço é obrigatório'),
+  category: Yup.string().required('Categoria é obrigatória'),
+  province: Yup.string().required('Localização do produto é obrigatória'),
+  brand: Yup.string().required('Marca/Sabor é obrigatória'),
+  countInStock: Yup.number().required('Quantidade disponível é obrigatória'),
+});
 
 const NewProduct = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const [editingProduct, setEditingProduct] = useState(null);
   const [provinces, setProvinces] = useState(null);
   const [categories, setCategories] = useState(null);
   const [image, setImage] = useState(null);
-  const [loading, setLoading] = useState(null);
-  const [error, setError] = useState(null);
   const [errorColor, setErrorColor] = useState(null);
   const [errorSize, setErrorSize] = useState(null);
   const [colors, setColors] = useState([]);
@@ -24,67 +37,161 @@ const NewProduct = () => {
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [userData, setUserData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [userLogin, setUserLogin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socket, setSocket] = useState(null);
 
+  // Estados locais para os campos do formulário
+  const [name, setName] = useState('');
+  const [nome, setNome] = useState('');
+  const [slug, setSlug] = useState('');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
+  const [province, setProvince] = useState('');
+  const [brand, setBrand] = useState('');
+  const [description, setDescription] = useState('');
+  const [countInStock, setCountInStock] = useState('');
 
-  
+  // Configuração do Socket.io
+  // useEffect(() => {
+  //   const newSocket = io(process.env.API_URL); // Substitua pela sua URL do backend
+  //   setSocket(newSocket);
 
-  const handleSubmit = async (values, resetForm) => {
-    if (userData == null) return;
+  //   return () => {
+  //     newSocket.disconnect();
+  //   };
+  // }, []);
 
-    try {
-      if (selectedColors.length === 0) {
-        setErrorColor('Adicione as cores disponíveis do produto.');
-        Toast.show({
-          type: 'error',
-          text1: 'Adicione as cores disponíveis do produto.',
-          text2: '',
-          position: 'top',
-        });
-        return;
-      }
+  // Listener para atualizações de produtos via Socket.io
+  useEffect(() => {
+    if (!socket) return;
 
-      if (selectedSizes.length === 0) {
-        setErrorSize('Adicione os tamanhos disponíveis do produto.');
-        Toast.show({
-          type: 'error',
-          text1: 'Adicione os tamanhos disponíveis do produto',
-          text2: '',
-          position: 'top',
-        });
-        return;
-      }
-
-      values.color = selectedColors;
-      values.size = selectedSizes;
-
-      const response = await api.post('products/', values, {
-        headers: { Authorization: `Bearer ${userData.token}` },
-      });
-
-      if (response.status === 200) {
+    const handleProductUpdate = (updatedProduct) => {
+      if (editingProduct && updatedProduct._id === editingProduct._id) {
+        setEditingProduct(updatedProduct);
         Toast.show({
           type: 'success',
-          text1: 'SUCESSO',
-          text2: 'Produto criado com sucesso!',
+          text1: 'Produto atualizado em tempo real',
           position: 'top',
+          visibilityTime: 2000
         });
-
-        resetForm();
-        setSelectedColors([]);
-        setSelectedSizes([]);
-        setImage(null);
-        navigation.navigate('ProductListSeller');
       }
+    };
+
+    socket.on('newProduct', handleProductUpdate);
+
+    return () => {
+      socket.off('newProduct', handleProductUpdate);
+    };
+  }, [socket, editingProduct]);
+
+  // Carrega o userData do AsyncStorage
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('userData');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUserData(parsedUser);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      }
+    };
+    loadUserData();
+  }, []);
+
+  // Atualiza estados locais quando editingProduct muda
+  useEffect(() => {
+    if (editingProduct) {
+      setNome(editingProduct.nome || '');
+      setName(editingProduct.name || '');
+      setSlug(editingProduct.slug || '');
+      setPrice(editingProduct.price?.toString() || '');
+      setCategory(editingProduct.category?._id || '');
+      setProvince(editingProduct.province?._id || '');
+      setBrand(editingProduct.brand || '');
+      setDescription(editingProduct.description || '');
+      setCountInStock(editingProduct.countInStock?.toString() || '');
+      setImage(editingProduct.image || null);
+      setSelectedColors(editingProduct.color || []);
+      setSelectedSizes(editingProduct.size || []);
+    }
+  }, [editingProduct]);
+
+  // Carrega o produto para edição quando recebido via rota
+  useEffect(() => {
+    const productToEdit = route.params?.productToEdit;
+    if (productToEdit) {
+      setEditingProduct(productToEdit);
+    } else {
+      // Modo criação: limpar tudo
+      setEditingProduct(null);
+      setSelectedColors([]);
+      setSelectedSizes([]);
+      setImage(null);
+      setNome('');
+      setName('');
+      setSlug('');
+      setPrice('');
+      setCategory('');
+      setProvince('');
+      setBrand('');
+      setDescription('');
+      setCountInStock('');
+    }
+  }, [route.params]);
+
+  // Carrega os dados iniciais
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      await Promise.all([
+        loadCategories(),
+        loadProvinces(),
+        loadColors(),
+        loadSizes(),
+      ]);
     } catch (error) {
-      const errorMessage = error.response?.data.error || 'Erro ao criar o produto.';
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: errorMessage,
-        position: 'top',
-      });
+      console.error('Erro ao carregar dados iniciais:', error);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const { data } = await api.get('/categories');
+      setCategories(data.categories);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
+
+  const loadProvinces = async () => {
+    try {
+      const { data } = await api.get('/provinces');
+      setProvinces(data.provinces);
+    } catch (error) {
+      console.error('Erro ao carregar províncias:', error);
+    }
+  };
+
+  const loadColors = async () => {
+    try {
+      const { data } = await api.get('/colors');
+      setColors(data.colors);
+    } catch (error) {
+      console.error('Erro ao carregar cores:', error);
+    }
+  };
+
+  const loadSizes = async () => {
+    try {
+      const { data } = await api.get('/sizes');
+      setSizes(data.sizes);
+    } catch (error) {
+      console.error('Erro ao carregar tamanhos:', error);
     }
   };
 
@@ -130,171 +237,150 @@ const NewProduct = () => {
       Alert.alert('Erro', 'Falha ao enviar a imagem.');
     }
   };
-// Fetch provinces
-const fetchProvinces = async () => {
-  try {
-    const { data } = await api.get('provinces');
-    setProvinces(data.provinces);
-  } catch (err) {
-    setError(err.message);
-  }
-};
 
-useEffect(() => {
-  fetchProvinces();
-  fetchCategories();
-  fetchSizes();
-  fetchColors();
-}, []);
-// Fetch categories
-const fetchCategories = async () => {
-  try {
-    const { data } = await api.get('categories');
-    setCategories(data.categories);
-  } catch (err) {
-    setError(err.message);
-  }
-};
-
-// Fetch colors
-const fetchColors = async () => {
-  try {
-    const { data } = await api.get('colors');
-    setColors(data.colors);
-  } catch (err) {
-    setError(err.message);
-  }
-};
-
-// Fetch sizes
-const fetchSizes = async () => {
-  try {
-    const { data } = await api.get('sizes');
-    setSizes(data.sizes);
-  } catch (err) {
-    setError(err.message);
-  }
-};
-
-// Refresh function
-const onRefresh = async () => {
-  setRefreshing(true);
-  try {
-    await Promise.all([fetchProvinces(), fetchCategories(), fetchColors(), fetchSizes()]);
-  } catch (error) {
-    console.error('Erro ao atualizar os dados:', error);
-  } finally {
-    setRefreshing(false);
-  }
-};
-
-  const validationSchema = Yup.object().shape({
-    nome: Yup.string().required('O nome é obrigatório'),
-    name: Yup.string().required('O nome do produto é obrigatório'),
-    slug: Yup.string().required('O nome abreviado do produto é obrigatório'),
-    price: Yup.number().typeError('O preço deve ser um número').required('O preço é obrigatório'),
-    image: Yup.string().required('A imagem do produto é obrigatória'),
-    category: Yup.string().required('A categoria é obrigatória'),
-    province: Yup.string().required('A localização é obrigatória'),
-    countInStock: Yup.number().typeError('A quantidade em estoque deve ser um número').required('A quantidade em estoque é obrigatória'),
-    description: Yup.string().required('A descrição é obrigatória'),
-    brand: Yup.string().required('A Marca ou sabor do produto é obrigatório'),
-
-  });
-
-const checkIfUserExist = async () => {
-  try {
-    const storedUserData = await AsyncStorage.getItem('userData');
-    const storedUserId = await AsyncStorage.getItem('id');
-
-    if (storedUserData && storedUserId) {
-      const parsedUserData = JSON.parse(storedUserData);
-
-      if (parsedUserData._id === storedUserId) {
-        setUserData(parsedUserData); 
-        setUserLogin(true);
-      } else {
-        setIsLoading(false); // ✅ Para o loading se inconsistente
-        navigation.navigate('Login');
-
-      }
-    } else {
-      setIsLoading(false); // ✅ Para o loading se não logado
-      navigation.navigate('Login');
-
+  const handleColorSelect = (item) => {
+    if (item && !selectedColors.find(c => c._id === item._id)) {
+      setSelectedColors(prev => [...prev, item]);
+      setErrorColor(null);
     }
-  } catch (error) {
-    setIsLoading(false); // ✅ Garante parada mesmo em erro
-    navigation.navigate('Login');
-
-  }
-};
-
-  useEffect(() => {
-    checkIfUserExist();
-  }, []);
-
-  const handleColorSelect = (color) => {
-    setSelectedColors((prevSelectedColors) => {
-      if (prevSelectedColors.includes(color)) {
-        return prevSelectedColors.filter((c) => c !== color);
-      } else {
-        return [...prevSelectedColors, color];
-      }
-    });
   };
 
-  const handleSizeSelect = (size) => {
-    setSelectedSizes((prevSelectedSizes) => {
-      if (prevSelectedSizes.includes(size)) {
-        return prevSelectedSizes.filter((s) => s !== size);
-      } else {
-        return [...prevSelectedSizes, size];
+  const handleSizeSelect = (item) => {
+    if (item && !selectedSizes.find(s => s._id === item._id)) {
+      setSelectedSizes(prev => [...prev, item]);
+      setErrorSize(null);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadInitialData();
+    } catch (error) {
+      console.error('Erro ao atualizar:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleSubmit = async (values, { resetForm }) => {
+    if (!userData) return;
+
+    setIsSubmitting(true);
+    try {
+      if (selectedColors.length === 0) {
+        setErrorColor('Adicione as cores disponíveis do produto.');
+        Toast.show({ type: 'error', text1: 'Adicione as cores disponíveis do produto.', position: 'top' });
+        return;
       }
-    });
+
+      if (selectedSizes.length === 0) {
+        setErrorSize('Adicione os tamanhos disponíveis do produto.');
+        Toast.show({ type: 'error', text1: 'Adicione os tamanhos disponíveis do produto', position: 'top' });
+        return;
+      }
+
+      values.color = selectedColors;
+      values.size = selectedSizes;
+
+      let response;
+      if (editingProduct) {
+        response = await api.put(`products/${editingProduct._id}`, values, {
+          headers: { Authorization: `Bearer ${userData.token}` },
+        });
+        
+        // Atualiza o estado com os dados retornados
+        setEditingProduct(response.data.product);
+        navigation.navigate('ProductListSeller');
+
+        Toast.show({ 
+          type: 'success', 
+          text1: 'SUCESSO', 
+          text2: 'Produto atualizado com sucesso!',
+          position: 'top',
+          visibilityTime: 2000
+        });
+      } else {
+        response = await api.post('products/', values, {
+          headers: { Authorization: `Bearer ${userData.token}` },
+        });
+        
+        Toast.show({ 
+          type: 'success', 
+          text1: 'SUCESSO', 
+          text2: 'Produto criado com sucesso!', 
+          position: 'top',
+          visibilityTime: 2000
+        });
+        resetForm();
+        setSelectedColors([]);
+        setSelectedSizes([]);
+        setImage(null);
+        navigation.navigate('ProductListSeller');
+      }
+    } catch (error) {
+      console.log(error)
+      const errorMessage = error.response?.data.error || 'Erro ao salvar o produto.';
+      Toast.show({ 
+        type: 'error', 
+        text1: 'Erro', 
+        text2: errorMessage, 
+        position: 'top',
+        visibilityTime: 3000
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <ScrollView style={styles.container}
-    refreshControl={
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        colors={['#7F00FF']}
-        tintColor="#7F00FF"
-      />
-    }>
-      <Text style={styles.title}>Criar novo produto</Text>
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#7F00FF']}
+          tintColor="#7F00FF"
+        />
+      }>
+      <Text style={styles.title}>
+        {editingProduct ? 'Editar Produto' : 'Criar novo produto'}
+      </Text>
 
       {userData && userData.isApproved ? (
         <Formik
+          enableReinitialize
           initialValues={{
-            nome: '',
-            name: '',
-            slug: '',
-            image: '',
-            price: '',
-            category: '',
-            province: '',
-            brand: '',
-            countInStock: '',
-            description: '',
-            onSale: false,
-            onSalePercentage: 0,
-            color: '',
-            size: '',
-            orderPeriod: 0,
-            isGuaranteed: false,
-            guaranteedPeriod: 0,
+            nome: nome,
+            name: name,
+            slug: slug,
+            image: image || '',
+            price: price,
+            category: category,
+            province: province,
+            brand: brand,
+            countInStock: countInStock,
+            description: description,
+            onSale: editingProduct?.onSale || false,
+            onSalePercentage: editingProduct?.onSalePercentage || 0,
+            color: selectedColors,
+            size: selectedSizes,
+            orderPeriod: editingProduct?.orderPeriod || 0,
+            isGuaranteed: editingProduct?.isGuaranteed || false,
+            guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
+            isOrdered: editingProduct?.isOrdered || false,
           }}
           validationSchema={validationSchema}
-          onSubmit={(values, { resetForm }) => handleSubmit(values, resetForm)}
+          onSubmit={handleSubmit}
         >
           {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
             <>
               <Picker
                 selectedValue={values.category || ''}
-                onValueChange={(itemValue) => setFieldValue('category', itemValue)}
+                onValueChange={(itemValue) => {
+                  setFieldValue('category', itemValue);
+                  setCategory(itemValue);
+                }}
                 style={styles.picker}
               >
                 <Picker.Item label="Categoria" value="" />
@@ -307,7 +393,10 @@ const checkIfUserExist = async () => {
 
               <Picker
                 selectedValue={values.province || ''}
-                onValueChange={(itemValue) => setFieldValue('province', itemValue)}
+                onValueChange={(itemValue) => {
+                  setFieldValue('province', itemValue);
+                  setProvince(itemValue);
+                }}
                 style={styles.picker}
               >
                 <Picker.Item label="Localização do produto" value="" />
@@ -349,7 +438,10 @@ const checkIfUserExist = async () => {
               <TextInput
                 style={styles.input}
                 placeholder="Nome do produto (PT)"
-                onChangeText={handleChange('nome')}
+                onChangeText={(text) => {
+                  handleChange('nome')(text);
+                  setNome(text);
+                }}
                 onBlur={handleBlur('nome')}
                 value={values.nome}
               />
@@ -358,7 +450,10 @@ const checkIfUserExist = async () => {
               <TextInput
                 style={styles.input}
                 placeholder="Nome do produto (En)"
-                onChangeText={handleChange('name')}
+                onChangeText={(text) => {
+                  handleChange('name')(text);
+                  setName(text);
+                }}
                 onBlur={handleBlur('name')}
                 value={values.name}
               />
@@ -367,7 +462,10 @@ const checkIfUserExist = async () => {
               <TextInput
                 style={styles.input}
                 placeholder="Nome abreviado"
-                onChangeText={handleChange('slug')}
+                onChangeText={(text) => {
+                  handleChange('slug')(text);
+                  setSlug(text);
+                }}
                 onBlur={handleBlur('slug')}
                 value={values.slug}
               />
@@ -376,7 +474,10 @@ const checkIfUserExist = async () => {
               <TextInput
                 style={styles.input}
                 placeholder="Descrição do produto"
-                onChangeText={handleChange('description')}
+                onChangeText={(text) => {
+                  handleChange('description')(text);
+                  setDescription(text);
+                }}
                 onBlur={handleBlur('description')}
                 value={values.description}
               />
@@ -389,7 +490,7 @@ const checkIfUserExist = async () => {
               )}
               {touched.image && errors.image && <Text style={styles.error}>{errors.image}</Text>}
 
-              <TouchableOpacity
+                <TouchableOpacity
                 style={styles.imagePicker}
                 onPress={() => handleImagePicker(setFieldValue)}
               >
@@ -403,17 +504,22 @@ const checkIfUserExist = async () => {
                 placeholder="Preço"
                 onChangeText={(text) => {
                   const filteredText = text.replace(/[^0-9]/g, '');
-                  setFieldValue('price', filteredText);
+                  handleChange('price')(filteredText);
+                  setPrice(filteredText);
                 }}
                 onBlur={handleBlur('price')}
                 value={values.price}
+                keyboardType="numeric"
               />
               {touched.price && errors.price && <Text style={styles.error}>{errors.price}</Text>}
 
               <TextInput
                 style={styles.input}
                 placeholder="Marca/Sabor"
-                onChangeText={handleChange('brand')}
+                onChangeText={(text) => {
+                  handleChange('brand')(text);
+                  setBrand(text);
+                }}
                 onBlur={handleBlur('brand')}
                 value={values.brand}
               />
@@ -424,10 +530,12 @@ const checkIfUserExist = async () => {
                 placeholder="Quantidade disponível"
                 onChangeText={(text) => {
                   const filteredText = text.replace(/[^0-9]/g, '');
-                  setFieldValue('countInStock', filteredText);
+                  handleChange('countInStock')(filteredText);
+                  setCountInStock(filteredText);
                 }}
                 onBlur={handleBlur('countInStock')}
                 value={values.countInStock}
+                keyboardType="numeric"
               />
               {touched.countInStock && errors.countInStock && <Text style={styles.error}>{errors.countInStock}</Text>}
 
@@ -442,22 +550,22 @@ const checkIfUserExist = async () => {
               </View>
 
               {values.onSale && (
-                    <View>
-                      <Picker
-                        selectedValue={values.onSalePercentage}
-                        onValueChange={(itemValue) => setFieldValue('onSalePercentage', itemValue)}
-                        style={styles.input}
-                      >
-                        <Picker.Item label="Selecione a percentagem de desconto" value="" />
-                        {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((percent) => (
-                          <Picker.Item key={percent} label={`${percent}%`} value={percent} />
-                        ))}
-                      </Picker>
-                    </View>
-                  )}
-                  {touched.onSalePercentage && errors.onSalePercentage && (
-                    <Text style={styles.error}>{errors.onSalePercentage}</Text>
-                  )}
+                <View>
+                  <Picker
+                    selectedValue={values.onSalePercentage}
+                    onValueChange={(itemValue) => setFieldValue('onSalePercentage', itemValue)}
+                    style={styles.input}
+                  >
+                    <Picker.Item label="Selecione a percentagem de desconto" value="" />
+                    {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((percent) => (
+                      <Picker.Item key={percent} label={`${percent}%`} value={percent} />
+                    ))}
+                  </Picker>
+                </View>
+              )}
+              {touched.onSalePercentage && errors.onSalePercentage && (
+                <Text style={styles.error}>{errors.onSalePercentage}</Text>
+              )}
 
               <View style={styles.switchRow}>
                 <Text>Produto solicitado por encomenda?</Text>
@@ -470,19 +578,19 @@ const checkIfUserExist = async () => {
               </View>
 
               {values.isOrdered && (
-                  <View>
-                    <Picker
-                      selectedValue={values.orderPeriod}
-                      onValueChange={(itemValue) => setFieldValue('orderPeriod', itemValue)}
-                      style={styles.input}
-                    >
-                      <Picker.Item label="Em quantos dias a encomenda será entregue?" value="" />
-                      {[1, 2, 5, 7, 10, 15, 20, 30, 45].map((days) => (
-                        <Picker.Item key={days} label={`${days} dias`} value={days} />
-                      ))}
-                    </Picker>
-                  </View>
-                )}
+                <View>
+                  <Picker
+                    selectedValue={values.orderPeriod}
+                    onValueChange={(itemValue) => setFieldValue('orderPeriod', itemValue)}
+                    style={styles.input}
+                  >
+                    <Picker.Item label="Em quantos dias a encomenda será entregue?" value="" />
+                    {[1, 2, 5, 7, 10, 15, 20, 30, 45].map((days) => (
+                      <Picker.Item key={days} label={`${days} dias`} value={days} />
+                    ))}
+                  </Picker>
+                </View>
+              )}
               {touched.orderPeriod && errors.orderPeriod && (
                 <Text style={styles.error}>{errors.orderPeriod}</Text>
               )}
@@ -498,27 +606,33 @@ const checkIfUserExist = async () => {
               </View>
 
               {values.isGuaranteed && (
-                        <View>
-                          <Text style={styles.label}>Período de garantia (meses)</Text>
-                          <Picker
-                            selectedValue={values.guaranteedPeriod}
-                            onValueChange={(itemValue) => setFieldValue('guaranteedPeriod', itemValue)}
-                            style={styles.input}
-                          >
-                            <Picker.Item label="1 mês" value="1" />
-                            <Picker.Item label="3 meses" value="3" />
-                            <Picker.Item label="6 meses" value="6" />
-                            <Picker.Item label="9 meses" value="9" />
-                            <Picker.Item label="12 meses" value="12" />
-                          </Picker>
-                        </View>
-                      )}
-                      {touched.guaranteedPeriod && errors.guaranteedPeriod && (
-                        <Text style={styles.error}>{errors.guaranteedPeriod}</Text>
-                      )}
+                <View>
+                  <Text style={styles.label}>Período de garantia (meses)</Text>
+                  <Picker
+                    selectedValue={values.guaranteedPeriod}
+                    onValueChange={(itemValue) => setFieldValue('guaranteedPeriod', itemValue)}
+                    style={styles.input}
+                  >
+                    <Picker.Item label="1 mês" value="1" />
+                    <Picker.Item label="3 meses" value="3" />
+                    <Picker.Item label="6 meses" value="6" />
+                    <Picker.Item label="9 meses" value="9" />
+                    <Picker.Item label="12 meses" value="12" />
+                  </Picker>
+                </View>
+              )}
+              {touched.guaranteedPeriod && errors.guaranteedPeriod && (
+                <Text style={styles.error}>{errors.guaranteedPeriod}</Text>
+              )}
 
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitButtonText}>Criar produto</Text>
+              <TouchableOpacity 
+                style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting ? 'Processando...' : editingProduct ? 'Atualizar Produto' : 'Criar Produto'}
+                </Text>
               </TouchableOpacity>
 
               <View style={{ marginBottom: 250 }} />
@@ -526,35 +640,33 @@ const checkIfUserExist = async () => {
           )}
         </Formik>
       ) : (
-      <View style={styles.notAccepted}>
-  <Text style={styles.notAcceptedTitle}>Sua conta está em análise!</Text>
-  
-  <Text style={styles.notAcceptedText}>
-    Para começar a publicar seus produtos e vender na NHIQUELA, precisamos finalizar a ativação da sua conta.
-  </Text>
+        <View style={styles.notAccepted}>
+          <Text style={styles.notAcceptedTitle}>Sua conta está em análise!</Text>
+          
+          <Text style={styles.notAcceptedText}>
+            Para começar a publicar seus produtos e vender na NHIQUELA, precisamos finalizar a ativação da sua conta.
+          </Text>
 
-  <Text style={styles.notAcceptedContact}>
-    Entre em contato conosco pelo <Text style={styles.notAcceptedHighlight}>WhatsApp: 85 3600036</Text>
-  </Text>
-  
-  <Text style={styles.notAcceptedContact}> ou pelo email:
-    <Text style={styles.notAcceptedHighlight}>nhiquelaservicosconsultoria@gmail.com</Text>
-  </Text>
+          <Text style={styles.notAcceptedContact}>
+            Entre em contato conosco pelo <Text style={styles.notAcceptedHighlight}>WhatsApp: 85 3600036</Text>
+          </Text>
+          
+          <Text style={styles.notAcceptedContact}> ou pelo email:
+            <Text style={styles.notAcceptedHighlight}>nhiquelaservicosconsultoria@gmail.com</Text>
+          </Text>
 
-  <Text style={styles.notAcceptedText}>
-    Nossa equipe está pronta para ajudar você a começar suas vendas o mais rápido possível!
-  </Text>
+          <Text style={styles.notAcceptedText}>
+            Nossa equipe está pronta para ajudar você a começar suas vendas o mais rápido possível!
+          </Text>
 
-  <Text style={styles.notAcceptedFooter}>
-    Agradecemos sua paciência e interesse em fazer parte da nossa plataforma.
-  </Text>
-</View>
+          <Text style={styles.notAcceptedFooter}>
+            Agradecemos sua paciência e interesse em fazer parte da nossa plataforma.
+          </Text>
+        </View>
       )}
     </ScrollView>
   );
 };
-
-export default NewProduct;
 
 const styles = StyleSheet.create({
   container: {
@@ -640,18 +752,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
+  submitButtonDisabled: {
+    backgroundColor: '#CC99FF',
+  },
   submitButtonText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },
   notAccepted: {
-    backgroundColor: '#F8F9FA', // Fundo claro e moderno
+    backgroundColor: '#F8F9FA',
     padding: 20,
     borderRadius: 12,
     margin: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#7F00FF', // Roxo da NHIQUELA como detalhe
+    borderLeftColor: '#7F00FF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -661,14 +776,14 @@ const styles = StyleSheet.create({
   notAcceptedTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2D3748', // Cinza escuro moderno
+    color: '#2D3748',
     marginBottom: 12,
     textAlign: 'center',
   },
   notAcceptedText: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#4A5568', // Cinza médio para melhor legibilidade
+    color: '#4A5568',
     marginBottom: 8,
   },
   notAcceptedContact: {
@@ -679,14 +794,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   notAcceptedHighlight: {
-    color: '#7F00FF', // Destaque na cor da marca
+    color: '#7F00FF',
     fontWeight: '600',
   },
   notAcceptedFooter: {
     fontSize: 14,
     fontStyle: 'italic',
-    color: '#718096', // Cinza mais claro
+    color: '#718096',
     marginTop: 16,
     textAlign: 'center',
+  },
+  label: {
+    marginBottom: 8,
+    fontWeight: '600',
+    color: '#4A5568',
   }
 });
+
+export default NewProduct;
