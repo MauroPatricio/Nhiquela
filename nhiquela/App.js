@@ -95,12 +95,19 @@ export default function App() {
 //   }
 // });
 
-  useEffect(() => {
-    const registerToken = async () => {
-      const deviceToken = await registerForPushNotificationsAsync();
-      if (deviceToken) {
-        try {
-          const userId = await AsyncStorage.getItem('id');
+
+useEffect(() => {
+  const registerToken = async () => {
+    const deviceToken = await registerForPushNotificationsAsync();
+
+    if (deviceToken) {
+      try {
+        const userDataString = await AsyncStorage.getItem('userData');
+
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          const userId = userData?._id || userData?.id;
+
           if (userId) {
             await api.post('/notifications/savedevicetoken', {
               deviceToken,
@@ -108,14 +115,15 @@ export default function App() {
               platform: Platform.OS,
             });
           }
-        } catch (err) {
-          console.error('Erro ao salvar token:', err);
         }
+      } catch (err) {
+        console.error('Erro ao salvar token do dispositivo:', err);
       }
-    };
+    }
+  };
 
-    registerToken();
-  }, []);
+  registerToken();
+}, []);
 
   return (
     <NavigationContainer>
