@@ -13,7 +13,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 const validationSchema = Yup.object().shape({
   nome: Yup.string().required('Nome do produto (PT) é obrigatório'),
   name: Yup.string().required('Nome do produto (EN) é obrigatório'),
-  slug: Yup.string().required('Nome abreviado é obrigatório'),
   image: Yup.string().required('A imagem do produto é obrigatória'),
   price: Yup.number().required('Preço é obrigatório'),
   category: Yup.string().required('Categoria é obrigatória'),
@@ -43,7 +42,6 @@ const NewProduct = () => {
   // Estados locais para os campos do formulário
   const [name, setName] = useState('');
   const [nome, setNome] = useState('');
-  const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [province, setProvince] = useState('');
@@ -105,7 +103,6 @@ const NewProduct = () => {
     if (editingProduct) {
       setNome(editingProduct.nome || '');
       setName(editingProduct.name || '');
-      setSlug(editingProduct.slug || '');
       setPrice(editingProduct.price?.toString() || '');
       setCategory(editingProduct.category?._id || '');
       setProvince(editingProduct.province?._id || '');
@@ -131,7 +128,6 @@ const NewProduct = () => {
       setImage(null);
       setNome('');
       setName('');
-      setSlug('');
       setPrice('');
       setCategory('');
       setProvince('');
@@ -319,7 +315,6 @@ const NewProduct = () => {
         navigation.navigate('ProductListSeller');
       }
     } catch (error) {
-      console.log(error)
       const errorMessage = error.response?.data.error || 'Erro ao salvar o produto.';
       Toast.show({ 
         type: 'error', 
@@ -347,13 +342,12 @@ const NewProduct = () => {
         {editingProduct ? 'Editar Produto' : 'Criar novo produto'}
       </Text>
 
-      {userData && userData.isApproved ? (
+      {userData && userData?.isApproved ? (
         <Formik
           enableReinitialize
           initialValues={{
             nome: nome,
             name: name,
-            slug: slug,
             image: image || '',
             price: price,
             category: category,
@@ -459,17 +453,7 @@ const NewProduct = () => {
               />
               {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-              <TextInput
-                style={styles.input}
-                placeholder="Nome abreviado"
-                onChangeText={(text) => {
-                  handleChange('slug')(text);
-                  setSlug(text);
-                }}
-                onBlur={handleBlur('slug')}
-                value={values.slug}
-              />
-              {touched.slug && errors.slug && <Text style={styles.error}>{errors.slug}</Text>}
+         
 
               <TextInput
                 style={styles.input}

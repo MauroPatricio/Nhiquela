@@ -199,7 +199,6 @@ const SignUp = () => {
         throw new Error('Permissão de notificações não concedida.');
       }
 
-      const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
       // const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
       // Atualiza o push token do usuário
@@ -210,8 +209,9 @@ const SignUp = () => {
         text1: 'Perfil criado com sucesso',
         position: 'top',
       });
+      
 
-      navigation.navigate('NewProduct');
+      navigation.navigate('Login');
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Ocorreu um erro inesperado.';
       Toast.show({
@@ -242,6 +242,7 @@ const SignUp = () => {
               description: '',
               address: '',
               phoneNumberAccount: '',
+              alternativePhoneNumberAccount: '',
               province: '',
               tipoEstabelecimento: ''
             },
@@ -434,6 +435,22 @@ const SignUp = () => {
               {touched.seller?.phoneNumberAccount && errors.seller?.phoneNumberAccount && (
                 <Text style={styles.error}>{errors.seller?.phoneNumberAccount}</Text>
               )}
+
+   <Text style={styles.label}>Número de telefone da empresa para pagamentos [EMOLA]</Text>
+              <View style={styles.inputWrapper(touched.seller?.alternativePhoneNumberAccount ? '#7F00FF' : '#7F00FF')}>
+                <TextInput
+                  style={styles.input}
+                  value={values.seller.alternativePhoneNumberAccount}
+                  onChangeText={handleChange('seller.alternativePhoneNumberAccount')}
+                  onBlur={handleBlur('seller.alternativePhoneNumberAccount')}
+                  keyboardType="numeric"
+                />
+              </View>
+              {touched.seller?.alternativePhoneNumberAccount && errors.seller?.alternativePhoneNumberAccount && (
+                <Text style={styles.error}>{errors.seller?.alternativePhoneNumberAccount}</Text>
+              )}
+
+              
 
               {/* Location Update Button */}
               <Text style={styles.label}>Localização GPS</Text>

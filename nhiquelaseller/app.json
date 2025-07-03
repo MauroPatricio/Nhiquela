@@ -19,6 +19,7 @@
       "android"
     ],
     "android": {
+      "targetSdkVersion": 35,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
@@ -34,7 +35,6 @@
         "POST_NOTIFICATIONS",
         "VIBRATE",
         "WAKE_LOCK"
-        
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela3.png",

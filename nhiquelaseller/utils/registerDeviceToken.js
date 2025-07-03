@@ -5,6 +5,7 @@ import api from '../hooks/createConnectionApi';
 
 async function registerDeviceToken(userData) {
   const deviceToken = await registerForPushNotificationsAsync();
+
   if (deviceToken) {
     try {
       await api.post('/notifications/savedevicetoken', {

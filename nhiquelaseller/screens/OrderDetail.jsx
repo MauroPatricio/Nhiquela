@@ -290,6 +290,10 @@ const deleteOrder = async (id) => {
           <Text style={styles.label}>Contacto do cliente: </Text>
           <Text style={styles.bold}>{currentOrder.user?.phoneNumber}</Text>
         </View>
+           <View style={styles.content}>
+          <Text style={styles.label}>Endereço de entrega: </Text>
+          <Text style={styles.bold}>{currentOrder.address}</Text>
+        </View>
         {currentOrder && currentOrder.stepStatus == 7 &&
           <>
             <Text style={styles.label}>Motivo de cancelamento: </Text>
