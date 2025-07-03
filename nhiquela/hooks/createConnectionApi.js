@@ -1,10 +1,13 @@
-import axios from 'axios'
+import axios from 'axios';
 
-//  const api = axios.create({baseURL: 'https://deliveryshop.herokuapp.com/api'});
-// const api = axios.create({baseURL: 'http://localhost:5000/api'});
-// const api = axios.create({baseURL: 'http://192.168.65.176:5000/api'});
-const api = axios.create({baseURL: 'http://192.168.0.4:5000/api'})
+let baseURL = '';
 
+if (process.env.NODE_ENV === 'development') {
+  baseURL = 'http://192.168.0.4:5000/api'; // ou localhost se estiver no navegador
+} else {
+  baseURL = 'https://deliveryshop.herokuapp.com/api';
+}
 
+const api = axios.create({ baseURL });
 
 export default api;
