@@ -11,9 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/nhiquela2.png",
@@ -22,8 +20,10 @@
       }
     },
     "android": {
-          "googleServicesFile": "./android/app/google-services.json",
-          "useNextNotificationsApi": true,
+      "package": "com.mpatricio.nhiquelaa",
+      "googleServicesFile": "./android/app/google-services.json",
+      "useNextNotificationsApi": true,
+      "targetSdkVersion": 35,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
@@ -43,8 +43,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.mpatricio.nhiquelaa"
+      }
     },
     "web": {
       "favicon": "./assets/nhiquela2.png"

@@ -10,7 +10,7 @@ const SubmitPaymentButton = ({Confirmar, selectedPayment}) => {
 
 
   const navigateToPage = async (selectedPayment) =>{
-    if(selectedPayment=='Mpesa'){
+    if(selectedPayment=='Mpesa' || selectedPayment=='MPESA'){
       return navigation.navigate('MpesaScreen')
     }
     // Neste momento devo apresentar a opcao de pagamento da tela do BCI

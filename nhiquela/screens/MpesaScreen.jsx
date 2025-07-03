@@ -29,6 +29,7 @@ import {
   selectTotalPriceFromSeller,
   selectPriceFromSeller,
   selectSellerEarningsAfterDiscount,
+  selectAddress,
 } from '../features/basketSlice';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -46,6 +47,8 @@ const MpesaScreen = () => {
   const [loader, setLoader] = useState(false);
   const [isUserWantDelivery, setIsUserWantDelivery] = useState(true);
   const totalToPay = useSelector(selectTotalToPay);
+  const address = useSelector(selectAddress);
+
   const amount = parseFloat(totalToPay);
   const navigation = useNavigation();
   const items = useSelector(selectBasketItems);
@@ -163,7 +166,7 @@ const makeThePayment = async (values) => {
 
     const orderPayload = {
       orderItems: items,
-      address: '',
+      address: address,
       paymentMethod: 'Mpesa',
       itemsPrice,
       ivaTax: iva,

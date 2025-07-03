@@ -1,7 +1,7 @@
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView, Switch } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView, Switch, TextInput } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers } from '../features/basketSlice';
+import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers, addAddress } from '../features/basketSlice';
 import { useNavigation } from '@react-navigation/native';
 import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -110,6 +110,8 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
             } else {
                 newDistanceToPay = minDelivPrice; // Valor mínimo quando distância ainda não foi calculada
             }
+        }else{
+            setAddress('')
         }
     
         setDistanceToPay(newDistanceToPay);
@@ -123,6 +125,11 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
         dispatch(addIva(iva));
         dispatch(addDeliverPrice(distanceToPay));
     }, [totalToPay, distanceToPay, dispatch]);
+
+
+    useEffect(() => {
+  dispatch(addAddress(address));
+}, [address]);
 
     // useEffect(() => {
     //     if (totalToPay && distanceToPay) {
@@ -215,9 +222,30 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
                             </TouchableOpacity>
                             </View>
 
+                            {isUserWantDelivery && (
+                                    <View style={{ marginTop: 10 }}>
+                                        <Text style={{ marginBottom: 5, fontWeight: 'bold' }}>Endereço de Entrega</Text>
+                                        <TextInput
+                                        placeholder="Digite o endereço completo"
+                                        multiline
+                                        numberOfLines={4}
+                                        style={{
+                                            borderWidth: 1,
+                                            borderColor: '#ccc',
+                                            borderRadius: 8,
+                                            padding: 10,
+                                            textAlignVertical: 'top',
+                                        }}
+                                        value={address}
+                                        onChangeText={setAddress}
+                                        />
+                                    </View>
+                                    )}
+
+
                             <View style={styles.barPopup}>
                                 <Text style={styles.length}>Subtotal</Text>
-                                <Text style={styles.total}>{basketTotal} Mt</Text>
+                                <Text style={styles.total}>{parseFloat(basketTotal).toFixed(2)} Mt</Text>
                             </View>
                             <View style={styles.barPopup}>
                                 <Text style={styles.length}>Custo de entrega</Text>
