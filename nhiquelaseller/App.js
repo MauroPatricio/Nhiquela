@@ -117,7 +117,7 @@ export default function App() {
               style={{ flex: 1 }}
             >
               <Stack.Navigator>
-                <Stack.Screen name="Bottom Navigation" component={ButtomTabNavegation} options={{ headerShown: false }} />
+                <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} options={{ headerShown: false }} />
                 <Stack.Screen name="ProductDetail" component={ProductDetail} options={{ headerShown: false }} />
                 <Stack.Screen name="NewProduct" component={NewProduct} options={{ headerShown: false }} />
                 <Stack.Screen name="ProductListSeller" component={ProductListSeller} options={{ headerShown: false }} />

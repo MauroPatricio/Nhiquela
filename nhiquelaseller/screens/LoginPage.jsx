@@ -41,11 +41,10 @@ const LoginPage = ({ navigation }) => {
       await AsyncStorage.setItem('id', userData._id);
 
       await registerDeviceToken(userData);
-
-        navigation.replace('Bottom Navigation');
+      navigation.replace('BottomNavigation');
       }
     } catch (error) {
-      Alert.alert('Informe o número de telefone ou a senha correcta');
+    Alert.alert('Erro', error?.response?.data?.message);
     } finally {
       setLoader(false);
     }
