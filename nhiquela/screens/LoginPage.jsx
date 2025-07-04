@@ -44,10 +44,10 @@ const login = async (values) => {
       await registerDeviceToken(userData);
 
       setResponseData(userData);
-      navigation.replace('Bottom Navigation');
+      navigation.replace('BottomNavigation');
     }
   } catch (error) {
-    Alert.alert('Erro', 'Informe o número de telefone ou a senha correta.');
+    Alert.alert('Erro', error?.response?.data?.message);
   } finally {
     setLoader(false);
   }

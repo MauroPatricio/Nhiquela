@@ -135,7 +135,7 @@ useEffect(() => {
             style={{ flex: 1 }}
           >
             <Stack.Navigator>
-              <Stack.Screen name='Bottom Navigation' component={ButtomTabNavegation} options={{ headerShown: false }} />
+              <Stack.Screen name='BottomNavigation' component={ButtomTabNavegation} options={{ headerShown: false }} />
               <Stack.Screen name='ProductDetail' component={ProductDetail} options={{ headerShown: false }} />
               <Stack.Screen name='ProductList' component={NewProducts} options={{ headerShown: false }} />
               <Stack.Screen name='ProductList2' component={ProductList} options={{ headerShown: false }} />

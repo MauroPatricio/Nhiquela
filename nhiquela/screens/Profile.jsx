@@ -42,7 +42,7 @@ const Profile = ({navigation}) => {
     await AsyncStorage.removeItem('userData');
     await AsyncStorage.removeItem('id');
 
-    navigation.replace('Bottom Navigation');
+    navigation.replace('BottomNavigation');
   } catch (error) {
     console.error('Erro ao sair:', error);
     navigation.navigate('Login');
