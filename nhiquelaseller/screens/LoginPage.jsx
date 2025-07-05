@@ -44,7 +44,7 @@ const LoginPage = ({ navigation }) => {
       navigation.replace('BottomNavigation');
       }
     } catch (error) {
-    Alert.alert('Erro', error?.response?.data?.message);
+    Alert.alert('Erro no login', error?.response?.data?.message);
     } finally {
       setLoader(false);
     }
