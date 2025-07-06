@@ -14,8 +14,11 @@ import { StatusBar } from 'expo-status-bar';
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
+import { useNavigation } from '@react-navigation/native';
 
-const Profile = ({ navigation }) => {
+const Profile = () => {
+  const navigation = useNavigation();
+  
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [isStoreOpen, setIsStoreOpen] = useState(false);
@@ -54,7 +57,7 @@ const Profile = ({ navigation }) => {
     setIsLoading(true);
     await AsyncStorage.removeItem('id');
     setIsLoading(false);
-    navigation.replace('BottomNavigation');
+    navigation.navigate('BottomNavigation');
   };
 
   const logout = () => {

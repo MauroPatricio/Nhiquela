@@ -10,6 +10,7 @@ import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import registerDeviceToken from '../utils/registerDeviceToken';
+import { useNavigation } from '@react-navigation/native';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -21,7 +22,9 @@ const validationSchema = Yup.object().shape({
     .required('Obrigatório'),
 });
 
-const LoginPage = ({ navigation }) => {
+const LoginPage = () => {
+    const navigation = useNavigation();
+  
   const [loader, setLoader] = useState(false);
   const [responseData, setResponseData] = useState(null);
   const [hideText, setHideText] = useState(true); // Esconde senha por padrão
@@ -37,16 +40,20 @@ const LoginPage = ({ navigation }) => {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('id', userData._id);
 
-        await registerDeviceToken(userData);
+        // try {
+        //   await registerDeviceToken(userData);
+        // } catch (e) {
+        //   console.warn('Erro ao registrar token de dispositivo:', e);
+        // }
 
         setResponseData(userData);
-        navigation.replace('BottomNavigation');
+        navigation.navigate('BottomNavigation');
       }
     } catch (error) {
       console.log('Erro no login:', error);
       Alert.alert(
         'Erro no login',
-        error?.response?.data?.message || 'Erro inesperado. Verifique sua conexão ou tente novamente.'
+        error?.response?.data?.message || error || 'Erro inesperado. Verifique sua conexão ou tente novamente.'
       );
     } finally {
       setLoader(false);
