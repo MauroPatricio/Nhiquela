@@ -91,26 +91,26 @@ const LoginPage = ({ navigation }) => {
                 </View>
 
                 {/* Campo senha */}
-                <View style={styles.wrapper}>
-                  <Text style={styles.label}>Senha</Text>
-                  <View style={styles.inputWrapper(touched.password && errors.password ? 'red' : '#7F00FF')}>
-                    <MaterialCommunityIcons name="lock" size={20} color="grey" style={styles.iconStyle} />
-                    <TextInput
-                      placeholder="Insira a senha"
-                      secureTextEntry={hideText}
-                      style={{ flex: 1 }}
-                      value={values.password}
-                      onChangeText={handleChange('password')}
-                      onBlur={handleBlur('password')}
-                    />
-                    <TouchableOpacity onPress={() => setHideText(!hideText)}>
-                      <MaterialCommunityIcons name={hideText ? 'eye-outline' : 'eye-off-outline'} size={20} />
-                    </TouchableOpacity>
-                  </View>
-                  {touched.password && errors.password && (
-                    <Text style={styles.errorMessage}>{errors.password}</Text>
-                  )}
-                </View>
+              <View style={styles.wrapper}>
+  <Text style={styles.label}>Senha</Text>
+  <View style={styles.inputWrapper(touched.password && errors.password ? 'red' : '#7F00FF')}>
+    <MaterialCommunityIcons name="lock" size={20} color="grey" style={styles.iconStyle} />
+    <TextInput
+      placeholder="Insira a senha"
+      secureTextEntry={hideText}
+      style={{ flex: 1 }}
+      value={values.password}
+      onChangeText={(text) => handleChange('password')(text.trim())} // aplica trim
+      onBlur={handleBlur('password')}
+    />
+    <TouchableOpacity onPress={() => setHideText(!hideText)}>
+      <MaterialCommunityIcons name={hideText ? 'eye-outline' : 'eye-off-outline'} size={20} />
+    </TouchableOpacity>
+  </View>
+  {touched.password && errors.password && (
+    <Text style={styles.errorMessage}>{errors.password}</Text>
+  )}
+</View>
 
                 {/* Botão login e registrar */}
                 <View>
