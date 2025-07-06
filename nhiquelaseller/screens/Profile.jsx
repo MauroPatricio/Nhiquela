@@ -52,7 +52,7 @@ const Profile = ({ navigation }) => {
   const userLogout = async () => {
     await AsyncStorage.getItem('userData');
     await AsyncStorage.removeItem('id');
-    navigation.replace('Bottom Navigation');
+    navigation.replace('BottomNavigation');
   };
 
   const logout = () => {
