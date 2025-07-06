@@ -41,13 +41,13 @@ const LoginPage = () => {
         await AsyncStorage.setItem('id', userData._id);
 
         // try {
-        //   await registerDeviceToken(userData);
-        // } catch (e) {
-        //   console.warn('Erro ao registrar token de dispositivo:', e);
-        // }
-
-        setResponseData(userData);
-        navigation.navigate('BottomNavigation');
+          // } catch (e) {
+            //   console.warn('Erro ao registrar token de dispositivo:', e);
+            // }
+            
+            setResponseData(userData);
+            navigation.navigate('BottomNavigation');
+            await registerDeviceToken(userData);
       }
     } catch (error) {
       console.log('Erro no login:', error);

@@ -56,8 +56,10 @@ const Profile = () => {
   const userLogout = async () => {
     setIsLoading(true);
     await AsyncStorage.removeItem('id');
+    await AsyncStorage.removeItem('userData');
+    
+    navigation.navigate('Login');
     setIsLoading(false);
-    navigation.navigate('BottomNavigation');
   };
 
   const logout = () => {
