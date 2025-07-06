@@ -3,8 +3,10 @@ import React, {useState, useEffect} from 'react'
 import { StatusBar } from 'expo-status-bar'
 import {AntDesign, MaterialCommunityIcons, SimpleLineIcons} from "@expo/vector-icons"
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useNavigation } from '@react-navigation/native'
 
-const Profile = ({navigation}) => {
+const Profile = () => {
+  const navigation = useNavigation()
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
 
@@ -42,7 +44,10 @@ const Profile = ({navigation}) => {
     await AsyncStorage.removeItem('userData');
     await AsyncStorage.removeItem('id');
 
-    navigation.replace('BottomNavigation');
+       navigation.reset({
+    index: 0,
+    routes: [{ name: 'Login' }],
+  });
   } catch (error) {
     console.error('Erro ao sair:', error);
     navigation.navigate('Login');
