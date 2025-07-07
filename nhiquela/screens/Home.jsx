@@ -52,6 +52,14 @@ const Home = () => {
     }, [])
   );
 
+  useEffect(() => {
+  const unsubscribe = navigation.addListener('focus', () => {
+    fetchProductData();
+  });
+
+  return unsubscribe;
+}, [navigation]);
+
 const checkIfUserExist = async () => {
   try {
     const storedUserData = await AsyncStorage.getItem('userData');

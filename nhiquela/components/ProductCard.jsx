@@ -20,6 +20,7 @@ const ProductCard = ({
   longitude,
   countInStock,
   seller,
+  isSellerOpen,
   item
 }) => {
   const navigation = useNavigation();
@@ -39,84 +40,64 @@ const ProductCard = ({
   const _id = id
 
   return (
-   <TouchableOpacity
+<TouchableOpacity
   style={styles.card}
-  onPress={() => navigation.navigate("ProductDetail", { item })}>
+  onPress={() => navigation.navigate("ProductDetail", { item })}
+  disabled={!isSellerOpen} // Desativa o clique se a loja estiver fechada
+>
   <View style={styles.card_template}>
     <Image source={{ uri: logo }} style={styles.image} />
 
-    {/* Se o item estiver em promoção, exibe o badge e a percentagem */}
+    {/* Overlay se a loja estiver fechada */}
+    {!isSellerOpen && (
+      <View style={styles.overlay}>
+        <Text style={styles.overlayText}>Loja fechada</Text>
+      </View>
+    )}
+
+    {/* Badge de promoção */}
     {item.item.onSale && (
-      <>
-       <View style={styles.statusOverlay}>
-          <Text style={styles.badgeTextOnSale}>
-            Promoção
-          </Text>
-          <Text style={styles.badgeTextOnSale}>
-            {item.item.onSalePercentage}%
-          </Text>
-        </View>
-      </>
+      <View style={styles.statusOverlay}>
+        <Text style={styles.badgeTextOnSale}>Promoção</Text>
+        <Text style={styles.badgeTextOnSale}>{item.item.onSalePercentage}%</Text>
+      </View>
     )}
 
     <View style={styles.details}>
-      {/* Agora o nome do item */}
-      <Text style={styles.title} numberOfLines={1}>
-        {item.item.name}
-      </Text>
+      <Text style={styles.title} numberOfLines={1}>{item.item.name}</Text>
+      <Text style={styles.supplier} numberOfLines={1}>{seller.seller.name}</Text>
 
-      {/* Vendedor */}
-      <Text style={styles.supplier} numberOfLines={1}>
-        {seller.seller.name}
-      </Text>
-                    {/* Estoque ou pedido */}
       <Text>
         {item.item.isOrdered ? (
-          <Badge style={styles.badgeOrdered}>
-            Por encomenda
-          </Badge>
+          <Badge style={styles.badgeOrdered}>Por encomenda</Badge>
         ) : item.item.countInStock !== 0 ? (
           <Text style={styles.badgeInStock}>
             {item.item.countInStock} unidade(s)
           </Text>
         ) : (
-          <Badge style={styles.badgeOutOfStock}>
-            Sem estoque
-          </Badge>
+          <Badge style={styles.badgeOutOfStock}>Sem estoque</Badge>
         )}
-
       </Text>
 
-      {/* Agora o valor exibe o discount se estiver em promoção */}
-                  <View style={styles.priceContainer}>
-                {item.item.onSale ? (
-                  <>
-                    {/* Preço com desconto */}
-                    <Text style={styles.discountPrice}>
-                      {item.item.discount} MT
-                    </Text>
-
-                    {/* Preço original, riscado e menor */}
-                    <Text style={styles.originalPrice}>
-                      {item.item.price} MT
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.discountPrice}>
-                    {item.item.price} MT
-                  </Text>
-                )}
-
-              </View>
-    
+      <View style={styles.priceContainer}>
+        {item.item.onSale ? (
+          <>
+            <Text style={styles.discountPrice}>{item.item.discount} MT</Text>
+            <Text style={styles.originalPrice}>{item.item.price} MT</Text>
+          </>
+        ) : (
+          <Text style={styles.discountPrice}>{item.item.price} MT</Text>
+        )}
+      </View>
     </View>
 
-    {/* Botão de comprar */}
+    {/* Botão de comprar visível mesmo com loja fechada, mas opcionalmente pode esconder */}
     <TouchableOpacity style={styles.addBtn}>
       <Ionicons name='cart' size={25} color={'#7F00FF'} />
     </TouchableOpacity>
   </View>
 </TouchableOpacity>
+
 
   );
 };
@@ -257,5 +238,21 @@ originalPrice: {
   fontSize: 12,
   color: 'grey',
   textDecorationLine: 'line-through',
+},
+overlay: {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 2,
+  borderRadius: 12,
+},
+
+overlayText: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 13,
+  textAlign: 'center',
+  paddingHorizontal: 8,
 },
 });

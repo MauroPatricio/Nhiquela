@@ -45,6 +45,7 @@ const ProductHomeView = ({ title, description, categoryid, products }) => {
                   longitude={''}
                   countInStock={item.countInStock}
                   seller={item.seller}
+                  isSellerOpen={item.isSellerOpen}
                   item={item2}
                 />
               </>

@@ -48,6 +48,8 @@ const Profile = () => {
     index: 0,
     routes: [{ name: 'Login' }],
   });
+      // navigation.navigate('Login');
+
   } catch (error) {
     console.error('Erro ao sair:', error);
     navigation.navigate('Login');

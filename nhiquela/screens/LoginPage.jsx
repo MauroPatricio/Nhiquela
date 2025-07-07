@@ -63,12 +63,12 @@ const LoginPage = () => {
     <ScrollView style={{ backgroundColor: 'white' }}>
       <SafeAreaView style={{ marginHorizontal: 20 }}>
         <View>
-          <BackBtn onPress={() => navigation.goBack()} />
+          <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
           <Image
             source={require('../assets/nhiquela2.png')}
             style={styles.cover}
           />
-          <Text style={styles.title}>Login r</Text>
+          <Text style={styles.title}>Login</Text>
 
           <Formik
             initialValues={{ phoneNumber: '', password: '' }}
