@@ -46,8 +46,10 @@ const LoginPage = () => {
             // }
             
             setResponseData(userData);
-            navigation.navigate('BottomNavigation');
-            await registerDeviceToken(userData);
+                      navigation.reset({
+                index: 0,
+                routes: [{ name: 'BottomNavigation' }],
+              });             registerDeviceToken(userData);
       }
     } catch (error) {
       console.log('Erro no login:', error);

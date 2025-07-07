@@ -278,6 +278,7 @@ const NewProduct = () => {
 
       values.color = selectedColors;
       values.size = selectedSizes;
+      values.isSellerOpen = userData?.seller?.openstore
 
       let response;
       if (editingProduct) {
@@ -363,6 +364,7 @@ const NewProduct = () => {
             isGuaranteed: editingProduct?.isGuaranteed || false,
             guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
             isOrdered: editingProduct?.isOrdered || false,
+            isSellerOpen: userData?.seller?.openstore||false
           }}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}

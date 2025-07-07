@@ -57,8 +57,12 @@ const Profile = () => {
     setIsLoading(true);
     await AsyncStorage.removeItem('id');
     await AsyncStorage.removeItem('userData');
+
     
-    navigation.navigate('Login');
+     navigation.reset({
+    index: 0,
+    routes: [{ name: 'Login' }],
+  });
     setIsLoading(false);
   };
 
