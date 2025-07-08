@@ -37,7 +37,8 @@ const SellerProduct = ({
   sellerName,
   comissionPercentage,
   sellerEarningsAfterDiscount,
-  onSale
+  onSale,
+  isSellerOpen
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -84,73 +85,79 @@ const SellerProduct = ({
     }
   };
 
-  return (
-    <TouchableOpacity onPress={toggleExpand} activeOpacity={0.9} style={styles.card}>
+return (
+  <TouchableOpacity
+    onPress={toggleExpand}
+    activeOpacity={0.9}
+    style={styles.card}
+    disabled={!isSellerOpen} // impede interação se loja estiver fechada
+  >
+    <View style={{ position: 'relative' }}>
       <Image source={{ uri: image }} style={styles.image} />
 
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.name}>{name}</Text>
-          <ChevronDownIcon
-            size={20}
-            color="gray"
-            style={[styles.chevron, isExpanded && styles.chevronUp]}
-          />
+      {/* Overlay quando loja estiver fechada */}
+      {!isSellerOpen && (
+        <View style={styles.overlay}>
+          <Text style={styles.overlayText}>Loja fechada</Text>
         </View>
+      )}
+    </View>
 
-        <Text style={styles.description}>{description}</Text>
-        <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
-        {onSale ? (
-              <View style={{ marginTop: 6 }}>
-                {/* Badge de promoção */}
-                <View style={{ backgroundColor:'green', paddingHorizontal:6, paddingVertical:2, borderRadius:4, alignSelf:'flex-start', marginBottom: 4 }}>
-                  <Text style={{ color:'white', fontWeight:'bold', fontSize: 12 }}>Em promoção</Text>
-                </View>
-
-                {/* Preço original riscado */}
-                <Text style={{ color:'grey', textDecorationLine:'line-through', marginBottom: 5 }}>
-                  {parseFloat(price).toFixed(2)} MT
-                </Text>
-
-                {/* Preço com desconto */}
-                <Text style={{ color:'green', fontWeight:'bold', fontSize: 16 }}>
-                  {parseFloat(discount).toFixed(2)} MT
-                </Text>
-
-                {/* Valor do desconto */}
-                <Text style={{ color:'green', marginTop: 4 }}>
-                  Economiza { (parseFloat(price) - parseFloat(discount)).toFixed(2) } MT
-                </Text>
-
-              </View>
-) : (
-  <Text style={styles.price}>
-    {parseFloat(price).toFixed(2)} MT
-  </Text>
-)}
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.name}>{name}</Text>
+        <ChevronDownIcon
+          size={20}
+          color="gray"
+          style={[styles.chevron, isExpanded && styles.chevronUp]}
+        />
       </View>
 
-      {isExpanded && (
-        <View style={styles.actions}>
-          <TouchableOpacity onPress={removeItem}>
-            <MinusCircleIcon
-              size={35}
-              color={items.length > 0 ? 'white' : 'gray'}
-              style={styles.iconButton}
-            />
-          </TouchableOpacity>
+      <Text style={styles.description}>{description}</Text>
+      <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
 
-          <Text style={styles.quantity}>{items.length}</Text>
-
-          <TouchableOpacity onPress={addItemToBasket}>
-            <PlusCircleIcon size={35} color="white" style={styles.iconButton} />
-          </TouchableOpacity>
+      {onSale ? (
+        <View style={{ marginTop: 6 }}>
+          <View style={{ backgroundColor: 'green', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start', marginBottom: 4 }}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Em promoção</Text>
+          </View>
+          <Text style={{ color: 'grey', textDecorationLine: 'line-through', marginBottom: 5 }}>
+            {parseFloat(price).toFixed(2)} MT
+          </Text>
+          <Text style={{ color: 'green', fontWeight: 'bold', fontSize: 16 }}>
+            {parseFloat(discount).toFixed(2)} MT
+          </Text>
+          <Text style={{ color: 'green', marginTop: 4 }}>
+            Economiza {(parseFloat(price) - parseFloat(discount)).toFixed(2)} MT
+          </Text>
         </View>
-        
+      ) : (
+        <Text style={styles.price}>
+          {parseFloat(price).toFixed(2)} MT
+        </Text>
       )}
+    </View>
 
-    </TouchableOpacity>
-  );
+    {isExpanded && (
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={removeItem}>
+          <MinusCircleIcon
+            size={35}
+            color={items.length > 0 ? 'white' : 'gray'}
+            style={styles.iconButton}
+          />
+        </TouchableOpacity>
+
+        <Text style={styles.quantity}>{items.length}</Text>
+
+        <TouchableOpacity onPress={addItemToBasket}>
+          <PlusCircleIcon size={35} color="white" style={styles.iconButton} />
+        </TouchableOpacity>
+      </View>
+    )}
+  </TouchableOpacity>
+);
+
 };
 
 export default SellerProduct;
@@ -226,5 +233,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginHorizontal: 12,
-  }
+  },
+  overlay: {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 2,
+  borderRadius: 10,
+},
+
+overlayText: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 14,
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  backgroundColor: 'rgba(0,0,0,0.6)',
+  borderRadius: 6,
+},
+
 });

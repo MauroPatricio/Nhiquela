@@ -170,7 +170,9 @@ const SellerScreen = () => {
 
         <View style={styles.productView}>
           {productsBySeller && productsBySeller.map((product) => (
+                  
 
+            
             <SellerProduct
               key={product._id}
               id={product._id}
@@ -192,12 +194,13 @@ const SellerScreen = () => {
               discount={product.discount}
               comissionPercentage={product.comissionPercentage}
               sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
+              isSellerOpen={product.isSellerOpen}
 
-            />
+              
+              />
           ))}
         </View>
                 <Text style={styles.padding}></Text>
-
       </ScrollView>
     </>
   );

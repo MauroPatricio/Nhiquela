@@ -10,23 +10,24 @@ import BasketIcon from '../BasketIcon';
 const ProductDetail = () => {
   const route = useRoute();
   const item = route.params?.item || {};
+
   const navigation = useNavigation();
-
-  const itemData = item.item !== undefined ? item.item : item;
-
+  
+  const itemData = item?.item !== undefined ? item?.item : item;
+  
   const {
     _id,
     nome = itemData?.nome,
     name = itemData?.name,
-    image,
+    image = itemData?.image,
     description,
-    rating,
-    numReviews,
-    countInStock,
-    priceFromSeller,
-    price,
-    onSale,
-    discount,
+    rating = itemData.rating,
+    numReviews = itemData?.numReviews,
+    countInStock = itemData?.countInStock,
+    priceFromSeller =itemData?.priceFromSeller,
+    price = itemData?.price,
+    onSale = itemData?.onSale,
+    discount =itemData?.discount,
     comissionPercentage,
     sellerEarningsAfterDiscount
   } = itemData;
@@ -96,7 +97,7 @@ const ProductDetail = () => {
             <Text style={styles.seller}>Fornecedor: <Text style={{ fontWeight: '800' }}>{sellerName || 'N/A'}</Text></Text>
             <Text style={styles.title}>{nome}</Text>
             <View style={styles.priceRow}>
-  {item.item.onSale && (
+  {onSale && (
     <>
       {/* Badge "Promoção" */}
       <View style={styles.promoBadge}>
@@ -107,19 +108,19 @@ const ProductDetail = () => {
 
       {/* Preço com desconto (maior) */}
       <Text style={styles.discountPrice}>
-        {item.item.discount} MT
+        {discount} MT
       </Text>
 
       {/* Preço original (riscado e menor) */}
       <Text style={styles.originalPrice}>
-        {item.item.price} MT
+        {price} MT
       </Text>
     </>
   )}
 
-  {!item.item.onSale && (
+  {!onSale && (
     <Text style={styles.normalPrice}>
-      {item.item.price} MT
+      {price} MT
     </Text>
   )}
 
