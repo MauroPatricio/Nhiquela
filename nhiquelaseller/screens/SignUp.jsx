@@ -14,31 +14,55 @@ import * as Notifications from 'expo-notifications';
 
 // Validation schema
 const validationSchema = Yup.object().shape({
-  name: Yup.string().required('O nome é obrigatório'),
-  email: Yup.string().email('Email inválido').required('O email é obrigatório'),
-  password: Yup.string().min(6, 'A senha deve conter no mínimo 6 dígitos').required('A senha é obrigatória'),
+  name: Yup.string()
+    .trim()
+    .required('O nome é obrigatório'),
+  email: Yup.string()
+    .trim()
+    .email('Email inválido')
+    .required('O email é obrigatório'),
+  password: Yup.string()
+    .min(6, 'A senha deve conter no mínimo 6 dígitos')
+    .required('A senha é obrigatória'),
   phoneNumber: Yup.string()
-    .required('Número de telefone é obrigatório')
-    .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
-    .max(9, 'O número de telefone não pode ser superior a 9 dígitos')
-    .matches(/^[0-9]{9}$/, 'Número de telefone inválido'),
+    .trim()
+    .matches(/^8[2-7][0-9]{7}$/, 'Número de telefone inválido. Deve começar com 82, 83, 84, 85, 86 ou 87 e ter 9 dígitos.')
+    .required('Número de telefone é obrigatório'),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref('password'), null], 'As senhas não coincidem')
     .required('A confirmação da senha é obrigatória'),
-  checkedTerms: Yup.boolean().oneOf([true], 'Você deve aceitar os termos e condições'),
+  checkedTerms: Yup.boolean()
+    .oneOf([true], 'Você deve aceitar os termos e condições'),
   seller: Yup.object().shape({
-    name: Yup.string().required('O nome do estabelecimento é obrigatório'),
-    logo: Yup.string().required('A Logo é obrigatória'),
-    description: Yup.string().required('A descrição do estabelecimento é obrigatória'),
-    address: Yup.string().required('O endereço do estabelecimento é obrigatório'),
-
+    name: Yup.string()
+      .trim()
+      .required('O nome do estabelecimento é obrigatório'),
+    logo: Yup.string()
+      .trim()
+      .required('A Logo é obrigatória'),
+    description: Yup.string()
+      .trim()
+      .required('A descrição do estabelecimento é obrigatória'),
+    address: Yup.string()
+      .trim()
+      .required('O endereço do estabelecimento é obrigatório'),
     phoneNumberAccount: Yup.string()
-      .matches(/^8[45]\d{7}$/, 'O telefone deve ter 9 dígitos e começar com 84 ou 85.')
-      .required('Número de telefone obrigatório'),    
-    province: Yup.string().required('A localização do estabelecimento é obrigatória'),
-    tipoEstabelecimento: Yup.string().required('O tipo de estabelecimento é obrigatório'),
+      .trim()
+      .matches(/^8[4-5][0-9]{7}$/, 'O telefone deve ter 9 dígitos e começar com 84 ou 85.')
+      .required('Número de telefone obrigatório'),
+    alternativePhoneNumberAccount: Yup.string()
+      .trim()
+      .matches(/^8[6-7][0-9]{7}$/, 'O telefone deve ter 9 dígitos e começar com 86 ou 87.')
+      .required('Número de telefone obrigatório'),
+    province: Yup.string()
+      .trim()
+      .required('A localização do estabelecimento é obrigatória'),
+    tipoEstabelecimento: Yup.string()
+      .trim()
+      .required('O tipo de estabelecimento é obrigatório'),
   }),
 });
+
 
 const SignUp = () => {
   const navigation = useNavigation();

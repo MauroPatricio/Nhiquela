@@ -288,17 +288,37 @@ const NewProduct = () => {
         
         // Atualiza o estado com os dados retornados
         setEditingProduct(response.data.product);
+
+              const body =  `O produto ${response.data.product.nome}foi actualizado. Confira já!`;
+              const data = response.data.product;
+              const title = 'Produto actualizado na Nhiquela'
+
+         // Envia para os utilizadores registrados
+          response = await api.post('notifications/broadcast', {title, body, data}, {
+          headers: { Authorization: `Bearer ${userData.token}` },
+        });
+        
+
         navigation.navigate('ProductListSeller');
 
         Toast.show({ 
           type: 'success', 
           text1: 'SUCESSO', 
-          text2: 'Produto atualizado com sucesso!',
+          text2: 'Produto actualizado com sucesso!',
           position: 'top',
           visibilityTime: 2000
         });
       } else {
         response = await api.post('products/', values, {
+          headers: { Authorization: `Bearer ${userData.token}` },
+        });
+
+      const body =  `O produto ${response.data.product.nome} agora está disponível. Confira na Nhiquela!`;
+      const data = response.data.product;
+      const title = 'Novo produto disponível na Nhiquela'
+
+         // Envia para os utilizadores registrados
+          response = await api.post('notifications/broadcast', {title, body, data}, {
           headers: { Authorization: `Bearer ${userData.token}` },
         });
         
