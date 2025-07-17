@@ -17,8 +17,11 @@ import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
 import { io } from "socket.io-client";
 import EstablishmentsView from '../components/EstablishmentsView1';
+import { Linking } from 'react-native';
 
 const socket = io(`${api}/products`);
+
+console.log(socket);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -194,6 +197,15 @@ const checkIfUserExist = async () => {
     return () => socket.off("newProduct");
   }, []);
 
+ useEffect(() => {
+  socket.on('storeStatusChanged', ({ sellerId, isOpen }) => {
+    console.log('Loja atualizada:', sellerId, isOpen);
+    fetchProductData(); // Atualize os produtos ao receber o evento
+  });
+
+  return () => socket.off('storeStatusChanged');
+}, []);
+
   const handleCategorySelect = category => {
     if (category.products?.length) {
       setSelectedCategory(category);
@@ -222,7 +234,7 @@ const checkIfUserExist = async () => {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white" }}>
+    <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
           <Image source={require('../assets/default1.jpg')} style={style.cover} />
@@ -292,6 +304,14 @@ const checkIfUserExist = async () => {
       )}
 
       <FlashMessage position="top" />
+      {userData && <TouchableOpacity
+              style={styles.whatsappButton}
+              onPress={() => {
+                Linking.openURL('https://wa.me/message/2HLEYV6VTD7BF1');
+              }}
+>
+      <Ionicons name="logo-whatsapp" size={30} color="white" />
+    </TouchableOpacity>}
     </SafeAreaView>
   );
 };
@@ -362,6 +382,23 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
   },
+  whatsappButton: {
+  position: 'absolute',
+  bottom: 80,
+  right: 20,
+  backgroundColor: '#7F00FF',
+  width: 60,
+  height: 60,
+  borderRadius: 30,
+  justifyContent: 'center',
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 4,
+  elevation: 5,
+  zIndex: 999,
+},
 });
 
 export default Home;
