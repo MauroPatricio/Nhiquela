@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import api from '../hooks/createConnectionApi';
@@ -7,9 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
-
 import * as Notifications from 'expo-notifications';
-import axios from 'axios';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -30,8 +28,9 @@ const Home = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-    const [userLogin,setUserLogin] = useState(false);
+  const [userLogin, setUserLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const updatePushToken = async (userId, newPushToken) => {
     try {
@@ -42,26 +41,29 @@ const Home = () => {
     }
   };
 
-  const registerForPushNotificationsAsync = async () => {
-    if (!userData) return;
-    let token;
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+  const registerForPushNotificationsAsync = async (user) => {
+    if (!user) return;
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        alert('Permita notificações para receber avisos de pedidos.');
+        return;
+      }
+
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      await updatePushToken(user._id, token);
+      setExpoPushToken(token);
+    } catch (error) {
+      console.error("Erro ao registrar push notification:", error.message || error);
     }
-
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notifications!');
-      return;
-    }
-
-    const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
-    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    await updatePushToken(userData._id, token);
-    setExpoPushToken(token);
   };
 
   const checkPendingNotifications = async () => {
@@ -79,9 +81,78 @@ const Home = () => {
     }
   };
 
-  useEffect(() => {
-    registerForPushNotificationsAsync();
+  const fetchWalletBalance = async (user) => {
+    if (!user) {
+      console.warn("Nenhum usuário logado para buscar saldo.");
+      return;
+    }
 
+    try {
+      setIsLoading(true);
+      const response = await api.get('/wallet/balance', {
+        headers: { authorization: `Bearer ${user.token}` },
+      });
+
+      if (response.status === 200 && response.data?.balance != null) {
+        setWalletBalance(Number(response.data.balance) || 0);
+      } else {
+        console.warn("Resposta inesperada da API de wallet:", response.data);
+        setWalletBalance(0);
+      }
+    } catch (error) {
+      console.error(
+        "Erro ao buscar saldo da wallet:",
+        error.response?.data || error.message
+      );
+      setWalletBalance(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const validateAndSetUser = async () => {
+    try {
+      const [storedUserData, storedUserId] = await Promise.all([
+        AsyncStorage.getItem('userData'),
+        AsyncStorage.getItem('id'),
+      ]);
+
+      if (!storedUserData || !storedUserId) throw new Error("Usuário não encontrado");
+
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (!parsedUserData?._id || parsedUserData._id !== storedUserId) {
+        throw new Error("Dados inconsistentes");
+      }
+
+      setUserData(parsedUserData);
+      setUserLogin(true);
+      return parsedUserData;
+    } catch (error) {
+      setIsLoading(false);
+      navigation.navigate('Login');
+      return null;
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const initialize = async () => {
+        const user = await validateAndSetUser();
+        if (!user) return;
+
+        await registerForPushNotificationsAsync(user);
+        await Promise.all([
+          fetchData(user),
+          fetchWalletBalance(user),
+        ]);
+      };
+
+      initialize();
+    }, [])
+  );
+
+  useEffect(() => {
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       showMessage({
         message: "Novo pedido recebido",
@@ -100,7 +171,6 @@ const Home = () => {
       }
     });
 
-    // Check for pending notifications when the app comes back online
     const unsubscribe = NetInfo.addEventListener(state => {
       if (state.isConnected) {
         checkPendingNotifications();
@@ -114,63 +184,10 @@ const Home = () => {
     };
   }, []);
 
-  // const checkIfUserExist = async () => {
-  //   const id = await AsyncStorage.getItem('id');
-  //   if (!id) {
-  //     navigation.navigate('Login');
-  //     return;
-  //   }
-
-  //   const userId = `user${JSON.parse(id)}`;
-  //   try {
-  //     const currentUser = await AsyncStorage.getItem(userId);
-  //     if (currentUser !== null) {
-  //       setUserData(JSON.parse(currentUser));
-  //     } else {
-  //       navigation.navigate('Login');
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //     navigation.navigate('Login');
-  //   }
-  // };
-
-
-  
-const checkIfUserExist = async () => {
-  try {
-    const storedUserData = await AsyncStorage.getItem('userData');
-    const storedUserId = await AsyncStorage.getItem('id');
-
-    if (storedUserData && storedUserId) {
-      const parsedUserData = JSON.parse(storedUserData);
-
-      if (parsedUserData._id === storedUserId) {
-        setUserData(parsedUserData); 
-        setUserLogin(true);
-      } else {
-        setIsLoading(false); // ✅ Para o loading se inconsistente
-        navigation.navigate('Login');
-
-      }
-    } else {
-      setIsLoading(false); // ✅ Para o loading se não logado
-      navigation.navigate('Login');
-
-    }
-  } catch (error) {
-    setIsLoading(false); // ✅ Garante parada mesmo em erro
-    navigation.navigate('Login');
-
-  }
-};
-
-
-  const fetchData = async () => {
-    if (!userData) return;
+  const fetchData = async (user) => {
     try {
-      const response = await api.get(`/orders/sellerview?seller=${userData._id}`, {
-        headers: { authorization: `Bearer ${userData.token}` },
+      const response = await api.get(`/orders/sellerview?seller=${user._id}`, {
+        headers: { authorization: `Bearer ${user.token}` },
       });
       if (response.status === 200) {
         setOrders(response.data.orders);
@@ -181,62 +198,39 @@ const checkIfUserExist = async () => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      checkIfUserExist().then(() => {
-        if (userData) {
-          fetchData();
-        }
-      });
-    }, [userData])
-  );
-
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     checkIfUserExist().then(() => {
-  //       if (userData) {
-  //         if (!userData.isApproved) {
-  //           showMessage({
-  //             message: "Acesso negado",
-  //             description: "Você não está aprovado como vendedor.",
-  //             type: "danger",
-  //             icon: "auto",
-  //             duration: 3000,
-  //           });
-  //           navigation.navigate('NewProduct'); // Ou redirecione para uma tela específica
-  //         } else {
-  //           fetchData();
-  //         }
-  //       }
-  //     });
-  //   }, [userData])
-  // );
-
   const handleStatusSelect = (status) => setSelectedStatus(status);
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
 
-  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-};
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+  };
 
   const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.appBarWrapper}>
-        <Text style={styles.welcomeText('black', 30, 0)}><Text style={{ color: '#7F00FF' }}>Nhiquela+</Text></Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.welcomeText('black', 30, 0)}>
+            <Text style={{ color: '#7F00FF' }}>Nhiquela+</Text>
+          </Text>
+          <Text style={styles.balanceText}>
+                        Saldo: 100000000000000 MT
+
+          </Text>
+        </View>
         <View style={styles.appBar}>
           <Image source={require('../assets/default1.jpg')} style={styles.cover} />
           <Text style={styles.greetingText}>{userData ? `Olá, ${userData?.name}` : 'Faça login'}</Text>
         </View>
-        
+
         {userData?.seller && (
           <View style={styles.storeStatusContainer}>
             <View
@@ -299,9 +293,9 @@ const formatDate = (dateString) => {
 
 export default Home;
 
-const styles = StyleSheet.create({ 
-  safeArea: { 
-    flex: 1, 
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
     backgroundColor: '#F9FAFB',
   },
   appBarWrapper: {
@@ -459,5 +453,30 @@ const styles = StyleSheet.create({
     marginTop: top,
     paddingBottom: 10,
     color: color,
-  })
+  }),
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
+  balanceText: {
+  fontSize: 15,
+  fontWeight: '900',
+  color: '#4CAF50',          // verde vibrante para saldo positivo
+  textAlign: 'center',
+  // letterSpacing: 1,
+  // marginVertical: 15,
+  textShadowColor: 'rgba(76, 175, 80, 0.4)',
+  // textShadowOffset: { width: 0, height: 3 },
+  // textShadowRadius: 6,
+  // backgroundColor: '#E8F5E9', // leve fundo verde claro
+  paddingVertical: 12,
+  borderRadius: 12,
+  overflow: 'hidden',
+  alignSelf: 'center',
+  // minWidth: 180,
+  // elevation: 3,
+},
+
 });

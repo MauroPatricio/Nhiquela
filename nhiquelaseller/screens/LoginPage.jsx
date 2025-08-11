@@ -1,6 +1,6 @@
+// LoginPage.js
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn';
 import Button from '../components/Button';
@@ -23,11 +23,9 @@ const validationSchema = Yup.object().shape({
 });
 
 const LoginPage = () => {
-    const navigation = useNavigation();
-  
+  const navigation = useNavigation();
   const [loader, setLoader] = useState(false);
-  const [responseData, setResponseData] = useState(null);
-  const [hideText, setHideText] = useState(true); // Esconde senha por padrão
+  const [hideText, setHideText] = useState(true);
 
   const login = async (values) => {
     try {
@@ -40,22 +38,18 @@ const LoginPage = () => {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('id', userData._id);
 
-        // try {
-          // } catch (e) {
-            //   console.warn('Erro ao registrar token de dispositivo:', e);
-            // }
-            
-            setResponseData(userData);
-                      navigation.reset({
-                index: 0,
-                routes: [{ name: 'BottomNavigation' }],
-              });             registerDeviceToken(userData);
+        registerDeviceToken(userData);
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'BottomNavigation' }],
+        });
       }
     } catch (error) {
       console.log('Erro no login:', error);
       Alert.alert(
         'Erro no login',
-        error?.response?.data?.message || error || 'Erro inesperado. Verifique sua conexão ou tente novamente.'
+        error?.response?.data?.message || 'Erro inesperado. Verifique sua conexão ou tente novamente.'
       );
     } finally {
       setLoader(false);
@@ -67,10 +61,7 @@ const LoginPage = () => {
       <SafeAreaView style={{ marginHorizontal: 20 }}>
         <View>
           <BackBtn onPress={() => navigation.goBack()} />
-          <Image
-            source={require('../assets/nhiquela2.png')}
-            style={styles.cover}
-          />
+          <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
           <Text style={styles.title}>Login como fornecedor</Text>
 
           <Formik
@@ -90,7 +81,7 @@ const LoginPage = () => {
                       keyboardType="phone-pad"
                       style={{ flex: 1 }}
                       value={values.phoneNumber}
-                      onChangeText={handleChange('phoneNumber')}
+                      onChangeText={(text) => handleChange('phoneNumber')(text.trim())}
                       onBlur={handleBlur('phoneNumber')}
                     />
                   </View>
@@ -100,26 +91,29 @@ const LoginPage = () => {
                 </View>
 
                 {/* Campo senha */}
-              <View style={styles.wrapper}>
-  <Text style={styles.label}>Senha</Text>
-  <View style={styles.inputWrapper(touched.password && errors.password ? 'red' : '#7F00FF')}>
-    <MaterialCommunityIcons name="lock" size={20} color="grey" style={styles.iconStyle} />
-    <TextInput
-      placeholder="Insira a senha"
-      secureTextEntry={hideText}
-      style={{ flex: 1 }}
-      value={values.password}
-      onChangeText={(text) => handleChange('password')(text.trim())} // aplica trim
-      onBlur={handleBlur('password')}
-    />
-    <TouchableOpacity onPress={() => setHideText(!hideText)}>
-      <MaterialCommunityIcons name={hideText ? 'eye-outline' : 'eye-off-outline'} size={20} />
-    </TouchableOpacity>
-  </View>
-  {touched.password && errors.password && (
-    <Text style={styles.errorMessage}>{errors.password}</Text>
-  )}
-</View>
+                <View style={styles.wrapper}>
+                  <Text style={styles.label}>Senha</Text>
+                  <View style={styles.inputWrapper(touched.password && errors.password ? 'red' : '#7F00FF')}>
+                    <MaterialCommunityIcons name="lock" size={20} color="grey" style={styles.iconStyle} />
+                    <TextInput
+                      placeholder="Insira a senha"
+                      secureTextEntry={hideText}
+                      style={{ flex: 1 }}
+                      value={values.password}
+                      onChangeText={(text) => handleChange('password')(text.trim())}
+                      onBlur={handleBlur('password')}
+                    />
+                    <TouchableOpacity onPress={() => setHideText(!hideText)}>
+                      <MaterialCommunityIcons
+                        name={hideText ? 'eye-outline' : 'eye-off-outline'}
+                        size={20}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {touched.password && errors.password && (
+                    <Text style={styles.errorMessage}>{errors.password}</Text>
+                  )}
+                </View>
 
                 {/* Botão login e registrar */}
                 <View>
@@ -127,7 +121,7 @@ const LoginPage = () => {
                     loader={loader}
                     title="Entrar"
                     onPress={isValid ? handleSubmit : null}
-                    isValid={isValid ? '#7F00FF' : 'red'}
+                    isValid={isValid}
                   />
                   <Text style={styles.registration} onPress={() => navigation.navigate('SignUp')}>
                     Registrar
@@ -149,7 +143,6 @@ const styles = StyleSheet.create({
     height: 200,
     width: 320,
     resizeMode: 'contain',
-    backgroundColor: 'white',
     alignSelf: 'center',
     marginVertical: 30,
   },
@@ -166,11 +159,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 5,
-    marginEnd: 2,
     color: '#7F00FF',
   },
   inputWrapper: (borderColor) => ({
-    borderColor: borderColor,
+    borderColor,
     backgroundColor: '#F8F8F8',
     borderWidth: 0.5,
     height: 55,
@@ -178,9 +170,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 15,
     alignItems: 'center',
-    shadowColor: '#7F00FF',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
     elevation: 3,
   }),
   errorMessage: {

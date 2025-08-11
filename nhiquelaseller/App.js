@@ -35,6 +35,10 @@ import TransportType from './components/TransportType';
 import EditProductView from './components/products/EditProductView';
 import Cart from './screens/Cart';
 import { navigationRef } from './navegation/RootNavigation'; // ajuste o caminho conforme seu projeto
+import PayWithWallet from './screens/PayWithWallet';
+import TopUpScreen from './screens/TopUpScreen';
+import WalletScreen from './screens/WalletScreen';
+import WalletWithdrawScreen from './screens/WalletWithdrawScreen';
 const Stack = createNativeStackNavigator();
 
 // 🔔 Configuração para exibir notificações em foreground
@@ -137,6 +141,12 @@ export default function App() {
                 <Stack.Screen name="TransportType" component={TransportType} options={{ headerShown: false }} />
                 <Stack.Screen name="EditProduct" component={EditProductView} options={{ headerShown: false }} />
                 <Stack.Screen name="Cart" component={Cart} options={{ headerShown: false }} />
+             
+              <Stack.Screen name="Wallet" component={WalletScreen} />
+              <Stack.Screen name="TopUp" component={TopUpScreen} />
+              <Stack.Screen name="Pay" component={PayWithWallet} />
+                            <Stack.Screen name="withdraw" component={WalletWithdrawScreen} />
+
               </Stack.Navigator>
 
              <Toast ref={(ref) => Toast.setRef(ref)} />

@@ -289,7 +289,7 @@ const NewProduct = () => {
         // Atualiza o estado com os dados retornados
         setEditingProduct(response.data.product);
 
-              const body =  `O produto ${response.data.product.nome}foi actualizado. Confira já!`;
+              const body =  `O produto ${response.data.product.nome} foi actualizado. Confira já!`;
               const data = response.data.product;
               const title = 'Produto actualizado na Nhiquela'
 
@@ -591,8 +591,8 @@ const NewProduct = () => {
                     style={styles.input}
                   >
                     <Picker.Item label="Em quantos dias a encomenda será entregue?" value="" />
-                    {[1, 2, 5, 7, 10, 15, 20, 30, 45].map((days) => (
-                      <Picker.Item key={days} label={`${days} dias`} value={days} />
+                    {['1 dia', '2 dias', '5 dias', '7 dias', '10 dias', '15 dias', '20 dias', '30 dias', '45 dias'].map((days) => (
+                      <Picker.Item key={days} label={`${days}`} value={days} />
                     ))}
                   </Picker>
                 </View>
@@ -619,11 +619,11 @@ const NewProduct = () => {
                     onValueChange={(itemValue) => setFieldValue('guaranteedPeriod', itemValue)}
                     style={styles.input}
                   >
-                    <Picker.Item label="1 mês" value="1" />
-                    <Picker.Item label="3 meses" value="3" />
-                    <Picker.Item label="6 meses" value="6" />
-                    <Picker.Item label="9 meses" value="9" />
-                    <Picker.Item label="12 meses" value="12" />
+                    <Picker.Item label="1 mês" value="1 mês" />
+                    <Picker.Item label="3 meses" value="3 meses" />
+                    <Picker.Item label="6 meses" value="6 meses" />
+                    <Picker.Item label="9 meses" value="9 meses" />
+                    <Picker.Item label="12 meses" value="12 meses" />
                   </Picker>
                 </View>
               )}

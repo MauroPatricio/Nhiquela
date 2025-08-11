@@ -161,16 +161,56 @@ const Profile = () => {
               </View>
 
               {/* Apagar conta */}
-              <TouchableOpacity onPress={deleteAccount}>
+              {/* <TouchableOpacity onPress={deleteAccount}>
                 <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
                   <View style={styles.iconContainer}>
                     <AntDesign name="user" size={28} />
                   </View>
                   <Text style={styles.menuText2}>Apagar conta</Text>
                 </View>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
-              {/* Sair */}
+          
+            </View>
+          )}
+
+          {userLogin && (
+  <View style={styles.menuWrapper}>
+    {/* Acesso à Carteira */}
+    <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
+      <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="wallet" size={28} color="#7F00FF" />
+        </View>
+        <Text style={styles.menuText2}>Minha Carteira</Text>
+      </View>
+    </TouchableOpacity>
+
+    {/* Recarregar saldo */}
+    <TouchableOpacity onPress={() => navigation.navigate('TopUp')}>
+      <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="cash-plus" size={28} color="#7F00FF" />
+        </View>
+        <Text style={styles.menuText2}>Recarregar Saldo</Text>
+      </View>
+    </TouchableOpacity>
+
+    {/* Pagar com carteira */}
+    <TouchableOpacity onPress={() => navigation.navigate('Pay')}>
+      <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name="credit-card-outline" size={28} color="#7F00FF" />
+        </View>
+        <Text style={styles.menuText2}>Pagar com Wallet</Text>
+      </View>
+    </TouchableOpacity>
+  </View>
+)}
+
+        </View>
+      </View>
+          {/* Sair */}
               <TouchableOpacity onPress={logout}>
                 <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
                   <View style={styles.iconContainer}>
@@ -179,10 +219,6 @@ const Profile = () => {
                   <Text style={styles.menuText2}>Sair</Text>
                 </View>
               </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </View>
       <View style={{ marginBottom: 200 }} />
     </ScrollView>
   );

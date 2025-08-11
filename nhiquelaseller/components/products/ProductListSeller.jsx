@@ -95,6 +95,29 @@ const handleDelete = async (productId) => {
 };
 
 
+const handleToggleStatus = async (product) => {
+  try {
+    const newStatus = !product.isActive;
+
+    const response = await api.patch(`products/${product._id}`, {
+      isActive: newStatus
+    }, {
+      headers: { Authorization: `Bearer ${userData.token}` },
+    });
+
+    if (response.status === 200) {
+      setProductsOfSeller(prev =>
+        prev.map(p =>
+          p._id === product._id ? { ...p, isActive: newStatus } : p
+        )
+      );
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+    Alert.alert('Erro', 'Não foi possível alterar o status do produto.');
+  }
+};
+
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header */}
@@ -138,6 +161,9 @@ const handleDelete = async (productId) => {
                 <Text style={styles.code}>{product?.nome}</Text>
                                 <Text style={styles.createAt}>{product?.countInStock} unidade(s)</Text>
                 <Text style={styles.createAt}>{product?.price} MT</Text>
+                <Text style={[styles.statusText, { color: product?.isActive ? 'green' : 'red' }]}>
+                  {product?.isActive ? 'Produto visível na loja' : 'Produto oculto para os clientes'}
+                </Text>
 
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
@@ -145,7 +171,7 @@ const handleDelete = async (productId) => {
                     onPress={() => navigation.navigate('NewProduct', { productToEdit: product })}
                   >
                     <Ionicons name="create-outline" size={20} color="#fff" />
-                    <Text style={styles.buttonText}>Editar</Text>
+                    <Text style={styles.buttonText}></Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -153,8 +179,19 @@ const handleDelete = async (productId) => {
                     onPress={() => handleDelete(product._id)}
                   >
                     <Ionicons name="trash-outline" size={20} color="#fff" />
-                    <Text style={styles.buttonText}>Apagar</Text>
+                    <Text style={styles.buttonText}></Text>
                   </TouchableOpacity>
+
+
+                  <TouchableOpacity
+                style={product.isActive ? styles.deactivateButton : styles.activateButton}
+                onPress={() => handleToggleStatus(product)}
+              >
+                <Ionicons name={product.isActive ? "eye-off" : "eye"} size={20} color="#fff" />
+                <Text style={styles.buttonText}>
+                  {product.isActive ? "Inati." : "Ativar"}
+                </Text>
+              </TouchableOpacity>
 
                 </View>
               </View>
@@ -305,6 +342,23 @@ floatingButton: {
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.25,
   shadowRadius: 4,
+},
+
+activateButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#28a745', // verde
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 8,
+},
+deactivateButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#6c757d', // cinza escuro
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 8,
 },
 
 });  
