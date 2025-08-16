@@ -222,7 +222,7 @@ const Home = () => {
             <Text style={{ color: '#7F00FF' }}>Nhiquela+</Text>
           </Text>
           <Text style={styles.balanceText}>
-                        Saldo: 100000000000000 MT
+        <Text style={{fontSize: 10}}>Saldo:</Text> {walletBalance.toFixed(2)} MT
 
           </Text>
         </View>
@@ -461,9 +461,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   balanceText: {
-  fontSize: 15,
+  fontSize: 18,
   fontWeight: '900',
-  color: '#4CAF50',          // verde vibrante para saldo positivo
+  // color: '#4CAF50',          // verde vibrante para saldo positivo
   textAlign: 'center',
   // letterSpacing: 1,
   // marginVertical: 15,

@@ -21,7 +21,7 @@ const CustomTabBarButton = ({ children, onPress }) => (
 const ButtomTabNavegation = () => {
   return (
     <Tab.Navigator
-      screenOptions={{ tabBarShowLabel: false, tabBarHideOnKeyboard: true, headerShown: false, tabBarStyle: styles.tabBar }}
+      screenOptions={{ tabBarShowLabel: false, tabBarHideOnKeyboard: true, headerShown: false, tabBarStyle: styles.tabBar}}
     >
       <Tab.Screen
         name="Home"

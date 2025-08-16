@@ -9,12 +9,12 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -24,9 +24,11 @@ const Profile = () => {
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkIfUserExist();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      checkIfUserExist();
+    }, [])
+  );
 
   const checkIfUserExist = async () => {
     try {
@@ -35,7 +37,6 @@ const Profile = () => {
 
       if (storedUserData && storedUserId) {
         const parsedUserData = JSON.parse(storedUserData);
-
         if (parsedUserData._id === storedUserId) {
           setUserData(parsedUserData);
           setIsStoreOpen(parsedUserData.seller?.openstore || false);
@@ -57,12 +58,10 @@ const Profile = () => {
     setIsLoading(true);
     await AsyncStorage.removeItem('id');
     await AsyncStorage.removeItem('userData');
-
-    
-     navigation.reset({
-    index: 0,
-    routes: [{ name: 'Login' }],
-  });
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Login' }],
+    });
     setIsLoading(false);
   };
 
@@ -70,13 +69,6 @@ const Profile = () => {
     Alert.alert("Sair", "Tem a certeza que deseja sair?", [
       { text: "Cancelar" },
       { text: "Continuar", onPress: () => userLogout() },
-    ]);
-  };
-
-  const deleteAccount = () => {
-    Alert.alert("Apagar conta", "Tem a certeza que deseja apagar definitivamente a sua conta?", [
-      { text: "Continuar", onPress: () => console.log("Conta apagada") },
-      { text: "Cancelar" },
     ]);
   };
 
@@ -113,187 +105,161 @@ const Profile = () => {
 
   if (isLoading) {
     return (
+      <>
+      
+      <StatusBar backgroundColor='white' />
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#7F00FF" />
-        <Text style={{ marginTop: 10 }}>Carregando...</Text>
+        <Text style={{ marginTop: 60 }}>Carregando...</Text>
       </View>
+      </>
     );
   }
 
-  return (
-    <ScrollView style={{  backgroundColor: '#F3F4F6' }}>
-      <View style={styles.container}>
-        <StatusBar backgroundColor='white' />
-        <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
+    // return (
+    //   <></>
+    // );
 
-        <View style={styles.profileContainer}>
+  return (
+    <ScrollView style={{ backgroundColor: '#F3F4F6' }}>
+      
+      <View style={styles.header}>
+        <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
+        <View style={styles.profileWrapper}>
           <Image source={require('../assets/default1.jpg')} style={styles.profile} />
           <Text style={styles.name}>
             {userLogin ? userData.name : "Por favor faça o login!"}
           </Text>
-
           {!userLogin ? (
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <View style={styles.loginBtn}>
-                <Text style={styles.menuText}>Entrar</Text>
-              </View>
+            <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginText}>Entrar</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.loginBtn}>
-              <Text style={styles.menuText}>{userData?.phoneNumber}</Text>
+            <View style={styles.phoneTag}>
+              <Text style={styles.phoneText}>{userData?.phoneNumber}</Text>
             </View>
           )}
+        </View>
+      </View>
 
-          {userLogin && (
-            <View style={styles.menuWrapper}>
-              {/* Loja Aberta Switch */}
-              <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
-                <View style={styles.iconContainer}>
-                  <MaterialCommunityIcons name="store" size={28} color="#7F00FF" />
-                </View>
-                <Text style={styles.menuText2}>Loja Aberta</Text>
-                <Switch
-                  value={isStoreOpen}
-                  onValueChange={toggleStoreStatus}
-                  trackColor={{ false: "#767577", true: "#7F00FF" }}
-                  thumbColor={isStoreOpen ? "#FFFFFF" : "#f4f3f4"}
-                />
-              </View>
+      {userLogin && (
+        <View style={styles.card}>
+          <View style={styles.menuItem}>
+            <MaterialCommunityIcons name="store" size={28} color="#7F00FF" />
+            <Text style={styles.menuText}>Loja Aberta</Text>
+            <Switch
+              value={isStoreOpen}
+              onValueChange={toggleStoreStatus}
+              trackColor={{ false: "#ccc", true: "#7F00FF" }}
+              thumbColor={isStoreOpen ? "#fff" : "#f4f3f4"}
+            />
+          </View>
+        </View>
+      )}
 
-              {/* Apagar conta */}
-              {/* <TouchableOpacity onPress={deleteAccount}>
-                <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
-                  <View style={styles.iconContainer}>
-                    <AntDesign name="user" size={28} />
-                  </View>
-                  <Text style={styles.menuText2}>Apagar conta</Text>
-                </View>
-              </TouchableOpacity> */}
-
-          
+      {userLogin && (
+        <View style={styles.card}>
+          <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
+            <View style={styles.menuItem}>
+              <MaterialCommunityIcons name="wallet" size={28} color="#7F00FF" />
+              <Text style={styles.menuText}>Minha Carteira</Text>
             </View>
-          )}
-
-          {userLogin && (
-  <View style={styles.menuWrapper}>
-    {/* Acesso à Carteira */}
-    <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
-      <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name="wallet" size={28} color="#7F00FF" />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.menuText2}>Minha Carteira</Text>
-      </View>
-    </TouchableOpacity>
+      )}
 
-    {/* Recarregar saldo */}
-    <TouchableOpacity onPress={() => navigation.navigate('TopUp')}>
-      <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name="cash-plus" size={28} color="#7F00FF" />
-        </View>
-        <Text style={styles.menuText2}>Recarregar Saldo</Text>
+      <View style={styles.card}>
+        <TouchableOpacity onPress={logout}>
+          <View style={styles.menuItem}>
+            <AntDesign name="logout" size={28} color="#7F00FF" />
+            <Text style={styles.menuText}>Sair</Text>
+          </View>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
 
-    {/* Pagar com carteira */}
-    <TouchableOpacity onPress={() => navigation.navigate('Pay')}>
-      <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name="credit-card-outline" size={28} color="#7F00FF" />
-        </View>
-        <Text style={styles.menuText2}>Pagar com Wallet</Text>
-      </View>
-    </TouchableOpacity>
-  </View>
-)}
-
-        </View>
-      </View>
-          {/* Sair */}
-              <TouchableOpacity onPress={logout}>
-                <View style={[styles.menuItem, { borderBottomWidth: 0.5 }]}>
-                  <View style={styles.iconContainer}>
-                    <AntDesign name="logout" size={28} />
-                  </View>
-                  <Text style={styles.menuText2}>Sair</Text>
-                </View>
-              </TouchableOpacity>
       <View style={{ marginBottom: 200 }} />
     </ScrollView>
   );
 };
 
-export default Profile;
+export default React.memo(Profile);
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#F3F4F6',
-    paddingBottom: 20,
+  header: {
+    backgroundColor: '#fff',
+    marginBottom: 20,
+    elevation: 4,
   },
   cover: {
-    height: 250,
+    height: 200,
     width: "100%",
     resizeMode: "cover",
   },
-  profileContainer: {
+  profileWrapper: {
     alignItems: "center",
-    marginTop: -50,
+    marginTop: -60,
+    paddingBottom: 20,
   },
   profile: {
-    height: 160,
-    width: 160,
-    borderRadius: 80,
+    height: 120,
+    width: 120,
+    borderRadius: 60,
     borderWidth: 4,
-    borderColor: "#FFFFFF",
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    borderColor: "#fff",
     elevation: 5,
   },
   name: {
     fontWeight: "700",
-    fontSize: 18,
+    fontSize: 20,
     marginVertical: 10,
     color: "#333",
   },
   loginBtn: {
     backgroundColor: "#7F00FF",
-    padding: 10,
-    borderRadius: 24,
-    width: '80%',
-    alignItems: 'center',
-    marginVertical: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 25,
     elevation: 3,
   },
-  menuText: {
+  loginText: {
+    color: "#fff",
     fontWeight: "600",
     fontSize: 16,
-    color: "white",
   },
-  menuWrapper: {
-    marginTop: 20,
-    width: '100%',
+  phoneTag: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#7F00FF",
     paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 2,
+  },
+  phoneText: {
+    fontWeight: "600",
+    color: "#7F00FF",
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    elevation: 3,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   menuItem: {
     flexDirection: "row",
-    paddingVertical: 15,
-    borderColor: "#E0E0E0",
-    alignItems: 'center',
+    alignItems: "center",
+    paddingVertical: 12,
     justifyContent: 'space-between',
   },
-  iconContainer: {
-    width: 35,
-    alignItems: 'center',
-  },
-  menuText2: {
+  menuText: {
+    flex: 1,
     marginLeft: 15,
     fontSize: 16,
     fontWeight: "500",
     color: "#333",
-    flex: 1,
   },
   loadingContainer: {
     flex: 1,

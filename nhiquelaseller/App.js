@@ -39,6 +39,7 @@ import PayWithWallet from './screens/PayWithWallet';
 import TopUpScreen from './screens/TopUpScreen';
 import WalletScreen from './screens/WalletScreen';
 import WalletWithdrawScreen from './screens/WalletWithdrawScreen';
+import { StatusBar } from 'expo-status-bar';
 const Stack = createNativeStackNavigator();
 
 // 🔔 Configuração para exibir notificações em foreground
@@ -112,6 +113,7 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+            <StatusBar backgroundColor="white" style="dark" />
       <NavigationContainer ref={navigationRef}>
         <Provider store={store}>
           <SafeAreaProvider>
