@@ -60,7 +60,6 @@ const LoginPage = () => {
     <ScrollView style={{ backgroundColor: 'white' }}>
       <SafeAreaView style={{ marginHorizontal: 20 }}>
         <View>
-          <BackBtn onPress={() => navigation.goBack()} />
           <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
           <Text style={styles.title}>Login como fornecedor</Text>
 

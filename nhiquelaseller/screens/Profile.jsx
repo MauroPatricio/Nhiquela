@@ -24,11 +24,37 @@ const Profile = () => {
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useFocusEffect(
-    useCallback(() => {
-      checkIfUserExist();
-    }, [])
-  );
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+
+const fetchPendingWithdrawals = async () => {
+
+  if(userData?.token){
+    try {
+      const response = await api.get('/wallet/pending', { 
+        headers: { Authorization: `Bearer ${userData.token}` } 
+      });
+      setPendingCount(response.data.length || 0);
+    } catch (error) {
+      console.error("Erro ao buscar solicitações pendentes:", error);
+    }
+  }
+};
+
+useFocusEffect(
+  useCallback(() => {
+    const loadUserAndPending = async () => {
+      await checkIfUserExist();
+      if (userData?.token && isAdmin) {
+        fetchPendingWithdrawals();
+      }
+    };
+    loadUserAndPending();
+  }, [userData, isAdmin])
+);
+
+
 
   const checkIfUserExist = async () => {
     try {
@@ -41,6 +67,7 @@ const Profile = () => {
           setUserData(parsedUserData);
           setIsStoreOpen(parsedUserData.seller?.openstore || false);
           setUserLogin(true);
+          setIsAdmin(parsedUserData.isAdmin);
         } else {
           navigation.navigate('Login');
         }
@@ -168,6 +195,23 @@ const Profile = () => {
         </View>
       )}
 
+{isAdmin && (
+  <View style={styles.card}>
+    <TouchableOpacity onPress={() => navigation.navigate('WithdrawalRequests')}>
+      <View style={styles.menuItem}>
+        <MaterialCommunityIcons name="bank-transfer" size={28} color="#7F00FF" />
+        <Text style={styles.menuText}>Autorizar Levantamentos</Text>
+        {pendingCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{pendingCount}</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  </View>
+)}
+      
+
       <View style={styles.card}>
         <TouchableOpacity onPress={logout}>
           <View style={styles.menuItem}>
@@ -267,4 +311,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  badge: {
+  backgroundColor: 'red',
+  borderRadius: 10,
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+badgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
 });

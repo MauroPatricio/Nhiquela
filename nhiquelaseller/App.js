@@ -40,6 +40,7 @@ import TopUpScreen from './screens/TopUpScreen';
 import WalletScreen from './screens/WalletScreen';
 import WalletWithdrawScreen from './screens/WalletWithdrawScreen';
 import { StatusBar } from 'expo-status-bar';
+import WithdrawalRequestsScreen from './components/WithdrawalRequests';
 const Stack = createNativeStackNavigator();
 
 // 🔔 Configuração para exibir notificações em foreground
@@ -143,10 +144,10 @@ export default function App() {
                 <Stack.Screen name="TransportType" component={TransportType} options={{ headerShown: false }} />
                 <Stack.Screen name="EditProduct" component={EditProductView} options={{ headerShown: false }} />
                 <Stack.Screen name="Cart" component={Cart} options={{ headerShown: false }} />
-             
-              <Stack.Screen name="Wallet" component={WalletScreen} />
-              <Stack.Screen name="TopUp" component={TopUpScreen} />
-              <Stack.Screen name="Pay" component={PayWithWallet} />
+                <Stack.Screen name="WithdrawalRequests" component={WithdrawalRequestsScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="Wallet" component={WalletScreen} />
+                <Stack.Screen name="TopUp" component={TopUpScreen} />
+                <Stack.Screen name="Pay" component={PayWithWallet} />
                             <Stack.Screen name="withdraw" component={WalletWithdrawScreen} />
 
               </Stack.Navigator>
