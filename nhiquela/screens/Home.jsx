@@ -21,7 +21,6 @@ import { Linking } from 'react-native';
 
 const socket = io(`${api}/products`);
 
-console.log(socket);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -293,8 +292,13 @@ const checkIfUserExist = async () => {
                   <View style={styles.productRow}>
                     <Image source={{ uri: product.image }} style={styles.logo} />
                     <Text style={styles.productBrand}>{product.name}</Text>
-                    <Text style={styles.productPrice}>{product.price} MT</Text>
-                  </View>
+                    {product.discount ? (
+    <Text style={styles.productPrice}>{product.discount} MT</Text>
+
+) : (
+  <Text style={styles.productPrice}>{product.price} MT</Text>
+)} 
+                 </View>
                 </TouchableOpacity>
               ))}
               <View style={{ marginBottom: 210 }} />
@@ -363,18 +367,18 @@ const styles = StyleSheet.create({
     color: '#7F00FF',
   },
   wrapper: {
-    marginRight: 10,
+    marginRight: 3,
     backgroundColor: '#7F00FF',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 20,
-    borderColor: '#4B0082',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    // borderColor: '#4B0082',
+    // borderWidth: 1,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.2,
+    // shadowRadius: 5,
+    // elevation: 5,
   },
   title: {
     fontSize: 15,

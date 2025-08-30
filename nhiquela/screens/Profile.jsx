@@ -115,7 +115,6 @@ const Profile = () => {
 
     <View style={styles.container}>
           <View style={styles.container}>
-            <StatusBar backgroundColor='white'/>
             <View style={{width: '100%'}}>
               <Image source={require('../assets/nhiquela2.png')}
               style={styles.cover}

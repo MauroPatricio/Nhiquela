@@ -43,6 +43,8 @@ import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
     import AsyncStorage from '@react-native-async-storage/async-storage';
     import { createNavigationContainerRef } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import RequestDelivScreen from './screens/RequestDeliv';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -126,45 +128,51 @@ useEffect(() => {
 }, []);
 
   return (
-    <NavigationContainer>
-      <Provider store={store}>
-        <SafeAreaProvider>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
-            style={{ flex: 1 }}
-          >
-            <Stack.Navigator>
-              <Stack.Screen name='BottomNavigation' component={ButtomTabNavegation} options={{ headerShown: false }} />
-              <Stack.Screen name='ProductDetail' component={ProductDetail} options={{ headerShown: false }} />
-              <Stack.Screen name='ProductList' component={NewProducts} options={{ headerShown: false }} />
-              <Stack.Screen name='ProductList2' component={ProductList} options={{ headerShown: false }} />
-              <Stack.Screen name='Login' component={LoginPage} options={{ headerShown: false }} />
-              <Stack.Screen name='SignUp' component={SignUp} options={{ headerShown: false }} />
-              <Stack.Screen name='SellerScreen' component={SellerScreen} options={{ headerShown: false }} />
-              <Stack.Screen name='SellerProduct' component={SellerProduct} options={{ headerShown: false }} />
-              <Stack.Screen name='SellersList' component={SellersList} options={{ headerShown: false }} />
-              <Stack.Screen name='PaymentMethod' component={PaymentMethod} options={{ presentation: 'modal', headerShown: false }} />
-              <Stack.Screen name='Cart' component={Cart} options={{ headerShown: false }} />
-              <Stack.Screen name='MpesaScreen' component={MpesaScreen} options={{ headerShown: false }} />
-              <Stack.Screen name='ProductListByCategory' component={ProductListByCategory} options={{ headerShown: false }} />
-              <Stack.Screen name='SuccessPayment' component={SuccessPayment} options={{ headerShown: false }} />
-              <Stack.Screen name='FailedPayment' component={FailedPayment} options={{ headerShown: false }} />
-              <Stack.Screen name='MapScreen' component={MapScreen} options={{ headerShown: false }} />
-              <Stack.Screen name='EstablishmentList' component={EstablishmentList} options={{ headerShown: false }} />
-              <Stack.Screen name='RideOptionsCard' component={RideOptionsCard} options={{ headerShown: false }} />
-              <Stack.Screen name='TransportType' component={TransportType} options={{ headerShown: false }} />
-              <Stack.Screen name='OrderDetailsScreen' component={OrderDetailsScreen} options={{ headerShown: false }} />
-              <Stack.Screen name='OrderList' component={OrderList} options={{ headerShown: false }} />
-              <Stack.Screen name='SellersByEstablishment' component={SellersByEstablishment} options={{ headerShown: false }} />
-              <Stack.Screen name='ForgotPassword' component={ForgotPassword} options={{ headerShown: false }} />
-            </Stack.Navigator>
+    <>
+                <StatusBar backgroundColor="white" style="dark" />
+                <NavigationContainer>
+                  <Provider store={store}>
+                    <SafeAreaProvider>
+                      <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
+                        style={{ flex: 1 }}
+                      >
+                        <Stack.Navigator>
+                          <Stack.Screen name='BottomNavigation' component={ButtomTabNavegation} options={{ headerShown: false }} />
+                          <Stack.Screen name='ProductDetail' component={ProductDetail} options={{ headerShown: false }} />
+                          <Stack.Screen name='ProductList' component={NewProducts} options={{ headerShown: false }} />
+                          <Stack.Screen name='ProductList2' component={ProductList} options={{ headerShown: false }} />
+                          <Stack.Screen name='Login' component={LoginPage} options={{ headerShown: false }} />
+                          <Stack.Screen name='SignUp' component={SignUp} options={{ headerShown: false }} />
+                          <Stack.Screen name='SellerScreen' component={SellerScreen} options={{ headerShown: false }} />
+                          <Stack.Screen name='SellerProduct' component={SellerProduct} options={{ headerShown: false }} />
+                          <Stack.Screen name='SellersList' component={SellersList} options={{ headerShown: false }} />
+                          <Stack.Screen name='PaymentMethod' component={PaymentMethod} options={{ presentation: 'modal', headerShown: false }} />
+                          <Stack.Screen name='Cart' component={Cart} options={{ headerShown: false }} />
+                          <Stack.Screen name='MpesaScreen' component={MpesaScreen} options={{ headerShown: false }} />
+                          <Stack.Screen name='ProductListByCategory' component={ProductListByCategory} options={{ headerShown: false }} />
+                          <Stack.Screen name='SuccessPayment' component={SuccessPayment} options={{ headerShown: false }} />
+                          <Stack.Screen name='FailedPayment' component={FailedPayment} options={{ headerShown: false }} />
+                          <Stack.Screen name='MapScreen' component={MapScreen} options={{ headerShown: false }} />
+                          <Stack.Screen name='EstablishmentList' component={EstablishmentList} options={{ headerShown: false }} />
+                          <Stack.Screen name='RideOptionsCard' component={RideOptionsCard} options={{ headerShown: false }} />
+                          <Stack.Screen name='TransportType' component={TransportType} options={{ headerShown: false }} />
+                          <Stack.Screen name='OrderDetailsScreen' component={OrderDetailsScreen} options={{ headerShown: false }} />
+                          <Stack.Screen name='OrderList' component={OrderList} options={{ headerShown: false }} />
+                          <Stack.Screen name='SellersByEstablishment' component={SellersByEstablishment} options={{ headerShown: false }} />
+                          <Stack.Screen name='ForgotPassword' component={ForgotPassword} options={{ headerShown: false }} />
+                       
+                                                <Stack.Screen name='RequestDeliv' component={RequestDelivScreen} options={{ headerShown: false }} />
+  </Stack.Navigator>
 
-            <Toast ref={(ref) => Toast.setRef(ref)} />
-          </KeyboardAvoidingView>
-        </SafeAreaProvider>
-      </Provider>
-    </NavigationContainer>
+                        <Toast ref={(ref) => Toast.setRef(ref)} />
+                      </KeyboardAvoidingView>
+                    </SafeAreaProvider>
+                  </Provider>
+                </NavigationContainer>
+
+    </>
   );
 }
 

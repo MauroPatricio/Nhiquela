@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import React, { memo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,13 +10,31 @@ import Profile from '../screens/Profile';
 
 const Tab = createBottomTabNavigator();
 
+// const CustomTabBarButton = memo(({ children, onPress }) => (
+  <></>
+  // <TouchableOpacity
+  //   style={styles.centerButtonWrapper}
+  //   onPress={onPress}
+  //   activeOpacity={0.8}
+  // >
+  //   <View style={styles.centerButton}>
+  //     {children}
+  //   </View>
+  // </TouchableOpacity>
+// ));
+
 const CustomTabBarButton = memo(({ children, onPress }) => (
-  <View style={styles.centerButtonWrapper}>
+  <View
+    style={styles.centerButtonWrapper}
+    onPress={onPress}
+    activeOpacity={0.8}
+  >
     <View style={styles.centerButton}>
       {children}
     </View>
   </View>
 ));
+
 
 const ButtomTabNavegation = () => {
   return (

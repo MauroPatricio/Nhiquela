@@ -26,7 +26,6 @@ import {
   selectIva,
   selectDeliverPrice,
   clearBasket,
-  selectTotalPriceFromSeller,
   selectPriceFromSeller,
   selectSellerEarningsAfterDiscount,
   selectAddress,
@@ -46,21 +45,19 @@ const MpesaScreen = () => {
   const [userData, setUserData] = useState(null);
   const [loader, setLoader] = useState(false);
   const [isUserWantDelivery, setIsUserWantDelivery] = useState(true);
+
   const totalToPay = useSelector(selectTotalToPay);
   const address = useSelector(selectAddress);
-
-  const amount = parseFloat(totalToPay);
-  const navigation = useNavigation();
   const items = useSelector(selectBasketItems);
   const itemsPrice = useSelector(selectBasketTotal);
-  const totalPriceFromSeller = useSelector(selectPriceFromSeller);
-  const totalSellerEarningsAfterDiscount = useSelector(selectSellerEarningsAfterDiscount)
+  const totalSellerEarningsAfterDiscount = useSelector(selectSellerEarningsAfterDiscount);
   const iva = useSelector(selectIva);
   const deliveryPrice = useSelector(selectDeliverPrice);
   const dispatch = useDispatch();
-  const [userLogin, setUserLogin] = useState(false)
 
+  const navigation = useNavigation();
 
+  // Permissões para notificações
   useEffect(() => {
     const configurarNotificacoes = async () => {
       const { status } = await Notifications.getPermissionsAsync();
@@ -71,6 +68,33 @@ const MpesaScreen = () => {
     configurarNotificacoes();
   }, []);
 
+  // Verifica dados do usuário no AsyncStorage
+  const checkIfUserExist = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
+
+      if (storedUserData && storedUserId) {
+        const parsedUserData = JSON.parse(storedUserData);
+
+        if (parsedUserData._id === storedUserId) {
+          setUserData(parsedUserData);
+        } else {
+          console.warn('⚠️ ID inconsistente entre userData e id');
+        }
+      } else {
+        console.log('⚠️ Usuário não está logado');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar se o usuário existe:', error);
+    }
+  };
+
+  useEffect(() => {
+    checkIfUserExist();
+  }, []);
+
+  // Função para mostrar notificações locais
   const mostrarNotificacao = (response) => {
     Notifications.scheduleNotificationAsync({
       content: {
@@ -82,145 +106,133 @@ const MpesaScreen = () => {
     });
   };
 
-const checkIfUserExist = async () => {
-  try {
-    const storedUserData = await AsyncStorage.getItem('userData');
-    const storedUserId = await AsyncStorage.getItem('id');
-
-    if (storedUserData && storedUserId) {
-      const parsedUserData = JSON.parse(storedUserData);
-
-      if (parsedUserData._id === storedUserId) {
-        setUserData(parsedUserData); 
-        setUserLogin(true);
-      } else {
-        console.warn('⚠️ ID inconsistente entre userData e id');
-      }
-    } else {
-      console.log('⚠️ Usuário não está logado');
-    }
-  } catch (error) {
-    console.error('❌ Erro ao verificar se o usuário existe:', error);
-  }
-};
-
-
-  useEffect(() => {
-    checkIfUserExist();
-  }, []);
-
-const makeThePayment = async (values) => {
-  if (!userData) {
-    Toast.show({
-      type: 'error',
-      text1: 'Atenção!',
-      text2: 'Por favor, faça o login para continuar.',
-      position: 'top',
-      visibilityTime: 6000,
-      autoHide: true,
-      topOffset: 50,
-      bottomOffset: 40,
-      onPress: () => navigation.navigate('Login'),
-      style: {
-        backgroundColor: '#FF5733',
-        borderLeftWidth: 10,
-        borderLeftColor: '#C70039',
-        borderRadius: 10,
-        padding: 10,
-      },
-      text1Style: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: 'black',
-      },
-      text2Style: {
-        fontSize: 16,
-        color: 'black',
-      },
-      renderLeftIcon: () => (
-        <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
-      ),
-    });
-    return;
-  }
-
-  try {
-    setLoader(true);
-    const headers = { authorization: `Bearer ${userData.token}` };
-    const customerNumber = `258${values.customerNumber}`;
-
-    // 1. PAGAMENTO
-    const { data: paymentData } = await api.post(
-      `payments/mpesa/c2b`,
-      { customerNumber, amount },
-      { headers }
-    );
-
-    if (!paymentData.paid) {
-      navigation.replace('FailedPayment', paymentData);
+  // Função principal de pagamento e fluxo completo
+  const makeThePayment = async (values) => {
+    if (!userData) {
+      Toast.show({
+        type: 'error',
+        text1: 'Atenção!',
+        text2: 'Por favor, faça o login para continuar.',
+        position: 'top',
+        visibilityTime: 6000,
+        autoHide: true,
+        topOffset: 50,
+        bottomOffset: 40,
+        onPress: () => navigation.navigate('Login'),
+        style: {
+          backgroundColor: '#FF5733',
+          borderLeftWidth: 10,
+          borderLeftColor: '#C70039',
+          borderRadius: 10,
+          padding: 10,
+        },
+        text1Style: {
+          fontSize: 15,
+          fontWeight: 'bold',
+          color: 'black',
+        },
+        text2Style: {
+          fontSize: 16,
+          color: 'black',
+        },
+        renderLeftIcon: () => (
+          <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
+        ),
+      });
       return;
     }
 
-    // 2. CRIAÇÃO DO PEDIDO
-    const payoutToSellerWithDelivery = totalSellerEarningsAfterDiscount + deliveryPrice;
+    try {
+      setLoader(true);
+      const headers = { authorization: `Bearer ${userData.token}` };
+      const customerNumber = `258${values.customerNumber}`;
+      const amount = parseFloat(totalToPay);
 
-    const orderPayload = {
-      orderItems: items,
-      address: address,
-      paymentMethod: 'Mpesa',
-      itemsPrice,
-      ivaTax: iva,
-      siteTax: 0,
-      taxPrice: 0,
-      totalPrice: totalToPay,
-      addressPrice: deliveryPrice,
-      itemsPriceForSeller: payoutToSellerWithDelivery,
-      isPaid: true,
-      paidAt: Date.now(),
-      stepStatus: 1,
-      user: userData,
-      customerId: userData,
-      isUserWantDelivery,
-    };
+      // 1. Pagamento via M-PESA
+      const { data: paymentData } = await api.post(
+        `payments/mpesa/c2b`,
+        { customerNumber, amount },
+        { headers }
+      );
 
-    const { data } = await api.post('orders', orderPayload, { headers });
+      if (!paymentData.paid) {
+        navigation.replace('FailedPayment', paymentData);
+        return;
+      }
+
+        // 3. Criar pedido no sistema
+      const payoutToSellerWithDelivery = totalSellerEarningsAfterDiscount + deliveryPrice;
 
 
-       // Notificar o FORNECEDOR
-        await sendOrderNotificationToUser({
-          userId: data.order.seller._id, // garantir que funcione com ou sem populate
-          orderId: data.order._id,
-          orderCode: data.order.code,
-          title: 'Possui um novo pedido!',
-          body: `O cliente solicitou o pedido nº ${data.order.code}.`,
-          status: 'Pendente',
-        });
+      // 2. Creditar saldo do fornecedor após pagamento M-PESA
+      try {
+        await api.post(
+          '/wallet/topup',
+          {
+            amount: payoutToSellerWithDelivery, // valor para creditar ao fornecedor
+            method: 'Pagamento recebido via Mpesa',
+            description: `Recebido pagamento do cliente para pedido`,
+          },
+          { headers }
+        );
+      } catch (topupError) {
+        console.error('Erro ao atualizar saldo do fornecedor:', topupError);
+        // Opcional: você pode avisar o usuário ou tentar novamente
+      }
+
     
-        Toast.show({
-          type: 'success',
-          text1: 'Pedido criado',
-          text2: 'O fornecedor será notificado.',
-        });
+      const orderPayload = {
+        orderItems: items,
+        address,
+        paymentMethod: 'Mpesa',
+        itemsPrice,
+        ivaTax: iva,
+        siteTax: 0,
+        taxPrice: 0,
+        totalPrice: totalToPay,
+        addressPrice: deliveryPrice,
+        itemsPriceForSeller: payoutToSellerWithDelivery,
+        isPaid: true,
+        paidAt: Date.now(),
+        stepStatus: 1,
+        user: userData,
+        customerId: userData,
+        isUserWantDelivery,
+      };
 
-    // 3. Finalização
-    dispatch(clearBasket());
-      navigation.replace('SuccessPayment', {
-        orderCode: data.order?.code, // <-- Passe o código aqui
+      const { data } = await api.post('orders', orderPayload, { headers });
+
+      // 4. Notificar fornecedor sobre novo pedido
+      await sendOrderNotificationToUser({
+        userId: data.order.seller._id,
+        orderId: data.order._id,
+        orderCode: data.order.code,
+        title: 'Possui um novo pedido!',
+        body: `O cliente solicitou o pedido nº ${data.order.code}.`,
+        status: 'Pendente',
       });
-  } catch (error) {
-    console.error('Erro no pagamento:', error);
-    const errorData = error.response?.data || {
-      message: 'Erro desconhecido. Tente novamente.',
-    };
-    navigation.replace('FailedPayment', errorData);
-  } finally {
-    setLoader(false);
-  }
-};
 
+      Toast.show({
+        type: 'success',
+        text1: 'Pedido criado',
+        text2: 'O fornecedor será notificado.',
+      });
 
-
-
+      // 5. Limpar carrinho e navegar para tela de sucesso
+      dispatch(clearBasket());
+      navigation.replace('SuccessPayment', {
+        orderCode: data.order?.code,
+      });
+    } catch (error) {
+      console.error('Erro no pagamento:', error);
+      const errorData = error.response?.data || {
+        message: 'Erro desconhecido. Tente novamente.',
+      };
+      navigation.replace('FailedPayment', errorData);
+    } finally {
+      setLoader(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
