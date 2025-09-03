@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/nhiquela2.png",
+      "bundleIdentifier": "com.mpatricio.nhiquelaa",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para calcular a distância até o fornecedor."
       }
@@ -22,8 +23,6 @@
     "android": {
       "package": "com.mpatricio.nhiquelaa",
       "googleServicesFile": "./android/app/google-services.json",
-      "useNextNotificationsApi": true,
-      "targetSdkVersion": 35,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"

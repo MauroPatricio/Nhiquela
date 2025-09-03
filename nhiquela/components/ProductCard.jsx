@@ -34,7 +34,7 @@ const ProductCard = ({ id, name, logo, description, rating, numReviews, seller, 
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={styles.title} numberOfLines={1}>{item.item.name}</Text>
+        <Text style={styles.title} numberOfLines={1}>{item.item.nome}</Text>
         <Text style={styles.supplier} numberOfLines={1}>{seller.seller.name}</Text>
 
               <Text style={styles.supplier}>{item.item.province?.name}</Text>

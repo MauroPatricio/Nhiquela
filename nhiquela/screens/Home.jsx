@@ -291,7 +291,7 @@ const checkIfUserExist = async () => {
                   onPress={() => navigation.navigate("ProductDetail", { item: { item: product } })}>
                   <View style={styles.productRow}>
                     <Image source={{ uri: product.image }} style={styles.logo} />
-                    <Text style={styles.productBrand}>{product.name}</Text>
+                    <Text style={styles.productBrand}>{product.nome}</Text>
                     {product.discount ? (
     <Text style={styles.productPrice}>{product.discount} MT</Text>
 
