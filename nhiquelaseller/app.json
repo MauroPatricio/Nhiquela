@@ -19,7 +19,6 @@
       "android"
     ],
     "android": {
-      "targetSdkVersion": 35,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
@@ -43,16 +42,17 @@
       "package": "com.mpatricio.nhiquelap"
     },
     "ios": {
-      "infoPlist": {
-        "NSCameraUsageDescription": "This app needs access to your camera to upload images.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
-        "UIBackgroundModes": [
-          "fetch",
-          "remote-notification"
-        ]
-      },
-      "icon": "./assets/nhiquela3.png"
-    },
+              "bundleIdentifier": "com.mpatricio.nhiquelap",
+              "infoPlist": {
+                "NSCameraUsageDescription": "This app needs access to your camera to upload images.",
+                "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
+                "UIBackgroundModes": [
+                  "fetch",
+                  "remote-notification"
+                ]
+              },
+              "icon": "./assets/nhiquela3.png"
+            },
     "web": {
       "favicon": "./assets/nhiquela3.png"
     },

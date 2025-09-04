@@ -11,7 +11,6 @@
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-  <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -24,15 +23,6 @@
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
-    <service 
-      android:name="io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService"
-      android:exported="true"
-      tools:replace="android:exported">
-      <intent-filter>
-        <action android:name="com.google.firebase.MESSAGING_EVENT" />
-      </intent-filter>
-    </service>
-    <service android:name="io.invertase.firebase.messaging.ReactNativeFirebaseMessagingHeadlessService" android:exported="false"/>
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
@@ -47,11 +37,5 @@
     </activity>
     <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" android:exported="false"/>
     <uses-library android:name="org.apache.http.legacy" android:required="false"/>
-    <receiver android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver" android:exported="true" android:permission="com.google.android.c2dm.permission.SEND">
-      <intent-filter>
-        <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
-        <category android:name="${applicationId}"/>
-      </intent-filter>
-    </receiver>
   </application>
 </manifest>
