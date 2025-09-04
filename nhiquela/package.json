@@ -51,6 +51,7 @@
     "react-native": "0.74.5",
     "react-native-animatable": "^1.4.0",
     "react-native-elements": "^3.4.3",
+    "react-native-fast-image": "^8.6.3",
     "react-native-flash-message": "^0.4.2",
     "react-native-gesture-handler": "~2.16.1",
     "react-native-get-location": "^4.0.1",
