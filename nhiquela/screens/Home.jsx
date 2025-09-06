@@ -63,12 +63,6 @@ const ProductItem = React.memo(({ item, onPress }) => (
         )}
       </Text>
     </View>
-    <TouchableOpacity 
-      style={styles.addButton}
-      onPress={() => {/* Adicionar ao carrinho */}}
-    >
-      <Ionicons name="add" size={20} color="white" />
-    </TouchableOpacity>
   </TouchableOpacity>
 ));
 
