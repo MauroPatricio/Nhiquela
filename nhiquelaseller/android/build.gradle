@@ -6,8 +6,7 @@ buildscript {
         minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '23')
         compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
         targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '35')
-        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.23'
-
+        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.22'
         ndkVersion = "26.1.10909125"
     }
     repositories {
@@ -15,9 +14,14 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('com.android.tools.build:gradle')
+        // Gradle plugin fixado para evitar erros
+        classpath('com.android.tools.build:gradle:8.3.1')
+
+        // Plugin React Native
         classpath('com.facebook.react:react-native-gradle-plugin')
-        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+
+        // Kotlin
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
 
@@ -25,17 +29,21 @@ apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
     repositories {
+        // Paths diretos para RN e JSC (mais confiável)
         maven {
-            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-            url(new File(['node', '--print', "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), '../android'))
+            url("$rootDir/node_modules/react-native/android")
         }
         maven {
-            // Android JSC is installed from npm
-            url(new File(['node', '--print', "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim(), '../dist'))
+            url("$rootDir/node_modules/jsc-android/dist")
         }
 
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
+}
+
+// Limpeza de build (opcional)
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }

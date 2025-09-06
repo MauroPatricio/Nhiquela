@@ -66,11 +66,15 @@ const WalletScreen = ({ navigation }) => {
   };
 
   const renderTransaction = ({ item }) => {
-    const isCredit = item.amount > 0;
+    // const isCredit = item.amount > 0;
+
+    const isCredit = item.type === 'credit';
+
+
     return (
       <View style={styles.transactionCard}>
         <Ionicons
-          name={isCredit ? 'arrow-down-circle' : 'arrow-up-circle'}
+          name={isCredit ? 'arrow-up-circle' : 'arrow-down-circle'}
           size={28}
           color={isCredit ? '#4CAF50' : '#E53935'}
           style={{ marginRight: 12 }}
