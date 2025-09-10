@@ -27,7 +27,7 @@ const CustomTabBarButton = memo(({ children, onPress }) => (
   <View
     style={styles.centerButtonWrapper}
     onPress={onPress}
-    activeOpacity={0.8}
+    activeOpacity={0.9}
   >
     <View style={styles.centerButton}>
       {children}
@@ -123,32 +123,26 @@ const ButtomTabNavegation = () => {
 export default ButtomTabNavegation;
 
 const styles = StyleSheet.create({ 
-  tabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    elevation: 5,
-    height: 70,
-    backgroundColor: 'white',
-    borderTopWidth: 0,
-  },
+
   centerButtonWrapper: {
-    top: -20,
+    // top: -30,               // sobe mais o botão
     justifyContent: 'center',
     alignItems: 'center',
   },
   centerButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 75,
+    height: 75,
+    borderRadius: 37.5,
     backgroundColor: 'white',
-    elevation: 5,
+    elevation: 10,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 6,
+    borderWidth: 4,
+    borderColor: 'white',
   },
 });
+

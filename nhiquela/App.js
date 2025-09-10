@@ -84,7 +84,7 @@ export default function App() {
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(responseListener.current);
+responseListener.current?.remove();
     };
   }, []);
 
@@ -166,7 +166,7 @@ useEffect(() => {
                                                 <Stack.Screen name='RequestDeliv' component={RequestDelivScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 
-                        <Toast ref={(ref) => Toast.setRef(ref)} />
+                        <Toast />
                       </KeyboardAvoidingView>
                     </SafeAreaProvider>
                   </Provider>

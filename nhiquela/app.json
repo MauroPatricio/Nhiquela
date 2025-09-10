@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Nhiquela+",
+    "name": "Nhiquela",
     "slug": "nhiquelaa",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,47 +11,56 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/nhiquela2.png",
-      "bundleIdentifier": "com.mpatricio.nhiquelaa",
+      "bundleIdentifier": "com.nhiquela.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para calcular a distância até o fornecedor."
+        "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para permitir o envio de fotos."
       }
     },
     "android": {
-      "package": "com.mpatricio.nhiquelaa",
-      "googleServicesFile": "./android/app/google-services.json",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
-        }
-      },
-      "icon": "./assets/nhiquela2.png",
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE",
-        "POST_NOTIFICATIONS",
-        "VIBRATE",
-        "WAKE_LOCK"
-      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.nhiquela.app",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/nhiquela2.png"
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que Nhiquela acesse a câmera para tirar fotos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
+        }
+      ],
+      "expo-notifications",
+      "expo-build-properties",
+      "expo-font"
+    ],
     "extra": {
       "eas": {
-        "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
+        "projectId": "7a2416fe-18eb-4eec-9977-59873685b556"
       }
     },
-    "owner": "mpatricio"
+   "runtimeVersion": "1.0.0"
   }
 }
