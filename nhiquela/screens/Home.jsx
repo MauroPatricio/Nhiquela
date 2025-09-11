@@ -406,7 +406,6 @@ responseListener.remove();
 
   // ------------------- PRODUTOS DA CATEGORIA COM PAGINAÇÃO INFINITA -------------------
   const openCategory = (category) => {
-    console.log('Abrindo categoria:', category.name);
     setSelectedCategory(category);
     setCatProducts([]);
     setCatPage(1);
@@ -897,7 +896,7 @@ const styles = StyleSheet.create({
   },
   whatsappButton: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 90,
     right: 20,
     backgroundColor: '#7F00FF',
     width: 60,

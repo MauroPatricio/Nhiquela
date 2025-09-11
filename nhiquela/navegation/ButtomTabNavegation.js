@@ -10,19 +10,6 @@ import Profile from '../screens/Profile';
 
 const Tab = createBottomTabNavigator();
 
-// const CustomTabBarButton = memo(({ children, onPress }) => (
-  <></>
-  // <TouchableOpacity
-  //   style={styles.centerButtonWrapper}
-  //   onPress={onPress}
-  //   activeOpacity={0.8}
-  // >
-  //   <View style={styles.centerButton}>
-  //     {children}
-  //   </View>
-  // </TouchableOpacity>
-// ));
-
 const CustomTabBarButton = memo(({ children, onPress }) => (
   <View
     style={styles.centerButtonWrapper}
@@ -34,6 +21,8 @@ const CustomTabBarButton = memo(({ children, onPress }) => (
     </View>
   </View>
 ));
+
+
 
 
 const ButtomTabNavegation = () => {
@@ -54,7 +43,7 @@ const ButtomTabNavegation = () => {
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
               size={24}
-              color={focused ? '#7F00FF' : 'black'}
+              color={focused ? '#7F00FF' : 'gray'}
             />
           )
         }}
@@ -68,7 +57,7 @@ const ButtomTabNavegation = () => {
             <Ionicons
               name={focused ? 'search' : 'search-outline'}
               size={24}
-              color={focused ? '#7F00FF' : 'black'}
+              color={focused ? '#7F00FF' : 'gray'}
             />
           )
         }}
@@ -80,9 +69,9 @@ const ButtomTabNavegation = () => {
         options={{ 
           tabBarIcon: () => (
             <Ionicons
-              name='add-circle'
-              size={50}
-              color="#7F00FF"
+              name='add'
+              size={36}
+              color="white"
             />
           ),
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
@@ -97,7 +86,7 @@ const ButtomTabNavegation = () => {
             <Ionicons
               name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
               size={24}
-              color={focused ? '#7F00FF' : 'black'}
+              color={focused ? '#7F00FF' : 'gray'}
             />
           )
         }}
@@ -111,7 +100,7 @@ const ButtomTabNavegation = () => {
             <Ionicons
               name={focused ? 'person' : 'person-outline'}
               size={24}
-              color={focused ? '#7F00FF' : 'black'}
+              color={focused ? '#7F00FF' : 'gray'}
             />
           )
         }}
@@ -123,26 +112,38 @@ const ButtomTabNavegation = () => {
 export default ButtomTabNavegation;
 
 const styles = StyleSheet.create({ 
+  tabBar: {
+    position: 'absolute',
+    bottom: 10,
+    left: 20,
+    right: 20,
+    elevation: 5,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    height: 70,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
 
   centerButtonWrapper: {
-    // top: -30,               // sobe mais o botão
+    // top: -25,  // faz o botão flutuar acima da barra
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   centerButton: {
-    width: 75,
-    height: 75,
-    borderRadius: 37.5,
-    backgroundColor: 'white',
-    elevation: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 35,
+    backgroundColor: '#7F00FF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#7F00FF',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 6,
-    borderWidth: 4,
-    borderColor: 'white',
+    elevation: 6,
   },
 });
-
