@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
 import React, { useEffect, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 const SuccessPayment = () => {
@@ -10,25 +10,54 @@ const SuccessPayment = () => {
   const { orderCode } = route.params || {}; // Recebe o código do pedido
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
+  // Animação de fade + scale
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 700,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
+
+  // Função para ir para a página principal (BottomNavigation)
+  const goToHome = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'BottomNavigation' }],
+      })
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Botão de Voltar */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() =>
+          navigation.canGoBack() ? navigation.goBack() : goToHome()
+        }
+      >
         <Ionicons name="arrow-back" size={28} color="#333" />
       </TouchableOpacity>
 
       {/* Ícone de Sucesso */}
-      <Animated.View style={[styles.iconContainer, { opacity: fadeAnim }]}>
-        <MaterialCommunityIcons 
+      <Animated.View
+        style={[
+          styles.iconContainer,
+          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <MaterialCommunityIcons
           name="check-circle"
           size={180}
           color="#4CAF50"
@@ -53,9 +82,9 @@ const SuccessPayment = () => {
       </Animated.View>
 
       {/* Botão Página Principal */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('Home')}
+        onPress={goToHome}
         activeOpacity={0.8}
       >
         <Text style={styles.buttonText}>Ir para a Página Principal</Text>
@@ -73,6 +102,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   backButton: {
     position: 'absolute',
@@ -116,6 +146,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     width: '100%',
     alignItems: 'center',
+    marginBottom: 30, // Evita colisão com a TabBar
   },
   buttonText: {
     color: '#fff',

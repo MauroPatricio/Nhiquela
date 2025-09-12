@@ -45,6 +45,7 @@ import SellersByEstablishment from './components/SellersByEstablishment';
     import { createNavigationContainerRef } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import RequestDelivScreen from './screens/RequestDeliv';
+import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -55,9 +56,10 @@ export default function App() {
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
+    shouldShowBanner: true, // exibe notificação como banner
+    shouldShowList: true,   // exibe na central de notificações      
+    shouldPlaySound: true,
+    shouldSetBadge: true,
     }),
   });
 
@@ -162,6 +164,8 @@ useEffect(() => {
                           <Stack.Screen name='OrderList' component={OrderList} options={{ headerShown: false }} />
                           <Stack.Screen name='SellersByEstablishment' component={SellersByEstablishment} options={{ headerShown: false }} />
                           <Stack.Screen name='ForgotPassword' component={ForgotPassword} options={{ headerShown: false }} />
+                          <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen}  options={{ headerShown: false }}/>
+
                        
                                                 <Stack.Screen name='RequestDeliv' component={RequestDelivScreen} options={{ headerShown: false }} />
   </Stack.Navigator>

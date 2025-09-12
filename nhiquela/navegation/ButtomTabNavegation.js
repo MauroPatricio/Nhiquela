@@ -29,14 +29,13 @@ const ButtomTabNavegation = () => {
   return (
     <Tab.Navigator
       screenOptions={{ 
-        tabBarShowLabel: false, 
         tabBarHideOnKeyboard: true, 
         headerShown: false,
         tabBarStyle: styles.tabBar 
       }}
     >
       <Tab.Screen
-        name="Home"
+        name="início"
         component={Home}
         options={{ 
           tabBarIcon: ({ focused }) => (
@@ -50,7 +49,7 @@ const ButtomTabNavegation = () => {
       />
 
       <Tab.Screen
-        name="Search"
+        name="Pesquisa"
         component={Search}
         options={{ 
           tabBarIcon: ({ focused }) => (
@@ -63,23 +62,19 @@ const ButtomTabNavegation = () => {
         }}
       />
 
-      <Tab.Screen
-        name="RequestDeliv"
-        component={RequestDeliv}
-        options={{ 
-          tabBarIcon: () => (
-            <Ionicons
-              name='add'
-              size={36}
-              color="white"
-            />
-          ),
-          tabBarButton: (props) => <CustomTabBarButton {...props} />,
-        }}
-      />
+ <Tab.Screen
+  name=" "
+  component={RequestDeliv}
+  options={{
+    tabBarIcon: () => (
+      <Ionicons name='add' size={45} color="white" />
+    ),
+    tabBarButton: (props) => <CustomTabBarButton {...props} />,
+  }}
+/>
 
       <Tab.Screen
-        name="Orders"
+        name="Pedidos"
         component={Orders}
         options={{ 
           tabBarIcon: ({ focused }) => (
@@ -93,7 +88,7 @@ const ButtomTabNavegation = () => {
       />
 
       <Tab.Screen
-        name="Profile"
+        name="Perfil"
         component={Profile}
         options={{ 
           tabBarIcon: ({ focused }) => (
@@ -120,11 +115,13 @@ const styles = StyleSheet.create({
     elevation: 5,
     backgroundColor: '#fff',
     borderRadius: 20,
-    height: 70,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+
+
+    // height: 70,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 6 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 5,
   },
 
   centerButtonWrapper: {
@@ -141,9 +138,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    // shadowOffset: { width: 0, height: 6 },
+    // shadowOpacity: 0.4,
+    // shadowRadius: 6,
     elevation: 6,
   },
 });
