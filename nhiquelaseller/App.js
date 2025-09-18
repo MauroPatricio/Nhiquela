@@ -12,8 +12,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import api from './hooks/createConnectionApi';
 import { store } from './store';
+import { View, StatusBar } from 'react-native';
 
-// Importação de telas e componentes
+
+// Importação de telas
 import ButtomTabNavegation from './navegation/ButtomTabNavegation';
 import ProductDetail from './components/products/ProductDetail';
 import NewProduct from './screens/NewProduct';
@@ -34,21 +36,23 @@ import RideOptionsCard from './components/RideOptionsCard';
 import TransportType from './components/TransportType';
 import EditProductView from './components/products/EditProductView';
 import Cart from './screens/Cart';
-import { navigationRef } from './navegation/RootNavigation'; // ajuste o caminho conforme seu projeto
 import PayWithWallet from './screens/PayWithWallet';
 import TopUpScreen from './screens/TopUpScreen';
 import WalletScreen from './screens/WalletScreen';
 import WalletWithdrawScreen from './screens/WalletWithdrawScreen';
-import { StatusBar } from 'expo-status-bar';
 import WithdrawalRequestsScreen from './components/WithdrawalRequests';
+import { navigationRef, navigate } from './navegation/RootNavigation';
+
 const Stack = createNativeStackNavigator();
 
-// 🔔 Configuração para exibir notificações em foreground
+// 🔔 Configuração para notificações em foreground
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
+    shouldShowBanner: true,    // Mostra banner da notificação
+    shouldShowList: true,      // Adiciona à lista de notificações
+    shouldPlaySound: true,     // Som da notificação
+    shouldSetBadge: true,      // Badge no app
   }),
 });
 
@@ -86,7 +90,7 @@ export default function App() {
         }
       }
 
-      // Foreground notification
+      // Notificação em foreground
       notificationReceivedListener.current = Notifications.addNotificationReceivedListener(notification => {
         Toast.show({
           type: 'info',
@@ -107,14 +111,14 @@ export default function App() {
     setupNotifications();
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationReceivedListener.current);
-      Notifications.removeNotificationSubscription(notificationResponseListener.current);
+      notificationReceivedListener.current?.remove();
+      notificationResponseListener.current?.remove();
     };
   }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-            <StatusBar backgroundColor="white" style="dark" />
+      <StatusBar backgroundColor="white" style="dark" />
       <NavigationContainer ref={navigationRef}>
         <Provider store={store}>
           <SafeAreaProvider>
@@ -148,11 +152,10 @@ export default function App() {
                 <Stack.Screen name="Wallet" component={WalletScreen} />
                 <Stack.Screen name="TopUp" component={TopUpScreen} />
                 <Stack.Screen name="Pay" component={PayWithWallet} />
-                            <Stack.Screen name="withdraw" component={WalletWithdrawScreen} />
-
+                <Stack.Screen name="withdraw" component={WalletWithdrawScreen} />
               </Stack.Navigator>
 
-             <Toast ref={(ref) => Toast.setRef(ref)} />
+              <Toast />
             </KeyboardAvoidingView>
           </SafeAreaProvider>
         </Provider>
@@ -161,7 +164,7 @@ export default function App() {
   );
 }
 
-// Função auxiliar
+// Função auxiliar para registrar notificações push
 async function registerForPushNotificationsAsync() {
   if (!Device.isDevice) {
     alert('Use um dispositivo físico para notificações.');

@@ -250,7 +250,7 @@ const deleteOrder = async (id) => {
   const groupedItemsArray = Object.values(groupedItems);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} key={currentOrder._id}>
       <View style={styles.section}>
         <BackBtn onPress={() => navigation.goBack()} />
         <Text style={styles.title}>Detalhes do Pedido</Text>
@@ -304,6 +304,7 @@ const deleteOrder = async (id) => {
 
       <Text style={{ fontSize: 17, fontWeight: '600' }}>Produtos solicitados</Text>
      {groupedItemsArray.map(item => {
+      
   // Cálculo do preço original, se estiver em promoção
   const originalPrice = item.onSale && item.onSalePercentage
     ? (item.price / (1 - item.onSalePercentage / 100)).toFixed(2)

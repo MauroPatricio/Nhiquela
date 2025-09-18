@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import api from '../hooks/createConnectionApi';
@@ -9,9 +9,10 @@ import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
 import * as Notifications from 'expo-notifications';
 
+// Configuração de handler de notificações
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -26,21 +27,23 @@ const Home = () => {
   const [orders, setOrders] = useState([]);
   const [availableStatuses, setAvailableStatuses] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const navigation = useNavigation();
-  const [userLogin, setUserLogin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userLogin, setUserLogin] = useState(false);
 
+  const navigation = useNavigation();
+
+  // Atualiza token push no backend
   const updatePushToken = async (userId, newPushToken) => {
+    if (!userId) return;
     try {
-      if (!userId) return;
       await api.patch(`/users/updatePushToken/${userId}`, { pushToken: newPushToken });
     } catch (error) {
       console.error('Erro ao atualizar o PushToken:', error.message);
     }
   };
 
+  // Registro de notificações push
   const registerForPushNotificationsAsync = async (user) => {
     if (!user) return;
 
@@ -66,6 +69,7 @@ const Home = () => {
     }
   };
 
+  // Checa notificações pendentes
   const checkPendingNotifications = async () => {
     const pendingNotifications = await Notifications.getPresentedNotificationsAsync();
     if (pendingNotifications.length > 0) {
@@ -81,49 +85,33 @@ const Home = () => {
     }
   };
 
+  // Busca saldo da wallet
   const fetchWalletBalance = async (user) => {
-    if (!user) {
-      console.warn("Nenhum usuário logado para buscar saldo.");
-      return;
-    }
-
+    if (!user) return;
     try {
       setIsLoading(true);
       const response = await api.get('/wallet/balance', {
         headers: { authorization: `Bearer ${user.token}` },
       });
-
-      if (response.status === 200 && response.data?.balance != null) {
-        setWalletBalance(Number(response.data.balance) || 0);
-      } else {
-        console.warn("Resposta inesperada da API de wallet:", response.data);
-        setWalletBalance(0);
-      }
+      setWalletBalance(Number(response.data?.balance) || 0);
     } catch (error) {
-      console.error(
-        "Erro ao buscar saldo da wallet:",
-        error.response?.data || error.message
-      );
+      console.error("Erro ao buscar saldo da wallet:", error.response?.data || error.message);
       setWalletBalance(0);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Valida e seta usuário local
   const validateAndSetUser = async () => {
     try {
       const [storedUserData, storedUserId] = await Promise.all([
         AsyncStorage.getItem('userData'),
         AsyncStorage.getItem('id'),
       ]);
-
       if (!storedUserData || !storedUserId) throw new Error("Usuário não encontrado");
-
       const parsedUserData = JSON.parse(storedUserData);
-
-      if (!parsedUserData?._id || parsedUserData._id !== storedUserId) {
-        throw new Error("Dados inconsistentes");
-      }
+      if (!parsedUserData?._id || parsedUserData._id !== storedUserId) throw new Error("Dados inconsistentes");
 
       setUserData(parsedUserData);
       setUserLogin(true);
@@ -135,6 +123,7 @@ const Home = () => {
     }
   };
 
+  // useFocusEffect para carregar dados quando a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       const initialize = async () => {
@@ -142,16 +131,13 @@ const Home = () => {
         if (!user) return;
 
         await registerForPushNotificationsAsync(user);
-        await Promise.all([
-          fetchData(user),
-          fetchWalletBalance(user),
-        ]);
+        await Promise.all([fetchData(user), fetchWalletBalance(user)]);
       };
-
       initialize();
     }, [])
   );
 
+  // Configuração de listeners de notificações
   useEffect(() => {
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       showMessage({
@@ -171,19 +157,18 @@ const Home = () => {
       }
     });
 
-    const unsubscribe = NetInfo.addEventListener(state => {
-      if (state.isConnected) {
-        checkPendingNotifications();
-      }
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      if (state.isConnected) checkPendingNotifications();
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
-      unsubscribe();
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
+      unsubscribeNetInfo();
     };
   }, []);
 
+  // Busca pedidos
   const fetchData = async (user) => {
     try {
       const response = await api.get(`/orders/sellerview?seller=${user._id}`, {
@@ -191,7 +176,7 @@ const Home = () => {
       });
       if (response.status === 200) {
         setOrders(response.data.orders);
-        setAvailableStatuses(Array.from(new Set(response.data.orders.map(order => order.status))));
+        setAvailableStatuses([...new Set(response.data.orders.map(o => o.status))]);
       }
     } catch (error) {
       console.error(error);
@@ -202,30 +187,27 @@ const Home = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
   };
 
   const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* View para o fundo da StatusBar */}
+      <View style={{ height: StatusBar.currentHeight }} />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
       <View style={styles.appBarWrapper}>
         <View style={styles.headerRow}>
           <Text style={styles.welcomeText('black', 30, 0)}>
             <Text style={{ color: '#7F00FF' }}>Nhiquela+</Text>
           </Text>
           <Text style={styles.balanceText}>
-        <Text style={{fontSize: 10}}>Saldo:</Text> {walletBalance.toFixed(2)} MT
-
+            <Text style={{fontSize: 10}}>Saldo:</Text> {walletBalance.toFixed(2)} MT
           </Text>
         </View>
+
         <View style={styles.appBar}>
           <Image source={require('../assets/default1.jpg')} style={styles.cover} />
           <Text style={styles.greetingText}>{userData ? `Olá, ${userData?.name}` : 'Faça login'}</Text>
@@ -271,212 +253,172 @@ const Home = () => {
                 <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
               </View>
               <View style={styles.orderDetails}>
-                <Text style={styles.orderCode}>{order.code}</Text>
-                <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
-                <Text style={styles.orderPrice}>{order.totalPrice} MT</Text>
-                <Text style={styles.orderStatus}>{order.status}</Text>
+                <Text style={styles.orderText}>Código: {order.code}</Text>
+                <Text style={styles.orderText}>Status: {order.status}</Text>
+                <Text style={styles.orderText}>Cliente: {order.user?.name}</Text>
+                <Text style={styles.orderText}>Data: {formatDate(order.createdAt)}</Text>
               </View>
             </TouchableOpacity>
           ))
         ) : (
-          <View style={styles.emptyMessageContainer}>
-            <Text style={styles.emptyMessage}>Não possui nenhum pedido de momento.</Text>
-          </View>
+          <Text style={{ textAlign: 'center', marginTop: 50 }}>Nenhum pedido encontrado.</Text>
         )}
-
-        <FlashMessage position="top" />
-        <View style={{ marginBottom: 250 }} />
       </ScrollView>
+
+      <FlashMessage position="top" />
     </SafeAreaView>
   );
 };
 
-export default Home;
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#f8f9fb', // fundo claro moderno
   },
   appBarWrapper: {
     paddingHorizontal: 20,
-    paddingTop: 30,
-    backgroundColor: 'white',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    paddingTop: 15,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 5,
-    marginBottom: 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  welcomeText: (color, size, margin) => ({
+    fontSize: size,
+    color,
+    fontWeight: '900',
+    marginTop: margin,
+    letterSpacing: 1,
+  }),
+  balanceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    backgroundColor: '#eef2ff',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
   appBar: {
+    marginTop: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
   },
   cover: {
     width: 60,
     height: 60,
     borderRadius: 30,
     marginRight: 15,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#7F00FF',
   },
   greetingText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#334155',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
   },
   storeStatusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-    marginLeft: 10,
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: '#e5f6ff',
   },
   storeStatusIndicator: {
     width: 14,
     height: 14,
     borderRadius: 7,
-    marginRight: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    marginRight: 8,
   },
   storeStatusText: {
-    fontSize: 15,
-    color: '#334155',
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb',
   },
-  scrollContainer: {
-    paddingHorizontal: 20,
-  },
+  sellerName: { fontWeight: 'bold', color: '#111827' },
+  scrollContainer: { paddingBottom: 300 },
   sectionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#7F00FF',
-    marginBottom: 20,
-    marginLeft: 20,
+    fontSize: 22,
+    fontWeight: '800',
+    marginVertical: 12,
+    color: '#111827',
   },
-  statusScrollContainer: {
-    paddingBottom: 20,
-    paddingLeft: 20,
-  },
+  statusScrollContainer: { paddingBottom: 15 },
   statusButton: {
-    backgroundColor: '#E9D9FF',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
-    marginRight: 10,
+    backgroundColor: '#f3f4f6',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   selectedStatusButton: {
     backgroundColor: '#7F00FF',
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
-  statusButtonText: {
-    color: '#334155',
-    fontWeight: '500',
-  },
+  statusButtonText: { color: '#111827', fontWeight: '600' },
   orderCard: {
-    backgroundColor: 'white',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 15,
     flexDirection: 'row',
+    padding: 20,
+    marginVertical: 8,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 4,
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginHorizontal: 20,
   },
   orderIconContainer: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 18,
-    padding: 15,
-    marginRight: 20,
-  },
-  cartIcon: {
-    color: 'white',
-    fontSize: 30,
-  },
-  orderDetails: {
-    flex: 1,
-  },
-  orderCode: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#334155',
-    marginBottom: 4,
-  },
-  orderDate: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  orderPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#7F00FF',
-    marginBottom: 4,
-  },
-  orderStatus: {
-    fontSize: 14,
-    color: '#334155',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  emptyMessageContainer: {
-    marginTop: 100,
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: '#f0f4ff',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    marginHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    marginRight: 15,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#64748B',
+  cartIcon: { color: '#7F00FF' },
+  orderDetails: { flex: 1 },
+  orderText: {
+    fontSize: 15,
+    marginBottom: 5,
+    color: '#374151',
     fontWeight: '500',
   },
-  welcomeText: (color, size, top) => ({
-    fontWeight: 'bold',
-    fontSize: size,
-    marginTop: top,
-    paddingBottom: 10,
-    color: color,
-  }),
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 10,
+  noOrdersText: {
+    textAlign: 'center',
+    marginTop: 60,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#9ca3af',
   },
-  balanceText: {
-  fontSize: 18,
-  fontWeight: '900',
-  // color: '#4CAF50',          // verde vibrante para saldo positivo
-  textAlign: 'center',
-  // letterSpacing: 1,
-  // marginVertical: 15,
-  textShadowColor: 'rgba(76, 175, 80, 0.4)',
-  // textShadowOffset: { width: 0, height: 3 },
-  // textShadowRadius: 6,
-  // backgroundColor: '#E8F5E9', // leve fundo verde claro
-  paddingVertical: 12,
-  borderRadius: 12,
-  overflow: 'hidden',
-  alignSelf: 'center',
-  // minWidth: 180,
-  // elevation: 3,
-},
-
 });
+
+
+
+export default Home;

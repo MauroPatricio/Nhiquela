@@ -1,45 +1,76 @@
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import React from 'react';
+import React, { memo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import Home from '../screens/Home';
+import Search from '../screens/Search';
 import Orders from '../screens/Orders';
-import NewProduct from '../screens/NewProduct';
-import ProductListSeller from '../components/products/ProductListSeller';
+import RequestDeliv from '../screens/RequestDeliv';
 import Profile from '../screens/Profile';
 
 const Tab = createBottomTabNavigator();
 
-const CustomTabBarButton = ({ children, onPress }) => (
-  <TouchableOpacity onPress={onPress} style={styles.centerButtonWrapper}>
+const CustomTabBarButton = memo(({ children, onPress }) => (
+  <TouchableOpacity
+    style={styles.centerButtonWrapper}
+    onPress={onPress}
+    activeOpacity={0.9}
+  >
     <View style={styles.centerButton}>
       {children}
     </View>
   </TouchableOpacity>
-);
+));
 
 const ButtomTabNavegation = () => {
   return (
     <Tab.Navigator
-      screenOptions={{ tabBarShowLabel: false, tabBarHideOnKeyboard: true, headerShown: false, tabBarStyle: styles.tabBar}}
+      screenOptions={{ 
+        tabBarShowLabel: false, 
+        tabBarHideOnKeyboard: true, 
+        headerShown: false,
+        tabBarStyle: styles.tabBar 
+      }}
     >
       <Tab.Screen
         name="Home"
         component={Home}
-        options={{ tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={focused ? '#7F00FF' : 'black'} />) }}
-      />
-
-      <Tab.Screen
-        name="ProductListSeller"
-        component={ProductListSeller}
-        options={{ tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={focused ? '#7F00FF' : 'black'} />) }}
-      />
-
-      <Tab.Screen
-        name="NewProduct"
-        component={NewProduct}
         options={{ 
-          tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={50} color="#7F00FF" />),
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          )
+        }}
+      />
+
+      <Tab.Screen
+        name="Search"
+        component={Search}
+        options={{ 
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'search' : 'search-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          )
+        }}
+      />
+
+      <Tab.Screen
+        name="RequestDeliv"
+        component={RequestDeliv}
+        options={{ 
+          tabBarIcon: () => (
+            <Ionicons
+              name='add'
+              size={32}
+              color="white"
+            />
+          ),
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
         }}
       />
@@ -47,13 +78,29 @@ const ButtomTabNavegation = () => {
       <Tab.Screen
         name="Orders"
         component={Orders}
-        options={{ tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'file-tray' : 'file-tray-outline'} size={24} color={focused ? '#7F00FF' : 'black'} />) }}
+        options={{ 
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          )
+        }}
       />
 
       <Tab.Screen
         name="Profile"
         component={Profile}
-        options={{ tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={focused ? '#7F00FF' : 'black'} />) }}
+        options={{ 
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
+            />
+          )
+        }}
       />
     </Tab.Navigator>
   )
@@ -61,7 +108,7 @@ const ButtomTabNavegation = () => {
 
 export default ButtomTabNavegation;
 
-const styles = StyleSheet.create({  
+const styles = StyleSheet.create({ 
   tabBar: {
     position: 'absolute',
     bottom: 0,
@@ -73,7 +120,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
   },
   centerButtonWrapper: {
-    top: -20,
+    top: -25, // faz o botão central "flutuar"
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -81,13 +128,13 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'white',
-    elevation: 5,
+    backgroundColor: '#7F00FF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 6,
+    elevation: 10,
   },
 });
