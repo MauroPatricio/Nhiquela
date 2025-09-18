@@ -60,7 +60,7 @@ const basketSlice = createSlice({
         }
       } else {
         Alert.alert(
-          "Produtos do mesmo fornecedor",
+          "Produtos de diferentes fornecedores",
           "Só é aceitável adicionar produtos do mesmo fornecedor ao carrinho!"
         );
       }

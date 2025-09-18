@@ -46,11 +46,12 @@ const PaymentMethod = () => {
         <Ionicons name='card' size={100} style={styles.cardIcon} />
         <Ionicons
           name='checkmark-circle'
-          size={40}
+          size={50}
+      
           style={styles.checkIcon}
         />
 
-        <Text style={styles.mainHeader}>Selecione a forma de pagamento</Text>
+        <Text style={styles.mainHeader}>Seleccione a forma de pagamento</Text>
 
         {payments && payments.map((payment) => (
           <View key={payment._id}>
@@ -104,8 +105,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'green',
     position: 'absolute',
-    top: 80,
-    right: 40,
+    top: 0,
+    right: 115,
   },
   mainHeader: {
     marginBottom: 15,

@@ -126,10 +126,21 @@ const MpesaScreen = () => {
   // Função principal de pagamento e pedido
   const makeThePayment = async (values) => {
     if (!userData) {
-      showAlert(
-        '⚠️ Usuário não autenticado',
-        'Para realizar o pagamento, você precisa estar logado. Por favor, faça login e tente novamente.'
-      );
+     Alert.alert(
+      '⚠️ Usuário não autenticado',
+      'Para realizar o pagamento, você precisa estar logado. Deseja ir para a tela de login agora?',
+      [
+        {
+          text: 'Sim',
+          onPress: () => navigation.replace('Login'),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        }
+      ]
+    );
+
       return;
     }
 

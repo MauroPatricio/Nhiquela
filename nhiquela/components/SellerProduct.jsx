@@ -1,15 +1,12 @@
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
   Image,
-  LayoutAnimation,
-  Platform,
-  UIManager,
   Animated,
 } from 'react-native';
-import React, { useState } from 'react';
 import { MinusCircleIcon, PlusCircleIcon, ChevronDownIcon } from 'react-native-heroicons/outline';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -20,10 +17,7 @@ import {
   removeSeller,
   getItemsBySellerId,
 } from '../features/basketSlice';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import { createSelector } from '@reduxjs/toolkit';
 
 const SellerProduct = ({
   id,
@@ -41,16 +35,32 @@ const SellerProduct = ({
   isSellerOpen
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const animation = useRef(new Animated.Value(0)).current;
 
-  const items = useSelector((state) => selectBasketItemsWithId(id)(state));
+  // --- Memoized Selectors ---
+  const selectItems = createSelector(
+    (state) => state.basket.items,
+    (items) => items.filter(item => item._id === id)
+  );
+  const selectRemainingItemsFromSeller = createSelector(
+    (state) => state.basket.items,
+    () => seller?._id,
+    (items, sellerId) => items.filter(item => item.seller._id === sellerId)
+  );
+
+  const items = useSelector((state) => selectItems(state));
   const remainingItemsFromSeller = useSelector((state) =>
-    getItemsBySellerId(seller._id)(state)
+    selectRemainingItemsFromSeller(state)
   );
 
   const dispatch = useDispatch();
 
   const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    Animated.timing(animation, {
+      toValue: isExpanded ? 0 : 1,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
     setIsExpanded(!isExpanded);
   };
 
@@ -85,79 +95,86 @@ const SellerProduct = ({
     }
   };
 
-return (
-  <TouchableOpacity
-    onPress={toggleExpand}
-    activeOpacity={0.9}
-    style={styles.card}
-    disabled={!isSellerOpen} // impede interação se loja estiver fechada
-  >
-    <View style={{ position: 'relative' }}>
-      <Image source={{ uri: image }} style={styles.image} />
+  const cardHeight = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [180, 260], // altura inicial e expandida
+  });
 
-      {/* Overlay quando loja estiver fechada */}
-      {!isSellerOpen && (
-        <View style={styles.overlay}>
-          <Text style={styles.overlayText}>Loja fechada</Text>
+  const rotateChevron = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  return (
+    <Animated.View style={[styles.card, { height: cardHeight }]}>
+      <TouchableOpacity
+        onPress={toggleExpand}
+        activeOpacity={0.9}
+        disabled={!isSellerOpen}
+        style={{ flex: 1 }}
+      >
+        <View style={{ position: 'relative' }}>
+          <Image source={{ uri: image }} style={styles.image} />
+          {!isSellerOpen && (
+            <View style={styles.overlay}>
+              <Text style={styles.overlayText}>Loja fechada</Text>
+            </View>
+          )}
         </View>
-      )}
-    </View>
 
-    <View style={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.name}>{name}</Text>
-        <ChevronDownIcon
-          size={20}
-          color="gray"
-          style={[styles.chevron, isExpanded && styles.chevronUp]}
-        />
-      </View>
-
-      <Text style={styles.description}>{description}</Text>
-      <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
-
-      {onSale ? (
-        <View style={{ marginTop: 6 }}>
-          <View style={{ backgroundColor: 'green', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start', marginBottom: 4 }}>
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Em promoção</Text>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.name}>{name}</Text>
+            <Animated.View style={{ transform: [{ rotate: rotateChevron }] }}>
+              <ChevronDownIcon size={20} color="gray" />
+            </Animated.View>
           </View>
-          <Text style={{ color: 'grey', textDecorationLine: 'line-through', marginBottom: 5 }}>
-            {parseFloat(price).toFixed(2)} MT
-          </Text>
-          <Text style={{ color: 'green', fontWeight: 'bold', fontSize: 16 }}>
-            {parseFloat(discount).toFixed(2)} MT
-          </Text>
-          <Text style={{ color: 'green', marginTop: 4 }}>
-            Economiza {(parseFloat(price) - parseFloat(discount)).toFixed(2)} MT
-          </Text>
+
+          <Text style={styles.description}>{description}</Text>
+          <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
+
+          {onSale ? (
+            <View style={{ marginTop: 6 }}>
+              <View style={{ backgroundColor: 'green', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start', marginBottom: 4 }}>
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Em promoção</Text>
+              </View>
+              <Text style={{ color: 'grey', textDecorationLine: 'line-through', marginBottom: 5 }}>
+                {parseFloat(price).toFixed(2)} MT
+              </Text>
+              <Text style={{ color: 'green', fontWeight: 'bold', fontSize: 16 }}>
+                {parseFloat(discount).toFixed(2)} MT
+              </Text>
+              <Text style={{ color: 'green', marginTop: 4 }}>
+                Economiza {(parseFloat(price) - parseFloat(discount)).toFixed(2)} MT
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.price}>
+              {parseFloat(price).toFixed(2)} MT
+            </Text>
+          )}
         </View>
-      ) : (
-        <Text style={styles.price}>
-          {parseFloat(price).toFixed(2)} MT
-        </Text>
-      )}
-    </View>
 
-    {isExpanded && (
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={removeItem}>
-          <MinusCircleIcon
-            size={35}
-            color={items.length > 0 ? 'white' : 'gray'}
-            style={styles.iconButton}
-          />
-        </TouchableOpacity>
+        {isExpanded && (
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={removeItem}>
+              <MinusCircleIcon
+                size={35}
+                color={items.length > 0 ? 'white' : 'gray'}
+                style={styles.iconButton}
+              />
+            </TouchableOpacity>
 
-        <Text style={styles.quantity}>{items.length}</Text>
+            <Text style={styles.quantity}>{items.length}</Text>
 
-        <TouchableOpacity onPress={addItemToBasket}>
-          <PlusCircleIcon size={35} color="white" style={styles.iconButton} />
-        </TouchableOpacity>
-      </View>
-    )}
-  </TouchableOpacity>
-);
-
+            <TouchableOpacity onPress={addItemToBasket}>
+              <PlusCircleIcon size={35} color="white" style={styles.iconButton} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
 };
 
 export default SellerProduct;
@@ -175,7 +192,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   image: {
-    height: 160,
+    height: 120,
     borderRadius: 10,
     width: '100%',
     resizeMode: 'cover',
@@ -194,13 +211,6 @@ const styles = StyleSheet.create({
     color: '#333',
     flex: 1,
     marginRight: 8,
-  },
-  chevron: {
-    transform: [{ rotate: '0deg' }],
-    transition: 'transform 0.3s',
-  },
-  chevronUp: {
-    transform: [{ rotate: '180deg' }],
   },
   description: {
     fontSize: 13,
@@ -235,22 +245,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   overlay: {
-  ...StyleSheet.absoluteFillObject,
-  backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 2,
-  borderRadius: 10,
-},
-
-overlayText: {
-  color: 'white',
-  fontWeight: 'bold',
-  fontSize: 14,
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  backgroundColor: 'rgba(0,0,0,0.6)',
-  borderRadius: 6,
-},
-
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+    borderRadius: 10,
+  },
+  overlayText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 6,
+  },
 });

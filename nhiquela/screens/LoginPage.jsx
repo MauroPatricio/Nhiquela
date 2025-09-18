@@ -63,7 +63,11 @@ const LoginPage = () => {
     <ScrollView style={{ backgroundColor: 'white' }}>
       <SafeAreaView style={{ marginHorizontal: 20 }}>
         <View>
-          <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
+          <BackBtn
+            onPress={() =>
+              navigation.replace('BottomNavigation')
+            }
+          />          
           <Image
             source={require('../assets/nhiquela2.png')}
             style={styles.cover}
@@ -126,7 +130,7 @@ const LoginPage = () => {
                     onPress={isValid ? handleSubmit : null}
                     isValid={isValid ? '#7F00FF' : 'red'}
                   />
-                  <Text style={styles.registration} onPress={() => navigation.navigate('SignUp')}>
+                  <Text style={styles.registration} onPress={() => navigation.replace('SignUp')}>
                     Registrar
                   </Text>
                 </View>
