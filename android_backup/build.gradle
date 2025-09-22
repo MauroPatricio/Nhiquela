@@ -1,0 +1,50 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext {
+        buildToolsVersion = '35.0.0'
+        minSdkVersion = 23
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        kotlinVersion = '1.7.20' // FORÇADO para compatibilidade com Expo 52
+        ndkVersion = "26.1.10909125"
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        // Plugin do Android
+        classpath('com.android.tools.build:gradle:8.3.1')
+
+        // Plugin do React Native
+        classpath('com.facebook.react:react-native-gradle-plugin')
+
+        // Plugin Kotlin
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+
+
+        classpath('com.google.gms:google-services:4.4.0')
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    repositories {
+        // Diretórios RN e JSC
+        maven { url("$rootDir/node_modules/react-native/android") }
+        maven { url("$rootDir/node_modules/jsc-android/dist") }
+
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+// Limpeza de build (opcional)
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
