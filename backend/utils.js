@@ -9,31 +9,31 @@ export const baseUrl = ()=> process.env.BASE_URL ? process.env.BASE_URL : proces
 'http://localhost:3000': 'https://nhiquelashop.co.mz';
 
 
-// const transporter = nodemailer.createTransport({
-//   host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
-//   port: 587,
-//   secure: false,
-//   auth: {
-//     user: 'mauro.patricio1@gmail.com',      // Your email address
-//     pass: 'kfgg cmdk hvsp ctil',         // Your email password
-//   },
-//   tls:{
-//     rejectUnauthorized: false
-//   }
-// });
-
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
-    user: 'nhiquelaservicosconsultoria@gmail.com',      // Your email address
-    pass: 'trpw julu dkfb hzyb',         // Your email password
+    user: 'mauro.patricio1@gmail.com',      // Your email address
+    pass: 'kfgg cmdk hvsp ctil',         // Your email password
   },
   tls:{
     rejectUnauthorized: false
   }
 });
+
+// const transporter = nodemailer.createTransport({
+//   host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
+//   port: 465,
+//   secure: true,
+//   auth: {
+//     user: 'nhiquelaservicosconsultoria@gmail.com',      // Your email address
+//     pass: 'trpw julu dkfb hzyb',         // Your email password
+//   },
+//   tls:{
+//     rejectUnauthorized: false
+//   }
+// });
 
 export const generateToken = (user) => {
   return jwt.sign(

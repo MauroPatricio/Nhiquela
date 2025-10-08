@@ -42,11 +42,6 @@ const expo = new Expo();
 
 export const createNotification = async ({ message, receiver_id, sender_id, orderID, pushToken }) => {
 
-  console.log(message);
-  console.log(receiver_id)
-  console.log(sender_id)
-  console.log(orderID)
-  console.log(pushToken)
 
   try {
     if (!message || !receiver_id || !sender_id || !pushToken) {
@@ -101,7 +96,7 @@ async function sendPushNotification(pushToken, message, messageID) {
   }];
 
   try {
-    console.log('user Pushtoken: ', pushToken)
+    console.log('seller Pushtoken: ', pushToken)
     if(pushToken.length == 0){
       console.error('Push token inválido ou nulo');
     }else{

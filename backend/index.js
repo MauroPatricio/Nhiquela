@@ -1,14 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
- import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import seedRoutes from './routes/seedRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import userRouter from './routes/userRoutes.js';
 import orderRouter from './routes/orderRoutes.js';
 import uploadRouter from './routes/uploadRoutes.js';
 import http from 'http';
-import {Server} from 'socket.io';
+import { Server } from 'socket.io';
 import categoryRouter from './routes/categoryRoutes.js';
 import path from 'path';
 import provinceRoutes from './routes/provinceRoutes.js';
@@ -22,58 +22,85 @@ import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
 import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
-
 import notificationRoutesNhabanga from './routes/notificationRoutesNhabanga.js';
-
 import { fileURLToPath } from 'url';
-
 import admin from 'firebase-admin';
 import { dirname } from 'path';
 import { readFile } from 'fs/promises';
 
-// Get the current directory of the module
-// Define the path to the service account JSON file
+// **Nova importação**
+import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
+
+// Define o caminho do JSON para Firebase
 const serviceAccountPath = new URL('./reactnativepushnotificat-a322b-firebase-adminsdk-n3ra9-635e334e58.json', import.meta.url);
 
-// Read the service account JSON file
+// Lendo o arquivo JSON
 const serviceAccount = await readFile(serviceAccountPath, 'utf-8').then(JSON.parse);
 
-
-// Initialize Firebase Admin SDK
+// Inicializando Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Carregando o ficheiro .env
+// Carregando variáveis de ambiente
 dotenv.config();
 
-// Conectando com a database MongoDB Atlas
+// Conectar ao MongoDB
+// ✅ CONEXÃO MONGODB MELHORADA - VERSÃO COMPLETA
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 30000, // ✅ 30 segundos timeout
+    socketTimeoutMS: 45000, // ✅ 45 segundos socket
+    maxPoolSize: 10, // ✅ Limite de conexões
+    minPoolSize: 5, // ✅ Mínimo de conexões
+    retryWrites: true, // ✅ Re-tentar escritas
+    w: 'majority' // ✅ Write concern
+  })
   .then(() => {
-    console.log('Connectei me ao MongoDB com SUCESSO');
+    console.log('✅ Conectado ao MongoDB com SUCESSO');
   })
   .catch((err) => {
-    console.log(err.message);
+    console.log('❌ ERRO MongoDB:', err.message);
+    console.log('🔧 Dica: Verifique:');
+    console.log('   - String de conexão no .env');
+    console.log('   - MongoDB Atlas online');
+    console.log('   - Internet estável');
   });
 
+// **Inicializando Express**
+// const app = express();
+// app.use(express.json());
+// app.use(cors());
+
+// **Inicializando Express**
 const app = express();
 
-// ADD THIS
+// ✅✅✅ CONFIGURAÇÃO CORRIGIDA - AUMENTAR LIMITE DO PAYLOAD
+app.use(express.json({ 
+  limit: '50mb' // AUMENTA PARA 50MB - RESOLVE O ERRO
+}));
+
+app.use(express.urlencoded({ 
+  limit: '50mb', // AUMENTA PARA 50MB
+  extended: true 
+}));
+
 app.use(cors());
 
 
+// Configuração de CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// **Adicionando sua nova rota aqui**
+app.use('/api/tipoestabelecimentos', tipoEstabelecimentoRoutes);
 
-
+// Configuração das demais rotas
 app.use('/api/seed', seedRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRouter);
@@ -90,34 +117,30 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/requestdeliver', requestDeliverRoutes);
 app.use('/api/carts', cartRoutes);
 app.use('/api/notifications', notificationRoutes);
-
-//Nhabanga
 app.use('/api/notificationsNhabanga', notificationRoutesNhabanga);
 
+// **Configuração do diretório e frontend**
 const __dirname = path.resolve();
 // const rootDir = path.join(__dirname, '..');
 app.use(express.static(path.join(__dirname, '/frontend/build')));
 
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname+'/frontend/build/index.html'));
-});
+  res.sendFile(path.join(__dirname+'/frontend/build/index.html'));});
 
-
-
-
+// Middleware de erro
 app.use((err, req, res, next) => {
-  console.log(err)
-
-  res.status(500).send({message: err.message});
+  console.log(err);
+  res.status(500).send({ message: err.message });
 });
 
+// Configuração do servidor HTTP e WebSocket
 const port = process.env.PORT || 5000;
-
 const httpServer = http.Server(app);
 const users = [];
 
-const io = new Server(httpServer, {cors: {origin: '*'}});
+const io = new Server(httpServer, { cors: { origin: '*' } });
+
 io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const user = users.find((x) => x.socketId === socket.id);
@@ -130,6 +153,7 @@ io.on('connection', (socket) => {
       }
     }
   });
+
   socket.on('onLogin', (user) => {
     const updatedUser = {
       ...user,
@@ -184,11 +208,7 @@ io.on('connection', (socket) => {
     }
   });
 });
-httpServer.listen(port, ()=>{
-    console.log(`server is at http://localhost:${port}`)
-})
 
-//iniciando o servidor
-// app.listen(port, ()=>{
-//     console.log(`server is at http://localhost:${port}`)
-// })
+httpServer.listen(port, () => {
+  console.log(`Servidor rodando em http://localhost:${port}`);
+});
