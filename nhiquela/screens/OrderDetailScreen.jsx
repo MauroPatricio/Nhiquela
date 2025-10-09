@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
+import { sendOrderNotificationToUser } from '../utils/notificationUtils';
+import Toast from 'react-native-toast-message';
 
 const OrderDetailsScreen = () => {
   const { params: { item } } = useRoute();
@@ -22,24 +24,36 @@ const OrderDetailsScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [message, setMessage] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [userLogin,setUserLogin] = useState(false)
   const navigation = useNavigation();
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        console.warn('⚠️ ID inconsistente entre userData e id');
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      console.log('⚠️ Usuário não está logado');
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+  }
+};
+
+
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -76,19 +90,40 @@ const OrderDetailsScreen = () => {
     }
   };
 
-  const confirmDelivery = async (orderId) => {
-    try {
-      if (!userData) throw new Error('User is not logged in');
-      const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
-        headers: { Authorization: `Bearer ${userData.token}` }
-      });
-      setCurrentOrder(data.order);
-      Alert.alert('Sucesso', 'Pedido entregue com sucesso!');
-    } catch (error) {
-      console.error('Erro ao confirmar entrega', error);
-      Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
-    }
-  };
+const confirmDelivery = async (orderId) => {
+  try {
+    if (!userData) throw new Error('User is not logged in');
+
+    const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
+      headers: { Authorization: `Bearer ${userData.token}` }
+    });
+
+    setCurrentOrder(data.order);
+
+
+    // Notificar o FORNECEDOR
+    await sendOrderNotificationToUser({
+      userId: data.order.seller._id, // garantir que funcione com ou sem populate
+      orderId: data.order._id,
+      orderCode: data.order.code,
+      title: 'Pedido entregue com sucesso!',
+      body: `O cliente confirmou a recepção do pedido nº ${data.order.code}.`,
+      status: 'Confirmado',
+    });
+
+    Toast.show({
+      type: 'success',
+      text1: 'Confirmação de Recepção',
+      text2: 'O fornecedor será notificado.',
+    });
+
+    // Alert.alert('Sucesso', 'Pedido entregue com sucesso!');
+  } catch (error) {
+    console.error('Erro ao confirmar entrega', error);
+    Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
+  }
+};
+
 
   const confirmDeleteOrder = (orderId) => {
     Alert.alert('Confirmar Exclusão', 'Deseja apagar este pedido?', [
@@ -140,18 +175,44 @@ const OrderDetailsScreen = () => {
         </View>
 
         <Text style={styles.sectionTitle}>Produtos</Text>
-        {currentOrder.orderItems?.map((item, idx) => (
+            {currentOrder.orderItems?.map((item, idx) => (
           <View style={styles.itemCard} key={idx}>
             <Image source={{ uri: item.image }} style={styles.image} />
             <View style={styles.itemInfo}>
-              <Text style={styles.itemName}>{item.nome}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={styles.itemName}>{item.nome}</Text>
+
+                {/* Badge de promoção */}
+                {item.onSale && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Promoção</Text>
+                  </View>
+                )}
+              </View>
+
               <Text style={styles.itemText}>Qtd: {item.quantity}</Text>
-              <Text style={styles.itemText}>Preço: {item.price} Mt</Text>
+
+              {/* Preço com desconto */}
+              {item.onSale && item.discount > 0 ? (
+                <>
+                  {/* <Text style={[styles.itemText, { textDecorationLine: 'line-through', color: 'gray' }]}>
+                    Preço: {item.price + item.discount} Mt
+                  </Text> */}
+                  <Text style={[styles.itemText, { textDecorationLine: 'line-through', color: 'gray' }]}>
+                    Preço: {item.price} Mt
+                  </Text>
+                  <Text style={[styles.itemText, { color: 'green', fontWeight: 'bold' }]}>Desconto: {item.discount} Mt</Text>
+                </>
+              ) : (
+                <Text style={styles.itemText}>Preço: {item.price} Mt</Text>
+              )}
+
               <Text style={styles.itemText}>Fornecedor: {currentOrder.seller?.seller?.name}</Text>
               <Text style={styles.itemText}>{item.description}</Text>
             </View>
           </View>
         ))}
+
 
         {currentOrder.status === 'Em trânsito' && (
           <TouchableOpacity style={styles.greenButton} onPress={() => confirmDeliveryOrder(currentOrder._id)}>
@@ -320,6 +381,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  badge: {
+  backgroundColor: '#FF5733',
+  borderRadius: 5,
+  paddingHorizontal: 8,
+  paddingVertical: 2,
+  alignSelf: 'flex-start',
+  marginLeft: 8,
+},
+badgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
 });
 
 export default OrderDetailsScreen;

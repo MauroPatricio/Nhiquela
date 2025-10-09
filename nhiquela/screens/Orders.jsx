@@ -19,20 +19,32 @@ const Orders = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [userLogin, setUserLogin] = useState(false);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
 
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
       }
-    } catch (error) {
-      console.log(error);
+    } else {
+      console.log('⚠️ Usuário não está logado');
+      setIsLoading(false); // ✅ Para o loading se não logado
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+  }
+};
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -44,25 +56,43 @@ const Orders = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-  };
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+};
+
 
   const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      if (!userData) return;
-      const { data } = await api.get('/orders/mine', {
-        headers: { Authorization: `Bearer ${userData.token}` },
-      });
-      setOrders(data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
+  try {
+    setIsLoading(true);
+    if (!userData?.token) {
+      setIsLoading(false); // ✅ Garante fim do loading
+      return;
     }
-  };
+
+    const { data } = await api.get('/orders/mine', {
+      headers: { Authorization: `Bearer ${userData.token}` },
+    });
+
+    setOrders(data || []);
+
+  } catch (error) {
+    console.error('Erro ao buscar pedidos:', error);
+     setIsLoading(false); // ✅ Garante parada mesmo em erro
+
+  } finally {
+    setIsLoading(false); // ✅ Sempre finaliza o loading
+  }
+};
 
   useEffect(() => {
     checkIfUserExist();

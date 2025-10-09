@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "Nhiquela+",
+    "name": "Nhiquela",
     "slug": "nhiquelaa",
     "version": "1.0.0",
+    "owner": "mpatricio",
     "orientation": "portrait",
     "icon": "./assets/nhiquela2.png",
     "userInterfaceStyle": "light",
@@ -16,39 +17,51 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/nhiquela2.png",
+      "bundleIdentifier": "com.nhiquela.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para calcular a distância até o fornecedor."
+        "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para permitir o envio de fotos."
       }
     },
     "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
-        }
-      },
-      "icon": "./assets/nhiquela2.png",
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
-      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mpatricio.nhiquelaa"
+      "package": "com.nhiquela.app",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/nhiquela2.png"
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que Nhiquela acesse a câmera para tirar fotos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
+        }
+      ],
+      "expo-notifications",
+      "expo-build-properties",
+      "expo-font"
+    ],
     "extra": {
       "eas": {
         "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
       }
     },
-    "owner": "mpatricio"
+   "runtimeVersion": "1.0.0"
   }
 }

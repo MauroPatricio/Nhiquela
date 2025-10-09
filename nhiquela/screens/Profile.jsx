@@ -3,9 +3,10 @@ import React, {useState, useEffect} from 'react'
 import { StatusBar } from 'expo-status-bar'
 import {AntDesign, MaterialCommunityIcons, SimpleLineIcons} from "@expo/vector-icons"
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import {  unregisterIndieDevice } from 'native-notify';
+import { useNavigation } from '@react-navigation/native'
 
-const Profile = ({navigation}) => {
+const Profile = () => {
+  const navigation = useNavigation()
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
 
@@ -13,39 +14,47 @@ const Profile = ({navigation}) => {
     checkIfUserExist();
     }, [])
 
-    const checkIfUserExist = async() =>{
-      const id = await AsyncStorage.getItem('id');
-      const userId = `user${JSON.parse(id)}`;
-      try{
-        const currentUser = await AsyncStorage.getItem(userId);
-        setUserLogin(false);
-        if(currentUser !== null){
-          const parseData = JSON.parse(currentUser);
-          setUserData(parseData);
-          setUserLogin(true);
-        }
-      }catch(error){
-        navigation.navigate('Login')
+ const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        console.warn('⚠️ ID inconsistente entre userData e id');
       }
+    } else {
+      console.log('⚠️ Usuário não está logado');
     }
+  } catch (error) {
+    console.error('❌ Erro ao verificar se o usuário existe:', error);
+  }
+};
 
-    const userLogout = async ()=> {
-      const id = await AsyncStorage.getItem('id');
-      const userId = `user${JSON.parse(id)}`;
-      // try{
-        // setUserLogin(false);
-        await AsyncStorage.removeItem(userId);
-        await AsyncStorage.removeItem('id');
+  const userLogout = async () => {
+  try {
+    const id = await AsyncStorage.getItem('id');
+    if (!id) return;
 
-        unregisterIndieDevice(userId, 23641, 'P1NYLd6lOOHkdLzDZK0kV3');
+    await AsyncStorage.removeItem('userData');
+    await AsyncStorage.removeItem('id');
 
+       navigation.reset({
+    index: 0,
+    routes: [{ name: 'Login' }],
+  });
+      // navigation.navigate('Login');
 
-        navigation.replace('Bottom Navigation')
-
-      // }catch(error){
-      //   navigation.navigate('Login')
-      // }
-    }
+  } catch (error) {
+    console.error('Erro ao sair:', error);
+    navigation.navigate('Login');
+  }
+};
 
 
   const logout = () => {
@@ -106,7 +115,6 @@ const Profile = ({navigation}) => {
 
     <View style={styles.container}>
           <View style={styles.container}>
-            <StatusBar backgroundColor='white'/>
             <View style={{width: '100%'}}>
               <Image source={require('../assets/nhiquela2.png')}
               style={styles.cover}

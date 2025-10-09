@@ -86,8 +86,8 @@ const SellerCard = ({
 
         <View style={styles.textContainer}>
           <Text style={styles.name}>{name}</Text>
+          <Text style={styles.description}>Endereço: {address}</Text>
           <Text style={styles.description}>{getShortDescription(description, 7)}</Text>
-
           <View style={styles.rating}>
             <StarIcon color="darkorange" opacity={0.9} size={18} />
             <Text style={styles.ratingText}>{rating} ({numReviews} comentários)</Text>
@@ -110,17 +110,17 @@ export default SellerCard;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
+    borderRadius: 10,
     shadowColor: 'grey',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 6,
     margin: 5,
-    width: 160,
+    width: 150, // DIMINUÍDO (antes 160)
   },
   card_template: {
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   imageContainer: {
@@ -128,51 +128,52 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 160,
+    height: 130, // DIMINUÍDO (antes 160)
     resizeMode: 'cover',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
   },
   statusOverlay: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    top: 6,
+    left: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
     borderRadius: 6,
   },
   statusText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 11, // DIMINUÍDO (antes 14)
   },
   textContainer: {
-    padding: 8,
+    padding: 6,
   },
   name: {
-    fontSize: 16,
+    fontSize: 14, // DIMINUÍDO (antes 16)
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   description: {
-    fontSize: 14,
+    fontSize: 12, // DIMINUÍDO (antes 14)
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 5,
   },
   rating: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   ratingText: {
-    marginLeft: 4,
-    fontSize: 14,
+    marginLeft: 3,
+    fontSize: 12, // DIMINUÍDO (antes 14)
     color: '#555',
   },
   distance: {
-    fontSize: 14,
+    fontSize: 12, // DIMINUÍDO (antes 14)
     color: '#333',
     fontWeight: 'bold',
-    marginTop: 5,
+    marginTop: 3,
   },
 });
+

@@ -9,20 +9,31 @@ import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
 import Toast from 'react-native-toast-message';
 
+
 const validationSchema = Yup.object().shape({
-  phoneNumber: Yup.string()
-    .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
-    .max(9, 'O número de telefone não pode ser superior a 9 dígitos')
-    .required('Obrigatório'),
-  password: Yup.string()
-    .min(6, 'A senha deve conter 6 dígitos')
-    .required('Obrigatório'),
-  email: Yup.string()
-    .email('Email inválido')
-    .required('Obrigatório'),
   name: Yup.string()
-    .required('Obrigatório'),
+    .trim()
+    .required('O nome não deve estar vazio'),
+
+  phoneNumber: Yup.string()
+    .trim()
+    .required('O número de telefone é obrigatório')
+    .matches(
+      /^(82|83|84|85|86|87)\d{7}$/,
+      'Número inválido. Deve conter 9 dígitos e começar por 8x'
+    ),
+
+  email: Yup.string()
+    .trim()
+    .email('Email inválido')
+    .required('O email é obrigatório'),
+
+  password: Yup.string()
+    .trim()
+    .min(6, 'A senha deve conter pelo menos 6 dígitos')
+    .required('A senha é obrigatória'),
 });
+  
 
 const formReducer = (state, action) => {
   switch (action.type) {

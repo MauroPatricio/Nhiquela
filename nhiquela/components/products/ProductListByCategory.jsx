@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, ActivityIndicator, Image, TouchableOpacity, Dimensions } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  ActivityIndicator,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import api from '../../hooks/createConnectionApi';
@@ -18,24 +27,21 @@ const ProductListByCategory = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  const truncateText = (text, length) => {
-    return text.length > length ? `${text.substring(0, length)}...` : text;
-  };
+  const truncateText = (text, length) =>
+    text.length > length ? `${text.substring(0, length)}...` : text;
 
-  // Fetch products by category from API with pagination
   const fetchProducts = async () => {
     if (loading || !hasMore) return;
-
     setLoading(true);
 
     try {
       const response = await api.get(`products/bycategory/${categoryid}?page=${page}`);
       const data = await response.data;
 
-      setProducts((prevProducts) => [...prevProducts, ...data.products]); // Append new products to the list
+      setProducts((prev) => [...prev, ...data.products]);
       setTotalPages(data.totalPages);
-      setHasMore(page < data.totalPages); // Disable loading more if current page reaches total pages
-      setPage((prevPage) => prevPage + 1); // Increment page for next fetch
+      setHasMore(page < data.totalPages);
+      setPage((prev) => prev + 1);
     } catch (error) {
       console.error(error);
     } finally {
@@ -43,22 +49,35 @@ const ProductListByCategory = () => {
     }
   };
 
-  // Fetch products when component mounts and when categoryid changes
   useEffect(() => {
     fetchProducts();
   }, [categoryid]);
 
-  // Render a single product item
   const renderProduct = ({ item }) => (
     <TouchableOpacity
       style={styles.productCard}
-      onPress={() => navigation.navigate('ProductDetail', { item })}
+      onPress={() => {
+        if (item.isSellerOpen) {
+          navigation.navigate('ProductDetail', { item });
+        }
+      }}
+      disabled={!item.isSellerOpen}
     >
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-      <Text style={styles.productName}>{truncateText(item.name, 30)}</Text>
-      <Text style={styles.productSeller}>{`${item.seller.seller.name}`}</Text>
-        <Text style={styles.productPrice}>{`${item.price} MT`}</Text>
+      <View style={styles.cardWrapper}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+
+        {/* Overlay quando loja estiver fechada */}
+        {!item.isSellerOpen && (
+          <View style={styles.overlay}>
+            <Text style={styles.overlayText}>Loja fechada</Text>
+          </View>
+        )}
+
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{truncateText(item.name, 30)}</Text>
+          <Text style={styles.productSeller}>{item.seller?.seller?.name || 'Fornecedor'}</Text>
+          <Text style={styles.productPrice}>{`${item.price} MT`}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -67,7 +86,7 @@ const ProductListByCategory = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.icons}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name='chevron-back-circle' size={35} style={styles.back} />
+          <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
         </TouchableOpacity>
       </View>
       <Text style={styles.title}>{`Categoria: ${title}`}</Text>
@@ -89,31 +108,34 @@ export default ProductListByCategory;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white', // Light background for contrast
+    backgroundColor: 'white',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#7F00FF', // Main color for title
+    color: '#7F00FF',
     textAlign: 'center',
     marginVertical: 20,
   },
   productCard: {
-    flexDirection: 'row',
     width: width * 0.95,
-    padding: 15,
     marginVertical: 10,
-    backgroundColor: '#FFFFFF', // White background for cards
-    borderRadius: 15,
     alignSelf: 'center',
-    shadowColor: 'black',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  cardWrapper: {
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    padding: 15,
+    flexDirection: 'row',
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    position: 'relative',
   },
   productImage: {
-    width: 70, // Slightly larger image for visibility
+    width: 70,
     height: 70,
     borderRadius: 12,
     marginRight: 15,
@@ -125,29 +147,41 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: '#333', // Dark text for product name
+    color: '#333',
+  },
+  productSeller: {
+    fontSize: 16,
+    color: '#6C757D',
   },
   productPrice: {
     fontSize: 16,
-    color: '#7F00FF', // Green color for price
-    fontWeight: '500'
+    color: '#7F00FF',
+    fontWeight: '500',
   },
-  productSeller: {
-    fontSize: 16, // Size for seller name
-    color: '#6C757D', // Grey color for seller
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  overlayText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+    padding: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 6,
   },
   icons: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
     padding: 10,
     backgroundColor: '#FFFFFF',
-    shadowColor: 'black',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
     elevation: 2,
   },
   back: {
-    color: '#7F00FF', // Color for the back icon
+    color: '#7F00FF',
   },
 });

@@ -1,49 +1,42 @@
 import React from 'react';
-import { useColorScheme, TouchableOpacity, StyleSheet, View, useWindowDimensions, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming,
-  withDelay,
-} from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';  // Ícones do Ionicons
+import { useColorScheme, TouchableOpacity, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function BottomSheetComponent({ isOpen, toggleSheet, duration = 300, children }) {
+export default function BottomSheetComponent({ isOpen, toggleSheet, children, duration = 300 }) {
   const colorScheme = useColorScheme();
   const { height: windowHeight } = useWindowDimensions();
-  const maxHeight = windowHeight * 1;
-  const height = useSharedValue(maxHeight);
-  const timerOpen = 10;
+  const translateY = useSharedValue(windowHeight);
 
-  const progress = useDerivedValue(() => 
-    withTiming(isOpen ? 0 : 1, { timerOpen })
-  );
+  // Atualiza a posição com animação
+  React.useEffect(() => {
+    translateY.value = withTiming(isOpen ? 0 : windowHeight, { duration });
+  }, [isOpen]);
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: progress.value * height.value }],
+    transform: [{ translateY: translateY.value }],
   }));
 
-  const backgroundColorSheetStyle = {
-    backgroundColor: colorScheme === 'light' ? '#f8f9ff' : '#272B3C',
-  };
-
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
-    zIndex: isOpen ? 1 : withDelay(duration, withTiming(-1, { duration: 0 })),
+    opacity: interpolate(translateY.value, [0, windowHeight], [0.5, 0]),
+    zIndex: isOpen ? 1 : -1,
   }));
 
   return (
     <>
+      {/* Backdrop */}
       <Animated.View style={[sheetStyles.backdrop, backdropStyle]}>
         <TouchableOpacity style={sheetStyles.flex} onPress={toggleSheet} />
       </Animated.View>
+
+      {/* Bottom Sheet */}
       <Animated.View
-        onLayout={(e) => {
-          height.value = e.nativeEvent.layout.height;
-        }}
-        style={[sheetStyles.sheet, sheetStyle, backgroundColorSheetStyle, { height: maxHeight }]}>
-        
+        style={[
+          sheetStyles.sheet,
+          sheetStyle,
+          { backgroundColor: colorScheme === 'light' ? '#fff' : '#272B3C', height: windowHeight },
+        ]}
+      >
         {/* Botão de fechar */}
         <View style={sheetStyles.closeButtonContainer}>
           <TouchableOpacity onPress={toggleSheet}>
@@ -51,7 +44,7 @@ export default function BottomSheetComponent({ isOpen, toggleSheet, duration = 3
           </TouchableOpacity>
         </View>
 
-        {/* Conteúdo do BottomSheet */}
+        {/* Conteúdo */}
         {children}
       </Animated.View>
     </>
@@ -60,22 +53,17 @@ export default function BottomSheetComponent({ isOpen, toggleSheet, duration = 3
 
 const sheetStyles = StyleSheet.create({
   sheet: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingLeft: 10,
-    paddingRight: 10,
-    width: '100%',
     position: 'absolute',
     bottom: 0,
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 20,
-    zIndex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    zIndex: 10,
+    padding: 20,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   flex: {
     flex: 1,
@@ -84,6 +72,6 @@ const sheetStyles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    zIndex: 10,
+    zIndex: 20,
   },
 });

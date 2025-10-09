@@ -62,7 +62,6 @@ const SellersByEstablishment = () => {
 
 const _id =  item._id
 const openstore = item.seller.isOpen
-console.log(item)
     return (
       <TouchableOpacity
         style={styles.sellerCard}

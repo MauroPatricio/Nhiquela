@@ -56,7 +56,7 @@ const SellersList = () => {
       onPress={() => {
   
         const {
-          _id,
+          
           name,
           logo,
           description,
@@ -68,8 +68,9 @@ const SellersList = () => {
           longitude,
           openstore
         } = item.seller; // Destructure properties from item.seller
-        console.log(item)
-    
+
+        const _id =item._id
+
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {
           id: _id, // Pass the ID correctly
