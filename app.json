@@ -13,7 +13,7 @@
     "android": {
       "package": "com.nhiquela.driver",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./src/assets/icon.png",
         "backgroundColor": "#ffffff"
       }
     },

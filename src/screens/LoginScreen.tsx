@@ -131,7 +131,7 @@ const Login: React.FC<LoginProps> = ({ navigation }) => {
     <ScrollView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <BackBtn onPress={() => navigation.goBack()} />
+        <BackBtn onPress={() => {}} />
           <Image
             source={require("../assets/nhiquela2.png")}
             style={styles.headerLogo}

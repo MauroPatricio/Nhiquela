@@ -6,7 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  Image
+  Image,
+  Alert
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -40,7 +41,35 @@ export default function DriverHeader({
   userRating = 4.9,
 }: Props) {
   // ✅ USAR DADOS DO CONTEXTO
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  // ✅ FUNÇÃO PARA CONFIRMAR LOGOUT
+  const handleLogout = () => {
+    Alert.alert(
+      "Confirmar Logout",
+      "Tem certeza que deseja sair da sua conta?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log("🚪 [DriverHeader] Iniciando logout...");
+              await logout();
+              console.log("✅ [DriverHeader] Logout concluído com sucesso");
+            } catch (error) {
+              console.error("❌ [DriverHeader] Erro no logout:", error);
+              Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+            }
+          }
+        }
+      ]
+    );
+  };
 
   // ✅ FUNÇÃO PARA DETETAR E FORMATAR IMAGEM (BASE64 OU URL)
   const getProfileImageSource = () => {
@@ -180,6 +209,18 @@ export default function DriverHeader({
               color={COLORS.white}
             />
             <View style={styles.notificationBadge} />
+          </TouchableOpacity>
+
+          {/* ✅ BOTÃO DE LOGOUT ADICIONADO */}
+          <TouchableOpacity 
+            style={styles.logoutButton} 
+            onPress={handleLogout}
+          >
+            <Ionicons 
+              name="log-out-outline" 
+              size={24} 
+              color={COLORS.white} 
+            />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
@@ -352,6 +393,11 @@ const styles = StyleSheet.create({
     padding: 4,
     marginRight: 8,
     position: "relative",
+  },
+  // ✅ NOVO ESTILO PARA O BOTÃO DE LOGOUT
+  logoutButton: {
+    padding: 4,
+    marginRight: 8,
   },
   iconButton: {
     padding: 4,

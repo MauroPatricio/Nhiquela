@@ -32,7 +32,7 @@ export const COLORS = {
   gradientPrimary: ['#7F00FF', '#1E40AF'] as const, // lilás → preto
 
   gradientSecondary: ['#10B981', '#34D399'] as const,
-  gradientDark: ['#1E3A8A', '#1E40AF'] as const, // Ajustei para usar cores existentes
+  gradientDark: ['#7F00FF', '#000000'] as const, // Ajustei para usar cores existentes
   
   // Cores adicionais para texto
   textPrimary: '#1F2937' as const,

@@ -21,12 +21,11 @@ export default function TripMap({ destination, onRouteReady }: Props) {
   const [heading, setHeading] = useState<number>(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   
-  // Refs para animação suave - CORREÇÃO: usar any para timeout
+  // Refs para animação suave
   const lastPositionRef = useRef<any>(null);
   const animationRef = useRef<any>(null);
-  const positionAnim = useRef(new Animated.ValueXY()).current;
 
-  // Obter localização atual do usuário com movimento ultra suave
+  // Obter localização atual do usuário
   useEffect(() => {
     let locationSubscription: any = null;
 
@@ -39,7 +38,7 @@ export default function TripMap({ destination, onRouteReady }: Props) {
 
       // Obter localização inicial
       let location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
+        accuracy: Location.Accuracy.Balanced // Reduzido para melhor performance
       });
       
       const initialLocation = {
@@ -49,17 +48,13 @@ export default function TripMap({ destination, onRouteReady }: Props) {
       
       setOrigin(initialLocation);
       lastPositionRef.current = initialLocation;
-      positionAnim.setValue({
-        x: initialLocation.longitude,
-        y: initialLocation.latitude
-      });
 
-      // Configurar watch para atualizações suaves
+      // Configurar watch para atualizações
       locationSubscription = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.BestForNavigation,
-          distanceInterval: 2,
-          timeInterval: 500,
+          accuracy: Location.Accuracy.Balanced, // Reduzido para melhor performance
+          distanceInterval: 5, // Aumentado para menos atualizações
+          timeInterval: 1000, // Aumentado para menos atualizações
         },
         (newLocation) => {
           const updatedLocation = {
@@ -76,15 +71,15 @@ export default function TripMap({ destination, onRouteReady }: Props) {
             setHeading(newHeading);
           }
           
-          // Animação ultra suave para nova posição
-          ultraSmoothAnimateToPosition(updatedLocation);
+          // Atualizar posição diretamente (sem animação complexa)
+          setOrigin(updatedLocation);
           lastPositionRef.current = updatedLocation;
         }
       );
     })();
 
     return () => {
-      // Cleanup de todas as subscriptions e timeouts
+      // Cleanup
       if (locationSubscription) {
         locationSubscription.remove();
       }
@@ -93,51 +88,6 @@ export default function TripMap({ destination, onRouteReady }: Props) {
       }
     };
   }, []);
-
-  // Animação ultra suave com interpolação em milissegundos
-  const ultraSmoothAnimateToPosition = (newPosition: any) => {
-    if (!origin) return;
-
-    const steps = 20;
-    const totalDuration = 800;
-    const stepDuration = totalDuration / steps;
-    
-    const startLat = origin.latitude;
-    const startLng = origin.longitude;
-    const latStep = (newPosition.latitude - startLat) / steps;
-    const lngStep = (newPosition.longitude - startLng) / steps;
-    
-    let currentStep = 0;
-    
-    const animateStep = () => {
-      if (currentStep < steps) {
-        currentStep++;
-        
-        const progress = currentStep / steps;
-        const easedProgress = easeInOutCubic(progress);
-        
-        const intermediatePosition = {
-          latitude: startLat + (latStep * currentStep),
-          longitude: startLng + (lngStep * currentStep)
-        };
-        
-        setOrigin(intermediatePosition);
-        updateCamera(intermediatePosition);
-        
-        animationRef.current = setTimeout(animateStep, stepDuration);
-      } else {
-        setOrigin(newPosition);
-        updateCamera(newPosition);
-      }
-    };
-    
-    animateStep();
-  };
-
-  // Função de easing para movimento mais natural
-  const easeInOutCubic = (t: number): number => {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  };
 
   // Calcular bearing (direção) entre dois pontos
   const calculateBearing = (start: any, end: any) => {
@@ -159,12 +109,12 @@ export default function TripMap({ destination, onRouteReady }: Props) {
   const updateCamera = (center: any, customHeading?: number) => {
     const camera: Camera = {
       center,
-      pitch: 75,
+      pitch: 0, // Removido pitch 3D
       heading: customHeading !== undefined ? customHeading : heading,
-      altitude: 200,
-      zoom: 18,
+      altitude: 1000, // Aumentado para vista mais plana
+      zoom: 16, // Reduzido zoom para vista mais ampla
     };
-    mapRef.current?.animateCamera(camera, { duration: 800 });
+    mapRef.current?.animateCamera(camera, { duration: 500 });
   };
 
   useEffect(() => {
@@ -205,7 +155,7 @@ export default function TripMap({ destination, onRouteReady }: Props) {
   
     if (origin) {
       mapRef.current?.fitToCoordinates([origin, ...result.coordinates], {
-        edgePadding: { top: 150, right: 50, bottom: 150, left: 50 },
+        edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
         animated: true,
       });
     }
@@ -227,12 +177,11 @@ export default function TripMap({ destination, onRouteReady }: Props) {
     return angle;
   };
 
-  // Estilo para rotacionar a seta 3D
+  // Estilo simplificado para rotacionar a seta
   const getArrowRotationStyle = () => {
     return {
       transform: [
-        { rotate: `${heading}deg` },
-        { perspective: 1000 }
+        { rotate: `${heading}deg` }
       ]
     };
   };
@@ -245,7 +194,9 @@ export default function TripMap({ destination, onRouteReady }: Props) {
         showsUserLocation={false}
         loadingEnabled
         rotateEnabled={true}
-        pitchEnabled={true}
+        pitchEnabled={false} // Desabilitado pitch 3D
+        scrollEnabled={true}
+        zoomEnabled={true}
       >
         {origin && (
           <Marker 
@@ -255,11 +206,9 @@ export default function TripMap({ destination, onRouteReady }: Props) {
             flat={true}
           >
             <Animated.View style={[styles.arrowMarkerContainer, getArrowRotationStyle()]}>
-              <View style={styles.arrow3D}>
-                <Ionicons name="navigate" size={32} color={COLORS.primary} />
+              <View style={styles.arrowSimple}>
+                <Ionicons name="navigate" size={28} color={COLORS.primary} />
               </View>
-              <View style={styles.arrowShadow} />
-              <View style={styles.arrowGlow} />
             </Animated.View>
           </Marker>
         )}
@@ -267,8 +216,7 @@ export default function TripMap({ destination, onRouteReady }: Props) {
         {destination && (
           <Marker coordinate={destination} title="Destino" flat={true}>
             <View style={styles.destinationMarker}>
-              <Ionicons name="location" size={36} color="#FF3B30" />
-              <View style={styles.destinationPulse} />
+              <Ionicons name="location" size={32} color="#FF3B30" />
             </View>
           </Marker>
         )}
@@ -278,7 +226,7 @@ export default function TripMap({ destination, onRouteReady }: Props) {
             origin={origin}
             destination={destination}
             apikey={GOOGLE_API_KEY}
-            strokeWidth={4}
+            strokeWidth={3}
             strokeColor={COLORS.primary}
             optimizeWaypoints={true}
             mode="DRIVING"
@@ -289,14 +237,14 @@ export default function TripMap({ destination, onRouteReady }: Props) {
 
       {duration && (
         <Animated.View style={[styles.timeBox, { opacity: fadeAnim }]}>
-          <Ionicons name="time" size={20} color="#000" style={styles.timeIcon} />
+          <Ionicons name="time" size={18} color="#000" style={styles.timeIcon} />
           <Text style={styles.timeText}>{Math.round(duration)} min</Text>
         </Animated.View>
       )}
 
       {distance && (
         <View style={styles.distanceBox}>
-          <Ionicons name="speedometer" size={18} color="#FFF" style={styles.distanceIcon} />
+          <Ionicons name="speedometer" size={16} color="#FFF" style={styles.distanceIcon} />
           <Text style={styles.distanceText}>{distance.toFixed(1)} km</Text>
         </View>
       )}
@@ -307,7 +255,7 @@ export default function TripMap({ destination, onRouteReady }: Props) {
           <View style={styles.compassArrow}>
             <Ionicons 
               name="arrow-up" 
-              size={24} 
+              size={20} 
               color={COLORS.primary} 
               style={[styles.compassIcon, { transform: [{ rotate: `${heading}deg` }] }]} 
             />
@@ -328,114 +276,85 @@ const styles = StyleSheet.create({
     height: Dimensions.get("window").height,
   },
   arrowMarkerContainer: {
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  arrow3D: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  arrowSimple: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    shadowColor: COLORS.primary,
+    borderRadius: 18,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 12,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
     borderWidth: 2,
     borderColor: COLORS.primary,
-  },
-  arrowShadow: {
-    position: 'absolute',
-    bottom: -5,
-    width: 25,
-    height: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 4,
-    transform: [{ skewX: '-20deg' }],
-  },
-  arrowGlow: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary,
-    opacity: 0.1,
   },
   destinationMarker: {
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  destinationPulse: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FF3B30',
-    opacity: 0.2,
-    zIndex: -1,
   },
   timeBox: {
     position: "absolute",
     top: 50,
     alignSelf: "center",
     backgroundColor: "#FFD700",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    elevation: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     flexDirection: 'row',
     alignItems: 'center',
   },
   timeIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   timeText: {
     color: "#000",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-    fontFamily: "sans-serif-condensed",
   },
   distanceBox: {
     position: "absolute",
     bottom: 30,
     left: 20,
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    elevation: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     flexDirection: 'row',
     alignItems: 'center',
   },
   distanceIcon: {
-    marginRight: 6,
+    marginRight: 4,
   },
   distanceText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
   },
   compassBox: {
@@ -443,29 +362,29 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: 12,
-    borderRadius: 20,
-    elevation: 6,
+    padding: 10,
+    borderRadius: 16,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 3,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   compassText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 2,
     fontWeight: '600',
   },
   compassArrow: {
-    width: 30,
-    height: 30,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -475,13 +394,13 @@ const styles = StyleSheet.create({
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   compassDegree: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#333',
-    marginTop: 2,
+    marginTop: 1,
     fontWeight: 'bold',
   },
 });

@@ -35,7 +35,7 @@ const PremiumHeaderTitle = ({ title, icon = "✨" }: { title: string; icon?: str
 // Componente de Header com Gradiente Azul
 const GradientHeader = ({ children }: { children: React.ReactNode }) => (
   <LinearGradient
-    colors={['#1E3A8A', '#3B82F6']}
+    colors={['#7F00FF', '#7F00FF']}
     start={{ x: 0, y: 0 }}
     end={{ x: 1, y: 0 }}
     style={styles.gradientHeader}
@@ -290,11 +290,9 @@ const styles = StyleSheet.create({
   gradientHeader: {
     flex: 1,
     position: 'relative',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },

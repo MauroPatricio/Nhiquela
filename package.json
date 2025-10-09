@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest"
@@ -19,7 +19,7 @@
     "@react-navigation/native-stack": "^7.3.26",
     "axios": "^1.12.2",
     "expo": "~54.0.0",
-    "expo-dev-client": "~6.0.12",
+    "expo-dev-client": "~6.0.13",
     "expo-image-manipulator": "~14.0.7",
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
