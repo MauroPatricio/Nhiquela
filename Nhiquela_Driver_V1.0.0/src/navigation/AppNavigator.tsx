@@ -226,19 +226,6 @@ export default function AppNavigator() {
       <Stack.Screen
         name={ROUTES.REGISTER_USER}
         component={RegisterDriverScreen}
-        options={{
-          headerShown: true,
-          headerTitle: () => <PremiumHeaderTitle title="Cadastro" icon="" />,
-          headerStyle: {
-            backgroundColor: 'transparent',
-          },
-          headerBackground: () => (
-            <GradientHeader>
-              <View style={styles.headerBackgroundGlow} />
-            </GradientHeader>
-          ),
-          headerTintColor: '#FFFFFF',
-        }}
       />
     </Stack.Navigator>
   );

@@ -507,9 +507,9 @@ const prepareMinimalData = (): any => {
         showLoading('Iniciando cadastro...');
     
         try {
-            // const preparedData = await prepareFormData();
+              const preparedData = await prepareFormData();
             
-                const preparedData = prepareMinimalData();
+            //   const preparedData = prepareMinimalData();
 
             logSubmissionData(preparedData);
             
@@ -519,11 +519,17 @@ const prepareMinimalData = (): any => {
                 
             hideLoading(); // ✅ Esconde spinner no sucesso
     
-            Alert.alert(
+           Alert.alert(
                 "✅ Sucesso",
                 "Cadastro do motorista enviado para validação!",
-                [{ text: "OK" }]
-            );
+                [
+                    { 
+                    text: "OK", 
+                    onPress: () => navigation.navigate('Login') 
+                    }
+                ]
+);
+        
     
         } catch (error: any) {
             console.log("==========================================");
@@ -629,7 +635,8 @@ const prepareMinimalData = (): any => {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => navigation.goBack()}
+                    onPress={() =>  navigation.replace('Login')
+}
                 >
                     <Ionicons name="arrow-back" size={24} color="#FFF" />
                 </TouchableOpacity>
