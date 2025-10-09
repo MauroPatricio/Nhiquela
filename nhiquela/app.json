@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Nhiquela",
+    "slug": "nhiquelaa",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/nhiquela2.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/nhiquela2.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nhiquela.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para permitir o envio de fotos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/nhiquela2.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.nhiquela.app",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/nhiquela2.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que Nhiquela acesse a câmera para tirar fotos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
+        }
+      ],
+      "expo-notifications",
+      "expo-build-properties",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
+      }
+    },
+   "runtimeVersion": "1.0.0"
+  }
+}

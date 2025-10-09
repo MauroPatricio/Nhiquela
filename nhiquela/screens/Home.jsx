@@ -1,0 +1,924 @@
+// screens/Home.js (versão otimizada)
+import api from '../hooks/createConnectionApi';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import {
+  View, Text, TouchableOpacity, Image, StyleSheet,
+  RefreshControl, ActivityIndicator, FlatList, Linking,
+  Dimensions
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from "@expo/vector-icons";
+import SellersView from '../components/SellersView';
+import ProductHomeView from '../components/ProductHomeView';
+import style from './home.style';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSelector } from 'react-redux';
+import { selectBasketItems } from '../features/basketSlice';
+import { Welcome } from './Index';
+import BottomSheetComponent from '../components/BottomSheetComponent';
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import * as Notifications from 'expo-notifications';
+import FlashMessage, { showMessage } from "react-native-flash-message";
+import NetInfo from '@react-native-community/netinfo';
+import { io } from "socket.io-client";
+import EstablishmentsView from '../components/EstablishmentsView1';
+import OptimizedImage from '../components/OptimizedImage';
+import useDebounce from '../hooks/useDebounce';
+import useThrottle from '../hooks/useThrottle';
+
+const { width } = Dimensions.get('window');
+const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL || 'http://localhost:3000');
+const socket = io(`${SOCKET_URL}/products`, { transports: ['websocket'] });
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+// Componente memoizado para item de produto
+const ProductItem = React.memo(({ item, onPress }) => (
+  <TouchableOpacity
+    style={styles.productCard}
+    onPress={() => onPress(item)}
+  >
+    <OptimizedImage 
+      source={{ uri: item.image }} 
+      style={styles.productImage}
+    />
+    <View style={styles.productDetails}>
+      <Text style={styles.productName} numberOfLines={1}>
+        {item.nome || item.name}
+      </Text>
+      <Text style={styles.productPrice}>
+        {item.discount > 0 ? (
+          <View style={styles.discountContainer}>
+            <Text style={styles.originalPrice}>{item.price} MT</Text>
+            <Text style={styles.discountPrice}>{item.discount} MT</Text>
+          </View>
+        ) : (
+          `${item.price} MT`
+        )}
+      </Text>
+    </View>
+  </TouchableOpacity>
+));
+
+// Componente memoizado para item de categoria
+const CategoryPill = React.memo(({ item, onPress }) => (
+  <TouchableOpacity 
+    style={styles.wrapper} 
+    onPress={() => onPress(item)}
+    testID={`category-pill-${item._id}`}
+  >
+    <Text style={styles.title}>{item.name}</Text>
+    {(item.productCount > 0 || item.count > 0) && (
+      <View style={styles.countBadge}>
+        <Text style={styles.countText}>
+          {item.productCount || item.count || 0}
+        </Text>
+      </View>
+    )}
+  </TouchableOpacity>
+));
+
+// Componente memoizado para linha de produto no BottomSheet
+const ProductRow = React.memo(({ item, onPress }) => (
+  <TouchableOpacity
+    style={styles.productContainer}
+    onPress={() => onPress(item)}
+  >
+    <View style={styles.productRow}>
+      <OptimizedImage 
+        source={{ uri: item.image }} 
+        style={styles.logo}
+      />
+      <View style={styles.productInfo}>
+        <Text style={styles.productBrand}>{item.nome || item.name}</Text>
+        <Text style={styles.productPrice}>
+          {item.discount > 0 ? (
+            <View style={styles.rowDiscountContainer}>
+              <Text style={styles.rowOriginalPrice}>{item.price} MT</Text>
+              <Text style={styles.rowDiscountPrice}>{item.discount} MT</Text>
+            </View>
+          ) : (
+            `${item.price} MT`
+          )}
+        </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+));
+
+const Home = () => {
+  const [userData, setUserData] = useState(null);
+  const [userLogin, setUserLogin] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loadingFeaturedProducts, setLoadingFeaturedProducts] = useState(false);
+  const [categoryProducts, setCategoryProducts] = useState({});
+  const [loadingCategoryProducts, setLoadingCategoryProducts] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const [catProducts, setCatProducts] = useState([]);
+  const [catPage, setCatPage] = useState(1);
+  const [catTotalPages, setCatTotalPages] = useState(1);
+  const [loadingCatProducts, setLoadingCatProducts] = useState(false);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+
+  const bottomSheetRef = useRef(null);
+  const items = useSelector(selectBasketItems);
+  const navigation = useNavigation();
+
+  // Memoizar dados para evitar recálculos desnecessários
+  const memoizedCategories = useMemo(() => categories, [categories]);
+  const memoizedFeaturedProducts = useMemo(() => featuredProducts, [featuredProducts]);
+
+  // ------------------- EFEITOS INICIAIS -------------------
+  useEffect(() => {
+    checkIfUserExist();
+    registerForPushNotificationsAsync();
+    setupNotificationListeners();
+    loadFeaturedProducts();
+  }, []);
+
+  // Carrega/recupera categorias na volta do foco com cache
+  useFocusEffect(
+    useCallback(() => {
+      const loadDataWithCache = async () => {
+        try {
+          // Tentar carregar do cache primeiro
+          const cachedCategories = await AsyncStorage.getItem('cachedCategories');
+          const cachedTimestamp = await AsyncStorage.getItem('cachedCategoriesTimestamp');
+          
+          const now = Date.now();
+          const isCacheValid = cachedTimestamp && (now - parseInt(cachedTimestamp)) < 5 * 60 * 1000; // 5 minutos
+          
+          if (cachedCategories && isCacheValid) {
+            const parsedCategories = JSON.parse(cachedCategories);
+            setCategories(parsedCategories);
+            
+            // Carregar produtos para categorias que têm produtos
+            parsedCategories.forEach(category => {
+              if (category.productCount > 0) {
+                loadCategoryProductsForHome(category._id);
+              }
+            });
+          }
+          
+          // Sempre atualizar em background
+          loadCategories(true);
+        } catch (error) {
+          console.error('Erro ao carregar cache:', error);
+          loadCategories(true);
+        }
+      };
+      
+      loadDataWithCache();
+    }, [])
+  );
+
+  // Debounce para evitar muitas chamadas ao socket
+  const throttledNewProductHandler = useThrottle((newProduct) => {
+    if (!newProduct?.category) return;
+    
+    setCategories(prev =>
+      prev.map(c =>
+        String(c._id) === String(newProduct.category)
+          ? { ...c, count: (c.count || 0) + 1, productCount: (c.productCount || 0) + 1 }
+          : c
+      )
+    );
+    
+    if (selectedCategory && String(selectedCategory._id) === String(newProduct.category)) {
+      loadCategoryProducts(selectedCategory._id, 1, false);
+    }
+    
+    setFeaturedProducts(prev => [newProduct, ...prev.slice(0, 19)]);
+  }, 500);
+
+  const throttledProductDeletedHandler = useThrottle(({ _id, category }) => {
+    if (!category) return;
+    
+    setCategories(prev =>
+      prev.map(c =>
+        String(c._id) === String(category)
+          ? { ...c, count: Math.max(0, (c.count || 1) - 1), productCount: Math.max(0, (c.productCount || 1) - 1) }
+          : c
+      )
+    );
+    
+    if (selectedCategory && String(selectedCategory._id) === String(category)) {
+      setCatProducts(prev => prev.filter(p => String(p._id) !== String(_id)));
+    }
+    
+    setFeaturedProducts(prev => prev.filter(p => String(p._id) !== String(_id)));
+  }, 500);
+
+  // Sockets: atualiza contadores de categorias quando chega novo produto
+  useEffect(() => {
+    socket.on("newProduct", throttledNewProductHandler);
+    socket.on("productDeleted", throttledProductDeletedHandler);
+    socket.on("storeStatusChanged", () => {
+      loadCategories(true);
+    });
+
+    return () => {
+      socket.off("newProduct", throttledNewProductHandler);
+      socket.off("productDeleted", throttledProductDeletedHandler);
+      socket.off("storeStatusChanged");
+    };
+  }, [selectedCategory, throttledNewProductHandler, throttledProductDeletedHandler]);
+
+  // ------------------- USER / PUSH -------------------
+  const checkIfUserExist = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
+
+      if (storedUserData && storedUserId) {
+        const parsedUserData = JSON.parse(storedUserData);
+        if (parsedUserData._id === storedUserId) {
+          setUserData(parsedUserData);
+          setUserLogin(true);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar usuário:', error);
+    }
+  };
+
+  const registerForPushNotificationsAsync = async () => {
+    if (!userData) return;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      return;
+    }
+
+    const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
+    const deviceToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    updatePushToken(userData._id, deviceToken);
+  };
+
+  const updatePushToken = async (userId, deviceToken) => {
+    try {
+      await api.patch(`/users/updateDeviceToken/${userId}`, { deviceToken });
+    } catch (error) {
+      console.error('Erro ao atualizar PushToken:', error.message);
+    }
+  };
+
+  const setupNotificationListeners = () => {
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      showMessage({
+        message: "Novo pedido recebido",
+        description: notification.request.content.body,
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
+    });
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const { extraData } = response.notification.request.content.data;
+      if (extraData) {
+        navigation.navigate('OrderDetail', { extraData });
+      }
+    });
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected) {
+        checkPendingNotifications();
+      }
+    });
+
+    return () => {
+    notificationListener.remove();
+responseListener.remove();
+      unsubscribe();
+    };
+  };
+
+  const checkPendingNotifications = async () => {
+    const pending = await Notifications.getPresentedNotificationsAsync();
+    pending.forEach(notification => {
+      showMessage({
+        message: "Pedido pendente",
+        description: notification.request.content.body,
+        type: "info",
+        icon: "auto",
+        duration: 3000,
+      });
+    });
+  };
+
+  // ------------------- CATEGORIAS -------------------
+  const loadCategories = async (replace = false) => {
+    setLoadingCategories(true);
+    try {
+      const response = await api.get('/products/categoriesWithCount');
+      
+      const list = response.data?.categories || [];
+      
+      // Adiciona productCount se não existir (para compatibilidade)
+      const categoriesWithCount = list.map(category => ({
+        ...category,
+        productCount: category.productCount || category.count || 0
+      }));
+      
+      setCategories(replace ? categoriesWithCount : [...categories, ...categoriesWithCount]);
+      
+      // Salvar no cache
+      await AsyncStorage.setItem('cachedCategories', JSON.stringify(categoriesWithCount));
+      await AsyncStorage.setItem('cachedCategoriesTimestamp', Date.now().toString());
+      
+      // Carrega produtos para categorias que têm produtos
+      categoriesWithCount.forEach(category => {
+        if (category.productCount > 0) {
+          loadCategoryProductsForHome(category._id);
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível carregar as categorias",
+        type: "danger",
+      });
+    } finally {
+      setLoadingCategories(false);
+      setRefreshing(false);
+    }
+  };
+
+  // ------------------- PRODUTOS EM DESTAQUE -------------------
+  const loadFeaturedProducts = async () => {
+    setLoadingFeaturedProducts(true);
+    try {
+      // Usando a rota principal com filtros para produtos ativos
+      const response = await api.get('/products?page=1&pageSize=20&order=newest');
+      const products = response.data?.products || [];
+      setFeaturedProducts(products);
+    } catch (error) {
+      console.error('Erro ao buscar produtos em destaque:', error);
+    } finally {
+      setLoadingFeaturedProducts(false);
+    }
+  };
+
+  // ------------------- PRODUTOS POR CATEGORIA PARA HOME -------------------
+  const loadCategoryProductsForHome = async (categoryId) => {
+    if (loadingCategoryProducts[categoryId] || categoryProducts[categoryId]) return;
+    
+    setLoadingCategoryProducts(prev => ({ ...prev, [categoryId]: true }));
+    
+    try {
+      const response = await api.get(`/products?category=${categoryId}&pageSize=5`);
+      const products = response.data?.products || [];
+      
+      setCategoryProducts(prev => ({
+        ...prev,
+        [categoryId]: products
+      }));
+    } catch (error) {
+      console.error(`Erro ao buscar produtos da categoria ${categoryId}:`, error);
+    } finally {
+      setLoadingCategoryProducts(prev => ({ ...prev, [categoryId]: false }));
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadCategories(true);
+    loadFeaturedProducts();
+  };
+
+  // ------------------- PRODUTOS DA CATEGORIA COM PAGINAÇÃO INFINITA -------------------
+  const openCategory = (category) => {
+    setSelectedCategory(category);
+    setCatProducts([]);
+    setCatPage(1);
+    setCatTotalPages(1);
+    setBottomSheetOpen(true);
+    
+    // Pequeno delay para garantir que o bottomsheet está aberto antes de carregar
+    setTimeout(() => {
+      bottomSheetRef.current?.expand?.();
+      loadCategoryProducts(category._id, 1, false);
+    }, 100);
+  };
+
+  const loadCategoryProducts = async (categoryId, page = 1, append = false) => {
+    if (loadingCatProducts && !append) return;
+    
+    console.log('Carregando produtos da categoria:', categoryId, 'Página:', page);
+    
+    // Se for carregar mais produtos (scroll), usar loading diferente
+    if (append) {
+      setLoadingMoreProducts(true);
+    } else {
+      setLoadingCatProducts(true);
+    }
+    
+    try {
+      const response = await api.get(`/products/bycategory/${categoryId}?page=${page}&pageSize=20`);
+      
+      // Ajuste para a estrutura do seu backend
+      const products = response.data?.products || [];
+      const totalPages = response.data?.totalPages || response.data?.pages || 1;
+      const currentPage = response.data?.currentPage || response.data?.page || page;
+      
+      setCatProducts(prev => {
+        if (append) {
+          // Evitar duplicatas ao fazer append
+          const newProducts = products.filter(newProduct => 
+            !prev.some(existingProduct => existingProduct._id === newProduct._id)
+          );
+          return [...prev, ...newProducts];
+        } else {
+          return products;
+        }
+      });
+      
+      setCatTotalPages(totalPages);
+      setCatPage(currentPage);
+    } catch (error) {
+      console.error('Erro ao buscar produtos da categoria:', error);
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível carregar os produtos",
+        type: "danger",
+      });
+    } finally {
+      setLoadingCatProducts(false);
+      setLoadingMoreProducts(false);
+    }
+  };
+
+  // Debounce para evitar muitas chamadas durante scroll
+  const debouncedLoadMore = useDebounce(loadMoreProducts, 300);
+
+  const loadMoreProducts = () => {
+    if (!selectedCategory || loadingMoreProducts || loadingCatProducts) return;
+    if (catPage < catTotalPages) {
+      loadCategoryProducts(selectedCategory._id, catPage + 1, true);
+    }
+  };
+
+  // Função para renderizar o footer da lista com loading
+  const renderFooter = () => {
+    if (!loadingMoreProducts) return null;
+    
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#7F00FF" />
+        <Text style={styles.loadingText}>Carregando mais produtos...</Text>
+      </View>
+    );
+  };
+
+  // Handlers memoizados para evitar recriação
+  const handleProductPress = useCallback((product) => {
+    navigation.navigate("ProductDetail", { item: product });
+  }, [navigation]);
+
+  const handleCategoryPress = useCallback((category) => {
+    openCategory(category);
+  }, []);
+
+  // ------------------- RENDER -------------------
+  const renderCategoryPill = useCallback(({ item }) => (
+    <CategoryPill item={item} onPress={handleCategoryPress} />
+  ), [handleCategoryPress]);
+
+  // Renderizar produto individual para featured
+  const renderProductItem = useCallback(({ item }) => (
+    <ProductItem item={item} onPress={handleProductPress} />
+  ), [handleProductPress]);
+
+  // Renderizar bloco de categoria com produtos
+  const renderCategoryBlock = useCallback(({ item }) => (
+    <ProductHomeView
+      key={`producthomeview-${item._id}`}
+      title={item.name}
+      description={`${item.productCount || item.count || 0} produtos disponíveis`}
+      categoryid={item._id}
+      products={categoryProducts[item._id] || []}
+      onPress={() => handleCategoryPress(item)}
+      productCount={item.productCount || item.count || 0}
+      loading={loadingCategoryProducts[item._id]}
+    />
+  ), [categoryProducts, loadingCategoryProducts, handleCategoryPress]);
+
+  const renderProductRow = useCallback(({ item }) => (
+    <ProductRow item={item} onPress={handleProductPress} />
+  ), [handleProductPress]);
+
+  // Renderizar seção de produtos em destaque
+  const renderFeaturedProducts = () => (
+    <View style={styles.featuredSection}>
+      <Text style={styles.sectionTitle}>Produtos em Destaque</Text>
+      {loadingFeaturedProducts ? (
+        <ActivityIndicator size="small" color="#7F00FF" style={{ marginVertical: 20 }} />
+      ) : (
+        <FlatList
+          horizontal
+          data={memoizedFeaturedProducts}
+          keyExtractor={(item) => String(item._id)}
+          renderItem={renderProductItem}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.featuredList}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Nenhum produto em destaque</Text>
+          }
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+        />
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={{ backgroundColor: "white", flex: 1 }} testID="home-screen">
+      {/* AppBar */}
+      <View style={style.appBarWrapper}>
+        <View style={style.appBar}>
+          <OptimizedImage source={require('../assets/default1.jpg')} style={style.cover} />
+          <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
+          <View style={{ alignItems: "flex-end" }}>
+            <View style={style.cartCount}>
+              <Text style={style.cartNumber}>{items.length}</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+              <Ionicons name="cart-outline" size={35} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      <Welcome />
+
+      {/* Lista principal com FlatList */}
+      {loadingCategories ? (
+        <ActivityIndicator size="large" color="#7F00FF" style={{ marginTop: 20 }} />
+      ) : (
+        <FlatList
+          data={memoizedCategories}
+          keyExtractor={(item) => String(item._id)}
+          renderItem={renderCategoryBlock}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7F00FF']} />
+          }
+          ListHeaderComponent={
+            <>
+              {/* Pílulas horizontais de categorias */}
+              <FlatList
+                horizontal
+                data={memoizedCategories}
+                keyExtractor={(item) => String(item._id)}
+                renderItem={renderCategoryPill}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 8 }}
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
+                windowSize={5}
+              />
+              
+              {/* Produtos em Destaque */}
+              {renderFeaturedProducts()}
+
+              <EstablishmentsView title='Tipos de Estabelecimentos' />
+              <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
+            </>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.empty}>Nenhuma categoria encontrada.</Text>
+              <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+                <Text style={styles.retryText}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
+          }
+          initialNumToRender={5}
+          maxToRenderPerBatch={3}
+          windowSize={5}
+          removeClippedSubviews={true}
+        />
+      )}
+
+      {/* BottomSheet com produtos paginados da categoria */}
+      <BottomSheetComponent
+        isOpen={bottomSheetOpen}
+        toggleSheet={() => {
+          setBottomSheetOpen(false);
+          bottomSheetRef.current?.close?.();
+        }}
+        ref={bottomSheetRef}
+        height={600}
+      >
+        <View style={styles.bottomSheetContent}>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={styles.bottomSheetTitle}>
+              Produtos em {selectedCategory?.name}
+            </Text>
+            <Text style={styles.productCountText}>
+              {catProducts.length} de {selectedCategory?.productCount || selectedCategory?.count || 0} produtos
+            </Text>
+          </View>
+
+          {loadingCatProducts && catProducts.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#7F00FF" />
+              <Text style={styles.loadingText}>Carregando produtos...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={catProducts}
+              keyExtractor={(item) => String(item._id)}
+              renderItem={renderProductRow}
+              onEndReached={debouncedLoadMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={renderFooter}
+              ListEmptyComponent={
+                !loadingCatProducts && (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.empty}>Nenhum produto nesta categoria.</Text>
+                  </View>
+                )
+              }
+              initialNumToRender={10}
+              maxToRenderPerBatch={5}
+              windowSize={7}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={true}
+              contentContainerStyle={catProducts.length === 0 ? { flexGrow: 1 } : {}}
+            />
+          )}
+        </View>
+      </BottomSheetComponent>
+
+      <FlashMessage position="top" />
+
+      {userData && (
+        <TouchableOpacity
+          style={styles.whatsappButton}
+          onPress={() => Linking.openURL('https://wa.me/message/2HLEYV6VTD7BF1')}
+        >
+          <Ionicons name="logo-whatsapp" size={30} color="white" />
+        </TouchableOpacity>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  // Estilos para produtos em destaque
+  featuredSection: {
+    marginVertical: 20,
+    paddingHorizontal: 15,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  featuredList: {
+    paddingBottom: 10,
+  },
+  productCard: {
+    width: 160,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginRight: 15,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  productImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  productDetails: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#7F00FF',
+  },
+  discountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  originalPrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  discountPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#7F00FF',
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: '#7F00FF',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    padding: 20,
+  },
+
+  // Estilos para o BottomSheet
+  bottomSheetContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    backgroundColor: '#fff',
+    flex: 1,
+  },
+  bottomSheetHeader: {
+    marginBottom: 16,
+  },
+  bottomSheetTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#7F00FF',
+  },
+  productCountText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+
+  // Estilos para lista de produtos
+  productContainer: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    marginVertical: 5,
+    elevation: 2,
+  },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  productInfo: {
+    flex: 1,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+  },
+  productBrand: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  rowDiscountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  rowOriginalPrice: {
+    fontSize: 14,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  rowDiscountPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#7F00FF',
+  },
+
+  // Estilos para categorias
+  wrapper: {
+    marginRight: 8,
+    backgroundColor: '#7F00FF',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  countBadge: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  countText: {
+    color: '#7F00FF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  // Estilos gerais
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  empty: {
+    textAlign: 'center',
+    color: '#555',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#7F00FF',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  whatsappButton: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    backgroundColor: '#7F00FF',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    zIndex: 999,
+  },
+  footerLoader: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  loadingText: {
+    color: '#7F00FF',
+    fontSize: 14,
+    marginTop: 10,
+  },
+});
+
+export default Home;
