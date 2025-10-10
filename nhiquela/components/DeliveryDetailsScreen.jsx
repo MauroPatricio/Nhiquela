@@ -100,14 +100,21 @@ const HeaderWithBack = ({ title, navigation }) => (
 
   // --- Atualizar Redux com debounce ---
   const updateRedux = useCallback(
-    debounce((addr, total, deliv) => {
-      dispatch(addAddress(addr));
+    debounce((addr, total, deliv, userLoc) => {
+      const deliveryAddress = {
+        address: addr,
+        latitude: userLoc?.latitude || null,
+        longitude: userLoc?.longitude || null,
+      };
+
+      dispatch(addAddress(deliveryAddress));
       dispatch(addTotalToPay(total));
       dispatch(addIva(iva));
       dispatch(addDeliverPrice(deliv));
     }, 200),
     [dispatch]
   );
+
 
   useEffect(() => {
     updateRedux(address, totalToPay, distanceToPay);
