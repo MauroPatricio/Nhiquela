@@ -853,67 +853,114 @@ orderRouter.put(
   '/:id/acceptedByDeliveryman',
   isAuth,
   expressAsyncHandler(async (req, res) => {
+    console.log("🚗 Iniciando aceitação de pedido pelo entregador...");
+    
     const order = await Order.findById(req.params.id);
     const user_deliver = await User.findById(req.user._id);
 
-    if (order) {
-      order.status = 'Aceite pelo entregador';
-      order.stepStatus=4;
-
-      if(user_deliver.isDeliveryMan){
-
-        order.deliveryman = {
-          id: user_deliver._id,
-          photo: user_deliver.deliveryman.photo,
-          name:  user_deliver.deliveryman.name,
-          phoneNumber:  user_deliver.deliveryman.phoneNumber,
-          transport_type:  user_deliver.deliveryman.transport_type,
-          transport_color:  user_deliver.deliveryman.transport_color,
-          transport_registration:  user_deliver.deliveryman.transport_registration,
-        }
-      }
-
-      const updateOrder = await order.save();
-
-
-      const sellerOfProduct = await User.findById(order.seller);
-
-      //  Para envio de mensagens
-
-       let message =`Ola, a Nhiquela informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
- 
-      //  sendSMSToSellerUSendIt(sellerOfProduct,message);
-
-      sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
-
-
-      const clientOfProduct = await User.findById(order.user);
-  
-  //toSeller
-  await createNotification({
-    message: message,
-    receiver_id: order.seller,
-    sender_id: order.user,
-    orderID: order._id,
-    pushToken: sellerOfProduct.pushToken,
-  
-  });
-  //toOrderClient
-  await createNotification({
-  message: message,
-  receiver_id: order.user,
-  sender_id: order.seller,
-  orderID: order._id,
-  pushToken: clientOfProduct.pushToken
-  });
-  
-  
-
-
-      res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
-    } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+    if (!order) {
+      console.log("❌ Pedido não encontrado:", req.params.id);
+      return res.status(404).send({ message: 'Pedido não encontrado' });
     }
+
+    if (!user_deliver || !user_deliver.isDeliveryMan) {
+      console.log("❌ Usuário não é entregador:", req.user._id);
+      return res.status(403).send({ message: 'Apenas entregadores podem aceitar pedidos' });
+    }
+
+    // VERIFICAÇÃO CRÍTICA: Verificar se o entregador já tem algum pedido ativo
+    console.log("🔍 Verificando se entregador já tem pedidos ativos...");
+    const activeOrders = await Order.find({
+      'deliveryman.id': user_deliver._id,
+      deleted: false,
+      $or: [
+        { status: 'Aceite pelo entregador' },
+        { status: 'Em trânsito' },
+        { status: 'No destino indicado' }
+      ]
+    });
+
+    console.log(`📊 Pedidos ativos encontrados: ${activeOrders.length}`);
+
+    // Se o entregador já tem um pedido ativo, impedir aceitar outro
+    if (activeOrders.length > 0) {
+      console.log("🚫 Entregador já tem pedido ativo. Bloqueando nova aceitação.");
+      return res.status(400).send({ 
+        message: 'Você já tem um pedido em andamento. Finalize ou cancele o pedido atual antes de aceitar outro.' 
+      });
+    }
+
+    // Verificar também se o pedido já foi aceito por outro entregador
+    if (order.deliveryman && order.deliveryman.id) {
+      console.log("❌ Pedido já foi aceito por outro entregador:", order.deliveryman.id);
+      return res.status(400).send({ 
+        message: 'Este pedido já foi aceito por outro entregador.' 
+      });
+    }
+
+    // Verificar se o pedido está disponível para entrega
+    if (order.stepStatus !== 3 || !order.isAvailableToDeliver) {
+      console.log("❌ Pedido não está disponível para entrega. Status:", order.status);
+      return res.status(400).send({ 
+        message: 'Este pedido não está disponível para entrega no momento.' 
+      });
+    }
+
+    console.log("✅ Todas as verificações passaram. Aceitando pedido...");
+
+    // Atualizar o pedido
+    order.status = 'Aceite pelo entregador';
+    order.stepStatus = 4;
+
+    order.deliveryman = {
+      id: user_deliver._id,
+      photo: user_deliver.deliveryman.photo,
+      name: user_deliver.deliveryman.name,
+      phoneNumber: user_deliver.deliveryman.phoneNumber,
+      transport_type: user_deliver.deliveryman.transport_type,
+      transport_color: user_deliver.deliveryman.transport_color,
+      transport_registration: user_deliver.deliveryman.transport_registration,
+    };
+
+    const updateOrder = await order.save();
+    console.log("🎉 Pedido aceito com sucesso pelo entregador:", user_deliver._id);
+
+    // Notificações
+    const sellerOfProduct = await User.findById(order.seller);
+    const clientOfProduct = await User.findById(order.user);
+
+    let message = `Olá, a Nhiquela informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
+
+    // Enviar email para o vendedor
+    sendEmailOrderToSeller(req, message, sellerOfProduct, updateOrder, res);
+
+    // Criar notificações
+    if (sellerOfProduct && sellerOfProduct.pushToken) {
+      await createNotification({
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+        pushToken: sellerOfProduct.pushToken,
+      });
+    }
+
+    if (clientOfProduct && clientOfProduct.pushToken) {
+      await createNotification({
+        message: message,
+        receiver_id: order.user,
+        sender_id: order.seller,
+        orderID: order._id,
+        pushToken: clientOfProduct.pushToken
+      });
+    }
+
+    console.log("📢 Notificações enviadas com sucesso");
+
+    res.send({ 
+      order: updateOrder, 
+      message: `Pedido aceito pelo entregador com sucesso` 
+    });
   })
 );
 
