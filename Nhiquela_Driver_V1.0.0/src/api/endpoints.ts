@@ -10,8 +10,8 @@ export const ENDPOINTS = {
 
 
   // Atualizar status da entrega
-  ACCEPT_ORDER_BY_DELIVERYMAN: (orderId: string) => `/${orderId}/acceptedByDeliveryman`,
-  START_ORDER_IN_TRANSIT: (orderId: string) => `/${orderId}/intransit`,
-  CONFIRM_ORDER_DELIVERED: (orderId: string) => `/${orderId}/confirmDestination`,
+  ACCEPT_ORDER_BY_DELIVERYMAN: (orderId: string) => `orders/${orderId}/acceptedByDeliveryman`,
+  START_ORDER_IN_TRANSIT: (orderId: string) => `orders/${orderId}/intransit`,
+  CONFIRM_ORDER_DELIVERED: (orderId: string) => `orders/${orderId}/confirmDestination`,
   GET_TRIPS_HISTORY: (id: string) => `/orders/deliveryman/history/${id}`
 };

@@ -223,9 +223,7 @@ export default function DriverHeader({
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
-            <Ionicons name="menu" size={24} color={COLORS.white} />
-          </TouchableOpacity>
+         
         </View>
       </View>
 
