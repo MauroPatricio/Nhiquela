@@ -964,6 +964,76 @@ orderRouter.put(
   })
 );
 
+
+// 📦 Pedidos aceites pelo entregador logado
+orderRouter.get(
+  '/accepted/byDeliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const userId = req.user._id;
+
+      console.log(`🔍 Buscando pedidos aceites pelo entregador: ${userId}`);
+
+      // Verifica se o usuário é realmente um entregador
+      const user = await User.findById(userId);
+      if (!user || !user.isDeliveryMan) {
+        return res.status(403).send({
+          message: 'Apenas entregadores podem visualizar pedidos aceites.',
+        });
+      }
+
+      // Busca todos os pedidos aceites (status = 4) pelo entregador atual
+      const acceptedOrders = await Order.find({
+        deleted: false,
+        stepStatus: 4,
+        'deliveryman.id': userId,
+      })
+        .populate({
+          path: 'user',
+          select: 'name email phoneNumber seller',
+        })
+        .sort({ createdAt: -1 });
+
+      if (!acceptedOrders.length) {
+        return res.status(200).send({
+          message: 'Nenhum pedido aceite encontrado.',
+          orders: [],
+        });
+      }
+
+      // Monta resposta simplificada
+      const formattedOrders = acceptedOrders.map((order) => ({
+        id: order._id,
+        code: order.code,
+        status: order.status,
+        stepStatus: order.stepStatus,
+        createdAt: order.createdAt,
+        clientName: order.user?.name || 'Cliente desconhecido',
+        clientPhone: order.user?.phoneNumber || 'N/D',
+        sellerInfo: order.user?.seller
+          ? {
+              name: order.user.seller.name,
+              latitude: order.user.seller.latitude,
+              longitude: order.user.seller.longitude,
+            }
+          : null,
+        deliveryman: order.deliveryman,
+      }));
+
+      console.log(`📋 ${formattedOrders.length} pedidos aceites encontrados.`);
+      res.status(200).send({
+        message: 'Pedidos aceites encontrados com sucesso.',
+        orders: formattedOrders,
+      });
+    } catch (error) {
+      console.error('❌ Erro ao buscar pedidos aceites:', error);
+      res.status(500).send({ message: 'Erro interno ao buscar pedidos aceites.' });
+    }
+  })
+);
+
+
 // O pedido esta a caminho
 orderRouter.put(
   '/:id/intransit',
@@ -1260,6 +1330,127 @@ orderRouter.get('/id/:id', isAuth, async (req, res) => {
   res.json(order);
 });
 
+
+
+// 📦 Pedido aceite pelo entregador (apenas um)
+orderRouter.get(
+  '/accepted-by-deliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const userId = req.user._id;
+
+      console.log(`🔍 Buscando pedido aceite pelo entregador: ${userId}`);
+
+      // Busca o ÚLTIMO pedido aceite (status = 4) pelo entregador atual
+      const acceptedOrder = await Order.findOne({
+        deleted: false,
+        stepStatus: 4,
+        'deliveryman.id': userId,
+      })
+        .populate({
+          path: 'user',
+          select: 'name email phoneNumber',
+        })
+        .populate({
+          path: 'seller',
+          select: 'name address latitude longitude',
+        })
+        .sort({ createdAt: -1 }); // Pega o mais recente
+
+      if (!acceptedOrder) {
+        return res.status(200).send({
+          message: 'Nenhum pedido aceite encontrado.',
+          order: null,
+        });
+      }
+
+      // Monta resposta simplificada
+      const formattedOrder = {
+        _id: acceptedOrder._id,
+        code: acceptedOrder.code,
+        status: acceptedOrder.status,
+        stepStatus: acceptedOrder.stepStatus,
+        createdAt: acceptedOrder.createdAt,
+        user: {
+          name: acceptedOrder.user?.name || 'Cliente desconhecido',
+          phoneNumber: acceptedOrder.user?.phoneNumber || 'N/D',
+        },
+        seller: acceptedOrder.seller ? {
+          name: acceptedOrder.seller.name,
+          address: acceptedOrder.seller.address,
+          latitude: acceptedOrder.seller.latitude,
+          longitude: acceptedOrder.seller.longitude,
+        } : null,
+        deliveryman: acceptedOrder.deliveryman,
+      };
+
+      console.log(`✅ Pedido aceite encontrado: ${formattedOrder._id}`);
+      res.status(200).send({
+        message: 'Pedido aceite encontrado com sucesso.',
+        order: formattedOrder,
+      });
+    } catch (error) {
+      console.error('❌ Erro ao buscar pedido aceite:', error);
+      res.status(500).send({ message: 'Erro interno ao buscar pedido aceite.' });
+    }
+  })
+);
+
+// Pedidos disponíveis (status 3)
+orderRouter.get('/statusDelivery/:status', isAuth, async (req, res) => {
+  try {
+    if (req.params.status == 3) {
+      console.log("📦 Buscando pedidos disponíveis (status 3)...");
+      
+      // 🔹 Busca apenas pedidos disponíveis (stepStatus = 3)
+      const ordersAvailable = await Order.find({
+        stepStatus: 3,
+        deleted: false
+      })
+        .populate({
+          path: 'user',
+          select: 'name email phoneNumber',
+        })
+        .populate({
+          path: 'seller',
+          select: 'name address latitude longitude',
+        })
+        .sort({ createdAt: -1 })
+        .limit(50); // Limite para evitar timeout
+
+      console.log(`✅ ${ordersAvailable.length} pedidos disponíveis encontrados`);
+
+      // Mapeia resultado simplificado
+      const simplifiedOrders = ordersAvailable.map(order => ({
+        _id: order._id,
+        code: order.code,
+        status: order.status,
+        stepStatus: order.stepStatus,
+        createdAt: order.createdAt,
+        user: {
+          name: order.user?.name || 'Cliente desconhecido',
+          phoneNumber: order.user?.phoneNumber || 'N/D',
+        },
+        seller: order.seller ? {
+          name: order.seller.name,
+          address: order.seller.address,
+          latitude: order.seller.latitude,
+          longitude: order.seller.longitude,
+        } : null,
+      }));
+
+      return res.json(simplifiedOrders);
+    }
+
+    // Caso status inválido
+    return res.status(404).send({ message: "Invalid status" });
+  } catch (error) {
+    console.error("❌ Erro ao buscar pedidos:", error);
+    return res.status(500).send({ message: "Erro interno no servidor" });
+  }
+});
+
 ///////////////////// NEW-ENDPOINT /////////////////
 
 // get orders by user id
@@ -1307,7 +1498,81 @@ orderRouter.get(
 
 
 
+// 📦 Pedidos aceites pelo entregador logado
+orderRouter.get(
+  '/accepted-by-deliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const userId = req.user._id;
 
+      console.log(`🔍 Buscando pedidos aceites pelo entregador: ${userId}`);
+
+      // Verifica se o usuário é realmente um entregador
+      const user = await User.findById(userId).select('isDeliveryMan');
+      if (!user) {
+        return res.status(404).send({
+          message: 'Usuário não encontrado.',
+        });
+      }
+      
+      if (!user.isDeliveryMan) {
+        return res.status(403).send({
+          message: 'Apenas entregadores podem visualizar pedidos aceites.',
+        });
+      }
+
+      // Busca o ÚLTIMO pedido aceite (status = 4) pelo entregador atual
+      // Assumindo que só pode haver um pedido ativo por vez
+      const acceptedOrder = await Order.findOne({
+        deleted: false,
+        stepStatus: 4, // Status 4 = aceite
+        'deliveryman.id': userId,
+      })
+        .populate('user', 'name email phoneNumber')
+        .populate('seller', 'name address')
+        .sort({ createdAt: -1 }); // Pega o mais recente
+
+      if (!acceptedOrder) {
+        return res.status(200).send({
+          message: 'Nenhum pedido aceite encontrado.',
+          order: null,
+        });
+      }
+
+      // Monta resposta simplificada
+      const formattedOrder = {
+        id: acceptedOrder._id,
+        code: acceptedOrder.code,
+        status: acceptedOrder.status,
+        stepStatus: acceptedOrder.stepStatus,
+        createdAt: acceptedOrder.createdAt,
+        clientName: acceptedOrder.user?.name || 'Cliente desconhecido',
+        clientPhone: acceptedOrder.user?.phoneNumber || 'N/D',
+        pickup: acceptedOrder.seller?.address || 'Local de origem',
+        destination: acceptedOrder.shippingAddress?.address || 'Destino',
+        sellerInfo: {
+          name: acceptedOrder.seller?.name || 'Vendedor',
+          latitude: acceptedOrder.seller?.latitude || 0,
+          longitude: acceptedOrder.seller?.longitude || 0,
+        },
+        deliveryman: acceptedOrder.deliveryman,
+      };
+
+      console.log(`✅ Pedido aceite encontrado: ${formattedOrder.id}`);
+      res.status(200).send({
+        message: 'Pedido aceite encontrado com sucesso.',
+        order: formattedOrder,
+      });
+    } catch (error) {
+      console.error('❌ Erro ao buscar pedidos aceites:', error);
+      res.status(500).send({ 
+        message: 'Erro interno ao buscar pedidos aceites.',
+        error: error.message 
+      });
+    }
+  })
+);
 
 
 export default orderRouter;
