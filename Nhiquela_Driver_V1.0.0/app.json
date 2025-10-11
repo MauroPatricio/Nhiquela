@@ -4,16 +4,16 @@
     "slug": "nhiqueladriver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
+    "icon": "./src/assets/nhiquela2.png",
     "splash": {
-      "image": "./src/assets/splash.png",
+      "image": "./src/assets/nhiquela2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "android": {
       "package": "com.nhiquela.driver",
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/icon.png",
+        "foregroundImage": "./src/assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       }
     },

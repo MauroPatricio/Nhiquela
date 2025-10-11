@@ -17,6 +17,12 @@ export const startOrderInTransit = async (orderId: string) => {
   return response.data;
 };
 
+export const getAcceptedOrderByDeliveryman = async () => {
+  const response = await apiClient.get(ENDPOINTS.GET_ACCEPT_ORDER);
+  return response.data;
+};
+
+
 export const confirmOrderDelivered = async (orderId: string) => {
   const response = await apiClient.put(ENDPOINTS.CONFIRM_ORDER_DELIVERED(orderId));
   return response.data;
