@@ -138,6 +138,8 @@ export default function HomeScreen({ navigation }: any) {
 
       const orders = await getOrdersByStatus("available");
 
+      console.log(orders)
+
       setRequests(
         orders.map((order: any) => {
           const destinationLat = parseFloat(order.sellerInfo?.latitude) || 0;
@@ -153,14 +155,14 @@ export default function HomeScreen({ navigation }: any) {
           return {
             id: order._id,
             passenger: order.user?.name || "Cliente",
-            pickup: order.seller?.address || "Local de origem",
-            destination: order.seller?.address || "Destino",
+            pickup: order.seller?.name || "Local de origem",
+            destination: order.deliveryAddress?.address || "Destino",
             reward: `MZN ${Math.round(distance * 25)}`, // 25 MZN por km
             distance: `${distance.toFixed(2)} km`,
             time: `${Math.round(distance / 40 * 60)} min`, // assumindo velocidade média = 40km/h
             destinationLocation: {
-              latitude: destinationLat,
-              longitude: destinationLon,
+              latitude: order.deliveryAddress?.latitude,
+              longitude: order.deliveryAddress?.longitude,
             },
           };
         })
