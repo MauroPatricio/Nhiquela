@@ -14,16 +14,50 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS } from "../styles/colors";
-import { acceptOrderByDeliveryman, getOrdersByStatus, startOrderInTransit } from "../services/orderService";
+import { 
+  acceptOrderByDeliveryman, 
+  getOrdersByStatus, 
+  startOrderInTransit
+} from "../services/orderService";
 import * as Location from "expo-location";
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
 };
 
+// Função temporária para buscar pedido aceite - MOVA ISSO PARA orderService.ts DEPOIS
+const getAcceptedOrderByDeliveryman = async (): Promise<any> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    const API_URL = process.env.API_URL || 'http://localhost:3000';
+    
+    const response = await fetch(`${API_URL}/api/orders/accepted-by-deliveryman`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error('Erro ao buscar viagem aceita');
+    }
+    
+    const data = await response.json();
+    return data.order;
+  } catch (error) {
+    console.error('Erro ao buscar viagem aceita:', error);
+    return null;
+  }
+};
+
 export default function HomeScreen({ navigation }: any) {
   const [requests, setRequests] = useState<any[]>([]);
   const [acceptedTripId, setAcceptedTripId] = useState<string | null>(null);
+  const [acceptedTrip, setAcceptedTrip] = useState<any>(null);
   const [routeSummary, setRouteSummary] = useState<any>(null);
   const [blinkAnim] = useState(new Animated.Value(0));
   const [isTripStarted, setIsTripStarted] = useState(false);
@@ -85,22 +119,25 @@ export default function HomeScreen({ navigation }: any) {
     console.log("🔄 Efeito secundário - isDriverApproved:", isDriverApproved);
     
     if (isDriverApproved === true) {
-      console.log("✅ Motorista aprovado, carregando pedidos...");
-      loadOrders();
+      console.log("✅ Motorista aprovado, verificando viagem aceita...");
+      checkAcceptedTrip().then(() => {
+        loadOrders();
+      });
     } else if (isDriverApproved === false) {
       console.log("❌ Motorista NÃO aprovado, não carregará pedidos");
     }
 
+    // Verificar viagem armazenada localmente
     (async () => {
       try {
         console.log("🔍 Verificando viagem aceita anteriormente...");
         const storedTrip = await AsyncStorage.getItem("acceptedTrip");
-        console.log("📦 Viagem armazenada:", storedTrip ? "Encontrada" : "Não encontrada");
         
         if (storedTrip) {
           const trip = JSON.parse(storedTrip);
-          console.log("🎯 Restaurando viagem aceita:", trip.id);
+          console.log("🎯 Restaurando viagem aceita do storage:", trip.id);
           setAcceptedTripId(trip.id);
+          setAcceptedTrip(trip);
           setRouteSummary(trip);
           setIsTripStarted(true);
           startBlinkAnimation();
@@ -111,7 +148,70 @@ export default function HomeScreen({ navigation }: any) {
     })();
   }, [isDriverApproved]);
 
+  // Verificar se há viagem aceita atualmente
+  const checkAcceptedTrip = async () => {
+    try {
+      console.log("🔍 Verificando viagem aceita no servidor...");
+      const response = await getAcceptedOrderByDeliveryman();
+      
+      if (response && response._id) {
+        console.log("🎯 Viagem aceita encontrada:", response._id);
+        setAcceptedTripId(response._id);
+        setAcceptedTrip(response);
+        
+        // Formatar a viagem aceita para exibição
+        const formattedAcceptedTrip = formatOrder(response);
+        setRouteSummary(formattedAcceptedTrip);
+        setIsTripStarted(response.stepStatus === 4);
+        
+        if (response.stepStatus === 4) {
+          startBlinkAnimation();
+        }
+        
+        await AsyncStorage.setItem("acceptedTrip", JSON.stringify(formattedAcceptedTrip));
+      } else {
+        console.log("ℹ️ Nenhuma viagem aceita encontrada no servidor");
+        // Não limpar dados aqui para manter consistência com storage local
+      }
+    } catch (error) {
+      console.error("❌ Erro ao verificar viagem aceita:", error);
+    }
+  };
+
+  // Função para formatar um pedido
+  const formatOrder = (order: any, currentPosition?: any) => {
+    const destinationLat = order.seller?.latitude || order.sellerInfo?.latitude || 0;
+    const destinationLon = order.seller?.longitude || order.sellerInfo?.longitude || 0;
+    
+    let distance = 0;
+    if (currentPosition && destinationLat && destinationLon) {
+      distance = getDistanceFromLatLonInKm(
+        currentPosition.latitude,
+        currentPosition.longitude,
+        destinationLat,
+        destinationLon
+      );
+    }
+
+    return {
+      id: order._id,
+      passenger: order.user?.name || "Cliente",
+      pickup: order.seller?.address || "Local de origem",
+      destination: order.seller?.address || "Destino",
+      reward: `MZN ${Math.round(distance * 25)}`,
+      distance: `${distance.toFixed(2)} km`,
+      time: `${Math.round(distance / 40 * 60)} min`,
+      destinationLocation: {
+        latitude: destinationLat,
+        longitude: destinationLon,
+      },
+      stepStatus: order.stepStatus,
+    };
+  };
+
   const loadOrders = async () => {
+    if (loadingOrders) return;
+    
     try {
       console.log("📡 Iniciando carregamento de pedidos...");
       setLoadingOrders(true);
@@ -138,61 +238,40 @@ export default function HomeScreen({ navigation }: any) {
       };
 
       console.log("🌐 Buscando pedidos disponíveis da API...");
-      const orders = await getOrdersByStatus("available");
-      console.log("📦 Pedidos recebidos da API:", orders);
-      console.log("📊 Número de pedidos:", orders?.length || 0);
+      const availableOrders = await getOrdersByStatus("3");
+      console.log("📦 Pedidos disponíveis recebidos:", availableOrders?.length || 0);
 
-      if (!orders || !Array.isArray(orders)) {
-        console.error("❌ Pedidos inválidos ou não é array:", orders);
+      if (!availableOrders || !Array.isArray(availableOrders)) {
+        console.error("❌ Pedidos inválidos ou não é array");
         setRequests([]);
         setLoadingOrders(false);
         return;
       }
 
-      if (orders.length === 0) {
-        console.log("ℹ️ Nenhum pedido disponível no momento");
-        setRequests([]);
-        setLoadingOrders(false);
-        return;
-      }
-
-      const formattedRequests = orders.map((order: any, index: number) => {
-        console.log(`📝 Processando pedido ${index + 1}:`, order._id);
-        
-        const destinationLat = parseFloat(order.sellerInfo?.latitude) || 0;
-        const destinationLon = parseFloat(order.sellerInfo?.longitude) || 0;
-        
-        console.log(`📍 Destino do pedido ${order._id}:`, { destinationLat, destinationLon });
-
-        const distance = getDistanceFromLatLonInKm(
-          currentPosition.latitude,
-          currentPosition.longitude,
-          destinationLat,
-          destinationLon
-        );
-
-        console.log(`📏 Distância calculada para pedido ${order._id}:`, distance, "km");
-
-        const formattedOrder = {
-          id: order._id,
-          passenger: order.user?.name || "Cliente",
-          pickup: order.seller?.address || "Local de origem",
-          destination: order.seller?.address || "Destino",
-          reward: `MZN ${Math.round(distance * 25)}`,
-          distance: `${distance.toFixed(2)} km`,
-          time: `${Math.round(distance / 40 * 60)} min`,
-          destinationLocation: {
-            latitude: destinationLat,
-            longitude: destinationLon,
-          },
-        };
-
-        console.log(`✅ Pedido ${order._id} formatado:`, formattedOrder);
-        return formattedOrder;
+      // Formatar todos os pedidos disponíveis
+      const formattedRequests = availableOrders.map((order: any) => {
+        return formatOrder(order, currentPosition);
       });
 
-      console.log("🎉 Todos os pedidos formatados:", formattedRequests);
-      setRequests(formattedRequests);
+      console.log("🎉 Pedidos formatados:", formattedRequests.length);
+      
+      // Se há viagem aceita, colocar ela primeiro na lista
+      let sortedRequests = [...formattedRequests];
+      if (acceptedTripId) {
+        // Encontrar a viagem aceita na lista de disponíveis (se estiver lá)
+        const acceptedIndex = sortedRequests.findIndex(req => req.id === acceptedTripId);
+        if (acceptedIndex !== -1) {
+          // Remover da posição atual e colocar no início
+          const [acceptedTrip] = sortedRequests.splice(acceptedIndex, 1);
+          sortedRequests.unshift(acceptedTrip);
+        } else {
+          // Se não está na lista, adicionar manualmente no início
+          const acceptedFormatted = formatOrder(acceptedTrip, currentPosition);
+          sortedRequests.unshift(acceptedFormatted);
+        }
+      }
+      
+      setRequests(sortedRequests);
       
     } catch (error) {
       console.error("❌ Erro ao carregar pedidos:", error);
@@ -219,9 +298,13 @@ export default function HomeScreen({ navigation }: any) {
       setAcceptingTripId(tripId);
       
       await acceptOrderByDeliveryman(tripId);
-      setAcceptedTripId(tripId);
       
-      console.log("🎉 Viagem aceita com sucesso:", tripId);
+      // Buscar dados atualizados do pedido aceito
+      setTimeout(() => {
+        checkAcceptedTrip();
+        loadOrders();
+      }, 1000);
+      
       Alert.alert("✅ Viagem aceite", "Clique em iniciar viagem quando estiver com a mercadoria.");
     } catch (error) {
       console.error("❌ Erro ao aceitar viagem:", error);
@@ -280,12 +363,16 @@ export default function HomeScreen({ navigation }: any) {
               setCancelingTrip(true);
               
               setAcceptedTripId(null);
+              setAcceptedTrip(null);
               setIsTripStarted(false);
               setRouteSummary(null);
               blinkAnim.stopAnimation();
               await AsyncStorage.removeItem("acceptedTrip");
               
               console.log("🔄 Estado resetado, viagem cancelada");
+              
+              // Recarregar a lista para atualizar a ordem
+              loadOrders();
             } catch (error) {
               console.error("❌ Erro ao cancelar viagem:", error);
               Alert.alert("Erro", "Não foi possível cancelar a viagem.");
@@ -317,31 +404,29 @@ export default function HomeScreen({ navigation }: any) {
       >
         <Text style={styles.contactSupportText}>Entrar em Contato com Suporte</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.debugButton}
-        onPress={async () => {
-          console.log("🐛 Debug: Simulando aprovação do motorista");
-          await AsyncStorage.setItem("driverApprovalStatus", "approved");
-          setIsDriverApproved(true);
-        }}
-      >
-        <Text style={styles.debugText}>[DEBUG] Simular Aprovação</Text>
-      </TouchableOpacity>
     </View>
   );
 
-  const renderRequestCard = ({ item }: any) => {
+  const renderRequestCard = ({ item, index }: any) => {
     const isAccepted = acceptedTripId === item.id;
     const isAccepting = acceptingTripId === item.id;
     const isStarting = startingTripId === item.id;
-
-    console.log(`🃏 Renderizando card ${item.id}, aceito: ${isAccepted}`);
+    const hasAcceptedTrip = acceptedTripId !== null;
 
     return (
-      <View style={styles.requestCard}>
-        <View style={styles.requestIcon}>
-          <Ionicons name="car-outline" size={28} color="#FFF" />
+      <View style={[
+        styles.requestCard,
+        isAccepted && styles.acceptedCard
+      ]}>
+        <View style={[
+          styles.requestIcon,
+          isAccepted && styles.acceptedIcon
+        ]}>
+          <Ionicons 
+            name={isAccepted ? "checkmark-circle" : "car-outline"} 
+            size={28} 
+            color="#FFF" 
+          />
         </View>
 
         <View style={styles.requestContent}>
@@ -379,30 +464,20 @@ export default function HomeScreen({ navigation }: any) {
             />
             <Text style={styles.requestInfo}>{item.time}</Text>
           </View>
+
+          {/* Badge de status */}
+          {isAccepted && (
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusBadgeText}>
+                {isTripStarted ? "Viagem Iniciada" : "Viagem Aceite"}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.acceptButtonContainer}>
-          {!isAccepted && !acceptedTripId && (
-            <TouchableOpacity 
-              style={[
-                styles.acceptButton,
-                isAccepting && styles.disabledButton
-              ]} 
-              onPress={() => acceptTrip(item.id)}
-              disabled={isAccepting}
-            >
-              {isAccepting ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" />
-                  <Text style={styles.acceptText}>Aceitar</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {isAccepted && (
+          {isAccepted ? (
+            // Botões para viagem aceita
             <>
               {!isTripStarted && (
                 <TouchableOpacity 
@@ -418,7 +493,7 @@ export default function HomeScreen({ navigation }: any) {
                   ) : (
                     <>
                       <Ionicons name="play-circle-outline" size={20} color="#FFF" />
-                      <Text style={styles.acceptText}>Iniciar Viagem</Text>
+                      <Text style={styles.acceptText}>Iniciar</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -441,6 +516,31 @@ export default function HomeScreen({ navigation }: any) {
                 )}
               </TouchableOpacity>
             </>
+          ) : (
+            // Botão para outras viagens - desabilitado se já há viagem aceita
+            <TouchableOpacity 
+              style={[
+                styles.acceptButton,
+                (isAccepting || hasAcceptedTrip) && styles.disabledButton
+              ]} 
+              onPress={() => acceptTrip(item.id)}
+              disabled={isAccepting || hasAcceptedTrip}
+            >
+              {isAccepting ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons 
+                    name={hasAcceptedTrip ? "time-outline" : "checkmark-circle-outline"} 
+                    size={20} 
+                    color="#FFF" 
+                  />
+                  <Text style={styles.acceptText}>
+                    {hasAcceptedTrip ? "Indisponível" : "Aceitar"}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -456,14 +556,6 @@ export default function HomeScreen({ navigation }: any) {
       </View>
     );
   }
-
-  console.log("🎨 Renderizando HomeScreen com:", {
-    isDriverApproved,
-    requestsCount: requests.length,
-    acceptedTripId,
-    loading,
-    loadingOrders
-  });
 
   return (
     <View style={styles.mainContainer}>
@@ -530,14 +622,8 @@ export default function HomeScreen({ navigation }: any) {
                   onPress={loadOrders}
                   disabled={loadingOrders}
                 >
-                  {loadingOrders ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="refresh" size={20} color="#FFF" />
-                      <Text style={styles.refreshText}>Recarregar</Text>
-                    </>
-                  )}
+                  <Ionicons name="refresh" size={20} color="#FFF" />
+                  <Text style={styles.refreshText}>Recarregar</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -598,22 +684,43 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     elevation: 2,
   },
+  acceptedCard: {
+    borderWidth: 2,
+    borderColor: "#2ECC71",
+    backgroundColor: "#F0F9FF",
+  },
   requestIcon: {
     backgroundColor: "#2E86DE",
     borderRadius: 50,
     padding: 10,
     marginRight: 12,
+    alignSelf: 'flex-start',
   },
-  requestContent: { flex: 1, marginLeft: 12 },
-  infoRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap" },
+  acceptedIcon: {
+    backgroundColor: "#2ECC71",
+  },
+  requestContent: { 
+    flex: 1, 
+    marginLeft: 12,
+  },
+  infoRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    flexWrap: "wrap",
+    marginBottom: 4,
+  },
   requestInfo: { fontSize: 14, color: "#555", marginLeft: 4 },
-  requestTitle: { fontSize: 16, fontWeight: "bold", color: "#222" },
-  acceptButtonContainer: { justifyContent: "center", marginLeft: 10 },
+  requestTitle: { fontSize: 16, fontWeight: "bold", color: "#222", marginBottom: 4 },
+  acceptButtonContainer: { 
+    justifyContent: "center", 
+    marginLeft: 10,
+    minWidth: 100,
+  },
   acceptButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#2ECC71",
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
@@ -621,7 +728,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#2E86DE",
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     marginBottom: 6,
@@ -630,14 +737,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FF4E4E",
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   disabledButton: {
     opacity: 0.6,
   },
-  acceptText: { color: "#FFF", fontWeight: "bold", marginLeft: 4 },
+  acceptText: { 
+    color: "#FFF", 
+    fontWeight: "bold", 
+    marginLeft: 4,
+    fontSize: 12,
+  },
+  statusBadge: {
+    backgroundColor: "#2ECC71",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  statusBadgeText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
   notApprovedContainer: {
     backgroundColor: "#FFF",
     padding: 24,
@@ -714,17 +839,5 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "bold",
     marginLeft: 8,
-  },
-  debugButton: {
-    backgroundColor: "#FF6B6B",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    marginTop: 10,
-  },
-  debugText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "bold",
   },
 });

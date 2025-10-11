@@ -5,8 +5,11 @@ export const ENDPOINTS = {
   GET_ROUTES: "/routes",
   GET_ROUTE_DETAILS: (routeId: string) => `/routes/${routeId}`,
   UPDATE_DRIVER_PROFILE: "/drivers/update",
-  GET_ORDERS_STATUS: (status: string) => `/orders/status/${status}`,
+  GET_ORDERS_STATUS: (status: string) => `/orders/statusDelivery/${status}`,
   GET_TRIPS: (status: string) => `/orders/status/${status}`,
+  GET_ACCEPT_ORDER: '/orders/accepted/byDeliveryman',
+
+  
 
 
   // Atualizar status da entrega
