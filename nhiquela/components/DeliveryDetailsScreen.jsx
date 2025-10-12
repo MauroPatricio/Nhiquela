@@ -103,9 +103,11 @@ const HeaderWithBack = ({ title, navigation }) => (
     debounce((addr, total, deliv, userLoc) => {
       const deliveryAddress = {
         address: addr,
-        latitude: userLoc?.latitude || null,
-        longitude: userLoc?.longitude || null,
+        latitude: userLocation?.latitude || null,
+        longitude: userLocation?.longitude || null,
       };
+
+      console.log(userLocation)
 
       dispatch(addAddress(deliveryAddress));
       dispatch(addTotalToPay(total));
