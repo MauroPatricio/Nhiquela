@@ -8,13 +8,13 @@ export const ENDPOINTS = {
   GET_ORDERS_STATUS: (status: string) => `/orders/statusDelivery/${status}`,
   GET_TRIPS: (status: string) => `/orders/status/${status}`,
   GET_ACCEPT_ORDER: '/orders/accepted/byDeliveryman',
-
+  GET_ALL_ORDERS_FOR_DELIVERYMAN: '/orders/deliveryman/all',
   
-
 
   // Atualizar status da entrega
   ACCEPT_ORDER_BY_DELIVERYMAN: (orderId: string) => `orders/${orderId}/acceptedByDeliveryman`,
   START_ORDER_IN_TRANSIT: (orderId: string) => `orders/${orderId}/intransit`,
   CONFIRM_ORDER_DELIVERED: (orderId: string) => `orders/${orderId}/confirmDestination`,
+  CANCEL_ORDER_BY_DELIVERYMAN: (orderId: string) => `orders/${orderId}/cancelByDeliveryman`,
   GET_TRIPS_HISTORY: (id: string) => `/orders/deliveryman/history/${id}`
 };
