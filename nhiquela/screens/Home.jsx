@@ -328,8 +328,12 @@ responseListener.remove();
     setLoadingCategories(true);
     try {
       const response = await api.get('/products/categoriesWithCount');
+
       
       const list = response.data?.categories || [];
+
+
+
       
       // Adiciona productCount se não existir (para compatibilidade)
       const categoriesWithCount = list.map(category => ({

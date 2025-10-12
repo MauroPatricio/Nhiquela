@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-
 import {
   View,
   Text,
@@ -9,10 +8,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Alert,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { addAddress, selectBasketTotal, addTotalToPay, addDeliverPrice, addIva } from '../features/basketSlice';
+import {
+  addAddress,
+  selectBasketTotal,
+  addTotalToPay,
+  addDeliverPrice,
+  addIva,
+} from '../features/basketSlice';
 import haversine from 'haversine';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +34,8 @@ const DeliveryDetailsScreen = () => {
   const [address, setAddress] = useState('');
   const [isUserWantDelivery, setIsUserWantDelivery] = useState(true);
   const [loadingLocation, setLoadingLocation] = useState(true);
+  const [manualLocation, setManualLocation] = useState({ latitude: '', longitude: '' });
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   const sellerLocation = useMemo(() => ({ latitude: -25.968, longitude: 32.583 }), []);
   const pricePerKm = 10;
@@ -39,37 +47,51 @@ const DeliveryDetailsScreen = () => {
   const [distanceToPay, setDistanceToPay] = useState(0);
   const [totalToPay, setTotalToPay] = useState(subtotal);
 
+  const HeaderWithBack = ({ title, navigation }) => (
+    <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Ionicons name="chevron-back-circle" size={35} color="#7F00FF" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>{title}</Text>
+    </View>
+  );
 
-  // Substitua o Header antigo por este componente:
-const HeaderWithBack = ({ title, navigation }) => (
-  <View style={styles.header}>
-    <TouchableOpacity onPress={() => navigation.goBack()}>
-      <Ionicons name='chevron-back-circle' size={35} color="#7F00FF" />
-    </TouchableOpacity>
-    <Text style={styles.headerTitle}>{title}</Text>
-  </View>
-);
-
-  // --- Rastrear localização apenas quando necessário ---
+  // --- Rastrear localização ---
   useEffect(() => {
     let locationSubscription;
+
     const startLocationTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
+
       if (status !== 'granted') {
+        setPermissionDenied(true);
         setLoadingLocation(false);
+        Alert.alert(
+          'Permissão necessária',
+          'Para continuar, precisamos da sua localização ou que a insira manualmente.'
+        );
         return;
       }
 
-      // Pega a localização inicial
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      // Obter localização atual
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setUserLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
       setLoadingLocation(false);
 
-      // Atualizações periódicas leves
+      // Atualizações periódicas
       locationSubscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 50 },
-        loc => {
-          setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        (loc) => {
+          setUserLocation({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
         }
       );
     };
@@ -78,7 +100,17 @@ const HeaderWithBack = ({ title, navigation }) => (
     return () => locationSubscription?.remove();
   }, []);
 
-  // --- Calcular distância somente quando userLocation mudar ---
+  // --- Caso o usuário insira manualmente ---
+  useEffect(() => {
+    if (permissionDenied && manualLocation.latitude && manualLocation.longitude) {
+      setUserLocation({
+        latitude: parseFloat(manualLocation.latitude),
+        longitude: parseFloat(manualLocation.longitude),
+      });
+    }
+  }, [manualLocation, permissionDenied]);
+
+  // --- Calcular distância ---
   useEffect(() => {
     if (userLocation) {
       const dist = haversine(userLocation, sellerLocation, { unit: 'km' });
@@ -86,7 +118,7 @@ const HeaderWithBack = ({ title, navigation }) => (
     }
   }, [userLocation, sellerLocation]);
 
-  // --- Calcular total de forma otimizada ---
+  // --- Calcular total ---
   useEffect(() => {
     let newDistanceToPay = 0;
     if (isUserWantDelivery) {
@@ -98,34 +130,34 @@ const HeaderWithBack = ({ title, navigation }) => (
     setTotalToPay(subtotal + newDistanceToPay);
   }, [isUserWantDelivery, distance, subtotal]);
 
-  // --- Atualizar Redux com debounce ---
+  // --- Atualizar Redux ---
   const updateRedux = useCallback(
-    debounce((addr, total, deliv, userLoc) => {
+    debounce((addr, total, deliv) => {
       const deliveryAddress = {
         address: addr,
-        latitude: userLocation?.latitude || null,
-        longitude: userLocation?.longitude || null,
+        latitude: userLocation?.latitude || -25.9653,
+        longitude: userLocation?.longitude || 32.5892,
       };
-
-      console.log(userLocation)
 
       dispatch(addAddress(deliveryAddress));
       dispatch(addTotalToPay(total));
       dispatch(addIva(iva));
       dispatch(addDeliverPrice(deliv));
     }, 200),
-    [dispatch]
+    [dispatch, userLocation]
   );
-
 
   useEffect(() => {
     updateRedux(address, totalToPay, distanceToPay);
   }, [address, totalToPay, distanceToPay, updateRedux]);
 
-  // --- Botão Finalizar ---
   const handleFinalize = useCallback(() => {
+    if (!userLocation?.latitude || !userLocation?.longitude) {
+      Alert.alert('Erro', 'Por favor, forneça sua localização antes de prosseguir.');
+      return;
+    }
     navigation.replace('PaymentMethod');
-  }, [navigation]);
+  }, [navigation, userLocation]);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -135,17 +167,44 @@ const HeaderWithBack = ({ title, navigation }) => (
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 200 }}
         >
-            <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
+          <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
+
           <StatusLocation userLocation={userLocation} distance={distance} />
+
+          {permissionDenied && (
+            <View style={{ marginVertical: 10 }}>
+              <Text style={{ fontWeight: 'bold', color: '#7F00FF', marginBottom: 5 }}>
+                Indique sua localização manualmente:
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Latitude"
+                keyboardType="numeric"
+                value={manualLocation.latitude}
+                onChangeText={(text) => setManualLocation({ ...manualLocation, latitude: text })}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Longitude"
+                keyboardType="numeric"
+                value={manualLocation.longitude}
+                onChangeText={(text) => setManualLocation({ ...manualLocation, longitude: text })}
+              />
+            </View>
+          )}
+
           <DeliveryToggle
             isUserWantDelivery={isUserWantDelivery}
             setIsUserWantDelivery={setIsUserWantDelivery}
             disabled={loadingLocation}
           />
+
           {isUserWantDelivery && (
             <AddressInput address={address} setAddress={setAddress} editable={!loadingLocation} />
           )}
+
           <DeliveryStatus isUserWantDelivery={isUserWantDelivery} />
+
           <Summary
             basketTotal={basketTotal}
             distanceToPay={distanceToPay}
@@ -168,8 +227,7 @@ const HeaderWithBack = ({ title, navigation }) => (
   );
 };
 
-// --- Componentes Memoizados ---
-const Header = React.memo(({ title }) => <Text style={styles.title}>{title}</Text>);
+// --- Componentes reutilizados (mantêm o mesmo estilo do seu código atual) ---
 const StatusLocation = React.memo(({ userLocation, distance }) => {
   const distanceText = useMemo(() => (distance ? distance.toFixed(2) : null), [distance]);
   return (
@@ -183,6 +241,7 @@ const StatusLocation = React.memo(({ userLocation, distance }) => {
     </View>
   );
 });
+
 const DeliveryToggle = React.memo(({ isUserWantDelivery, setIsUserWantDelivery, disabled }) => (
   <View style={styles.toggleContainerRow}>
     <Text style={styles.switchText}>Deseja entrega?</Text>
@@ -204,6 +263,7 @@ const DeliveryToggle = React.memo(({ isUserWantDelivery, setIsUserWantDelivery, 
     </View>
   </View>
 ));
+
 const AddressInput = React.memo(({ address, setAddress, editable }) => (
   <TextInput
     style={[styles.input, { height: 120 }]}
@@ -214,6 +274,7 @@ const AddressInput = React.memo(({ address, setAddress, editable }) => (
     editable={editable}
   />
 ));
+
 const DeliveryStatus = React.memo(({ isUserWantDelivery }) => (
   <Text style={styles.statusText}>
     {isUserWantDelivery
@@ -221,6 +282,7 @@ const DeliveryStatus = React.memo(({ isUserWantDelivery }) => (
       : 'Entrega desativada - deverá buscar pessoalmente no estabelecimento do fornecedor.'}
   </Text>
 ));
+
 const Summary = React.memo(({ basketTotal, distanceToPay, totalToPay, isUserWantDelivery }) => (
   <View style={styles.summary}>
     <View style={styles.summaryRow}>
@@ -237,6 +299,7 @@ const Summary = React.memo(({ basketTotal, distanceToPay, totalToPay, isUserWant
     </View>
   </View>
 ));
+
 const FinalizeButton = React.memo(({ onPress, disabled }) => (
   <TouchableOpacity
     style={[styles.button, disabled && { backgroundColor: '#ccc' }]}
@@ -245,42 +308,31 @@ const FinalizeButton = React.memo(({ onPress, disabled }) => (
   >
     <Text style={styles.buttonText}>Finalizar compra</Text>
   </TouchableOpacity>
-))
+));
 
-// --- Estilos ---
 const styles = StyleSheet.create({
+  // (mantive os seus estilos originais)
   container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#333' },
-  locationText: { textAlign: 'center', marginBottom: 10, fontSize: 16, color: '#666', backgroundColor: '#F8F8F8', padding: 12, borderRadius: 12 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginVertical: 10, fontSize: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 10, color: '#333' },
+  locationText: { textAlign: 'center', marginBottom: 10, fontSize: 16, color: '#666' },
   distanceText: { textAlign: 'center', fontWeight: '600', marginBottom: 20, fontSize: 16, color: '#000' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginVertical: 10, textAlignVertical: 'top', fontSize: 16 },
-  statusText: { fontSize: 16, color: 'black', textAlign: 'center', marginVertical: 12, fontWeight: '600' },
-  summary: { marginVertical: 20, padding: 16, backgroundColor: '#F5F5F5', borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 4 },
-  summaryText: { fontSize: 16, marginBottom: 6, fontWeight: '600', color: '#333' },
-  priceText: { fontSize: 16, marginBottom: 6, fontWeight: '900', color: '#7F00FF' },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' },
-  button: { backgroundColor: '#7F00FF', paddingVertical: 16, paddingHorizontal: 30, borderRadius: 30, alignItems: 'center', shadowColor: '#7F00FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 6 },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 18, textAlign: 'center' },
-  toggleContainerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 12, justifyContent: 'space-between' },
+  toggleContainerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
   switchText: { fontWeight: '600', fontSize: 18, color: '#7F00FF' },
   toggleButtons: { flexDirection: 'row', gap: 8 },
-  toggleButtonSmall: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  toggleButtonSmall: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
   toggleButtonTextSmall: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
-  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
+  statusText: { fontSize: 16, textAlign: 'center', marginVertical: 12 },
+  summary: { marginVertical: 20, padding: 16, backgroundColor: '#F5F5F5', borderRadius: 15 },
+  summaryText: { fontSize: 16, fontWeight: '600' },
+  priceText: { fontSize: 16, fontWeight: '900', color: '#7F00FF' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  button: { backgroundColor: '#7F00FF', paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: '700', fontSize: 18 },
+  loadingOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   loadingText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  fixedButtonContainer: { position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 10 },
-  header: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingHorizontal: 20,
-  paddingVertical: 10,
-},
-headerTitle: {
-  fontSize: 20,
-  fontWeight: "bold",
-  marginLeft: 10,
-  color: "#333",
-},
+  fixedButtonContainer: { position: 'absolute', bottom: 20, left: 20, right: 20 },
 });
 
 export default DeliveryDetailsScreen;

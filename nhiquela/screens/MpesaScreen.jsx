@@ -201,7 +201,7 @@ const MpesaScreen = () => {
         body: `Pedido nº ${data.order.code} solicitado pelo cliente. Aguarde confirmação do fornecedor.`,
         status: 'Pendente',
       });
-
+          dispatch(clearBasket());
                 navigation.replace('SuccessPayment', { orderCode: data.order.code });
 
 
