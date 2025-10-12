@@ -425,9 +425,7 @@ responseListener.remove();
 
   const loadCategoryProducts = async (categoryId, page = 1, append = false) => {
     if (loadingCatProducts && !append) return;
-    
-    console.log('Carregando produtos da categoria:', categoryId, 'Página:', page);
-    
+        
     // Se for carregar mais produtos (scroll), usar loading diferente
     if (append) {
       setLoadingMoreProducts(true);
@@ -604,7 +602,7 @@ responseListener.remove();
               {/* Produtos em Destaque */}
               {renderFeaturedProducts()}
 
-              <EstablishmentsView title='Tipos de Estabelecimentos' />
+              <EstablishmentsView title='Tipos de estabelecimentos' />
               <SellersView title='Fornecedores' description='Nossos fornecedores disponíveis para si' />
             </>
           }

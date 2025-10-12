@@ -201,7 +201,7 @@ const Home = () => {
       <View style={styles.appBarWrapper}>
         <View style={styles.headerRow}>
           <Text style={styles.welcomeText('black', 30, 0)}>
-            <Text style={{ color: '#7F00FF' }}>Nhiquela+</Text>
+            <Text style={{ color: '#7F00FF' }}>Nhiquela</Text>
           </Text>
           <Text style={styles.balanceText}>
             <Text style={{fontSize: 10}}>Saldo:</Text> {walletBalance.toFixed(2)} MT

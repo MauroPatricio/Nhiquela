@@ -171,7 +171,7 @@ export default function DriverHeader({
       {/* Top Row */}
       <View style={styles.topRow}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>Nhiquela+</Text>
+          <Text style={styles.logoText}>Nhiquela</Text>
           
           {/* ✅ BADGE DINÂMICO - PREMIUM OU MOTORISTA */}
           {isDeliveryMan ? (

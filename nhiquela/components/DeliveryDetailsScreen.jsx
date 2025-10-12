@@ -18,6 +18,7 @@ import {
   addTotalToPay,
   addDeliverPrice,
   addIva,
+  selectSellers
 } from '../features/basketSlice';
 import haversine from 'haversine';
 import * as Location from 'expo-location';
@@ -28,6 +29,10 @@ const DeliveryDetailsScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const basketTotal = useSelector(selectBasketTotal);
+  const sellers = useSelector(selectSellers);
+
+
+  const seller = (sellers[0].seller)
 
   const [userLocation, setUserLocation] = useState(null);
   const [distance, setDistance] = useState(null);
@@ -37,7 +42,7 @@ const DeliveryDetailsScreen = () => {
   const [manualLocation, setManualLocation] = useState({ latitude: '', longitude: '' });
   const [permissionDenied, setPermissionDenied] = useState(false);
 
-  const sellerLocation = useMemo(() => ({ latitude: -25.968, longitude: 32.583 }), []);
+  const sellerLocation = useMemo(() => ({ latitude: seller?.latitude, longitude: seller?.longitude }), []);
   const pricePerKm = 10;
   const minDelivPrice = 100;
   const iva = 0;

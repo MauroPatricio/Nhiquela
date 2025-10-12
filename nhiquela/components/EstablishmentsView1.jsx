@@ -17,7 +17,7 @@ const EstablishmentsView = ({ title }) => {
       const response = await api.get('/users/tipoestabelecimentos');
 
       if (response.status === 200) {
-        setTipoestabelecimentos(response.data.tipoestabelecimentos);
+        setTipoestabelecimentos(response.data?.tipoestabelecimentos);
       }
     } catch (error) {
       console.error('Erro ao buscar Tipos de estabelecimentos:', error);
