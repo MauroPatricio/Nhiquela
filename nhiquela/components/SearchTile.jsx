@@ -28,16 +28,16 @@ const SearchTile = ({ item }) => {
             : item.name.substring(0, 30) + '...'}
         </Text>
 
+        <Text style={styles.price}>{item.price} MT</Text>
         {item.seller && (
            
           <Text style={styles.seller}>
-             Vendedor: {item.seller.seller.name.length < 20
+             Fornecedor: {item.seller.seller.name.length < 20
               ? item.seller.seller.name
               : item.seller.seller.name.substring(0, 25) + '...'}
           </Text>
         )}
 
-        <Text style={styles.price}>{item.price} MT</Text>
       </View>
     </TouchableOpacity>
   );

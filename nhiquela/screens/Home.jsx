@@ -107,6 +107,7 @@ const ProductRow = React.memo(({ item, onPress }) => (
             `${item.price} MT`
           )}
         </Text>
+        <Text>Fornecedor: {item.seller?.seller?.name}</Text>
       </View>
     </View>
   </TouchableOpacity>

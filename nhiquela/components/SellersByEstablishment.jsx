@@ -20,33 +20,55 @@ const SellersByEstablishment = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [existingIds, setExistingIds] = useState(new Set()); // Set para controle de IDs
+const fetchSellers = async () => {
+  if (loading || !hasMore) return;
 
-  const fetchSellers = async () => {
-    if (loading || !hasMore) return;
+  setLoading(true);
+  try {
+    const response = await api.get(`users/byestablishment/${id}?page=${page}`);
+    const data = response.data;
 
-    setLoading(true);
-    try {
-      const response = await api.get(`users/byestablishment/${id}?page=${page}`);
-      const data = response.data;
-      setSellers((prev) => [...prev, ...data.users]);
-      setTotalPages(data.pages);
-      setHasMore(page < data.pages);
-      setPage((prev) => prev + 1);
-    } catch (error) {
-      console.error("Erro ao buscar fornecedores:", error);
-    } finally {
-      setLoading(false);
+    // Filtra apenas novos sellers que não estão no Set
+    const uniqueNewSellers = data.users.filter(user => !existingIds.has(user._id));
+
+    if (uniqueNewSellers.length > 0) {
+      // Atualiza o Set com IDs novos
+      const newIds = new Set([...existingIds, ...uniqueNewSellers.map(u => u._id)]);
+      setExistingIds(newIds);
+
+      // Adiciona apenas sellers únicos
+      setSellers(prev => [...prev, ...uniqueNewSellers]);
     }
-  };
+
+    setTotalPages(data.pages);
+    setHasMore(page < data.pages);
+    setPage(prev => prev + 1);
+  } catch (error) {
+    console.error("Erro ao buscar fornecedores:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Reset states quando o ID do estabelecimento mudar
+  useEffect(() => {
+    setSellers([]);
+    setPage(1);
+    setExistingIds(new Set());
+    setHasMore(true);
+  }, [id]);
 
   useEffect(() => {
-    fetchSellers();
-  }, []);
+    if (page === 1) {
+      fetchSellers();
+    }
+  }, [page]);
 
   const truncateDescription = (desc) =>
     desc?.length > 30 ? desc.substring(0, 30) + '...' : desc;
 
-  const renderSeller = ({ item }) => {
+  const renderSeller = ({ item, index }) => {
     const {
       name,
       logo,
@@ -57,11 +79,12 @@ const SellersByEstablishment = () => {
       address,
       latitude,
       longitude,
-      openstore : isOpen
-    } = item?.seller;
+      isOpen, 
+      tipoEstabelecimento
+    } = item?.seller || {};
 
-const _id =  item._id
-const openstore = item.seller.isOpen
+    const _id = item._id;
+
     return (
       <TouchableOpacity
         style={styles.sellerCard}
@@ -77,7 +100,8 @@ const openstore = item.seller.isOpen
             address,
             latitude,
             longitude,
-            openstore,
+            openstore: isOpen,
+            tipoEstabelecimento
           })
         }
       >
@@ -101,16 +125,21 @@ const openstore = item.seller.isOpen
       </View>
 
       <Text style={styles.title}>Lista de Fornecedores</Text>
-
+      
       <FlatList
         data={sellers}
         renderItem={renderSeller}
-        keyExtractor={(item) => item.seller._id || item._id || Math.random().toString()}
+        keyExtractor={item => `${item._id}`} // Chave mais única
         contentContainerStyle={styles.listContent}
         onEndReached={fetchSellers}
         onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          loading ? <ActivityIndicator size="large" color="#7F00FF" /> : null
+        ListFooterComponent={loading ? <ActivityIndicator size="large" color="#7F00FF" /> : null}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Nenhum fornecedor encontrado</Text>
+            </View>
+          ) : null
         }
       />
     </SafeAreaView>
@@ -175,5 +204,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });

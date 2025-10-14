@@ -18,26 +18,33 @@ const SellersList = () => {
   const [hasMore, setHasMore] = useState(true); // Flag to check if more sellers can be loaded
 
   // Fetch sellers from API with pagination
-  const fetchSellers = async () => {
-    if (loading || !hasMore) return; // Avoid multiple requests at once or loading when no more sellers
+const fetchSellers = async () => {
+  if (loading || !hasMore) return; // Evita múltiplas requisições
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const response = await api.get(`users/sellers?page=${page}`);
-      const data = await response.data;
+  try {
+    const response = await api.get(`users/sellers?page=${page}`);
+    const data = response.data;
 
+    // Junta os sellers já existentes com os novos e remove duplicados pelo _id
+    const combinedSellers = [...sellers, ...data.sellers];
+    const uniqueSellersMap = new Map();
+    combinedSellers.forEach((seller) => {
+      uniqueSellersMap.set(seller._id, seller);
+    });
+    const uniqueSellers = Array.from(uniqueSellersMap.values());
 
-      setSellers((prevSellers) => [...prevSellers, ...data.sellers]); // Append new sellers to the list
-      setTotalPages(data.pages); // Set total number of pages
-      setHasMore(page < data.pages); // Disable loading more if current page reaches total pages
-      setPage((prevPage) => prevPage + 1); // Increment the page number for the next request
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setSellers(uniqueSellers); // Atualiza o estado com sellers únicos
+    setTotalPages(data.pages);
+    setHasMore(page < data.pages);
+    setPage((prevPage) => prevPage + 1);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Limit description length to 30 characters
   const truncateDescription = (description) => {

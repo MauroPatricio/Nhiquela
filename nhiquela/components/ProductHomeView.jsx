@@ -43,6 +43,9 @@ const renderProductItem = ({ item }) => (
       {item.isOrdered ? (
         <View style={styles.badgeOrdered}>
           <Text style={styles.badgeText}>Por encomenda</Text>
+                    <Text style={styles.badgePeriodOrder}>{item.orderPeriod}</Text>
+
+          
         </View>
       ) : item.countInStock > 0 ? (
         <View style={styles.badgeInStock}>
@@ -281,6 +284,12 @@ badgeText: {
   fontSize: 10,
   fontWeight: 'bold',
   color: 'white',
+},
+badgePeriodOrder: {
+  fontSize: 10,
+  fontWeight: 'bold',
+  color: 'white',
+  textAlign: 'right'
 },
 badgeTextQ: {
   fontSize: 10,

@@ -32,6 +32,7 @@ const SellerScreen = () => {
       latitude,
       longitude,
       openstore,
+      tipoEstabelecimento
     },
   } = useRoute();
 
@@ -120,6 +121,7 @@ const SellerScreen = () => {
 
         <View style={styles.view}>
           <Text style={styles.sellerName}>{name}</Text>
+          <Text style={styles.establish}>Tipo de estabelecimento: {tipoEstabelecimento?.nome}</Text>
 
           {latitude && longitude ? (
             <View style={styles.mapContainer}>
@@ -148,6 +150,8 @@ const SellerScreen = () => {
 
           <Text style={styles.distanceText}>Distância: {distance}</Text>
 
+
+
           <Text style={[styles.openstore, { color: openstore ? 'green' : 'red' }]}>
             {openstore ? 'Estamos abertos' : 'Estamos fechados'}
           </Text>
@@ -156,7 +160,7 @@ const SellerScreen = () => {
           <View style={styles.details}>
             <Ionicons name='location-outline' color="#7F00FF" size={22} />
             <Text style={styles.addressText}>
-              <Text style={{ fontWeight: '500' }}>{province?.name}</Text> - {address}
+              <Text style={{ fontWeight: '500' }}>{province?.name}</Text>- {address}
             </Text>
           </View>
 
@@ -195,8 +199,8 @@ const SellerScreen = () => {
               comissionPercentage={product.comissionPercentage}
               sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
               isSellerOpen={product.isSellerOpen}
-
-              
+              isOrdered={product.isOrdered}
+              orderPeriod={product.orderPeriod}
               />
           ))}
         </View>
@@ -251,6 +255,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#7F00FF',
+  },
+  establish:{
+ marginTop: 10,
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'black',
   },
   openstore: {
     marginTop: 10,

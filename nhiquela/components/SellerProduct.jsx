@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,52 +12,47 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   addToBasket,
   removeFromBasket,
-  selectBasketItemsWithId,
   addSellers,
-  removeSeller,
-  getItemsBySellerId,
 } from '../features/basketSlice';
 import { createSelector } from '@reduxjs/toolkit';
 
 const SellerProduct = ({
   id,
+  nome,
   name,
   image,
+  images,
   description,
+  rating,
+  numReviews,
+  province,
+  address,
   countInStock,
+  priceFromSeller,
   price,
   seller,
-  discount,
   sellerName,
+  discount,
   comissionPercentage,
   sellerEarningsAfterDiscount,
   onSale,
-  isSellerOpen
+  isSellerOpen,
+  isOrdered,
+  orderPeriod
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const animation = useRef(new Animated.Value(0)).current;
 
-  // --- Memoized Selectors ---
   const selectItems = createSelector(
     (state) => state.basket.items,
     (items) => items.filter(item => item._id === id)
   );
-  const selectRemainingItemsFromSeller = createSelector(
-    (state) => state.basket.items,
-    () => seller?._id,
-    (items, sellerId) => items.filter(item => item.seller._id === sellerId)
-  );
-
   const items = useSelector((state) => selectItems(state));
-  const remainingItemsFromSeller = useSelector((state) =>
-    selectRemainingItemsFromSeller(state)
-  );
-
   const dispatch = useDispatch();
 
   const toggleExpand = () => {
     Animated.timing(animation, {
-      toValue: isExpanded ? 0 : 1,
+      toValue: isExpanded ? 0 : 1.5,
       duration: 250,
       useNativeDriver: false,
     }).start();
@@ -66,38 +61,33 @@ const SellerProduct = ({
 
   const addItemToBasket = () => {
     if (items.length >= countInStock) return;
-    dispatch(
-      addToBasket({
-        id,
-        _id: id,
-        name,
-        image,
-        description,
-        countInStock,
-        price,
-        seller,
-        sellerName,
-        discount,
-        onSale,
-        comissionPercentage,
-        sellerEarningsAfterDiscount,
-        quantity: items.length + 1,
-      })
-    );
+    dispatch(addToBasket({
+      id,
+      _id: id,
+      name,
+      image,
+      description,
+      countInStock,
+      price,
+      seller,
+      sellerName,
+      discount,
+      onSale,
+      comissionPercentage,
+      sellerEarningsAfterDiscount,
+      quantity: items.length + 1,
+    }));
     dispatch(addSellers({ seller }));
   };
 
   const removeItem = () => {
     if (items.length === 0) return;
     dispatch(removeFromBasket({ _id: id }));
-    if (remainingItemsFromSeller.length === 1) {
-      dispatch(removeSeller({ sellerId: seller._id }));
-    }
   };
 
   const cardHeight = animation.interpolate({
     inputRange: [0, 1],
-    outputRange: [180, 260], // altura inicial e expandida
+    outputRange: [220, 300], // altura inicial e expandida
   });
 
   const rotateChevron = animation.interpolate({
@@ -113,15 +103,40 @@ const SellerProduct = ({
         disabled={!isSellerOpen}
         style={{ flex: 1 }}
       >
+        {/* Imagem */}
         <View style={{ position: 'relative' }}>
           <Image source={{ uri: image }} style={styles.image} />
+
+          {/* Loja fechada */}
           {!isSellerOpen && (
             <View style={styles.overlay}>
               <Text style={styles.overlayText}>Loja fechada</Text>
             </View>
           )}
+
+          {/* Badges */}
+          <View style={styles.badgeContainer}>
+            {onSale && (
+              <View style={styles.saleBadge}>
+                <Text style={styles.saleText}>Promoção</Text>
+              </View>
+            )}
+            {isOrdered && orderPeriod && (
+              <View style={styles.orderBadge}>
+                <Text style={styles.orderText}>Por encomenda: {orderPeriod}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Sem estoque */}
+          {countInStock === 0 && (
+            <View style={styles.outOfStockBadge}>
+              <Text style={styles.outOfStockText}>Sem estoque</Text>
+            </View>
+          )}
         </View>
 
+        {/* Conteúdo */}
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.name}>{name}</Text>
@@ -131,44 +146,25 @@ const SellerProduct = ({
           </View>
 
           <Text style={styles.description}>{description}</Text>
-          <Text style={styles.stock}>Quantidade disp.: {countInStock}</Text>
-
-          {onSale ? (
-            <View style={{ marginTop: 6 }}>
-              <View style={{ backgroundColor: 'green', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start', marginBottom: 4 }}>
-                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Em promoção</Text>
-              </View>
-              <Text style={{ color: 'grey', textDecorationLine: 'line-through', marginBottom: 5 }}>
-                {parseFloat(price).toFixed(2)} MT
-              </Text>
-              <Text style={{ color: 'green', fontWeight: 'bold', fontSize: 16 }}>
-                {parseFloat(discount).toFixed(2)} MT
-              </Text>
-              <Text style={{ color: 'green', marginTop: 4 }}>
-                Economiza {(parseFloat(price) - parseFloat(discount)).toFixed(2)} MT
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.price}>
-              {parseFloat(price).toFixed(2)} MT
-            </Text>
-          )}
+          <Text style={styles.stock}>
+            {countInStock > 0 ? `Disponível: ${countInStock}` : 'Indisponível'}
+          </Text>
+          <Text style={styles.price}>
+            {onSale
+              ? `${parseFloat(discount).toFixed(2)} MT`
+              : `${parseFloat(price).toFixed(2)} MT`}
+          </Text>
         </View>
 
+        {/* Ações */}
         {isExpanded && (
           <View style={styles.actions}>
-            <TouchableOpacity onPress={removeItem}>
-              <MinusCircleIcon
-                size={35}
-                color={items.length > 0 ? 'white' : 'gray'}
-                style={styles.iconButton}
-              />
+            <TouchableOpacity onPress={removeItem} disabled={items.length === 0}>
+              <MinusCircleIcon size={40} color={items.length > 0 ? '#7F00FF' : 'gray'} />
             </TouchableOpacity>
-
             <Text style={styles.quantity}>{items.length}</Text>
-
-            <TouchableOpacity onPress={addItemToBasket}>
-              <PlusCircleIcon size={35} color="white" style={styles.iconButton} />
+            <TouchableOpacity onPress={addItemToBasket} disabled={items.length >= countInStock}>
+              <PlusCircleIcon size={40} color={items.length < countInStock ? '#7F00FF' : 'gray'} />
             </TouchableOpacity>
           </View>
         )}
@@ -182,23 +178,85 @@ export default SellerProduct;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 10,
     padding: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
   },
   image: {
-    height: 120,
-    borderRadius: 10,
+    height: 150,
+    borderRadius: 12,
     width: '100%',
     resizeMode: 'cover',
   },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  overlayText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 6,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  saleBadge: {
+    backgroundColor: '#FF5722',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  saleText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  orderBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  orderText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  outOfStockBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#C62828',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  outOfStockText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
   content: {
-    marginTop: 12,
+    marginTop: 10,
   },
   header: {
     flexDirection: 'row',
@@ -207,7 +265,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#333',
     flex: 1,
     marginRight: 8,
@@ -222,8 +280,8 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   price: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     marginTop: 6,
     color: '#7F00FF',
   },
@@ -234,31 +292,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 20,
   },
-  iconButton: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 50,
-    padding: 6,
-  },
   quantity: {
     fontSize: 16,
     fontWeight: '600',
     marginHorizontal: 12,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-    borderRadius: 10,
-  },
-  overlayText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 6,
   },
 });

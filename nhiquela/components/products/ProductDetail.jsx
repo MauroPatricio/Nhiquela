@@ -117,10 +117,11 @@ const ProductDetail = () => {
               </Text>
             )}
             {/* Estoque */}
+            {console.log(itemData.isOrdered)}
             <View style={{ marginVertical: 6 }}>
-              {item.item?.isOrdered ? (
+              {itemData.isOrdered ? (
                 <>
-                  <Badge style={styles.badgeOrdered}>Por encomenda: <Text style={{ fontSize: 13, marginTop: 2 }}>{item.item.orderPeriod}</Text></Badge>
+                  <Badge style={styles.badgeOrdered}>Por encomenda: <Text style={{ fontSize: 13, marginTop: 2 }}>{itemData.orderPeriod} para entrega</Text></Badge>
                   
                 </>
               ) : countInStock > 0 ? (
