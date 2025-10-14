@@ -3,6 +3,7 @@
     "name": "Nhiquela",
     "slug": "nhiquelaa",
     "version": "1.0.0",
+    "owner": "mpatricio",
     "orientation": "portrait",
     "icon": "./assets/nhiquela2.png",
     "userInterfaceStyle": "light",
