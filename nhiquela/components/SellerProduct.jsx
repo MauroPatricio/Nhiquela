@@ -31,6 +31,7 @@ const SellerProduct = ({
   priceFromSeller,
   price,
   seller,
+  discount,
   sellerName,
   discount,
   comissionPercentage,
