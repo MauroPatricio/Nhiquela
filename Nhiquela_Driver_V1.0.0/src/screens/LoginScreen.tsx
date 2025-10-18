@@ -135,7 +135,7 @@ const Login: React.FC<LoginProps> = ({ navigation }) => {
         <View style={styles.header}>
         <BackBtn onPress={() => {}} />
           <Image
-            source={require("../assets/nhiquela2.png")}
+            source={require("../../assets/nhiquela2.png")}
             style={styles.headerLogo}
           />
           <Text style={styles.headerTitle}>App do Condutor</Text>

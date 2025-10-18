@@ -4,22 +4,25 @@
     "slug": "nhiqueladriver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/nhiquela2.png",
+    "icon": "./assets/nhiquela2-square.png",
     "splash": {
-      "image": "./src/assets/nhiquela2.png",
+      "image": "./assets/nhiquela2-square.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "android": {
       "package": "com.nhiquela.driver",
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/nhiquela2.png",
+        "foregroundImage": "./assets/nhiquela2-square.png",
         "backgroundColor": "#ffffff"
       }
     },
     "ios": {
       "bundleIdentifier": "com.nhiquela.driver",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "extra": {
       "eas": {
