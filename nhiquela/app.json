@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nhiquela.app",
+      "bundleIdentifier": "com.mpatricio.nhiquelaa",
       "infoPlist": {
         "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para permitir o envio de fotos."
       }
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.nhiquela.app",
+      "package": "com.mpatricio.nhiquelaa",
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
