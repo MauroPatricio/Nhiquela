@@ -267,7 +267,7 @@ const Home = () => {
       return;
     }
 
-    const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
+    const projectId = "7467ac64-89c0-432d-ae88-f427f7c65da9";
     const deviceToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     updatePushToken(userData._id, deviceToken);
   };

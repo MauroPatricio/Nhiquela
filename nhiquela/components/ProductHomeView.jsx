@@ -73,7 +73,7 @@ const renderProductItem = ({ item }) => (
       )}
 
       <View style={styles.extraInfo}>
-        <Text style={styles.infoTextB}>Fornecedor: {item.sellerName || item.seller?.name || 'N/A'}</Text>
+        <Text style={styles.infoTextB}>Fornecedor: {item.sellerName || item.seller?.seller?.name || 'N/A'}</Text>
         <Text style={styles.infoText}>{item.province?.name || 'N/A'}</Text>
       </View>
     </View>

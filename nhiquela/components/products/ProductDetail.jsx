@@ -117,7 +117,6 @@ const ProductDetail = () => {
               </Text>
             )}
             {/* Estoque */}
-            {console.log(itemData.isOrdered)}
             <View style={{ marginVertical: 6 }}>
               {itemData.isOrdered ? (
                 <>

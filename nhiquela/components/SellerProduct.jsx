@@ -33,7 +33,6 @@ const SellerProduct = ({
   seller,
   discount,
   sellerName,
-  discount,
   comissionPercentage,
   sellerEarningsAfterDiscount,
   onSale,

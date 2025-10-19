@@ -72,7 +72,7 @@ const ProductSellerDetail = () => {
         </Text>
 
         <Text style={styles.onSale}>
-            Valor a receber pelo Vendedor: {product?.sellerEarningsAfterDiscount} Mt
+            Valor que o fornecedor recebera : {product?.sellerEarningsAfterDiscount} Mt
         </Text>
     </>
 )}

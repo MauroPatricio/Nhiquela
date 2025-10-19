@@ -7,6 +7,7 @@ import Search from '../screens/Search';
 import Orders from '../screens/Orders';
 import RequestDeliv from '../screens/RequestDeliv';
 import Profile from '../screens/Profile';
+import NewProduct from '../screens/NewProduct';
 
 const Tab = createBottomTabNavigator();
 
@@ -61,8 +62,8 @@ const ButtomTabNavegation = () => {
       />
 
       <Tab.Screen
-        name="RequestDeliv"
-        component={RequestDeliv}
+        name="produtos"
+        component={NewProduct}
         options={{ 
           tabBarIcon: () => (
             <Ionicons

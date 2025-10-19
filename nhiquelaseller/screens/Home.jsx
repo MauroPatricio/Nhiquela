@@ -126,117 +126,117 @@ const Home = () => {
   // useFocusEffect para carregar dados quando a tela ganha foco
   useFocusEffect(
     useCallback(() => {
-      const initialize = async () => {
-        const user = await validateAndSetUser();
-        if (!user) return;
+    const initialize = async () => {
+      const user = await validateAndSetUser();
+      if (!user) return;
 
-        await registerForPushNotificationsAsync(user);
-        await Promise.all([fetchData(user), fetchWalletBalance(user)]);
-      };
-      initialize();
-    }, [])
-  );
-
-  // Configuração de listeners de notificações
-  useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      showMessage({
-        message: "Novo pedido recebido",
-        description: notification.request.content.body,
-        type: "success",
-        icon: "auto",
-        duration: 3000,
-      });
-      setNotification(notification);
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const { extraData } = response.notification.request.content.data;
-      if (extraData) {
-        navigation.navigate('OrderDetail', { extraData });
-      }
-    });
-
-    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
-      if (state.isConnected) checkPendingNotifications();
-    });
-
-    return () => {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
-      unsubscribeNetInfo();
+      await registerForPushNotificationsAsync(user);
+      await Promise.all([fetchData(user), fetchWalletBalance(user)]);
     };
-  }, []);
+    initialize();
+  }, [])
+);
 
-  // Busca pedidos
-  const fetchData = async (user) => {
-    try {
-      const response = await api.get(`/orders/sellerview?seller=${user._id}`, {
-        headers: { authorization: `Bearer ${user.token}` },
-      });
-      if (response.status === 200) {
-        setOrders(response.data.orders);
-        setAvailableStatuses([...new Set(response.data.orders.map(o => o.status))]);
-      }
-    } catch (error) {
-      console.error(error);
+// Configuração de listeners de notificações
+useEffect(() => {
+  notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    showMessage({
+      message: "Novo pedido recebido",
+      description: notification.request.content.body,
+      type: "success",
+      icon: "auto",
+      duration: 3000,
+    });
+    setNotification(notification);
+  });
+
+  responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    const { extraData } = response.notification.request.content.data;
+    if (extraData) {
+      navigation.navigate('OrderDetail', { extraData });
     }
+  });
+
+  const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+    if (state.isConnected) checkPendingNotifications();
+  });
+
+  return () => {
+    notificationListener.current?.remove();
+    responseListener.current?.remove();
+    unsubscribeNetInfo();
   };
+}, []);
 
-  const handleStatusSelect = (status) => setSelectedStatus(status);
+// Busca pedidos
+const fetchData = async (user) => {
+  try {
+    const response = await api.get(`/orders/sellerview?seller=${user._id}`, {
+      headers: { authorization: `Bearer ${user.token}` },
+    });
+    if (response.status === 200) {
+      setOrders(response.data.orders);
+      setAvailableStatuses([...new Set(response.data.orders.map(o => o.status))]);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
-  };
+const handleStatusSelect = (status) => setSelectedStatus(status);
 
-  const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
+};
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* View para o fundo da StatusBar */}
-      <View style={{ height: StatusBar.currentHeight }} />
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
 
-      <View style={styles.appBarWrapper}>
-        <View style={styles.headerRow}>
-          <Text style={styles.welcomeText('black', 30, 0)}>
-            <Text style={{ color: '#7F00FF' }}>Nhiquela</Text>
-          </Text>
-          <Text style={styles.balanceText}>
-            <Text style={{fontSize: 10}}>Saldo:</Text> {walletBalance.toFixed(2)} MT
-          </Text>
-        </View>
+return (
+  <SafeAreaView style={styles.safeArea}>
+    {/* View para o fundo da StatusBar */}
+    <View style={{ height: StatusBar.currentHeight }} />
+    <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-        <View style={styles.appBar}>
-          <Image source={require('../assets/default1.jpg')} style={styles.cover} />
-          <Text style={styles.greetingText}>{userData ? `Olá, ${userData?.name}` : 'Faça login'}</Text>
-        </View>
-
-        {userData?.seller && (
-          <View style={styles.storeStatusContainer}>
-            <View
-              style={[
-                styles.storeStatusIndicator,
-                { backgroundColor: userData.seller.openstore ? '#4CAF50' : '#F44336' },
-              ]}
-            />
-            <Text style={styles.storeStatusText}>
-              {userData.seller.openstore ? 'Loja Aberta' : 'Loja Fechada'} - <Text style={styles.sellerName}>{userData?.seller?.name || ''}</Text>
-            </Text>
-          </View>
-        )}
+    <View style={styles.appBarWrapper}>
+      <View style={styles.headerRow}>
+        <Text style={styles.welcomeText('black', 30, 0)}>
+          <Text style={{ color: '#7F00FF' }}>Nhiquela</Text>
+        </Text>
+        <Text style={styles.balanceText}>
+          <Text style={{fontSize: 10}}>Saldo:</Text> {walletBalance.toFixed(2)} MT
+        </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.sectionTitle}>Pedidos</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusScrollContainer}>
-          {availableStatuses.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[styles.statusButton, selectedStatus === status && styles.selectedStatusButton]}
-              onPress={() => handleStatusSelect(status)}
-            >
+      <View style={styles.appBar}>
+        <Image source={require('../assets/default1.jpg')} style={styles.cover} />
+        <Text style={styles.greetingText}>{userData ? `Olá, ${userData?.name}` : 'Faça login'}</Text>
+      </View>
+
+      {userData?.seller && (
+        <View style={styles.storeStatusContainer}>
+          <View
+            style={[
+              styles.storeStatusIndicator,
+              { backgroundColor: userData.seller.openstore ? '#4CAF50' : '#F44336' },
+            ]}
+          />
+          <Text style={styles.storeStatusText}>
+            {userData.seller.openstore ? 'Loja Aberta' : 'Loja Fechada'} - <Text style={styles.sellerName}>{userData?.seller?.name || ''}</Text>
+          </Text>
+        </View>
+      )}
+    </View>
+
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <Text style={styles.sectionTitle}>Pedidos</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusScrollContainer}>
+        {availableStatuses.map((status) => (
+          <TouchableOpacity
+            key={status}
+            style={[styles.statusButton, selectedStatus === status && styles.selectedStatusButton]}
+            onPress={() => handleStatusSelect(status)}
+          >
               <Text style={styles.statusButtonText}>{status}</Text>
             </TouchableOpacity>
           ))}

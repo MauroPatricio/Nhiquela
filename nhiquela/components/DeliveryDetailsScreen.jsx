@@ -176,27 +176,7 @@ const DeliveryDetailsScreen = () => {
 
           <StatusLocation userLocation={userLocation} distance={distance} />
 
-          {permissionDenied && (
-            <View style={{ marginVertical: 10 }}>
-              <Text style={{ fontWeight: 'bold', color: '#7F00FF', marginBottom: 5 }}>
-                Indique sua localização manualmente:
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Latitude"
-                keyboardType="numeric"
-                value={manualLocation.latitude}
-                onChangeText={(text) => setManualLocation({ ...manualLocation, latitude: text })}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Longitude"
-                keyboardType="numeric"
-                value={manualLocation.longitude}
-                onChangeText={(text) => setManualLocation({ ...manualLocation, longitude: text })}
-              />
-            </View>
-          )}
+          
 
           <DeliveryToggle
             isUserWantDelivery={isUserWantDelivery}

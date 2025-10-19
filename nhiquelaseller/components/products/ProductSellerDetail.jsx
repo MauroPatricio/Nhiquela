@@ -72,7 +72,7 @@ const ProductSellerDetail = () => {
         </Text>
 
         <Text style={styles.onSale}>
-            Valor a receber pelo Vendedor: {product?.sellerEarningsAfterDiscount} Mt
+              Valor que o fornecedor recebera : {product?.sellerEarningsAfterDiscount} Mt
         </Text>
     </>
 )}
@@ -89,7 +89,7 @@ const ProductSellerDetail = () => {
 
 {product?.isOrdered && (
     <Text style={styles.delivery}>
-        Prazo de Entrega: {product?.orderPeriod} dias
+        Prazo de Entrega: {product?.orderPeriod}
     </Text>
 )}
 
