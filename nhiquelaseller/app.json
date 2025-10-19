@@ -3,6 +3,7 @@
     "name": "NhiquelaPRO",
     "slug": "nhiquelap",
     "version": "1.0.0",
+    "owner": "mpatricio",
     "orientation": "portrait",
     "icon": "./assets/nhiquela3.png",
     "userInterfaceStyle": "light",
