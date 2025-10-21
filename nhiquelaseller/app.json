@@ -12,17 +12,13 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
+    "assetBundlePatterns": ["**/*"],
+    "platforms": ["ios", "android", "web"],
     "android": {
       "package": "com.mpatricio.nhiquelap",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 2,
+      "useNextNotificationsApi": true,
       "icon": "./assets/nhiquela3.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela3.png",
@@ -53,10 +49,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to upload images.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
-        "UIBackgroundModes": [
-          "fetch",
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["fetch", "remote-notification"],
+        "NSUserTrackingUsageDescription": "NhiquelaPRO uses notifications to update you about new orders and deliveries."
       }
     },
     "web": {
@@ -76,11 +70,31 @@
         }
       ],
       "expo-notifications",
-      "expo-font",
-      "expo-build-properties"
-     
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "13.0"
+          }
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
+      "firebase": {
+        "apiKey": "AIzaSyCY-wvry4w6GAsMJQ4zD_e3LiMSVx3qoGU",
+        "authDomain": "nhiquela-pro.firebaseapp.com",
+        "projectId": "nhiquela-pro",
+        "storageBucket": "nhiquela-pro.firebasestorage.app",
+        "messagingSenderId": "321336552110",
+        "appId": "1:321336552110:web:2883153d447c5abe96db3f",
+        "measurementId": "G-2HJXSQN0Z7"
+      },
       "eas": {
         "projectId": "3955dd7f-ad17-497a-966b-33dfae1b0b18"
       }

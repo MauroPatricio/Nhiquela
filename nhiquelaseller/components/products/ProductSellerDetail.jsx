@@ -54,11 +54,11 @@ const ProductSellerDetail = () => {
 </Text>
 
 <Text style={styles.price}>
-    Preço do Fornecedor: {product?.priceFromSeller} Mt
+    Preço do Fornecedor: {product?.priceFromSeller} MT
 </Text>
 
 <Text style={styles.price}>
-    Preço de Venda ao Consumidor: {product?.price} Mt
+    Preço de Venda ao Consumidor: {product?.price} MT
 </Text>
 
 {product?.onSale && (
@@ -68,11 +68,11 @@ const ProductSellerDetail = () => {
         </Text>
 
         <Text style={styles.onSale}>
-            Preço Promocional: {product?.discount} Mt
+            Preço Promocional: {product?.discount} MT
         </Text>
 
         <Text style={styles.onSale}>
-              Valor que o fornecedor recebera : {product?.sellerEarningsAfterDiscount} Mt
+              Valor que o fornecedor receberá : {product?.sellerEarningsAfterDiscount} MT
         </Text>
     </>
 )}
