@@ -138,13 +138,18 @@ const Orders = () => {
   const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
   const code = item?.code || '---';
 
-  console.log("asdasdasaasasdsdss", item.deliveryAddress)
+  // console.log("asdasdasaasasdsdss", item.deliveryman)
 
   return (
     <TouchableOpacity
-      style={styles.container}
-      onPress={() => navigation.navigate('OrderDetailsScreen', { item })}
-    >
+    style={styles.container}
+    onPress={() =>
+      navigation.navigate('OrderDetailsScreen', {
+        item: item,
+        deliveryman: item.deliveryman, // 👈 adicionando o parâmetro explicitamente
+      })
+    }
+  >
       {/* Barra lateral colorida */}
       <View style={[styles.statusBar, { backgroundColor: getStatusColor(item.status) }]} />
 

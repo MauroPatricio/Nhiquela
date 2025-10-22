@@ -142,7 +142,7 @@ const checkIfUserExist = async () => {
               {/* Detalhes do pedido */}
               <View style={styles.content}>
                 <Text style={styles.code}>
-                   Pedido #{order?.code}
+                   Pedidos #{order?.code}
                 </Text>
                 <Text style={styles.createAt}>
                    {formatDate(order?.createdAt)}

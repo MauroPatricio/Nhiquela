@@ -27,8 +27,9 @@ import TripControls from '../components/TripControls';
 const { width, height } = Dimensions.get('window');
 
 const OrderDetailsScreen = () => {
-  const { params: { item } } = useRoute();
+  const { params: { item, deliveryman } } = useRoute();
   const [currentOrder, setCurrentOrder] = useState(item);
+  const [currentDeliveryMan, setDeliveryMan] = useState(deliveryman);
   const [modalVisible, setModalVisible] = useState(false);
   const [message, setMessage] = useState('');
   const [userData, setUserData] = useState(null);
@@ -122,11 +123,15 @@ const OrderDetailsScreen = () => {
   };
 
   useEffect(() => {
+    console.log("asdasdasaasasds", item.seller)
+
     checkIfUserExist();
   }, []);
 
   const checkIfUserExist = async () => {
     try {
+
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permissão necessária', 'Permissão para acessar localização é necessária.');

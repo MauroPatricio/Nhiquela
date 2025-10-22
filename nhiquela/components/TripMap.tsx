@@ -52,17 +52,23 @@ const OptimizedDriverPhoto = React.memo(({ base64String }: { base64String: strin
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   useEffect(() => {
-    if (base64String) {
-      // Converter base64 para URI
-      const uri = `data:image/jpeg;base64,${base64String}`;
-      setImageUri(uri);
+    if (base64String && base64String.trim() !== '') {
+      try {
+        // Verificar se já tem o prefixo data:image
+        const uri = base64String.startsWith('data:image') 
+          ? base64String 
+          : `data:image/jpeg;base64,${base64String}`;
+        setImageUri(uri);
+      } catch (error) {
+        console.log('Erro ao processar imagem base64:', error);
+      }
     }
   }, [base64String]);
 
   if (!imageUri) {
     return (
       <View style={styles.driverPhotoPlaceholder}>
-        <Ionicons name="person" size={24} color="#666" />
+        <Ionicons name="person" size={20} color="#666" />
       </View>
     );
   }
@@ -72,7 +78,11 @@ const OptimizedDriverPhoto = React.memo(({ base64String }: { base64String: strin
       source={{ uri: imageUri }} 
       style={styles.driverPhoto}
       resizeMode="cover"
-      onError={() => console.log('Erro ao carregar imagem do motorista')}
+      defaultSource={require('../assets/icon.png')} // Adicione uma imagem placeholder
+      onError={(e) => {
+        console.log('Erro ao carregar imagem do motorista:', e.nativeEvent.error);
+        setImageUri(null);
+      }}
     />
   );
 });
@@ -99,12 +109,13 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
   // Refs para otimização
   const lastPositionRef = useRef<any>(null);
   const routeDrawnRef = useRef(false);
-  const locationUpdatesRef = useRef(0);
 
   // Configurar PanResponder para o sheet
   const panResponder = React.useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => true,
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           sheetHeight.setValue(Math.max(80, 200 - gestureState.dy));
@@ -236,11 +247,10 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
     return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
   }, []);
 
-  // Obter localização atual do usuário (ALTAMENTE OTIMIZADA)
+  // Obter localização atual do usuário (OTIMIZADA)
   useEffect(() => {
     let locationSubscription: any = null;
     let isMounted = true;
-    let lastUpdateTime = 0;
 
     (async () => {
       try {
@@ -250,7 +260,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
           return;
         }
 
-        // Configuração MÁXIMA para performance - usando Balanced em vez de LowestForNavigation
+        // Configuração para performance
         let location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced
         });
@@ -266,32 +276,25 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
           checkProximityToDestination(initialLocation);
         }
 
-        // Watch position com configurações MÁXIMAS de performance
+        // Watch position com configurações otimizadas
         locationSubscription = await Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.Balanced, // Usando Balanced
-            distanceInterval: 20, // Aumentado para 20 metros
-            timeInterval: 3000, // Aumentado para 3 segundos
+            accuracy: Location.Accuracy.Balanced,
+            distanceInterval: 10,
+            timeInterval: 2000,
           },
           (newLocation) => {
             if (!isMounted) return;
-            
-            const now = Date.now();
-            // Limitar updates para no máximo 1 por segundo
-            if (now - lastUpdateTime < 1000) return;
-            lastUpdateTime = now;
-
-            locationUpdatesRef.current++;
             
             const updatedLocation = {
               latitude: newLocation.coords.latitude,
               longitude: newLocation.coords.longitude
             };
             
-            // Atualização otimizada - só recalcula se mudança significativa
+            // Atualização otimizada
             if (lastPositionRef.current && 
-                (Math.abs(lastPositionRef.current.latitude - updatedLocation.latitude) > 0.0002 ||
-                 Math.abs(lastPositionRef.current.longitude - updatedLocation.longitude) > 0.0002)) {
+                (Math.abs(lastPositionRef.current.latitude - updatedLocation.latitude) > 0.0001 ||
+                 Math.abs(lastPositionRef.current.longitude - updatedLocation.longitude) > 0.0001)) {
               
               const newHeading = calculateBearing(
                 lastPositionRef.current,
@@ -301,11 +304,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
               
               setOrigin(updatedLocation);
               lastPositionRef.current = updatedLocation;
-              
-              // Verificar proximidade apenas a cada 3 updates
-              if (locationUpdatesRef.current % 3 === 0) {
-                checkProximityToDestination(updatedLocation);
-              }
+              checkProximityToDestination(updatedLocation);
             }
           }
         );
@@ -331,12 +330,12 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
       Animated.sequence([
         Animated.timing(fadeAnim, {
           toValue: 0.4,
-          duration: 1200, // Frequência ainda mais reduzida
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 1200,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
@@ -353,7 +352,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
     setDistance(result.distance);
 
     if (origin && mapRef.current) {
-      // Fit to coordinates sem a propriedade duration (que não existe)
+      // Fit to coordinates sem a propriedade duration
       mapRef.current.fitToCoordinates([origin, ...result.coordinates], {
         edgePadding: { top: 50, right: 50, bottom: 150, left: 50 },
         animated: true,
@@ -408,7 +407,17 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
 
   // Renderizar informações do motorista
   const renderDriverInfo = () => {
-    if (!deliveryman) return null;
+    if (!deliveryman) {
+      console.log('Nenhum dado do motorista disponível');
+      return null;
+    }
+
+    console.log('Dados do motorista recebidos:', {
+      name: deliveryman.name,
+      hasPhoto: !!deliveryman.photo,
+      phone: deliveryman.phoneNumber,
+      vehicle: deliveryman.transport_type
+    });
 
     return (
       <Animated.View 
@@ -435,7 +444,9 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
         <View style={styles.driverHeader}>
           <OptimizedDriverPhoto base64String={deliveryman.photo} />
           <View style={styles.driverBasicInfo}>
-            <Text style={styles.driverName}>{deliveryman.name}</Text>
+            <Text style={styles.driverName}>
+              {deliveryman.name || "Motorista"}
+            </Text>
             <Text style={styles.driverPhone}>
               {deliveryman.phoneNumber ? `+${deliveryman.phoneNumber}` : 'Telefone não disponível'}
             </Text>
@@ -454,7 +465,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
 
         <View style={styles.driverDetails}>
           <View style={styles.driverDetailItem}>
-            <Ionicons name="car-sport" size={16} color="#666" />
+            <Ionicons name="car-sport" size={14} color="#666" />
             <Text style={styles.driverDetailText}>
               {deliveryman.transport_type || "Veículo"}
             </Text>
@@ -473,7 +484,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
           </View>
 
           <View style={styles.driverDetailItem}>
-            <Ionicons name="card" size={16} color="#666" />
+            <Ionicons name="card" size={14} color="#666" />
             <Text style={styles.driverDetailText}>
               {deliveryman.transport_registration || "Sem matrícula"}
             </Text>
@@ -484,48 +495,59 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Mapa SUPER OTIMIZADO */}
+    <View style={styles.container}>
+      {/* Mapa OTIMIZADO - SEM CONGELAMENTO */}
       <MapView
         ref={mapRef}
         style={styles.map}
         showsUserLocation={false}
         loadingEnabled={true}
         rotateEnabled={true}
-        pitchEnabled={false}
+        pitchEnabled={true} // HABILITADO para melhor experiência
         scrollEnabled={true}
-        zoomEnabled={true}
-        showsBuildings={false}
+        zoomEnabled={true} // HABILITADO para zoom
+        showsBuildings={true}
         showsTraffic={false}
         showsIndoors={false}
-        showsPointsOfInterest={false} // Desabilita POIs
+        showsPointsOfInterest={true}
         cacheEnabled={true}
-        moveOnMarkerPress={false}
-        toolbarEnabled={false} // Desabilita toolbar do mapa
+        moveOnMarkerPress={true}
+        toolbarEnabled={true}
         loadingIndicatorColor={COLORS.primary}
         loadingBackgroundColor="#f8f8f8"
+        initialRegion={{
+          latitude: origin?.latitude || -25.9667,
+          longitude: origin?.longitude || 32.5833,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
       >
+        {/* Marcador de origem - VISÍVEL */}
         {origin && (
           <Marker 
             coordinate={origin} 
             title="Sua posição"
+            description="Localização atual"
             anchor={{ x: 0.5, y: 0.5 }}
-            flat={true}
-            tracksViewChanges={false} // Otimização para marcadores
+            flat={false}
+            tracksViewChanges={false}
           >
-            <Animated.View style={[styles.arrowMarkerContainer, getArrowRotationStyle()]}>
-              <View style={styles.arrowSimple}>
+            <View style={styles.arrowMarkerContainer}>
+              <Animated.View style={[styles.arrowSimple, getArrowRotationStyle()]}>
                 <Ionicons name="navigate" size={20} color={COLORS.primary} />
-              </View>
-            </Animated.View>
+              </Animated.View>
+            </View>
           </Marker>
         )}
         
+        {/* Marcador de destino - VISÍVEL */}
         {destination && (
           <Marker 
             coordinate={destination} 
             title="Destino" 
-            flat={true}
+            description="Local de entrega"
+            anchor={{ x: 0.5, y: 0.5 }}
+            flat={false}
             tracksViewChanges={false}
           >
             <View style={styles.destinationMarker}>
@@ -534,6 +556,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
           </Marker>
         )}
 
+        {/* Direções - VISÍVEIS */}
         {origin && destination && (
           <MapViewDirections
             origin={origin}
@@ -545,14 +568,14 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
             mode="DRIVING"
             onReady={handleRouteReady}
             precision="low"
-            splitWaypoints={true} // Otimização para waypoints
-            timePrecision="none" // Remove cálculo de tempo extra
+            splitWaypoints={true}
+            timePrecision="none"
           />        
         )}
       </MapView>
 
-      {/* Quadro de Informações do Motorista */}
-      {showDriverInfo && deliveryman && renderDriverInfo()}
+      {/* Quadro de Informações do Motorista - VISÍVEL */}
+      {showDriverInfo && renderDriverInfo()}
 
       {/* Botão de Confirmar Entrega */}
       <Animated.View 
@@ -589,7 +612,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
           <Text style={styles.timeEstimateText}>
             {remainingTime !== null 
               ? `Chegada em ${formatRemainingTime(remainingTime)}` 
-              : "Calculando..."}
+              : "Calculando rota..."}
           </Text>
           {isNearDestination && (
             <View style={styles.nearDestinationIndicator}>
@@ -599,18 +622,12 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
         </Animated.View>
       </View>
 
-      {/* Bottom Sheet Simplificado */}
+      {/* Bottom Sheet Funcional */}
       <Animated.View 
         style={[
           styles.sheetContainer,
           { 
             height: sheetHeight,
-            transform: [{
-              translateY: sheetAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -60]
-              })
-            }]
           }
         ]}
         {...panResponder.panHandlers}
@@ -679,7 +696,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
           </View>
         </Animated.View>
       </Animated.View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -708,35 +725,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   map: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
+    width: '100%',
+    height: '100%',
   },
   arrowMarkerContainer: {
-    width: 32,
-    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   arrowSimple: {
-    width: 28,
-    height: 28,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 14,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
     borderWidth: 2,
     borderColor: COLORS.primary,
   },
   destinationMarker: {
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
-  // Quadro do Motorista
+  // Quadro do Motorista - CORRIGIDO E VISÍVEL
   driverInfoContainer: {
     position: 'absolute',
     top: 60,
@@ -744,69 +767,75 @@ const styles = StyleSheet.create({
     right: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.03)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    zIndex: 1000, // Garante que fique acima de tudo
   },
   closeDriverInfo: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    zIndex: 1,
+    top: 8,
+    right: 8,
+    zIndex: 1001,
     padding: 4,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 12,
   },
   driverHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   driverPhoto: {
-    width: 45,
-    height: 45,
-    borderRadius: 22,
-    marginRight: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#f0f0f0',
   },
   driverPhotoPlaceholder: {
-    width: 45,
-    height: 45,
-    borderRadius: 22,
-    marginRight: 10,
-    backgroundColor: '#f0f0f0',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: '#f8f8f8',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
   },
   driverBasicInfo: {
     flex: 1,
   },
   driverName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#333',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   driverPhone: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   conformanceBadge: {
     alignSelf: 'flex-start',
   },
   conformanceText: {
     fontSize: 10,
-    fontWeight: '600',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     backgroundColor: '#FFA500',
     color: '#FFF',
+    overflow: 'hidden',
   },
   conformanceSuccess: {
     backgroundColor: '#4CAF50',
@@ -818,24 +847,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
+    gap: 8,
   },
   driverDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
     flex: 1,
-    minWidth: '48%',
+    minWidth: '30%',
   },
   driverDetailText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#666',
-    marginLeft: 4,
+    marginLeft: 6,
     flexShrink: 1,
   },
   colorIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#ddd',
   },
@@ -846,28 +875,29 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     alignItems: 'flex-start',
+    zIndex: 999,
   },
   confirmDeliveryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   confirmDeliveryButtonDisabled: {
     backgroundColor: '#CCCCCC',
   },
   confirmDeliveryButtonText: {
     color: '#FFF',
-    fontWeight: '600',
-    fontSize: 12,
-    marginLeft: 4,
+    fontWeight: '700',
+    fontSize: 13,
+    marginLeft: 6,
   },
   // Estimativa de Tempo
   timeEstimateContainer: {
@@ -876,31 +906,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+    zIndex: 999,
   },
   timeEstimateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
   },
   timeEstimateText: {
     color: '#FFF',
-    fontWeight: '600',
-    fontSize: 13,
-    marginLeft: 4,
+    fontWeight: '700',
+    fontSize: 14,
+    marginLeft: 6,
   },
   nearDestinationIndicator: {
     backgroundColor: '#FF5722',
-    borderRadius: 6,
-    padding: 2,
-    marginLeft: 4,
+    borderRadius: 8,
+    padding: 3,
+    marginLeft: 6,
   },
   // Bottom Sheet
   sheetContainer: {
@@ -909,33 +940,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.03)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     overflow: 'hidden',
+    zIndex: 1000,
   },
   sheetHandle: {
     alignItems: 'center',
-    paddingVertical: 5,
+    paddingVertical: 6,
   },
   handleBar: {
-    width: 32,
-    height: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    width: 36,
+    height: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: 2,
   },
   compactContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   mainInfo: {
     flexDirection: 'row',
@@ -945,39 +977,39 @@ const styles = StyleSheet.create({
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   infoText: {
-    marginLeft: 3,
-    fontSize: 13,
+    marginLeft: 4,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
   },
   expandButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   expandedContent: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   detailSection: {
-    marginTop: 6,
+    marginTop: 8,
   },
   detailTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: 'center',
   },
   detailGrid: {
@@ -986,23 +1018,23 @@ const styles = StyleSheet.create({
   },
   detailItem: {
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.03)',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   detailLabel: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#666',
-    marginTop: 1,
+    marginTop: 2,
     fontWeight: '500',
   },
   detailValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#333',
-    marginTop: 1,
+    marginTop: 2,
   },
 });
