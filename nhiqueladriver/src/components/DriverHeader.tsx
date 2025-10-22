@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../constants/theme";
 import { useAuth } from "../context/AuthContext";
+import { COLORS } from "../styles/colors";
 
 const DriverHeader = ({ batteryLevel }) => {
   const { user, logout, profileImage } = useAuth();
@@ -74,7 +74,7 @@ const DriverHeader = ({ batteryLevel }) => {
         <Image
           source={imageSource}
           style={styles.userAvatar}
-          defaultSource={require("../assets/avatar-placeholder.png")}
+          defaultSource={require("../assets/icon.png")}
           onError={(error) =>
             console.log(
               "❌ [DriverHeader] Erro ao carregar imagem:",

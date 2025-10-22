@@ -11,7 +11,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
-import api from "./src/hooks/createConnectionApi"; // certifique-se disso
+import api from "./src/api/apiConfig"; // certifique-se disso
 
 // Ref para navegação global
 export const navigationRef = createNavigationContainerRef();
