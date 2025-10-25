@@ -6,7 +6,9 @@ import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 import  axios  from 'axios' // Ensure axios is imported
 import { createNotification } from '../controllers/notificationControllerNhabanga.js';
+import { Server } from 'socket.io';
 
+let io;
 
 
 
@@ -854,7 +856,7 @@ orderRouter.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     console.log("🚗 Iniciando aceitação de pedido pelo entregador...");
-    
+
     const order = await Order.findById(req.params.id);
     const user_deliver = await User.findById(req.user._id);
 
@@ -924,6 +926,8 @@ orderRouter.put(
 
     const updateOrder = await order.save();
     console.log("🎉 Pedido aceito com sucesso pelo entregador:", user_deliver._id);
+
+    emitOrderUpdate(updateOrder, 'accepted_by_deliveryman', user_deliver._id);
 
     // Notificações
     const sellerOfProduct = await User.findById(order.seller);
@@ -1069,6 +1073,7 @@ orderRouter.put(
       //   email_address: req.body.email_address,
       // };
       const savedOrder =await order.save();
+      emitOrderUpdate(savedOrder, 'in_transit', order.deliveryman?.id);
 
         //  Para envio de mensagens
 
@@ -1251,7 +1256,8 @@ orderRouter.put(
 
 
      const savedOrder = await order.save();
-      
+     emitOrderUpdate(savedOrder, 'cancelled', order.deliveryman?.id);
+
       //  Para envio de mensagens
 
       let message =`Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar pesquisando pelo codigo.`;
@@ -1573,6 +1579,258 @@ orderRouter.get(
     }
   })
 );
+
+
+// 📦 TODAS AS VIAGENS PARA O ENTREGADOR: 
+// - Viagens disponíveis (status 3) NÃO associadas a ele
+// - Viagens aceitas (status 4) associadas a ele
+// orderRouter.get(
+//   '/deliveryman/all',
+//   isAuth,
+//   expressAsyncHandler(async (req, res) => {
+//     try {
+//       const userId = req.user._id;
+
+//       console.log(`🚗 Buscando TODAS as viagens para o entregador: ${userId}`);
+
+//       // Verifica se o usuário é realmente um entregador
+//       const user = await User.findById(userId);
+//       if (!user || !user.isDeliveryMan) {
+//         return res.status(403).send({
+//           message: 'Apenas entregadores podem visualizar viagens.',
+//         });
+//       }
+
+//       // 🔹 BUSCAR VIAGENS DISPONÍVEIS (status 3) NÃO ASSOCIADAS AO ENTREGADOR
+//       const availableTrips = await Order.find({
+//         deleted: false,
+//         stepStatus: 3, // Disponível para entrega
+//         isAvailableToDeliver: true,
+//         isPaid: true,
+//         $or: [
+//           { 'deliveryman.id': { $exists: false } }, // Não tem entregador
+//           { 'deliveryman.id': { $ne: userId } } // Tem entregador, mas não é este
+//         ]
+//       })
+//         .populate({
+//           path: 'user',
+//           select: 'name email phoneNumber',
+//         })
+//         .populate({
+//           path: 'seller',
+//           select: 'name address latitude longitude',
+//         })
+//         .sort({ createdAt: -1 });
+
+//       console.log(`📦 ${availableTrips.length} viagens disponíveis encontradas`);
+
+//       // 🔹 BUSCAR VIAGENS ACEITAS (status 4) ASSOCIADAS AO ENTREGADOR
+//       const acceptedTrips = await Order.find({
+//         deleted: false,
+//         stepStatus: 4, // Aceite pelo entregador
+//         'deliveryman.id': userId // Apenas as associadas a este entregador
+//       })
+//         .populate({
+//           path: 'user',
+//           select: 'name email phoneNumber',
+//         })
+//         .populate({
+//           path: 'seller',
+//           select: 'name address latitude longitude',
+//         })
+//         .sort({ createdAt: -1 });
+
+//       console.log(`✅ ${acceptedTrips.length} viagens aceitas encontradas`);
+
+//       // 🔹 COMBINAR TODAS AS VIAGENS
+//       const allTrips = [...acceptedTrips, ...availableTrips];
+
+//       // 🔹 FORMATAR RESPOSTA
+//       const formattedTrips = allTrips.map(trip => {
+//         const baseTrip = {
+//           _id: trip._id,
+//           code: trip.code,
+//           status: trip.status,
+//           stepStatus: trip.stepStatus,
+//           createdAt: trip.createdAt,
+//           isAvailableToDeliver: trip.isAvailableToDeliver,
+//           isPaid: trip.isPaid,
+//           itemsPrice: trip.itemsPrice,
+//           deliveryPrice: trip.deliveryPrice,
+//           totalPrice: trip.totalPrice,
+//           user: {
+//             _id: trip.user?._id,
+//             name: trip.user?.name || 'Cliente desconhecido',
+//             email: trip.user?.email || 'N/D',
+//             phoneNumber: trip.user?.phoneNumber || 'N/D',
+//           },
+//           seller: trip.seller ? {
+//             _id: trip.seller._id,
+//             name: trip.seller.name,
+//             address: trip.seller.address,
+//             latitude: trip.seller.latitude,
+//             longitude: trip.seller.longitude,
+//           } : null,
+//           deliveryAddress: trip.deliveryAddress || {},
+//           deliveryman: trip.deliveryman,
+//           // 🔹 FLAG PARA IDENTIFICAR SE É UMA VIAGEM ACEITA PELO ENTREGADOR
+//           isAcceptedByDeliveryman: trip.stepStatus === 4 && trip.deliveryman?.id?.toString() === userId.toString()
+//         };
+
+//         return baseTrip;
+//       });
+
+//       console.log(`🎯 Total de ${formattedTrips.length} viagens retornadas`);
+
+//       res.status(200).send({
+//         message: 'Viagens encontradas com sucesso.',
+//         trips: formattedTrips,
+//         summary: {
+//           total: formattedTrips.length,
+//           available: availableTrips.length,
+//           accepted: acceptedTrips.length
+//         }
+//       });
+
+//     } catch (error) {
+//       console.error('❌ Erro ao buscar viagens:', error);
+//       res.status(500).send({ 
+//         message: 'Erro interno ao buscar viagens.',
+//         error: error.message 
+//       });
+//     }
+//   })
+// );
+
+
+// 📦 TODAS AS VIAGENS PARA O ENTREGADOR - OTIMIZADO PARA TEMPO REAL
+orderRouter.get(
+  '/deliveryman/all',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const cacheKey = `deliveryman_orders_${userId}`;
+
+      console.log(`🚗 Buscando TODAS as viagens para o entregador: ${userId}`);
+
+      // Verifica se o usuário é realmente um entregador
+      const user = await User.findById(userId);
+      if (!user || !user.isDeliveryMan) {
+        return res.status(403).send({
+          message: 'Apenas entregadores podem visualizar viagens.',
+        });
+      }
+
+      // 🔥 BUSCA OTIMIZADA - SEM POPULAÇÕES DESNECESSÁRIAS
+      const [availableTrips, acceptedTrips] = await Promise.all([
+        // Viagens disponíveis (status 3)
+        Order.find({
+          deleted: false,
+          stepStatus: 3,
+          isAvailableToDeliver: true,
+          isPaid: true,
+          $or: [
+            { 'deliveryman.id': { $exists: false } },
+            { 'deliveryman.id': { $ne: userId } }
+          ]
+        })
+          .select('_id code status stepStatus createdAt isAvailableToDeliver isPaid itemsPrice deliveryPrice totalPrice user seller deliveryAddress deliveryman')
+          .lean(),
+
+        // Viagens aceitas (status 4) pelo entregador atual
+        Order.find({
+          deleted: false,
+          stepStatus: 4,
+          'deliveryman.id': userId
+        })
+          .select('_id code status stepStatus createdAt isAvailableToDeliver isPaid itemsPrice deliveryPrice totalPrice user seller deliveryAddress deliveryman')
+          .lean()
+      ]);
+
+      console.log(`📦 ${availableTrips.length} disponíveis, ${acceptedTrips.length} aceitas`);
+
+      // 🔥 POPULAÇÃO EM LOTE PARA MELHOR PERFORMANCE
+      const allOrderIds = [
+        ...availableTrips.map(t => t._id),
+        ...acceptedTrips.map(t => t._id)
+      ];
+
+      const [usersData, sellersData] = await Promise.all([
+        // Buscar dados dos usuários
+        User.find({ 
+          '_id': { $in: [...new Set(availableTrips.map(t => t.user).filter(Boolean))] }
+        }).select('name email phoneNumber').lean(),
+        
+        // Buscar dados dos vendedores
+        User.find({ 
+          '_id': { $in: [...new Set(availableTrips.map(t => t.seller).filter(Boolean))] }
+        }).select('name address latitude longitude').lean()
+      ]);
+
+      // Criar mapas para acesso rápido
+      const usersMap = new Map(usersData.map(u => [u._id.toString(), u]));
+      const sellersMap = new Map(sellersData.map(s => [s._id.toString(), s]));
+
+      // 🔥 FORMATAR RESPOSTA OTIMIZADA
+      const formattedTrips = [...acceptedTrips, ...availableTrips].map(trip => {
+        const userData = usersMap.get(trip.user?.toString());
+        const sellerData = sellersMap.get(trip.seller?.toString());
+        const isAcceptedByDeliveryman = trip.stepStatus === 4 && trip.deliveryman?.id?.toString() === userId.toString();
+
+        return {
+          _id: trip._id,
+          code: trip.code,
+          status: trip.status,
+          stepStatus: trip.stepStatus,
+          createdAt: trip.createdAt,
+          isAvailableToDeliver: trip.isAvailableToDeliver,
+          isPaid: trip.isPaid,
+          itemsPrice: trip.itemsPrice,
+          deliveryPrice: trip.deliveryPrice,
+          totalPrice: trip.totalPrice,
+          user: userData ? {
+            _id: userData._id,
+            name: userData.name || 'Cliente',
+            email: userData.email || 'N/D',
+            phoneNumber: userData.phoneNumber || 'N/D',
+          } : { name: 'Cliente', phoneNumber: 'N/D' },
+          seller: sellerData ? {
+            _id: sellerData._id,
+            name: sellerData.name || 'Vendedor',
+            address: sellerData.address || 'Endereço não informado',
+            latitude: sellerData.latitude || 0,
+            longitude: sellerData.longitude || 0,
+          } : null,
+          deliveryAddress: trip.deliveryAddress || {},
+          deliveryman: trip.deliveryman,
+          isAcceptedByDeliveryman
+        };
+      });
+
+      console.log(`🎯 ${formattedTrips.length} viagens formatadas em tempo real`);
+
+      res.status(200).send({
+        message: 'Viagens encontradas com sucesso.',
+        trips: formattedTrips,
+        summary: {
+          total: formattedTrips.length,
+          available: availableTrips.length,
+          accepted: acceptedTrips.length,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar viagens:', error);
+      res.status(500).send({ 
+        message: 'Erro interno ao buscar viagens.',
+        error: error.message 
+      });
+    }
+  })
+);
+
 
 
 export default orderRouter;

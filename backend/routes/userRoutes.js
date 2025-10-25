@@ -393,6 +393,8 @@ userRouter.post(
     }
     if (user) {
       if (bcrypt.compareSync(req.body.password, user.password)) {
+        console.log("🧠 USER NO LOGIN:", user.isApproved);
+
         res.send({
           _id: user._id,
           email: user.email,
