@@ -81,7 +81,40 @@ const orderSchema = new mongoose.Schema(
       transport_color: {type: String},
       transport_registration: {type: String},
       pricetopay: { type: Number },
+
+          // 🔥 NOVOS CAMPOS PARA LOCALIZAÇÃO
+    currentLocation: {
+      latitude: Number,
+      longitude: Number,
+      accuracy: Number,
+      speed: Number,
+      heading: Number,
+      lastUpdated: Date
     },
+
+    locationHistory: [{
+      latitude: Number,
+      longitude: Number,
+      timestamp: Date,
+      _id: false
+    }]
+    },
+
+     // 🔥 ADICIONE ESTES NOVOS CAMPOS PARA LOCALIZAÇÃO AQUI:
+     lastKnownLocation: {
+      latitude: { type: Number },
+      longitude: { type: Number },
+      updatedAt: { type: Date }
+    },
+    deliverymanLocationHistory: [{
+      latitude: { type: Number },
+      longitude: { type: Number },
+      accuracy: { type: Number },
+      speed: { type: Number },
+      heading: { type: Number },
+      timestamp: { type: Date },
+      _id: false // Importante para evitar criação automática de _id
+    }],
     paymentMethod: { type: String, require: true },
     paymentResult: {
       id: String,

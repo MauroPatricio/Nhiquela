@@ -855,7 +855,7 @@ orderRouter.put(
   '/:id/acceptedByDeliveryman',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    console.log("🚗 Iniciando aceitação de pedido pelo entregador...");
+    console.log("🚗 Iniciando aceitação de pedido pelo entregador...", req.body.initialLocation);
 
     const order = await Order.findById(req.params.id);
     const user_deliver = await User.findById(req.user._id);
@@ -910,6 +910,9 @@ orderRouter.put(
 
     console.log("✅ Todas as verificações passaram. Aceitando pedido...");
 
+    // 🔥 OBTER LOCALIZAÇÃO INICIAL DO REQUEST
+    const initialLocation = req.body.initialLocation;
+
     // Atualizar o pedido
     order.status = 'Aceite pelo entregador';
     order.stepStatus = 4;
@@ -922,10 +925,29 @@ orderRouter.put(
       transport_type: user_deliver.deliveryman.transport_type,
       transport_color: user_deliver.deliveryman.transport_color,
       transport_registration: user_deliver.deliveryman.transport_registration,
+      
+      // 🔥 INICIALIZAR LOCALIZAÇÃO SE FORNECIDA
+      currentLocation: initialLocation ? {
+        latitude: initialLocation.latitude,
+        longitude: initialLocation.longitude,
+        accuracy: initialLocation.accuracy,
+        lastUpdated: new Date()
+      } : undefined,
+      
+      locationHistory: initialLocation ? [{
+        latitude: initialLocation.latitude,
+        longitude: initialLocation.longitude,
+        timestamp: new Date()
+      }] : []
     };
 
     const updateOrder = await order.save();
-    console.log("🎉 Pedido aceito com sucesso pelo entregador:", user_deliver._id);
+    
+    console.log('🎉 Pedido aceito com sucesso pelo entregador:', {
+      orderId: updateOrder._id,
+      deliverymanId: user_deliver._id,
+      hasInitialLocation: !!initialLocation
+    });
 
     emitOrderUpdate(updateOrder, 'accepted_by_deliveryman', user_deliver._id);
 
@@ -1084,23 +1106,30 @@ orderRouter.put(
         const sellerOfProduct = await User.findById(order.seller);
         const clientOfProduct = await User.findById(order.user);
     
-    //toSeller
-    await createNotification({
-      message: message,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
-      pushToken: sellerOfProduct.pushToken,
-    
-    });
-    //toOrderClient
-    await createNotification({
-    message: message,
-    receiver_id: order.user,
-    sender_id: order.seller,
-    orderID: order._id,
-    pushToken: clientOfProduct.pushToken
-    });
+        if (sellerOfProduct && sellerOfProduct.pushToken) {
+          await createNotification({
+            message: message,
+            receiver_id: order.seller,
+            sender_id: order.user,
+            orderID: order._id,
+            pushToken: sellerOfProduct.pushToken,
+          });
+        } else {
+          console.log("⚠️ Seller pushToken não encontrado para notificação", order.seller);
+        }
+        
+        if (clientOfProduct && clientOfProduct.pushToken) {
+          await createNotification({
+            message: message,
+            receiver_id: order.user,
+            sender_id: order.seller,
+            orderID: order._id,
+            pushToken: clientOfProduct.pushToken,
+          });
+        } else {
+          console.log("⚠️ Cliente pushToken não encontrado para notificação", order.user);
+        }
+        
 
       sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
 
@@ -1704,6 +1733,7 @@ orderRouter.get(
 
 
 // 📦 TODAS AS VIAGENS PARA O ENTREGADOR - OTIMIZADO PARA TEMPO REAL
+// 📦 TODAS AS VIAGENS PARA O ENTREGADOR - OTIMIZADO PARA TEMPO REAL
 orderRouter.get(
   '/deliveryman/all',
   isAuth,
@@ -1722,8 +1752,8 @@ orderRouter.get(
         });
       }
 
-      // 🔥 BUSCA OTIMIZADA - SEM POPULAÇÕES DESNECESSÁRIAS
-      const [availableTrips, acceptedTrips] = await Promise.all([
+      // 🔥 BUSCA OTIMIZADA - INCLUINDO VIAGENS EM TRÂNSITO (STEP 5)
+      const [availableTrips, acceptedTrips, inTransitTrips] = await Promise.all([
         // Viagens disponíveis (status 3)
         Order.find({
           deleted: false,
@@ -1745,26 +1775,36 @@ orderRouter.get(
           'deliveryman.id': userId
         })
           .select('_id code status stepStatus createdAt isAvailableToDeliver isPaid itemsPrice deliveryPrice totalPrice user seller deliveryAddress deliveryman')
+          .lean(),
+
+        // 🔥 NOVO: Viagens em trânsito (status 5) pelo entregador atual
+        Order.find({
+          deleted: false,
+          stepStatus: 5,
+          'deliveryman.id': userId
+        })
+          .select('_id code status stepStatus createdAt isAvailableToDeliver isPaid itemsPrice deliveryPrice totalPrice user seller deliveryAddress deliveryman')
           .lean()
       ]);
 
-      console.log(`📦 ${availableTrips.length} disponíveis, ${acceptedTrips.length} aceitas`);
+      console.log(`📦 ${availableTrips.length} disponíveis, ${acceptedTrips.length} aceitas, ${inTransitTrips.length} em trânsito`);
 
       // 🔥 POPULAÇÃO EM LOTE PARA MELHOR PERFORMANCE
-      const allOrderIds = [
-        ...availableTrips.map(t => t._id),
-        ...acceptedTrips.map(t => t._id)
-      ];
+      // Juntar todos os IDs para buscar dados de usuários e vendedores
+      const allOrders = [...availableTrips, ...acceptedTrips, ...inTransitTrips];
+      
+      const userIds = [...new Set(allOrders.map(t => t.user).filter(Boolean))];
+      const sellerIds = [...new Set(allOrders.map(t => t.seller).filter(Boolean))];
 
       const [usersData, sellersData] = await Promise.all([
-        // Buscar dados dos usuários
+        // Buscar dados dos usuários (clientes)
         User.find({ 
-          '_id': { $in: [...new Set(availableTrips.map(t => t.user).filter(Boolean))] }
+          '_id': { $in: userIds }
         }).select('name email phoneNumber').lean(),
         
         // Buscar dados dos vendedores
         User.find({ 
-          '_id': { $in: [...new Set(availableTrips.map(t => t.seller).filter(Boolean))] }
+          '_id': { $in: sellerIds }
         }).select('name address latitude longitude').lean()
       ]);
 
@@ -1773,10 +1813,15 @@ orderRouter.get(
       const sellersMap = new Map(sellersData.map(s => [s._id.toString(), s]));
 
       // 🔥 FORMATAR RESPOSTA OTIMIZADA
-      const formattedTrips = [...acceptedTrips, ...availableTrips].map(trip => {
+      const formattedTrips = allOrders.map(trip => {
         const userData = usersMap.get(trip.user?.toString());
         const sellerData = sellersMap.get(trip.seller?.toString());
-        const isAcceptedByDeliveryman = trip.stepStatus === 4 && trip.deliveryman?.id?.toString() === userId.toString();
+        
+        // 🔥 CORREÇÃO: Verificar se é aceita pelo entregador atual
+        // Inclui tanto stepStatus 4 (aceita) quanto 5 (em trânsito)
+        const isAcceptedByDeliveryman = 
+          (trip.stepStatus === 4 || trip.stepStatus === 5) && 
+          trip.deliveryman?.id?.toString() === userId.toString();
 
         return {
           _id: trip._id,
@@ -1804,7 +1849,11 @@ orderRouter.get(
           } : null,
           deliveryAddress: trip.deliveryAddress || {},
           deliveryman: trip.deliveryman,
-          isAcceptedByDeliveryman
+          isAcceptedByDeliveryman,
+          // 🔥 ADICIONAR INFORMAÇÃO EXTRA SOBRE O TIPO DA VIAGEM
+          tripType: trip.stepStatus === 3 ? 'available' : 
+                   trip.stepStatus === 4 ? 'accepted' : 
+                   trip.stepStatus === 5 ? 'in_transit' : 'unknown'
         };
       });
 
@@ -1817,6 +1866,7 @@ orderRouter.get(
           total: formattedTrips.length,
           available: availableTrips.length,
           accepted: acceptedTrips.length,
+          inTransit: inTransitTrips.length,
           timestamp: new Date().toISOString()
         }
       });
@@ -1831,6 +1881,110 @@ orderRouter.get(
   })
 );
 
+// 🔥 ADICIONAR FUNÇÃO emitOrderUpdate QUE ESTAVA FALTANDO
+function emitOrderUpdate(order, action, deliverymanId = null) {
+  
+  if (io) {
+    io.emit('orderUpdated', {
+      orderId: order._id,
+      action: action,
+      order: order,
+      deliverymanId: deliverymanId,
+      timestamp: new Date()
+    });
+    console.log(`✅ Evento orderUpdated emitido com sucesso para o pedido ${order._id}`);
+  } else {
+    console.log('⚠️ Socket.io não inicializado, pulando emissão de evento');
+  }
+}
 
+// 🔥 ROTA PARA RECEBER ATUALIZAÇÕES DE LOCALIZAÇÃO DO ENTREGADOR
+// orderRoutes.js - Adicionar esta rota
+orderRouter.put(
+  '/:id/deliveryman-location',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    
+    const order = await Order.findById(req.params.id);
+    const user_deliver = await User.findById(req.user._id);
+    
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+
+    // Verificar se o entregador é o mesmo que aceitou o pedido
+    if (!order.deliveryman || order.deliveryman.id.toString() !== user_deliver._id.toString()) {
+      return res.status(403).send({ message: 'Apenas o entregador designado pode atualizar a localização' });
+    }
+
+    // Atualizar localização atual
+    order.deliveryman.currentLocation = {
+      latitude: req.body.latitude,
+      longitude: req.body.longitude,
+      accuracy: req.body.accuracy || 0,
+      speed: req.body.speed || 0,
+      heading: req.body.heading || 0,
+      lastUpdated: new Date()
+    };
+
+    // Adicionar ao histórico de localizações
+    if (!order.deliveryman.locationHistory) {
+      order.deliveryman.locationHistory = [];
+    }
+
+    order.deliveryman.locationHistory.push({
+      latitude: req.body.latitude,
+      longitude: req.body.longitude,
+      timestamp: new Date(req.body.timestamp || Date.now())
+    });
+
+    // Manter apenas as últimas 100 localizações
+    if (order.deliveryman.locationHistory.length > 100) {
+      order.deliveryman.locationHistory = order.deliveryman.locationHistory.slice(-100);
+    }
+
+    const updatedOrder = await order.save();
+
+    console.log('✅ Localização atualizada no backend:', {
+      orderId: order._id,
+      coordinates: `${req.body.latitude.toFixed(6)}, ${req.body.longitude.toFixed(6)}`,
+      historyCount: order.deliveryman.locationHistory.length
+    });
+
+    // Emitir atualização via Socket.io
+    emitOrderUpdate(updatedOrder, 'deliveryman_location_updated', user_deliver._id);
+
+    res.send({ 
+      message: 'Localização atualizada com sucesso',
+      order: updatedOrder 
+    });
+  })
+);
+
+// 🔥 FUNÇÃO PARA EMITIR ATUALIZAÇÃO DE LOCALIZAÇÃO DO ENTREGADOR
+function emitDeliverymanLocation(data) {
+  console.log(`📍 Emitindo localização do entregador: ${data.deliverymanId}`);
+  
+  if (io) {
+    // Emitir para o pedido específico
+    io.to(`order_${data.orderId}`).emit('deliveryman_location_updated', {
+      deliverymanId: data.deliverymanId,
+      orderId: data.orderId,
+      location: data.location,
+      timestamp: data.timestamp
+    });
+    
+    // Emitir também para o cliente específico (se necessário)
+    io.to(`user_${data.orderId}`).emit('deliveryman_location', {
+      deliverymanId: data.deliverymanId,
+      location: data.location,
+      timestamp: data.timestamp
+    });
+    
+    console.log(`✅ Localização do entregador ${data.deliverymanId} emitida com sucesso`);
+  } else {
+    console.log('⚠️ Socket.io não inicializado, pulando emissão de localização');
+  }
+}
 
 export default orderRouter;
