@@ -6,10 +6,23 @@ export const getOrdersByStatus = async (status: string) => {
   return response.data;
 };
 
-export const acceptOrderByDeliveryman = async (orderId: string) => {
-  const response = await apiClient.put(ENDPOINTS.ACCEPT_ORDER_BY_DELIVERYMAN(orderId));
+// orderService.ts - Atualizar para aceitar localização
+export const acceptOrderByDeliveryman = async (orderId: string, initialLocation?: any) => {
+  const response = await apiClient.put(
+    ENDPOINTS.ACCEPT_ORDER_BY_DELIVERYMAN(orderId),
+    initialLocation ? { initialLocation } : {}
+  );
   return response.data;
 };
+
+// Adicionar função para atualizar localização
+export const updateDeliverymanLocation = async (orderId: string, locationData: any) => {
+  const response = await apiClient.put(
+    ENDPOINTS.UPDATE_DELIVERYMAN_LOCATION(orderId),
+    locationData
+  );
+  return response.data;
+}; // 🔥 FALTAVA FECHAR ESTA FUNÇÃO
 
 export const startOrderInTransit = async (orderId: string) => {
   const response = await apiClient.put(ENDPOINTS.START_ORDER_IN_TRANSIT(orderId));

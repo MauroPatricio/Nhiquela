@@ -18,7 +18,8 @@ import {
   acceptOrderByDeliveryman,
   getAllOrdersForDeliveryman,
   startOrderInTransit,
-  cancelOrderByDeliveryman
+  cancelOrderByDeliveryman,
+  updateDeliverymanLocation
 } from "../services/orderService";
 import websocketService from "../services/websocketService";
 import * as Location from "expo-location";
@@ -44,6 +45,7 @@ type Trip = {
   status: string;
   isAcceptedByDeliveryman: boolean;
   originalData: any;
+  isProcessing?: boolean;
 };
 
 // 🔥 TIPOS PARA WEBSOCKET
@@ -57,6 +59,15 @@ type WebSocketOrderData = {
 type WebSocketError = {
   message: string;
   code?: string;
+};
+
+type LocationData = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  speed?: number;
+  heading?: number;
+  timestamp: number;
 };
 
 export default function HomeScreen({ navigation }: any) {
@@ -74,18 +85,114 @@ export default function HomeScreen({ navigation }: any) {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("Conectando...");
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
+  const [isSharingLocation, setIsSharingLocation] = useState(false);
+  
   const { user, updateUser, updateDeliveryman } = useAuth();
 
   const isMounted = useRef(true);
+
+  // 🔥 OBTER E COMPARTILHAR LOCALIZAÇÃO EM TEMPO REAL
+  const startLocationSharing = async () => {
+    try {
+      
+      // Solicitar permissões
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão Negada', 'Permissão de localização é necessária para compartilhar sua localização em tempo real.');
+        return;
+      }
+
+      // Configurar precisão para melhor performance
+      await Location.enableNetworkProviderAsync();
+
+      // Obter localização atual
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const locationData: LocationData = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        speed: location.coords.speed || 0,
+        heading: location.coords.heading || 0,
+        timestamp: Date.now(),
+      };
+
+      setCurrentLocation(locationData);
+      setIsSharingLocation(true);
+
+      // 🔥 COMPARTILHAR LOCALIZAÇÃO VIA WEBSOCKET
+      if (websocketService && isConnected && acceptedTrip) {
+        websocketService.emit('deliveryman_location_update', {
+          deliverymanId: user?._id,
+          orderId: acceptedTrip.id,
+          location: locationData,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Iniciar watch de localização
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          distanceInterval: 10, // Atualizar a cada 10 metros
+          timeInterval: 5000,   // Atualizar a cada 5 segundos
+        },
+        (newLocation) => {
+          if (isMounted.current && isSharingLocation) {
+            const updatedLocation: LocationData = {
+              latitude: newLocation.coords.latitude,
+              longitude: newLocation.coords.longitude,
+              accuracy: newLocation.coords.accuracy,
+              speed: newLocation.coords.speed || 0,
+              heading: newLocation.coords.heading || 0,
+              timestamp: Date.now(),
+            };
+
+            setCurrentLocation(updatedLocation);
+
+            // 🔥 COMPARTILHAR ATUALIZAÇÃO DE LOCALIZAÇÃO EM TEMPO REAL
+            if (websocketService && isConnected && acceptedTrip) {
+              websocketService.emit('deliveryman_location_update', {
+                deliverymanId: user?._id,
+                orderId: acceptedTrip.id,
+                location: updatedLocation,
+                timestamp: new Date().toISOString()
+              });
+            }
+          }
+        }
+      );
+
+      setLocationSubscription(subscription);
+
+    } catch (error: any) {
+      console.error("❌ Erro ao iniciar compartilhamento de localização:", error.message);
+      Alert.alert("Erro", "Não foi possível iniciar o compartilhamento de localização.");
+    }
+  };
+
+  // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
+  const stopLocationSharing = async () => {
+    try {
+      if (locationSubscription) {
+        locationSubscription.remove();
+        setLocationSubscription(null);
+      }
+      setIsSharingLocation(false);
+    } catch (error: any) {
+      console.error("Erro ao parar compartilhamento de localização:", error.message);
+    }
+  };
 
   // 🔥 VERIFICAR APROVAÇÃO DO MOTORISTA
   const checkDriverApproval = async () => {
     try {
       // ✅ Obter o status real do usuário
-      // const driverStatus = user?.isApproved;
       const driverStatus = true;
-
-      console.log('🚗 Valor de user?.isApproved:', driverStatus);
 
       // ✅ Corrigir a verificação — o campo isApproved é booleano
       const isApproved = driverStatus === true;
@@ -93,16 +200,11 @@ export default function HomeScreen({ navigation }: any) {
       // ✅ Atualiza estado local
       setIsDriverApproved(isApproved);
 
-      console.log('🚗 Status do motorista:', isApproved ? 'Aprovado' : 'Aguardando aprovação');
-      console.log('🚗 Status do motorista:', driverStatus);
-
       // 🔥 CARREGAR VIAGENS IMEDIATAMENTE SE APROVADO
       if (isApproved) {
-        console.log('🎯 Motorista aprovado, carregando viagens...');
         await loadAllOrders();
         await setupWebSocket();
       } else {
-        console.log('⏳ Motorista não aprovado, mostrando mensagem de aprovação...');
       }
     } catch (error: any) {
       console.error('❌ Erro ao verificar status do motorista:', error.message);
@@ -112,30 +214,25 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-
   // 🔥 CONFIGURAR WEBSOCKET PARA TEMPO REAL
   const setupWebSocket = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (token) {
-        console.log('🔌 Iniciando conexão WebSocket...');
         setConnectionStatus("Conectando...");
 
         websocketService.connect(token);
 
-        // 🔥 LISTENER PARA ATUALIZAÇÕES DE PEDIDOS (com tipagem)
+        // 🔥 LISTENER PARA ATUALIZAÇÕES DE PEDIDOS
         websocketService.on('order_updated', (data: WebSocketOrderData) => {
           if (isMounted.current) {
-            console.log('🔄 Atualização em tempo real recebida:', data.action);
-            // Atualização silenciosa - sem loading
             loadAllOrdersSilent();
           }
         });
 
-        // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS (com tipagem)
+        // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
         websocketService.on('order_assigned', (data: WebSocketOrderData) => {
           if (isMounted.current) {
-            console.log('🎯 Pedido atribuído em tempo real');
             loadAllOrdersSilent();
           }
         });
@@ -143,29 +240,36 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA NOVOS PEDIDOS
         websocketService.on('new_order', (data: WebSocketOrderData) => {
           if (isMounted.current) {
-            console.log('🆕 Novo pedido em tempo real');
             loadAllOrdersSilent();
           }
         });
 
-        // 🔥 STATUS DA CONEXÃO (sem parâmetro)
+        // 🔥 LISTENER PARA REQUISIÇÕES DE LOCALIZAÇÃO
+        websocketService.on('request_location_update', (data: any) => {
+          if (isMounted.current && acceptedTrip) {
+            // Forçar atualização imediata da localização
+            if (isSharingLocation) {
+              startLocationSharing();
+            }
+          }
+        });
+
+        // 🔥 STATUS DA CONEXÃO
         websocketService.on('connect', () => {
           setIsConnected(true);
           setConnectionStatus("Conectado");
-          console.log('✅ Conectado ao servidor em tempo real');
 
           // 🔥 CARREGAR VIAGENS NOVAMENTE AO CONECTAR
           loadAllOrdersSilent();
         });
 
-        // 🔥 STATUS DA DESCONEXÃO (sem parâmetro)
+        // 🔥 STATUS DA DESCONEXÃO
         websocketService.on('disconnect', () => {
           setIsConnected(false);
           setConnectionStatus("Desconectado");
-          console.log('⚠️ Desconectado do servidor em tempo real');
         });
 
-        // 🔥 ERRO DE CONEXÃO (com tipagem)
+        // 🔥 ERRO DE CONEXÃO
         websocketService.on('error', (error: WebSocketError) => {
           console.error('❌ Erro WebSocket:', error.message);
           setConnectionStatus("Erro de conexão");
@@ -174,7 +278,6 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 CONEXÃO INICIAL - TENTAR CARREGAR DADOS MESMO SE WEBSOCKET FALHAR
         setTimeout(() => {
           if (!isConnected && isMounted.current) {
-            console.log('🔄 Tentando carregar dados via fallback...');
             loadAllOrdersSilent();
           }
         }, 3000);
@@ -186,8 +289,6 @@ export default function HomeScreen({ navigation }: any) {
     } catch (error: any) {
       console.error('❌ Erro ao configurar WebSocket:', error.message);
       setConnectionStatus("Erro na conexão");
-
-      // 🔥 FALLBACK: CARREGAR DADOS MESMO COM ERRO NO WEBSOCKET
       loadAllOrdersSilent();
     }
   };
@@ -195,98 +296,37 @@ export default function HomeScreen({ navigation }: any) {
   useEffect(() => {
     isMounted.current = true;
     checkDriverApproval();
+    resetIncorrectAcceptedTrips();
 
     return () => {
       isMounted.current = false;
-      // Limpar listeners do WebSocket
+      // Limpar listeners do WebSocket e localização
       websocketService.off('order_updated');
       websocketService.off('order_assigned');
       websocketService.off('new_order');
+      websocketService.off('request_location_update');
       websocketService.off('connect');
       websocketService.off('disconnect');
       websocketService.off('error');
       websocketService.disconnect();
+      stopLocationSharing();
     };
   }, []);
+
+  // 🔥 ATUALIZAR COMPARTILHAMENTO DE LOCALIZAÇÃO QUANDO A VIAGEM MUDAR
+  useEffect(() => {
+    if (acceptedTrip && isConnected) {
+      startLocationSharing();
+    } else {
+      stopLocationSharing();
+    }
+  }, [acceptedTrip, isConnected]);
 
   // 🔥 CARREGAMENTO SILENCIOSO (para WebSocket)
   const loadAllOrdersSilent = async () => {
     try {
-      console.log("🔄 Atualização silenciosa via WebSocket...");
-
       const response = await getAllOrdersForDeliveryman();
       let ordersData = response?.trips || response?.orders || response || [];
-
-      if (!Array.isArray(ordersData)) {
-        ordersData = [];
-      }
-
-      console.log(`📊 ${ordersData.length} viagens recebidas via WebSocket`);
-
-      // 🔥 TENTAR OBTER LOCALIZAÇÃO, MAS CONTINUAR MESMO SE FALHAR
-      let currentPosition = { latitude: 0, longitude: 0 };
-      try {
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-          timeout: 5000 // Timeout de 5 segundos
-        });
-        currentPosition = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        };
-      } catch (locationError) {
-        console.warn('⚠️ Erro ao obter localização, continuando sem ela...');
-      }
-
-      const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
-
-      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
-      setAllTrips(formattedOrders);
-      setLastUpdate(new Date());
-
-      const accepted = formattedOrders.find((order: Trip) => order.isAcceptedByDeliveryman);
-      setAcceptedTrip(accepted || null);
-
-      if (accepted) {
-        const tripStarted = accepted.stepStatus === 5;
-        setIsTripStarted(tripStarted);
-
-        if (tripStarted) {
-          setRouteSummary(accepted);
-          startBlinkAnimation();
-          await AsyncStorage.setItem("acceptedTrip", JSON.stringify(accepted));
-        } else {
-          setRouteSummary(null);
-          await AsyncStorage.removeItem("acceptedTrip");
-        }
-      } else {
-        setRouteSummary(null);
-        setIsTripStarted(false);
-        await AsyncStorage.removeItem("acceptedTrip");
-      }
-
-    } catch (error: any) {
-      console.error("❌ Erro na atualização silenciosa:", error.message);
-    }
-  };
-
-  // 🔥 CARREGAMENTO NORMAL (com loading)
-  const loadAllOrders = async () => {
-    try {
-      setLoadingOrders(true);
-      console.log("🔄 Carregando viagens...");
-
-      // 🔥 SOLICITAR PERMISSÃO DE LOCALIZAÇÃO
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.warn("⚠️ Permissão de localização negada, continuando sem localização...");
-        // NÃO RETORNAR - CONTINUAR SEM LOCALIZAÇÃO
-      }
-
-      const response = await getAllOrdersForDeliveryman();
-      let ordersData = response?.trips || response?.orders || response || [];
-
-      console.log(`📊 ${ordersData.length} viagens recebidas`);
 
       if (!Array.isArray(ordersData)) {
         ordersData = [];
@@ -309,37 +349,123 @@ export default function HomeScreen({ navigation }: any) {
 
       const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
 
+      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
       setAllTrips(formattedOrders);
       setLastUpdate(new Date());
 
-      const accepted = formattedOrders.find((order: Trip) => order.isAcceptedByDeliveryman);
+      // 🔥 CORREÇÃO CRÍTICA: BUSCAR PEDIDO ACEITO CORRETAMENTE
+      const accepted = formattedOrders.find((order: Trip) => {
+        // Pedido aceito pelo entregador atual
+        const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
+        
+        // Pedido em trânsito (status 5) - mesmo que não esteja "aceito" no sentido tradicional
+        const isInTransit = order.stepStatus === 5;
+        
+        // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO MESMO QUE isAcceptedByDeliveryman SEJA FALSE
+        return isAcceptedByCurrentUser || isInTransit;
+      });
+      
       setAcceptedTrip(accepted || null);
 
       if (accepted) {
-        console.log("🎯 Viagem aceita encontrada:", accepted.id);
         const tripStarted = accepted.stepStatus === 5;
         setIsTripStarted(tripStarted);
 
         if (tripStarted) {
-          console.log("🚗 Viagem INICIADA - mostrando rota actual");
           setRouteSummary(accepted);
           startBlinkAnimation();
           await AsyncStorage.setItem("acceptedTrip", JSON.stringify(accepted));
         } else {
-          console.log("⏳ Viagem ACEITA mas NÃO INICIADA");
           setRouteSummary(null);
-          await AsyncStorage.removeItem("acceptedTrip");
         }
       } else {
-        console.log("ℹ️ Nenhuma viagem aceita encontrada");
         setRouteSummary(null);
         setIsTripStarted(false);
         await AsyncStorage.removeItem("acceptedTrip");
       }
 
     } catch (error: any) {
+      console.error("❌ Erro na atualização silenciosa:", error.message);
+    }
+  };
+
+  const loadAllOrders = async () => {
+    try {
+      setLoadingOrders(true);
+  
+      // 🔥 LIMPAR CACHE ANTES DE CARREGAR
+      await clearAllCacheAndReset();
+  
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.warn("⚠️ Permissão de localização negada");
+      }
+  
+      const response = await getAllOrdersForDeliveryman();
+      let ordersData = response?.trips || response?.orders || response || [];
+    
+      if (!Array.isArray(ordersData)) {
+        ordersData = [];
+      }
+  
+      // Obter localização
+      let currentPosition = { latitude: 0, longitude: 0 };
+      try {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          timeout: 5000
+        });
+        currentPosition = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+      } catch (locationError) {
+        console.warn('⚠️ Erro ao obter localização');
+      }
+  
+      const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
+  
+      // 🔥 VERIFICAÇÃO CORRIGIDA DAS VIAGENS ACEITAS
+      const acceptedTrips = formattedOrders.filter((order: Trip) => {
+        const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
+        const isInTransit = order.stepStatus === 5;
+        
+        // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO
+        return isAcceptedByCurrentUser || isInTransit;
+      });
+    
+      setAllTrips(formattedOrders);
+      setLastUpdate(new Date());
+  
+      // 🔥 BUSCAR VIAGEM ACEITA APENAS SE HOUVER UMA REAL
+      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
+      
+      setAcceptedTrip(accepted || null);
+  
+      if (accepted) {
+        const tripStarted = accepted.stepStatus === 5;
+        setIsTripStarted(tripStarted);
+
+        // 🔥 ATUALIZAR ROUTE SUMMARY APENAS SE ESTIVER EM TRÂNSITO
+        if (tripStarted) {
+          setRouteSummary(accepted);
+          startBlinkAnimation();
+        } else {
+          setRouteSummary(null);
+        }
+  
+        // 🔥 SALVAR NO ASYNCSTORAGE INDEPENDENTE DO STATUS
+        await AsyncStorage.setItem("acceptedTrip", JSON.stringify(accepted));
+  
+      } else {
+        setRouteSummary(null);
+        setIsTripStarted(false);
+        await AsyncStorage.removeItem("acceptedTrip");
+      }
+  
+    } catch (error: any) {
       console.error("❌ Erro ao carregar pedidos:", error.message);
-      Alert.alert("Erro", "Não foi possível carregar as viagens. Tente novamente.");
+      Alert.alert("Erro", "Não foi possível carregar as viagens.");
     } finally {
       setLoadingOrders(false);
     }
@@ -358,16 +484,16 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const deg2rad = (deg: number) => deg * (Math.PI / 180);
-
+  
   const formatOrder = (order: any, currentPosition?: any): Trip => {
     const destinationLat = order.deliveryAddress?.latitude ||
       order.seller?.latitude ||
       order.sellerInfo?.latitude || 0;
-
+  
     const destinationLon = order.deliveryAddress?.longitude ||
       order.seller?.longitude ||
       order.sellerInfo?.longitude || 0;
-
+  
     let distance = 0;
     if (currentPosition && destinationLat && destinationLon &&
       currentPosition.latitude !== 0 && currentPosition.longitude !== 0) {
@@ -378,12 +504,21 @@ export default function HomeScreen({ navigation }: any) {
         destinationLon
       );
     }
-
-    const isAcceptedByDeliveryman =
-      order.stepStatus === 4 ||
-      order.status === 'Aceite pelo entregador' ||
-      (order.deliveryman && order.deliveryman.id);
-
+  
+    // 🔥 CORREÇÃO DEFINITIVA: Lógica EXATA para verificar aceitação
+    const currentUserId = user?._id;
+    const orderDeliverymanId = order.deliveryman?._id || order.deliveryman?.id || order.deliverymanId;
+    
+    // 🔥 LÓGICA CORRIGIDA: 
+    // - Se stepStatus é 5 (em trânsito), considerar como "aceito" independente do deliveryman
+    // - Caso contrário, verificar se foi aceito pelo entregador atual
+    const isInTransit = order.stepStatus === 5;
+    const isAcceptedByDeliveryman = isInTransit || (
+      orderDeliverymanId === currentUserId &&
+      order.status === 'Aceite pelo entregador' &&
+      order.stepStatus === 4  
+    );
+  
     return {
       id: order._id,
       passenger: order.user?.name || order.clientName || "Cliente",
@@ -412,116 +547,286 @@ export default function HomeScreen({ navigation }: any) {
     ).start();
   };
 
-  // 🔥 AÇÃO COM FEEDBACK VISUAL INSTANTÂNEO
-  const acceptTrip = async (tripId: string) => {
+// 🔥 AÇÃO COM FEEDBACK VISUAL INSTANTÂNEO E COMPARTILHAMENTO DE LOCALIZAÇÃO
+const acceptTrip = async (tripId: string) => {
+  try {
+    setAcceptingTripId(tripId);
+
+    // 🔥 BLOQUEAR TODOS OS BOTÕES ENQUANTO PROCESSANDO
+    setAllTrips(prev => prev.map(trip => ({
+      ...trip,
+      isProcessing: trip.id === tripId ? true : trip.isProcessing
+    })));
+
+    // 🔥 TENTAR OBTER LOCALIZAÇÃO
+    let currentLocation = null;
+    
     try {
-      setAcceptingTripId(tripId);
+      
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeout: 15000
+      });
+      
+      currentLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        timestamp: new Date().toISOString()
+      };
 
-      // Feedback visual instantâneo
-      setAllTrips(prev => prev.map(trip =>
-        trip.id === tripId
-          ? { ...trip, isAcceptedByDeliveryman: true, status: 'Aceite pelo entregador', stepStatus: 4 }
-          : trip
-      ));
-
-      await acceptOrderByDeliveryman(tripId);
-
-      Alert.alert("✅ Viagem aceite", "Clique em iniciar viagem quando estiver com a mercadoria.");
     } catch (error: any) {
-      console.error("Erro ao aceitar viagem:", error.message);
-      // Reverter mudança visual em caso de erro
-      setAllTrips(prev => prev.map(trip =>
-        trip.id === tripId
-          ? { ...trip, isAcceptedByDeliveryman: false, status: 'Disponível para entrega', stepStatus: 3 }
-          : trip
-      ));
+      Alert.alert(
+        "Localização Necessária", 
+        "Não foi possível obter sua localização. Ative a localização do dispositivo e tente novamente.",
+        [{ text: "OK" }]
+      );
+      throw new Error('Localização não disponível');
+    }
+
+
+    // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
+    await acceptOrderByDeliveryman(tripId, currentLocation);
+
+    // 🔥 ATUALIZAR LISTA COMPLETA APÓS ACEITAR
+    await loadAllOrdersSilent();
+
+    Alert.alert("✅ Viagem aceite", "Clique em iniciar viagem quando estiver com a mercadoria.");
+    
+  } catch (error: any) {
+    
+    // 🔥 REVERTER MUDANÇAS EM CASO DE ERRO
+    await loadAllOrdersSilent();
+    
+    if (error.message !== 'Localização não disponível') {
       Alert.alert("Erro", "Não foi possível aceitar a viagem. Tente novamente.");
-    } finally {
-      setAcceptingTripId(null);
+    }
+  } finally {
+    setAcceptingTripId(null);
+  }
+};
+
+// 🔥 ADICIONAR ESTA FUNÇÃO PARA RESETAR ESTADO INCORRETO
+const resetIncorrectAcceptedTrips = async () => {
+  try {
+    
+    // Remover do AsyncStorage se existir
+    const storedTrip = await AsyncStorage.getItem("acceptedTrip");
+    if (storedTrip) {
+      const trip = JSON.parse(storedTrip);
+      
+      // Verificar se a viagem ainda está realmente aceita
+      const response = await getAllOrdersForDeliveryman();
+      let ordersData = response?.trips || response?.orders || response || [];
+      
+      if (Array.isArray(ordersData)) {
+        const currentTrip = ordersData.find((order: any) => order._id === trip.id);
+        
+        // Se a viagem não está mais aceita, remover do storage
+        if (!currentTrip || 
+            (currentTrip.deliveryman?._id !== user?._id && 
+             currentTrip.status !== 'Aceite pelo entregador' &&
+             currentTrip.stepStatus !== 5)) { // 🔥 ADICIONAR VERIFICAÇÃO DO STEP STATUS
+          await AsyncStorage.removeItem("acceptedTrip");
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Erro ao resetar viagens aceitas:");
+  }
+};
+
+
+// 🔥 ADICIONE ESTA FUNÇÃO PARA LIMPAR CACHE COMPLETO
+const clearAllCacheAndReset = async () => {
+  try {
+    
+    // Limpar AsyncStorage completamente
+    await AsyncStorage.removeItem("acceptedTrip");
+    await AsyncStorage.removeItem("allTrips");
+    await AsyncStorage.removeItem("lastUpdate");
+    
+    // Resetar todos os estados
+    setAllTrips([]);
+    setAcceptedTrip(null);
+    setRouteSummary(null);
+    setIsTripStarted(false);
+    
+    // Parar animações
+    blinkAnim.stopAnimation();
+    
+    // Parar compartilhamento de localização
+    await stopLocationSharing();
+    
+    
+  } catch (error) {
+    console.error("Erro ao limpar cache:");
+  }
+};
+
+// 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND A CADA 5 SEGUNDOS
+const startLocationSharingToBackend = (orderId: string) => {
+  let updateInterval: any = null;
+  
+  const updateLocationToBackend = async () => {
+    try {
+      // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 10000
+      });
+
+      // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
+      if (!location.coords.latitude || !location.coords.longitude) {
+        console.warn('⚠️ Localização inválida obtida, pulando atualização');
+        return;
+      }
+
+      await updateDeliverymanLocation(orderId, {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        speed: location.coords.speed || 0,
+        heading: location.coords.heading || 0,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Erro ao atualizar localização no backend:');
     }
   };
 
-  const startTrip = async (trip: Trip) => {
-    Alert.alert(
-      "Iniciar Viagem",
-      "Você já está com a mercadoria? Confirme para iniciar a viagem.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          onPress: async () => {
+  // 🔥 ATUALIZAR IMEDIATAMENTE E DEPOIS A CADA 5 SEGUNDOS
+  updateLocationToBackend(); // Primeira atualização
+  
+  updateInterval = setInterval(updateLocationToBackend, 5000); // 5 segundos
+
+  // Retornar função para parar
+  return () => {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+    }
+  };
+};
+
+// 🔥 ADICIONAR useRef PARA CONTROLAR O SHARING
+const locationSharingRef = useRef<(() => void) | null>(null);
+
+// 🔥 ATUALIZAR FUNÇÃO cancelTrip PARA PARAR O SHARING
+const cancelTrip = async (tripId: string) => {
+  Alert.alert(
+    "Cancelar Viagem",
+    "Deseja realmente cancelar a viagem?",
+    [
+      { text: "Não", style: "cancel" },
+      {
+        text: "Sim",
+        onPress: async () => {
+          try {
+            setCancelingTripId(tripId);
+
+            // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
+            if (locationSharingRef.current) {
+              locationSharingRef.current();
+              locationSharingRef.current = null;
+            }
+
+            // Feedback visual instantâneo
+            setAllTrips(prev => prev.filter(t => t.id !== tripId));
+
+            await cancelOrderByDeliveryman(tripId);
+
+            setAcceptedTrip(null);
+            setIsTripStarted(false);
+            setRouteSummary(null);
+            blinkAnim.stopAnimation();
+            await AsyncStorage.removeItem("acceptedTrip");
+          } catch (error: any) {
+            console.error("Erro ao cancelar viagem:", error.message);
+            Alert.alert("Erro", "Não foi possível cancelar a viagem.");
+          } finally {
+            setCancelingTripId(null);
+          }
+        },
+      },
+    ]
+  );
+};
+
+// 🔥 ATUALIZAR FUNÇÃO startTrip TAMBÉM
+const startTrip = async (trip: Trip) => {
+  Alert.alert(
+    "Iniciar Viagem",
+    "Você já está com a mercadoria? Confirme para iniciar a viagem.",
+    [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Confirmar",
+        onPress: async () => {
+          try {
+            setStartingTripId(trip.id);
+
+            // Feedback visual instantâneo
+            setAllTrips(prev => prev.map(t =>
+              t.id === trip.id
+                ? { ...t, status: 'Em trânsito', stepStatus: 5 }
+                : t
+            ));
+
+            // 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND AO INICIAR VIAGEM
             try {
-              setStartingTripId(trip.id);
-
-              // Feedback visual instantâneo
-              setAllTrips(prev => prev.map(t =>
-                t.id === trip.id
-                  ? { ...t, status: 'Em trânsito', stepStatus: 5 }
-                  : t
-              ));
-
-              await startOrderInTransit(trip.id);
-
-              setIsTripStarted(true);
-              setRouteSummary(trip);
-              await AsyncStorage.setItem("acceptedTrip", JSON.stringify(trip));
-              startBlinkAnimation();
-
-              navigation.navigate("Map", {
-                tripData: trip,
-                isActiveTrip: true
+              const location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.High
               });
-            } catch (error: any) {
-              console.error("Erro ao iniciar viagem:", error.message);
-              // Reverter mudança visual
-              setAllTrips(prev => prev.map(t =>
-                t.id === trip.id
-                  ? { ...t, status: 'Aceite pelo entregador', stepStatus: 4 }
-                  : t
-              ));
-              Alert.alert("Erro", "Não foi possível iniciar a viagem.");
-            } finally {
-              setStartingTripId(null);
+
+              await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${trip.id}/deliveryman-location`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                  accuracy: location.coords.accuracy,
+                  speed: location.coords.speed,
+                  heading: location.coords.heading,
+                  timestamp: new Date().toISOString(),
+                  action: 'trip_started'
+                })
+              });
+            } catch (locationError) {
+              console.warn('Erro ao atualizar localização de início:');
             }
-          },
+
+            await startOrderInTransit(trip.id);
+
+            setIsTripStarted(true);
+            setRouteSummary(trip);
+            await AsyncStorage.setItem("acceptedTrip", JSON.stringify(trip));
+            startBlinkAnimation();
+
+            navigation.navigate("Map", {
+              tripData: trip,
+              isActiveTrip: true
+            });
+          } catch (error: any) {
+            console.error("Erro ao iniciar viagem:", error.message);
+            // Reverter mudança visual
+            setAllTrips(prev => prev.map(t =>
+              t.id === trip.id
+                ? { ...t, status: 'Aceite pelo entregador', stepStatus: 4 }
+                : t
+            ));
+            Alert.alert("Erro", "Não foi possível iniciar a viagem.");
+          } finally {
+            setStartingTripId(null);
+          }
         },
-      ]
-    );
-  };
-
-  const cancelTrip = async (tripId: string) => {
-    Alert.alert(
-      "Cancelar Viagem",
-      "Deseja realmente cancelar a viagem?",
-      [
-        { text: "Não", style: "cancel" },
-        {
-          text: "Sim",
-          onPress: async () => {
-            try {
-              setCancelingTripId(tripId);
-
-              // Feedback visual instantâneo
-              setAllTrips(prev => prev.filter(t => t.id !== tripId));
-
-              await cancelOrderByDeliveryman(tripId);
-
-              setAcceptedTrip(null);
-              setIsTripStarted(false);
-              setRouteSummary(null);
-              blinkAnim.stopAnimation();
-              await AsyncStorage.removeItem("acceptedTrip");
-            } catch (error: any) {
-              console.error("Erro ao cancelar viagem:", error.message);
-              Alert.alert("Erro", "Não foi possível cancelar a viagem.");
-            } finally {
-              setCancelingTripId(null);
-            }
-          },
-        },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   const formatLastUpdate = () => {
     if (!lastUpdate) return "Nunca atualizado";
@@ -561,6 +866,60 @@ export default function HomeScreen({ navigation }: any) {
     </View>
   );
 
+  // 🔥 RENDERIZAR CARD DE ROTA ATUAL (EM TRÂNSITO)
+  const renderCurrentRouteCard = () => {
+    if (!routeSummary || !isTripStarted) return null;
+
+    return (
+      <View style={styles.routeSummaryContainer}>
+        <Animated.View
+          style={[
+            styles.animatedBackground,
+            {
+              backgroundColor: blinkAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['#2E86DE', '#1a5ca8']
+              })
+            }
+          ]}
+        />
+        <View style={styles.routeSummaryContent}>
+          <View style={styles.routeHeader}>
+            <Ionicons name="navigate-outline" size={28} color="#FFF" />
+            <View style={styles.routeText}>
+              <Text style={styles.routeLabel}>🎯 EM ACTIVIDADE</Text>
+              <Text style={styles.routeInfo}>
+                {routeSummary.pickup} → {routeSummary.destination}
+              </Text>
+              <Text style={styles.routeDetails}>
+                {routeSummary.distance} • {routeSummary.time} • {routeSummary.reward}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.viewMapButton}
+            onPress={() => navigation.navigate("Map", { 
+              tripData: routeSummary, 
+              isActiveTrip: true,
+              currentLocation: currentLocation 
+            })}
+          >
+            <Ionicons name="map-outline" size={20} color="#FFF" />
+            <Text style={styles.viewMapText}>Ver Rota</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* 🔥 STATUS DA ENTREGA */}
+        <View style={styles.deliveryStatus}>
+          <Ionicons name="cube-outline" size={16} color="#FFF" />
+          <Text style={styles.deliveryStatusText}>
+            Mercadoria a caminho da entrega
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   const renderTripCard = ({ item }: { item: Trip }) => {
     const isAccepted = item.isAcceptedByDeliveryman;
     const isAccepting = acceptingTripId === item.id;
@@ -568,6 +927,9 @@ export default function HomeScreen({ navigation }: any) {
     const isCanceling = cancelingTripId === item.id;
     const hasAcceptedTrip = acceptedTrip !== null;
     const isCurrentAcceptedTrip = acceptedTrip?.id === item.id;
+    
+    // 🔥 VERIFICAR SE É UM PEDIDO EM TRÂNSITO (STATUS 5)
+    const isInTransit = item.stepStatus === 5;
 
     return (
       <View style={[styles.requestCard, isAccepted && styles.acceptedCard]}>
@@ -600,7 +962,23 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.requestInfo}>{item.time}</Text>
           </View>
 
-          {isAccepted && (
+          {/* 🔥 INDICADOR DE STATUS ESPECIAL PARA PEDIDOS EM TRÂNSITO */}
+          {isInTransit && (
+            <View style={styles.transitStatusBadge}>
+              <Ionicons name="flash" size={12} color="#FFF" />
+              <Text style={styles.transitStatusText}>EM TRÂNSITO</Text>
+            </View>
+          )}
+
+          {/* 🔥 INDICADOR DE LOCALIZAÇÃO COMPARTILHADA */}
+          {isAccepted && isSharingLocation && (
+            <View style={styles.locationSharingBadge}>
+              <Ionicons name="location" size={12} color="#FFF" />
+              <Text style={styles.locationSharingText}>Localização compartilhada</Text>
+            </View>
+          )}
+
+          {isAccepted && !isInTransit && (
             <View style={[
               styles.statusBadge,
               isTripStarted && isCurrentAcceptedTrip ? styles.startedBadge : styles.acceptedBadge
@@ -620,21 +998,23 @@ export default function HomeScreen({ navigation }: any) {
                   <TouchableOpacity
                     style={[styles.startButton, (isStarting || isCanceling) && styles.disabledButton]}
                     onPress={() => startTrip(item)}
-                    disabled={isStarting || isCanceling}
+                    disabled={isStarting || isCanceling || isInTransit} // 🔥 BLOQUEAR SE JÁ ESTIVER EM TRÂNSITO
                   >
                     {isStarting ? (
                       <ActivityIndicator size="small" color="#FFF" />
                     ) : (
                       <>
                         <Ionicons name="play-circle-outline" size={20} color="#FFF" />
-                        <Text style={styles.acceptText}>Iniciar</Text>
+                        <Text style={styles.acceptText}>
+                          {isInTransit ? "Em Andamento" : "Iniciar"}
+                        </Text>
                       </>
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.cancelButton, (isStarting || isCanceling) && styles.disabledButton]}
                     onPress={() => cancelTrip(item.id)}
-                    disabled={isStarting || isCanceling}
+                    disabled={isStarting || isCanceling || isInTransit} // 🔥 BLOQUEAR SE JÁ ESTIVER EM TRÂNSITO
                   >
                     {isCanceling ? (
                       <ActivityIndicator size="small" color="#FFF" />
@@ -649,7 +1029,11 @@ export default function HomeScreen({ navigation }: any) {
               ) : (
                 <TouchableOpacity
                   style={styles.viewRouteButton}
-                  onPress={() => navigation.navigate("Map", { tripData: item, isActiveTrip: true })}
+                  onPress={() => navigation.navigate("Map", { 
+                    tripData: item, 
+                    isActiveTrip: true,
+                    currentLocation: currentLocation 
+                  })}
                 >
                   <Ionicons name="map-outline" size={20} color="#FFF" />
                   <Text style={styles.acceptText}>Ver Rota</Text>
@@ -658,21 +1042,21 @@ export default function HomeScreen({ navigation }: any) {
             </>
           ) : (
             <TouchableOpacity
-              style={[styles.acceptButton, (isAccepting || hasAcceptedTrip) && styles.disabledButton]}
+              style={[styles.acceptButton, (isAccepting || hasAcceptedTrip || isInTransit) && styles.disabledButton]}
               onPress={() => acceptTrip(item.id)}
-              disabled={isAccepting || hasAcceptedTrip}
+              disabled={isAccepting || hasAcceptedTrip || isInTransit} // 🔥 BLOQUEAR SE JÁ ESTIVER EM TRÂNSITO
             >
               {isAccepting ? (
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <>
                   <Ionicons
-                    name={hasAcceptedTrip ? "time-outline" : "checkmark-circle-outline"}
+                    name={hasAcceptedTrip || isInTransit ? "time-outline" : "checkmark-circle-outline"}
                     size={20}
                     color="#FFF"
                   />
                   <Text style={styles.acceptText}>
-                    {hasAcceptedTrip ? "Indisponível" : "Aceitar"}
+                    {hasAcceptedTrip || isInTransit ? "Indisponível" : "Aceitar"}
                   </Text>
                 </>
               )}
@@ -714,40 +1098,18 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         )}
 
-        {routeSummary && isTripStarted && (
-          <View style={styles.routeSummaryContainer}>
-            <Animated.View
-              style={[
-                styles.animatedBackground,
-                {
-                  backgroundColor: blinkAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#2E86DE', '#1a5ca8']
-                  })
-                }
-              ]}
-            />
-            <View style={styles.routeSummaryContent}>
-              <Ionicons name="navigate-outline" size={28} color="#FFF" />
-              <View style={styles.routeText}>
-                <Text style={styles.routeLabel}>Rota Actual</Text>
-                <Text style={styles.routeInfo}>
-                  {routeSummary.pickup} → {routeSummary.destination}
-                </Text>
-                <Text style={styles.routeInfo}>
-                  {routeSummary.distance} • {routeSummary.time}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewMapButton}
-                onPress={() => navigation.navigate("Map", { tripData: routeSummary, isActiveTrip: true })}
-              >
-                <Ionicons name="map-outline" size={20} color="#FFF" />
-                <Text style={styles.viewMapText}>Ver Mapa</Text>
-              </TouchableOpacity>
-            </View>
+        {/* 🔥 INDICADOR DE LOCALIZAÇÃO COMPARTILHADA */}
+        {isSharingLocation && acceptedTrip && (
+          <View style={styles.locationSharingContainer}>
+            <Ionicons name="location" size={20} color="#2ECC71" />
+            <Text style={styles.locationSharingInfo}>
+              Compartilhando localização em tempo real
+            </Text>
           </View>
         )}
+
+        {/* 🔥 CARD DA ROTA ATUAL (EM TRÂNSITO) */}
+        {renderCurrentRouteCard()}
 
         {/* 🔥 CORREÇÃO: MOSTRAR MENSAGEM DE APROVAÇÃO APENAS SE NÃO APROVADO */}
         {!isDriverApproved ? (
@@ -757,7 +1119,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>
-                  {acceptedTrip ? "🎯 Sua Viagem Aceite" : "🚗 Solicitações de Viagem"}
+                  {acceptedTrip ? "🎯 Sua Viagem" : "🚗 Solicitações de Viagem"}
                 </Text>
                 <Text style={styles.sectionSubtitle}>
                   {allTrips.length} viagem{allTrips.length !== 1 ? 'ens' : ''} disponível{allTrips.length !== 1 ? 'eis' : ''}
@@ -815,8 +1177,6 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-// ... (os estilos permanecem exatamente os mesmos)
-
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: COLORS.gray50 },
   container: { flex: 1, backgroundColor: "#F9FAFB", padding: 16 },
@@ -845,6 +1205,128 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.9,
   },
+  // 🔥 NOVOS ESTILOS PARA LOCALIZAÇÃO COMPARTILHADA
+  locationSharingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2ECC71',
+  },
+  locationSharingInfo: {
+    color: '#2ECC71',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  locationSharingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2ECC71',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  locationSharingText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  // 🔥 ESTILOS PARA CARD DE ROTA ATUAL (EM TRÂNSITO)
+  routeSummaryContainer: {
+    borderRadius: 12,
+    marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#2E86DE',
+  },
+  animatedBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  routeSummaryContent: {
+    flexDirection: "row",
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  routeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  routeText: { flex: 1, marginLeft: 12 },
+  routeLabel: { 
+    fontSize: 16, 
+    color: "#FFF", 
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  routeInfo: { 
+    fontSize: 14, 
+    color: "#FFF",
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  routeDetails: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+  },
+  viewMapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  viewMapText: { 
+    color: "#FFF", 
+    fontWeight: "bold", 
+    marginLeft: 4, 
+    fontSize: 12 
+  },
+  deliveryStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  deliveryStatusText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  // 🔥 NOVO ESTILO PARA BADGE DE TRÂNSITO
+  transitStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E67E22',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  transitStatusText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
   websocketInfo: {
     fontSize: 12,
     color: COLORS.gray,
@@ -871,37 +1353,6 @@ const styles = StyleSheet.create({
   refreshHeaderButton: {
     padding: 8,
   },
-  routeSummaryContainer: {
-    borderRadius: 12,
-    marginBottom: 20,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  animatedBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  routeSummaryContent: {
-    flexDirection: "row",
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  routeText: { flex: 1, marginLeft: 12 },
-  routeLabel: { fontSize: 14, color: "#FFF", fontWeight: "bold" },
-  routeInfo: { fontSize: 16, color: "#FFF" },
-  viewMapButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  viewMapText: { color: "#FFF", fontWeight: "bold", marginLeft: 4, fontSize: 12 },
   requestCard: {
     flexDirection: "row",
     backgroundColor: "#FFF",

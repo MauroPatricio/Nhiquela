@@ -58,9 +58,7 @@ export default function DriverHeader({
           style: "destructive",
           onPress: async () => {
             try {
-              console.log("🚪 [DriverHeader] Iniciando logout...");
               await logout();
-              console.log("✅ [DriverHeader] Logout concluído com sucesso");
             } catch (error) {
               console.error("❌ [DriverHeader] Erro no logout:", error);
               Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
@@ -78,43 +76,31 @@ export default function DriverHeader({
     // Depois verificar se há foto direta do user
     const userPhoto = user?.photo;
     
-    console.log("🖼️ [DriverHeader] Verificando fotos:", {
-      hasDeliverymanPhoto: !!deliverymanPhoto,
-      hasUserPhoto: !!userPhoto,
-      deliverymanPhotoType: deliverymanPhoto ? (deliverymanPhoto.startsWith('data:') ? 'Base64' : 'URL') : 'Nenhuma',
-      userPhotoType: userPhoto ? (userPhoto.startsWith('data:') ? 'Base64' : 'URL') : 'Nenhuma'
-    });
-
     // Prioridade: deliveryman photo -> user photo -> profileImage -> placeholder
     let imageUri = deliverymanPhoto || userPhoto || profileImage;
 
     if (!imageUri) {
-      console.log("🖼️ [DriverHeader] Nenhuma foto disponível, usando placeholder");
       return { uri: "https://via.placeholder.com/150/007bff/ffffff?text=DR" };
     }
 
     // ✅ SE FOR BASE64, usar diretamente
     if (imageUri.startsWith('data:image')) {
-      console.log("🖼️ [DriverHeader] Usando imagem Base64");
       return { uri: imageUri };
     }
 
     // ✅ SE FOR URL, verificar se é válida
     if (imageUri.startsWith('http')) {
-      console.log("🖼️ [DriverHeader] Usando URL da imagem:", imageUri);
       return { uri: imageUri };
     }
 
     // ✅ SE FOR APENAS BASE64 SEM PREFIXO, adicionar prefixo
     if (imageUri.length > 100 && !imageUri.startsWith('data:') && !imageUri.startsWith('http')) {
-      console.log("🖼️ [DriverHeader] Detectado Base64 sem prefixo, adicionando...");
       // Assumir que é JPEG (mais comum)
       const base64WithPrefix = `data:image/jpeg;base64,${imageUri}`;
       return { uri: base64WithPrefix };
     }
 
     // ✅ FALLBACK: usar placeholder
-    console.log("🖼️ [DriverHeader] Formato de imagem não reconhecido, usando placeholder");
     return { uri: "https://via.placeholder.com/150/007bff/ffffff?text=DR" };
   };
 
@@ -233,10 +219,8 @@ export default function DriverHeader({
           source={imageSource}
           style={styles.userAvatar}
           onError={(error) => {
-            console.log("❌ [DriverHeader] Erro ao carregar imagem:", error.nativeEvent.error);
           }}
           onLoad={() => {
-            console.log("✅ [DriverHeader] Imagem carregada com sucesso");
           }}
         />
 

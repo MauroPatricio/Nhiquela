@@ -12,6 +12,8 @@ export const ENDPOINTS = {
   
 
   // Atualizar status da entrega
+  UPDATE_DELIVERYMAN_LOCATION: (id: string) => `/orders/${id}/deliveryman-location`,
+
   ACCEPT_ORDER_BY_DELIVERYMAN: (orderId: string) => `orders/${orderId}/acceptedByDeliveryman`,
   START_ORDER_IN_TRANSIT: (orderId: string) => `orders/${orderId}/intransit`,
   CONFIRM_ORDER_DELIVERED: (orderId: string) => `orders/${orderId}/confirmDestination`,

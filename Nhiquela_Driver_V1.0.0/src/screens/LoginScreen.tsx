@@ -102,7 +102,6 @@ const Login: React.FC<LoginProps> = ({ navigation }) => {
 
       // ✅ AGORA GUARDAR NO CONTEXTO
       authContext.login(userData);
-      console.log("Verificar os logs", userData.isApproved)
 
       // ✅ PEQUENO DELAY PARA GARANTIR QUE O CONTEXTO ATUALIZOU ANTES DE NAVEGAR
       setTimeout(() => {
