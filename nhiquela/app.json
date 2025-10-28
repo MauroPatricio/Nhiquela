@@ -13,25 +13,17 @@
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": ["**/*"],
-
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.mpatricio.nhiquelaa",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para permitir o envio de fotos.",
-        "UIBackgroundModes": ["remote-notification"],
-        "FirebaseAppDelegateProxyEnabled": false
-      },
-      "googleServicesFile": "./GoogleService-Info.plist"
-    },
+    "platforms": ["ios", "android", "web"],
 
     "android": {
+      "package": "com.mpatricio.nhiquelaa",
+      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
+      "icon": "./assets/nhiquela2.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mpatricio.nhiquelaa",
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
@@ -43,8 +35,26 @@
         "WAKE_LOCK",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED",
-        "com.google.android.c2dm.permission.RECEIVE"
-      ]
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
+        }
+      }
+    },
+
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mpatricio.nhiquelaa",
+      "icon": "./assets/nhiquela2.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Nhiquela precisa acessar sua câmera para permitir o envio de imagens.",
+        "NSPhotoLibraryUsageDescription": "Nhiquela precisa acessar suas fotos para enviar imagens.",
+        "UIBackgroundModes": ["fetch", "remote-notification"],
+        "NSUserTrackingUsageDescription": "Nhiquela usa notificações para mantê-lo atualizado sobre pedidos e entregas."
+      }
     },
 
     "web": {
@@ -64,22 +74,17 @@
           "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/nhiquela2.png",
-          "color": "#E53935",
-          "sounds": ["default"]
-        }
-      ],
+      "expo-notifications",
       [
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0",
-            "kotlinVersion": "1.9.25"
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
           }
         }
       ],
@@ -87,9 +92,6 @@
     ],
 
     "extra": {
-      "eas": {
-        "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
-      },
       "firebase": {
         "apiKey": "AIzaSyAssq-4rWO4Ju9xg-PcNH0k3bAAkDerAY4",
         "authDomain": "nhiquela-4bfb5.firebaseapp.com",
@@ -98,6 +100,9 @@
         "messagingSenderId": "127489638441",
         "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
         "measurementId": "G-FN5JGWV1S4"
+      },
+      "eas": {
+        "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
       }
     },
 

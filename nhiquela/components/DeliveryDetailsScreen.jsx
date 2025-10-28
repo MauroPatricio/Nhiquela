@@ -31,8 +31,7 @@ const DeliveryDetailsScreen = () => {
   const basketTotal = useSelector(selectBasketTotal);
   const sellers = useSelector(selectSellers);
 
-
-  const seller = (sellers[0].seller)
+  const seller = sellers[0]?.seller;
 
   const [userLocation, setUserLocation] = useState(null);
   const [distance, setDistance] = useState(null);
@@ -42,7 +41,7 @@ const DeliveryDetailsScreen = () => {
   const [manualLocation, setManualLocation] = useState({ latitude: '', longitude: '' });
   const [permissionDenied, setPermissionDenied] = useState(false);
 
-  const sellerLocation = useMemo(() => ({ latitude: seller?.latitude, longitude: seller?.longitude }), []);
+  const sellerLocation = useMemo(() => ({ latitude: seller?.latitude, longitude: seller?.longitude }), [seller]);
   const pricePerKm = 10;
   const minDelivPrice = 100;
   const iva = 0;
@@ -52,6 +51,7 @@ const DeliveryDetailsScreen = () => {
   const [distanceToPay, setDistanceToPay] = useState(0);
   const [totalToPay, setTotalToPay] = useState(subtotal);
 
+  // --- Header ---
   const HeaderWithBack = ({ title, navigation }) => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -61,13 +61,12 @@ const DeliveryDetailsScreen = () => {
     </View>
   );
 
-  // --- Rastrear localização ---
+  // --- Localização ---
   useEffect(() => {
     let locationSubscription;
 
     const startLocationTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-
       if (status !== 'granted') {
         setPermissionDenied(true);
         setLoadingLocation(false);
@@ -78,25 +77,14 @@ const DeliveryDetailsScreen = () => {
         return;
       }
 
-      // Obter localização atual
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      setUserLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       setLoadingLocation(false);
 
-      // Atualizações periódicas
       locationSubscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 50 },
         (loc) => {
-          setUserLocation({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-          });
+          setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
         }
       );
     };
@@ -105,7 +93,7 @@ const DeliveryDetailsScreen = () => {
     return () => locationSubscription?.remove();
   }, []);
 
-  // --- Caso o usuário insira manualmente ---
+  // --- Localização manual ---
   useEffect(() => {
     if (permissionDenied && manualLocation.latitude && manualLocation.longitude) {
       setUserLocation({
@@ -115,7 +103,7 @@ const DeliveryDetailsScreen = () => {
     }
   }, [manualLocation, permissionDenied]);
 
-  // --- Calcular distância ---
+  // --- Distância ---
   useEffect(() => {
     if (userLocation) {
       const dist = haversine(userLocation, sellerLocation, { unit: 'km' });
@@ -123,7 +111,7 @@ const DeliveryDetailsScreen = () => {
     }
   }, [userLocation, sellerLocation]);
 
-  // --- Calcular total ---
+  // --- Total ---
   useEffect(() => {
     let newDistanceToPay = 0;
     if (isUserWantDelivery) {
@@ -165,18 +153,19 @@ const DeliveryDetailsScreen = () => {
   }, [navigation, userLocation]);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          style={styles.container}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 200 }}
-        >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View>
           <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
 
           <StatusLocation userLocation={userLocation} distance={distance} />
-
-          
 
           <DeliveryToggle
             isUserWantDelivery={isUserWantDelivery}
@@ -196,23 +185,22 @@ const DeliveryDetailsScreen = () => {
             totalToPay={totalToPay}
             isUserWantDelivery={isUserWantDelivery}
           />
-        </ScrollView>
-
-        <View style={styles.fixedButtonContainer}>
-          <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
         </View>
 
-        {loadingLocation && (
-          <View style={styles.loadingOverlay}>
-            <Text style={styles.loadingText}>Carregando localização...</Text>
-          </View>
-        )}
-      </View>
+        <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
+
+      </ScrollView>
+
+      {loadingLocation && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Carregando localização...</Text>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
 
-// --- Componentes reutilizados (mantêm o mesmo estilo do seu código atual) ---
+// --- Componentes ---
 const StatusLocation = React.memo(({ userLocation, distance }) => {
   const distanceText = useMemo(() => (distance ? distance.toFixed(2) : null), [distance]);
   return (
@@ -296,7 +284,6 @@ const FinalizeButton = React.memo(({ onPress, disabled }) => (
 ));
 
 const styles = StyleSheet.create({
-  // (mantive os seus estilos originais)
   container: { flex: 1, padding: 16, backgroundColor: '#fff' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginVertical: 10, fontSize: 16 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
@@ -313,11 +300,10 @@ const styles = StyleSheet.create({
   summaryText: { fontSize: 16, fontWeight: '600' },
   priceText: { fontSize: 16, fontWeight: '900', color: '#7F00FF' },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  button: { backgroundColor: '#7F00FF', paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
+  button: { backgroundColor: '#7F00FF', paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginVertical: 20 },
   buttonText: { color: '#fff', fontWeight: '700', fontSize: 18 },
   loadingOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   loadingText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  fixedButtonContainer: { position: 'absolute', bottom: 20, left: 20, right: 20 },
 });
 
 export default DeliveryDetailsScreen;

@@ -17,7 +17,6 @@
     "android": {
       "package": "com.nhiquela.driver",
       "googleServicesFile": "./google-services.json",
-      "useNextNotificationsApi": true,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
