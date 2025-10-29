@@ -38,12 +38,14 @@
     "formik": "^2.4.6",
     "react": "19.0.0",
     "react-native": "0.79.6",
+    "react-native-bottom-sheet": "^1.0.3",
     "react-native-elements": "^3.4.3",
     "react-native-flash-message": "^0.4.2",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-get-random-values": "~1.11.0",
     "react-native-google-places-autocomplete": "^2.5.7",
     "react-native-heroicons": "^4.0.0",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-maps": "1.20.1",
     "react-native-maps-directions": "^1.9.0",
     "react-native-pager-view": "6.7.1",
@@ -66,7 +68,7 @@
     "tailwindcss": "^3.3.2",
     "typescript": "~5.8.3"
   },
-   "expo": {
+  "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
@@ -78,7 +80,6 @@
         "listUnknownPackages": false
       }
     }
-  }
-  ,
+  },
   "private": true
 }

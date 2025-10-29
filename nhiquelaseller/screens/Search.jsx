@@ -1,4 +1,4 @@
-import { View, Text, TextInput, FlatList, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, Image, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from './search.style';
@@ -31,6 +31,11 @@ const Search = () => {
   }, [searchKey]);
 
   return (
+
+      <KeyboardAvoidingView
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+  style={{ flex: 1, backgroundColor: "white" }}
+>
     <SafeAreaView>
       <View style={styles.searchContainer}>
         <View style={styles.searchWrapper}>
@@ -68,6 +73,7 @@ const Search = () => {
         />
       )}
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 

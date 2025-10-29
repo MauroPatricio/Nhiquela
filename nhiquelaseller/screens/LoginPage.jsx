@@ -1,6 +1,6 @@
 // LoginPage.js
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn';
 import Button from '../components/Button';
@@ -57,7 +57,12 @@ const LoginPage = () => {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: 'white' }}>
+
+    <ScrollView 
+  style={{ backgroundColor: 'white' }}
+  contentContainerStyle={{ flexGrow: 1 }}
+  keyboardShouldPersistTaps="handled"
+>
       <SafeAreaView style={{ marginHorizontal: 20 }}>
         <View>
           <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />

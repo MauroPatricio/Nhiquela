@@ -8,6 +8,7 @@ import {
   Alert,
   Switch,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -23,38 +24,35 @@ const Profile = () => {
   const [userLogin, setUserLogin] = useState(false);
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingStore, setUpdatingStore] = useState(false); // novo estado
 
   const [pendingCount, setPendingCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
 
-
-const fetchPendingWithdrawals = async () => {
-
-  if(userData?.token){
-    try {
-      const response = await api.get('/wallet/pending', { 
-        headers: { Authorization: `Bearer ${userData.token}` } 
-      });
-      setPendingCount(response.data.length || 0);
-    } catch (error) {
-      console.error("Erro ao buscar solicitações pendentes:", error);
-    }
-  }
-};
-
-useFocusEffect(
-  useCallback(() => {
-    const loadUserAndPending = async () => {
-      await checkIfUserExist();
-      if (userData?.token && isAdmin) {
-        fetchPendingWithdrawals();
+  const fetchPendingWithdrawals = async () => {
+    if (userData?.token) {
+      try {
+        const response = await api.get('/wallet/pending', { 
+          headers: { Authorization: `Bearer ${userData.token}` } 
+        });
+        setPendingCount(response.data.length || 0);
+      } catch (error) {
+        console.error("Erro ao buscar solicitações pendentes:", error);
       }
-    };
-    loadUserAndPending();
-  }, [userData, isAdmin])
-);
+    }
+  };
 
-
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserAndPending = async () => {
+        await checkIfUserExist();
+        if (userData?.token && isAdmin) {
+          fetchPendingWithdrawals();
+        }
+      };
+      loadUserAndPending();
+    }, [userData, isAdmin])
+  );
 
   const checkIfUserExist = async () => {
     try {
@@ -100,7 +98,7 @@ useFocusEffect(
   };
 
   const toggleStoreStatus = async () => {
-    setIsLoading(true);
+    setUpdatingStore(true); // bloqueia tela
     try {
       const id = await AsyncStorage.getItem('id');
       const newStatus = !isStoreOpen;
@@ -126,105 +124,113 @@ useFocusEffect(
       console.error('Erro ao atualizar o estado da loja:', error);
       Alert.alert('Erro', 'Não foi possível atualizar o estado da loja.');
     } finally {
-      setIsLoading(false);
+      setUpdatingStore(false); // desbloqueia tela
     }
   };
 
   if (isLoading) {
     return (
       <>
-      
-      <StatusBar backgroundColor='white' />
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7F00FF" />
-        <Text style={{ marginTop: 60 }}>Carregando...</Text>
-      </View>
+        <StatusBar backgroundColor='white' />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7F00FF" />
+          <Text style={{ marginTop: 60 }}>Carregando...</Text>
+        </View>
       </>
     );
   }
 
-    // return (
-    //   <></>
-    // );
-
   return (
-    <ScrollView style={{ backgroundColor: '#F3F4F6' }}>
-      
-      <View style={styles.header}>
-        <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
-        <View style={styles.profileWrapper}>
-          <Image source={require('../assets/default1.jpg')} style={styles.profile} />
-          <Text style={styles.name}>
-            {userLogin ? userData.name : "Por favor faça o login!"}
-          </Text>
-          {!userLogin ? (
-            <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginText}>Entrar</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.phoneTag}>
-              <Text style={styles.phoneText}>{userData?.phoneNumber}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      {userLogin && (
-        <View style={styles.card}>
-          <View style={styles.menuItem}>
-            <MaterialCommunityIcons name="store" size={28} color="#7F00FF" />
-            <Text style={styles.menuText}>Loja Aberta</Text>
-            <Switch
-              value={isStoreOpen}
-              onValueChange={toggleStoreStatus}
-              trackColor={{ false: "#ccc", true: "#7F00FF" }}
-              thumbColor={isStoreOpen ? "#fff" : "#f4f3f4"}
-            />
+    <>
+      <ScrollView style={{ backgroundColor: '#F3F4F6' }}>
+        <View style={styles.header}>
+          <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
+          <View style={styles.profileWrapper}>
+            <Image source={require('../assets/default1.jpg')} style={styles.profile} />
+            <Text style={styles.name}>
+              {userLogin ? userData.name : "Por favor faça o login!"}
+            </Text>
+            {!userLogin ? (
+              <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginText}>Entrar</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.phoneTag}>
+                <Text style={styles.phoneText}>{userData?.phoneNumber}</Text>
+              </View>
+            )}
           </View>
         </View>
-      )}
 
-      {userLogin && (
-        <View style={styles.card}>
-          <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
+        {userLogin && (
+          <View style={styles.card}>
             <View style={styles.menuItem}>
-              <MaterialCommunityIcons name="wallet" size={28} color="#7F00FF" />
-              <Text style={styles.menuText}>Minha Carteira</Text>
+              <MaterialCommunityIcons name="store" size={28} color="#7F00FF" />
+              <Text style={styles.menuText}>Loja Aberta</Text>
+              <Switch
+                value={isStoreOpen}
+                onValueChange={toggleStoreStatus}
+                trackColor={{ false: "#ccc", true: "#7F00FF" }}
+                thumbColor={isStoreOpen ? "#fff" : "#f4f3f4"}
+              />
+            </View>
+          </View>
+        )}
+
+        {userLogin && (
+          <View style={styles.card}>
+            <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
+              <View style={styles.menuItem}>
+                <MaterialCommunityIcons name="wallet" size={28} color="#7F00FF" />
+                <Text style={styles.menuText}>Minha Carteira</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {isAdmin && (
+          <View style={styles.card}>
+            <TouchableOpacity onPress={() => navigation.navigate('WithdrawalRequests')}>
+              <View style={styles.menuItem}>
+                <MaterialCommunityIcons name="bank-transfer" size={28} color="#7F00FF" />
+                <Text style={styles.menuText}>Autorizar Levantamentos</Text>
+                {pendingCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{pendingCount}</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.card}>
+          <TouchableOpacity onPress={logout}>
+            <View style={styles.menuItem}>
+              <AntDesign name="logout" size={28} color="#7F00FF" />
+              <Text style={styles.menuText}>Sair</Text>
             </View>
           </TouchableOpacity>
         </View>
-      )}
 
-{isAdmin && (
-  <View style={styles.card}>
-    <TouchableOpacity onPress={() => navigation.navigate('WithdrawalRequests')}>
-      <View style={styles.menuItem}>
-        <MaterialCommunityIcons name="bank-transfer" size={28} color="#7F00FF" />
-        <Text style={styles.menuText}>Autorizar Levantamentos</Text>
-        {pendingCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{pendingCount}</Text>
+        <View style={{ marginBottom: 200 }} />
+      </ScrollView>
+
+      {/* 🔒 Overlay de bloqueio durante atualização */}
+      <Modal transparent visible={updatingStore}>
+        <View style={styles.overlay}>
+          <View style={styles.overlayBox}>
+            <ActivityIndicator size="large" color="#7F00FF" />
+            <Text style={{ color: '#333', marginTop: 10, fontWeight: '500' }}>
+              Actualizando estado da loja...
+            </Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  </View>
-)}
-      
-
-      <View style={styles.card}>
-        <TouchableOpacity onPress={logout}>
-          <View style={styles.menuItem}>
-            <AntDesign name="logout" size={28} color="#7F00FF" />
-            <Text style={styles.menuText}>Sair</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ marginBottom: 200 }} />
-    </ScrollView>
+        </View>
+      </Modal>
+    </>
   );
 };
+
 
 export default React.memo(Profile);
 
@@ -324,4 +330,17 @@ badgeText: {
   fontSize: 12,
   fontWeight: 'bold',
 },
+ overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayBox: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 10,
+  },
 });
