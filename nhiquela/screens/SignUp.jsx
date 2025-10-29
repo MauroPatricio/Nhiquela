@@ -60,7 +60,7 @@ const SignUp = ({ navigation }) => {
           text1: 'Número registrado com sucesso!',
           text1Style: { color: 'green', fontSize: 16 }
         });
-        navigation.navigate('Login');
+        navigation.replace('Login');
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Erro ao cadastrar' });
@@ -79,7 +79,7 @@ const SignUp = ({ navigation }) => {
     <ScrollView style={{ backgroundColor: 'white' }}>
       <SafeAreaView style={{ marginHorizontal: 10 }}>
         <View>
-          <BackBtn onPress={() => navigation.goBack()} />
+          <BackBtn onPress={() => navigation.replace('Login')} />
           <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
           <Text style={styles.title}>NOVO REGISTO</Text>
 

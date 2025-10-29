@@ -26,7 +26,7 @@ const BottomTabNavigation = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarHideOnKeyboard: true,
+        tabBarHideOnKeyboard: false,
         tabBarShowLabel: false,
         tabBarStyle: styles.tabBar,
       }}
@@ -106,19 +106,23 @@ export default BottomTabNavigation;
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 10,
+    // bottom: 10,
     left: 20,
     right: 20,
-    height: 70,
-    backgroundColor: '#fff',
+    // height: 70,
+    // backgroundColor: '#fff',
     borderRadius: 25,
-    elevation: 8,
-    shadowColor: '#000',
+    // elevation: 8,
+    // shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    borderTopWidth: 0,
+    // shadowOpacity: 0.1,
+    // shadowRadius: 6,
+    // borderTopWidth: 0,
+    // overflow: 'hidden', // evita o salto visual ao abrir teclado
+
   },
+
+  
 
   centerButtonWrapper: {
     top: 5,
@@ -127,8 +131,8 @@ const styles = StyleSheet.create({
   },
 
   centerButton: {
-    width: 60,
-    height: 65,
+    width: 45,
+    height: 45,
     borderRadius: 35,
     backgroundColor: '#7F00FF',
     justifyContent: 'center',

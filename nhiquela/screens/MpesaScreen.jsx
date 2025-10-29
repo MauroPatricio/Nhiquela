@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Dimensions,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -227,6 +229,10 @@ const MpesaScreen = () => {
   };
 
   return (
+        <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: "white" }}
+    >
     <SafeAreaView style={styles.safeArea}>
       <Modal visible={loader} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
@@ -282,6 +288,7 @@ const MpesaScreen = () => {
         )}
       </Formik>
     </SafeAreaView>
+  </KeyboardAvoidingView>
   );
 };
 

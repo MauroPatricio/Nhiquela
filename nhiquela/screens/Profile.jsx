@@ -52,7 +52,7 @@ const Profile = () => {
 
   } catch (error) {
     console.error('Erro ao sair:', error);
-    navigation.navigate('Login');
+    navigation.replace('Login');
   }
 };
 

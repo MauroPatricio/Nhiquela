@@ -25,7 +25,7 @@ const welcome = () => {
           <TextInput
             style={styles.searchInput}
             value=""
-            onPressIn={() => { navigation.navigate("Search") }}
+            onPressIn={() => { navigation.navigate('Pesquisa') }}
             placeholder='O que deseja para hoje?'
           />
         </View>

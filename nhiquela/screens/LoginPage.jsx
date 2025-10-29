@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn';
@@ -11,6 +11,7 @@ import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import registerDeviceToken from '../utils/registerDeviceToken';
 import { useNavigation } from '@react-navigation/native';
+import { KeyboardAvoidingView } from 'react-native';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -42,10 +43,13 @@ const LoginPage = () => {
 
         
         setResponseData(userData);
-          navigation.reset({
-    index: 0,
-    routes: [{ name: 'BottomNavigation' }],
-  });
+        
+        
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'BottomNavigation' }],
+          });
+
        registerDeviceToken(userData);
       }
     } catch (error) {
@@ -60,13 +64,17 @@ const LoginPage = () => {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: 'white' }}>
-      <SafeAreaView style={{ marginHorizontal: 20 }}>
+
+<ScrollView 
+  style={{ backgroundColor: 'white' }}
+  contentContainerStyle={{ flexGrow: 1 }}
+  keyboardShouldPersistTaps="handled"
+>      
+<SafeAreaView style={{ marginHorizontal: 20 }}>
         <View>
           <BackBtn
             onPress={() =>
-              navigation.replace('BottomNavigation')
-            }
+              navigation.navigate('BottomNavigation')            }
           />          
           <Image
             source={require('../assets/nhiquela2.png')}
