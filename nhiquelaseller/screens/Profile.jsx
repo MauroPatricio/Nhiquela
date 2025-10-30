@@ -97,36 +97,36 @@ const Profile = () => {
     ]);
   };
 
-  const toggleStoreStatus = async () => {
-    setUpdatingStore(true); // bloqueia tela
-    try {
-      const id = await AsyncStorage.getItem('id');
-      const newStatus = !isStoreOpen;
+const toggleStoreStatus = async () => {
+  setUpdatingStore(true);
+  try {
+    const id = await AsyncStorage.getItem('id');
+    const newStatus = !isStoreOpen;
 
-      const response = await api.put(
-        `/users/seller/${id}`,
-        { isopenstore: newStatus },
-        { headers: { Authorization: `Bearer ${userData.token}` } }
-      );
+    const response = await api.patch(
+      `/users/seller-status/${id}`,
+      { isOpenStore: newStatus },
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
 
-      if (response?.status === 201) {
-        const updatedUser = {
-          ...userData,
-          seller: { ...userData.seller, openstore: newStatus }
-        };
-        await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-        setUserData(updatedUser);
-        setIsStoreOpen(newStatus);
-      } else {
-        Alert.alert('Erro', 'Falha ao atualizar o status da loja.');
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar o estado da loja:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar o estado da loja.');
-    } finally {
-      setUpdatingStore(false); // desbloqueia tela
+    if (response?.status === 200) {
+      setIsStoreOpen(newStatus);
+      const updatedUser = {
+        ...userData,
+        seller: { ...userData.seller, openstore: newStatus }
+      };
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      setUserData(updatedUser);
+    } else {
+      Alert.alert('Erro', 'Falha ao atualizar o estado da loja.');
     }
-  };
+  } catch (error) {
+    console.error('Erro ao atualizar estado da loja:', error);
+    Alert.alert('Erro', 'Não foi possível atualizar o estado da loja.');
+  } finally {
+    setUpdatingStore(false);
+  }
+};
 
   if (isLoading) {
     return (

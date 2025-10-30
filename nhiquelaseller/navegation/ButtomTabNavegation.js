@@ -8,6 +8,7 @@ import Search from '../screens/Search';
 import Orders from '../screens/Orders';
 import Profile from '../screens/Profile';
 import NewProduct from '../screens/NewProduct';
+import ProductListSeller from '../components/products/ProductListSeller';
 
 const Tab = createBottomTabNavigator();
 
@@ -46,18 +47,10 @@ const BottomTabNavigation = () => {
           ) 
         }} 
       />
-      <Tab.Screen 
-        name="Search" 
-        component={Search}
-        options={{ 
-          tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'search' : 'search-outline'} 
-              size={24} 
-              color={focused ? '#7F00FF' : 'black'} 
-            />
-          ) 
-        }} 
+      <Tab.Screen
+        name="ProductListSeller"
+        component={ProductListSeller}
+        options={{ tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={focused ? '#7F00FF' : 'black'} />) }}
       />
       <Tab.Screen
         name="produtos"

@@ -100,25 +100,26 @@ const ProductListSeller = () => {
     }
   };
 
-  const handleToggleStatus = async (product) => {
-    try {
-      const newStatus = !product.isActive;
-      const response = await api.patch(`products/${product._id}`, 
-        { isActive: newStatus },
-        { headers: { Authorization: `Bearer ${userData.token}` } }
+const handleToggleStatus = async (product) => {
+  try {
+    const response = await api.patch(
+      `products/${product._id}/toggle-status`,
+      {},
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+
+    if (response.status === 200) {
+      setProductsOfSeller(prev =>
+        prev.map(p =>
+          p._id === product._id ? { ...p, isActive: response.data.product.isActive } : p
+        )
       );
-      if (response.status === 200) {
-        setProductsOfSeller(prev =>
-          prev.map(p =>
-            p._id === product._id ? { ...p, isActive: newStatus } : p
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-      Alert.alert('Erro', 'Não foi possível alterar o status do produto.');
     }
-  };
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+    Alert.alert('Erro', 'Não foi possível alterar o status do produto.');
+  }
+};
 
   const renderProduct = ({ item: product }) => (
     <TouchableOpacity 
