@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BackBtn from '../components/BackBtn';
 import Button from '../components/Button';
 import { Formik } from 'formik';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

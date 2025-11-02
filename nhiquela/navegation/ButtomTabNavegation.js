@@ -23,12 +23,18 @@ const CustomTabBarButton = memo(({ children, onPress }) => (
 
 const BottomTabNavigation = () => {
   return (
-    <Tab.Navigator
+   <Tab.Navigator
       screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: false,
         tabBarShowLabel: false,
+        headerShown: false,
         tabBarStyle: styles.tabBar,
+        // 🔥 CONFIGURAÇÕES DEFINITIVAS
+        tabBarHideOnKeyboard: true,
+        freezeOnBlur: true,
+        lazy: true,
+        // 🔥 REMOVE ANIMAÇÕES PROBLEMÁTICAS
+        animation: 'none',
+        animationEnabled: false,
       }}
     >
       <Tab.Screen
@@ -104,43 +110,22 @@ const BottomTabNavigation = () => {
 export default BottomTabNavigation;
 
 const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    // bottom: 10,
-    left: 20,
-    right: 20,
-    // height: 70,
-    // backgroundColor: '#fff',
-    borderRadius: 25,
-    // elevation: 8,
-    // shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 6,
-    // borderTopWidth: 0,
-    // overflow: 'hidden', // evita o salto visual ao abrir teclado
 
+  centerButtonWrapper: { 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
-
-  
-
-  centerButtonWrapper: {
-    top: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  centerButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 35,
-    backgroundColor: '#7F00FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  centerButton: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 35, 
+    backgroundColor: '#7F00FF', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    elevation: 10,
     shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowRadius: 4.65,
   },
 });

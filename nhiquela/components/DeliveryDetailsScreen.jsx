@@ -153,14 +153,21 @@ const DeliveryDetailsScreen = () => {
   }, [navigation, userLocation]);
 
   return (
+  <View style={{ flex: 1, backgroundColor: '#fff' }}>
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 20 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          paddingVertical: 20,
+        }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View>
           <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
@@ -188,16 +195,17 @@ const DeliveryDetailsScreen = () => {
         </View>
 
         <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
-
       </ScrollView>
-
-      {loadingLocation && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>Carregando localização...</Text>
-        </View>
-      )}
     </KeyboardAvoidingView>
-  );
+
+    {loadingLocation && (
+      <View style={styles.loadingOverlay}>
+        <Text style={styles.loadingText}>Carregando localização...</Text>
+      </View>
+    )}
+  </View>
+);
+
 };
 
 // --- Componentes ---

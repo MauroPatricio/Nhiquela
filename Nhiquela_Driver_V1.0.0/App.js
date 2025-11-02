@@ -57,9 +57,7 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const projectId =
-    Constants?.expoConfig?.extra?.eas?.projectId ||
-    Constants?.easConfig?.projectId;
+  const projectId = "5c146d00-4349-41b9-8b42-a41e24f11743";
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn';
@@ -11,7 +11,6 @@ import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import registerDeviceToken from '../utils/registerDeviceToken';
 import { useNavigation } from '@react-navigation/native';
-import { KeyboardAvoidingView } from 'react-native';
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
@@ -64,6 +63,10 @@ const LoginPage = () => {
   };
 
   return (
+<KeyboardAvoidingView
+  style={{ flex: 1, backgroundColor: 'white' }}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+>
 
 <ScrollView 
   style={{ backgroundColor: 'white' }}
@@ -148,6 +151,7 @@ const LoginPage = () => {
         </View>
       </SafeAreaView>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
