@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator } from 'react-native';
 import { Formik } from 'formik';
 import api from '../hooks/createConnectionApi';
 import { Picker } from '@react-native-picker/picker';
@@ -8,6 +8,8 @@ import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 // import io from 'socket.io-client';
 
 const validationSchema = Yup.object().shape({
@@ -38,6 +40,7 @@ const NewProduct = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socket, setSocket] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false); // novo estado
 
   // Estados locais para os campos do formulário
   const [name, setName] = useState('');
@@ -350,6 +353,13 @@ const NewProduct = () => {
   };
 
   return (
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: 'white' }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} // evita "jump" no Android
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+
     <ScrollView style={styles.container}
       refreshControl={
         <RefreshControl
@@ -489,21 +499,59 @@ const NewProduct = () => {
               />
               {touched.description && errors.description && <Text style={styles.error}>{errors.description}</Text>}
 
-              {image ? (
-                <Image source={{ uri: image }} style={styles.logo} />
-              ) : (
-                <Text style={{ color: 'red' }}>Adicione a imagem</Text>
-              )}
-              {touched.image && errors.image && <Text style={styles.error}>{errors.image}</Text>}
+                               {/* ---------- Espaço reservado fixo para evitar 'jump' ---------- */}
+            {/* ---------- Espaço reservado fixo para evitar 'jump' ---------- */}
+<View style={styles.logoContainer}>
+  <View style={styles.logoWrapper}>
+    {image ? (
+      <Image
+        source={{ uri: image }}
+        style={styles.logo}
+      />
+    ) : (
+      <View style={styles.logoPlaceholder}>
+        <MaterialCommunityIcons name="image-outline" size={50} color="#bbb" />
+        <Text style={{ color: '#999' }}>Sem imagem</Text>
+      </View>
+    )}
 
-                <TouchableOpacity
-                style={styles.imagePicker}
-                onPress={() => handleImagePicker(setFieldValue)}
-              >
-                <Text style={styles.imagePickerText}>
-                  {values.image ? 'Mudar Imagem' : 'Imagem do produto'}
-                </Text>
-              </TouchableOpacity>
+    {imageUploading && (
+      <View style={styles.logoOverlay}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    )}
+  </View>
+
+  <TouchableOpacity
+    style={[styles.button, imageUploading && styles.buttonDisabled]}
+    onPress={async () => {
+      // evita re-render desnecessário durante upload
+      setImageUploading(true);
+      await handleImagePicker((field, value) => {}); // ignora Formik setFieldValue
+      setImageUploading(false);
+    }}
+    disabled={imageUploading}
+    activeOpacity={0.7}
+  >
+    <Text style={styles.buttonText}>
+      {imageUploading ? 'Enviando imagem...' : 'Adicionar imagem'}
+    </Text>
+  </TouchableOpacity>
+</View>
+             
+             {/* <TouchableOpacity
+               style={[styles.button, imageUploading && styles.buttonDisabled]}
+               onPress={() => handleImagePicker(setFieldValue)}
+               disabled={imageUploading}
+             >
+               <Text style={styles.buttonText}>
+                 {imageUploading ? 'Enviando imagem...' : 'Adicionar imagem'}
+               </Text>
+             </TouchableOpacity> */}
+             
+                               {touched.seller?.logo && errors.seller?.logo && (
+                                 <Text style={styles.error}>{errors.seller.logo}</Text>
+                               )}
 
               <TextInput
                 style={styles.input}
@@ -671,6 +719,9 @@ const NewProduct = () => {
         </View>
       )}
     </ScrollView>
+              </TouchableWithoutFeedback>
+              </KeyboardAvoidingView>
+
   );
 };
 
@@ -814,7 +865,65 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '600',
     color: '#4A5568',
-  }
+  },
+    logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 15,
+  },
+  logoWrapper: {
+    position: 'relative',
+    width: 140,
+    height: 140,
+    borderRadius: 15,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: '#F8F8F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F1F1F1',
+    width: '100%',
+    height: '100%',
+    borderRadius: 15,
+  },
+  logoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  button: {
+    backgroundColor: '#7F00FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: '#BFA3FF',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
 });
 
 export default NewProduct;
