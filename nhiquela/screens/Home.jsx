@@ -623,55 +623,66 @@ responseListener.remove();
       )}
 
       {/* BottomSheet com produtos paginados da categoria */}
-      <BottomSheetComponent
-        isOpen={bottomSheetOpen}
-        toggleSheet={() => {
+<BottomSheetComponent
+  isOpen={bottomSheetOpen}
+  toggleSheet={() => {
+    setBottomSheetOpen(false);
+    bottomSheetRef.current?.close?.();
+  }}
+  ref={bottomSheetRef}
+  height={600} // ← aumenta um pouco para melhor experiência
+>
+  <View style={styles.bottomSheetContent}>
+    {/* Header do BottomSheet */}
+    <View style={styles.bottomSheetHeader}>
+      <Text style={styles.bottomSheetTitle}>
+        Produtos em {selectedCategory?.name}
+      </Text>
+      <Text style={styles.productCountText}>
+        {catProducts.length} de {selectedCategory?.productCount || selectedCategory?.count || 0} produtos
+      </Text>
+
+      {/* Botão de fechar fixo */}
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => {
           setBottomSheetOpen(false);
           bottomSheetRef.current?.close?.();
         }}
-        ref={bottomSheetRef}
-        height={600}
       >
-        <View style={styles.bottomSheetContent}>
-          <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>
-              Produtos em {selectedCategory?.name}
-            </Text>
-            <Text style={styles.productCountText}>
-              {catProducts.length} de {selectedCategory?.productCount || selectedCategory?.count || 0} produtos
-            </Text>
-          </View>
+        <Ionicons name="close" size={26} color="#fff" />
+      </TouchableOpacity>
+    </View>
 
-          {loadingCatProducts && catProducts.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#7F00FF" />
-              <Text style={styles.loadingText}>Carregando produtos...</Text>
+    {/* Lista de produtos */}
+    {loadingCatProducts && catProducts.length === 0 ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7F00FF" />
+        <Text style={styles.loadingText}>Carregando produtos...</Text>
+      </View>
+    ) : (
+      <FlatList
+        data={catProducts}
+        keyExtractor={(item) => String(item._id)}
+        renderItem={renderProductRow}
+        onEndReached={debouncedLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={
+          !loadingCatProducts && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.empty}>Nenhum produto nesta categoria.</Text>
             </View>
-          ) : (
-            <FlatList
-              data={catProducts}
-              keyExtractor={(item) => String(item._id)}
-              renderItem={renderProductRow}
-              onEndReached={debouncedLoadMore}
-              onEndReachedThreshold={0.5}
-              ListFooterComponent={renderFooter}
-              ListEmptyComponent={
-                !loadingCatProducts && (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.empty}>Nenhum produto nesta categoria.</Text>
-                  </View>
-                )
-              }
-              initialNumToRender={10}
-              maxToRenderPerBatch={5}
-              windowSize={7}
-              updateCellsBatchingPeriod={50}
-              removeClippedSubviews={true}
-              contentContainerStyle={catProducts.length === 0 ? { flexGrow: 1 } : {}}
-            />
-          )}
-        </View>
-      </BottomSheetComponent>
+          )
+        }
+        contentContainerStyle={[
+          { paddingBottom: 90 }, // espaço extra para o botão flutuante
+          catProducts.length === 0 ? { flexGrow: 1 } : {}
+        ]}
+      />
+    )}
+  </View>
+</BottomSheetComponent>
 
       <FlashMessage position="top" />
 
@@ -773,13 +784,32 @@ const styles = StyleSheet.create({
   bottomSheetContent: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 16,
+    padding: 5,
     backgroundColor: '#fff',
     flex: 1,
   },
-  bottomSheetHeader: {
-    marginBottom: 16,
-  },
+ closeButton: {
+  position: 'absolute',
+  top: 10,
+  right: 10,
+  backgroundColor: '#7F00FF',
+  borderRadius: 20,
+  width: 36,
+  height: 36,
+  justifyContent: 'center',
+  alignItems: 'center',
+  elevation: 3,
+  zIndex: 10,
+},
+bottomSheetHeader: {
+  marginBottom: 16,
+  alignItems: 'center',
+  paddingTop: 15,
+  paddingHorizontal: 10,
+  borderBottomWidth: 1,
+  borderBottomColor: '#eee',
+},
+
   bottomSheetTitle: {
     fontSize: 20,
     fontWeight: 'bold',

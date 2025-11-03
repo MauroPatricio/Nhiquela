@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Image, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, Image, SafeAreaView, TouchableOpacity, Platform, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
@@ -247,6 +247,11 @@ const SignUp = () => {
   };
 
   return (
+    <KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+>
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <BackBtn onPress={() => navigation.goBack()} />
@@ -511,6 +516,8 @@ const SignUp = () => {
         </Formik>
       </ScrollView>
     </SafeAreaView>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
