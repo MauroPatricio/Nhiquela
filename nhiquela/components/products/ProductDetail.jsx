@@ -6,12 +6,16 @@ import { Badge } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToBasket, removeFromBasket, selectBasketItemsWithId, addSellers, removeSeller, getItemsBySellerId } from '../../features/basketSlice';
 import BasketIcon from '../BasketIcon';
+import { useToast } from 'react-native-toast-notifications';
+
 
 const ProductDetail = () => {
   const route = useRoute();
   const item = route.params?.item || {};
   const navigation = useNavigation();
   const itemData = item?.item !== undefined ? item?.item : item;
+    const toast = useToast(); // ← inicializa o toast
+
 
   const {
     _id,
@@ -63,6 +67,12 @@ const ProductDetail = () => {
       quantity: currentQuantity + count + 1,
     }));
     dispatch(addSellers({ seller }));
+    toast.show(`${nome} adicionado ao carrinho!`, {
+      type: 'success',
+      placement: 'top',
+      duration: 3000,
+      animationType: 'slide-in',
+    });
   };
 
   const removeItem = () => {
@@ -75,6 +85,12 @@ const ProductDetail = () => {
         dispatch(removeSeller({ sellerId: seller._id }));
       }
     }
+     toast.show(`${nome} removido do carrinho!`, {
+      type: 'warning',
+      placement: 'top',
+      duration: 3000,
+      animationType: 'slide-in',
+    });
   };
 
   return (

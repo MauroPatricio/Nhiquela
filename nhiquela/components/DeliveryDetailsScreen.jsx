@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
   View,
@@ -10,6 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
+  Animated,
+  Easing,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -50,6 +54,32 @@ const DeliveryDetailsScreen = () => {
 
   const [distanceToPay, setDistanceToPay] = useState(0);
   const [totalToPay, setTotalToPay] = useState(subtotal);
+
+  // --- Animação teclado ---
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const keyboardShow = Keyboard.addListener('keyboardWillShow', (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration || 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+    const keyboardHide = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+    return () => {
+      keyboardShow.remove();
+      keyboardHide.remove();
+    };
+  }, [keyboardOffset]);
 
   // --- Header ---
   const HeaderWithBack = ({ title, navigation }) => (
@@ -152,60 +182,53 @@ const DeliveryDetailsScreen = () => {
     navigation.replace('PaymentMethod');
   }, [navigation, userLocation]);
 
-  return (
-  <View style={{ flex: 1, backgroundColor: '#fff' }}>
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-    >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: 'space-between',
-          paddingHorizontal: 16,
-          paddingVertical: 20,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#fff' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View>
-          <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 20 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ flex: 1, paddingBottom: keyboardOffset }}>
+            <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
 
-          <StatusLocation userLocation={userLocation} distance={distance} />
+            <StatusLocation userLocation={userLocation} distance={distance} />
 
-          <DeliveryToggle
-            isUserWantDelivery={isUserWantDelivery}
-            setIsUserWantDelivery={setIsUserWantDelivery}
-            disabled={loadingLocation}
-          />
+            <DeliveryToggle
+              isUserWantDelivery={isUserWantDelivery}
+              setIsUserWantDelivery={setIsUserWantDelivery}
+              disabled={loadingLocation}
+            />
 
-          {isUserWantDelivery && (
-            <AddressInput address={address} setAddress={setAddress} editable={!loadingLocation} />
-          )}
+            {isUserWantDelivery && (
+              <AddressInput address={address} setAddress={setAddress} editable={!loadingLocation} />
+            )}
 
-          <DeliveryStatus isUserWantDelivery={isUserWantDelivery} />
+            <DeliveryStatus isUserWantDelivery={isUserWantDelivery} />
 
-          <Summary
-            basketTotal={basketTotal}
-            distanceToPay={distanceToPay}
-            totalToPay={totalToPay}
-            isUserWantDelivery={isUserWantDelivery}
-          />
-        </View>
+            <Summary
+              basketTotal={basketTotal}
+              distanceToPay={distanceToPay}
+              totalToPay={totalToPay}
+              isUserWantDelivery={isUserWantDelivery}
+            />
 
-        <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
 
-    {loadingLocation && (
-      <View style={styles.loadingOverlay}>
-        <Text style={styles.loadingText}>Carregando localização...</Text>
-      </View>
-    )}
-  </View>
-);
-
+            {loadingLocation && (
+              <View style={styles.loadingOverlay}>
+                <Text style={styles.loadingText}>Carregando localização...</Text>
+              </View>
+            )}
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
+  );
 };
 
 // --- Componentes ---

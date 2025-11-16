@@ -7,9 +7,9 @@ import { Formik } from 'formik';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
-import Toast from 'react-native-toast-message';
+import { useToast } from 'react-native-toast-notifications';
 
-
+// --- Validação ---
 const validationSchema = Yup.object().shape({
   name: Yup.string()
     .trim()
@@ -33,8 +33,8 @@ const validationSchema = Yup.object().shape({
     .min(6, 'A senha deve conter pelo menos 6 dígitos')
     .required('A senha é obrigatória'),
 });
-  
 
+// --- Reducer para loading e erro ---
 const formReducer = (state, action) => {
   switch (action.type) {
     case 'SET_LOADING':
@@ -49,27 +49,33 @@ const formReducer = (state, action) => {
 const SignUp = ({ navigation }) => {
   const [hideText, setHideText] = useState(true);
   const [state, dispatch] = useReducer(formReducer, { loading: false, error: null });
+  const toast = useToast();
 
   const submitRegistration = async (values) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const response = await api.post('/users/signup', values);
       if (response.status === 200) {
-        Toast.show({
+        toast.show('Número registrado com sucesso!', {
           type: 'success',
-          text1: 'Número registrado com sucesso!',
-          text1Style: { color: 'green', fontSize: 16 }
+          placement: 'top',
+          duration: 4000,
+          animationType: 'slide-in',
         });
+
         navigation.replace('Login');
       }
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Erro ao cadastrar' });
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao cadastrar',
-        text2: error.response?.data?.message || 'Tente novamente mais tarde.',
-        text2Style: { color: 'red', fontSize: 16 }
+      const errorMessage = error.response?.data?.message || 'Erro ao cadastrar';
+
+      toast.show(errorMessage, {
+        type: 'danger',
+        placement: 'top',
+        duration: 4000,
+        animationType: 'slide-in',
       });
+
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -90,6 +96,7 @@ const SignUp = ({ navigation }) => {
           >
             {({ handleChange, handleBlur, touched, handleSubmit, values, errors, isValid, setFieldTouched }) => (
               <View>
+                {/* Nome */}
                 <View style={styles.wrapper}>
                   <Text style={styles.label}>Nome e apelido</Text>
                   <View style={styles.inputWrapper(touched.name ? '#7F00FF' : '#ccc')}>
@@ -105,6 +112,7 @@ const SignUp = ({ navigation }) => {
                   {touched.name && errors.name && <Text style={styles.errorMessage}>{errors.name}</Text>}
                 </View>
 
+                {/* Telefone */}
                 <View style={styles.wrapper}>
                   <Text style={styles.label}>Número de telefone</Text>
                   <View style={styles.inputWrapper(touched.phoneNumber ? '#7F00FF' : '#ccc')}>
@@ -121,6 +129,7 @@ const SignUp = ({ navigation }) => {
                   {touched.phoneNumber && errors.phoneNumber && <Text style={styles.errorMessage}>{errors.phoneNumber}</Text>}
                 </View>
 
+                {/* Email */}
                 <View style={styles.wrapper}>
                   <Text style={styles.label}>Email</Text>
                   <View style={styles.inputWrapper(touched.email ? '#7F00FF' : '#ccc')}>
@@ -136,6 +145,7 @@ const SignUp = ({ navigation }) => {
                   {touched.email && errors.email && <Text style={styles.errorMessage}>{errors.email}</Text>}
                 </View>
 
+                {/* Senha */}
                 <View style={styles.wrapper}>
                   <Text style={styles.label}>Senha</Text>
                   <View style={styles.inputWrapper(touched.password ? '#7F00FF' : '#ccc')}>
@@ -155,6 +165,7 @@ const SignUp = ({ navigation }) => {
                   {touched.password && errors.password && <Text style={styles.errorMessage}>{errors.password}</Text>}
                 </View>
 
+                {/* Botão */}
                 <Button
                   title="Registar"
                   onPress={handleSubmit}

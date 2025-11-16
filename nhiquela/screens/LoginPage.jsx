@@ -2,238 +2,231 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
+  StyleSheet,
   KeyboardAvoidingView,
+  Platform,
   ScrollView,
   TouchableWithoutFeedback,
   Keyboard,
-  Platform,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import BackBtn from '../components/BackBtn';
-import Button from '../components/Button';
-import { Formik } from 'formik';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Yup from 'yup';
-import api from '../hooks/createConnectionApi';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import registerDeviceToken from '../utils/registerDeviceToken';
+import api from '../hooks/createConnectionApi';
 import { useNavigation } from '@react-navigation/native';
+import registerDeviceToken from '../utils/registerDeviceToken';
+import BackBtn from '../components/BackBtn'; // Corrigido import default
+import { useToast } from 'react-native-toast-notifications';
 
-// ✅ Validação Yup
-const validationSchema = Yup.object().shape({
-  phoneNumber: Yup.string()
-    .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
-    .max(9, 'O número de telefone não pode ser superior a 9 dígitos')
-    .required('Obrigatório'),
-  password: Yup.string()
-    .min(6, 'A senha deve conter 6 dígitos')
-    .required('Obrigatório'),
-});
 
-const LoginPage = () => {
+export default function LoginPage() {
   const navigation = useNavigation();
-  const [loader, setLoader] = useState(false);
-  const [hideText, setHideText] = useState(true);
+      const toast = useToast(); // ← inicializa o toast
+  
 
-  const login = async (values) => {
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [hideText, setHideText] = useState(true);
+  const [errors, setErrors] = useState({ phoneNumber: '', password: '' });
+
+  const handleLogin = async () => {
+    let valid = true;
+    const newErrors = { phoneNumber: '', password: '' };
+
+    // Valida telefone
+    if (!phoneNumber) {
+      newErrors.phoneNumber = 'Preencha o telefone';
+      valid = false;
+    } else if (!/^\d{9}$/.test(phoneNumber)) {
+      newErrors.phoneNumber = 'O telefone deve ter exatamente 9 dígitos';
+      valid = false;
+    }
+
+    // Valida senha
+    if (!password) {
+      newErrors.password = 'Preencha a senha';
+      valid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'A senha deve ter no mínimo 6 caracteres';
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    if (!valid) return;
+
+    setLoading(true);
     try {
-      setLoader(true);
-      const response = await api.post('/users/signin', values);
-      if (response.status === 200) {
+      const response = await api.post('/users/signin', { phoneNumber, password });
+      if (response.data) {
         const userData = response.data;
+
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('id', userData._id);
         registerDeviceToken(userData);
 
+        // ✅ Toast chamado apenas em função, não em JSX
+     
         navigation.reset({
           index: 0,
           routes: [{ name: 'BottomNavigation' }],
         });
       }
-    } catch (error) {
-      console.log('Erro no login:', error);
-      Alert.alert(
-        'Erro no login',
-        error?.response?.data?.message || 'Erro inesperado. Verifique sua conexão ou tente novamente.'
-      );
+    } catch (err) {
+
+      console.log(err.response?.data?.message)
+
+         const errorMessage = err.response?.data?.message || 'Erro ao cadastrar';
+    
+    toast.show(errorMessage, {
+      type: 'danger',
+      placement: 'top',
+      duration: 4000,
+      animationType: 'slide-in',
+    });
+
     } finally {
-      setLoader(false);
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.safeArea}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            style={{ backgroundColor: 'white' }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContainer}
-          >
-            <View style={styles.inner}>
-              <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.innerContainer}>
+            <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
 
-              <Image
-                source={require('../assets/nhiquela2.png')}
-                style={styles.cover}
-              />
+            <Image
+              source={require('../assets/nhiquela2.png')}
+              style={styles.cover}
+            />
+            <Text style={styles.title}>Bem-vindo à Nhiquela</Text>
+            <Text style={styles.subtitle}>Faça login para continuar</Text>
 
-              <Text style={styles.title}>Login</Text>
-
-              <Formik
-                initialValues={{ phoneNumber: '', password: '' }}
-                validationSchema={validationSchema}
-                onSubmit={(values) => login(values)}
-              >
-                {({
-                  handleChange,
-                  handleBlur,
-                  touched,
-                  handleSubmit,
-                  values,
-                  errors,
-                  isValid,
-                }) => (
-                  <View style={{ width: '100%' }}>
-                    {/* Telefone */}
-                    <View style={styles.wrapper}>
-                      <Text style={styles.label}>Número de telefone</Text>
-                      <View
-                        style={styles.inputWrapper(
-                          touched.phoneNumber && errors.phoneNumber ? 'red' : '#7F00FF'
-                        )}
-                      >
-                        <MaterialCommunityIcons
-                          name="phone"
-                          size={20}
-                          color="grey"
-                          style={styles.iconStyle}
-                        />
-                        <TextInput
-                          placeholder="Insira o número de telefone"
-                          keyboardType="phone-pad"
-                          style={{ flex: 1 }}
-                          value={values.phoneNumber}
-                          onChangeText={(t) => handleChange('phoneNumber')(t.trim())}
-                          onBlur={handleBlur('phoneNumber')}
-                          returnKeyType="next"
-                        />
-                      </View>
-                      {touched.phoneNumber && errors.phoneNumber && (
-                        <Text style={styles.errorMessage}>{errors.phoneNumber}</Text>
-                      )}
-                    </View>
-
-                    {/* Senha */}
-                    <View style={styles.wrapper}>
-                      <Text style={styles.label}>Senha</Text>
-                      <View
-                        style={styles.inputWrapper(
-                          touched.password && errors.password ? 'red' : '#7F00FF'
-                        )}
-                      >
-                        <MaterialCommunityIcons
-                          name="lock"
-                          size={20}
-                          color="grey"
-                          style={styles.iconStyle}
-                        />
-                        <TextInput
-                          placeholder="Insira a senha"
-                          secureTextEntry={hideText}
-                          style={{ flex: 1 }}
-                          value={values.password}
-                          onChangeText={(t) => handleChange('password')(t.trim())}
-                          onBlur={handleBlur('password')}
-                          returnKeyType="done"
-                        />
-                        <TouchableOpacity onPress={() => setHideText(!hideText)}>
-                          <MaterialCommunityIcons
-                            name={hideText ? 'eye-outline' : 'eye-off-outline'}
-                            size={20}
-                            color="grey"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                      {touched.password && errors.password && (
-                        <Text style={styles.errorMessage}>{errors.password}</Text>
-                      )}
-                    </View>
-
-                    {/* Botões */}
-                    <View>
-                      <Button
-                        loader={loader}
-                        title="Entrar"
-                        onPress={isValid ? handleSubmit : null}
-                        isValid={isValid}
-                      />
-                      <Text
-                        style={styles.registration}
-                        onPress={() => navigation.replace('SignUp')}
-                      >
-                        Registrar
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </Formik>
+            {/* Telefone */}
+            <View style={styles.wrapper}>
+              <Text style={styles.label}>Telefone</Text>
+              <View style={styles.inputWrapper(errors.phoneNumber ? 'red' : '#7F00FF')}>
+                <Ionicons name="phone-portrait" size={20} color="grey" style={styles.iconStyle} />
+                <TextInput
+                  placeholder="Insira o telefone"
+                  placeholderTextColor="#999"
+                  style={styles.input}
+                  value={phoneNumber}
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  onChangeText={text => { setPhoneNumber(text); setErrors({...errors, phoneNumber: ''}); }}
+                />
+              </View>
+              {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
             </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-};
 
-export default LoginPage;
+            {/* Senha */}
+            <View style={styles.wrapper}>
+              <Text style={styles.label}>Senha</Text>
+              <View style={styles.inputWrapper(errors.password ? 'red' : '#7F00FF')}>
+                <Ionicons name="lock-closed-outline" size={20} color="grey" style={styles.iconStyle} />
+                <TextInput
+                  placeholder="Insira a senha"
+                  placeholderTextColor="#999"
+                  secureTextEntry={hideText}
+                  style={styles.input}
+                  value={password}
+                  onChangeText={text => { setPassword(text); setErrors({...errors, password: ''}); }}
+                />
+                <TouchableOpacity onPress={() => setHideText(!hideText)}>
+                  <Ionicons
+                    name={hideText ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color="grey"
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+            </View>
+
+            {/* Botão Login */}
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginText}>Entrar</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Registrar */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('SignUp')}
+              style={{ marginTop: 15 }}
+            >
+              <Text style={styles.registerText}>
+                Não tens conta? <Text style={styles.link}>Criar conta</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
+  );
+}
+
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
   },
-  inner: {
-    flex: 1,
-    width: '100%',
+  innerContainer: {
     alignItems: 'center',
+    width: '100%',
   },
   cover: {
-    height: 200,
+    height: 150,
     width: 320,
     resizeMode: 'contain',
-    alignSelf: 'center',
     marginVertical: 30,
   },
   title: {
-    fontWeight: '600',
-    textAlign: 'center',
     fontSize: 22,
-    marginBottom: 25,
+    fontWeight: '700',
     color: '#4A4A4A',
-    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#777',
+    marginTop: 5,
+    textAlign: 'center',
+    marginBottom: 30,
   },
   wrapper: {
-    marginBottom: 18,
+    marginBottom: 20,
+    width: '100%',
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 5,
+    marginBottom: 6,
     color: '#7F00FF',
   },
   inputWrapper: (borderColor) => ({
@@ -250,22 +243,40 @@ const styles = StyleSheet.create({
   iconStyle: {
     marginRight: 10,
   },
-  errorMessage: {
-    color: 'red',
-    marginTop: 5,
-    marginLeft: 6,
-    fontSize: 12,
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: '#000',
   },
-  registration: {
-    marginTop: 25,
-    textAlign: 'center',
-    fontWeight: '500',
-    borderColor: '#7F00FF',
-    borderWidth: 1.5,
-    height: 50,
+  loginButton: {
+    backgroundColor: '#7F00FF',
     borderRadius: 12,
-    color: '#7F00FF',
-    paddingVertical: 10,
+    width: '100%',
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  loginText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
   },
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 6,
+  },
+  registerText: {
+    fontSize: 14,
+    color: '#555',
+  },
+  link: {
+    color: '#7F00FF',
+    fontWeight: '600',
+  },
 });
+
+
+

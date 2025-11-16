@@ -20,7 +20,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import api from '../hooks/createConnectionApi';
 import { sendOrderNotificationToUser } from '../utils/notificationUtils';
-import Toast from 'react-native-toast-message';
+import { useToast } from "react-native-toast-notifications";
+
 import TripMap from "../components/TripMap";
 import TripControls from '../components/TripControls';
 
@@ -39,6 +40,8 @@ const OrderDetailsScreen = () => {
   const [routeDrawn, setRouteDrawn] = useState(false);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const navigation = useNavigation();
+
+  const toast = useToast()
 
   // Animações para o bottom sheet
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -223,7 +226,7 @@ const OrderDetailsScreen = () => {
         status: 'Confirmado',
       });
 
-      Toast.show({
+      toast.show({
         type: 'success',
         text1: 'Confirmação de Recepção',
         text2: 'O fornecedor será notificado.',
