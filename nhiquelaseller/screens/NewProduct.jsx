@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image,
 import { Formik } from 'formik';
 import api from '../hooks/createConnectionApi';
 import { Picker } from '@react-native-picker/picker';
-import Toast from 'react-native-toast-message';
+import { useToast } from 'react-native-toast-notifications';
 import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,6 +24,7 @@ const validationSchema = Yup.object().shape({
 });
 
 const NewProduct = () => {
+  const toast =useToast();
   const navigation = useNavigation();
   const route = useRoute();
   const [editingProduct, setEditingProduct] = useState(null);
@@ -69,7 +70,7 @@ const NewProduct = () => {
     const handleProductUpdate = (updatedProduct) => {
       if (editingProduct && updatedProduct._id === editingProduct._id) {
         setEditingProduct(updatedProduct);
-        Toast.show({
+        toast.show({
           type: 'success',
           text1: 'Produto atualizado em tempo real',
           position: 'top',
@@ -269,13 +270,13 @@ const NewProduct = () => {
     try {
       if (selectedColors.length === 0) {
         setErrorColor('Adicione as cores disponíveis do produto.');
-        Toast.show({ type: 'error', text1: 'Adicione as cores disponíveis do produto.', position: 'top' });
+        toast.show({ type: 'error', text1: 'Adicione as cores disponíveis do produto.', position: 'top' });
         return;
       }
 
       if (selectedSizes.length === 0) {
         setErrorSize('Adicione os tamanhos disponíveis do produto.');
-        Toast.show({ type: 'error', text1: 'Adicione os tamanhos disponíveis do produto', position: 'top' });
+        toast.show({ type: 'error', text1: 'Adicione os tamanhos disponíveis do produto', position: 'top' });
         return;
       }
 
@@ -304,7 +305,7 @@ const NewProduct = () => {
 
         navigation.navigate('ProductListSeller');
 
-        Toast.show({ 
+        toast.show({ 
           type: 'success', 
           text1: 'SUCESSO', 
           text2: 'Produto actualizado com sucesso!',
@@ -324,8 +325,7 @@ const NewProduct = () => {
           response = await api.post('notifications/broadcast', {title, body, data}, {
           headers: { Authorization: `Bearer ${userData.token}` },
         });
-        
-        Toast.show({ 
+        toast.show({ 
           type: 'success', 
           text1: 'SUCESSO', 
           text2: 'Produto criado com sucesso!', 
@@ -339,8 +339,9 @@ const NewProduct = () => {
         navigation.navigate('ProductListSeller');
       }
     } catch (error) {
+      console.log(error)
       const errorMessage = error.response?.data.error || 'Erro ao salvar o produto.';
-      Toast.show({ 
+      toast.show({ 
         type: 'error', 
         text1: 'Erro', 
         text2: errorMessage, 
@@ -353,12 +354,13 @@ const NewProduct = () => {
   };
 
   return (
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+
         <KeyboardAvoidingView
           style={{ flex: 1, backgroundColor: 'white' }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined} // evita "jump" no Android
           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
     <ScrollView style={styles.container}
       refreshControl={
@@ -719,8 +721,8 @@ const NewProduct = () => {
         </View>
       )}
     </ScrollView>
-              </TouchableWithoutFeedback>
               </KeyboardAvoidingView>
+              </TouchableWithoutFeedback>
 
   );
 };

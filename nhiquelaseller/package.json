@@ -54,6 +54,7 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.3.3",
+    "react-native-toast-notifications": "^3.4.0",
     "react-navigation": "^5.0.0",
     "react-redux": "^9.2.0",
     "yup": "^1.7.0"

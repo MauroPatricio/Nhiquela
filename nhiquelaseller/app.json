@@ -23,6 +23,14 @@
         "foregroundImage": "./assets/nhiquela3.png",
         "backgroundColor": "#ffffff"
       },
+
+    "notification": {
+      "icon": "./assets/nhiquela3.png",
+      "color": "#7F00FF",
+      "androidMode": "default",
+      "androidCollapsedTitle": "NhiquelaPRO",
+      "androidGoogleServicesFile": "./google-services.json"
+    },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

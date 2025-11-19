@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { StatusBar, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
@@ -9,11 +9,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
+import { ToastProvider, useToast } from 'react-native-toast-notifications'; 
 import api from './hooks/createConnectionApi';
 import { store } from './store';
-import { View, StatusBar } from 'react-native';
-
+import { navigationRef, navigate } from './navegation/RootNavigation';
 
 // Importação de telas
 import ButtomTabNavegation from './navegation/ButtomTabNavegation';
@@ -41,82 +40,76 @@ import TopUpScreen from './screens/TopUpScreen';
 import WalletScreen from './screens/WalletScreen';
 import WalletWithdrawScreen from './screens/WalletWithdrawScreen';
 import WithdrawalRequestsScreen from './components/WithdrawalRequests';
-import { navigationRef, navigate } from './navegation/RootNavigation';
 import { enableScreens } from 'react-native-screens';
-
 
 const Stack = createNativeStackNavigator();
 
 // 🔔 Configuração para notificações em foreground
-
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: true,    // Mostra banner da notificação
-    shouldShowList: true,      // Adiciona à lista de notificações
-    shouldPlaySound: true,     // Som da notificação
-    shouldSetBadge: true,      // Badge no app
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
   }),
 });
 
-export default function App() {
-  const notificationResponseListener = useRef();
+function AppContent() {
   const notificationReceivedListener = useRef();
+  const notificationResponseListener = useRef();
+  const toast = useToast(); // ✔️ Hook para usar o toast
 
   useEffect(() => {
-    // 🔧 Criação do canal Android
-    enableScreens();
-
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('order-updates', {
-        name: 'Atualizações de Pedido',
-        importance: Notifications.AndroidImportance.HIGH,
-        sound: 'default',
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
-    }
-
     const setupNotifications = async () => {
+      const userId = await AsyncStorage.getItem('id');
+      if (!userId) return;
+
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('order-updates', {
+          name: 'Atualizações de Pedido',
+          importance: Notifications.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
       const deviceToken = await registerForPushNotificationsAsync();
       if (deviceToken) {
-        const userId = await AsyncStorage.getItem('id');
-        if (userId) {
-          try {
-            await api.post('/notifications/savedevicetoken', {
-              deviceToken,
-              userId,
-              platform: Platform.OS,
-            });
-            console.log('✅ deviceToken salvo com sucesso.');
-          } catch (err) {
-            console.error('❌ Erro ao salvar token:', err);
-          }
+        try {
+          await api.post('/notifications/savedevicetoken', {
+            deviceToken,
+            userId,
+            platform: Platform.OS,
+          });
+        } catch (err) {
+          console.error('Erro ao salvar deviceToken:', err);
         }
       }
 
-      // Notificação em foreground
-      notificationReceivedListener.current = Notifications.addNotificationReceivedListener(notification => {
-        Toast.show({
-          type: 'info',
-          text1: notification.request.content.title,
-          text2: notification.request.content.body,
+      notificationReceivedListener.current =
+        Notifications.addNotificationReceivedListener(notification => {
+          toast.show(notification.request.content.body || 'Nova notificação', {
+            type: 'info',
+            duration: 4000,
+            placement: 'top',
+          });
         });
-      });
 
-      // Quando usuário toca na notificação
-      notificationResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-        const data = response.notification?.request?.content?.data;
-        if (data?.orderId && navigationRef.isReady()) {
-          navigate('OrderDetail', { orderId: data.orderId });
-        }
-      });
+      notificationResponseListener.current =
+        Notifications.addNotificationResponseReceivedListener(response => {
+          const data = response.notification?.request?.content?.data;
+          if (data?.orderId && navigationRef.isReady()) {
+            navigate('OrderDetail', { orderId: data.orderId });
+          }
+        });
     };
 
     setupNotifications();
 
     return () => {
-      notificationReceivedListener.current?.remove();
-      notificationResponseListener.current?.remove();
+      notificationReceivedListener.current?.remove?.();
+      notificationResponseListener.current?.remove?.();
     };
   }, []);
 
@@ -158,13 +151,19 @@ export default function App() {
                 <Stack.Screen name="Pay" component={PayWithWallet} />
                 <Stack.Screen name="withdraw" component={WalletWithdrawScreen} />
               </Stack.Navigator>
-
-              <Toast />
             </KeyboardAvoidingView>
           </SafeAreaProvider>
         </Provider>
       </NavigationContainer>
     </GestureHandlerRootView>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
 
@@ -189,7 +188,7 @@ async function registerForPushNotificationsAsync() {
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: "3955dd7f-ad17-497a-966b-33dfae1b0b18",
+    projectId: Constants.expoConfig?.extra?.eas?.projectId,
   });
 
   return tokenData.data;
