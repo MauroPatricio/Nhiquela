@@ -55,11 +55,14 @@ const DeliveryDetailsScreen = () => {
   const [distanceToPay, setDistanceToPay] = useState(0);
   const [totalToPay, setTotalToPay] = useState(subtotal);
 
-  // --- Animação teclado ---
+  // --- Keyboard Animated ---
   const keyboardOffset = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const keyboardShow = Keyboard.addListener('keyboardWillShow', (e) => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const keyboardShow = Keyboard.addListener(showEvent, (e) => {
       Animated.timing(keyboardOffset, {
         toValue: e.endCoordinates.height,
         duration: e.duration || 250,
@@ -67,7 +70,8 @@ const DeliveryDetailsScreen = () => {
         useNativeDriver: false,
       }).start();
     });
-    const keyboardHide = Keyboard.addListener('keyboardWillHide', () => {
+
+    const keyboardHide = Keyboard.addListener(hideEvent, () => {
       Animated.timing(keyboardOffset, {
         toValue: 0,
         duration: 250,
@@ -75,6 +79,7 @@ const DeliveryDetailsScreen = () => {
         useNativeDriver: false,
       }).start();
     });
+
     return () => {
       keyboardShow.remove();
       keyboardHide.remove();
@@ -82,7 +87,7 @@ const DeliveryDetailsScreen = () => {
   }, [keyboardOffset]);
 
   // --- Header ---
-  const HeaderWithBack = ({ title, navigation }) => (
+  const HeaderWithBack = ({ title }) => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Ionicons name="chevron-back-circle" size={35} color="#7F00FF" />
@@ -91,7 +96,7 @@ const DeliveryDetailsScreen = () => {
     </View>
   );
 
-  // --- Localização ---
+  // --- Location ---
   useEffect(() => {
     let locationSubscription;
 
@@ -123,7 +128,7 @@ const DeliveryDetailsScreen = () => {
     return () => locationSubscription?.remove();
   }, []);
 
-  // --- Localização manual ---
+  // --- Manual Location ---
   useEffect(() => {
     if (permissionDenied && manualLocation.latitude && manualLocation.longitude) {
       setUserLocation({
@@ -133,7 +138,7 @@ const DeliveryDetailsScreen = () => {
     }
   }, [manualLocation, permissionDenied]);
 
-  // --- Distância ---
+  // --- Distance ---
   useEffect(() => {
     if (userLocation) {
       const dist = haversine(userLocation, sellerLocation, { unit: 'km' });
@@ -153,7 +158,7 @@ const DeliveryDetailsScreen = () => {
     setTotalToPay(subtotal + newDistanceToPay);
   }, [isUserWantDelivery, distance, subtotal]);
 
-  // --- Atualizar Redux ---
+  // --- Redux Update with Debounce ---
   const updateRedux = useCallback(
     debounce((addr, total, deliv) => {
       const deliveryAddress = {
@@ -182,19 +187,19 @@ const DeliveryDetailsScreen = () => {
     navigation.replace('PaymentMethod');
   }, [navigation, userLocation]);
 
-return (
+  return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: '#fff' }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 20 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View style={{ flex: 1, paddingBottom: keyboardOffset }}>
-            <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
+          <Animated.View style={{ paddingBottom: keyboardOffset }}>
+            <HeaderWithBack title="Detalhes do Endereço de Entrega" />
 
             <StatusLocation userLocation={userLocation} distance={distance} />
 
@@ -315,7 +320,6 @@ const FinalizeButton = React.memo(({ onPress, disabled }) => (
 ));
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginVertical: 10, fontSize: 16 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
   headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 10, color: '#333' },

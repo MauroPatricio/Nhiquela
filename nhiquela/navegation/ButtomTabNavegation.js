@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,29 +12,29 @@ import Profile from '../screens/Profile';
 const Tab = createBottomTabNavigator();
 
 const CustomTabBarButton = memo(({ children, onPress }) => (
-  <TouchableOpacity
-    style={styles.centerButtonWrapper}
-    onPress={onPress}
-    activeOpacity={0.9}
-  >
+  <TouchableOpacity style={styles.centerButtonWrapper} onPress={onPress}>
     <View style={styles.centerButton}>{children}</View>
   </TouchableOpacity>
 ));
 
 const BottomTabNavigation = () => {
   return (
-   <Tab.Navigator
+    <Tab.Navigator
       screenOptions={{
-        tabBarShowLabel: false,
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        // 🔥 CONFIGURAÇÕES DEFINITIVAS
+        tabBarShowLabel: false,
+
         tabBarHideOnKeyboard: true,
         freezeOnBlur: true,
         lazy: true,
-        // 🔥 REMOVE ANIMAÇÕES PROBLEMÁTICAS
-        animation: 'none',
         animationEnabled: false,
+
+        tabBarStyle: {
+          position: 'absolute',
+          height: 60,
+          borderTopWidth: 0,
+          elevation: 10,
+        },
       }}
     >
       <Tab.Screen
@@ -69,12 +69,10 @@ const BottomTabNavigation = () => {
         name="NovoPedido"
         component={RequestDeliv}
         options={{
-          tabBarIcon: () => (
-            <Ionicons name="add" size={40} color="white" />
-          ),
+          tabBarIcon: () => <Ionicons name="add" size={40} color="white" />,
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
         }}
-    />
+      />
 
       <Tab.Screen
         name="Pedidos"
@@ -111,21 +109,13 @@ export default BottomTabNavigation;
 
 const styles = StyleSheet.create({
 
-  centerButtonWrapper: { 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  centerButton: { 
-    width: 50, 
-    height: 50, 
-    borderRadius: 35, 
-    backgroundColor: '#7F00FF', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  centerButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 35,
+    backgroundColor: '#7F00FF',
+    // justifyContent: 'center',
+    // alignItems: 'center',
     elevation: 10,
-    shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
   },
 });

@@ -7,11 +7,13 @@
     "orientation": "portrait",
     "icon": "./assets/nhiquela2.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/nhiquela2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "assetBundlePatterns": ["**/*"],
     "platforms": ["ios", "android", "web"],
 
@@ -24,6 +26,7 @@
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       },
+
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
@@ -38,11 +41,22 @@
         "FOREGROUND_SERVICE",
         "POST_NOTIFICATIONS"
       ],
+
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
         }
       }
+    },
+
+    "notification": {
+      "icon": "./assets/nhiquela2.png",
+      "color": "#7F00FF",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Nhiquela",
+      "androidGoogleServicesFile": "./google-services.json",
+      "androidShowBadge": true
+
     },
 
     "ios": {
@@ -97,7 +111,7 @@
         "apiKey": "AIzaSyAssq-4rWO4Ju9xg-PcNH0k3bAAkDerAY4",
         "authDomain": "nhiquela-4bfb5.firebaseapp.com",
         "projectId": "nhiquela-4bfb5",
-        "storageBucket": "nhiquela-4bfb5.firebasestorage.app",
+        "storageBucket": "nhiquela-4bfb5.appspot.com",
         "messagingSenderId": "127489638441",
         "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
         "measurementId": "G-FN5JGWV1S4"

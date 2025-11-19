@@ -18,14 +18,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
 import { useNavigation } from '@react-navigation/native';
 import registerDeviceToken from '../utils/registerDeviceToken';
-import BackBtn from '../components/BackBtn'; // Corrigido import default
+import BackBtn from '../components/BackBtn';
 import { useToast } from 'react-native-toast-notifications';
-
 
 export default function LoginPage() {
   const navigation = useNavigation();
-      const toast = useToast(); // ← inicializa o toast
-  
+  const toast = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +35,6 @@ export default function LoginPage() {
     let valid = true;
     const newErrors = { phoneNumber: '', password: '' };
 
-    // Valida telefone
     if (!phoneNumber) {
       newErrors.phoneNumber = 'Preencha o telefone';
       valid = false;
@@ -46,7 +43,6 @@ export default function LoginPage() {
       valid = false;
     }
 
-    // Valida senha
     if (!password) {
       newErrors.password = 'Preencha a senha';
       valid = false;
@@ -61,130 +57,125 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await api.post('/users/signin', { phoneNumber, password });
+
       if (response.data) {
         const userData = response.data;
 
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         await AsyncStorage.setItem('id', userData._id);
+
         registerDeviceToken(userData);
 
-        // ✅ Toast chamado apenas em função, não em JSX
-     
         navigation.reset({
           index: 0,
           routes: [{ name: 'BottomNavigation' }],
         });
       }
     } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Erro ao fazer login';
 
-      console.log(err.response?.data?.message)
-
-         const errorMessage = err.response?.data?.message || 'Erro ao cadastrar';
-    
-    toast.show(errorMessage, {
-      type: 'danger',
-      placement: 'top',
-      duration: 4000,
-      animationType: 'slide-in',
-    });
-
+      toast.show(errorMessage, {
+        type: 'danger',
+        placement: 'top',
+        duration: 4000,
+        animationType: 'slide-in',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        style={styles.safeArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.innerContainer}>
-            <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
+ <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+   <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+   >       
+   <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentInsetAdjustmentBehavior="automatic" // ★ FIX
+          >
+            <View style={styles.innerContainer}>
+              <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
 
-            <Image
-              source={require('../assets/nhiquela2.png')}
-              style={styles.cover}
-            />
-            <Text style={styles.title}>Bem-vindo à Nhiquela</Text>
-            <Text style={styles.subtitle}>Faça login para continuar</Text>
+              <Image
+                source={require('../assets/nhiquela2.png')}
+                style={styles.cover}
+              />
 
-            {/* Telefone */}
-            <View style={styles.wrapper}>
-              <Text style={styles.label}>Telefone</Text>
-              <View style={styles.inputWrapper(errors.phoneNumber ? 'red' : '#7F00FF')}>
-                <Ionicons name="phone-portrait" size={20} color="grey" style={styles.iconStyle} />
-                <TextInput
-                  placeholder="Insira o telefone"
-                  placeholderTextColor="#999"
-                  style={styles.input}
-                  value={phoneNumber}
-                  keyboardType="phone-pad"
-                  autoCapitalize="none"
-                  onChangeText={text => { setPhoneNumber(text); setErrors({...errors, phoneNumber: ''}); }}
-                />
-              </View>
-              {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
-            </View>
+              <Text style={styles.title}>Bem-vindo à Nhiquela</Text>
+              <Text style={styles.subtitle}>Faça login para continuar</Text>
 
-            {/* Senha */}
-            <View style={styles.wrapper}>
-              <Text style={styles.label}>Senha</Text>
-              <View style={styles.inputWrapper(errors.password ? 'red' : '#7F00FF')}>
-                <Ionicons name="lock-closed-outline" size={20} color="grey" style={styles.iconStyle} />
-                <TextInput
-                  placeholder="Insira a senha"
-                  placeholderTextColor="#999"
-                  secureTextEntry={hideText}
-                  style={styles.input}
-                  value={password}
-                  onChangeText={text => { setPassword(text); setErrors({...errors, password: ''}); }}
-                />
-                <TouchableOpacity onPress={() => setHideText(!hideText)}>
-                  <Ionicons
-                    name={hideText ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color="grey"
+              <View style={styles.wrapper}>
+                <Text style={styles.label}>Telefone</Text>
+                <View style={styles.inputWrapper(errors.phoneNumber ? 'red' : '#7F00FF')}>
+                  <Ionicons name="phone-portrait" size={20} color="grey" style={styles.iconStyle} />
+
+                  <TextInput
+                    placeholder="Insira o telefone"
+                    placeholderTextColor="#999"
+                    style={styles.input}
+                    value={phoneNumber}
+                    keyboardType="phone-pad"
+                    onChangeText={text => { setPhoneNumber(text); setErrors({ ...errors, phoneNumber: '' }); }}
                   />
-                </TouchableOpacity>
+                </View>
+
+                {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
               </View>
-              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+
+              <View style={styles.wrapper}>
+                <Text style={styles.label}>Senha</Text>
+                <View style={styles.inputWrapper(errors.password ? 'red' : '#7F00FF')}>
+                  <Ionicons name="lock-closed-outline" size={20} color="grey" style={styles.iconStyle} />
+
+                  <TextInput
+                    placeholder="Insira a senha"
+                    placeholderTextColor="#999"
+                    secureTextEntry={hideText}
+                    style={styles.input}
+                    value={password}
+                    onChangeText={text => { setPassword(text); setErrors({ ...errors, password: '' }); }}
+                  />
+
+                  <TouchableOpacity onPress={() => setHideText(!hideText)}>
+                    <Ionicons
+                      name={hideText ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color="grey"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+              </View>
+
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginText}>Entrar</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={{ marginTop: 15 }}>
+                <Text style={styles.registerText}>
+                  Não tens conta? <Text style={styles.link}>Criar conta</Text>
+                </Text>
+              </TouchableOpacity>
             </View>
-
-            {/* Botão Login */}
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.loginText}>Entrar</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Registrar */}
-            <TouchableOpacity
-              onPress={() => navigation.navigate('SignUp')}
-              style={{ marginTop: 15 }}
-            >
-              <Text style={styles.registerText}>
-                Não tens conta? <Text style={styles.link}>Criar conta</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+          </ScrollView>
+ </KeyboardAvoidingView>
+</TouchableWithoutFeedback>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -277,6 +268,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-
-

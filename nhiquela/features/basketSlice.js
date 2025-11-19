@@ -1,6 +1,9 @@
 import { createSlice, configureStore, createSelector } from '@reduxjs/toolkit';
 import { Alert } from 'react-native';
 
+
+
+
 function calculateValues(item) {
   if (!item) return { price: 0, discount: 0, earnings: 0 };
 

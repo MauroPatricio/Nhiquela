@@ -61,6 +61,13 @@ export default function App() {
     }),
   });
 
+  
+ Notifications.setNotificationChannelAsync('default', {
+  name: 'default',
+  importance: Notifications.AndroidImportance.HIGH,
+});
+
+
   // Criar canal Android
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -176,6 +183,7 @@ export default function App() {
 }
 
 // Push Notifications
+
 async function registerForPushNotificationsAsync() {
   if (!Device.isDevice) {
     alert('Push notifications só funcionam em dispositivos físicos!');
@@ -196,7 +204,7 @@ async function registerForPushNotificationsAsync() {
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId || '',
+    projectId: '7467ac64-89c0-432d-ae88-f427f7c65da9',
   });
 
   return tokenData.data;

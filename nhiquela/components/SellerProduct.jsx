@@ -15,6 +15,7 @@ import {
   addSellers,
 } from '../features/basketSlice';
 import { createSelector } from '@reduxjs/toolkit';
+import { useToast } from 'react-native-toast-notifications';
 
 const SellerProduct = ({
   id,
@@ -49,6 +50,7 @@ const SellerProduct = ({
   );
   const items = useSelector((state) => selectItems(state));
   const dispatch = useDispatch();
+    const toast = useToast(); // ← inicializa o toast
 
   const toggleExpand = () => {
     Animated.timing(animation, {
@@ -78,11 +80,24 @@ const SellerProduct = ({
       quantity: items.length + 1,
     }));
     dispatch(addSellers({ seller }));
+
+      toast.show(`${nome} adicionado ao carrinho!`, {
+      type: 'success',
+      placement: 'top',
+      duration: 3000,
+      animationType: 'slide-in',
+    });
   };
 
   const removeItem = () => {
     if (items.length === 0) return;
     dispatch(removeFromBasket({ _id: id }));
+      toast.show(`${nome} removido do carrinho!`, {
+      type: 'warning',
+      placement: 'top',
+      duration: 3000,
+      animationType: 'slide-in',
+    });
   };
 
   const cardHeight = animation.interpolate({
