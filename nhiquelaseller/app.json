@@ -7,30 +7,35 @@
     "orientation": "portrait",
     "icon": "./assets/nhiquela3.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/nhiquela3.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "assetBundlePatterns": ["**/*"],
     "platforms": ["ios", "android", "web"],
+
     "android": {
       "package": "com.mpatricio.nhiquelap",
       "googleServicesFile": "./google-services.json",
       "versionCode": 2,
+      "enable16kPageSupport": true, 
       "icon": "./assets/nhiquela3.png",
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela3.png",
         "backgroundColor": "#ffffff"
       },
 
-    "notification": {
-      "icon": "./assets/nhiquela3.png",
-      "color": "#7F00FF",
-      "androidMode": "default",
-      "androidCollapsedTitle": "NhiquelaPRO",
-      "androidGoogleServicesFile": "./google-services.json"
-    },
+      "notification": {
+        "icon": "./assets/nhiquela3.png",
+        "color": "#7F00FF",
+        "androidCollapsedTitle": "NhiquelaPRO",
+        "androidGoogleServicesFile": "./google-services.json"
+      },
+
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -43,12 +48,14 @@
         "WAKE_LOCK",
         "RECORD_AUDIO"
       ],
+
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
         }
       }
     },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mpatricio.nhiquelap",
@@ -60,23 +67,12 @@
         "NSUserTrackingUsageDescription": "NhiquelaPRO uses notifications to update you about new orders and deliveries."
       }
     },
+
     "web": {
       "favicon": "./assets/nhiquela3.png"
     },
+
     "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "This app needs access to your camera to upload images."
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "This app needs access to your location to find nearby delivery agents."
-        }
-      ],
-      "expo-notifications",
       [
         "expo-build-properties",
         {
@@ -84,16 +80,23 @@
             "softwareKeyboardLayoutMode": "pan",
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "buildToolsVersion": "35.0.0",
+            "enable16kPageSupport": true
           },
           "ios": {
-      "deploymentTarget": "15.1"
+            "deploymentTarget": "15.1"
           }
         }
       ],
+      "expo-camera",
+      "expo-location",
+      "expo-notifications",
       "expo-font"
     ],
+
     "extra": {
+      "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA",
+
       "firebase": {
         "apiKey": "AIzaSyCY-wvry4w6GAsMJQ4zD_e3LiMSVx3qoGU",
         "authDomain": "nhiquela-pro.firebaseapp.com",
@@ -103,10 +106,12 @@
         "appId": "1:321336552110:web:2883153d447c5abe96db3f",
         "measurementId": "G-2HJXSQN0Z7"
       },
+
       "eas": {
         "projectId": "3955dd7f-ad17-497a-966b-33dfae1b0b18"
       }
     },
+
     "runtimeVersion": "1.0.0"
   }
 }

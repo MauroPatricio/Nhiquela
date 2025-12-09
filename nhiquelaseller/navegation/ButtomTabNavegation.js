@@ -13,7 +13,11 @@ import ProductListSeller from '../components/products/ProductListSeller';
 const Tab = createBottomTabNavigator();
 
 const CustomTabBarButton = memo(({ children, onPress }) => (
-  <TouchableOpacity style={styles.centerButtonWrapper} onPress={onPress} activeOpacity={0.9}>
+  <TouchableOpacity
+    style={styles.centerButtonWrapper}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <View style={styles.centerButton}>{children}</View>
   </TouchableOpacity>
 ));
@@ -24,28 +28,39 @@ const BottomTabNavigation = () => {
       screenOptions={{
         tabBarShowLabel: false,
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        // 🔥 CONFIGURAÇÕES DEFINITIVAS
         tabBarHideOnKeyboard: true,
-        freezeOnBlur: true,
+
+        // Stability settings
         lazy: true,
-        // 🔥 REMOVE ANIMAÇÕES PROBLEMÁTICAS
-        animation: 'none',
-        animationEnabled: false,
+        unmountOnBlur: false,
+        freezeOnBlur: true,
+
+        // Color settings to prevent reflow
+        tabBarActiveTintColor: '#7F00FF',
+        tabBarInactiveTintColor: 'black',
+
+        tabBarStyle: {
+          position: 'absolute',
+          height: 60,
+          paddingBottom: 5,
+          borderTopWidth: 0,
+          elevation: 10,
+          backgroundColor: '#FFFFFF',
+        },
       }}
     >
-      <Tab.Screen 
-        name="Home" 
+      <Tab.Screen
+        name="Home"
         component={Home}
-        options={{ 
+        options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'home' : 'home-outline'} 
-              size={24} 
-              color={focused ? '#7F00FF' : 'black'} 
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
             />
-          ) 
-        }} 
+          )
+        }}
       />
       <Tab.Screen
         name="ProductListSeller"
@@ -60,31 +75,31 @@ const BottomTabNavigation = () => {
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
         }}
       />
-      <Tab.Screen 
-        name="Orders" 
+      <Tab.Screen
+        name="Orders"
         component={Orders}
-        options={{ 
+        options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'file-tray-full' : 'file-tray-full-outline'} 
-              size={24} 
-              color={focused ? '#7F00FF' : 'black'} 
+            <Ionicons
+              name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
             />
-          ) 
-        }} 
+          )
+        }}
       />
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name="Profile"
         component={Profile}
-        options={{ 
+        options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'person' : 'person-outline'} 
-              size={24} 
-              color={focused ? '#7F00FF' : 'black'} 
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={24}
+              color={focused ? '#7F00FF' : 'black'}
             />
-          ) 
-        }} 
+          )
+        }}
       />
     </Tab.Navigator>
   );
@@ -93,18 +108,19 @@ const BottomTabNavigation = () => {
 export default BottomTabNavigation;
 
 const styles = StyleSheet.create({
-
-  centerButtonWrapper: { 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  centerButtonWrapper: {
+    flex: 1,
+    top: -5,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  centerButton: { 
-    width: 50, 
-    height: 50, 
-    borderRadius: 35, 
-    backgroundColor: '#7F00FF', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  centerButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#7F00FF',
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 10,
     shadowColor: '#7F00FF',
     shadowOffset: { width: 0, height: 4 },

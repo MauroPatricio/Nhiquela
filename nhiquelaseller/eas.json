@@ -3,6 +3,7 @@
     "version": ">= 12.4.1",
     "appVersionSource": "remote"
   },
+
   "build": {
     "development": {
       "developmentClient": true,
@@ -11,6 +12,7 @@
         "EXPO_ANDROID_ENABLE_16K_PAGE_SUPPORT": "true"
       }
     },
+
     "preview": {
       "distribution": "internal",
       "android": {
@@ -20,6 +22,7 @@
         "EXPO_ANDROID_ENABLE_16K_PAGE_SUPPORT": "true"
       }
     },
+
     "production": {
       "autoIncrement": true,
       "android": {
@@ -31,6 +34,7 @@
       }
     }
   },
+
   "submit": {
     "production": {}
   }

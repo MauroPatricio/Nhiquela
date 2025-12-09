@@ -11,7 +11,6 @@ import {
   Modal,
 } from 'react-native';
 import React, { useState, useCallback } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
@@ -19,7 +18,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 const Profile = () => {
   const navigation = useNavigation();
-  
+
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [isStoreOpen, setIsStoreOpen] = useState(false);
@@ -32,8 +31,8 @@ const Profile = () => {
   const fetchPendingWithdrawals = async () => {
     if (userData?.token) {
       try {
-        const response = await api.get('/wallet/pending', { 
-          headers: { Authorization: `Bearer ${userData.token}` } 
+        const response = await api.get('/wallet/pending', {
+          headers: { Authorization: `Bearer ${userData.token}` }
         });
         setPendingCount(response.data.length || 0);
       } catch (error) {
@@ -97,46 +96,43 @@ const Profile = () => {
     ]);
   };
 
-const toggleStoreStatus = async () => {
-  setUpdatingStore(true);
-  try {
-    const id = await AsyncStorage.getItem('id');
-    const newStatus = !isStoreOpen;
+  const toggleStoreStatus = async () => {
+    setUpdatingStore(true);
+    try {
+      const id = await AsyncStorage.getItem('id');
+      const newStatus = !isStoreOpen;
 
-    const response = await api.patch(
-      `/users/seller-status/${id}`,
-      { isOpenStore: newStatus },
-      { headers: { Authorization: `Bearer ${userData.token}` } }
-    );
+      const response = await api.patch(
+        `/users/seller-status/${id}`,
+        { isOpenStore: newStatus },
+        { headers: { Authorization: `Bearer ${userData.token}` } }
+      );
 
-    if (response?.status === 200) {
-      setIsStoreOpen(newStatus);
-      const updatedUser = {
-        ...userData,
-        seller: { ...userData.seller, openstore: newStatus }
-      };
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-      setUserData(updatedUser);
-    } else {
-      Alert.alert('Erro', 'Falha ao atualizar o estado da loja.');
+      if (response?.status === 200) {
+        setIsStoreOpen(newStatus);
+        const updatedUser = {
+          ...userData,
+          seller: { ...userData.seller, openstore: newStatus }
+        };
+        await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+        setUserData(updatedUser);
+      } else {
+        Alert.alert('Erro', 'Falha ao atualizar o estado da loja.');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar estado da loja:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar o estado da loja.');
+    } finally {
+      setUpdatingStore(false);
     }
-  } catch (error) {
-    console.error('Erro ao atualizar estado da loja:', error);
-    Alert.alert('Erro', 'Não foi possível atualizar o estado da loja.');
-  } finally {
-    setUpdatingStore(false);
-  }
-};
+  };
 
   if (isLoading) {
     return (
-      <>
-        <StatusBar backgroundColor='white' />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#7F00FF" />
-          <Text style={{ marginTop: 60 }}>Carregando...</Text>
-        </View>
-      </>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7F00FF" />
+        <Text style={{ marginTop: 60 }}>Carregando...</Text>
+      </View>
     );
   }
 
@@ -318,19 +314,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badge: {
-  backgroundColor: 'red',
-  borderRadius: 10,
-  paddingHorizontal: 6,
-  paddingVertical: 2,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-badgeText: {
-  color: '#fff',
-  fontSize: 12,
-  fontWeight: 'bold',
-},
- overlay: {
+    backgroundColor: 'red',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',

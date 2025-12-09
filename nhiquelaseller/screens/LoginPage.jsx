@@ -59,7 +59,7 @@ export default function LoginPage() {
 
     try {
 
-            const response = await api.post('/users/signinseller', { phoneNumber, password });
+      const response = await api.post('/users/signinseller', { phoneNumber, password });
 
 
 
@@ -81,17 +81,12 @@ export default function LoginPage() {
       });
 
     } catch (err) {
-      console.log("LOGIN ERROR:", err?.response?.data || err.message);
-      console.log(err.response?.data?.message)
-
       const errorMessage =
         err.response?.data?.message || 'Erro ao fazer login';
 
-      // --- TOAST CORRECT ---
+      // Show error toast
       toast.show(errorMessage, {
         type: 'danger',
-        text1: 'Erro de Login',
-        text2: errorMessage,
         placement: 'top',
         duration: 4000,
         animationType: 'slide-in',

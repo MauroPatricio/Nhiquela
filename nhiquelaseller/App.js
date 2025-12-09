@@ -9,7 +9,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ToastProvider, useToast } from 'react-native-toast-notifications'; 
+import { ToastProvider, useToast } from 'react-native-toast-notifications';
 import api from './hooks/createConnectionApi';
 import { store } from './store';
 import { navigationRef, navigate } from './navegation/RootNavigation';
@@ -115,7 +115,6 @@ function AppContent() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar backgroundColor="white" style="dark" />
       <NavigationContainer ref={navigationRef}>
         <Provider store={store}>
           <SafeAreaProvider>
