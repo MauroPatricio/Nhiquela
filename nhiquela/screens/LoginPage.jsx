@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   scrollContainer: {
+    backgroundColor:'white',
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
@@ -200,7 +201,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#4A4A4A',
     textAlign: 'center',
   },
   subtitle: {

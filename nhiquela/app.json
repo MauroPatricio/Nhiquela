@@ -56,7 +56,6 @@
       "androidCollapsedTitle": "Nhiquela",
       "androidGoogleServicesFile": "./google-services.json",
       "androidShowBadge": true
-
     },
 
     "ios": {
@@ -85,7 +84,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
+          "locationAlwaysAndWhenInUsePermission":
+            "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
         }
       ],
       "expo-notifications",
@@ -107,6 +107,8 @@
     ],
 
     "extra": {
+      "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA",
+
       "firebase": {
         "apiKey": "AIzaSyAssq-4rWO4Ju9xg-PcNH0k3bAAkDerAY4",
         "authDomain": "nhiquela-4bfb5.firebaseapp.com",
@@ -116,6 +118,7 @@
         "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
         "measurementId": "G-FN5JGWV1S4"
       },
+
       "eas": {
         "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
       }

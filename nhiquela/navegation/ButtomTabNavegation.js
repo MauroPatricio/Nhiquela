@@ -12,7 +12,11 @@ import Profile from '../screens/Profile';
 const Tab = createBottomTabNavigator();
 
 const CustomTabBarButton = memo(({ children, onPress }) => (
-  <TouchableOpacity style={styles.centerButtonWrapper} onPress={onPress}>
+  <TouchableOpacity
+    style={styles.centerButtonWrapper}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <View style={styles.centerButton}>{children}</View>
   </TouchableOpacity>
 ));
@@ -23,17 +27,24 @@ const BottomTabNavigation = () => {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-
         tabBarHideOnKeyboard: true,
-        freezeOnBlur: true,
+
+        // Stability settings
         lazy: true,
-        animationEnabled: false,
+        unmountOnBlur: false,
+        freezeOnBlur: true,
+
+        // Color settings to prevent reflow
+        tabBarActiveTintColor: '#7F00FF',
+        tabBarInactiveTintColor: 'gray',
 
         tabBarStyle: {
           position: 'absolute',
           height: 60,
+          paddingBottom: 5,
           borderTopWidth: 0,
           elevation: 10,
+          backgroundColor: '#FFFFFF',
         },
       }}
     >
@@ -108,14 +119,26 @@ const BottomTabNavigation = () => {
 export default BottomTabNavigation;
 
 const styles = StyleSheet.create({
-
+  centerButtonWrapper: {
+    flex: 1,
+    top: -5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   centerButton: {
     width: 50,
     height: 50,
-    borderRadius: 35,
+    borderRadius: 25,
     backgroundColor: '#7F00FF',
-    // justifyContent: 'center',
-    // alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
 });

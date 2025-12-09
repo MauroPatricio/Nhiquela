@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Platform, KeyboardAvoidingView, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -61,11 +61,11 @@ export default function App() {
     }),
   });
 
-  
- Notifications.setNotificationChannelAsync('default', {
-  name: 'default',
-  importance: Notifications.AndroidImportance.HIGH,
-});
+
+  Notifications.setNotificationChannelAsync('default', {
+    name: 'default',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
 
 
   // Criar canal Android
@@ -131,48 +131,32 @@ export default function App() {
         <SafeAreaProvider>
 
           <NavigationContainer ref={navigationRef}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
-              style={{ flex: 1 }}
-            >
-
-                    {/* Fundo do status bar */}
-      <View style={{ height: StatusBar.currentHeight, backgroundColor: "#7F00FF" }} />
-
-      {/* StatusBar transparente */}
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-
-
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
-                <Stack.Screen name="ProductDetail" component={ProductDetail} />
-                <Stack.Screen name="ProductList" component={NewProducts} />
-                <Stack.Screen name="ProductList2" component={ProductList} />
-                <Stack.Screen name="Login" component={LoginPage} />
-                <Stack.Screen name="SignUp" component={SignUp} />
-                <Stack.Screen name="SellerScreen" component={SellerScreen} />
-                <Stack.Screen name="SellerProduct" component={SellerProduct} />
-                <Stack.Screen name="SellersList" component={SellersList} />
-                <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
-                <Stack.Screen name="Cart" component={Cart} />
-                <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
-                <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
-                <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
-                <Stack.Screen name="FailedPayment" component={FailedPayment} />
-                <Stack.Screen name="MapScreen" component={MapScreen} />
-                <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
-                <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
-                <Stack.Screen name="TransportType" component={TransportType} />
-                <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
-                <Stack.Screen name="OrderList" component={OrderList} />
-                <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
-                <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-                <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
-                <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
-              </Stack.Navigator>
-
-            </KeyboardAvoidingView>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
+              <Stack.Screen name="ProductDetail" component={ProductDetail} />
+              <Stack.Screen name="ProductList" component={NewProducts} />
+              <Stack.Screen name="ProductList2" component={ProductList} />
+              <Stack.Screen name="Login" component={LoginPage} />
+              <Stack.Screen name="SignUp" component={SignUp} />
+              <Stack.Screen name="SellerScreen" component={SellerScreen} />
+              <Stack.Screen name="SellerProduct" component={SellerProduct} />
+              <Stack.Screen name="SellersList" component={SellersList} />
+              <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+              <Stack.Screen name="Cart" component={Cart} />
+              <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
+              <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
+              <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
+              <Stack.Screen name="FailedPayment" component={FailedPayment} />
+              <Stack.Screen name="MapScreen" component={MapScreen} />
+              <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
+              <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
+              <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
+              <Stack.Screen name="OrderList" component={OrderList} />
+              <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+              <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
+              <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
+            </Stack.Navigator>
           </NavigationContainer>
 
         </SafeAreaProvider>

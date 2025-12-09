@@ -41,7 +41,7 @@ const OrderDetailsScreen = () => {
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const navigation = useNavigation();
 
-  const toast = useToast()
+  const toast = useToast();
 
   // Animações para o bottom sheet
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -126,8 +126,6 @@ const OrderDetailsScreen = () => {
   };
 
   useEffect(() => {
-    console.log("asdasdasaasasds", item.seller)
-
     checkIfUserExist();
   }, []);
 
@@ -156,7 +154,7 @@ const OrderDetailsScreen = () => {
         const parsedUserData = JSON.parse(storedUserData);
 
         if (parsedUserData._id === storedUserId) {
-          setUserData(parsedUserData); 
+          setUserData(parsedUserData);
           setUserLogin(true);
         } else {
           console.warn('⚠️ ID inconsistente entre userData e id');
@@ -226,10 +224,11 @@ const OrderDetailsScreen = () => {
         status: 'Confirmado',
       });
 
-      toast.show({
+      toast.show('O fornecedor será notificado.', {
         type: 'success',
-        text1: 'Confirmação de Recepção',
-        text2: 'O fornecedor será notificado.',
+        placement: 'top',
+        duration: 4000,
+        animationType: 'slide-in',
       });
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
@@ -313,10 +312,10 @@ const OrderDetailsScreen = () => {
       </Animated.View>
 
       {/* Bottom Sheet Premium */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.sheetContainer,
-          { 
+          {
             height: sheetHeight,
           }
         ]}
@@ -330,21 +329,21 @@ const OrderDetailsScreen = () => {
         {/* Conteúdo quando RECOLHIDO */}
         <View style={styles.compactContent}>
           {renderCompactInfo()}
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.expandButton}
             onPress={toggleSheet}
           >
-            <Ionicons 
-              name={isSheetExpanded ? "chevron-down" : "chevron-up"} 
-              size={20} 
-              color="#FFF" 
+            <Ionicons
+              name={isSheetExpanded ? "chevron-down" : "chevron-up"}
+              size={20}
+              color="#FFF"
             />
           </TouchableOpacity>
         </View>
 
         {/* Conteúdo quando EXPANDIDO */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.expandedContent,
             {
@@ -353,7 +352,7 @@ const OrderDetailsScreen = () => {
             }
           ]}
         >
-          <ScrollView 
+          <ScrollView
             style={styles.expandedScroll}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.expandedScrollContent}
@@ -401,7 +400,7 @@ const OrderDetailsScreen = () => {
                       )}
                     </View>
                     <Text style={styles.productText}>Quantidade: {item.quantity}</Text>
-                    
+
                     {item.onSale && item.discount > 0 ? (
                       <View style={styles.priceContainer}>
                         <Text style={styles.originalPrice}>{item.price} Mt</Text>
@@ -432,8 +431,8 @@ const OrderDetailsScreen = () => {
               /> */}
 
               {currentOrder.status === 'Em trânsito' && (
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.deliveryButton]} 
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.deliveryButton]}
                   onPress={() => confirmDeliveryOrder(currentOrder._id)}
                 >
                   <Ionicons name="checkmark-circle" size={20} color="#FFF" />
@@ -442,8 +441,8 @@ const OrderDetailsScreen = () => {
               )}
 
               {currentOrder.status === 'Entregue' && (
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.deleteButton]} 
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.deleteButton]}
                   onPress={() => confirmDeleteOrder(currentOrder._id)}
                 >
                   <Ionicons name="trash" size={20} color="#FFF" />
@@ -482,9 +481,9 @@ const OrderDetailsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: '#F2F4F8' 
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F2F4F8'
   },
   headerContainer: {
     flexDirection: 'row',
@@ -497,10 +496,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ddd',
     borderBottomWidth: 1,
   },
-  headerTitle: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    color: '#333' 
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333'
   },
   mapContainer: {
     flex: 1,
@@ -780,54 +779,54 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   // Modal Styles
-  modalContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: 'rgba(0,0,0,0.5)' 
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
   },
-  modalContent: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    borderRadius: 10, 
-    width: '80%' 
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%'
   },
-  modalTitle: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    marginBottom: 12 
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12
   },
-  input: { 
-    borderColor: '#ccc', 
-    borderWidth: 1, 
-    borderRadius: 6, 
-    padding: 10, 
-    marginBottom: 12 
+  input: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 12
   },
-  modalActions: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between' 
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   },
-  greenButton: { 
-    backgroundColor: '#4CAF50', 
-    paddingVertical: 12, 
-    borderRadius: 10, 
+  greenButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
     flex: 1,
     marginRight: 8,
   },
-  redButton: { 
-    backgroundColor: '#F44336', 
-    paddingVertical: 12, 
-    borderRadius: 10, 
+  redButton: {
+    backgroundColor: '#F44336',
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
     flex: 1,
     marginLeft: 8,
   },
-  buttonText: { 
-    color: '#fff', 
-    fontWeight: 'bold', 
-    fontSize: 16 
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16
   },
 });
 
