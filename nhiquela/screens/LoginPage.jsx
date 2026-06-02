@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import registerDeviceToken from '../utils/registerDeviceToken';
 import BackBtn from '../components/BackBtn';
 import { useToast } from 'react-native-toast-notifications';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function LoginPage() {
   const navigation = useNavigation();
@@ -30,6 +31,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [hideText, setHideText] = useState(true);
   const [errors, setErrors] = useState({ phoneNumber: '', password: '' });
+  const [phoneFocused, setPhoneFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const handleLogin = async () => {
     let valid = true;
@@ -86,129 +89,180 @@ export default function LoginPage() {
   };
 
   return (
- <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-   <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-   >       
-   <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentInsetAdjustmentBehavior="automatic" // ★ FIX
-          >
-            <View style={styles.innerContainer}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="automatic"
+        >
+          <View style={styles.innerContainer}>
+            {/* Back Button Container */}
+            <View style={styles.backBtnWrapper}>
               <BackBtn onPress={() => navigation.navigate('BottomNavigation')} />
+            </View>
 
-              <Image
-                source={require('../assets/nhiquela2.png')}
-                style={styles.cover}
-              />
+            {/* Brand Logo */}
+            <Image
+              source={require('../assets/nhiquela2.png')}
+              style={styles.cover}
+            />
 
-              <Text style={styles.title}>Bem-vindo à Nhiquela</Text>
-              <Text style={styles.subtitle}>Faça login para continuar</Text>
+            {/* Headings */}
+            <Text style={styles.title}>Bem-vindo à Nhiquela</Text>
+            <Text style={styles.subtitle}>Faça login para continuar</Text>
 
-              <View style={styles.wrapper}>
-                <Text style={styles.label}>Telefone</Text>
-                <View style={styles.inputWrapper(errors.phoneNumber ? 'red' : '#7F00FF')}>
-                  <Ionicons name="phone-portrait" size={20} color="grey" style={styles.iconStyle} />
+            {/* Phone Input wrapper */}
+            <View style={styles.wrapper}>
+              <Text style={styles.label}>Telefone</Text>
+              <View style={styles.inputWrapper(phoneFocused, !!errors.phoneNumber)}>
+                <Ionicons
+                  name="phone-portrait"
+                  size={20}
+                  color="#7F00FF"
+                  style={styles.iconStyle}
+                />
 
-                  <TextInput
-                    placeholder="Insira o telefone"
-                    placeholderTextColor="#999"
-                    style={styles.input}
-                    value={phoneNumber}
-                    keyboardType="phone-pad"
-                    onChangeText={text => { setPhoneNumber(text); setErrors({ ...errors, phoneNumber: '' }); }}
-                  />
-                </View>
-
-                {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
+                <TextInput
+                  placeholder="Insira o telefone"
+                  placeholderTextColor="#9CA3AF"
+                  style={styles.input}
+                  value={phoneNumber}
+                  keyboardType="phone-pad"
+                  onChangeText={text => {
+                    setPhoneNumber(text);
+                    setErrors({ ...errors, phoneNumber: '' });
+                  }}
+                  onFocus={() => setPhoneFocused(true)}
+                  onBlur={() => setPhoneFocused(false)}
+                />
               </View>
 
-              <View style={styles.wrapper}>
-                <Text style={styles.label}>Senha</Text>
-                <View style={styles.inputWrapper(errors.password ? 'red' : '#7F00FF')}>
-                  <Ionicons name="lock-closed-outline" size={20} color="grey" style={styles.iconStyle} />
+              {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
+            </View>
 
-                  <TextInput
-                    placeholder="Insira a senha"
-                    placeholderTextColor="#999"
-                    secureTextEntry={hideText}
-                    style={styles.input}
-                    value={password}
-                    onChangeText={text => { setPassword(text); setErrors({ ...errors, password: '' }); }}
+            {/* Password Input wrapper */}
+            <View style={styles.wrapper}>
+              <Text style={styles.label}>Senha</Text>
+              <View style={styles.inputWrapper(passwordFocused, !!errors.password)}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color="#7F00FF"
+                  style={styles.iconStyle}
+                />
+
+                <TextInput
+                  placeholder="Insira a senha"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={hideText}
+                  style={styles.input}
+                  value={password}
+                  onChangeText={text => {
+                    setPassword(text);
+                    setErrors({ ...errors, password: '' });
+                  }}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+
+                <TouchableOpacity onPress={() => setHideText(!hideText)} style={styles.eyeBtn}>
+                  <Ionicons
+                    name={hideText ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color="#7F00FF"
                   />
-
-                  <TouchableOpacity onPress={() => setHideText(!hideText)}>
-                    <Ionicons
-                      name={hideText ? 'eye-outline' : 'eye-off-outline'}
-                      size={20}
-                      color="grey"
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
-                disabled={loading}
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+            </View>
+
+            {/* Forgot Password Button */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.forgotBtn}
+            >
+              <Text style={styles.forgotText}>Esqueci-me da senha?</Text>
+            </TouchableOpacity>
+
+            {/* Login Button with Linear Gradient */}
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#7F00FF', '#5900B3']}
+                style={styles.buttonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.loginText}>Entrar</Text>
                 )}
-              </TouchableOpacity>
+              </LinearGradient>
+            </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={{ marginTop: 15 }}>
-                <Text style={styles.registerText}>
-                  Não tens conta? <Text style={styles.link}>Criar conta</Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
- </KeyboardAvoidingView>
-</TouchableWithoutFeedback>
+            {/* Redirect Register Account */}
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={{ marginTop: 20 }}>
+              <Text style={styles.registerText}>
+                Não tens conta? <Text style={styles.link}>Criar conta</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   scrollContainer: {
-    backgroundColor:'white',
+    backgroundColor: '#FFFFFF',
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
   innerContainer: {
     alignItems: 'center',
     width: '100%',
+    position: 'relative',
+  },
+  backBtnWrapper: {
+    position: 'absolute',
+    left: 0,
+    top: Platform.OS === 'ios' ? 0 : 10,
+    zIndex: 999,
   },
   cover: {
-    height: 150,
-    width: 320,
+    height: 110,
+    width: 260,
     resizeMode: 'contain',
-    marginVertical: 30,
+    marginTop: 40,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1F2937',
     textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#777',
-    marginTop: 5,
+    fontSize: 15,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
+    fontWeight: '500',
   },
   wrapper: {
     marginBottom: 20,
@@ -216,55 +270,81 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 6,
-    color: '#7F00FF',
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#1F2937',
   },
-  inputWrapper: (borderColor) => ({
-    borderColor,
-    backgroundColor: '#F8F8F8',
-    borderWidth: 1,
-    height: 55,
-    borderRadius: 12,
+  inputWrapper: (isFocused, hasError) => ({
+    borderColor: hasError ? '#EF4444' : (isFocused ? '#7F00FF' : '#E5E7EB'),
+    backgroundColor: '#FFFFFF',
+    borderWidth: isFocused || hasError ? 1.5 : 1,
+    height: 56,
+    borderRadius: 14,
     flexDirection: 'row',
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
     elevation: 2,
   }),
   iconStyle: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 15,
-    color: '#000',
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  eyeBtn: {
+    padding: 4,
+  },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 2,
+    marginBottom: 20,
+  },
+  forgotText: {
+    color: '#7F00FF',
+    fontWeight: '700',
+    fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 12,
     width: '100%',
-    height: 50,
-    alignItems: 'center',
+    height: 56,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  buttonGradient: {
+    flex: 1,
     justifyContent: 'center',
-    marginTop: 10,
+    alignItems: 'center',
   },
   loginText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: 0.5,
   },
   errorText: {
-    color: 'red',
+    color: '#EF4444',
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 6,
     marginLeft: 6,
+    fontWeight: '500',
   },
   registerText: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 15,
+    color: '#6B7280',
   },
   link: {
     color: '#7F00FF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

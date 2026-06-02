@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
   "dependencies": {
-    "react-native-open-maps": "^0.4.3"
+    "react-native-open-maps": "^0.4.3",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   }
 }

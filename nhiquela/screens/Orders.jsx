@@ -1,7 +1,6 @@
-
 import { 
   View, Text, StyleSheet, FlatList, ActivityIndicator, 
-  TouchableOpacity, Image, ScrollView, Animated 
+  TouchableOpacity, Image, ScrollView, Animated, Dimensions
 } from 'react-native';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import api from '../hooks/createConnectionApi';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const Orders = () => {
   const navigation = useNavigation();
@@ -20,12 +23,12 @@ const Orders = () => {
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
-  // Função para animar o piscar
+  // Animação de piscar para o tempo estimado
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(blinkAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(blinkAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       ])
     ).start();
   }, []);
@@ -43,27 +46,33 @@ const Orders = () => {
 
   const checkIfUserExist = async () => {
     try {
+      setIsLoading(true);
       const storedUserData = await AsyncStorage.getItem('userData');
       const storedUserId = await AsyncStorage.getItem('id');
+      
       if (storedUserData && storedUserId) {
         const parsedUserData = JSON.parse(storedUserData);
         if (parsedUserData._id === storedUserId) {
           setUserData(parsedUserData);
           setUserLogin(true);
-        } else setIsLoading(false);
-      } else setIsLoading(false);
+          return; // fetchData será chamado pelo useEffect do userData
+        }
+      }
+      setUserLogin(false);
+      setIsLoading(false);
     } catch (error) {
+      setUserLogin(false);
       setIsLoading(false);
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Pendente': return '#FFD700';
-      case 'Em trânsito': return '#1E90FF';
-      case 'Entregue': return '#32CD32';
-      case 'Cancelado': return '#FF4500';
-      default: return '#7F00FF';
+      case 'Pendente': return '#F59E0B'; // Amber
+      case 'Em trânsito': return '#3B82F6'; // Blue
+      case 'Entregue': return '#10B981'; // Green
+      case 'Cancelado': return '#EF4444'; // Red
+      default: return '#7F00FF'; // Purple
     }
   };
 
@@ -80,7 +89,10 @@ const Orders = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      if (!userData?.token) return setIsLoading(false);
+      if (!userData?.token) {
+        setIsLoading(false);
+        return;
+      }
       const { data } = await api.get('/orders/mine', {
         headers: { Authorization: `Bearer ${userData.token}` },
       });
@@ -103,6 +115,12 @@ const Orders = () => {
 
   useFocusEffect(
     useCallback(() => {
+      checkIfUserExist();
+    }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       if (userData) fetchData();
     }, [userData])
   );
@@ -120,77 +138,141 @@ const Orders = () => {
     return R * c;
   };
 
- const renderItem = ({ item }) => {
-  if (!item) return null;
+  const renderItem = ({ item }) => {
+    if (!item) return null;
 
-  let timeMinutes = null;
-  if (currentLocation && item.deliveryAddress?.latitude && item.deliveryAddress?.longitude) {
-    const distance = calculateDistance(
-      parseFloat(currentLocation.latitude),
-      parseFloat(currentLocation.longitude),
-      parseFloat(item.deliveryAddress.latitude),
-      parseFloat(item.deliveryAddress.longitude)
+    let timeMinutes = null;
+    if (currentLocation && item.deliveryAddress?.latitude && item.deliveryAddress?.longitude) {
+      const distance = calculateDistance(
+        parseFloat(currentLocation.latitude),
+        parseFloat(currentLocation.longitude),
+        parseFloat(item.deliveryAddress.latitude),
+        parseFloat(item.deliveryAddress.longitude)
+      );
+      timeMinutes = Math.round((distance / 40) * 60); // velocidade média de 40 km/h
+    }
+
+    const sellerName = item?.seller?.seller?.name || 'Fornecedor';
+    const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
+    const code = item?.code || '---';
+
+    return (
+      <TouchableOpacity
+        style={styles.cardContainer}
+        activeOpacity={0.9}
+        onPress={() =>
+          navigation.navigate('OrderDetailsScreen', {
+            item: item,
+            deliveryman: item.deliveryman,
+          })
+        }
+      >
+        {/* Indicador lateral de status */}
+        <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
+
+        {/* Logo do Fornecedor */}
+        <Image source={{ uri: sellerLogo }} style={styles.supplierLogo} />
+
+        {/* Informações do pedido */}
+        <View style={styles.orderInfo}>
+          <Text style={styles.orderTitle} numberOfLines={1}>
+            {sellerName}
+          </Text>
+          <Text style={styles.orderCode}>Código: {code}</Text>
+          <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
+          <Text style={styles.orderPrice}>{item.totalPrice ?? '---'} MT</Text>
+        </View>
+
+        {/* Status e tempo estimado na direita */}
+        <View style={styles.rightColumn}>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+              {item.status ?? 'Pendente'}
+            </Text>
+          </View>
+          
+          {timeMinutes !== null && item.status !== 'Entregue' && item.status !== 'Cancelado' && (
+            <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
+              <Ionicons name="time-outline" size={14} color="#EF4444" />
+              <Text style={styles.timeText}>{timeMinutes} min</Text>
+            </Animated.View>
+          )}
+        </View>
+      </TouchableOpacity>
     );
-    timeMinutes = Math.round((distance / 40) * 60); // considerando velocidade média de 40 km/h
-  }
-
-  const sellerName = item?.seller?.seller?.name || 'Loja desconhecida';
-  const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
-  const code = item?.code || '---';
-
-  // console.log("asdasdasaasasdsdss", item.deliveryman)
+  };
 
   return (
-    <TouchableOpacity
-    style={styles.container}
-    onPress={() =>
-      navigation.navigate('OrderDetailsScreen', {
-        item: item,
-        deliveryman: item.deliveryman, // 👈 adicionando o parâmetro explicitamente
-      })
-    }
-  >
-      {/* Barra lateral colorida */}
-      <View style={[styles.statusBar, { backgroundColor: getStatusColor(item.status) }]} />
-
-      {/* Conteúdo principal */}
-      <Image source={{ uri: sellerLogo }} style={styles.supplierImage} />
-      <View style={{ flex: 1, marginLeft: 10 }}>
-        <Text style={styles.code}>
-          {sellerName} - {code}
-        </Text>
-        <Text style={styles.createAt}>{formatDate(item.createdAt)}</Text>
-        <Text style={styles.price}>{item.totalPrice ?? '---'} Mt</Text>
-        <Text style={styles.status}>{item.status ?? '---'}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      {/* Top Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Meus Pedidos</Text>
+        <View style={styles.headerDivider} />
       </View>
 
-      {/* Estimativa de tempo piscando */}
-      {timeMinutes !== null && (
-        <Animated.Text style={[styles.estimateTime, { opacity: blinkAnim }]}>
-          {timeMinutes} min
-        </Animated.Text>
-      )}
-    </TouchableOpacity>
-  );
-};
-
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-      <Text style={styles.title}>Meus Pedidos</Text>
       {isLoading ? (
-        <ActivityIndicator size="large" color="#7F00FF" style={styles.loader} />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#7F00FF" />
+        </View>
+      ) : !userLogin ? (
+        /* Estado: Não Logado */
+        <View style={styles.centerContainer}>
+          <View style={styles.restrictedCard}>
+            <MaterialCommunityIcons name="shield-lock-outline" size={54} color="#9CA3AF" />
+            <Text style={styles.restrictedTitle}>Acesso Restrito</Text>
+            <Text style={styles.restrictedSubtitle}>
+              Inicie sessão para poder ver o histórico dos seus pedidos e acompanhar as suas entregas em tempo real.
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.8}
+              style={styles.loginBtnContainer}
+            >
+              <LinearGradient
+                colors={['#7F00FF', '#5900B3']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.loginBtn}
+              >
+                <Text style={styles.loginBtnText}>Iniciar Sessão</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
       ) : orders.length > 0 ? (
+        /* Lista de Pedidos */
         <FlatList
           data={orders}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 110, paddingTop: 8 }}
+          showsVerticalScrollIndicator={false}
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={styles.noOrdersText}>Sem pedidos disponíveis.</Text>
-        </ScrollView>
+        /* Estado: Lista Vazia */
+        <View style={styles.centerContainer}>
+          <View style={styles.emptyCircle}>
+            <Ionicons name="document-text-outline" size={44} color="#7F00FF" />
+          </View>
+          <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
+          <Text style={styles.emptySubtitle}>
+            Os seus pedidos e entregas aparecerão aqui assim que realizar a sua primeira compra.
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Início')}
+            activeOpacity={0.8}
+            style={styles.actionBtnContainer}
+          >
+            <LinearGradient
+              colors={['#7F00FF', '#5900B3']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.actionBtn}
+            >
+              <Text style={styles.actionBtnText}>Começar a Comprar</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -199,325 +281,196 @@ const Orders = () => {
 export default Orders;
 
 const styles = StyleSheet.create({
-  container: {
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 16,
+    paddingBottom: 12,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  headerDivider: {
+    width: 32,
+    height: 3,
+    backgroundColor: '#7F00FF',
+    borderRadius: 2,
+    marginTop: 6,
+  },
+  cardContainer: {
     flexDirection: 'row',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 16,
-    backgroundColor: '#FFF',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 5,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    position: 'relative',
     overflow: 'hidden',
   },
-  statusBar: {
-    width: 6,
-    height: '100%',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    marginRight: 12,
+  statusIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
   },
-  supplierImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
-    backgroundColor: '#F0F0F0',
+  supplierLogo: {
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    paddingVertical: 15,
-    color: '#7F00FF',
-    textAlign: 'center',
+  orderInfo: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: 'center',
   },
-  code: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  status: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-    marginTop: 2,
-  },
-  price: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  createAt: {
-    fontSize: 14,
-    color: '#888',
+  orderTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
     marginBottom: 2,
   },
-  loader: {
+  orderCode: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  orderDate: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  orderPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#7F00FF',
+    marginTop: 2,
+  },
+  rightColumn: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 56,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  timeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 80,
   },
-  noOrdersText: {
-    fontSize: 16,
+  restrictedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  restrictedTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  restrictedSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
     textAlign: 'center',
-    color: '#7F00FF',
-    marginTop: 20,
+    lineHeight: 18,
+    marginBottom: 20,
   },
-  scrollContainer: {
-    flexGrow: 1,
+  loginBtnContainer: {
+    width: '100%',
+  },
+  loginBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  loginBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  emptyCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(127, 0, 255, 0.08)',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  estimateTime: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FF4500',
-    marginLeft: 10,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+    width: '80%',
+  },
+  actionBtnContainer: {
+    width: '80%',
+  },
+  actionBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
-
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   FlatList,
-//   ActivityIndicator,
-//   TouchableOpacity,
-//   Image,
-//   ScrollView
-// } from 'react-native';
-// import React, { useState, useEffect, useCallback } from 'react';
-// import { SafeAreaView } from 'react-native-safe-area-context';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import api from '../hooks/createConnectionApi';
-// import { useFocusEffect, useNavigation } from '@react-navigation/native';
-
-// const Orders = () => {
-//   const navigation = useNavigation();
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [userData, setUserData] = useState(null);
-//   const [orders, setOrders] = useState([]);
-//   const [userLogin, setUserLogin] = useState(false);
-
-// const checkIfUserExist = async () => {
-//   try {
-//     const storedUserData = await AsyncStorage.getItem('userData');
-//     const storedUserId = await AsyncStorage.getItem('id');
-
-//     if (storedUserData && storedUserId) {
-//       const parsedUserData = JSON.parse(storedUserData);
-
-//       if (parsedUserData._id === storedUserId) {
-//         setUserData(parsedUserData); 
-//         setUserLogin(true);
-//       } else {
-//         setIsLoading(false); // ✅ Para o loading se inconsistente
-//       }
-//     } else {
-//       console.log('⚠️ Usuário não está logado');
-//       setIsLoading(false); // ✅ Para o loading se não logado
-//     }
-//   } catch (error) {
-//     console.error('❌ Erro ao verificar se o usuário existe:', error);
-//     setIsLoading(false); // ✅ Garante parada mesmo em erro
-//   }
-// };
-
-
-//   const getStatusColor = (status) => {
-//     switch (status) {
-//       case 'Pendente': return '#FFD700';
-//       case 'Em trânsito': return '#1E90FF';
-//       case 'Entregue': return '#32CD32';
-//       case 'Cancelado': return '#FF4500';
-//       default: return '#7F00FF';
-//     }
-//   };
-
-// const formatDate = (dateString) => {
-//   const date = new Date(dateString);
-
-//   const day = String(date.getDate()).padStart(2, '0');
-//   const month = String(date.getMonth() + 1).padStart(2, '0');
-//   const year = date.getFullYear();
-
-//   const hours = String(date.getHours()).padStart(2, '0');
-//   const minutes = String(date.getMinutes()).padStart(2, '0');
-//   const seconds = String(date.getSeconds()).padStart(2, '0');
-
-//   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-// };
-
-
-//   const fetchData = async () => {
-//   try {
-//     setIsLoading(true);
-//     if (!userData?.token) {
-//       setIsLoading(false); // ✅ Garante fim do loading
-//       return;
-//     }
-
-//     const { data } = await api.get('/orders/mine', {
-//       headers: { Authorization: `Bearer ${userData.token}` },
-//     });
-
-//     setOrders(data || []);
-
-//   } catch (error) {
-//     console.error('Erro ao buscar pedidos:', error);
-//      setIsLoading(false); // ✅ Garante parada mesmo em erro
-
-//   } finally {
-//     setIsLoading(false); // ✅ Sempre finaliza o loading
-//   }
-// };
-
-//   useEffect(() => {
-//     checkIfUserExist();
-//   }, []);
-
-//   useEffect(() => {
-//     if (userData) fetchData();
-//   }, [userData]);
-
-//   useFocusEffect(
-//     useCallback(() => {
-//       if (userData) fetchData();
-//     }, [userData])
-//   );
-
-//   const renderItem = ({ item }) => (
-//       <TouchableOpacity
-//     style={styles.container}
-//     onPress={() => navigation.navigate('OrderDetailsScreen', { item })}
-//   >
-//     {/* Barra lateral colorida */}
-//     <View
-//       style={[styles.statusBar, { backgroundColor: getStatusColor(item.status) }]}
-//     />
-
-//     {/* Conteúdo principal */}
-//     <Image
-//       source={{ uri: item?.seller?.seller?.logo }}
-//       style={styles.supplierImage}
-//     />
-//     <View style={{ flex: 1, marginLeft: 10 }}>
-//       <Text style={styles.code}>
-//         {item?.seller?.seller?.name} - {item.code}
-//       </Text>
-//       <Text style={styles.createAt}>{formatDate(item.createdAt)}</Text>
-//       <Text style={styles.price}>{item.totalPrice} Mt</Text>
-//       <Text style={styles.status}>{item.status}</Text>
-//     </View>
-//   </TouchableOpacity>
-//   );
-
-//   return (
-//     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-//       <Text style={styles.title}>Meus Pedidos</Text>
-
-//       {isLoading ? (
-//         <ActivityIndicator size="large" color="#7F00FF" style={styles.loader} />
-//       ) : orders.length > 0 ? (
-//         <FlatList
-//           data={orders}
-//           renderItem={renderItem}
-//           keyExtractor={(item) => item._id}
-//           contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
-//         />
-//       ) : (
-//         <ScrollView contentContainerStyle={styles.scrollContainer}>
-//           <Text style={styles.noOrdersText}>Sem pedidos disponíveis.</Text>
-//         </ScrollView>
-//       )}
-      
-//       <View style={{ paddingBottom: 65 }} />
-//     </SafeAreaView>
-//   );
-// };
-
-// export default Orders;
-// const styles = StyleSheet.create({
-//   container: {
-//     flexDirection: 'row',
-//     borderRadius: 12,
-//     padding: 12,
-//     marginBottom: 16,
-//     backgroundColor: '#FFF',
-//     alignItems: 'center',
-//     shadowColor: '#000',
-//     shadowOffset: { width: 2, height: 3 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 6,
-//     elevation: 5,
-//     overflow: 'hidden',
-//   },
-//   statusBar: {
-//     width: 6,
-//     height: '100%',
-//     borderTopLeftRadius: 12,
-//     borderBottomLeftRadius: 12,
-//     marginRight: 12,
-//   },
-//   title: {
-//     fontSize: 28,
-//     fontWeight: 'bold',
-//     paddingVertical: 15,
-//     color: '#7F00FF',
-//     textAlign: 'center',
-//   },
-//   supplierImage: {
-//     width: 60,
-//     height: 60,
-//     borderRadius: 10,
-//     backgroundColor: '#F0F0F0',
-//   },
-//   code: {
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#333',
-//     marginBottom: 4,
-//   },
-//   status: {
-//     fontSize: 14,
-//     fontWeight: '600',
-//     color: '#555',
-//     marginTop: 2,
-//   },
-//   price: {
-//     fontSize: 14,
-//     color: '#666',
-//     marginTop: 2,
-//   },
-//   createAt: {
-//     fontSize: 14,
-//     color: '#888',
-//     marginBottom: 2,
-//   },
-//   loader: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-//   noOrdersText: {
-//     fontSize: 16,
-//     textAlign: 'center',
-//     color: '#7F00FF',
-//     marginTop: 20,
-//   },
-//   scrollContainer: {
-//     flexGrow: 1,
-//     justifyContent: 'center',
-//     paddingHorizontal: 20,
-//   },
-// });
-
-
-
-
-
-
-

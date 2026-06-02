@@ -4,7 +4,6 @@ import React, { memo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import Home from '../screens/Home';
-import Search from '../screens/Search';
 import Orders from '../screens/Orders';
 import Profile from '../screens/Profile';
 import NewProduct from '../screens/NewProduct';
@@ -16,7 +15,7 @@ const CustomTabBarButton = memo(({ children, onPress }) => (
   <TouchableOpacity
     style={styles.centerButtonWrapper}
     onPress={onPress}
-    activeOpacity={0.7}
+    activeOpacity={0.8}
   >
     <View style={styles.centerButton}>{children}</View>
   </TouchableOpacity>
@@ -30,22 +29,30 @@ const BottomTabNavigation = () => {
         headerShown: false,
         tabBarHideOnKeyboard: true,
 
-        // Stability settings
+        // Configurações de estabilidade e render
         lazy: true,
         unmountOnBlur: false,
         freezeOnBlur: true,
 
-        // Color settings to prevent reflow
-        tabBarActiveTintColor: '#7F00FF',
-        tabBarInactiveTintColor: 'black',
+        tabBarActiveTintColor: '#A78BFA',
+        tabBarInactiveTintColor: '#9CA3AF',
 
+        // Estilo moderno flutuante no estilo do app logisticdriver
         tabBarStyle: {
           position: 'absolute',
-          height: 60,
-          paddingBottom: 5,
+          bottom: 16,
+          left: 16,
+          right: 16,
+          height: 70,
+          borderRadius: 24,
           borderTopWidth: 0,
+          backgroundColor: '#1E1E2C', // Slate Dark Premium
           elevation: 10,
-          backgroundColor: '#FFFFFF',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.2,
+          shadowRadius: 10,
+          paddingBottom: 0,
         },
       }}
     >
@@ -54,24 +61,38 @@ const BottomTabNavigation = () => {
         component={Home}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={24}
-              color={focused ? '#7F00FF' : 'black'}
-            />
+            <View style={styles.iconWrapper}>
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={22}
+                color={focused ? '#A78BFA' : '#9CA3AF'}
+              />
+              {focused && <View style={styles.activeDot} />}
+            </View>
           )
         }}
       />
       <Tab.Screen
         name="ProductListSeller"
         component={ProductListSeller}
-        options={{ tabBarIcon: ({ focused }) => (<Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={focused ? '#7F00FF' : 'black'} />) }}
+        options={{ 
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.iconWrapper}>
+              <Ionicons 
+                name={focused ? 'list' : 'list-outline'} 
+                size={22} 
+                color={focused ? '#A78BFA' : '#9CA3AF'} 
+              />
+              {focused && <View style={styles.activeDot} />}
+            </View>
+          ) 
+        }}
       />
       <Tab.Screen
         name="produtos"
         component={NewProduct}
         options={{
-          tabBarIcon: () => <Ionicons name='add' size={20} color="white" />,
+          tabBarIcon: () => <Ionicons name='add' size={26} color="white" />,
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
         }}
       />
@@ -80,11 +101,14 @@ const BottomTabNavigation = () => {
         component={Orders}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
-              size={24}
-              color={focused ? '#7F00FF' : 'black'}
-            />
+            <View style={styles.iconWrapper}>
+              <Ionicons
+                name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+                size={22}
+                color={focused ? '#A78BFA' : '#9CA3AF'}
+              />
+              {focused && <View style={styles.activeDot} />}
+            </View>
           )
         }}
       />
@@ -93,11 +117,14 @@ const BottomTabNavigation = () => {
         component={Profile}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={24}
-              color={focused ? '#7F00FF' : 'black'}
-            />
+            <View style={styles.iconWrapper}>
+              <Ionicons
+                name={focused ? 'person' : 'person-outline'}
+                size={22}
+                color={focused ? '#A78BFA' : '#9CA3AF'}
+              />
+              {focused && <View style={styles.activeDot} />}
+            </View>
           )
         }}
       />
@@ -109,22 +136,36 @@ export default BottomTabNavigation;
 
 const styles = StyleSheet.create({
   centerButtonWrapper: {
-    flex: 1,
-    top: -5,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    width: 60,
+    height: 60,
   },
   centerButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: '#7F00FF',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 10,
+    elevation: 8,
     shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    top: -18,
   },
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    paddingTop: 8,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#A78BFA',
+    marginTop: 4,
+  }
 });

@@ -18,6 +18,7 @@ type Props = {
   onMenuPress: () => void;
   onNotificationPress: () => void;
   onStartTrip?: () => void;
+  onEarningsPress?: () => void;
   currentLocation?: string;
   batteryLevel?: number;
   isConnected?: boolean;
@@ -31,6 +32,7 @@ type Props = {
 export default function DriverHeader({
   onMenuPress,
   onNotificationPress,
+  onEarningsPress,
   currentLocation = "Maputo, MZ",
   batteryLevel = 85,
   isConnected = true,
@@ -280,7 +282,7 @@ export default function DriverHeader({
       </View>
 
       {/* Métricas */}
-      <View style={styles.metricsContainer}>
+      <TouchableOpacity activeOpacity={0.8} onPress={onEarningsPress} style={styles.metricsContainer}>
         <View style={styles.metricItem}>
           <Text style={styles.metricValue}>{todayEarnings}</Text>
           <Text style={styles.metricLabel}>Hoje</Text>
@@ -299,7 +301,7 @@ export default function DriverHeader({
           <Text style={styles.metricValue}>{credit}</Text>
           <Text style={styles.metricLabel}>Crédito</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     </LinearGradient>
   );
 }

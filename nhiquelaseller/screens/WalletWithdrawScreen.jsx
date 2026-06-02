@@ -77,6 +77,9 @@ const WalletWithdrawScreen = ({ navigation }) => {
     );
   }
 
+  const calculatedFee = amount && !isNaN(amount) && parseFloat(amount) > 0 ? parseFloat(amount) * 0.01 : 0;
+  const netAmount = amount && !isNaN(amount) && parseFloat(amount) > 0 ? Math.max(0, parseFloat(amount) - calculatedFee) : 0;
+
   return (
     <View style={styles.container}>
       <Text style={styles.balanceText}>Saldo disponível: {balance.toFixed(2)} MT </Text>
@@ -100,7 +103,12 @@ const WalletWithdrawScreen = ({ navigation }) => {
         style={styles.input}
       />
 
-   
+      {amount && !isNaN(amount) && parseFloat(amount) > 0 ? (
+        <View style={styles.feeContainer}>
+          <Text style={styles.feeText}>Taxa de Levantamento (1%): {calculatedFee.toFixed(2)} MT</Text>
+          <Text style={styles.netText}>Receberá líquido no celular: {netAmount.toFixed(2)} MT</Text>
+        </View>
+      ) : null}
 
       <TouchableOpacity style={styles.button} onPress={handleWithdraw}>
         <Text style={styles.buttonText}>Solicitar Levantamento</Text>
@@ -170,6 +178,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f7fa',
+  },
+  feeContainer: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 20,
+  },
+  feeText: {
+    fontSize: 14,
+    color: '#E65100',
+    fontWeight: '600',
+  },
+  netText: {
+    fontSize: 15,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    marginTop: 6,
   },
 });
 

@@ -3,7 +3,7 @@ import axios from 'axios';
 let baseURL = '';
 
 if (process.env.NODE_ENV === 'development') {
-  baseURL = 'http://192.168.226.176:5000/api'; // ou localhost se estiver no navegador
+  baseURL = 'http://192.168.0.5:5000/api'; // ou localhost se estiver no navegador
 } else {
   baseURL = 'https://deliveryshop.herokuapp.com/api';
 }

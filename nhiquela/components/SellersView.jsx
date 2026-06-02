@@ -1,6 +1,7 @@
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ArrowRightIcon } from 'react-native-heroicons/outline';
+import { Ionicons } from '@expo/vector-icons';
 import SellerCard from './SellerCard';
 import api from '../hooks/createConnectionApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -60,7 +61,7 @@ const SellersView = ({ title, description }) => {
         contentContainerStyle={{ paddingHorizontal: 1 }}
         showsHorizontalScrollIndicator={false}
       >
-        {sellers ? (
+        {sellers && sellers.length > 0 ? (
           sellers.map(seller => (
             <SellerCard
               key={seller._id}
@@ -78,7 +79,16 @@ const SellersView = ({ title, description }) => {
             />
           ))
         ) : (
-          <Text style={styles.loadingText}>{isLoading ? 'Carregando vendedores...' : 'Nenhum vendedor encontrado.'}</Text>
+          <View style={styles.emptyCard}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#7F00FF" />
+            ) : (
+              <>
+                <Ionicons name="storefront-outline" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+                <Text style={styles.emptyCardText}>Sem fornecedores registados de momento</Text>
+              </>
+            )}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -104,10 +114,23 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     letterSpacing: 1.2
   },
-  loadingText: {
-    fontSize: 14,
-    color: 'gray',
-    marginLeft: 15,
-    marginTop: 10
+  emptyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    marginHorizontal: 15,
+    marginVertical: 10,
+    width: 320,
+  },
+  emptyCardText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
   }
 });

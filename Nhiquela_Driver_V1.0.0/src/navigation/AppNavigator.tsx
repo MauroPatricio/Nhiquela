@@ -14,6 +14,7 @@ import MapScreen from "../screens/MapScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import LoginScreen from "../screens/LoginScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
+import WalletScreen from "../screens/WalletScreen";
 
 import BottomMenu from "../components/BottomMenu";
 import RegisterDriverScreen from "../screens/RegisterDriverScreen";
@@ -79,18 +80,19 @@ function MainTabs() {
       <Tab.Screen
         name={ROUTES.HOME}
         component={HomeScreen}
-        options={{
+        options={({ navigation }) => ({
           header: () => (
             <DriverHeader
               onMenuPress={handleMenuPress}
               onNotificationPress={handleNotificationPress}
+              onEarningsPress={() => navigation.navigate(ROUTES.EARNINGS)}
               todayEarnings={user?.deliveryman?.todayEarnings || "MZN 0,00"}
               totalPassengers={user?.deliveryman?.totalTrips || 0}
               credit={user?.deliveryman?.balance || "MZN 0,00"}
               userRating={user?.deliveryman?.rating || 5.0}
             />
           ),
-        }}
+        })}
       />
       <Tab.Screen
         name={ROUTES.TRIPS}
@@ -226,6 +228,14 @@ export default function AppNavigator() {
       <Stack.Screen
         name={ROUTES.REGISTER_USER}
         component={RegisterDriverScreen}
+      />
+      <Stack.Screen
+        name={ROUTES.EARNINGS}
+        component={WalletScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right'
+        }}
       />
     </Stack.Navigator>
   );

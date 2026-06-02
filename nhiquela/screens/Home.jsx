@@ -543,7 +543,10 @@ responseListener.remove();
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.featuredList}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Nenhum produto em destaque</Text>
+            <View style={styles.emptyFeaturedContainer}>
+              <Ionicons name="gift-outline" size={24} color="#9CA3AF" />
+              <Text style={styles.emptyFeaturedText}>Sem destaques disponíveis de momento</Text>
+            </View>
           }
           initialNumToRender={5}
           maxToRenderPerBatch={5}
@@ -558,14 +561,20 @@ responseListener.remove();
       {/* AppBar */}
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
-          <OptimizedImage source={require('../assets/default1.jpg')} style={style.cover} />
-          <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
-          <View style={{ alignItems: "flex-end" }}>
-            <View style={style.cartCount}>
-              <Text style={style.cartNumber}>{items.length}</Text>
+          <View style={style.userInfoContainer}>
+            <OptimizedImage source={require('../assets/default1.jpg')} style={style.cover} />
+            <View style={style.textContainer}>
+              <Text style={style.greetingText}>Olá, bem-vindo</Text>
+              <Text style={style.location}>{userData ? userData.name : 'Faça login'}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-              <Ionicons name="cart-outline" size={35} />
+          </View>
+
+          <View style={style.appBarRight}>
+            <TouchableOpacity style={style.cartBtn} onPress={() => navigation.navigate('Cart')} activeOpacity={0.8}>
+              <View style={style.cartCount}>
+                <Text style={style.cartNumber}>{items.length}</Text>
+              </View>
+              <Ionicons name="basket-outline" size={24} color="#7F00FF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -609,8 +618,10 @@ responseListener.remove();
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.empty}>Nenhuma categoria encontrada.</Text>
-              <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+              <Ionicons name="cloud-offline-outline" size={56} color="#9CA3AF" style={{ marginBottom: 12 }} />
+              <Text style={styles.empty}>Oops! Não conseguimos carregar as categorias de momento.</Text>
+              <Text style={styles.emptySub}>Verifique a sua ligação à internet ou tente novamente.</Text>
+              <TouchableOpacity onPress={onRefresh} style={styles.retryButton} activeOpacity={0.8}>
                 <Text style={styles.retryText}>Tentar novamente</Text>
               </TouchableOpacity>
             </View>
@@ -906,26 +917,59 @@ bottomSheetHeader: {
 
   // Estilos gerais
   emptyContainer: {
-    flex: 1,
+    paddingVertical: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 30,
   },
   empty: {
     textAlign: 'center',
-    color: '#555',
+    color: '#1F2937',
     fontSize: 16,
-    marginBottom: 10,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySub: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontSize: 13,
+    marginBottom: 22,
+    lineHeight: 18,
   },
   retryButton: {
     backgroundColor: '#7F00FF',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    borderRadius: 14,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   retryText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  emptyFeaturedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    width: width - 40,
+    height: 100,
+    gap: 10,
+    marginVertical: 10,
+  },
+  emptyFeaturedText: {
+    color: '#6B7280',
+    fontSize: 13,
+    fontWeight: '600',
   },
   whatsappButton: {
     position: 'absolute',
