@@ -57,11 +57,9 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const projectId = "5c146d00-4349-41b9-8b42-a41e24f11743";
+  const token = (await Notifications.getDevicePushTokenAsync()).data;
 
-  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-
-  console.log("📩 Expo Push Token:", token);
+  console.log("📩 FCM / Device Push Token:", token);
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const admin = require('./firebaseConfig'); // <-- Firebase Admin importado
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -179,6 +180,52 @@ app.post('/api/wallet/withdraw', async (req, res) => {
   } catch (error) {
     console.error('Erro ao processar levantamento:', error);
     return res.status(500).json({ message: 'Erro interno ao processar levantamento.', error: error.message });
+  }
+});
+
+// --- ROTAS DE NOTIFICAÇÕES (FIREBASE) ---
+
+// Armazenamento em memória para os tokens (apenas para teste/mock)
+let userDeviceTokens = {}; // Ex: { "user_id_1": "token_fcm_xyz" }
+
+// 1. Registar um novo token de dispositivo
+app.post('/api/notifications/savedevicetoken', (req, res) => {
+  const { userId, deviceToken, platform } = req.body;
+  if (!userId || !deviceToken) {
+    return res.status(400).json({ message: 'userId e deviceToken são obrigatórios.' });
+  }
+  
+  userDeviceTokens[userId] = deviceToken;
+  console.log(`[Push] Token (${platform}) registado para o utilizador ${userId}: ${deviceToken.substring(0, 15)}...`);
+  
+  return res.status(200).json({ message: 'Token guardado com sucesso.' });
+});
+
+// 2. Enviar notificação de teste para um utilizador
+app.post('/api/notifications/send', async (req, res) => {
+  const { userId, title, body, data } = req.body;
+  
+  const token = userDeviceTokens[userId];
+  if (!token) {
+    return res.status(404).json({ message: 'Token não encontrado para este utilizador.' });
+  }
+
+  const message = {
+    notification: {
+      title: title || 'Atualização Nhiquela',
+      body: body || 'Tem uma nova mensagem!'
+    },
+    data: data || { type: 'test' },
+    token: token
+  };
+
+  try {
+    const response = await admin.messaging().send(message);
+    console.log('[Push] Notificação enviada com sucesso:', response);
+    return res.status(200).json({ message: 'Notificação enviada', messageId: response });
+  } catch (error) {
+    console.error('[Push] Erro ao enviar notificação:', error);
+    return res.status(500).json({ message: 'Erro ao enviar notificação', error: error.message });
   }
 });
 

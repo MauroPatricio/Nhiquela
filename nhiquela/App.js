@@ -187,9 +187,7 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: '7467ac64-89c0-432d-ae88-f427f7c65da9',
-  });
+  const tokenData = await Notifications.getDevicePushTokenAsync();
 
   return tokenData.data;
 }

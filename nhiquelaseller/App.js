@@ -186,9 +186,7 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
-  });
+  const tokenData = await Notifications.getDevicePushTokenAsync();
 
   return tokenData.data;
 }
