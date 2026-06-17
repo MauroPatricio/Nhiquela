@@ -226,26 +226,27 @@ const MpesaScreen = () => {
                     <Image source={require('../assets/Mpesa.png')} style={styles.cover} />
 
                     <Text style={styles.label}>
-                      <MaterialCommunityIcons name="cellphone" size={20} color="grey" /> Número de telefone:
+                      <MaterialCommunityIcons name="cellphone" size={18} color="#9CA3AF" /> NÚMERO DE TELEFONE
                     </Text>
                     <TextInput
                       style={styles.input}
                       value={values.customerNumber}
                       onChangeText={handleChange('customerNumber')}
                       onBlur={handleBlur('customerNumber')}
-                      placeholder="Informe o número"
+                      placeholder="Ex: 841234567"
+                      placeholderTextColor="#9CA3AF"
                       keyboardType="numeric"
                     />
                     {touched.customerNumber && errors.customerNumber && (
                       <Text style={styles.errorMessage}>{errors.customerNumber}</Text>
                     )}
 
-                    <Text style={styles.label}>Total a pagar:</Text>
+                    <Text style={styles.label}>TOTAL A PAGAR</Text>
                     <Text style={styles.amount}>
                       {isUserWantDelivery ? totalToPay.toFixed(2) : (totalToPay - deliveryPrice).toFixed(2)} MT
                     </Text>
 
-                    <Button loader={loader} title="Pagar" onPress={handleSubmit} isValid={isValid ? '#7F00FF' : 'red'} />
+                    <Button loader={loader} title="Confirmar Pagamento" onPress={handleSubmit} isValid={isValid ? '#9333EA' : '#EF4444'} />
                   </View>
                 )}
               </Formik>
@@ -260,27 +261,28 @@ const MpesaScreen = () => {
 export default MpesaScreen;
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: 'white' },
+  safeArea: { flex: 1, backgroundColor: '#F9FAFB' },
   icons: { position: 'absolute', top: 15, left: 25, zIndex: 10 },
-  back: { color: '#7F00FF' },
-  cover: { width: 300, height: 200, marginBottom: 20, alignSelf: 'center', borderRadius: 20 },
+  back: { color: '#9333EA' },
+  cover: { width: '100%', height: 180, marginBottom: 25, alignSelf: 'center', borderRadius: 24 },
   container: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 30,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     marginHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 5,
+    marginTop: 60,
   },
-  label: { fontSize: 16, color: '#333', marginBottom: 10, fontWeight: '600' },
-  input: { borderColor: '#ddd', borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 10, backgroundColor: '#fff', elevation: 1 },
-  errorMessage: { color: 'red', fontSize: 14, marginBottom: 10 },
-  amount: { fontSize: 18, fontWeight: 'bold', color: '#4CAF50', marginTop: 5, marginBottom: 20 },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalContent: { width: Dimensions.get('window').width * 0.8, backgroundColor: 'white', padding: 30, borderRadius: 20, alignItems: 'center', elevation: 10 },
-  loadingText: { marginTop: 20, fontSize: 16, fontWeight: '600', color: '#7F00FF' },
+  label: { fontSize: 13, color: '#6B7280', marginBottom: 8, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 16, marginBottom: 8, backgroundColor: '#F3F4F6', color: '#1F2937', fontWeight: '700' },
+  errorMessage: { color: '#EF4444', fontSize: 13, marginBottom: 16, fontWeight: '600', marginLeft: 4 },
+  amount: { fontSize: 32, fontWeight: '900', color: '#10B981', marginTop: 4, marginBottom: 30 },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { width: Dimensions.get('window').width * 0.85, backgroundColor: 'white', padding: 35, borderRadius: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  loadingText: { marginTop: 24, fontSize: 16, fontWeight: '800', color: '#9333EA' },
 });

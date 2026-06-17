@@ -1,8 +1,8 @@
 import { Helmet } from 'react-helmet-async';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMobileAlt, faUser, faEnvelope, faLock, faStore, faMapMarkerAlt, faCamera, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faMobileAlt, faUser, faEnvelope, faLock, faStore, faMapMarkerAlt, faCamera, faArrowRight, faEye, faEyeSlash, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserLogin, selectUser } from '../store/features/userSlice';
@@ -27,6 +27,8 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
   const [checkedTerms, setCheckedTerms] = useState(false);
 
@@ -45,7 +47,7 @@ export default function SignupScreen() {
 
     try {
       setLoadingUpload(true);
-      const { data } = await axios.post('/api/upload', bodyFormData, {
+      const { data } = await api.post('/upload', bodyFormData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSellerLogo(data.secure_url);
@@ -69,7 +71,7 @@ export default function SignupScreen() {
     }
     try {
       setLoadingUser(true);
-      const { data } = await axios.post('/api/users/signup', {
+      const { data } = await api.post('/users/signup', {
         name, phoneNumber, email, password, isSeller, sellerName,
         sellerDescription, sellerLogo, sellerAddress
       });
@@ -90,8 +92,16 @@ export default function SignupScreen() {
     <div className="container py-5 d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
       <Helmet><title>Criar Conta - Nhiquela</title></Helmet>
       
-      <div className="card shadow-sm-custom border-0 rounded-4" style={{ width: '100%', maxWidth: '600px' }}>
-        <div className="card-body p-4 p-md-5">
+      <div className="card shadow-sm-custom border-0 rounded-4 position-relative" style={{ width: '100%', maxWidth: '600px' }}>
+        <button 
+          onClick={() => navigate(-1)}
+          className="btn text-muted position-absolute border-0 rounded-circle d-flex justify-content-center align-items-center shadow-sm hover-bg-light"
+          style={{ top: '20px', left: '20px', width: '40px', height: '40px', backgroundColor: '#f8f9fa', zIndex: 10, transition: 'all 0.2s' }}
+          title="Voltar"
+        >
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+        <div className="card-body p-4 p-md-5 pt-5">
           <div className="text-center mb-4">
             <h2 className="text-primary-custom fw-bold mb-1">Junte-se a nós</h2>
             <p className="text-muted">Crie a sua conta e aceda ao universo Nhiquela</p>
@@ -147,27 +157,43 @@ export default function SignupScreen() {
               <div className="col-md-6 position-relative">
                 <FontAwesomeIcon icon={faLock} className="position-absolute text-muted" style={{ left: '15px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   className="form-control bg-light border-0 py-3 rounded-3" 
-                  style={{ paddingLeft: '45px' }} 
+                  style={{ paddingLeft: '45px', paddingRight: '45px' }} 
                   placeholder="Sua senha" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button 
+                  type="button" 
+                  className="btn border-0 position-absolute" 
+                  style={{ right: '5px', top: '50%', transform: 'translateY(-50%)', color: '#6c757d' }}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
               </div>
 
               <div className="col-md-6 position-relative">
                 <FontAwesomeIcon icon={faLock} className="position-absolute text-muted" style={{ left: '15px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input 
-                  type="password" 
+                  type={showConfirmPassword ? "text" : "password"} 
                   className="form-control bg-light border-0 py-3 rounded-3" 
-                  style={{ paddingLeft: '45px' }} 
+                  style={{ paddingLeft: '45px', paddingRight: '45px' }} 
                   placeholder="Confirme a senha" 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
+                <button 
+                  type="button" 
+                  className="btn border-0 position-absolute" 
+                  style={{ right: '5px', top: '50%', transform: 'translateY(-50%)', color: '#6c757d' }}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                </button>
               </div>
             </div>
 
@@ -230,14 +256,38 @@ export default function SignupScreen() {
                 </div>
 
                 <div className="position-relative">
-                  <label className="form-label small fw-bold text-muted mb-1"><FontAwesomeIcon icon={faCamera} className="me-1" /> Logótipo da Loja</label>
-                  <input 
-                    type="file" 
-                    className="form-control bg-white border shadow-sm p-2" 
-                    accept="image/*" 
-                    onChange={uploadFileHandler} 
-                  />
-                  {loadingUpload && <div className="text-success small mt-1"><span className="spinner-border spinner-border-sm me-1"></span>A carregar imagem...</div>}
+                  <label className="form-label small fw-bold text-muted mb-3"><FontAwesomeIcon icon={faCamera} className="me-1" /> Logótipo da Loja</label>
+                  <div 
+                    className="border rounded-4 d-flex flex-column justify-content-center align-items-center position-relative overflow-hidden bg-light mx-auto transition-all"
+                    style={{ 
+                      width: '140px', 
+                      height: '140px', 
+                      borderWidth: '2px !important', 
+                      borderStyle: 'dashed', 
+                      borderColor: '#ced4da',
+                      cursor: 'pointer' 
+                    }}
+                    onClick={() => document.getElementById('logoUpload').click()}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ea4e1b'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#ced4da'}
+                  >
+                    {sellerLogo ? (
+                      <img src={sellerLogo} alt="Logo da loja" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faCamera} size="2x" className="text-muted mb-2" />
+                        <span className="small text-muted fw-bold text-center" style={{ fontSize: '12px' }}>Carregar<br/>Logótipo</span>
+                      </>
+                    )}
+                    <input 
+                      id="logoUpload"
+                      type="file" 
+                      className="d-none" 
+                      accept="image/*" 
+                      onChange={uploadFileHandler} 
+                    />
+                  </div>
+                  {loadingUpload && <div className="text-success small mt-2 text-center fw-bold"><span className="spinner-border spinner-border-sm me-1"></span>A carregar imagem...</div>}
                 </div>
               </div>
             )}

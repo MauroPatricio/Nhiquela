@@ -23,20 +23,20 @@ export default function HomeScreen() {
 
     const loadData = async () => {
       try {
-        const catRes = await api.get('/products/categoriesWithCount');
-        const cats = catRes.data?.categories || [];
+        const catRes = await api.get('/categories');
+        const cats = catRes.data || [];
         setCategories(cats.map(c => ({
           name: c.name,
-          shops: `${c.productCount || c.count || 0} produtos`,
-          icon: '📦', // default
+          shops: `${c.productCount || c.count || 0} lojas`,
+          icon: c.icon || '📦', // default
           _id: c._id
         })));
 
-        const prodRes = await api.get('/products?page=1&pageSize=20&order=newest');
-        setFeaturedProducts(prodRes.data?.products || []);
+        const prodRes = await api.get('/products');
+        setFeaturedProducts(prodRes.data || []);
       } catch (error) {
         console.warn('Backend sem produtos, carregando fallback mockado');
-        // Fallback local se o backend for o mock do wallet
+        // Fallback local se o backend não tiver dados
         setFeaturedProducts([
           { _id: '1', name: 'Cabaz de Vegetais Frescos', price: '850', vendor: 'Bio Mercado', rating: 4.9, dist: '2.4 km', time: '15-25 min', images: [{url: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60'}], stock: 10, tag: 'POPULAR' },
           { _id: '2', name: 'Hambúrguer Gourmet Duplo', price: '620', vendor: 'BlackPlate', rating: 4.7, dist: '1.1 km', time: '20-35 min', images: [{url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60'}], stock: 15, tag: 'TOP VENDA' },

@@ -20,6 +20,7 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [userLogin, setUserLogin] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
@@ -72,7 +73,7 @@ const Orders = () => {
       case 'Em trânsito': return '#3B82F6'; // Blue
       case 'Entregue': return '#10B981'; // Green
       case 'Cancelado': return '#EF4444'; // Red
-      default: return '#7F00FF'; // Purple
+      default: return '#9333EA'; // Purple
     }
   };
 
@@ -86,11 +87,12 @@ const Orders = () => {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (!isRefresh) setIsLoading(true);
       if (!userData?.token) {
         setIsLoading(false);
+        if (isRefresh) setRefreshing(false);
         return;
       }
       const { data } = await api.get('/orders/mine', {
@@ -101,8 +103,14 @@ const Orders = () => {
       console.error(error);
     } finally {
       setIsLoading(false);
+      if (isRefresh) setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(true);
+  }, [userData]);
 
   useEffect(() => {
     checkIfUserExist();
@@ -212,7 +220,7 @@ const Orders = () => {
 
       {isLoading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#7F00FF" />
+          <ActivityIndicator size="large" color="#9333EA" />
         </View>
       ) : !userLogin ? (
         /* Estado: Não Logado */
@@ -229,7 +237,7 @@ const Orders = () => {
               style={styles.loginBtnContainer}
             >
               <LinearGradient
-                colors={['#7F00FF', '#5900B3']}
+                colors={['#9333EA', '#7E22CE']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.loginBtn}
@@ -247,12 +255,16 @@ const Orders = () => {
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 110, paddingTop: 8 }}
           showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={["#9333EA"]}
+          tintColor="#9333EA"
         />
       ) : (
         /* Estado: Lista Vazia */
         <View style={styles.centerContainer}>
           <View style={styles.emptyCircle}>
-            <Ionicons name="document-text-outline" size={44} color="#7F00FF" />
+            <Ionicons name="document-text-outline" size={44} color="#9333EA" />
           </View>
           <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
           <Text style={styles.emptySubtitle}>
@@ -264,7 +276,7 @@ const Orders = () => {
             style={styles.actionBtnContainer}
           >
             <LinearGradient
-              colors={['#7F00FF', '#5900B3']}
+              colors={['#9333EA', '#7E22CE']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.actionBtn}
@@ -297,7 +309,7 @@ const styles = StyleSheet.create({
   headerDivider: {
     width: 32,
     height: 3,
-    backgroundColor: '#7F00FF',
+    backgroundColor: '#9333EA',
     borderRadius: 2,
     marginTop: 6,
   },
@@ -308,11 +320,11 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     position: 'relative',
@@ -355,7 +367,7 @@ const styles = StyleSheet.create({
   orderPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7F00FF',
+    color: '#9333EA',
     marginTop: 2,
   },
   rightColumn: {
@@ -439,7 +451,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(127, 0, 255, 0.08)',
+    backgroundColor: 'rgba(147, 51, 234, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,

@@ -24,12 +24,12 @@ const EstablishmentCard = ({
       }}
     >
       <View style={styles.card_template}>
-        {/* Container da Imagem com Indicador de Status */}
+        {/* Container da Imagem */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: img }} style={styles.image} />
         </View>
       </View>
-          <Text style={{textAlign: 'center', fontWeight:'500'}}>{nome}</Text>
+      <Text style={styles.titleText} numberOfLines={1}>{nome}</Text>
     </TouchableOpacity>
   );
 };
@@ -38,29 +38,39 @@ export default EstablishmentCard;
 
 const styles = StyleSheet.create({
   card: {
-    // backgroundColor: '#ffffff',
-    // borderRadius: 12,
-    // shadowColor: 'grey',
-    // shadowOffset: { width: 0, height: 5 },
-    // shadowOpacity: 1,
-    // shadowRadius: 8,
-    // elevation: 10,
-    margin: 5,
-    width: 90,
+    marginRight: 16,
+    width: 110,
+    alignItems: 'center',
   },
   card_template: {
-    borderRadius: 12,
+    width: '100%',
+    borderRadius: 16,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    elevation: 3,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   imageContainer: {
     position: 'relative',
+    width: '100%',
   },
   image: {
     width: '100%',
-    height: 60,
+    height: 85,
     resizeMode: 'cover',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+  },
+  titleText: {
+    textAlign: 'center', 
+    fontWeight:'700', 
+    color: '#1F2937', 
+    fontSize: 14,
+    marginTop: 2,
   },
   statusOverlay: {
     position: 'absolute',

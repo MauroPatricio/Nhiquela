@@ -1,240 +1,223 @@
-const express = require('express');
-const cors = require('cors');
-const crypto = require('crypto');
-const admin = require('./firebaseConfig'); // <-- Firebase Admin importado
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import seedRoutes from './routes/seedRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import userRouter from './routes/userRoutes.js';
+import orderRouter from './routes/orderRoutes.js';
+import uploadRouter from './routes/uploadRoutes.js';
+import http from 'http';
+import { Server } from 'socket.io';
+import categoryRouter from './routes/categoryRoutes.js';
+import path from 'path';
+import provinceRoutes from './routes/provinceRoutes.js';
+import documentTypeRoutes from './routes/documentTypeRoutes.js';
+import qualityTypeRouter from './routes/qualityTypeRoutes.js';
+import conditionStatusRouter from './routes/conditionStatusRoutes.js';
+import colorRoutes from './routes/colorRoutes.js';
+import sizeRoutes from './routes/sizeRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import notificationRoutesNhabanga from './routes/notificationRoutesNhabanga.js';
+import { fileURLToPath } from 'url';
+import admin from 'firebase-admin';
+import { readFile } from 'fs/promises';
 
+// **Nova importação**
+import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
+import serviceRouter from './routes/serviceRoutes.js';
+import subcategoryRouter from './routes/subcategoryRoutes.js';
+
+// Novas Rotas para Admin Dashboard
+import marketingRouter from './routes/marketingRoutes.js';
+import incidentRouter from './routes/incidentRoutes.js';
+import vehicleTypeRouter from './routes/vehicleTypeRoutes.js';
+import settingsRouter from './routes/settingsRoutes.js';
+import planRouter from './routes/planRoutes.js';
+import statsRouter from './routes/statsRoutes.js';
+import customerRouter from './routes/customerRoutes.js';
+import driverRouter from './routes/driverRoutes.js';
+import walletRouter from './routes/walletRoutes.js';
+
+// Define o caminho do JSON para Firebase
+const serviceAccountPath = new URL('../nhiquela-86832-firebase-adminsdk-fbsvc-0bf1a6413d.json', import.meta.url);
+
+// Lendo o arquivo JSON
+const serviceAccount = await readFile(serviceAccountPath, 'utf-8').then(JSON.parse);
+
+// Inicializando Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// Carregando variáveis de ambiente
+dotenv.config();
+
+// Conectar ao MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Conectei me ao MongoDB com SUCESSO');
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
+
+// **Inicializando Express**
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Habilitar CORS para permitir chamadas de qualquer dispositivo na rede local (como celulares Expo)
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// Logger de chamadas da API
+// Configuração de CORS
 app.use((req, res, next) => {
-  console.log(`[API ${req.method}] ${req.url} - ${new Date().toLocaleTimeString()}`);
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-// Mock Database em memória para saldos e transações
-let walletBalances = {
-  available: 2450.00,
-  pending: 680.00
-};
+app.use(express.urlencoded({ extended: true }));
 
-let walletTransactions = [
-  {
-    id: 'tx-001',
-    type: 'credit',
-    amount: 1500.00,
-    description: 'Crédito de Entrega - Pedido #4088',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString()
-  },
-  {
-    id: 'tx-002',
-    type: 'credit',
-    amount: 80.00,
-    description: 'Comissão de Entrega - Pedido #4089',
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString()
-  },
-  {
-    id: 'tx-003',
-    type: 'debit',
-    amount: 500.00,
-    description: 'Levantamento de Fundos - M-Pesa',
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString()
-  },
-  {
-    id: 'tx-004',
-    type: 'credit',
-    amount: 1370.00,
-    description: 'Crédito de Venda - Pedido #3991',
-    created_at: new Date(Date.now() - 3600000 * 48).toISOString()
-  }
-];
+// **Adicionando sua nova rota aqui**
+app.use('/api/tipo_estabelecimento', tipoEstabelecimentoRoutes);
+app.use('/api/services', serviceRouter);
+app.use('/api/subcategories', subcategoryRouter);
 
-// M-Pesa & e-Mola B2C Integration Service
-const MobileMoneyService = {
-  simulateLocalPayout: async (amount, phoneNumber, referenceId, gateway) => {
-    console.log(`[SIMULADOR ${gateway}] Processando levantamento de ${amount} MT para ${phoneNumber}...`);
-    
-    // Simular atraso de rede móvel moçambicana
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+// Novas Rotas
+app.use('/api/marketing', marketingRouter);
+app.use('/api/incidents', incidentRouter);
+app.use('/api/vehicle-types', vehicleTypeRouter);
+app.use('/api/settings', settingsRouter);
+app.use('/api/plans', planRouter);
+app.use('/api/stats', statsRouter);
+app.use('/api/customers', customerRouter);
+app.use('/api/drivers', driverRouter);
+app.use('/api/wallet', walletRouter);
 
-    // Validar prefixos locais de Moçambique
-    if (gateway === 'M-Pesa') {
-      if (!phoneNumber.startsWith('25884') && !phoneNumber.startsWith('25885') && !phoneNumber.startsWith('84') && !phoneNumber.startsWith('85')) {
-        return {
-          success: false,
-          errorMessage: 'Prefixo inválido para M-Pesa. Deve começar com 84 ou 85.'
-        };
-      }
-    } else if (gateway === 'e-Mola') {
-      if (!phoneNumber.startsWith('25886') && !phoneNumber.startsWith('25887') && !phoneNumber.startsWith('86') && !phoneNumber.startsWith('87')) {
-        return {
-          success: false,
-          errorMessage: 'Prefixo inválido para e-Mola. Deve começar com 86 ou 87.'
-        };
+// Configuração das demais rotas
+app.use('/api/products', productRoutes);
+app.use('/api/users', userRouter);
+app.use('/api/orders', orderRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/categories', categoryRouter);
+app.use('/api/provinces', provinceRoutes);
+app.use('/api/documents', documentTypeRoutes);
+app.use('/api/qualitytype', qualityTypeRouter);
+app.use('/api/conditionstatus', conditionStatusRouter);
+app.use('/api/colors', colorRoutes);
+app.use('/api/sizes', sizeRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/requestdeliver', requestDeliverRoutes);
+app.use('/api/carts', cartRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/notificationsNhabanga', notificationRoutesNhabanga);
+
+// **Configuração do diretório e frontend**
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, '/frontend/build')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '/frontend/build/index.html'));
+});
+
+// Middleware de erro
+app.use((err, req, res, next) => {
+  console.log(err);
+  res.status(500).send({ message: err.message });
+});
+
+// Configuração do servidor HTTP e WebSocket
+const port = process.env.PORT || 5000;
+const httpServer = http.Server(app);
+const users = [];
+
+const io = new Server(httpServer, { cors: { origin: '*' } });
+
+io.on('connection', (socket) => {
+  socket.on('disconnect', () => {
+    const user = users.find((x) => x.socketId === socket.id);
+    if (user) {
+      user.online = false;
+      console.log('Offline', user.name);
+      const admin = users.find((x) => x.isAdmin && x.online);
+      if (admin) {
+        io.to(admin.socketId).emit('updateUser', user);
       }
     }
+  });
 
-    const mockTxId = `TX_${gateway.toUpperCase()}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-    return {
-      success: true,
-      transactionId: mockTxId
+  // --- REAL-TIME ORDER TRACKING ---
+  socket.on('joinOrderRoom', (orderId) => {
+    socket.join(`order_${orderId}`);
+    console.log(`Socket ${socket.id} joined room: order_${orderId}`);
+  });
+
+  socket.on('updateDriverLocation', (data) => {
+    if (data && data.orderId && data.location) {
+      io.to(`order_${data.orderId}`).emit('driverLocationChanged', data.location);
+    }
+  });
+  // --------------------------------
+
+  socket.on('onLogin', (user) => {
+    const updatedUser = {
+      ...user,
+      online: true,
+      socketId: socket.id,
+      messages: [],
     };
-  }
-};
-
-// --- ROTAS DO ENDPOINT FINANCEIRO /API/WALLET ---
-
-// 1. Obter Saldo Atual (Disponível e Pendente)
-app.get('/api/wallet/balance', (req, res) => {
-  return res.status(200).json({
-    available_balance: walletBalances.available,
-    pending_balance: walletBalances.pending,
-    currency: 'MZN'
-  });
-});
-
-// 2. Obter Histórico de Transações (Extrato)
-app.get('/api/wallet/transactions', (req, res) => {
-  return res.status(200).json(walletTransactions);
-});
-
-// 3. Obter Ganhos Diários e Semanais do Entregador
-app.get('/api/wallet/driver-earnings', (req, res) => {
-  return res.status(200).json({
-    today: 750.00,
-    week: 4850.00,
-    currency: 'MZN'
-  });
-});
-
-// 4. Solicitar Levantamento (Com Split Financeiro de Dupla Entrada)
-app.post('/api/wallet/withdraw', async (req, res) => {
-  const { amount, phone } = req.body;
-
-  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-    return res.status(400).json({ message: 'Digite um valor de levantamento válido.' });
-  }
-
-  const requestedAmount = parseFloat(amount);
-
-  if (requestedAmount > walletBalances.available) {
-    return res.status(400).json({ message: 'Saldo disponível insuficiente.' });
-  }
-
-  if (!phone || phone.length < 9) {
-    return res.status(400).json({ message: 'Digite um número de telefone válido para o envio.' });
-  }
-
-  try {
-    // Cálculo da Taxa de Levantamento da Nhiquela (1%)
-    const fee = requestedAmount * 0.01;
-    const netAmount = requestedAmount - fee;
-    const referenceId = `WDL_${Math.floor(100000 + Math.random() * 900000)}`;
-
-    console.log(`\n==================================================`);
-    console.log(`[LEDGER DOUBLE-ENTRY] Nova Solicitação de Levantamento ${referenceId}`);
-    console.log(`DÉBITO TOTAL SOLICITADO: -${requestedAmount.toFixed(2)} MT`);
-    console.log(`TAXA RETIDA NHIQUELA (1%): +${fee.toFixed(2)} MT (Receita Plataforma)`);
-    console.log(`VALOR LÍQUIDO A TRANSFERIR: +${netAmount.toFixed(2)} MT (M-Pesa/e-Mola)`);
-    console.log(`==================================================\n`);
-
-    // Determinar operadora
-    const cleanPhone = phone.replace('+', '');
-    const isEmola = cleanPhone.startsWith('25886') || cleanPhone.startsWith('25887') || cleanPhone.startsWith('86') || cleanPhone.startsWith('87');
-    const gatewayName = isEmola ? 'e-Mola' : 'M-Pesa';
-
-    // Executar Payout via simulador
-    const payoutResult = await MobileMoneyService.simulateLocalPayout(netAmount, cleanPhone, referenceId, gatewayName);
-
-    if (payoutResult.success) {
-      // Registrar Lançamento Contábil e Deduzir Saldo Disponível
-      walletBalances.available -= requestedAmount;
-
-      const ledgerDebitEntry = {
-        id: referenceId,
-        type: 'debit',
-        amount: requestedAmount,
-        description: `Levantamento ${gatewayName} (Líquido: ${netAmount.toFixed(2)} MT, Taxa: ${fee.toFixed(2)} MT)`,
-        created_at: new Date().toISOString()
-      };
-
-      walletTransactions.unshift(ledgerDebitEntry);
-
-      console.log(`[LEDGER SUCCESS] Balanço atualizado com sucesso. ID Transação: ${payoutResult.transactionId}`);
-
-      return res.status(200).json({
-        message: `Levantamento de ${netAmount.toFixed(2)} MT processado com sucesso para o número ${phone}! Taxa Nhiquela: ${fee.toFixed(2)} MT.`,
-        transactionId: payoutResult.transactionId
-      });
+    const existUser = users.find((x) => x._id === updatedUser._id);
+    if (existUser) {
+      existUser.socketId = socket.id;
+      existUser.online = true;
     } else {
-      console.error(`[LEDGER FAILED] Falha no saque: ${payoutResult.errorMessage}`);
-      return res.status(400).json({
-        message: payoutResult.errorMessage || 'Falha de comunicação B2C.'
-      });
+      users.push(updatedUser);
     }
+    console.log('Online', user.name);
+    const admin = users.find((x) => x.isAdmin && x.online);
+    if (admin) {
+      io.to(admin.socketId).emit('updateUser', updatedUser);
+    }
+    if (updatedUser.isAdmin) {
+      io.to(updatedUser.socketId).emit('listUsers', users);
+    }
+  });
 
-  } catch (error) {
-    console.error('Erro ao processar levantamento:', error);
-    return res.status(500).json({ message: 'Erro interno ao processar levantamento.', error: error.message });
-  }
+  socket.on('onUserSelected', (user) => {
+    const admin = users.find((x) => x.isAdmin && x.online);
+    if (admin) {
+      const existUser = users.find((x) => x._id === user._id);
+      io.to(admin.socketId).emit('selectUser', existUser);
+    }
+  });
+
+  socket.on('onMessage', (message) => {
+    if (message.isAdmin) {
+      const user = users.find((x) => x._id === message._id && x.online);
+      if (user) {
+        io.to(user.socketId).emit('message', message);
+        user.messages.push(message);
+      }
+    } else {
+      const admin = users.find((x) => x.isAdmin && x.online);
+      if (admin) {
+        io.to(admin.socketId).emit('message', message);
+        const user = users.find((x) => x._id === message._id && x.online);
+        user.messages.push(message);
+      } else {
+        io.to(socket.id).emit('message', {
+          name: 'Admin',
+          body: 'Me desculpe. Neste momento não me encontro disponível',
+        });
+      }
+    }
+  });
 });
 
-// --- ROTAS DE NOTIFICAÇÕES (FIREBASE) ---
-
-// Armazenamento em memória para os tokens (apenas para teste/mock)
-let userDeviceTokens = {}; // Ex: { "user_id_1": "token_fcm_xyz" }
-
-// 1. Registar um novo token de dispositivo
-app.post('/api/notifications/savedevicetoken', (req, res) => {
-  const { userId, deviceToken, platform } = req.body;
-  if (!userId || !deviceToken) {
-    return res.status(400).json({ message: 'userId e deviceToken são obrigatórios.' });
-  }
-  
-  userDeviceTokens[userId] = deviceToken;
-  console.log(`[Push] Token (${platform}) registado para o utilizador ${userId}: ${deviceToken.substring(0, 15)}...`);
-  
-  return res.status(200).json({ message: 'Token guardado com sucesso.' });
-});
-
-// 2. Enviar notificação de teste para um utilizador
-app.post('/api/notifications/send', async (req, res) => {
-  const { userId, title, body, data } = req.body;
-  
-  const token = userDeviceTokens[userId];
-  if (!token) {
-    return res.status(404).json({ message: 'Token não encontrado para este utilizador.' });
-  }
-
-  const message = {
-    notification: {
-      title: title || 'Atualização Nhiquela',
-      body: body || 'Tem uma nova mensagem!'
-    },
-    data: data || { type: 'test' },
-    token: token
-  };
-
-  try {
-    const response = await admin.messaging().send(message);
-    console.log('[Push] Notificação enviada com sucesso:', response);
-    return res.status(200).json({ message: 'Notificação enviada', messageId: response });
-  } catch (error) {
-    console.error('[Push] Erro ao enviar notificação:', error);
-    return res.status(500).json({ message: 'Erro ao enviar notificação', error: error.message });
-  }
-});
-
-// Inicialização do servidor Express
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n======================================================`);
-  console.log(`🚀 SERVIDOR MOCK DE CARTEIRAS NHIQUELA INICIADO COM SUCESSO`);
-  console.log(`Endereço Local: http://localhost:${PORT}`);
-  console.log(`Endereço Rede Móvel: http://192.168.226.176:${PORT}/api (Exemplo de IP)`);
-  console.log(`Conecte as aplicações móveis a este servidor local para testar!`);
-  console.log(`======================================================\n`);
+httpServer.listen(port, () => {
+  console.log(`Servidor rodando em http://localhost:${port}`);
 });

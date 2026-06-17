@@ -12,12 +12,15 @@ import SellersView from '../components/SellersView';
 import ProductHomeView from '../components/ProductHomeView';
 import style from './home.style';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { selectBasketItems } from '../features/basketSlice';
+import { setLocationSuccess, setLocationFailure, selectUserLocation } from '../features/locationSlice';
+import { getDistance } from 'geolib';
 import { Welcome } from './Index';
 import BottomSheetComponent from '../components/BottomSheetComponent';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
 import { io } from "socket.io-client";
@@ -39,7 +42,21 @@ Notifications.setNotificationHandler({
 });
 
 // Componente memoizado para item de produto
-const ProductItem = React.memo(({ item, onPress }) => (
+const ProductItem = React.memo(({ item, onPress, userLocation }) => {
+  let distanceText = '';
+  if (userLocation && (item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.seller?.longitude || item.seller?.longitude);
+    if (!isNaN(prodLat) && !isNaN(prodLng)) {
+      const dist = getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: prodLat, longitude: prodLng }
+      );
+      distanceText = ` • ${(dist / 1000).toFixed(1)} km`;
+    }
+  }
+
+  return (
   <TouchableOpacity
     style={styles.productCard}
     onPress={() => onPress(item)}
@@ -62,9 +79,12 @@ const ProductItem = React.memo(({ item, onPress }) => (
           `${item.price} MT`
         )}
       </Text>
+      <Text style={[styles.productName, { fontSize: 11, color: '#9CA3AF', marginTop: 2 }]} numberOfLines={1}>
+        <Ionicons name="location-outline" size={10} />{distanceText || ' Distância N/A'}
+      </Text>
     </View>
   </TouchableOpacity>
-));
+)});
 
 // Componente memoizado para item de categoria
 const CategoryPill = React.memo(({ item, onPress }) => (
@@ -85,7 +105,21 @@ const CategoryPill = React.memo(({ item, onPress }) => (
 ));
 
 // Componente memoizado para linha de produto no BottomSheet
-const ProductRow = React.memo(({ item, onPress }) => (
+const ProductRow = React.memo(({ item, onPress, userLocation }) => {
+  let distanceText = '';
+  if (userLocation && (item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.seller?.longitude || item.seller?.longitude);
+    if (!isNaN(prodLat) && !isNaN(prodLng)) {
+      const dist = getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: prodLat, longitude: prodLng }
+      );
+      distanceText = ` • ${(dist / 1000).toFixed(1)} km`;
+    }
+  }
+
+  return (
   <TouchableOpacity
     style={styles.productContainer}
     onPress={() => onPress(item)}
@@ -107,11 +141,11 @@ const ProductRow = React.memo(({ item, onPress }) => (
             `${item.price} MT`
           )}
         </Text>
-        <Text>Fornecedor: {item.seller?.seller?.name}</Text>
+        <Text>Fornecedor: {item.seller?.seller?.name} <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text></Text>
       </View>
     </View>
   </TouchableOpacity>
-));
+)});
 
 const Home = () => {
   const [userData, setUserData] = useState(null);
@@ -133,7 +167,9 @@ const Home = () => {
 
   const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
+  const userLocation = useSelector(selectUserLocation);
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   // Memoizar dados para evitar recálculos desnecessários
   const memoizedCategories = useMemo(() => categories, [categories]);
@@ -145,7 +181,25 @@ const Home = () => {
     registerForPushNotificationsAsync();
     setupNotificationListeners();
     loadFeaturedProducts();
+    requestUserLocation();
   }, []);
+
+  const requestUserLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        let location = await Location.getCurrentPositionAsync({});
+        dispatch(setLocationSuccess({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        }));
+      } else {
+        dispatch(setLocationFailure('Permission denied'));
+      }
+    } catch (err) {
+      dispatch(setLocationFailure(err.message));
+    }
+  };
 
   // Carrega/recupera categorias na volta do foco com cache
   useFocusEffect(
@@ -507,8 +561,8 @@ responseListener.remove();
 
   // Renderizar produto individual para featured
   const renderProductItem = useCallback(({ item }) => (
-    <ProductItem item={item} onPress={handleProductPress} />
-  ), [handleProductPress]);
+    <ProductItem item={item} onPress={handleProductPress} userLocation={userLocation} />
+  ), [handleProductPress, userLocation]);
 
   // Renderizar bloco de categoria com produtos
   const renderCategoryBlock = useCallback(({ item }) => (
@@ -521,12 +575,13 @@ responseListener.remove();
       onPress={() => handleCategoryPress(item)}
       productCount={item.productCount || item.count || 0}
       loading={loadingCategoryProducts[item._id]}
+      userLocation={userLocation}
     />
   ), [categoryProducts, loadingCategoryProducts, handleCategoryPress]);
 
   const renderProductRow = useCallback(({ item }) => (
-    <ProductRow item={item} onPress={handleProductPress} />
-  ), [handleProductPress]);
+    <ProductRow item={item} onPress={handleProductPress} userLocation={userLocation} />
+  ), [handleProductPress, userLocation]);
 
   // Renderizar seção de produtos em destaque
   const renderFeaturedProducts = () => (
@@ -697,6 +752,7 @@ responseListener.remove();
 
       <FlashMessage position="top" />
 
+      {/* Botão do WhatsApp Oculto a pedido
       {userData && (
         <TouchableOpacity
           style={styles.whatsappButton}
@@ -705,6 +761,7 @@ responseListener.remove();
           <Ionicons name="logo-whatsapp" size={30} color="white" />
         </TouchableOpacity>
       )}
+      */}
     </SafeAreaView>
   );
 };
@@ -725,39 +782,39 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   productCard: {
-    width: 160,
-    backgroundColor: 'white',
-    borderRadius: 12,
+    width: 170,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     marginRight: 15,
     padding: 12,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 15,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   productImage: {
     width: '100%',
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 10,
+    height: 150,
+    borderRadius: 14,
+    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
   },
   productDetails: {
     flex: 1,
   },
   productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+    color: '#111827',
   },
   productPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#7F00FF',
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#9333EA',
   },
   discountContainer: {
     flexDirection: 'row',
@@ -886,22 +943,24 @@ bottomSheetHeader: {
 
   // Estilos para categorias
   wrapper: {
-    marginRight: 8,
-    backgroundColor: '#7F00FF',
+    marginRight: 10,
+    backgroundColor: '#F9F5FF',
     paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
   },
   title: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: '700',
+    color: '#9333EA',
   },
   countBadge: {
-    backgroundColor: 'white',
+    backgroundColor: '#9333EA',
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -910,7 +969,7 @@ bottomSheetHeader: {
     paddingHorizontal: 6,
   },
   countText: {
-    color: '#7F00FF',
+    color: '#FFF',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -973,15 +1032,19 @@ bottomSheetHeader: {
   },
   whatsappButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 160, // Aumentado bastante para criar um espaçamento limpo entre o menu e o botão
     right: 20,
-    backgroundColor: '#7F00FF',
+    backgroundColor: '#25D366', // Cor oficial do WhatsApp para maior reconhecimento (ou #9333EA se preferir manter o tema)
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
     zIndex: 999,
   },
   footerLoader: {

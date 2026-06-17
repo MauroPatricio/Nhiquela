@@ -57,7 +57,7 @@ const EstablishmentsView = ({ title }) => {
 
       <ScrollView 
         horizontal
-        contentContainerStyle={{ paddingHorizontal: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 5 }}
         showsHorizontalScrollIndicator={false}
       >
         {tipoestabelecimentos && tipoestabelecimentos.length > 0 ? (

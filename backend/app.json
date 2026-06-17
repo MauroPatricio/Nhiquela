@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "217ab06d-1e14-42d9-b8be-2e173a4b8c77"
+      }
+    },
+    "owner": "mpatricio",
+    "slug": "mobile"
+  }
+}

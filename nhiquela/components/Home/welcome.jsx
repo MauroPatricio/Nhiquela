@@ -10,7 +10,11 @@ const welcome = () => {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.titleContainer}>
-        <Text style={styles.brandText}>Nhiquela</Text>
+        
+      <Text style={styles.brandText2}>
+  nhiquela
+  <Text style={{ color: '#A855F7' }}>.</Text>
+</Text>
         <Text style={styles.subtitleText}>TUDO EM SUAS MÃOS</Text>
       </View>
       

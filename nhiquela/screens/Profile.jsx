@@ -87,7 +87,7 @@ const Profile = () => {
 
       {/* 1. TOP PREMIUM HEADER BACKDROP */}
       <LinearGradient
-        colors={['#7F00FF', '#5900B3']}
+        colors={['#1E293B', '#0F172A']} // Tom escuro neutro que harmoniza com qualquer foto
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerBackdrop}
@@ -129,7 +129,7 @@ const Profile = () => {
               {/* Telefone */}
               <View style={styles.infoItem}>
                 <View style={styles.infoIconWrap}>
-                  <Ionicons name="phone-portrait" size={18} color="#7F00FF" />
+                  <Ionicons name="phone-portrait" size={18} color="#9333EA" />
                 </View>
                 <View style={styles.infoTextWrap}>
                   <Text style={styles.infoLabel}>TELEFONE</Text>
@@ -139,14 +139,29 @@ const Profile = () => {
 
               <View style={styles.lineDivider} />
 
-              {/* ID da Conta */}
+              {/* Email */}
               <View style={styles.infoItem}>
                 <View style={styles.infoIconWrap}>
-                  <Ionicons name="shield-checkmark" size={18} color="#7F00FF" />
+                  <Ionicons name="mail" size={18} color="#9333EA" />
                 </View>
                 <View style={styles.infoTextWrap}>
-                  <Text style={styles.infoLabel}>ID DO CLIENTE</Text>
-                  <Text style={styles.infoValue} numberOfLines={1}>{userData?._id || '---'}</Text>
+                  <Text style={styles.infoLabel}>E-MAIL</Text>
+                  <Text style={styles.infoValue} numberOfLines={1}>{userData?.email || 'Adicione um email'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.lineDivider} />
+
+              {/* Endereço */}
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconWrap}>
+                  <Ionicons name="location" size={18} color="#9333EA" />
+                </View>
+                <View style={styles.infoTextWrap}>
+                  <Text style={styles.infoLabel}>ENDEREÇO DE ENTREGA</Text>
+                  <Text style={styles.infoValue} numberOfLines={2}>
+                    {userData?.address ? `${userData.address}${userData.city ? ', ' + userData.city : ''}` : 'Nenhum endereço guardado'}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -159,8 +174,30 @@ const Profile = () => {
                 onPress={() => navigation.navigate('Pedidos')}
                 style={styles.actionItem}
               >
-                <Ionicons name="receipt" size={20} color="#7F00FF" />
+                <Ionicons name="receipt" size={20} color="#9333EA" />
                 <Text style={styles.actionText}>Meus Pedidos</Text>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <View style={styles.lineDivider} />
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Favorite', { tab: 'products' })}
+                style={styles.actionItem}
+              >
+                <Ionicons name="heart" size={20} color="#9333EA" />
+                <Text style={styles.actionText}>Produtos Favoritos</Text>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <View style={styles.lineDivider} />
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Favorite', { tab: 'sellers' })}
+                style={styles.actionItem}
+              >
+                <Ionicons name="storefront" size={20} color="#9333EA" />
+                <Text style={styles.actionText}>Lojas Favoritas</Text>
                 <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
             </View>
@@ -209,37 +246,29 @@ export default Profile;
 
 const styles = StyleSheet.create({
   headerBackdrop: {
-    height: 180,
+    height: 220,
     width: '100%',
-    justifyContent: 'center',
     alignItems: 'center',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
     position: 'relative',
+    paddingTop: 50, // Dá espaço para a status bar e encosta a logo em cima
   },
   logoBadgeContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8,
-    width: 160,
+    width: 200,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -20,
+    backgroundColor: 'transparent',
   },
   logoBadge: {
     width: '100%',
     height: '100%',
+    transform: [{ scale: 2.2 }], // Escala adequada para não cortar os bordos
   },
   profileContainer: {
     alignItems: "center",
-    marginTop: -50,
+    marginTop: -60, // Sobe mais a fotografia para sobrepor a curva de 50px do header
     width: "100%",
     paddingHorizontal: 20,
   },

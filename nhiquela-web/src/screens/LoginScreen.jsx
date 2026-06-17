@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faLock, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faArrowRight, faArrowLeft, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
 import { setUserLogin } from '../store/features/userSlice';
@@ -10,6 +10,7 @@ import api from '../api';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -44,7 +45,15 @@ export default function LoginScreen() {
 
   return (
     <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-      <div className="card shadow-sm-custom border-0 rounded-4" style={{ width: '100%', maxWidth: '450px' }}>
+      <div className="card shadow-sm-custom border-0 rounded-4 position-relative" style={{ width: '100%', maxWidth: '450px' }}>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="btn text-muted position-absolute border-0 rounded-circle d-flex justify-content-center align-items-center shadow-sm hover-bg-light"
+          style={{ top: '20px', left: '20px', width: '40px', height: '40px', backgroundColor: '#f8f9fa', zIndex: 10, transition: 'all 0.2s' }}
+          title="Voltar para a Loja"
+        >
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
         <div className="card-body p-5">
           <div className="text-center mb-4">
             <h2 className="text-primary-custom fw-bold mb-1">Bem-vindo de volta</h2>
@@ -68,14 +77,21 @@ export default function LoginScreen() {
             <div className="mb-4 position-relative">
               <FontAwesomeIcon icon={faLock} className="position-absolute text-muted" style={{ left: '15px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
-                type="password" 
+                type={showPassword ? 'text' : 'password'} 
                 className="form-control bg-light border-0 py-3 rounded-3" 
-                style={{ paddingLeft: '45px' }} 
+                style={{ paddingLeft: '45px', paddingRight: '45px' }} 
                 placeholder="Sua senha" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <span 
+                className="position-absolute text-muted cursor-pointer" 
+                style={{ right: '15px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer' }}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+              </span>
             </div>
 
             <div className="d-flex justify-content-between align-items-center mb-4">

@@ -21,6 +21,8 @@ import * as Location from 'expo-location';
 import api from '../hooks/createConnectionApi';
 import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 import { useToast } from "react-native-toast-notifications";
+import { io } from 'socket.io-client';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import TripMap from "../components/TripMap";
 import TripControls from '../components/TripControls';
@@ -36,6 +38,7 @@ const OrderDetailsScreen = () => {
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(null);
   const [canFinishTrip, setCanFinishTrip] = useState(false);
   const [routeDrawn, setRouteDrawn] = useState(false);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
@@ -128,6 +131,27 @@ const OrderDetailsScreen = () => {
   useEffect(() => {
     checkIfUserExist();
   }, []);
+
+  // Socket.io integration for real-time tracking
+  useEffect(() => {
+    if (!currentOrder?._id) return;
+
+    // Conectar ao websocket usando o baseURL da API (removendo /api)
+    const baseUrl = api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000';
+    const socket = io(baseUrl);
+
+    // Entrar na sala do pedido específico
+    socket.emit('joinOrderRoom', currentOrder._id);
+
+    // Escutar por atualizações do motorista
+    socket.on('driverLocationChanged', (location) => {
+      setDriverLocation(location);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentOrder]);
 
   const checkIfUserExist = async () => {
     try {
@@ -268,9 +292,14 @@ const OrderDetailsScreen = () => {
   const renderCompactInfo = () => (
     <View style={styles.compactInfo}>
       <View style={styles.compactMain}>
-        <View style={styles.orderBadge}>
+        <LinearGradient
+          colors={['#9333EA', '#7E22CE']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.orderBadge}
+        >
           <Text style={styles.orderBadgeText}>#{currentOrder.code}</Text>
-        </View>
+        </LinearGradient>
         <View style={styles.compactTexts}>
           <Text style={styles.compactStore}>{currentOrder.seller?.seller?.name || 'Loja'}</Text>
           <Text style={styles.compactStatus}>{currentOrder.status}</Text>
@@ -299,7 +328,7 @@ const OrderDetailsScreen = () => {
         {currentLocation && (
           <TripMap
             origin={currentLocation}
-            destination={{
+            destination={driverLocation || {
               latitude: currentLocation.latitude + 0.005,
               longitude: currentLocation.longitude + 0.005,
             }}
@@ -331,14 +360,18 @@ const OrderDetailsScreen = () => {
           {renderCompactInfo()}
 
           <TouchableOpacity
-            style={styles.expandButton}
             onPress={toggleSheet}
           >
-            <Ionicons
-              name={isSheetExpanded ? "chevron-down" : "chevron-up"}
-              size={20}
-              color="#FFF"
-            />
+            <LinearGradient
+              colors={['#9333EA', '#7E22CE']}
+              style={styles.expandButton}
+            >
+              <Ionicons
+                name={isSheetExpanded ? "chevron-down" : "chevron-up"}
+                size={20}
+                color="#FFF"
+              />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -423,30 +456,37 @@ const OrderDetailsScreen = () => {
 
             {/* Controles */}
             <View style={styles.controlsSection}>
-              {/* <TripControls
-                onCancelTrip={handleCancelTrip}
-                onFinishTrip={handleFinishTrip}
-                canFinishTrip={canFinishTrip}
-                routeDrawn={routeDrawn}
-              /> */}
-
               {currentOrder.status === 'Em trânsito' && (
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.deliveryButton]}
+                  activeOpacity={0.8}
                   onPress={() => confirmDeliveryOrder(currentOrder._id)}
                 >
-                  <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Confirmar Entrega</Text>
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.actionButton}
+                  >
+                    <Ionicons name="checkmark-circle" size={22} color="#FFF" />
+                    <Text style={styles.actionButtonText}>Confirmar Receção</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               )}
 
               {currentOrder.status === 'Entregue' && (
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.deleteButton]}
+                  activeOpacity={0.8}
                   onPress={() => confirmDeleteOrder(currentOrder._id)}
                 >
-                  <Ionicons name="trash" size={20} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Apagar Pedido</Text>
+                  <LinearGradient
+                    colors={['#EF4444', '#DC2626']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.actionButton}
+                  >
+                    <Ionicons name="trash" size={22} color="#FFF" />
+                    <Text style={styles.actionButtonText}>Apagar Pedido do Histórico</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               )}
             </View>
@@ -552,7 +592,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   orderBadge: {
-    backgroundColor: '#7F00FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -573,7 +612,7 @@ const styles = StyleSheet.create({
   },
   compactStatus: {
     fontSize: 12,
-    color: '#7F00FF',
+    color: '#9333EA',
     fontWeight: '500',
     marginTop: 2,
   },
@@ -595,10 +634,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#7F00FF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#9333EA',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -624,14 +662,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoGrid: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   infoItem: {
     flexDirection: 'row',
@@ -660,7 +700,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   totalPrice: {
-    color: '#7F00FF',
+    color: '#9333EA',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -675,15 +715,17 @@ const styles = StyleSheet.create({
   },
   productCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   productImage: {
     width: 60,
@@ -714,7 +756,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#7F00FF',
+    color: '#9333EA',
     marginBottom: 2,
   },
   productDescription: {
@@ -736,7 +778,7 @@ const styles = StyleSheet.create({
   discountPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#7F00FF',
+    color: '#9333EA',
     marginRight: 8,
   },
   discountText: {
@@ -745,15 +787,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   badge: {
-    backgroundColor: '#FF5733',
-    borderRadius: 5,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
   },
   badgeText: {
-    color: '#fff',
+    color: '#EF4444',
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   controlsSection: {
     marginTop: 10,
@@ -763,14 +808,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  deliveryButton: {
-    backgroundColor: '#4CAF50',
-  },
-  deleteButton: {
-    backgroundColor: '#F44336',
+    borderRadius: 14,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   actionButtonText: {
     color: '#fff',

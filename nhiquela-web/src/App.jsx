@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import PublicLayout from './components/Layout/PublicLayout';
 import AdminLayout from './components/Layout/AdminLayout';
@@ -19,6 +19,16 @@ import ServicesScreen from './screens/admin/ServicesScreen';
 import IncidentsScreen from './screens/admin/IncidentsScreen';
 import SubscriptionsScreen from './screens/admin/SubscriptionsScreen';
 import FinanceScreen from './screens/admin/FinanceScreen';
+import OrdersScreen from './screens/admin/OrdersScreen';
+import CustomersScreen from './screens/admin/CustomersScreen';
+import MarketingScreen from './screens/admin/MarketingScreen';
+import SettingsScreen from './screens/admin/SettingsScreen';
+import ProductAttributesScreen from './screens/admin/ProductAttributesScreen';
+import EstablishmentTypesScreen from './screens/admin/EstablishmentTypesScreen';
+import ProvincesScreen from './screens/admin/ProvincesScreen';
+import VehicleTypesScreen from './screens/admin/VehicleTypesScreen';
+import PushNotificationsScreen from './screens/admin/PushNotificationsScreen';
+import UsersScreen from './screens/admin/UsersScreen';
 import SupplierDashboardScreen from './screens/supplier/SupplierDashboardScreen';
 import SupplierProductsScreen from './screens/supplier/SupplierProductsScreen';
 
@@ -51,6 +61,7 @@ function App() {
 
         {/* Rotas Administrativas */}
         <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardScreen />} />
           <Route path="suppliers" element={<SuppliersScreen />} />
           <Route path="products" element={<ProductsScreen />} />
@@ -60,6 +71,16 @@ function App() {
           <Route path="incidents" element={<IncidentsScreen />} />
           <Route path="subscriptions" element={<SubscriptionsScreen />} />
           <Route path="finance" element={<FinanceScreen />} />
+          <Route path="orders" element={<OrdersScreen />} />
+          <Route path="customers" element={<CustomersScreen />} />
+          <Route path="attributes" element={<ProductAttributesScreen />} />
+          <Route path="establishment-types" element={<EstablishmentTypesScreen />} />
+          <Route path="provinces" element={<ProvincesScreen />} />
+          <Route path="vehicle-types" element={<VehicleTypesScreen />} />
+          <Route path="push-notifications" element={<PushNotificationsScreen />} />
+          <Route path="marketing" element={<MarketingScreen />} />
+          <Route path="users" element={<UsersScreen />} />
+          <Route path="settings" element={<SettingsScreen />} />
           {/* Outras rotas entrarão aqui depois */}
           <Route path="*" element={<h2>Em construção...</h2>} />
         </Route>

@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 const styles = StyleSheet.create({
     outerContainer: {
         paddingHorizontal: 20,
-        marginTop: 15,
+        marginTop: 0,
         marginBottom: 15,
     },
     titleContainer: {
@@ -13,6 +13,11 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: "800",
         color: "#7F00FF",
+        letterSpacing: -0.5,
+    },
+      brandText2: {
+        fontSize: 32,
+        fontWeight: "800",
         letterSpacing: -0.5,
     },
     subtitleText: {
@@ -59,14 +64,14 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: 16,
-        backgroundColor: "#7F00FF",
+        backgroundColor: "#9333EA",
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#7F00FF",
+        shadowColor: "#9333EA",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.2,
         shadowRadius: 6,
-        elevation: 5,
+        elevation: 4,
     }
 });
 

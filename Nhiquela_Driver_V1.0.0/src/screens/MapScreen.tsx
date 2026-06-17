@@ -5,7 +5,8 @@ import TripControls from "../components/TripControls";
 import { getCurrentLocation, updateDeliverymanLocation } from "../services/locationService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from 'expo-location';
-import { startOrderInTransit } from "../services/orderService"; // Importe sua função de API
+import { startOrderInTransit } from "../services/orderService"; 
+import { io } from 'socket.io-client';
 
 // 🔥 LOCALIZAÇÃO FALLBACK (caso não consiga obter a real)
 const FALLBACK_LOCATION = {
@@ -25,6 +26,7 @@ export default function MapScreen({ route, navigation }: any) {
 
   useEffect(() => {
     let interval: NodeJS.Timer;
+    let socket: any;
   
     const startAutoUpdate = async () => {
       try {
@@ -33,12 +35,35 @@ export default function MapScreen({ route, navigation }: any) {
   
         const storedTrip = JSON.parse(storedTripString);
         const orderId = storedTrip.id;
+
+        // Conectar ao Socket do Backend para Rastreamento em Tempo Real
+        const backendUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+        socket = io(backendUrl);
   
         await updateDeliverymanLocation(orderId);
   
+        // Atualiza a localização a cada 5 segundos via socket
         interval = setInterval(async () => {
-          await updateDeliverymanLocation(orderId);
-        }, 50000);
+          try {
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const locationData = {
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              heading: loc.coords.heading
+            };
+            
+            // Emite a localização em tempo real para o cliente
+            socket.emit('updateDriverLocation', {
+              orderId,
+              location: locationData
+            });
+
+            // Fallback: Atualiza na API também, mas num intervalo maior se necessário
+            await updateDeliverymanLocation(orderId);
+          } catch (err) {
+            console.log("Erro ao capturar GPS para socket", err);
+          }
+        }, 5000);
   
       } catch (error) {
         console.error("Erro ao iniciar atualização automática da localização:", error);
@@ -48,7 +73,8 @@ export default function MapScreen({ route, navigation }: any) {
     startAutoUpdate();
   
     return () => {
-      if (interval) clearInterval(interval); // limpar ao desmontar
+      if (interval) clearInterval(interval);
+      if (socket) socket.disconnect();
     };
   }, []);
   

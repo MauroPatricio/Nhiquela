@@ -224,7 +224,7 @@ export const getItemsBySellerId = (sellerId) =>
 
 export const selectBasketItemsWithId = (id) =>
   createSelector(selectBasketItems, (items) =>
-    items?.filter((item) => item?.id === id) ?? []
+    items?.filter((item) => item?._id === id) ?? []
   );
 
 // --- Reducer ---

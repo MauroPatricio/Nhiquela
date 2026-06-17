@@ -2,7 +2,7 @@ const admin = require('firebase-admin');
 const path = require('path');
 
 // Caminho para o ficheiro JSON do Service Account na raiz do projeto
-const serviceAccountPath = path.resolve(__dirname, '../reactnativepushnotificat-a322b-firebase-adminsdk-n3ra9-635e334e58.json');
+const serviceAccountPath = path.resolve(__dirname, '../nhiquela-86832-firebase-adminsdk-fbsvc-0bf1a6413d.json');
 
 try {
   const serviceAccount = require(serviceAccountPath);

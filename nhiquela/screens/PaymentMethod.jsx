@@ -54,13 +54,12 @@ const PaymentMethod = () => {
         <Text style={styles.mainHeader}>Seleccione a forma de pagamento</Text>
 
         {payments && payments.map((payment) => (
-          <View key={payment._id}>
+          <View key={payment._id} style={{ backgroundColor: '#FFFFFF', padding: 15, borderRadius: 16, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F3F4F6' }}>
             <Radio
               key={payment._id}
               options={[{ label: payment.shortName, value: payment.shortName }]}
               checkedValue={selectedPayment}
               onChange={setSelectedPayment}
-              style={{ marginBottom: 15 }}
             />
           </View>
         ))}
@@ -76,43 +75,50 @@ export default PaymentMethod
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F9FAFB",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 15,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 10,
-    color: "#333",
+    fontSize: 22,
+    fontWeight: "800",
+    marginLeft: 12,
+    color: "#1F2937",
   },
   container: {
     flex: 1,
     paddingHorizontal: 25,
     justifyContent: 'flex-start',
-    marginTop: 40,
+    marginTop: 20,
   },
   cardIcon: {
     textAlign: 'center',
-    marginBottom: 10,
-    color: "#7F00FF",
+    marginBottom: 5,
+    color: "#9333EA",
+    textShadowColor: 'rgba(147, 51, 234, 0.2)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
   checkIcon: {
     textAlign: 'center',
-    color: 'green',
+    color: '#10B981',
     position: 'absolute',
-    top: 0,
-    right: 115,
+    top: -10,
+    right: 120,
+    backgroundColor: '#FFF',
+    borderRadius: 25,
+    overflow: 'hidden',
   },
   mainHeader: {
-    marginBottom: 15,
-    fontSize: 19,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
+    color: '#374151',
+    marginTop: 10,
   },
 })

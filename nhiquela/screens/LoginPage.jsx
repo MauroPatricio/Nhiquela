@@ -114,7 +114,7 @@ export default function LoginPage() {
             />
 
             {/* Headings */}
-            <Text style={styles.title}>Bem-vindo à Nhiquela</Text>
+            <Text style={styles.title}>Bem-vindo</Text>
             <Text style={styles.subtitle}>Faça login para continuar</Text>
 
             {/* Phone Input wrapper */}
@@ -124,7 +124,7 @@ export default function LoginPage() {
                 <Ionicons
                   name="phone-portrait"
                   size={20}
-                  color="#7F00FF"
+                  color="#9333EA"
                   style={styles.iconStyle}
                 />
 
@@ -153,7 +153,7 @@ export default function LoginPage() {
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
-                  color="#7F00FF"
+                  color="#9333EA"
                   style={styles.iconStyle}
                 />
 
@@ -175,7 +175,7 @@ export default function LoginPage() {
                   <Ionicons
                     name={hideText ? 'eye-outline' : 'eye-off-outline'}
                     size={20}
-                    color="#7F00FF"
+                    color="#9333EA"
                   />
                 </TouchableOpacity>
               </View>
@@ -199,7 +199,7 @@ export default function LoginPage() {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#7F00FF', '#5900B3']}
+                colors={['#9333EA', '#7E22CE']}
                 style={styles.buttonGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -244,11 +244,12 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   cover: {
-    height: 110,
-    width: 260,
+    height: 120,
+    width: '100%',
     resizeMode: 'contain',
     marginTop: 40,
-    marginBottom: 20,
+    marginBottom: 30,
+    transform: [{ scale: 1.5 }],
   },
   title: {
     fontSize: 24,
@@ -275,19 +276,14 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   inputWrapper: (isFocused, hasError) => ({
-    borderColor: hasError ? '#EF4444' : (isFocused ? '#7F00FF' : '#E5E7EB'),
-    backgroundColor: '#FFFFFF',
-    borderWidth: isFocused || hasError ? 1.5 : 1,
+    borderColor: hasError ? '#EF4444' : (isFocused ? '#9333EA' : '#F3F4F6'),
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1.5,
     height: 56,
-    borderRadius: 14,
+    borderRadius: 16,
     flexDirection: 'row',
     paddingHorizontal: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 2,
   }),
   iconStyle: {
     marginRight: 12,
@@ -306,19 +302,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   forgotText: {
-    color: '#7F00FF',
+    color: '#9333EA',
     fontWeight: '700',
     fontSize: 14,
   },
   loginButton: {
     width: '100%',
     height: 56,
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#7F00FF',
+    shadowColor: '#9333EA',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 8,
   },
   buttonGradient: {
@@ -344,7 +340,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   link: {
-    color: '#7F00FF',
+    color: '#9333EA',
     fontWeight: '700',
   },
 });
