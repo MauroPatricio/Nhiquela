@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 
@@ -8,6 +8,11 @@ export default function FinanceScreen() {
   const [transactions, setTransactions] = useState([]);
   const [balances, setBalances] = useState({ available: 0, pending: 0, currency: 'MZN' });
   const [loading, setLoading] = useState(true);
+  
+  // Pagination and Filtering States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [filterType, setFilterType] = useState('all'); // 'all', 'credit', 'debit'
   
   // Modal de Simulação de Levantamento (M-Pesa / e-Mola)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -30,7 +35,9 @@ export default function FinanceScreen() {
         pending: balanceRes.data.pending_balance,
         currency: balanceRes.data.currency
       });
-      setTransactions(transRes.data);
+      // Sort newest first just in case
+      const sortedTransactions = (transRes.data || []).sort((a, b) => new Date(b.createdAt || b.created_at || b.date) - new Date(a.createdAt || a.created_at || a.date));
+      setTransactions(sortedTransactions);
     } catch (error) {
       console.error(error);
       toast.error('Erro ao carregar os dados financeiros da API. Certifique-se que o backend está a correr.');
@@ -59,6 +66,29 @@ export default function FinanceScreen() {
       setWithdrawing(false);
     }
   };
+
+  // Helper to extract phone numbers from description
+  const extractPhone = (desc) => {
+    if (!desc) return "Sistema";
+    const phoneMatch = desc.match(/(?:para|por|de)\s+(8[45627]\d{7})/i) || desc.match(/\b(8[45627]\d{7})\b/);
+    if (phoneMatch) return phoneMatch[1];
+    if (desc.toLowerCase().includes('taxa')) return "Nhiquela (Taxa)";
+    return "Sistema";
+  };
+
+  // Filter Logic
+  const filteredTransactions = transactions.filter(t => {
+    if (filterType === 'all') return true;
+    return t.type === filterType;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <div className="animation-fade-in">
@@ -107,8 +137,22 @@ export default function FinanceScreen() {
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
-        <div className="card-header bg-white border-0 pt-4 pb-2 px-4">
+        <div className="card-header bg-white border-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center">
           <h5 className="fw-bold m-0 text-dark">Extrato Contabilístico (Ledger API)</h5>
+          
+          <div className="d-flex align-items-center">
+            <FontAwesomeIcon icon={faFilter} className="text-muted me-2" />
+            <select 
+              className="form-select form-select-sm border-0 bg-light rounded-pill px-3 fw-bold text-muted"
+              value={filterType}
+              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
+              style={{ cursor: 'pointer', outline: 'none', boxShadow: 'none' }}
+            >
+              <option value="all">Todas Transações</option>
+              <option value="credit">Apenas Entradas (+)</option>
+              <option value="debit">Apenas Saídas (-)</option>
+            </select>
+          </div>
         </div>
         <div className="card-body p-0">
           <div className="table-responsive">
@@ -117,35 +161,45 @@ export default function FinanceScreen() {
                 <tr>
                   <th className="border-0 text-muted py-3 px-4">ID Transação</th>
                   <th className="border-0 text-muted py-3">Data</th>
+                  <th className="border-0 text-muted py-3">Agente / Utilizador</th>
                   <th className="border-0 text-muted py-3">Descrição do Lançamento</th>
                   <th className="border-0 text-muted py-3 text-end px-4">Valor (MT)</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="4" className="text-center py-5"><FontAwesomeIcon icon={faSpinner} spin className="text-primary-custom mb-2" /><p className="text-muted">A carregar ledger da API...</p></td></tr>
-                ) : transactions.length === 0 ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhum registo financeiro encontrado.</td></tr>
-                ) : transactions.map(t => {
-                  const dateObj = new Date(t.created_at);
+                  <tr><td colSpan="5" className="text-center py-5"><FontAwesomeIcon icon={faSpinner} spin className="text-primary-custom mb-2" /><p className="text-muted">A carregar ledger da API...</p></td></tr>
+                ) : currentTransactions.length === 0 ? (
+                  <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhum registo financeiro encontrado.</td></tr>
+                ) : currentTransactions.map(t => {
+                  const rawDate = t.createdAt || t.created_at || t.date;
+                  const dateObj = new Date(rawDate);
                   const isCredit = t.type === 'credit';
+                  const phoneUser = extractPhone(t.description);
+                  
                   return (
                     <tr key={t._id || t.id || Math.random().toString()}>
                       <td className="px-4 text-muted small fw-bold">{t._id || t.id}</td>
                       <td className="text-muted small">
-                        <div>{dateObj.toLocaleDateString()}</div>
-                        <div style={{fontSize: '10px'}}>{dateObj.toLocaleTimeString()}</div>
+                        <div>{isNaN(dateObj) ? 'Data Inválida' : dateObj.toLocaleDateString()}</div>
+                        <div style={{fontSize: '10px'}}>{isNaN(dateObj) ? '' : dateObj.toLocaleTimeString()}</div>
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <FontAwesomeIcon icon={faUserCircle} className="text-muted me-2 fs-5" />
+                          <span className="fw-bold text-dark">{phoneUser}</span>
+                        </div>
                       </td>
                       <td>
                         <div className="d-flex align-items-center py-1">
-                          <div className={`rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm ${isCredit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ width: '40px', height: '40px' }}>
+                          <div className={`rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm ${isCredit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ width: '40px', height: '40px', minWidth: '40px' }}>
                             <FontAwesomeIcon icon={isCredit ? faArrowUp : faArrowDown} />
                           </div>
-                          <span className="fw-bold text-dark">{t.description}</span>
+                          <span className="fw-bold text-dark" style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</span>
                         </div>
                       </td>
                       <td className={`text-end px-4 fw-bold ${isCredit ? 'text-success' : 'text-danger'}`}>
-                        {isCredit ? '+' : '-'}{parseFloat(t.amount).toFixed(2)}
+                        {isCredit ? '+' : '-'}{parseFloat(t.amount || 0).toFixed(2)}
                       </td>
                     </tr>
                   )
@@ -153,6 +207,34 @@ export default function FinanceScreen() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {!loading && totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center px-4 py-3 bg-white border-top">
+              <span className="text-muted small">
+                Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredTransactions.length)} de {filteredTransactions.length} registos
+              </span>
+              <div className="btn-group shadow-sm">
+                <button 
+                  className="btn btn-light border-0 text-primary-custom" 
+                  disabled={currentPage === 1} 
+                  onClick={() => paginate(currentPage - 1)}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+                <div className="btn btn-light border-0 fw-bold px-4" style={{ pointerEvents: 'none' }}>
+                  Página {currentPage} de {totalPages}
+                </div>
+                <button 
+                  className="btn btn-light border-0 text-primary-custom" 
+                  disabled={currentPage === totalPages} 
+                  onClick={() => paginate(currentPage + 1)}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
