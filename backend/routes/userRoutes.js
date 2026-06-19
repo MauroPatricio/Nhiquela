@@ -7,6 +7,7 @@ import Product from '../models/ProductModel.js';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'
 import mongoose from 'mongoose';
+import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
 import {updatePushToken} from '../controllers/userController.js'
 import DeliverymanUpdateRequest from "../models/DeliverymanUpdateRequestModel.js";
 
@@ -18,20 +19,43 @@ userRouter.get(
   // isAuth,
   // isAdmin,
   expressAsyncHandler(async (req, res) => {
-    try{
-
+    try {
       const page = req.query.page || 1;
-      const pageSize = 10    
+      const pageSize = 10;
       
-      const users = await User.find().skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+      const users = await User.find()
+        .skip(pageSize * (page - 1))
+        .limit(pageSize)
+        .sort({ createdAt: -1 })
+        .populate('seller.tipoEstabelecimento'); // Adicionado populate para tipoEstabelecimento
+      
       const countUsers = await User.countDocuments();
-      const pages = Math.ceil(countUsers/pageSize);
+      const pages = Math.ceil(countUsers / pageSize);
   
-      res.send({users, pages});
-    }catch(e){
+      res.send({ users, pages });
+    } catch (e) {
       console.log(e);
+      res.status(500).send({ message: 'Erro ao buscar usuários' });
     }
-    
+  })
+);
+
+
+userRouter.get(
+  "/tipoestabelecimentos",
+  expressAsyncHandler(async (req, res) => {
+    try {
+      // Pegue todos IDs de tipos de estabelecimentos usados pelos sellers
+      const usados = await User.distinct("seller.tipoEstabelecimento", { seller: { $exists: true } });
+
+      // Agora busque esses tipos no modelo TipoEstabelecimento
+      const tipoestabelecimentos = await TipoEstabelecimento.find({ _id: { $in: usados } });
+
+      res.send({tipoestabelecimentos});
+    } catch (e) {
+      console.log(e);
+      res.status(500).send({ message: "Erro ao buscar tipos de estabelecimentos" });
+    }
   })
 );
 
@@ -39,141 +63,278 @@ userRouter.get(
 userRouter.get(
   '/top-sellers',
   expressAsyncHandler(async (req, res) => {
+    try {
+      const topSellers = await User.find({ 
+        isSeller: true, 
+        isApproved: true, 
+        isBanned: false,
+        'seller.tipoEstabelecimento': { $exists: true } // Garante que tem tipoEstabelecimento
+      })
+      .select('-password -token')
+      .populate('seller.tipoEstabelecimento') // Popula os dados do tipo de estabelecimento
+      .sort({ 'seller.rating': -1, 'seller.numReviews': -1 })
+      .limit(4)
+      .lean();
 
+      if (!topSellers || topSellers.length === 0) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Nenhum vendedor encontrado',
+          data: []
+        });
+      }
+      
+      // Formata a resposta para incluir o tipo de estabelecimento
+      const formattedSellers = topSellers.map(seller => ({
+        ...seller,
+        seller: {
+          ...seller.seller,
+          tipoEstabelecimento: seller.seller.tipoEstabelecimento?.name || 'Não especificado'
+        }
+      }));
 
-    const topSellers = await User.find({ isSeller: true, isApproved: true, isBanned: false })
-      .sort({ 'seller.rating': -1 })
-      .limit(4);
-    res.send(topSellers);
-    })
+      res.json({ 
+        success: true,
+        count: formattedSellers.length,
+        sellers: formattedSellers 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar top sellers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno ao processar sua solicitação'
+      });
+    }
+  })
 );
-
 
 // All Sellers
 userRouter.get(
   '/sellers',
   expressAsyncHandler(async (req, res) => {
-    const page = req.query.page || 1;
-    const pageSize = 10   
-    try{
+    try {
+      const page = Number(req.query.page) || 1;
+      const pageSize = 10;
+      const { tipoEstabelecimento } = req.query;
 
-      const sellers = await User.find({ isSeller: true, isApproved: true, isBanned: false }).skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1})
-        .sort({ 'seller.rating': -1 }).populate('seller.province');
-      
-      const countSellers = await User.countDocuments({ isSeller: true, isApproved: true, isBanned: false });
-      const pages = Math.ceil(countSellers/pageSize);
+      const query = {
+        isSeller: true,
+        isApproved: true,
+        isBanned: false,
+      };
 
-      res.send({sellers,pages,countSellers});
-    }catch(e){
-      console.log(e)
+      if (tipoEstabelecimento && mongoose.Types.ObjectId.isValid(tipoEstabelecimento)) {
+        query['seller.tipoEstabelecimento'] = tipoEstabelecimento;
+      }
+
+      // Buscar sellers sem duplicados
+      const sellers = await User.find(query)
+        .sort({ createdAt: -1 })
+        .populate('seller.province')
+        .populate('seller.tipoEstabelecimento');
+
+      // Remover duplicados manualmente pelo _id
+      const uniqueSellersMap = new Map();
+      sellers.forEach(seller => {
+        if (!uniqueSellersMap.has(String(seller._id))) {
+          uniqueSellersMap.set(String(seller._id), seller);
+        }
+      });
+      const uniqueSellers = Array.from(uniqueSellersMap.values());
+
+      // Paginação
+      const countSellers = uniqueSellers.length;
+      const pages = Math.ceil(countSellers / pageSize);
+      const paginatedSellers = uniqueSellers.slice(pageSize * (page - 1), pageSize * page);
+
+      res.send({
+        sellers: paginatedSellers,
+        pages,
+        countSellers,
+        currentPage: page,
+      });
+    } catch (e) {
+      console.error('Erro ao buscar vendedores:', e);
+      res.status(500).send({ message: 'Erro ao buscar vendedores' });
     }
   })
 );
 
-import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
-
-userRouter.get(
-  '/tipoestabelecimentos',
+userRouter.post(
+  '/signinseller',
   expressAsyncHandler(async (req, res) => {
-    const tipoestabelecimentos = await TipoEstabelecimento.find();
-    res.send({ tipoestabelecimentos });
+    const { phoneNumber, password, deviceToken } = req.body;
+
+
+
+    // Buscar usuário vendedor
+    const isEmail = phoneNumber.includes('@');
+    const query = isEmail
+      ? { email: phoneNumber, isSeller: true }
+      : { phoneNumber, isSeller: true };
+
+    const user = await User.findOne(query);
+
+    // ❌ Usuário não existe
+    if (!user) {
+      return res.status(401).send({ message: 'Usuário não encontrado ou não é vendedor' });
+    }
+
+    // ❌ Conta banida
+    if (user.isBanned) {
+      return res.status(401).send({
+        message: 'Esta conta foi BANIDA! Por favor, contacte o administrador.',
+      });
+    }
+
+    // ❌ Senha errada
+    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(401).send({ message: 'Senha inválida' });
+    }
+
+    // Atualizar token do dispositivo, se fornecido
+    if (deviceToken) {
+      user.deviceToken = deviceToken;
+      await user.save();
+    }
+
+    // Sucesso → devolve dados completos
+    return res.status(200).send({
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+      isAdmin: user.isAdmin,
+      isApproved: user.isApproved,
+      isBanned: user.isBanned,
+      isSeller: user.isSeller,
+      isDeliveryMan: user.isDeliveryMan,
+      seller: user.seller,
+      token: generateToken(user),
+    });
   })
 );
+
 
 userRouter.get(
   '/:id',
   expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id).populate('seller.province');
-    if (user) {
-      res.send(user);
-    } else {
-      res.status(404).send({ message: 'Utilizador não encontrado' });
+    try {
+      const user = await User.findById(req.params.id)
+        .populate('seller.province')
+        .populate('seller.tipoEstabelecimento'); // Adicionado populate para tipoEstabelecimento
+      
+      if (user) {
+        res.send({
+          ...user.toObject(),
+          seller: {
+            ...user.seller.toObject(),
+            tipoEstabelecimento: user.seller.tipoEstabelecimento?.name || 'Não especificado'
+          }
+        });
+      } else {
+        res.status(404).send({ message: 'Utilizador não encontrado' });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error);
+      res.status(500).send({ message: 'Erro interno ao buscar usuário' });
     }
   })
 );
-
 userRouter.put(
   '/profile',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id);
+    try {
+      const user = await User.findById(req.user._id);
 
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
-      user.isSeller = req.body.isSeller ;
+      if (user) {
+        user.name = req.body.name || user.name;
+        user.email = req.body.email || user.email;
+        user.isSeller = req.body.isSeller;
 
-      if (req.body.isSeller) {
-        user.seller.name = req.body.sellerName || req.body.seller.name || user.seller.name;
-        user.seller.description =req.body.sellerDescription|| req.body.seller.description || user.seller.description;
-        user.seller.logo = req.body.sellerLogo ||req.body.seller.logo || user.seller.logo;
-        user.seller.opentime= req.body.opentime || req.body.seller.opentime ||user.seller.opentime;
-        user.seller.closetime= req.body.closetime|| req.body.seller.closetime || user.seller.closetime;
-        user.seller.province=  req.body.sellerLocation|| req.body.seller.province || user.seller.province;
-        user.seller.address=req.body.sellerAddress || req.body.seller.address ||user.seller.address;
-        user.seller.phoneNumberAccount=req.body.phoneNumberAccount|| req.body.seller.phoneNumberAccount|| user.seller.phoneNumberAccount;
-        user.seller.alternativePhoneNumberAccount=req.body.alternativePhoneNumberAccount|| req.body.seller.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount;
+        if (req.body.isSeller) {
+          user.seller = {
+            ...user.seller,
+            name: req.body.sellerName || req.body.seller?.name || user.seller.name,
+            description: req.body.sellerDescription || req.body.seller?.description || user.seller.description,
+            logo: req.body.sellerLogo || req.body.seller?.logo || user.seller.logo,
+            opentime: req.body.opentime || req.body.seller?.opentime || user.seller.opentime,
+            closetime: req.body.closetime || req.body.seller?.closetime || user.seller.closetime,
+            province: req.body.sellerLocation || req.body.seller?.province || user.seller.province,
+            address: req.body.sellerAddress || req.body.seller?.address || user.seller.address,
+            phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount || user.seller.phoneNumberAccount,
+            alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount,
+            accountType: req.body.accountType || req.body.seller?.accountType || user.seller.accountType,
+            accountNumber: req.body.accountNumber || req.body.seller?.accountNumber || user.seller.accountNumber,
+            latitude: req.body.latitude || req.body.seller?.latitude || user.seller.latitude,
+            longitude: req.body.longitude || req.body.seller?.longitude || user.seller.longitude,
+            alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType || user.seller.alternativeAccountType,
+            alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller?.alternativeAccountNumber || user.seller.alternativeAccountNumber,
+            workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime || user.seller.workDayAndTime,
+            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento || user.seller.tipoEstabelecimento // Adicionado tipoEstabelecimento
+          };
+        } else {
+          // Limpa os dados do seller se não for mais um vendedor
+          user.seller = {
+            name: "",
+            description: "",
+            logo: "",
+            opentime: "",
+            closetime: "",
+            province: null,
+            address: "",
+            phoneNumberAccount: "",
+            alternativePhoneNumberAccount: "",
+            accountType: "",
+            accountNumber: "",
+            alternativeAccountType: "",
+            alternativeAccountNumber: "",
+            workDayAndTime: [],
+            tipoEstabelecimento: null // Adicionado tipoEstabelecimento
+          };
+        }
+
+        if (user.isDeliveryMan) {
+          user.deliveryman = {
+            ...user.deliveryman,
+            photo: req.body.deliveryManPhoto,
+            name: req.body.deliveryManName,
+            phoneNumber: req.body.deliveryManPhoneNumber,
+            transport_type: req.body.deliveryMantransportType,
+            transport_registration: req.body.deliveryMantransportRegistration,
+            transport_color: req.body.deliveryMantransportColor
+          };
+        }
+
+        if (req.body.password) {
+          user.password = bcrypt.hashSync(req.body.password, 8);
+        }
+
+        const updatedUser = await user.save();
         
-        user.seller.accountType=req.body.accountType || req.body.seller.accountType || user.seller.accountType;
-        user.seller.accountNumber=req.body.accountNumber || req.body.seller.accountNumber || user.seller.accountNumber;
-
-
-        user.seller.latitude=req.body.latitude || req.body.seller.latitude || user.seller.latitude;
-        user.seller.longitude=req.body.longitude || req.body.seller.longitude || user.seller.longitude;
-
-        user.seller.alternativeAccountType=req.body.alternativeAccountType || req.body.seller.alternativeAccountType || user.seller.alternativeAccountType;
-        user.seller.alternativeAccountNumber=req.body.alternativeAccountNumber || req.body.seller.alternativeAccountNumber || user.seller.alternativeAccountNumber;
-
-        user.seller.workDayAndTime = req.body.workDaysWithTime || req.body.seller.workDayAndTime   || user.seller.workDaysWithTime;
-      }else{
-        user.seller.name = "";
-        user.seller.description = "";
-        user.seller.logo = "";
-        user.seller.opentime="",
-        user.seller.closetime= ""; 
-        user.seller.province=null;
-        user.seller.address="";
-        user.seller.phoneNumberAccount="";    
-        user.seller.alternativePhoneNumberAccount="";
-        user.seller.accountType="";   
-        user.seller.accountNumber="";
-        user.seller.alternativeAccountType="";
-        user.seller.alternativeAccountNumber="";
-        user.seller.workDayAndTime=[];
+        res.send({
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          isAdmin: updatedUser.isAdmin,
+          isDeliveryMan: updatedUser.isDeliveryMan,
+          isSeller: updatedUser.isSeller,
+          isBanned: updatedUser.isBanned,
+          seller: updatedUser.seller,
+          token: generateToken(updatedUser),
+        });
+      } else {
+        res.status(404).send({ message: 'Usuário não encontrado' });
       }
-
-
-      if(user.isDeliveryMan){
-        user.deliveryman.photo = req.body.deliveryManPhoto;
-        user.deliveryman.name = req.body.deliveryManName;
-        user.deliveryman.phoneNumber = req.body.deliveryManPhoneNumber;
-        user.deliveryman.transport_type = req.body.deliveryMantransportType;
-        user.deliveryman.transport_registration = req.body.deliveryMantransportRegistration;
-        user.deliveryman.transport_color = req.body.deliveryMantransportColor;
-      }
-
-      if (req.body.password) {
-        user.password = bcrypt.hashSync(req.body.password, 8);
-      }
-
-      const updateUser = await user.save();
-      res.send({
-        _id: updateUser._id,
-        name: updateUser.name,
-        email: updateUser.email,
-        isAdmin: updateUser.isAdmin,
-        isDeliveryMan: updateUser.isDeliveryMan,
-        isSeller: updateUser.isSeller,
-        isBanned: updateUser.isBanned,
-        seller: updateUser.seller,
-
-        token: generateToken(updateUser),
-      });
-    } else {
-      res.status(404).send({ message: 'Usuário não encontrado' });
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      res.status(500).send({ message: 'Erro ao atualizar perfil' });
     }
   })
 );
+
 
 userRouter.put(
   '/:id',
@@ -220,29 +381,30 @@ userRouter.get(
       const page = parseInt(req.query.page) || 1;
       const pageSize = 10;
       
-      // Validate establishmentTypeId
       if (!mongoose.Types.ObjectId.isValid(establishmentTypeId)) {
         return res.status(400).send({ message: 'Invalid establishment type ID' });
       }
 
-      // Query to find only approved sellers associated with the given establishment type
-     const query = {
+      const query = {
         isSeller: true,
         isApproved: true,
-        'seller.tipoEstabelecimento': { $exists: true, $eq: establishmentTypeId }
+        'seller.tipoEstabelecimento': establishmentTypeId
       };
 
       const users = await User.find(query)
-        .select('-password -__v') // Exclude sensitive fields
+        .select('-password -__v')
         .skip(pageSize * (page - 1))
         .limit(pageSize)
         .sort({ createdAt: -1 })
-        .populate('seller.tipoEstabelecimento'); // Populate establishment type name
+        .populate('seller.tipoEstabelecimento')
+        .lean(); // Use lean() for better performance
 
       const countUsers = await User.countDocuments(query);
       const pages = Math.ceil(countUsers / pageSize);
 
-      // Transform the data to include seller and establishment info
+      // REMOVA COMPLETAMENTE O FILTRO DE DUPLICATAS - não é necessário
+      // O MongoDB já garante que não retorna documentos duplicados
+
       const formattedUsers = users.map(user => ({
         _id: user._id,
         name: user.name,
@@ -252,15 +414,17 @@ userRouter.get(
           name: user.seller?.name,
           logo: user.seller?.logo,
           description: user.seller?.description,
-          tipoEstabelecimento: user.seller?.tipoEstabelecimento?.name,
+          tipoEstabelecimento: user.seller?.tipoEstabelecimento,
           address: user.seller?.address,
           contact: user.seller?.phoneNumberAccount,
-          isOpen: user.seller?.openstore
+          isOpen: user.seller?.openstore,
+          latitude: user.seller?.latitude,
+          longitude: user.seller?.longitude,
+          numReviews: user.seller?.numReviews,
+          rating: user.seller?.rating
         },
         createdAt: user.createdAt
       }));
-
-      console.log('Passei daqui');
 
       res.send({
         users: formattedUsers,
@@ -282,19 +446,56 @@ userRouter.get(
 
 
 // Actualiza se a loja esta aberta ou fechada
-userRouter.put(
-  '/seller/:id',
-  // isAuth,
-  // isAdmin,
-  expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
-    if (user) {
+// userRouter.put(
+//   '/seller/:id',
+//   // isAuth,
+//   // isAdmin,
+//   expressAsyncHandler(async (req, res) => {
+
+//     const user = await User.findById(req.params.id);
+
+//     if (user) {
     
-      user.seller.openstore = Boolean(req.body.isopenstore);
+//       user.seller.openstore = Boolean(req.body.isopenstore);
 
      
+//       await user.save();
+//       res.status(201).send({user,  message: 'Loja Actualizada com Sucesso' });
+//     } else {
+//       res.status(404).send({ message: 'Utilizador não encontrado' });
+//     }
+//   })
+// );
+
+// Actualiza o estado da loja e dos seus produtos de acordo com o estado da loja se esta aberta ou fechada
+userRouter.put(
+  '/seller/:id',
+  expressAsyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+      const isOpenStore = Boolean(req.body.isopenstore);
+      user.seller.openstore = isOpenStore;
+
       await user.save();
-      res.send({ message: 'Loja Actualizada com Sucesso' });
+
+      // Atualizar todos os produtos com o estado atual da loja
+      await Product.updateMany(
+        { seller: req.params.id },
+        { isSellerOpen: isOpenStore }
+      );
+
+     // Emitir evento pelo socket
+    const io = req.app.get('io');
+    io.emit('storeStatusChanged', {
+      sellerId: req.params.id,
+      isOpen: user.seller.openstore,
+    });
+
+      res.status(201).send({
+        user,
+        message: 'Loja e produtos atualizados com sucesso',
+      });
     } else {
       res.status(404).send({ message: 'Utilizador não encontrado' });
     }
@@ -321,7 +522,7 @@ expressAsyncHandler(async(req, res)=>{
   if(user){
     const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET, {expiresIn: '3h'})
 
-    user.resetToken = token 
+    user.token = token 
     await user.save();
 
     console.log(`${baseUrl()}/reset-password/${token}`)
@@ -335,7 +536,7 @@ const text = `<p>Por favor click no link abaixo para resetar a sua senha</p>
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',         
   to: user.email,       
-  subject: 'Recuperação de senha – nhiquela.',                
+  subject: 'Recuperação de senha – Nhiquela Shop',                
   text: text,
 };
 
@@ -360,12 +561,42 @@ transporter.sendMail(mailOptions, function (error, info) {
 }));
 
 
+// Atualiza apenas o estado da loja (aberta/fechada)
+userRouter.patch(
+  '/seller-status/:id',
+  expressAsyncHandler(async (req, res) => {
+    const { isOpenStore } = req.body; // true ou false
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Utilizador não encontrado' });
+    }
+
+    user.seller.openstore = Boolean(isOpenStore);
+    await user.save();
+
+    // Atualiza o estado dos produtos da loja
+    await Product.updateMany(
+      { seller: req.params.id },
+      { isSellerOpen: Boolean(isOpenStore) }
+    );
+
+    // Notificação via socket
+    const io = req.app.get('io');
+    io.emit('storeStatusChanged', { sellerId: req.params.id, isOpen: Boolean(isOpenStore) });
+
+    res.status(200).json({ message: 'Estado da loja atualizado com sucesso', isOpenStore: Boolean(isOpenStore) });
+  })
+);
+
+
+
 userRouter.post('/reset-password', expressAsyncHandler(async (req, res)=>{
   jwt.verify(req.body.token, process.env.JWT_SECRET, async(err, decode)=>{
     if(err){
       res.status(401).send({message: 'Invalid Token'})
     }else{
-      const user = await User.findOne({resetToken: req.body.token});
+      const user = await User.findOne({token: req.body.token});
       if(user){
         if(req.body.password){
           user.password = bcrypt.hashSync(req.body.password, 8)
@@ -380,148 +611,276 @@ userRouter.post('/reset-password', expressAsyncHandler(async (req, res)=>{
 }))
 
 
+
+// ==========================================
+// OTP ROUTES (MOCK PARA DESENVOLVIMENTO)
+// ==========================================
+
+// Mock storage for OTPs in memory
+const otpStore = new Map();
+
+userRouter.post('/send-otp', expressAsyncHandler(async (req, res) => {
+  const { phoneNumber } = req.body;
+  
+  if (!phoneNumber) {
+    return res.status(400).send({ message: 'Número de telefone é obrigatório' });
+  }
+
+  // Verifica se o utilizador existe
+  let user;
+  if (phoneNumber.includes('@')) {
+    user = await User.findOne({ email: phoneNumber });
+  } else {
+    user = await User.findOne({ phoneNumber });
+  }
+  
+  if (!user) {
+    return res.status(404).send({ message: 'Conta/Usuário não encontrado. Registe-se primeiro.' });
+  }
+
+  if (user.isBanned) {
+    return res.status(401).send({ message: 'Esta conta foi BANIDA. Por favor, contacte o Administrador.' });
+  }
+
+  // Gerar um código OTP simples (ex: 1234 para testes ou random)
+  const otpCode = "1234"; // Fixo para facilidade de teste
+  
+  // Guardar no Map (telefone -> otp)
+  otpStore.set(phoneNumber, otpCode);
+
+  // Em produção, aqui chamaria o Twilio, Firebase, InfoBip, etc.
+  console.log(`[MOCK SMS] Enviando OTP ${otpCode} para ${phoneNumber}`);
+
+  res.send({ message: 'Código SMS enviado com sucesso', success: true });
+}));
+
+userRouter.post('/verify-otp', expressAsyncHandler(async (req, res) => {
+  const { phoneNumber, otp, deviceToken } = req.body;
+
+  if (!phoneNumber || !otp) {
+    return res.status(400).send({ message: 'Telefone e código são obrigatórios' });
+  }
+
+  const storedOtp = otpStore.get(phoneNumber);
+
+  if (!storedOtp || storedOtp !== otp) {
+    return res.status(401).send({ message: 'Código inválido ou expirado' });
+  }
+
+  // Código correto, limpar da memória
+  otpStore.delete(phoneNumber);
+
+  // Fazer Login
+  let user;
+  if (phoneNumber.includes('@')) {
+    user = await User.findOne({ email: phoneNumber });
+  } else {
+    user = await User.findOne({ phoneNumber });
+  }
+
+  if (!user) {
+    return res.status(404).send({ message: 'Utilizador não encontrado' });
+  }
+
+  // Atualiza o token do dispositivo
+  if (deviceToken) {
+    if (!user.deviceTokens) {
+      user.deviceTokens = [];
+    }
+    if (!user.deviceTokens.includes(deviceToken)) {
+      user.deviceTokens.push(deviceToken);
+      await user.save();
+    }
+  }
+
+  res.send({
+    _id: user._id,
+    name: user.name,
+    photo: user.photo,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    isDeliveryMan: user.isDeliveryMan,
+    deliveryman: user.deliveryman,
+    token: generateToken(user),
+  });
+}));
+
+
+// ==========================================
+// FORGOT PASSWORD
+// ==========================================
+userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
+  const { phoneNumber } = req.body;
+  
+  if (!phoneNumber) {
+    return res.status(400).send({ message: 'Número de telefone é obrigatório' });
+  }
+
+  let user;
+  if (phoneNumber.includes('@')) {
+    user = await User.findOne({ email: phoneNumber });
+  } else {
+    user = await User.findOne({ phoneNumber });
+  }
+  
+  if (!user) {
+    return res.status(404).send({ message: 'Conta/Usuário não encontrado.' });
+  }
+
+  if (!user.email) {
+    return res.status(400).send({ message: 'Não existe nenhum email associado a esta conta.' });
+  }
+
+  // Gera uma nova senha aleatória de 6 dígitos
+  const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Hash da nova senha e atualiza no BD
+  user.password = bcrypt.hashSync(newPassword, 8);
+  await user.save();
+
+  // MOCK DE ENVIO DE EMAIL
+  console.log('================================================');
+  console.log(`[MOCK EMAIL] Para: ${user.email}`);
+  console.log(`Assunto: Recuperação de Palavra-passe - Nhiquela`);
+  console.log(`Mensagem: Olá ${user.name}, a sua nova senha de acesso é: ${newPassword}`);
+  console.log('================================================');
+
+  res.send({ 
+    message: 'Uma nova senha foi enviada para o seu email registado.',
+    success: true,
+    emailMasked: user.email.replace(/(.{2})(.*)(?=@)/, (gp1, gp2, gp3) => { 
+      return gp2 + gp3.replace(/./g, '*'); 
+    })
+  });
+}));
+
 userRouter.post(
   '/signin',
   expressAsyncHandler(async (req, res) => {
+    const { phoneNumber, password, deviceToken } = req.body;
+
     let user = null;
 
-    const loginIdentifier = req.body.email || req.body.phoneNumber || '';
-
-    if (loginIdentifier.includes("@")){
-      user = await User.findOne({ email: loginIdentifier });
-    }else{
-      if (!isNaN(loginIdentifier) && loginIdentifier.trim() !== '') {
-        user = await User.findOne({ phoneNumber: loginIdentifier });
+    // --- Buscar usuário por email ou telefone ---
+    if (phoneNumber.includes('@')) {
+      user = await User.findOne({ email: phoneNumber });
+    } else {
+      if (!isNaN(phoneNumber)) {
+        user = await User.findOne({ phoneNumber });
       } else {
-        res.status(401).send({ message: 'Email ou número de telefone inválido' });
-        return;
+        return res.status(400).send({ message: 'Número de telefone inválido.' });
       }
     }
 
-    if (user){
-      if(user.isBanned){
-        res.status(401).send({ message: 'Esta conta foi BANIDA!!! Solicito que contacte o Administrador' });
-      }
+    // --- Verificar se usuário existe ---
+    if (!user) {
+      return res.status(401).send({ message: 'Conta/Usuário não encontrado.' });
     }
-    if (user) {
-      if (bcrypt.compareSync(req.body.password, user.password)) {
-        res.send({
-          _id: user._id,
-          email: user.email,
-          photo: user.photo,
-          isAdmin: user.isAdmin,
-          isApproved: user.isApproved,
-          isBanned: user.isBanned,
-          isDeliveryMan: user.isDeliveryMan,
-          isSeller: user.isSeller,
-          name: user.name,
-          phoneNumber: user.phoneNumber,
-          seller: user.seller,
-          deliveryman: user.deliveryman,
-          tipoEstabelecimento: user.tipoEstabelecimento,
-          token: generateToken(user),
-        });
-        return;
-      }
+
+    // --- Verificar se está banido ---
+    if (user.isBanned) {
+      return res.status(401).send({
+        message: 'Esta conta foi BANIDA. Por favor, contacte o Administrador.',
+      });
     }
-    res.status(401).send({ message: 'Número de telefone ou senha invalida' });
+
+    // --- Verificar senha ---
+    const passwordMatch = bcrypt.compareSync(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).send({ message: 'Senha inválida.' });
+    }
+
+    // --- Atualizar deviceToken se presente ---
+    if (deviceToken) {
+      user.deviceToken = deviceToken;
+      await user.save();
+    }
+
+    // --- Responder com dados do usuário e token ---
+    res.status(200).send({
+      _id: user._id,
+      email: user.email,
+      photo: user.photo || null,
+      isAdmin: user.isAdmin,
+      isApproved: user.isApproved,
+      isBanned: user.isBanned,
+      isDeliveryMan: user.isDeliveryMan,
+      isSeller: user.isSeller,
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+      seller: user.seller || null,
+      deliveryman: user.deliveryman || null,
+      tipoEstabelecimento: user.tipoEstabelecimento || null,
+      token: generateToken(user),
+    });
   })
 );
+
+
+
+
+
 
 userRouter.post(
   '/signup',
   expressAsyncHandler(async (req, res) => {
+    try {
+      const userExist = await User.findOne({ phoneNumber: req.body.phoneNumber });
+      const emailExist = await User.findOne({ email: req.body.email });
 
-    const userExist = await User.findOne({ phoneNumber: req.body.phoneNumber });
-    const emailExist = await User.findOne({ email: req.body.email });
- try {
-
-  console.log("Requisicao Chegou Cadastrosss...")
-
-if(emailExist){
-  res.status(409).send({ message: 'Já existe um email idêntico registrado' });
-  return;
-}
-
-
-if (!userExist) {
-
-      const newUser = new User({
-        name: req.body.name,
-        phoneNumber: req.body.phoneNumber,
-        email: req.body.email,
-        password: bcrypt.hashSync(req.body.password),
-        isSeller: req.body.isSeller,
-        isDeliveryMan: req.body.isDeliveryMan,// Flag Adicionada
-      });
-
-      if (newUser.isSeller) {
-
-        const seller = {
-          name: req.body.sellerName || req.body.seller?.name,
-          logo: req.body.sellerLogo || req.body.seller?.logo,
-          description: req.body.sellerDescription || req.body.seller?.description,
-          province: req.body.sellerLocation || req.body.seller?.province,
-          address:  req.body.sellerAddress || req.body.seller?.address,
-          phoneNumberAccount:  req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount,
-          alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount  || req.body.seller?.alternativePhoneNumberAccount,
-          accountType:  req.body.accountType  || req.body.seller?.accountType,
-          accountNumber: req.body.accountNumber|| req.body.seller?.accountNumber,
-          alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType,
-          alternativeAccountNumber: req.body?.alternativeAccountNumber || req.body.seller?.alternativeAccountNumber,
-          workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime,
-          latitude:   req.body.latitude || req.body.seller?.latitude,
-          longitude:  req.body.longitude ||  req.body.seller?.longitude,
-
-        };
-        newUser.seller = seller;
+      if (emailExist) {
+        return res.status(409).send({ message: 'Já existe um email idêntico registrado' });
       }
 
-       if (newUser.isDeliveryMan) {
-        const deliveryman = {
-          photo: req.body.photo,
-          name: req.body.deliverymanName,
-          phoneNumber: req.body.deliverymanPhoneNumber,
-          transport_type: req.body.transport_type,
-          transport_color: req.body.transport_color,
-          transport_registration: req.body.transport_registration,
+      if (!userExist) {
+        const newUser = new User({
+          name: req.body.name,
+          phoneNumber: req.body.phoneNumber,
+          email: req.body.email,
+          password: bcrypt.hashSync(req.body.password),
+          isSeller: req.body.isSeller,
+        });
 
-          vihicle_picture: req.body.vihicle_picture,
-          vihicle_inspection: req.body.vihicle_inspection,
-          vihicle_Insurance: req.body.vihicle_Insurance,
 
-          license_front: req.body.license_front,
-          license_back: req.body.license_back,
+        if (newUser.isSeller) {
+          newUser.seller = {
+            name: req.body.sellerName || req.body.seller?.name,
+            logo: req.body.sellerLogo || req.body.seller?.logo,
+            description: req.body.sellerDescription || req.body.seller?.description,
+            province: req.body.sellerLocation || req.body.seller?.province,
+            address: req.body.sellerAddress || req.body.seller?.address,
+            phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount,
+            alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount,
+            accountType: req.body.accountType || req.body.seller?.accountType,
+            accountNumber: req.body.accountNumber || req.body.seller?.accountNumber,
+            alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType,
+            alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller?.alternativeAccountNumber,
+            workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime,
+            latitude: req.body.latitude || req.body.seller?.latitude,
+            longitude: req.body.longitude || req.body.seller?.longitude,
+            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento // Adicionado tipoEstabelecimento
+          };
+        }
 
-          document_type: req.body.document_type,
-          document_front: req.body.document_front,
-          document_back: req.body.document_back,
-
-          Proof_of_Address: req.body.Proof_of_Address,
-          Proof_of_Addres_Reason: req.body.Proof_of_Addres_Reason
-        };
-        newUser.deliveryman = deliveryman;
+        const user = await newUser.save();
+        return res.send({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          isAdmin: user.isAdmin,
+          isDeliveryMan: user.isDeliveryMan,
+          isSeller: user.isSeller,
+          isBanned: user.isBanned,
+          token: generateToken(user),
+        });
       }
 
-      const user = await newUser.save();
-      res.send({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        isAdmin: user.isAdmin,
-        isDeliveryMan: user.isDeliveryMan,
-        isSeller: user.isSeller,
-        isBanned: user.isBanned,
-        token: generateToken(user),
-      });
-      return;
-    }
-
-    res.status(409).send({ message: 'Número de Registo existente' });
-  }catch(error){
-        console.error('Erro no registro de usuário:', error);
-
+      res.status(409).send({ message: 'Número de registo existente' });
+    } catch (error) {
+            console.log(error)
+      console.error('Erro no registro de usuário:', error);
+      res.status(500).send({ message: 'Erro interno no registro' });
     }
   })
 );
@@ -546,448 +905,45 @@ userRouter.delete(
   })
 );
 
-//////////////////////////////////////////////////////// NEW-ENDPOINT /////////////////////////////////////////////
+userRouter.post('/updateDeviceToken', async (req, res) => {
+  const { userId, deviceToken } = req.body;
+  await User.findByIdAndUpdate(userId, { deviceToken: deviceToken });
+  res.send({ success: true });
+});
 
-userRouter.post(
-  "/deliveryman/update-request",           
-  expressAsyncHandler(async (req, res) => {
-    try {
-      
-     
-      console.log("📩 [UPDATE REQUEST RECEBIDA] ========================");
-      console.log("🔹 Headers:", JSON.stringify(req.headers, null, 2));
-      console.log("🔹 Body:", JSON.stringify(req.body, null, 2));
-      console.log("🔹 Query:", req.query);
-      console.log("🔹 Params:", req.params);
-      console.log("🔹 req.userId:", req.userId);
-      console.log("🔹 req.phoneNumber:", req.phoneNumber);
-      console.log("====================================================");
-      if (!user) {
-        return res.status(404).json({ message: "Usuário não encontrado" });
-      }
-      
-      // if (!user || !user.isDeliveryMan) {
-      //   return res.status(403).send({ message: "Acesso negado: não é deliveryman." });
-      // }
 
-      const updateFields = {};
+userRouter.put('/updateDeviceToken/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, {
+      deviceToken: req.body.deviceToken,
+    }, { new: true });
 
-      // Copiar somente campos preenchidos
-      const allowedFields = [
-        "photo", "name", "phoneNumber", "transport_type", "transport_color", "transport_registration",
-        "vihicle_picture", "vihicle_inspection", "vihicle_Insurance",
-        "license_front", "license_back",
-        "document_type", "document_front", "document_back",
-        "Proof_of_Address", "Proof_of_Addres_Reason"
-      ];
+    if (!user) return res.status(404).send({ message: 'Usuário não encontrado' });
 
-      allowedFields.forEach(field => {
-        if (req.body[field] !== undefined && req.body[field] !== null && req.body[field] !== "") {
-          updateFields[field] = req.body[field];
-        }
-      });
+    res.send({ message: 'DeviceToken atualizado com sucesso', user });
+  } catch (err) {
+    res.status(500).send({ message: 'Erro ao atualizar token' });
+  }
+});
 
-      if (Object.keys(updateFields).length === 0) {
-        return res.status(400).send({ message: "Nenhum dado válido foi enviado para atualização." });
-      }
 
-      console.log("UserId", userId)
+// Backend: routes/users.js ou semelhante
+userRouter.patch('/updatePushToken/:id', async (req, res) => {
+  const { id } = req.params;
+  const { pushToken } = req.body;
 
-      const updateRequest = new DeliverymanUpdateRequest({
-        deliverymanId: user._id,
-        updatedFields: updateFields
-      });
-
-      await updateRequest.save();
-
-      res.status(200).send({
-        message: "Solicitação de atualização enviada com sucesso.",
-        requestId: updateRequest._id
-      });
-
-    } catch (error) {
-      console.error("Erro ao criar solicitação de atualização:", error);
-      res.status(500).send({ message: "Erro interno do servidor." });
+  try {
+    const user = await User.findByIdAndUpdate(id, { pushToken }, { new: true });
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
-  })
-);
 
-userRouter.put(
-  "/deliveryman/update-request/:id/approve",
-  expressAsyncHandler(async (req, res) => {
-    try {
-      if (!req.user.isAdmin) {
-        return res.status(403).send({ message: "Acesso negado: apenas administradores podem aprovar solicitações." });
-      }
+    res.status(200).json({ message: 'PushToken atualizado com sucesso.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao atualizar PushToken.' });
+  }
+});
 
-      const requestId = req.params.id;
-      const request = await DeliverymanUpdateRequest.findById(requestId);
-
-      if (!request) {
-        return res.status(404).send({ message: "Solicitação não encontrada." });
-      }
-
-      const user = await User.findById(request.deliverymanId);
-      if (!user) {
-        return res.status(404).send({ message: "Usuário não encontrado." });
-      }
-
-      // Atualizar somente campos enviados na solicitação
-      user.deliveryman = { ...user.deliveryman, ...request.updatedFields };
-      await user.save();
-
-      request.status = "APPROVED";
-      request.reviewedAt = new Date();
-      request.reviewedBy = req.user._id;
-      request.reason = req.body.reason || "";
-      await request.save();
-
-      res.send({ message: "Solicitação aprovada e dados atualizados." });
-    } catch (error) {
-      console.error("Erro ao aprovar solicitação:", error);
-      res.status(500).send({ message: "Erro interno do servidor." });
-    }
-  })
-);
-
-//Historico de Viagens
-
-
-////////////  Endpoint — Histórico para DeliveryMan
-
-userRouter.get(
-  "/deliveryman/update-requests",
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const userId = req.user._id;
-
-      const requests = await DeliverymanUpdateRequest.find({ deliverymanId: userId })
-        .sort({ requestedAt: -1 }) // Mais recentes primeiro
-        .populate("reviewedBy", "name email"); // Nome e email do admin que revisou
-
-      res.status(200).send({
-        message: "Histórico de solicitações obtido com sucesso.",
-        requests
-      });
-
-    } catch (error) {
-      console.error("Erro ao obter histórico de solicitações:", error);
-      res.status(500).send({ message: "Erro interno do servidor." });
-    }
-  })
-);
-
-////////////  Endpoint — Histórico para Administrador
-
-userRouter.get(
-  "/admin/deliveryman/update-requests",
-  expressAsyncHandler(async (req, res) => {
-    try {
-      if (!req.user.isAdmin) {
-        return res.status(403).send({ message: "Acesso negado: apenas administradores podem acessar." });
-      }
-
-      const statusFilter = req.query.status; // Ex: ?status=PENDING
-      const filter = statusFilter ? { status: statusFilter } : {};
-
-      const requests = await DeliverymanUpdateRequest.find(filter)
-        .sort({ requestedAt: -1 })
-        .populate("deliverymanId", "name phoneNumber email") // Dados do deliveryman
-        .populate("reviewedBy", "name email");
-
-      res.status(200).send({
-        message: "Histórico de solicitações obtido com sucesso.",
-        requests
-      });
-
-    } catch (error) {
-      console.error("Erro ao obter histórico para admin:", error);
-      res.status(500).send({ message: "Erro interno do servidor." });
-    }
-  })
-);
-
-// ✅ Endpoint para solicitar atualização do deliveryman (precisa de aprovação)
-userRouter.post(
-  '/deliveryman/update-request',
-  isAuth, // 🔥 ADICIONAR ESTE MIDDLEWARE
-  isDeliveryMan,
-  expressAsyncHandler(async (req, res) => {
-    try {
-      // 🔥 VERIFICAÇÃO ADICIONAL PARA GARANTIR QUE req.user EXISTE
-      if (!req.user || !req.user._id) {
-        return res.status(401).send({ 
-          message: 'Usuário não autenticado.' 
-        });
-      }
-
-      const userId = req.user._id;
-      const user = await User.findById(userId);
-
-      if (!user) {
-        return res.status(404).send({ 
-          message: 'Usuário não encontrado.' 
-        });
-      }
-
-      if (!user.isDeliveryMan) {
-        return res.status(403).send({ 
-          message: 'Acesso negado: apenas drivers podem solicitar atualizações.' 
-        });
-      }
-
-      const updateFields = {};
-      let requestType = 'PROFILE_UPDATE';
-
-      // Campos permitidos para atualização
-      const allowedFields = [
-        'name', 'email', 'phoneNumber', 
-        'transport_type', 'transport_color', 'transport_registration',
-        'document_type', 'Proof_of_Addres_Reason',
-        'photo', 'vihicle_picture', 'license_front', 'license_back',
-        'document_front', 'document_back', 'vihicle_inspection', 
-        'vihicle_Insurance', 'Proof_of_Address'
-      ];
-
-      // Filtrar apenas campos preenchidos e válidos
-      allowedFields.forEach(field => {
-        if (req.body[field] !== undefined && 
-            req.body[field] !== null && 
-            req.body[field] !== '') {
-          updateFields[field] = req.body[field];
-        }
-      });
-
-      // Determinar o tipo de solicitação baseado nos campos
-      const vehicleFields = ['transport_type', 'transport_color', 'transport_registration', 'vihicle_picture'];
-      const documentFields = ['license_front', 'license_back', 'document_front', 'document_back', 'vihicle_inspection', 'vihicle_Insurance'];
-      
-      if (vehicleFields.some(field => updateFields[field])) {
-        requestType = 'VEHICLE_UPDATE';
-      } else if (documentFields.some(field => updateFields[field])) {
-        requestType = 'DOCUMENT_UPDATE';
-      }
-
-      // Verificar se há campos para atualizar
-      if (Object.keys(updateFields).length === 0) {
-        return res.status(400).send({ 
-          message: 'Nenhum dado válido foi enviado para atualização.' 
-        });
-      }
-
-      // Criar solicitação de atualização
-      const updateRequest = new DriverUpdateRequest({
-        driverId: userId,
-        updatedFields: updateFields,
-        status: 'PENDING',
-        requestType: requestType
-      });
-
-      await updateRequest.save();
-
-      res.status(201).send({
-        message: 'Solicitação de atualização enviada com sucesso! Aguarde aprovação administrativa.',
-        requestId: updateRequest._id,
-        status: 'PENDING',
-        requestType: requestType,
-        estimatedReviewTime: '24-48 horas'
-      });
-
-    } catch (error) {
-      console.error('❌ Erro ao criar solicitação de atualização do driver:', error);
-      res.status(500).send({ 
-        message: 'Erro interno do servidor ao processar solicitação.' 
-      });
-    }
-  })
-);
-
-// ✅ Endpoint para ADMIN aprovar solicitação
-userRouter.put(
-  '/deliveryman/update-request/:requestId/approve',
-  isAuth,
-  isAdmin,
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { requestId } = req.params;
-      const { reason } = req.body;
-
-      const updateRequest = await DeliverymanUpdateRequest.findById(requestId)
-        .populate('deliverymanId');
-
-      if (!updateRequest) {
-        return res.status(404).send({ 
-          message: 'Solicitação de atualização não encontrada.' 
-        });
-      }
-
-      if (updateRequest.status !== 'PENDING') {
-        return res.status(400).send({ 
-          message: 'Esta solicitação já foi processada.' 
-        });
-      }
-
-      const user = await User.findById(updateRequest.deliverymanId._id);
-      
-      if (!user) {
-        return res.status(404).send({ 
-          message: 'Usuário deliveryman não encontrado.' 
-        });
-      }
-
-      // Aplicar as atualizações aos dados do deliveryman
-      Object.keys(updateRequest.updatedFields).forEach(field => {
-        user.deliveryman[field] = updateRequest.updatedFields[field];
-      });
-
-      // Atualizar status da solicitação
-      updateRequest.status = 'APPROVED';
-      updateRequest.reviewedAt = new Date();
-      updateRequest.reviewedBy = req.user._id;
-      updateRequest.reason = reason || 'Aprovado pelo administrador';
-
-      await Promise.all([
-        user.save(),
-        updateRequest.save()
-      ]);
-
-      res.send({
-        message: 'Solicitação aprovada e dados do deliveryman atualizados com sucesso!',
-        request: updateRequest
-      });
-
-    } catch (error) {
-      console.error('❌ Erro ao aprovar solicitação:', error);
-      res.status(500).send({ 
-        message: 'Erro interno do servidor ao aprovar solicitação.' 
-      });
-    }
-  })
-);
-
-// ✅ Endpoint para ADMIN rejeitar solicitação
-userRouter.put(
-  '/deliveryman/update-request/:requestId/reject',
-  isAuth,
-  isAdmin,
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { requestId } = req.params;
-      const { reason } = req.body;
-
-      if (!reason) {
-        return res.status(400).send({ 
-          message: 'Motivo da rejeição é obrigatório.' 
-        });
-      }
-
-      const updateRequest = await DeliverymanUpdateRequest.findById(requestId);
-
-      if (!updateRequest) {
-        return res.status(404).send({ 
-          message: 'Solicitação de atualização não encontrada.' 
-        });
-      }
-
-      if (updateRequest.status !== 'PENDING') {
-        return res.status(400).send({ 
-          message: 'Esta solicitação já foi processada.' 
-        });
-      }
-
-      updateRequest.status = 'REJECTED';
-      updateRequest.reviewedAt = new Date();
-      updateRequest.reviewedBy = req.user._id;
-      updateRequest.reason = reason;
-
-      await updateRequest.save();
-
-      res.send({
-        message: 'Solicitação rejeitada com sucesso!',
-        request: updateRequest
-      });
-
-    } catch (error) {
-      console.error('❌ Erro ao rejeitar solicitação:', error);
-      res.status(500).send({ 
-        message: 'Erro interno do servidor ao rejeitar solicitação.' 
-      });
-    }
-  })
-);
-
-// ✅ Endpoint para listar solicitações pendentes (ADMIN)
-userRouter.get(
-  '/deliveryman/update-requests',
-  isAuth,
-  isAdmin,
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { status = 'PENDING', page = 1, limit = 10 } = req.query;
-
-      const requests = await DeliverymanUpdateRequest.find({ status })
-        .populate('deliverymanId', 'name email phoneNumber')
-        .populate('reviewedBy', 'name email')
-        .sort({ requestedAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-
-      const total = await DeliverymanUpdateRequest.countDocuments({ status });
-
-      res.send({
-        requests,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
-      });
-
-    } catch (error) {
-      console.error('❌ Erro ao buscar solicitações:', error);
-      res.status(500).send({ 
-        message: 'Erro interno do servidor ao buscar solicitações.' 
-      });
-    }
-  })
-);
-
-// ✅ Endpoint para deliveryman ver suas próprias solicitações
-userRouter.get(
-  '/deliveryman/my-update-requests',
-  isAuth,
-  isDeliveryMan,
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { page = 1, limit = 10 } = req.query;
-
-      const requests = await DeliverymanUpdateRequest.find({ 
-        deliverymanId: req.user._id 
-      })
-        .populate('reviewedBy', 'name email')
-        .sort({ requestedAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-
-      const total = await DeliverymanUpdateRequest.countDocuments({ 
-        deliverymanId: req.user._id 
-      });
-
-      res.send({
-        requests,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
-      });
-
-    } catch (error) {
-      console.error('❌ Erro ao buscar solicitações:', error);
-      res.status(500).send({ 
-        message: 'Erro interno do servidor ao buscar solicitações.' 
-      });
-    }
-  })
-);
-
-//Rota de update do pushToken
-userRouter.patch('/updatePushToken/:id', updatePushToken);
 
 export default userRouter;

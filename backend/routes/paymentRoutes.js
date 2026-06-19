@@ -4,7 +4,6 @@ import mpesa from 'mpesa-node-api';
 
 import Payment from '../models/PaymentModel.js'
 import config from '../config.js';
-import { isAuth } from '../utils.js';
 import PaymentMethod from '../models/PaymentMethod.js';
 
 
@@ -62,6 +61,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
     publicKey: config.MPESA_PUBLIC_KEY,
     origin: config.MPESA_ORIGIN,
     serviceProviderCode: config.MPESA_SERVICE_PROVIDER_CODE,
+    timeout: 60000 // 60 segundos
   });
 
   try {
@@ -69,7 +69,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
 
     const result = {
       response_code: mpesaRes.output_ResponseCode,
-      response_description: mpesaRes.output_ResponseDesc,
+      response_description: mpesaRes.output_ResponseDesc+'-'+customerNumber+'-'+amount,
       transactionId: mpesaRes.output_TransactionID,
       conversationId: mpesaRes.output_ConversationID,
       reference: mpesaRes.output_ThirdPartyReference,
@@ -88,16 +88,17 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
       receiverNumber: config.MPESA_SERVICE_PROVIDER_CODE,
     });
 
+    
+
     return res.status(result.paid ? 200 : 202).send(savedPayment);
 
   } catch (err) {
     console.error('Erro no pagamento MPESA:', err?.message || err);
 
     const output = err?.response?.data?.output || err?.output || {};
-
     const fallbackResponse = {
       response_code: output.ResponseCode || 'ERR-01',
-      response_description: output.ResponseDesc || 'Erro desconhecido',
+      response_description: output.ResponseDesc || 'Erro desconhecido'+'-'+customerNumber+'-'+amount,
       transactionId: output.TransactionID || '',
       conversationId: output.ConversationID || '',
       reference: output.ThirdPartyReference || '',
@@ -107,90 +108,6 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
     const failedPayment = await salvarPagamento({
       senderNumber: customerNumber,
       amount,
-      code: fallbackResponse.response_code,
-      description: fallbackResponse.response_description,
-      transaction: fallbackResponse.transactionId,
-      conversationId: fallbackResponse.conversationId,
-      reference: fallbackResponse.reference,
-      paid: false,
-      receiverNumber: config.MPESA_SERVICE_PROVIDER_CODE,
-    });
-
-    return res.status(500).send({
-      message: 'Falha no pagamento',
-      error: err?.message || 'Erro desconhecido no servidor.',
-      mpesa: fallbackResponse,
-    });
-  }
-}));
-
-
-
-
-
-
-
-
-paymentRouter.post('/mpesa/b2c', expressAsyncHandler(async (req, res) => {
-  const { sellerNumber, priceForSeller } = req.body;
-
-  if (!sellerNumber || typeof priceForSeller !== 'number' || priceForSeller <= 0) {
-    return res.status(400).send({ message: 'Número e valor válidos são obrigatórios.' });
-  }
-
-  const referenceCode = randomString(5);
-
-  mpesa.initializeApi({
-    baseUrl: config.MPESA_API_HOST,
-    apiKey: config.MPESA_API_KEY,
-    publicKey: config.MPESA_PUBLIC_KEY,
-    origin: config.MPESA_ORIGIN,
-    serviceProviderCode: config.MPESA_SERVICE_PROVIDER_CODE,
-  });
-
-  try {
-    const mpesaRes = await mpesa.initiate_b2c(priceForSeller, sellerNumber, referenceCode, referenceCode);
-
-    const result = {
-      response_code: mpesaRes.output_ResponseCode,
-      response_description: mpesaRes.output_ResponseDesc,
-      transactionId: mpesaRes.output_TransactionID,
-      conversationId: mpesaRes.output_ConversationID,
-      reference: mpesaRes.output_ThirdPartyReference,
-      paid: mpesaRes.output_ResponseCode === 'INS-0',
-    };
-
-    const savedPayment = await salvarPagamento({
-      senderNumber: sellerNumber,
-      amount: priceForSeller,
-      code: result.response_code,
-      description: result.paid ? 'Pagamento do Fornecedor' : result.response_description,
-      transaction: result.transactionId,
-      conversationId: result.conversationId,
-      reference: result.reference,
-      paid: result.paid,
-      receiverNumber: config.MPESA_SERVICE_PROVIDER_CODE,
-    });
-
-    return res.status(result.paid ? 200 : 202).send(savedPayment);
-
-  } catch (err) {
-    console.error('Erro ao iniciar pagamento B2C:', err?.message || err);
-
-    const output = err?.response?.data?.output || err?.output || {};
-
-    const fallbackResponse = {
-      response_code: output.ResponseCode || 'ERR-01',
-      response_description: output.ResponseDesc || 'Erro desconhecido',
-      transactionId: output.TransactionID || '',
-      conversationId: output.ConversationID || '',
-      reference: output.ThirdPartyReference || '',
-      paid: false,
-    };
-
-    const failedPayment = await salvarPagamento({
-      senderNumber: sellerNumber,
-      amount: priceForSeller,
       code: fallbackResponse.response_code,
       description: fallbackResponse.response_description,
       transaction: fallbackResponse.transactionId,

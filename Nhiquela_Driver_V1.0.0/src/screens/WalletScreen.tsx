@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/apiConfig';
+import { COLORS } from '../styles/colors';
 
 interface Transaction {
   id: string;
@@ -149,7 +150,7 @@ export default function WalletScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#FF6600" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -181,7 +182,7 @@ export default function WalletScreen({ navigation }: any) {
                 <Text style={styles.cardValue}>{formatCurrency(balance.available)}</Text>
                 
                 <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdrawPress}>
-                  <Ionicons name="cash-outline" size={20} color="#FF6600" style={{ marginRight: 8 }} />
+                  <Ionicons name="cash-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
                   <Text style={styles.withdrawText}>Levantar Fundos</Text>
                 </TouchableOpacity>
               </View>
@@ -263,14 +264,14 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   mainCard: {
-    backgroundColor: '#1E1E2C',
-    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
     padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   cardLabel: {
     color: '#A0A0B0',
@@ -287,15 +288,15 @@ const styles = StyleSheet.create({
   },
   withdrawBtn: {
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 6,
+    paddingVertical: 14,
+    marginTop: 10,
   },
   withdrawText: {
-    color: '#FF6600',
+    color: COLORS.primary,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -326,11 +327,15 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: '#FFF',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     width: '48%',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    borderWidth: 0,
   },
   statLabel: {
     color: '#666',
@@ -347,10 +352,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    borderWidth: 0,
   },
   iconContainer: {
     width: 40,
@@ -378,9 +387,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
+    backgroundColor: "#FFF",
+    padding: 30,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   emptyText: {
     color: '#999',

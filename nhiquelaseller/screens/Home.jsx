@@ -282,7 +282,7 @@ const Home = () => {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.welcomeText}><Text style={{ color: '#7F00FF' }}>Nhiquela</Text></Text>
+          <Text style={styles.welcomeText}><Text style={{ color: '#7F00FF' }}>nhiquela</Text></Text>
           <Text style={styles.balanceText}>Saldo: {walletBalance.toFixed(2)} MT</Text>
           {lastUpdate && (
             <Text style={styles.lastUpdateText}>{formatLastUpdate(lastUpdate)}</Text>
@@ -383,8 +383,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
-    elevation: 3,
-    marginTop: 10, // 🔥 Ajuste para acomodar a StatusBar
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    marginTop: 10,
   },
   welcomeText: {
     fontSize: 28,
@@ -413,7 +417,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginRight: 15,
     borderWidth: 2,
-    borderColor: '#7F00FF'
+    borderColor: '#7F00FF',
+    backgroundColor: '#f3f4f6'
   },
   greetingText: {
     fontSize: 18,
@@ -452,9 +457,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginHorizontal: 15,
     marginVertical: 8,
-    padding: 15,
-    borderRadius: 15,
-    elevation: 2
+    padding: 20,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   orderText: {
     fontSize: 14,
@@ -471,12 +480,18 @@ const styles = StyleSheet.create({
   storeStatusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: '#e5f6ff',
-    marginHorizontal: 15
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    marginHorizontal: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   noOrdersText: {
     textAlign: 'center',
@@ -488,8 +503,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    paddingHorizontal: 12,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    marginHorizontal: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
 
   storeStatusIndicator: {

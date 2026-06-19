@@ -26,6 +26,8 @@ export const loginUser = async (phoneNumber: string, password: string): Promise<
       email: responseData.email,
       phoneNumber: responseData.phoneNumber,
       isDeliveryMan: responseData.isDeliveryMan,
+      isBanned: false,
+      isSeller: false,
       token: responseData.token,
       deliveryman: responseData.deliveryman
     };
@@ -129,5 +131,66 @@ export const loginUser = async (phoneNumber: string, password: string): Promise<
     (detailedError as any).originalError = error;
     
     throw detailedError;
+  }
+};
+
+export const sendOTP = async (phoneNumber: string): Promise<{ message: string; success: boolean }> => {
+  try {
+    const response = await apiClient.post(ENDPOINTS.SEND_OTP, { phoneNumber });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data?.message || "Erro ao enviar código SMS");
+    }
+    throw new Error("Falha na conexão de rede ao enviar OTP");
+  }
+};
+
+export const verifyOTP = async (phoneNumber: string, otp: string): Promise<User> => {
+  try {
+    const response = await apiClient.post(ENDPOINTS.VERIFY_OTP, { phoneNumber, otp });
+    const responseData = response.data;
+
+    const userData: User = {
+      _id: responseData._id,
+      name: responseData.name,
+      photo: responseData.photo,
+      email: responseData.email,
+      phoneNumber: responseData.phoneNumber,
+      isDeliveryMan: responseData.isDeliveryMan,
+      token: responseData.token,
+      deliveryman: responseData.deliveryman
+    };
+
+    if (userData.isDeliveryMan && !userData.deliveryman) {
+      userData.deliveryman = {
+        name: userData.name,
+        phoneNumber: userData.phoneNumber,
+        register_conformance: "PENDING_CONFORMANCE"
+      };
+    }
+
+    if (responseData.token) {
+      await AsyncStorage.setItem("authToken", responseData.token);
+    }
+
+    return userData;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data?.message || "Código inválido ou expirado");
+    }
+    throw new Error("Falha na conexão de rede ao verificar OTP");
+  }
+};
+
+export const forgotPassword = async (phoneNumber: string): Promise<{ message: string, emailMasked?: string }> => {
+  try {
+    const response = await apiClient.post(ENDPOINTS.FORGOT_PASSWORD, { phoneNumber });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data?.message || "Erro ao recuperar senha");
+    }
+    throw new Error("Falha na conexão de rede ao recuperar senha");
   }
 };

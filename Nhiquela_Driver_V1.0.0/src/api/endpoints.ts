@@ -1,5 +1,9 @@
 export const ENDPOINTS = {
   LOGIN: "/users/signin",
+  UPLOAD_LOCAL: "/upload/local",
+  SEND_OTP: "/users/send-otp",
+  VERIFY_OTP: "/users/verify-otp",
+  FORGOT_PASSWORD: "/users/forgot-password",
   REGISTER_DRIVER: "/users/signup",
   UPDATE_DRIVER_REQUEST: "/users/deliveryman/update-request",
   GET_ROUTES: "/routes",

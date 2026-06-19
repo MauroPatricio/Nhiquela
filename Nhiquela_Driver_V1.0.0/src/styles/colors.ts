@@ -1,8 +1,8 @@
 export const COLORS = {
-  // Cores principais - Azul gradient
-  primary: '#1E40AF' as const,
-  primaryLight: '#3B82F6' as const, 
-  primaryDark: '#1E3A8A' as const,
+  // Cores principais - Nhiquela Roxo
+  primary: '#7F00FF' as const,
+  primaryLight: '#9b4dff' as const, 
+  primaryDark: '#7F00FF' as const,
   
   // Cores secundárias
   secondary: '#10B981' as const,
@@ -27,12 +27,11 @@ export const COLORS = {
   gray300: '#D1D5DB',
   gray600: '#4B5563',
   
-  // Gradientes - Agora como readonly arrays
-  // gradientPrimary: ['#1E40AF', '#3B82F6'] as const,
-  gradientPrimary: ['#7F00FF', '#1E40AF'] as const, // lilás → preto
+  // Gradientes
+  gradientPrimary: ['#7F00FF', '#7F00FF'] as const, 
 
   gradientSecondary: ['#10B981', '#34D399'] as const,
-  gradientDark: ['#7F00FF', '#000000'] as const, // Ajustei para usar cores existentes
+  gradientDark: ['#7F00FF', '#7F00FF'] as const,
   
   // Cores adicionais para texto
   textPrimary: '#1F2937' as const,

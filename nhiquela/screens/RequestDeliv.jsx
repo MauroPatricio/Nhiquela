@@ -12,16 +12,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#7F00FF';
 
-const SERVICES = [
-  { id: 'mota', name: 'Entrega por Mota', icon: 'motorbike', color: '#FF9800' },
-  { id: 'carro', name: 'Motorista', icon: 'car', color: '#2196F3' },
-  { id: 'rancho', name: 'Fazer Rancho', icon: 'cart', color: '#4CAF50' },
-  { id: 'encomenda', name: 'Buscar Encomenda', icon: 'package-variant', color: '#9C27B0' },
-  { id: 'mudanca', name: 'Mudança', icon: 'truck-fast', color: '#795548' },
-  { id: 'reboque', name: 'Reboque', icon: 'tow-truck', color: '#F44336' },
-  { id: 'outros', name: 'Outros Serviços', icon: 'dots-horizontal', color: '#607D8B' },
-];
-
 const REASON_SUGGESTIONS = [
   'Fazer compras',
   'Buscar algo',
@@ -43,6 +33,7 @@ export default function RequestDeliv() {
   const [currentLocation, setCurrentLocation] = useState(null);
 
   // Step 1: Service & Reason
+  const [servicesList, setServicesList] = useState([]);
   const [serviceType, setServiceType] = useState(null);
   const [reason, setReason] = useState('');
 
@@ -55,18 +46,34 @@ export default function RequestDeliv() {
   const [duration, setDuration] = useState(0);
   const [price, setPrice] = useState(0);
 
-  // Initialize Location
+  // Initialize Location & Services
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Aviso', 'A sua localização ajuda-nos a preencher os campos automaticamente.');
-        return;
+      } else {
+        let location = await Location.getCurrentPositionAsync({});
+        const coords = { lat: location.coords.latitude, lng: location.coords.longitude };
+        setCurrentLocation(coords);
       }
-      let location = await Location.getCurrentPositionAsync({});
-      const coords = { lat: location.coords.latitude, lng: location.coords.longitude };
-      setCurrentLocation(coords);
     })();
+
+    const fetchServices = async () => {
+      try {
+        const { data } = await api.get('/services');
+        const activeServices = data.filter(s => s.status === 'Ativo').map(s => ({
+          id: s._id,
+          name: s.name,
+          icon: s.icon || 'star',
+          color: s.color || '#7F00FF'
+        }));
+        setServicesList(activeServices);
+      } catch (error) {
+        console.warn('Erro ao carregar serviços no RequestDeliv', error);
+      }
+    };
+    fetchServices();
   }, []);
 
   // Quick Buttons Logic
@@ -81,22 +88,36 @@ export default function RequestDeliv() {
     }
   };
 
-  // Mock Calculation when both origin and destination are filled
+  // Cálculo Real da Rota (OSRM)
   useEffect(() => {
-    if (origin.address && destination.address) {
-      const fakeDistance = Math.floor(Math.random() * 10) + 2; // 2 a 12 km
-      const fakeDuration = fakeDistance * 3; // ~3 min por km
-      const basePrice = 50 + (fakeDistance * 25);
+    if (origin.address && destination.address && origin.lat && origin.lng && destination.lat && destination.lng) {
       
-      setDistance(fakeDistance);
-      setDuration(fakeDuration);
-      setPrice(basePrice);
+      const calculateRoute = async () => {
+        try {
+          const { data } = await api.get(`/osrm/route?origin=${origin.lng},${origin.lat}&destination=${destination.lng},${destination.lat}`);
+          
+          const distKm = parseFloat(data.distanceKm) || 5;
+          const durMin = parseFloat(data.durationMin) || 15;
+          
+          setDistance(distKm);
+          setDuration(durMin);
+          setPrice(50 + (distKm * 25)); // Preço base 50 MT + 25 MT por Km
+        } catch (error) {
+          console.warn("Erro ao calcular rota OSRM, usando fallback", error);
+          const fakeDistance = 5;
+          setDistance(fakeDistance);
+          setDuration(15);
+          setPrice(50 + (fakeDistance * 25));
+        }
+      };
+
+      calculateRoute();
     } else {
       setDistance(0);
       setDuration(0);
       setPrice(0);
     }
-  }, [origin.address, destination.address]);
+  }, [origin, destination]);
 
   const handleNext = () => {
     if (step === 1) {
@@ -126,9 +147,9 @@ export default function RequestDeliv() {
         description: reason,
         paymentMethod: "M-Pesa",
         deliveryPrice: price,
-        isPaid: false,
+        isPaid: true, // Mudado para true temporariamente (ou manter false se o backend lida bem)
         stepStatus: 1,
-        serviceType: serviceType.name,
+        serviceType: serviceType.id, // Aqui vai o ObjectId
         priority: "Normal",
         distanceKm: distance,
         estimatedTimeMin: duration,
@@ -163,7 +184,9 @@ export default function RequestDeliv() {
         </View>
         
         <View style={styles.grid}>
-          {SERVICES.map((srv) => {
+          {servicesList.length === 0 ? (
+            <ActivityIndicator size="large" color={PRIMARY_COLOR} style={{ marginVertical: 30 }} />
+          ) : servicesList.map((srv) => {
             const isActive = serviceType?.id === srv.id;
             return (
               <TouchableOpacity

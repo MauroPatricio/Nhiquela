@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faEdit, faTrash, faPlus, faSave, faTimes, faEye, faMapMarkerAlt, faPhone, faEnvelope, faIdCard, faMoneyBillWave, faImage, faLocationArrow, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faEdit, faTrash, faPlus, faSave, faTimes, faEye, faMapMarkerAlt, faPhone, faEnvelope, faIdCard, faMoneyBillWave, faImage, faLocationArrow, faSpinner, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function SuppliersScreen() {
   const [suppliers, setSuppliers] = useState([]);
@@ -57,6 +59,11 @@ export default function SuppliersScreen() {
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentSuppliers,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(suppliers, 10, ['name', 'representanteNome', 'email', 'representanteTelefone', 'tipoEstabelecimento', 'province']);
 
   const handleOpenDetails = (supplier) => {
     setSelectedSupplier(supplier);
@@ -145,9 +152,23 @@ export default function SuppliersScreen() {
           <h2 className="fw-bold m-0 text-dark">Fornecedores & Lojas</h2>
           <span className="text-muted small">Gestão de parceiros, restaurantes, supermercados e pagamentos</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Registar Fornecedor
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar fornecedor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Registar Fornecedor
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -167,9 +188,9 @@ export default function SuppliersScreen() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="6" className="text-center py-5 text-muted"><FontAwesomeIcon icon={faSpinner} spin className="me-2"/> A carregar fornecedores...</td></tr>
-                ) : suppliers.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center py-5 text-muted">Nenhum fornecedor encontrado na base de dados.</td></tr>
-                ) : suppliers.map(supplier => (
+                ) : currentSuppliers.length === 0 ? (
+                  <tr><td colSpan="6" className="text-center py-5 text-muted">Nenhum fornecedor encontrado.</td></tr>
+                ) : currentSuppliers.map(supplier => (
                   <tr key={supplier._id || supplier.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
@@ -213,6 +234,11 @@ export default function SuppliersScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

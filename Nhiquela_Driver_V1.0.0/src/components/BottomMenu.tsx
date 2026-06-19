@@ -1,37 +1,21 @@
+import { showMessage } from "react-native-flash-message";
 import React from "react";
-import { 
-  View, 
-  TouchableOpacity, 
-  Text, 
-  StyleSheet, 
-  Dimensions,
-  Alert
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Dimensions
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { COLORS } from "../styles/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get('window');
 
-// Ícones usando texto Unicode (emojis e símbolos)
-const ICONS = {
-  home: '🏠',
-  car: '🚗',
-  map: '🗺️',
-  profile: '👤',
-};
-
-type MenuItem = {
-  name: string;
-  label: string;
-  icon: string;
-  route: string;
-};
-
-const menuItems: MenuItem[] = [
-  { name: "Home", label: "Início", icon: ICONS.home, route: "Home" },
-  { name: "Trips", label: "Viagens", icon: ICONS.car, route: "Trips" },
-  { name: "Map", label: "Mapa", icon: ICONS.map, route: "Map" },
-  { name: "Profile", label: "Perfil", icon: ICONS.profile, route: "Profile" },
+const menuItems = [
+  { name: "Home",    iconActive: "home",    iconInactive: "home-outline",    route: "Home" },
+  { name: "Trips",   iconActive: "car",     iconInactive: "car-outline",     route: "Trips" },
+  { name: "Map",     iconActive: "map",     iconInactive: "map-outline",     route: "Map" },
+  { name: "Profile", iconActive: "person",  iconInactive: "person-outline",  route: "Profile" },
 ];
 
 type Props = {
@@ -42,136 +26,93 @@ type Props = {
 export default function BottomMenu({ state, navigation }: Props) {
   const currentRoute = state.routes[state.index].name;
 
-  const handleNavigation = (route: string) => {
+  const goTo = (route: string) => {
     try {
       if (!navigation || !navigation.navigate) {
-        console.error("❌ Objeto de navegação não disponível");
         return;
       }
       navigation.navigate(route);
     } catch (error) {
-      console.error(`❌ Erro ao navegar para ${route}:`, error);
-      Alert.alert(
-        "Erro de Navegação", 
-        `Não foi possível acessar ${route}. Verifique se a tela existe.`
-      );
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível aceder à página.",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={COLORS.gradientPrimary}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
+    <View style={styles.wrapper}>
+      <View style={styles.bar}>
         {menuItems.map((item) => {
           const isActive = currentRoute === item.route;
-          
+
           return (
             <TouchableOpacity
               key={item.name}
-              style={[
-                styles.menuItem,
-                isActive && styles.activeMenuItem
-              ]}
-              onPress={() => handleNavigation(item.route)}
+              activeOpacity={0.7}
+              onPress={() => goTo(item.route)}
+              style={styles.tab}
             >
-              <View style={styles.iconContainer}>
-                <Text style={[
-                  styles.iconText,
-                  isActive && styles.activeIconText
-                ]}>
-                  {item.icon}
-                </Text>
-                {isActive && (
-                  <View style={styles.activeDot} />
-                )}
+              <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+                <Ionicons
+                  name={isActive ? (item.iconActive as any) : (item.iconInactive as any)}
+                  size={24}
+                  color={isActive ? "#FFFFFF" : "#7F00FF"}
+                />
               </View>
-              <Text style={[
-                styles.menuText,
-                isActive && styles.activeMenuText
-              ]}>
-                {item.label}
-              </Text>
             </TouchableOpacity>
           );
         })}
-      </LinearGradient>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+  wrapper: {
+    position: "absolute",
+    bottom: 24,
+    left: 16,
+    right: 16,
+    alignItems: "center",
+  },
+  bar: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 36,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    width: "100%",
+    justifyContent: "space-around",
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
     elevation: 10,
   },
-  gradient: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    minHeight: 70,
-  },
-  menuItem: {
-    alignItems: "center",
-    justifyContent: "center",
+  tab: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginHorizontal: 2,
-  },
-  activeMenuItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    transform: [{ scale: 1.05 }],
-  },
-  iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
-    position: 'relative',
   },
-  iconText: {
-    fontSize: 18,
-    color: COLORS.gray100,
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  activeIconText: {
-    color: COLORS.white,
-    transform: [{ scale: 1.1 }],
-  },
-  activeDot: {
-    position: 'absolute',
-    bottom: -2,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.secondaryLight,
-  },
-  menuText: {
-    color: COLORS.gray100,
-    fontSize: 10,
-    fontWeight: "600",
-    textAlign: "center",
-    marginTop: 2,
-  },
-  activeMenuText: {
-    color: COLORS.white,
-    fontWeight: "700",
+  iconWrapActive: {
+    backgroundColor: "#7F00FF",
+    borderRadius: 24,
+    shadowColor: "#7F00FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
 });

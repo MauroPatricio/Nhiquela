@@ -4,10 +4,10 @@ const paymentMethodSchema = new mongoose.Schema(
 
   {
 
-    shortName: { type: String, require: true },
-    fullName: { type: String, require: true },
+    shortName: { type: String, required: true },
+    fullName: { type: String, required: true },
     description: { type: String },
-    accountNumber: { type: Number, require: true },
+    accountNumber: { type: Number, required: true },
     accountNumberAlternative: { type: Number },
     shortCode: { type: Number },
     NIB: { type: Number },

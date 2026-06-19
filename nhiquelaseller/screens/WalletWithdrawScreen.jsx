@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 // screens/WalletWithdrawScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, Alert, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
@@ -33,7 +34,13 @@ const WalletWithdrawScreen = ({ navigation }) => {
         }
       } catch (err) {
         console.error(err);
-        Alert.alert('Erro', 'Não foi possível carregar os dados da carteira.');
+        showMessage({
+        message: 'Erro',
+        description: 'Não foi possível carregar os dados da carteira.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       } finally {
         setLoading(false);
       }
@@ -44,15 +51,33 @@ const WalletWithdrawScreen = ({ navigation }) => {
 
   const handleWithdraw = async () => {
     if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-      return Alert.alert('Erro', 'Digite um valor válido para levantamento.');
+      return showMessage({
+        message: 'Erro',
+        description: 'Digite um valor válido para levantamento.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
 
     if (parseFloat(amount) > balance) {
-      return Alert.alert('Erro', 'Saldo insuficiente.');
+      return showMessage({
+        message: 'Erro',
+        description: 'Saldo insuficiente.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
 
     if (!phone || phone.length < 9) {
-      return Alert.alert('Erro', 'Digite um número de telefone válido.');
+      return showMessage({
+        message: 'Erro',
+        description: 'Digite um número de telefone válido.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
 
     try {
@@ -62,10 +87,22 @@ const WalletWithdrawScreen = ({ navigation }) => {
       }, {
         headers: { authorization: `Bearer ${userData.token}` },
       });
-      Alert.alert('Sucesso', res.data.message);
+      showMessage({
+        message: 'Sucesso',
+        description: res.data.message,
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
       navigation.goBack();
     } catch (err) {
-      Alert.alert('Erro', err.response?.data?.message || 'Erro ao solicitar levantamento');
+      showMessage({
+        message: 'Erro',
+        description: err.response?.data?.message || 'Erro ao solicitar levantamento',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 

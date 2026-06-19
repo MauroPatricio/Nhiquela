@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle } from '@fortawesome/free-solid-svg-icons';
+import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function FinanceScreen() {
   const [transactions, setTransactions] = useState([]);
   const [balances, setBalances] = useState({ available: 0, pending: 0, currency: 'MZN' });
   const [loading, setLoading] = useState(true);
   
-  // Pagination and Filtering States
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Filter States
   const [filterType, setFilterType] = useState('all'); // 'all', 'credit', 'debit'
   
   // Modal de Simulação de Levantamento (M-Pesa / e-Mola)
@@ -76,19 +76,17 @@ export default function FinanceScreen() {
     return "Sistema";
   };
 
-  // Filter Logic
-  const filteredTransactions = transactions.filter(t => {
+  // Filter Logic based on type
+  const typeFilteredTransactions = transactions.filter(t => {
     if (filterType === 'all') return true;
     return t.type === filterType;
   });
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
-
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  // Apply usePagination hook for search and pagination on top of type filter
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentTransactions,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(typeFilteredTransactions, 10, ['description', 'id', '_id']);
 
   return (
     <div className="animation-fade-in">
@@ -140,18 +138,30 @@ export default function FinanceScreen() {
         <div className="card-header bg-white border-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center">
           <h5 className="fw-bold m-0 text-dark">Extrato Contabilístico (Ledger API)</h5>
           
-          <div className="d-flex align-items-center">
-            <FontAwesomeIcon icon={faFilter} className="text-muted me-2" />
-            <select 
-              className="form-select form-select-sm border-0 bg-light rounded-pill px-3 fw-bold text-muted"
-              value={filterType}
-              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
-              style={{ cursor: 'pointer', outline: 'none', boxShadow: 'none' }}
-            >
-              <option value="all">Todas Transações</option>
-              <option value="credit">Apenas Entradas (+)</option>
-              <option value="debit">Apenas Saídas (-)</option>
-            </select>
+          <div className="d-flex align-items-center gap-3">
+            <div className="position-relative" style={{ width: '200px' }}>
+              <FontAwesomeIcon icon={faSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+              <input 
+                type="text" 
+                className="form-control form-control-sm bg-light border-0 rounded-pill ps-5" 
+                placeholder="Pesquisar..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="d-flex align-items-center bg-light rounded-pill px-3 py-1">
+              <FontAwesomeIcon icon={faFilter} className="text-muted me-2" />
+              <select 
+                className="form-select form-select-sm border-0 bg-transparent fw-bold text-muted"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                style={{ cursor: 'pointer', outline: 'none', boxShadow: 'none' }}
+              >
+                <option value="all">Todas Transações</option>
+                <option value="credit">Entradas (+)</option>
+                <option value="debit">Saídas (-)</option>
+              </select>
+            </div>
           </div>
         </div>
         <div className="card-body p-0">
@@ -208,33 +218,11 @@ export default function FinanceScreen() {
             </table>
           </div>
           
-          {/* Pagination Controls */}
-          {!loading && totalPages > 1 && (
-            <div className="d-flex justify-content-between align-items-center px-4 py-3 bg-white border-top">
-              <span className="text-muted small">
-                Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredTransactions.length)} de {filteredTransactions.length} registos
-              </span>
-              <div className="btn-group shadow-sm">
-                <button 
-                  className="btn btn-light border-0 text-primary-custom" 
-                  disabled={currentPage === 1} 
-                  onClick={() => paginate(currentPage - 1)}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} />
-                </button>
-                <div className="btn btn-light border-0 fw-bold px-4" style={{ pointerEvents: 'none' }}>
-                  Página {currentPage} de {totalPages}
-                </div>
-                <button 
-                  className="btn btn-light border-0 text-primary-custom" 
-                  disabled={currentPage === totalPages} 
-                  onClick={() => paginate(currentPage + 1)}
-                >
-                  <FontAwesomeIcon icon={faChevronRight} />
-                </button>
-              </div>
-            </div>
-          )}
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

@@ -3,12 +3,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUsers, faBan, faCheckCircle, faEnvelope, faPhone, faCalendarAlt, faShoppingBag, faSpinner, faSearch, faTrash, faUserShield, faEye, faTimes, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function CustomersScreen() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentCustomers,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(customers, 10, ['name', 'phone', 'email']);
 
   useEffect(() => {
     fetchCustomers();
@@ -56,12 +62,6 @@ export default function CustomersScreen() {
     }
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone?.includes(searchTerm) ||
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="animation-fade-in pb-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -77,8 +77,8 @@ export default function CustomersScreen() {
             type="text" 
             className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
             placeholder="Pesquisar por nome ou nº..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
@@ -104,7 +104,7 @@ export default function CustomersScreen() {
                       <p className="text-muted m-0 fw-bold">A carregar clientes...</p>
                     </td>
                   </tr>
-                ) : filteredCustomers.length === 0 ? (
+                ) : currentCustomers.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="text-center py-5 text-muted">
                       <div className="bg-light d-inline-flex p-4 rounded-circle mb-3 shadow-sm text-primary-custom">
@@ -113,7 +113,7 @@ export default function CustomersScreen() {
                       <p className="m-0 fw-bold">Nenhum cliente encontrado.</p>
                     </td>
                   </tr>
-                ) : filteredCustomers.map(customer => (
+                ) : currentCustomers.map(customer => (
                   <tr key={customer._id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
@@ -168,6 +168,11 @@ export default function CustomersScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

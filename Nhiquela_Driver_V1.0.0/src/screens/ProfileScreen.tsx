@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -14,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/apiConfig";
 
 type Props = {
   navigation: any;
@@ -26,16 +28,22 @@ export default function ProfileScreen({ navigation }: Props) {
   const [darkMode, setDarkMode] = useState(false);
   const [autoAccept, setAutoAccept] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [driverStats, setDriverStats] = useState({ totalTrips: 0, rating: 4.8 });
 
   // ✅ DADOS DO USUÁRIO DO CONTEXTO
+  const getMemberSince = () => {
+    if (user?.createdAt) return new Date(user.createdAt).getFullYear().toString();
+    return "2024";
+  };
+
   const userData = {
     name: user?.name || "Motorista",
     email: user?.email || "email@exemplo.com",
     phone: user?.phoneNumber ? `+258 ${user.phoneNumber}` : "+258 84 000 0000",
     level: user?.isDeliveryMan ? "Motorista" : "Passageiro",
-    memberSince: "2024", // Podes adicionar este campo no user se necessário
-    totalTrips: 147, // Podes adicionar estatísticas depois
-    rating: 4.8,
+    memberSince: getMemberSince(), // Podes adicionar este campo no user se necessário
+    totalTrips: driverStats.totalTrips, // Podes adicionar estatísticas depois
+    rating: driverStats.rating,
     vehicle: user?.deliveryman?.transport_type || "Veículo não registado",
     licensePlate: user?.deliveryman?.transport_registration || "Não definida",
     vehicleColor: user?.deliveryman?.transport_color || "Não definida",
@@ -69,9 +77,21 @@ export default function ProfileScreen({ navigation }: Props) {
     try {
       const preferences = { notifications, darkMode, autoAccept };
       await AsyncStorage.setItem("userPreferences", JSON.stringify(preferences));
-      Alert.alert("✅ Sucesso", "Preferências salvas com sucesso!");
+      showMessage({
+        message: "✅ Sucesso",
+        description: "Preferências salvas com sucesso!",
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
     } catch (error) {
-      Alert.alert("❌ Erro", "Não foi possível salvar as preferências.");
+      showMessage({
+        message: "❌ Erro",
+        description: "Não foi possível salvar as preferências.",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -162,7 +182,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header do Perfil */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
@@ -330,17 +350,17 @@ export default function ProfileScreen({ navigation }: Props) {
               icon="card-outline"
               title="Métodos de Pagamento"
               subtitle="Gerir formas de recebimento"
-              onPress={() => navigation.navigate("PaymentMethods")}
+              onPress={() => showMessage({ message: "Em Breve", description: "Funcionalidade disponível na próxima atualização.", type: "info", icon: "auto" })}
             />
             <MenuItem
               icon="shield-checkmark-outline"
               title="Privacidade e Segurança"
-              onPress={() => navigation.navigate("Privacy")}
+              onPress={() => showMessage({ message: "Em Breve", description: "Funcionalidade disponível na próxima atualização.", type: "info", icon: "auto" })}
             />
             <MenuItem
               icon="help-circle-outline"
               title="Ajuda e Suporte"
-              onPress={() => navigation.navigate("Help")}
+              onPress={() => showMessage({ message: "Em Breve", description: "Funcionalidade disponível na próxima atualização.", type: "info", icon: "auto" })}
             />
           </View>
 
@@ -457,15 +477,15 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 4,
+    padding: 20,
+    borderRadius: 16,
+    marginHorizontal: 6,
     borderLeftWidth: 4,
-    elevation: 2,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   statHeader: {
     flexDirection: "row",
@@ -487,13 +507,13 @@ const styles = StyleSheet.create({
   },
   vehicleCard: {
     backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
+    padding: 20,
+    borderRadius: 16,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   vehicleHeader: {
     flexDirection: "row",
@@ -540,13 +560,13 @@ const styles = StyleSheet.create({
   },
   menuGroup: {
     backgroundColor: "#FFF",
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 2,
+    borderRadius: 16,
+    marginBottom: 20,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     overflow: "hidden",
   },
   menuItem: {
@@ -566,7 +586,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(46, 134, 222, 0.1)",
+    backgroundColor: "rgba(127, 0, 255, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -589,14 +609,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFF",
-    margin: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
     padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: "#FF6B6B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   logoutText: {
     fontSize: 16,

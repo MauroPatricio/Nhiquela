@@ -10,9 +10,8 @@ router.post(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const { nome, name, description, icon, img } = req.body;
-    const finalNome = nome || name;
-    const novoTipo = new TipoEstabelecimento({ nome: finalNome, description, icon, img });
+    const { nome, img } = req.body;
+    const novoTipo = new TipoEstabelecimento({ nome, img });
     await novoTipo.save();
     res.status(201).json(novoTipo);
   })
@@ -26,9 +25,7 @@ router.put(
     const tipoEstabelecimento = await TipoEstabelecimento.findById(req.params.id);
 
     if (tipoEstabelecimento) {
-      tipoEstabelecimento.nome = req.body.nome || req.body.name || tipoEstabelecimento.nome;
-      tipoEstabelecimento.description = req.body.description || tipoEstabelecimento.description;
-      tipoEstabelecimento.icon = req.body.icon || tipoEstabelecimento.icon;
+      tipoEstabelecimento.nome = req.body.nome || tipoEstabelecimento.nome;
       tipoEstabelecimento.img = req.body.img || tipoEstabelecimento.img;
       tipoEstabelecimento.isActive =
         req.body.isActive !== undefined ? req.body.isActive : tipoEstabelecimento.isActive;

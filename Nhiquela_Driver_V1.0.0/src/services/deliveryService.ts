@@ -33,3 +33,37 @@ export const updateDeliverymanRequest = async (driverUpdateData: any, user: any)
     throw error;
   }
 };
+
+export const uploadLocalFile = async (fileUri: string): Promise<string> => {
+  try {
+    const formData = new FormData();
+    const filename = fileUri.split('/').pop() || 'upload.jpg';
+    
+    // Configura o objeto FormData para upload em React Native
+    formData.append('file', {
+      uri: fileUri,
+      name: filename,
+      type: 'image/jpeg',
+    } as any);
+
+    console.log("🚀 [DEBUG] Fazendo upload do ficheiro...", filename);
+
+    const response = await apiClient.post(ENDPOINTS.UPLOAD_LOCAL, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      transformRequest: (data, headers) => {
+        return formData;
+      },
+    });
+
+    console.log("✅ [SUCCESS] Upload feito:", response.data);
+    return response.data.url; // Retorna o link final da imagem alojada
+  } catch (error: any) {
+    console.error("❌ [ERROR] Falha no upload:", error.message);
+    if (error.response) {
+      console.error("📩 [API RESPONSE ERROR]:", error.response.data);
+    }
+    throw new Error('Falha ao enviar imagem. Verifique a conexão.');
+  }
+};

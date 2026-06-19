@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTools, faEdit, faTrash, faPlus, faSave, faTimes, faSpinner, faTags } from '@fortawesome/free-solid-svg-icons';
+import { faTools, faEdit, faTrash, faPlus, faSave, faTimes, faSpinner, faTags, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function ServicesScreen() {
   const [services, setServices] = useState([]);
@@ -14,6 +16,11 @@ export default function ServicesScreen() {
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({ name: '', categoryId: '', subcategoryId: '', basePrice: '', status: 'Ativo' });
   const [showModal, setShowModal] = useState(false);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentServices,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(services, 10, ['name', 'status']);
 
   useEffect(() => {
     fetchData();
@@ -27,9 +34,9 @@ export default function ServicesScreen() {
         api.get('/categories').catch(() => ({ data: [] })),
         api.get('/subcategories').catch(() => ({ data: [] }))
       ]);
-      setServices(srvRes.data);
-      setCategories(catRes.data);
-      setSubcategories(subRes.data);
+      setServices(srvRes.data || []);
+      setCategories(catRes.data?.categories || catRes.data || []);
+      setSubcategories(subRes.data || []);
     } catch (error) {
       toast.error('Erro ao carregar catálogo de serviços.');
     } finally {
@@ -46,12 +53,17 @@ export default function ServicesScreen() {
         categoryId: service.categoryId || '', 
         subcategoryId: service.subcategoryId || '', 
         basePrice: service.basePrice || '', 
-        status: service.status || 'Ativo' 
+        status: service.status || 'Ativo',
+        icon: service.icon || '',
+        color: service.color || '',
+        description: service.description || '',
+        order: service.order || 0,
+        image: service.image || ''
       });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', categoryId: '', subcategoryId: '', basePrice: '', status: 'Ativo' });
+      setFormData({ name: '', categoryId: '', subcategoryId: '', basePrice: '', status: 'Ativo', icon: '', color: '', description: '', order: 0, image: '' });
     }
     setShowModal(true);
   };
@@ -104,9 +116,23 @@ export default function ServicesScreen() {
           <h2 className="fw-bold m-0 text-dark">Serviços</h2>
           <span className="text-muted small">Gestão de catálogo de prestadores de serviço</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Serviço
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar serviço..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Serviço
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -130,18 +156,21 @@ export default function ServicesScreen() {
                       <p className="text-muted m-0 fw-bold">A carregar serviços...</p>
                     </td>
                   </tr>
-                ) : services.length === 0 ? (
+                ) : currentServices.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum serviço cadastrado.</td>
+                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum serviço encontrado.</td>
                   </tr>
-                ) : services.map(service => (
+                ) : currentServices.map(service => (
                   <tr key={service._id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-1">
-                        <div className="bg-light rounded-circle d-flex justify-content-center align-items-center me-3 text-primary-custom shadow-sm" style={{ width: '40px', height: '40px' }}>
-                          <FontAwesomeIcon icon={faTools} />
+                        <div className="rounded-circle d-flex justify-content-center align-items-center me-3 text-white shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: service.color || '#8a2be2' }}>
+                          <span className="fw-bold" style={{ fontSize: '10px' }}>{service.icon ? service.icon.substring(0, 3).toUpperCase() : 'SRV'}</span>
                         </div>
-                        <span className="fw-bold text-dark">{service.name}</span>
+                        <div>
+                          <span className="fw-bold text-dark d-block">{service.name}</span>
+                          <small className="text-muted">Ordem: {service.order || 0}</small>
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -167,6 +196,11 @@ export default function ServicesScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 
@@ -182,6 +216,26 @@ export default function ServicesScreen() {
                 <div className="mb-4">
                   <label className="form-label fw-bold small text-muted mb-1">Nome do Serviço *</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3 fw-bold" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Ex: Mecânica Automóvel" required />
+                </div>
+
+                <div className="row g-3 mb-4">
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold small text-muted mb-1">Ícone (Nome)</label>
+                    <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.icon} onChange={(e) => setFormData({...formData, icon: e.target.value})} placeholder="Ex: motorbike, truck..." />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold small text-muted mb-1">Cor Hexadecimal</label>
+                    <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} placeholder="Ex: #FF9800" />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold small text-muted mb-1">Ordem (Posição)</label>
+                    <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.order} onChange={(e) => setFormData({...formData, order: e.target.value})} placeholder="0" />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="form-label fw-bold small text-muted mb-1">Descrição</label>
+                  <textarea className="form-control bg-light border-0 py-3 rounded-3" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Breve descrição do serviço..." rows="2" />
                 </div>
                 
                 <div className="row g-3 mb-4">

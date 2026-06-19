@@ -3,22 +3,34 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function UsersScreen() {
   const [users, setUsers] = useState([]);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [servicesList, setServicesList] = useState([]);
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', isAdmin: false, isSeller: false, planId: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', isAdmin: false, isSeller: false, isDeliveryMan: false, planId: '', services: [] });
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchUsers();
     fetchPlans();
+    fetchServices();
   }, []);
+
+  const fetchServices = async () => {
+    try {
+      const { data } = await api.get('/services');
+      setServicesList(data || []);
+    } catch (error) {
+      console.warn('Serviços não carregados', error);
+    }
+  };
 
   const fetchPlans = async () => {
     try {
@@ -48,7 +60,9 @@ export default function UsersScreen() {
       email: user.email || '', 
       isAdmin: user.isAdmin || false, 
       isSeller: user.isSeller || false,
-      planId: user.planId || ''
+      isDeliveryMan: user.isDeliveryMan || false,
+      planId: user.planId || '',
+      services: user.services || []
     });
     setShowModal(true);
   };
@@ -81,10 +95,10 @@ export default function UsersScreen() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentUsers,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(users, 10, ['name', 'email']);
 
   return (
     <div className="animation-fade-in">
@@ -93,21 +107,23 @@ export default function UsersScreen() {
           <h2 className="fw-bold m-0 text-dark">Gestão Global de Utilizadores</h2>
           <span className="text-muted small">Administre contas, promova vendedores e controle acessos à plataforma</span>
         </div>
-      </div>
-
-      <div className="card shadow-sm-custom border-0 rounded-4">
-        <div className="card-header bg-white border-0 p-4 pb-0">
-          <div className="input-group" style={{ maxWidth: '400px' }}>
-            <span className="input-group-text bg-light border-0"><FontAwesomeIcon icon={faSearch} className="text-muted" /></span>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
             <input 
               type="text" 
-              className="form-control bg-light border-0 py-2" 
-              placeholder="Pesquisar por nome ou email..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar utilizador..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
+      </div>
+
+      <div className="card shadow-sm-custom border-0 rounded-4">
         <div className="card-body p-0 mt-3">
           <div className="table-responsive">
             <table className="table table-hover align-middle m-0">
@@ -124,11 +140,11 @@ export default function UsersScreen() {
                   <tr>
                     <td colSpan="4" className="text-center py-5 text-muted">A carregar contas de utilizadores...</td>
                   </tr>
-                ) : filteredUsers.length === 0 ? (
+                ) : currentUsers.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="text-center py-5 text-muted">Nenhum utilizador encontrado no sistema.</td>
                   </tr>
-                ) : filteredUsers.map(user => (
+                ) : currentUsers.map(user => (
                   <tr key={user._id || user.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
@@ -151,6 +167,8 @@ export default function UsersScreen() {
                             <div className="small fw-bold text-warning mt-1">👑 {plans.find(p => p._id === user.planId || p.id === user.planId)?.name || 'Plano Desconhecido'}</div>
                           )}
                         </div>
+                      ) : user.isDeliveryMan ? (
+                        <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUser} className="me-1" /> Prestador/Entregador</span>
                       ) : (
                         <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUser} className="me-1" /> Cliente</span>
                       )}
@@ -171,6 +189,11 @@ export default function UsersScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 
@@ -214,9 +237,14 @@ export default function UsersScreen() {
                     <label className="form-check-label fw-bold text-danger" htmlFor="isAdmin">Administrador (Acesso Total)</label>
                   </div>
                   
-                  <div className="form-check form-switch">
+                  <div className="form-check form-switch mb-3">
                     <input className="form-check-input" type="checkbox" id="isSeller" checked={formData.isSeller} onChange={(e) => setFormData({...formData, isSeller: e.target.checked})} />
                     <label className="form-check-label fw-bold text-success" htmlFor="isSeller">Vendedor (Pode gerir loja e produtos)</label>
+                  </div>
+
+                  <div className="form-check form-switch">
+                    <input className="form-check-input" type="checkbox" id="isDeliveryMan" checked={formData.isDeliveryMan} onChange={(e) => setFormData({...formData, isDeliveryMan: e.target.checked})} />
+                    <label className="form-check-label fw-bold text-primary" htmlFor="isDeliveryMan">Prestador (Pode realizar serviços e entregas)</label>
                   </div>
 
                   {formData.isSeller && (
@@ -229,6 +257,39 @@ export default function UsersScreen() {
                         ))}
                       </select>
                       <small className="text-muted d-block mt-1">Configure os planos na aba Planos de Subscrição.</small>
+                    </div>
+                  )}
+
+                  {formData.isDeliveryMan && (
+                    <div className="mt-3 pt-3 border-top">
+                      <label className="form-label fw-bold text-dark mb-2">Serviços Prestados</label>
+                      <div className="row g-2">
+                        {servicesList.map(service => (
+                          <div className="col-12" key={service._id}>
+                            <div className="form-check border rounded-3 p-2 d-flex align-items-center bg-white shadow-sm" style={{ cursor: 'pointer' }}>
+                              <input 
+                                className="form-check-input ms-1 me-2" 
+                                type="checkbox" 
+                                id={`srv-${service._id}`} 
+                                checked={formData.services.includes(service._id)}
+                                onChange={(e) => {
+                                  const newServices = e.target.checked 
+                                    ? [...formData.services, service._id]
+                                    : formData.services.filter(id => id !== service._id);
+                                  setFormData({...formData, services: newServices});
+                                }}
+                              />
+                              <label className="form-check-label d-flex align-items-center flex-grow-1" htmlFor={`srv-${service._id}`} style={{ cursor: 'pointer' }}>
+                                <div className="rounded-circle d-flex justify-content-center align-items-center me-2 text-white" style={{ width: '25px', height: '25px', backgroundColor: service.color || '#8a2be2', fontSize: '10px' }}>
+                                  {service.icon ? service.icon.substring(0, 2).toUpperCase() : 'SV'}
+                                </div>
+                                <span className="fw-bold small">{service.name}</span>
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {servicesList.length === 0 && <small className="text-muted d-block mt-1">Nenhum serviço registado no sistema.</small>}
                     </div>
                   )}
                 </div>

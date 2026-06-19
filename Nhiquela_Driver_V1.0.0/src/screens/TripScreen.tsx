@@ -53,48 +53,41 @@ export default function TripScreen({ navigation }: any) {
       }
 
       const apiResponse = await getTripsHistory(user._id);
-
-      console.log("Resposta completa da API:", apiResponse);
-      console.log("Orders array:", apiResponse.orders);
-
-      // 🔹 CORREÇÃO: Usar apiResponse.orders em vez de apiResponse
       const apiTrips = apiResponse.orders || [];
 
       if (!Array.isArray(apiTrips)) {
-        console.warn("Orders não é um array válido:", apiTrips);
         setTrips([]);
         setLoading(false);
         return;
       }
 
       if (apiTrips.length === 0) {
-        console.log("Nenhuma viagem encontrada no histórico");
         setTrips([]);
         setLoading(false);
         return;
       }
 
-      // 🔹 FORMATAR HISTÓRICO DE VIAGENS
+      // 🔹 FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestDelivers)
       const formattedTrips = apiTrips.map((trip: any) => {
-        // 🔹 Calcular distância se necessário
+        const isRequestDeliver = trip.type === 'requestDeliver';
+        
         const distance = trip.distance || 0;
         
-        // 🔹 Determinar status da viagem
         let status = "Concluída";
         let statusColor = "#27AE60";
         let statusIcon = "checkmark-circle";
         
-        if (trip.status === "cancelled" || trip.status === "rejected") {
+        const tripStatus = trip.status ? trip.status.toLowerCase() : "";
+        if (trip.isCanceled || tripStatus === "cancelado" || tripStatus === "cancelled" || tripStatus === "rejected") {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.status === "pending" || trip.status === "accepted") {
+        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted") {
           status = "Em Andamento";
           statusColor = "#F39C12";
           statusIcon = "time";
         }
 
-        // 🔹 Formatar data se disponível
         let tripDate = "Data não disponível";
         if (trip.createdAt) {
           const date = new Date(trip.createdAt);
@@ -104,12 +97,30 @@ export default function TripScreen({ navigation }: any) {
           });
         }
 
+        let passengerName = "Passageiro";
+        let pickupLoc = "Origem";
+        let destLoc = "Destino";
+        let rewardPrice = 0;
+
+        if (isRequestDeliver) {
+          passengerName = trip.name || trip.user?.name || "Passageiro";
+          pickupLoc = trip.origin || "Local de Partida";
+          destLoc = trip.destination || "Destino";
+          rewardPrice = trip.deliveryPrice || trip.pricetopay || 0;
+        } else {
+          passengerName = trip.user?.name || "Cliente";
+          pickupLoc = trip.sellers?.[0]?.name || trip.orderItems?.[0]?.seller || "Loja/Fornecedor";
+          destLoc = trip.deliveryAddress?.address || trip.deliveryAddress?.city || "Endereço do Cliente";
+          rewardPrice = trip.deliveryPrice || trip.totalPrice || 0;
+        }
+
         return {
           id: trip.id || trip._id || Math.random().toString(),
-          passenger: trip.passenger?.name || "Passageiro",
-          pickup: trip.origin?.address || "Local de partida",
-          destination: trip.destination?.address || "Destino",
-          reward: trip.reward ? `MZN ${trip.reward}` : `MZN ${Math.round(distance * 25)}`,
+          type: isRequestDeliver ? "Entrega de Encomenda" : "Pedido de Loja",
+          passenger: passengerName,
+          pickup: pickupLoc,
+          destination: destLoc,
+          reward: rewardPrice > 0 ? `MZN ${rewardPrice}` : `MZN ${Math.round(distance * 25)}`,
           distance: distance ? `${distance.toFixed(2)} km` : "Distância não disponível",
           time: tripDate,
           status: status,
@@ -118,7 +129,6 @@ export default function TripScreen({ navigation }: any) {
         };
       });
 
-      console.log("Histórico de viagens formatado:", formattedTrips);
       setTrips(formattedTrips);
     } catch (error) {
       console.error("Erro ao carregar histórico de viagens:", error);
@@ -132,6 +142,7 @@ export default function TripScreen({ navigation }: any) {
   const viewTripDetails = (trip: any) => {
     Alert.alert(
       "Detalhes da Viagem",
+      `Tipo: ${trip.type}\n` +
       `Passageiro: ${trip.passenger}\n` +
       `Origem: ${trip.pickup}\n` +
       `Destino: ${trip.destination}\n` +
@@ -145,7 +156,6 @@ export default function TripScreen({ navigation }: any) {
 
   // 🔹 COMPARTILHAR DETALHES DA VIAGEM
   const shareTripDetails = (trip: any) => {
-    // Aqui você pode integrar com API de compartilhamento
     Alert.alert(
       "Compartilhar Viagem",
       `Detalhes da viagem com ${trip.passenger} copiados para a área de transferência.`,
@@ -153,7 +163,6 @@ export default function TripScreen({ navigation }: any) {
     );
   };
 
-  // 🔍 useEffect
   useEffect(() => {
     checkDriverApproval();
   }, []);
@@ -162,7 +171,6 @@ export default function TripScreen({ navigation }: any) {
     loadTripsHistory();
   }, [isDriverApproved]);
 
-  // 🚫 Caso motorista não aprovado
   const renderNotApprovedMessage = () => (
     <View style={styles.notApprovedContainer}>
       <Ionicons name="alert-circle-outline" size={64} color={COLORS.warning} />
@@ -175,7 +183,6 @@ export default function TripScreen({ navigation }: any) {
     </View>
   );
 
-  // 🔹 Componente para quando não há viagens no histórico
   const renderEmptyHistory = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="time-outline" size={64} color={COLORS.gray} />
@@ -190,7 +197,6 @@ export default function TripScreen({ navigation }: any) {
     </View>
   );
 
-  // 🔹 Cartão de viagem do histórico
   const renderTripCard = ({ item }: any) => {
     return (
       <TouchableOpacity 
@@ -200,7 +206,7 @@ export default function TripScreen({ navigation }: any) {
       >
         <View style={styles.tripHeader}>
           <View style={styles.passengerInfo}>
-            <Ionicons name="person-circle-outline" size={24} color="#2E86DE" />
+            <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
             <Text style={styles.passengerName}>{item.passenger}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: item.statusColor }]}>
@@ -243,7 +249,7 @@ export default function TripScreen({ navigation }: any) {
             style={styles.detailButton}
             onPress={() => viewTripDetails(item)}
           >
-            <Ionicons name="eye-outline" size={16} color="#2E86DE" />
+            <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
             <Text style={styles.detailButtonText}>Detalhes</Text>
           </TouchableOpacity>
           
@@ -270,41 +276,37 @@ export default function TripScreen({ navigation }: any) {
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={styles.container}>
-        {/* {!isDriverApproved ? (
-          renderNotApprovedMessage()
-        ) : ( */}
-          <>
-            <View style={styles.header}>
-              <Text style={styles.sectionTitle}>📋 Histórico de Viagens</Text>
-              <TouchableOpacity style={styles.refreshButton} onPress={loadTripsHistory}>
-                <Ionicons name="refresh-outline" size={20} color={COLORS.primary} />
-              </TouchableOpacity>
+        <>
+          <View style={styles.header}>
+            <Text style={styles.sectionTitle}>📋 Histórico de Viagens</Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={loadTripsHistory}>
+              <Ionicons name="refresh-outline" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.sectionSubtitle}>
+            {trips.length > 0 
+              ? `${trips.length} viagem${trips.length > 1 ? 's' : ''} encontrada${trips.length > 1 ? 's' : ''}` 
+              : "Suas viagens aparecerão aqui"}
+          </Text>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Ionicons name="time-outline" size={48} color={COLORS.gray} />
+              <Text style={styles.loadingText}>Carregando histórico...</Text>
             </View>
-            
-            <Text style={styles.sectionSubtitle}>
-              {trips.length > 0 
-                ? `${trips.length} viagem${trips.length > 1 ? 's' : ''} encontrada${trips.length > 1 ? 's' : ''}` 
-                : "Suas viagens aparecerão aqui"}
-            </Text>
-            
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <Ionicons name="time-outline" size={48} color={COLORS.gray} />
-                <Text style={styles.loadingText}>Carregando histórico...</Text>
-              </View>
-            ) : trips.length === 0 ? (
-              renderEmptyHistory()
-            ) : (
-              <FlatList
-                data={trips}
-                renderItem={renderTripCard}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-                showsVerticalScrollIndicator={false}
-              />
-            )}
-          </>
-        {/* )} */}
+          ) : trips.length === 0 ? (
+            renderEmptyHistory()
+          ) : (
+            <FlatList
+              data={trips}
+              renderItem={renderTripCard}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
       </ScrollView>
     </View>
   );
@@ -335,17 +337,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray100,
   },
   
-  // Cartão de viagem
   tripCard: {
     backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   tripHeader: {
     flexDirection: "row",
@@ -377,7 +378,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   
-  // Informações da rota
   routeInfo: {
     marginBottom: 12,
   },
@@ -397,7 +397,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Rodapé do cartão
   tripFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -416,7 +415,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   
-  // Botões de ação
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -425,9 +423,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: COLORS.gray100,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(127, 0, 255, 0.1)",
   },
   detailButtonText: {
     fontSize: 12,
@@ -439,8 +437,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
     backgroundColor: COLORS.gray100,
   },
   shareButtonText: {
@@ -450,7 +448,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   
-  // Estados de loading e vazio
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -464,11 +461,15 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     backgroundColor: "#FFF",
-    padding: 24,
-    borderRadius: 12,
+    padding: 30,
+    borderRadius: 16,
     alignItems: "center",
     marginTop: 20,
-    elevation: 2,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   emptyTitle: {
     fontSize: 18,
@@ -499,7 +500,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   
-  // Mensagem de não aprovado
   notApprovedContainer: {
     backgroundColor: "#FFF",
     padding: 24,

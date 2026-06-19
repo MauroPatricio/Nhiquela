@@ -362,7 +362,7 @@ const test ='nhiquelaservicosconsultoria@gmail.com'
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ test, email],       
-  subject: `nhiquela. - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
 };
 
@@ -398,7 +398,7 @@ export const sendEmailOrderToSeller = async (req, msg,seller, order, res)=>{
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ sellerEmail, userOrderEmail],       
-  subject: `nhiquela. - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
 };
 
@@ -433,7 +433,7 @@ export const sendEmailOrderStatusToSellerAndDeliver = async (req, msg, seller, o
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ sellerEmail, userOrderEmail],       
-  subject: `nhiquela. - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
 };
 

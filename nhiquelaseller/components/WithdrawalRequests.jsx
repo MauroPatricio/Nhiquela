@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -39,10 +40,22 @@ const WithdrawalRequestsScreen = () => {
       await api.put(`/wallet/${id}/authorize`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      Alert.alert("Sucesso", "Solicitação autorizada!");
+      showMessage({
+        message: "Sucesso",
+        description: "Solicitação autorizada!",
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
       fetchRequests(token);
     } catch (err) {
-      Alert.alert("Erro", "Não foi possível autorizar.");
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível autorizar.",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -51,10 +64,22 @@ const WithdrawalRequestsScreen = () => {
       await api.put(`/wallet/${id}/cancel`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      Alert.alert("Cancelado", "Solicitação cancelada e valor devolvido!");
+      showMessage({
+        message: "Cancelado",
+        description: "Solicitação cancelada e valor devolvido!",
+        type: "info",
+        icon: "auto",
+        duration: 3000,
+      });
       fetchRequests(token);
     } catch (err) {
-      Alert.alert("Erro", "Não foi possível cancelar.");
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível cancelar.",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 

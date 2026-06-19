@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faPlus, faEye, faSave, faTimes, faBoxOpen, faBarcode, faImage, faTags, faPalette, faRuler, faPercent, faTruck, faShieldAlt, faUpload, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faPlus, faEye, faSave, faTimes, faBoxOpen, faBarcode, faImage, faTags, faPalette, faRuler, faPercent, faTruck, faShieldAlt, faUpload, faSpinner, faSearch, faStore } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function ProductsScreen() {
   const [products, setProducts] = useState([]);
@@ -13,6 +15,7 @@ export default function ProductsScreen() {
   
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
+  const [suppliersList, setSuppliersList] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -20,16 +23,18 @@ export default function ProductsScreen() {
 
   const fetchData = async () => {
     try {
-      const [prodRes, catRes, colRes, sizeRes] = await Promise.all([
+      const [prodRes, catRes, colRes, sizeRes, supRes] = await Promise.all([
         api.get('/products'),
         api.get('/categories').catch(() => ({ data: [] })),
         api.get('/colors').catch(() => ({ data: [] })),
-        api.get('/sizes').catch(() => ({ data: [] }))
+        api.get('/sizes').catch(() => ({ data: [] })),
+        api.get('/users/sellers').catch(() => ({ data: { sellers: [] } }))
       ]);
       setProducts(prodRes.data.products || []);
       setCategoriesList(catRes.data.categories ? catRes.data.categories.map(c => c.name) : ['Mercearia Básica', 'Bebidas']);
       setAvailableColors(colRes.data.colors ? colRes.data.colors.map(c => c.name) : ['Preto', 'Branco']);
       setAvailableSizes(sizeRes.data.sizes ? sizeRes.data.sizes.map(s => s.name) : ['P', 'M', 'G', 'Único']);
+      setSuppliersList(supRes.data.sellers || []);
     } catch (error) {
       toast.error('Erro ao carregar dados dos produtos');
     } finally {
@@ -40,7 +45,7 @@ export default function ProductsScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({ 
-    nome: '', name: '', brand: '', category: '', province: '', price: '', countInStock: '', description: '', image: '',
+    nome: '', name: '', brand: '', category: '', province: '', price: '', countInStock: '', description: '', image: '', seller: '',
     color: [], size: [], onSale: false, onSalePercentage: '', isOrdered: false, orderPeriod: '', isGuaranteed: false, guaranteedPeriod: ''
   });
   
@@ -48,6 +53,11 @@ export default function ProductsScreen() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentProducts,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(products, 10, ['nome', 'name', 'brand', 'category', 'province']);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -84,12 +94,20 @@ export default function ProductsScreen() {
     if (product) {
       setIsEditing(true);
       setCurrentId(product._id || product.id);
-      setFormData({ ...product });
+      setFormData({ 
+        ...product,
+        category: typeof product.category === 'object' ? (product.category?.name || product.category?.nome || product.category?._id || '') : product.category,
+        brand: typeof product.brand === 'object' ? (product.brand?.name || product.brand?.nome || product.brand?._id || '') : product.brand,
+        province: typeof product.province === 'object' ? (product.province?.name || product.province?.nome || product.province?._id || '') : product.province,
+        seller: typeof product.seller === 'object' ? (product.seller?._id || '') : (product.seller || ''),
+        color: Array.isArray(product.color) ? product.color.map(c => typeof c === 'object' ? (c.name || c.nome || c._id) : c) : [],
+        size: Array.isArray(product.size) ? product.size.map(s => typeof s === 'object' ? (s.name || s.nome || s._id) : s) : [],
+      });
     } else {
       setIsEditing(false);
       setCurrentId(null);
       setFormData({ 
-        nome: '', name: '', brand: '', category: '', province: '', price: '', countInStock: '', description: '', image: '',
+        nome: '', name: '', brand: '', category: '', province: '', price: '', countInStock: '', description: '', image: '', seller: '',
         color: [], size: [], onSale: false, onSalePercentage: '', isOrdered: false, orderPeriod: '', isGuaranteed: false, guaranteedPeriod: ''
       });
     }
@@ -152,9 +170,23 @@ export default function ProductsScreen() {
           <h2 className="fw-bold m-0 text-dark">Catálogo de Produtos</h2>
           <span className="text-muted small">Gestão de estoque, promoções, garantias e atributos</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Produto
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar produto..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Produto
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -173,9 +205,9 @@ export default function ProductsScreen() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="5" className="text-center py-5 text-muted"><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A carregar catálogo...</td></tr>
-                ) : products.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhum produto cadastrado na base de dados.</td></tr>
-                ) : products.map(product => (
+                ) : currentProducts.length === 0 ? (
+                  <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhum produto encontrado.</td></tr>
+                ) : currentProducts.map(product => (
                   <tr key={product._id || product.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
@@ -189,15 +221,20 @@ export default function ProductsScreen() {
                         <div>
                           <div className="fw-bold text-dark text-truncate" style={{ maxWidth: '250px' }}>{product.nome}</div>
                           <div className="text-muted small d-flex align-items-center gap-2 mt-1">
-                            <span>{product.brand || 'Sem marca'}</span>
+                            <span>{typeof product.brand === 'object' ? (product.brand?.name || product.brand?.nome) : (product.brand || 'Sem marca')}</span>
                             {product.onSale && <span className="badge bg-danger">-{product.onSalePercentage}% OFF</span>}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span className="badge bg-light text-dark border d-block mb-1 text-start" style={{width: 'max-content'}}>{product.category}</span>
-                      <span className="small text-muted">{product.province}</span>
+                      <span className="badge bg-light text-dark border d-block mb-1 text-start" style={{width: 'max-content'}}>
+                        {typeof product.category === 'object' ? (product.category?.name || product.category?.nome || 'N/A') : (product.category || 'N/A')}
+                      </span>
+                      <div className="d-flex flex-column gap-1">
+                        <span className="small text-muted">{typeof product.province === 'object' ? (product.province?.name || product.province?.nome) : product.province}</span>
+                        {product.seller && <span className="badge bg-primary-subtle text-primary-custom border border-primary border-opacity-25" style={{width: 'max-content'}}>Vendedor: {typeof product.seller === 'object' ? (product.seller?.name || product.seller?.nome) : product.seller}</span>}
+                      </div>
                     </td>
                     <td>
                       {product.onSale ? (
@@ -228,6 +265,11 @@ export default function ProductsScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 
@@ -267,6 +309,13 @@ export default function ProductsScreen() {
                     <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.province} onChange={(e) => setFormData({...formData, province: e.target.value})} required>
                       <option value="">Selecione...</option>
                       {provincesList.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold small text-muted mb-1">Fornecedor / Loja</label>
+                    <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.seller} onChange={(e) => setFormData({...formData, seller: e.target.value})} required>
+                      <option value="">Selecione o fornecedor...</option>
+                      {suppliersList.map(s => <option key={s._id || s.id} value={s._id || s.id}>{s.name || s.nome}</option>)}
                     </select>
                   </div>
                 </div>
@@ -403,9 +452,14 @@ export default function ProductsScreen() {
                 <div className="col-md-7">
                   <h4 className="fw-bold text-dark mb-1">{selectedProduct.nome}</h4>
                   <div className="text-muted mb-3 d-flex gap-2 flex-wrap">
-                    <span className="badge bg-secondary">{selectedProduct.brand || 'Sem marca'}</span>
-                    <span className="badge bg-light text-dark border">{selectedProduct.category}</span>
-                    <span className="badge bg-light text-dark border">{selectedProduct.province}</span>
+                    <span className="badge bg-secondary">{typeof selectedProduct.brand === 'object' ? (selectedProduct.brand?.name || selectedProduct.brand?.nome) : (selectedProduct.brand || 'Sem marca')}</span>
+                    <span className="badge bg-light text-dark border">{typeof selectedProduct.category === 'object' ? (selectedProduct.category?.name || selectedProduct.category?.nome) : selectedProduct.category}</span>
+                    <span className="badge bg-light text-dark border">{typeof selectedProduct.province === 'object' ? (selectedProduct.province?.name || selectedProduct.province?.nome) : selectedProduct.province}</span>
+                    {selectedProduct.seller && (
+                      <span className="badge bg-primary-subtle text-primary-custom border border-primary border-opacity-25">
+                        <FontAwesomeIcon icon={faStore} className="me-1" /> Fornecedor: {typeof selectedProduct.seller === 'object' ? (selectedProduct.seller?.name || selectedProduct.seller?.nome) : selectedProduct.seller}
+                      </span>
+                    )}
                   </div>
                   
                   <div className="d-flex align-items-center gap-3 mb-3">
@@ -438,13 +492,13 @@ export default function ProductsScreen() {
                       <div className="col-6">
                         <span className="text-muted small fw-bold d-block mb-1"><FontAwesomeIcon icon={faPalette}/> Cores</span>
                         <div className="d-flex flex-wrap gap-1">
-                          {selectedProduct.color.map(c => <span key={c} className="badge bg-light text-dark border">{c}</span>)}
+                          {selectedProduct.color?.map(c => <span key={typeof c === 'object' ? (c._id || c.name) : c} className="badge bg-light text-dark border">{typeof c === 'object' ? (c.name || c.nome) : c}</span>)}
                         </div>
                       </div>
                       <div className="col-6">
                         <span className="text-muted small fw-bold d-block mb-1"><FontAwesomeIcon icon={faRuler}/> Tamanhos</span>
                         <div className="d-flex flex-wrap gap-1">
-                          {selectedProduct.size.map(s => <span key={s} className="badge bg-light text-dark border">{s}</span>)}
+                          {selectedProduct.size?.map(s => <span key={typeof s === 'object' ? (s._id || s.name) : s} className="badge bg-light text-dark border">{typeof s === 'object' ? (s.name || s.nome) : s}</span>)}
                         </div>
                       </div>
                     </div>

@@ -21,6 +21,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import FlashMessage from "react-native-flash-message";
 import api from "./src/api/apiConfig";
 
 // 🔗 Referência global de navegação
@@ -160,6 +161,7 @@ function AppContent() {
     <>
       <AppNavigator />
       <Toast />
+      <FlashMessage position="top" />
     </>
   );
 }

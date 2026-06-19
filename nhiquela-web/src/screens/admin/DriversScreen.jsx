@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMotorcycle, faTruck, faFileAlt, faImage, faCheckCircle, faPhone, faEnvelope, faMapMarkerAlt, faPalette, faShieldAlt, faExclamationTriangle, faStar, faBoxOpen } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMotorcycle, faTruck, faFileAlt, faImage, faCheckCircle, faPhone, faEnvelope, faMapMarkerAlt, faPalette, faShieldAlt, faExclamationTriangle, faStar, faBoxOpen, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function DriversScreen() {
   const [drivers, setDrivers] = useState([
@@ -42,6 +44,11 @@ export default function DriversScreen() {
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentDrivers,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(drivers, 10, ['name', 'phone', 'email', 'plate', 'province']);
 
   const handleOpenDetails = (driver) => {
     setSelectedDriver(driver);
@@ -107,9 +114,23 @@ export default function DriversScreen() {
           <h2 className="fw-bold m-0 text-dark">Motoristas Parceiros</h2>
           <span className="text-muted small">Validação de contas, frota e documentos enviados via app</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Motorista
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar motorista..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 py-2 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Motorista
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -127,9 +148,9 @@ export default function DriversScreen() {
                 </tr>
               </thead>
               <tbody>
-                {drivers.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhum motorista cadastrado.</td></tr>
-                ) : drivers.map(driver => (
+                {currentDrivers.length === 0 ? (
+                  <tr><td colSpan="6" className="text-center py-5 text-muted">Nenhum motorista encontrado.</td></tr>
+                ) : currentDrivers.map(driver => (
                   <tr key={driver.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-1">
@@ -184,6 +205,11 @@ export default function DriversScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

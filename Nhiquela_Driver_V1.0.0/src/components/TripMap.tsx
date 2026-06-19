@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import MapView, { Marker, Camera } from "react-native-maps";
+import MapView, { Marker, Camera, UrlTile } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import { 
   StyleSheet, 
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { COLORS } from "../styles/colors";
 import * as Location from 'expo-location';
+//@ts-ignore
 import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
@@ -23,7 +24,11 @@ type Props = {
   shouldDrawRoute: boolean;
   onStepComplete?: () => void;
   tripData?: any; // Nova prop para receber os dados da viagem
-  onStartTrip?: (trip: any) => void; // Nova prop para chamar a função startTrip
+  onStartTrip?: (trip: any) => void;
+  onCancelTrip?: () => void;
+  onFinishTrip?: () => void;
+  canFinishTrip?: boolean;
+  routeDrawn?: boolean;
 };
 
 const GOOGLE_API_KEY = "AIzaSyCcEJkIShYipbwcKBfDFKKkLR6QudOQG3Q";
@@ -256,6 +261,7 @@ export default function TripMap({
       <MapView
         ref={mapRef}
         style={styles.map}
+        provider={null}
         showsUserLocation={false}
         loadingEnabled
         rotateEnabled={true}
@@ -263,6 +269,11 @@ export default function TripMap({
         scrollEnabled={true}
         zoomEnabled={true}
       >
+        <UrlTile
+          urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maximumZ={19}
+          flipY={false}
+        />
         {/* 🔥 MARCADOR DA LOCALIZAÇÃO ATUAL */}
         {origin && (
           <Marker 

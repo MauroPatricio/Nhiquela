@@ -31,7 +31,7 @@ const ProductCardView = ({ item }) => {
                     </View>
                     <TouchableOpacity style={styles.addBtn}>
                         <Ionicons name='cart' size={25}
-                            color={'#3e2465'}
+                            color={'#7F00FF'}
                         />
                     </TouchableOpacity>
                 </View>

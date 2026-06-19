@@ -339,19 +339,13 @@ export default function MapScreen({ route, navigation }: any) {
           setCanFinishTrip(true);
         }}
         shouldDrawRoute={tripData?.stepStatus === 4 || tripData?.stepStatus === 5}
-        tripData={tripData} // Passa os dados da viagem
-        onStartTrip={startTrip} // Passa a função startTrip
-      />
-      
-
-      {/* 🔥 CONTROLES (descomente quando precisar) */}
-      {/* <TripControls
+        tripData={tripData}
+        onStartTrip={startTrip}
         onCancelTrip={handleCancelTrip}
         onFinishTrip={handleFinishTrip}
         canFinishTrip={canFinishTrip}
         routeDrawn={routeDrawn}
-        stepStatus={tripData?.stepStatus}
-      /> */}
+      />
     </View>
   );
 }

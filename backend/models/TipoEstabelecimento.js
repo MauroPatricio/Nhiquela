@@ -2,8 +2,7 @@ import mongoose from 'mongoose';
 
 const tipoEstabelecimentoSchema = new mongoose.Schema({
   nome: { type: String, required: true, unique: true },
-  description: { type: String },
-  icon: { type: String },
+  img: { type: String, required: true, unique: true },
   criadoEm: { type: Date, default: Date.now },
 });
 

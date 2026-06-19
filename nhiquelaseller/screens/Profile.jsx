@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import {
   View,
   Text,
@@ -117,11 +118,23 @@ const Profile = () => {
         await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
         setUserData(updatedUser);
       } else {
-        Alert.alert('Erro', 'Falha ao atualizar o estado da loja.');
+        showMessage({
+        message: 'Erro',
+        description: 'Falha ao atualizar o estado da loja.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       }
     } catch (error) {
       console.error('Erro ao atualizar estado da loja:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar o estado da loja.');
+      showMessage({
+        message: 'Erro',
+        description: 'Não foi possível atualizar o estado da loja.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     } finally {
       setUpdatingStore(false);
     }

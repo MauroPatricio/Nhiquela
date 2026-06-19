@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStoreAlt, faEdit, faTrash, faPlus, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faStoreAlt, faEdit, faTrash, faPlus, faSave, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function EstablishmentTypesScreen() {
   const [types, setTypes] = useState([]);
@@ -13,6 +15,11 @@ export default function EstablishmentTypesScreen() {
   const [formData, setFormData] = useState({ name: '', description: '', icon: '🏢' });
   
   const [showModal, setShowModal] = useState(false);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentTypes,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(types, 10, ['nome', 'name', 'description']);
 
   useEffect(() => {
     fetchTypes();
@@ -81,10 +88,24 @@ export default function EstablishmentTypesScreen() {
           <h2 className="fw-bold m-0 text-dark">Tipos de Estabelecimento</h2>
           <span className="text-muted small">Gestão das categorias macro de lojas parceiras</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" />
-          Novo Tipo
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar tipo..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" />
+            Novo Tipo
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -103,11 +124,11 @@ export default function EstablishmentTypesScreen() {
                   <tr>
                     <td colSpan="3" className="text-center py-5 text-muted">A carregar...</td>
                   </tr>
-                ) : types.length === 0 ? (
+                ) : currentTypes.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-5 text-muted">Nenhum tipo cadastrado na base de dados.</td>
+                    <td colSpan="3" className="text-center py-5 text-muted">Nenhum tipo encontrado.</td>
                   </tr>
-                ) : types.map(type => (
+                ) : currentTypes.map(type => (
                   <tr key={type._id || type.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
@@ -137,6 +158,11 @@ export default function EstablishmentTypesScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

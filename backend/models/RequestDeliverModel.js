@@ -15,25 +15,6 @@ const requestDeliverSchema = new mongoose.Schema(
     deliveryPrice: { type: Number, require: true },
     latitude: { type: Number},
     longitude: { type: Number},
-    
-    // Novos campos do Módulo Nhiquela Deliver (Mapa)
-    serviceType: { type: String }, // Mota, Carro, Rancho, Reboque, etc.
-    priority: { type: String, default: 'Normal' }, // Normal, Prioritário, Urgente
-    originLocation: {
-      address: { type: String },
-      lat: { type: Number },
-      lng: { type: Number }
-    },
-    destinationLocation: {
-      address: { type: String },
-      lat: { type: Number },
-      lng: { type: Number }
-    },
-    distanceKm: { type: Number },
-    estimatedTimeMin: { type: Number },
-    shoppingList: [{ type: String }],
-    rejectionList: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-
 
     user: {
       type: mongoose.Schema.Types.ObjectId,

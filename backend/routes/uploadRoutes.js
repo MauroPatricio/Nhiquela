@@ -21,7 +21,6 @@ uploadRouter.post('/',  upload.single('file'),async (req, res) => {
         ],
         maxFileSize: 5000000, // Limit to 5MB
       }
- 
     const streamUpload = (req) => {
     return new Promise((resolve, reject)=>{
         const stream = cloudinary.uploader.upload_stream(imgOptions,(error, result)=>{
@@ -42,5 +41,61 @@ uploadRouter.post('/',  upload.single('file'),async (req, res) => {
    res.send(result)
 });
 
+
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Fix __dirname for ES modules if needed
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Local Storage setup
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // Determine the category of the upload (driver, document, establishment, vehicle, others)
+        const category = req.body.type || 'others';
+        const allowed = ['driver', 'document', 'establishment', 'vehicle', 'others'];
+        const safeCategory = allowed.includes(category) ? category : 'others';
+        const uploadPath = path.join(__dirname, '../../uploads/nhiquela_driver', safeCategory);
+        // Ensure the directory exists
+        import('fs').then(fs => {
+            if (!fs.existsSync(uploadPath)) {
+                fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+        });
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    }
+});
+
+const uploadLocal = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Local Upload Route
+uploadRouter.post('/local', uploadLocal.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).send({ message: 'Nenhum ficheiro enviado' });
+        }
+        
+        // Construct the URL to access the file
+        // The server.js should serve the /uploads folder statically
+        const category = req.body.type || 'others';
+        const safeCategory = ['driver', 'document', 'establishment', 'vehicle', 'others'].includes(category) ? category : 'others';
+        const fileUrl = `/uploads/nhiquela_driver/${safeCategory}/${req.file.filename}`;
+        
+        res.send({ 
+            message: 'Upload feito com sucesso',
+            url: fileUrl,
+            filename: req.file.filename
+        });
+    } catch (error) {
+        res.status(500).send({ message: 'Erro ao fazer upload local: ' + error.message });
+    }
+});
 
 export default uploadRouter;

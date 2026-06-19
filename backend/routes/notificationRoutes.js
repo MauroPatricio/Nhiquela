@@ -1,202 +1,121 @@
 import express from 'express';
-import User from '../models/UserModel.js';
-import { baseUrl, generateToken, isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
-import bcrypt from 'bcryptjs';
-import Product from '../models/ProductModel.js';
-import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer'
-import path from 'path'
- 
+import NotificationToken from '../models/NotificationToken.js';
+import { Expo } from 'expo-server-sdk';
+import { sendNotification } from '../utils/sendNotification.js';
 
-const notificationRoutes = express.Router();
+const notificationRouter = express.Router();
+const expo = new Expo();
 
-
-notificationRoutes.post(
-  '/',
-  // isAuth,
-  // isAdmin,
+// ✅ Rota para salvar ou atualizar token
+notificationRouter.post(
+  '/savedevicetoken',
   expressAsyncHandler(async (req, res) => {
-    try {
-      const { user, tokenID } = req.body;
+    const { deviceToken, userId, platform } = req.body;
 
-      const objID = mongoose.Types.ObjectId.isValid(user)
-        ? mongoose.Types.ObjectId(user)
-        : null;
-
-      if (!objID) {
-        return res.status(400).send({ message: 'Invalid User ID' });
-      }
-
-      const notification = await Notification.findOne({ user });
-
-      if (notification) {
-        return res.status(200).json({
-          status: 'success',
-          data: {
-            message: 'Token already registered!',
-          },
-        });
-      }
-
-      const newNotification = new Notification({
-        user: objID,
-        tokenID: tokenID,
-      });
-      await newNotification.save();
-
-      res.status(201).send({
-        status: 'success',
-        data: newNotification,
-      });
-    } catch (error) {
-      res.status(500).send({ message: 'Server error', error });
+    if (!deviceToken || deviceToken === 'null' || deviceToken === null) {
+      return res.status(400).json({ message: 'Token inválido ou ausente.' });
     }
+
+    const existing = await NotificationToken.findOne({ deviceToken });
+    if (existing) {
+      return res.status(200).json({ message: 'Token já registrado.' });
+    }
+
+    const newToken = new NotificationToken({
+      deviceToken,
+      user: userId || null,
+      platform: platform || 'android',
+    });
+
+    await newToken.save();
+    res.status(201).json({ message: 'Token salvo com sucesso.' });
   })
 );
 
 
-notificationRoutes.put(
-  '/:id',
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { userid } = req.query;
-      
-      const objID = mongoose.Types.ObjectId.isValid(userid)
-        ? mongoose.Types.ObjectId(userid)
-        : null;
+// ✅ Rota para enviar notificação
+notificationRouter.post('/send', async (req, res) => {
+  const { deviceToken, title, body, data } = req.body;
 
-      if (!objID) {
-        return res.status(400).send({ message: 'Invalid User ID' });
-      }
-
-      const notification = await Notification.findOne({ user: objID });
-
-      if (!notification) {
-        return res.status(404).send({ message: 'No Document Found' });
-      }
-
-      // Update the notification using your factory update function or manual update
-      const updatedNotification = await Notification.findByIdAndUpdate(
-        notification._id,
-        { ...req.body }, // assuming the update data is in the body
-        { new: true }
-      );
-
-      res.status(200).send({
-        status: 'success',
-        data: updatedNotification,
-      });
-    } catch (error) {
-      res.status(500).send({ message: 'Server error', error });
+  try {
+    const result = await sendNotification(deviceToken, title, body, data);
+    if (result.success) {
+      res.status(200).json({ message: 'Notificação enviada com sucesso.', tickets: result.tickets });
+    } else {
+      res.status(500).json({ message: 'Erro ao enviar notificação.', error: result.error });
     }
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+
+/**
+ * Rota: Enviar notificação para um usuário
+ */
+notificationRouter.post(
+  '/send-to-user',
+  expressAsyncHandler(async (req, res) => {
+    const { userId, title, body, data } = req.body;
+
+
+    if (!userId || !title || !body) {
+      return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
+    }
+
+    // Busca todos os tokens associados ao usuário (caso o usuário use vários dispositivos)
+    const deviceTokens = await NotificationToken.find({ user: userId });
+
+    if (!deviceTokens.length) {
+      console.log('Nenhum token encontrado para este usuário. '+ userId)
+      // return res.status(404).json({ message: 'Nenhum token encontrado para este usuário.' });
+    }
+
+    const results = [];
+     // Salvar notificação no histórico do banco
+    // await Notification.create({ user: userId, title, body, data });
+
+    for (const tokenObj of deviceTokens) {
+      const result = await sendNotification(tokenObj.deviceToken, title, body, data);
+      results.push(result);
+    }
+
+    res.status(200).json({ message: 'Notificações enviadas.', results });
+  })
+);
+
+/**
+ * Enviar notificação para todos os tokens registrados
+ */
+notificationRouter.post(
+  '/broadcast',
+  expressAsyncHandler(async (req, res) => {
+    const { title, body, data } = req.body;
+
+    if (!title || !body) {
+      return res.status(400).json({ message: 'Título e corpo são obrigatórios.' });
+    }
+
+    const deviceTokens = await NotificationToken.find();
+
+    if (!deviceTokens.length) {
+      return res.status(404).json({ message: 'Nenhum token encontrado.' });
+    }
+
+    const results = [];
+
+    for (const tokenObj of deviceTokens) {
+      const result = await sendNotification(tokenObj.deviceToken, title, body, data);
+      results.push({ deviceToken: tokenObj.deviceToken, ...result });
+    }
+
+    res.status(200).json({
+      message: `Notificações enviadas para ${deviceTokens.length} dispositivos.`,
+      results,
+    });
   })
 );
 
 
-notificationRoutes.post(
-  '/send',
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { title, body, navigate, tokenID, image, user, data } = req.body;
-
-      // Find notification object for the user
-      const notificationObj = await Notification.findOne({ user });
-
-      if (!notificationObj) {
-        return res.status(404).send({
-          message: 'No Such User with Notifications Object Found',
-        });
-      }
-
-      // Construct notification object
-      const notification = {
-        title: title || 'Results Are Ready!',
-        body: body || 'Click here to view your results',
-        data: {
-          navigate: navigate || 'Xray',
-          image: image || 'default',
-          data: data || null,
-        },
-        android: {
-          smallIcon: 'logo_circle',
-          channelId: 'default',
-          importance: 4,
-          pressAction: {
-            id: 'default',
-          },
-          actions: [
-            {
-              title: 'Mark as Read',
-              pressAction: {
-                id: 'read',
-              },
-            },
-          ],
-        },
-      };
-
-      // Add notification to user's notifications array and save
-      notificationObj.notifications.push(notification);
-      await notificationObj.save();
-
-      // Send the notification using Firebase Admin SDK
-      await admin.messaging().sendMulticast({
-        tokens: [tokenID],
-        data: {
-          notifee: JSON.stringify(notification),
-        },
-      });
-
-      // Respond with success message
-      res.status(200).send({
-        message: 'Successfully sent notifications!',
-      });
-    } catch (error) {
-      res.status(500).send({
-        message: 'Something went wrong!',
-        error: error.message,
-      });
-    }
-  })
-);
-
-notificationRoutes.get(
-  '/',
-  expressAsyncHandler(async (req, res) => {
-    try {
-      const { user } = req.query;
-
-      // Validate user ID
-      const objID = mongoose.Types.ObjectId.isValid(user)
-        ? mongoose.Types.ObjectId(user)
-        : null;
-
-      if (!objID) {
-        return res.status(400).send({ message: 'Invalid User ID' });
-      }
-
-      // Find notification object for the user
-      const notificationObj = await Notification.findOne({ user: objID });
-
-      if (!notificationObj) {
-        return res.status(404).send({
-          message: 'No Such User with Notifications Object Found',
-        });
-      }
-
-      // Send the notification object back in the response
-      res.status(200).send({
-        status: 'success',
-        data: notificationObj,
-      });
-    } catch (error) {
-      res.status(500).send({
-        message: 'Something went wrong!',
-        error: error.message,
-      });
-    }
-  })
-);
-
-export default notificationRoutes;
+export default notificationRouter;

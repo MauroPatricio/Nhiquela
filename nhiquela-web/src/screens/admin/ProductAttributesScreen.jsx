@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPalette, faRuler, faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPalette, faRuler, faPlus, faEdit, faTrash, faSave, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function ProductAttributesScreen() {
   const [activeTab, setActiveTab] = useState('colors'); // 'colors' | 'sizes'
@@ -20,6 +22,12 @@ export default function ProductAttributesScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({ nome: '' });
+
+  const currentList = activeTab === 'colors' ? colors : sizes;
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(currentList, 10, ['nome']);
 
   useEffect(() => {
     fetchColors();
@@ -155,6 +163,11 @@ export default function ProductAttributesScreen() {
           ))}
         </tbody>
       </table>
+      <PaginationControls 
+        currentPage={currentPage} totalPages={totalPages} 
+        onNext={nextPage} onPrev={prevPage} 
+        totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+      />
     </div>
   );
 
@@ -165,9 +178,23 @@ export default function ProductAttributesScreen() {
           <h2 className="fw-bold m-0 text-dark">Atributos de Produto</h2>
           <span className="text-muted small">Gestão de variantes globais: Cores e Tamanhos</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo {activeTab === 'colors' ? 'Cor' : 'Tamanho'}
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar atributo..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo {activeTab === 'colors' ? 'Cor' : 'Tamanho'}
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4 overflow-hidden mb-4">
@@ -187,8 +214,8 @@ export default function ProductAttributesScreen() {
         </div>
 
         <div className="card-body p-0">
-          {activeTab === 'colors' && renderTable(colors, faPalette, 'Nome da Cor')}
-          {activeTab === 'sizes' && renderTable(sizes, faRuler, 'Descrição do Tamanho / Medida')}
+          {activeTab === 'colors' && renderTable(currentData, faPalette, 'Nome da Cor')}
+          {activeTab === 'sizes' && renderTable(currentData, faRuler, 'Descrição do Tamanho / Medida')}
         </div>
       </div>
 

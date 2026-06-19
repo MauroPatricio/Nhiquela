@@ -8,7 +8,7 @@ const serviceRouter = express.Router();
 serviceRouter.get(
   '/',
   expressAsyncHandler(async (req, res) => {
-    const services = await Service.find({});
+    const services = await Service.find({}).sort({ order: 1 });
     res.send(services);
   })
 );
@@ -23,6 +23,11 @@ serviceRouter.post(
       subcategoryId: req.body.subcategoryId || null,
       basePrice: req.body.basePrice,
       status: req.body.status || 'Ativo',
+      icon: req.body.icon || '',
+      color: req.body.color || '',
+      description: req.body.description || '',
+      order: req.body.order || 0,
+      image: req.body.image || '',
     });
     const service = await newService.save();
     res.status(201).send(service);
@@ -40,6 +45,11 @@ serviceRouter.put(
       service.subcategoryId = req.body.subcategoryId !== undefined ? req.body.subcategoryId : service.subcategoryId;
       service.basePrice = req.body.basePrice || service.basePrice;
       service.status = req.body.status || service.status;
+      service.icon = req.body.icon !== undefined ? req.body.icon : service.icon;
+      service.color = req.body.color !== undefined ? req.body.color : service.color;
+      service.description = req.body.description !== undefined ? req.body.description : service.description;
+      service.order = req.body.order !== undefined ? req.body.order : service.order;
+      service.image = req.body.image !== undefined ? req.body.image : service.image;
 
       const updatedService = await service.save();
       res.send(updatedService);

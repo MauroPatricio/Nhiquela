@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 // screens/EditProfileScreen.tsx - CÓDIGO COMPLETO COM FOTOS GRANDES
 import React, { useState, useEffect } from "react";
 import {
@@ -119,7 +120,13 @@ export default function EditProfileScreen({ navigation, route }: Props) {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (!permissionResult.granted) {
-        Alert.alert("Permissão necessária", "Precisa de permitir acesso às fotos!");
+        showMessage({
+        message: "Permissão necessária",
+        description: "Precisa de permitir acesso às fotos!",
+        type: "info",
+        icon: "auto",
+        duration: 3000,
+      });
         return;
       }
 
@@ -137,7 +144,13 @@ export default function EditProfileScreen({ navigation, route }: Props) {
       }
     } catch (error) {
       console.error("❌ Erro ao selecionar imagem:", error);
-      Alert.alert("Erro", "Não foi possível selecionar a imagem");
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível selecionar a imagem",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     } finally {
       setUploadingImage(false);
     }
@@ -151,7 +164,13 @@ export default function EditProfileScreen({ navigation, route }: Props) {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (!permissionResult.granted) {
-        Alert.alert("Permissão necessária", "Precisa de permitir acesso à câmera!");
+        showMessage({
+        message: "Permissão necessária",
+        description: "Precisa de permitir acesso à câmera!",
+        type: "info",
+        icon: "auto",
+        duration: 3000,
+      });
         return;
       }
 
@@ -168,7 +187,13 @@ export default function EditProfileScreen({ navigation, route }: Props) {
       }
     } catch (error) {
       console.error("❌ Erro ao tirar foto:", error);
-      Alert.alert("Erro", "Não foi possível tirar a foto");
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível tirar a foto",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     } finally {
       setUploadingImage(false);
     }
@@ -242,7 +267,13 @@ const handleSave = async (values: any) => {
         updateDeliveryman(deliverymanData);
         
       } else {
-        Alert.alert("✅ Sucesso", "Perfil atualizado com sucesso!");
+        showMessage({
+        message: "✅ Sucesso",
+        description: "Perfil atualizado com sucesso!",
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
       }
       
       navigation.goBack();
@@ -255,7 +286,13 @@ const handleSave = async (values: any) => {
                           error.message || 
                           "Não foi possível enviar a solicitação de atualização";
       
-      Alert.alert("❌ Erro", errorMessage);
+      showMessage({
+        message: "❌ Erro",
+        description: errorMessage,
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     } finally {
       setLoading(false);
     }

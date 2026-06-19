@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -248,7 +249,13 @@ const SignUp = () => {
       values.seller.logo=image;
 
       if(!values.seller.logo){
-                 Alert.alert('Erro', 'A logo do estabelecimento é obrigatória!');
+                 showMessage({
+        message: 'Erro',
+        description: 'A logo do estabelecimento é obrigatória!',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
                       return;
 
       }

@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -130,7 +131,13 @@ const checkIfUserExist = async () => {
   const handleImagePicker = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Erro', 'Permissão para acessar a galeria é necessária!');
+      showMessage({
+        message: 'Erro',
+        description: 'Permissão para acessar a galeria é necessária!',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       return;
     }
 
@@ -166,7 +173,13 @@ const checkIfUserExist = async () => {
       setImage(data.secure_url);
       return data.secure_url;
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao enviar a imagem.');
+      showMessage({
+        message: 'Erro',
+        description: 'Falha ao enviar a imagem.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 

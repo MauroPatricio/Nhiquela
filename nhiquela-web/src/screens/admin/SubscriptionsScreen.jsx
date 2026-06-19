@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCrown, faEdit, faTrash, faPlus, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCrown, faEdit, faTrash, faPlus, faSave, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function SubscriptionsScreen() {
   const [plans, setPlans] = useState([]);
@@ -12,6 +14,11 @@ export default function SubscriptionsScreen() {
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({ name: '', price: '', limits: '', status: 'Ativo' });
   const [showModal, setShowModal] = useState(false);
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentPlans,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(plans, 10, ['name', 'price', 'limits', 'status']);
 
   useEffect(() => {
     fetchPlans();
@@ -81,9 +88,23 @@ export default function SubscriptionsScreen() {
           <h2 className="fw-bold m-0 text-dark">Planos de Subscrição</h2>
           <span className="text-muted small">Pacotes e mensalidades (Modelo de Negócio)</span>
         </div>
-        <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Plano
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative" style={{ width: '250px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
+              placeholder="Pesquisar plano..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Plano
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -102,13 +123,13 @@ export default function SubscriptionsScreen() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="5" className="text-center py-5 text-muted">A carregar planos...</td></tr>
-                ) : plans.length === 0 ? (
+                ) : currentPlans.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="text-center py-5 text-muted">
-                      Nenhum plano configurado. Adicione os planos: <b>Gratuito</b>, <b>Profissional</b> e <b>Publicidade</b>.
+                      Nenhum plano encontrado.
                     </td>
                   </tr>
-                ) : plans.map(plan => (
+                ) : currentPlans.map(plan => (
                   <tr key={plan._id || plan.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-1">
@@ -134,6 +155,11 @@ export default function SubscriptionsScreen() {
               </tbody>
             </table>
           </div>
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

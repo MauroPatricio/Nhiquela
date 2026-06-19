@@ -115,7 +115,7 @@ export default function HomeScreen({ navigation }: any) {
       const locationData: LocationData = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy,
+        accuracy: location.coords.accuracy ?? undefined,
         speed: location.coords.speed || 0,
         heading: location.coords.heading || 0,
         timestamp: Date.now(),
@@ -146,7 +146,7 @@ export default function HomeScreen({ navigation }: any) {
             const updatedLocation: LocationData = {
               latitude: newLocation.coords.latitude,
               longitude: newLocation.coords.longitude,
-              accuracy: newLocation.coords.accuracy,
+              accuracy: newLocation.coords.accuracy ?? undefined,
               speed: newLocation.coords.speed || 0,
               heading: newLocation.coords.heading || 0,
               timestamp: Date.now(),
@@ -337,7 +337,7 @@ export default function HomeScreen({ navigation }: any) {
       try {
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
-          timeout: 5000
+          // timeout removed
         });
         currentPosition = {
           latitude: location.coords.latitude,
@@ -413,7 +413,7 @@ export default function HomeScreen({ navigation }: any) {
       try {
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
-          timeout: 5000
+          // timeout removed
         });
         currentPosition = {
           latitude: location.coords.latitude,
@@ -565,13 +565,13 @@ const acceptTrip = async (tripId: string) => {
       
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
-        timeout: 15000
+        // timeout removed
       });
       
       currentLocation = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy,
+        accuracy: location.coords.accuracy ?? undefined,
         timestamp: new Date().toISOString()
       };
 
@@ -673,7 +673,7 @@ const startLocationSharingToBackend = (orderId: string) => {
       // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 10000
+        // timeout removed
       });
 
       // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
@@ -685,7 +685,7 @@ const startLocationSharingToBackend = (orderId: string) => {
       await updateDeliverymanLocation(orderId, {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy,
+        accuracy: location.coords.accuracy ?? undefined,
         speed: location.coords.speed || 0,
         heading: location.coords.heading || 0,
         timestamp: new Date().toISOString()
@@ -788,7 +788,7 @@ const startTrip = async (trip: Trip) => {
                 body: JSON.stringify({
                   latitude: location.coords.latitude,
                   longitude: location.coords.longitude,
-                  accuracy: location.coords.accuracy,
+                  accuracy: location.coords.accuracy ?? undefined,
                   speed: location.coords.speed,
                   heading: location.coords.heading,
                   timestamp: new Date().toISOString(),
@@ -945,17 +945,14 @@ const startTrip = async (trip: Trip) => {
           <Text style={styles.requestTitle}>{item.passenger}</Text>
 
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={16} color="#2E86DE" />
+            <Ionicons name="location-outline" size={16} color={COLORS.primary} />
             <Text style={styles.requestInfo}>{item.pickup}</Text>
-            <Ionicons name="arrow-forward-outline" size={16} color="#2E86DE" style={{ marginHorizontal: 4 }} />
+            <Ionicons name="arrow-forward-outline" size={16} color={COLORS.primary} style={{ marginHorizontal: 4 }} />
             <Text style={styles.requestInfo}>{item.destination}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="cash-outline" size={16} color="#27AE60" />
-            <Text style={styles.requestInfo}>{item.reward}</Text>
-
-            <Ionicons name="speedometer-outline" size={16} color="#2980B9" style={{ marginLeft: 10 }} />
+            <Ionicons name="speedometer-outline" size={16} color="#2980B9" />
             <Text style={styles.requestInfo}>{item.distance}</Text>
 
             <Ionicons name="time-outline" size={16} color="#F39C12" style={{ marginLeft: 10 }} />
@@ -1240,11 +1237,16 @@ const styles = StyleSheet.create({
   },
   // 🔥 ESTILOS PARA CARD DE ROTA ATUAL (EM TRÂNSITO)
   routeSummaryContainer: {
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#2E86DE',
+    backgroundColor: COLORS.primary,
+    elevation: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   animatedBackground: {
     position: 'absolute',
@@ -1356,24 +1358,28 @@ const styles = StyleSheet.create({
   requestCard: {
     flexDirection: "row",
     backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 12,
-    elevation: 2,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   acceptedCard: {
     borderWidth: 2,
-    borderColor: "#2ECC71",
-    backgroundColor: "#F0F9FF",
+    borderColor: COLORS.primary,
+    backgroundColor: "#F9F5FF",
   },
   requestIcon: {
-    backgroundColor: "#2E86DE",
+    backgroundColor: "rgba(127, 0, 255, 0.1)",
     borderRadius: 50,
-    padding: 10,
-    marginRight: 12,
+    padding: 12,
+    marginRight: 16,
     alignSelf: 'flex-start',
   },
-  acceptedIcon: { backgroundColor: "#2ECC71" },
+  acceptedIcon: { backgroundColor: COLORS.primary },
   requestContent: { flex: 1, marginLeft: 12 },
   infoRow: {
     flexDirection: "row",
@@ -1391,35 +1397,35 @@ const styles = StyleSheet.create({
   acceptButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2ECC71",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
   },
   startButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2E86DE",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginBottom: 6,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   cancelButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FF4E4E",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
   },
   viewRouteButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2E86DE",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
   },
   disabledButton: { opacity: 0.6 },
   acceptText: {
@@ -1482,10 +1488,21 @@ const styles = StyleSheet.create({
   loadingOrdersContainer: { alignItems: "center", padding: 40 },
   loadingText: { fontSize: 16, color: "#666", marginTop: 16 },
   loadingOrdersText: { fontSize: 16, color: "#666", marginTop: 16 },
-  emptyContainer: { alignItems: "center", padding: 40 },
+  emptyContainer: { 
+    alignItems: "center", 
+    padding: 40, 
+    backgroundColor: "#FFF", 
+    borderRadius: 16, 
+    elevation: 2, 
+    shadowColor: "#000", 
+    shadowOpacity: 0.05, 
+    shadowRadius: 10,
+    marginTop: 20
+  },
   emptyText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
     marginTop: 16,
     marginBottom: 8,
   },

@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
@@ -96,7 +97,13 @@ const ProductListSeller = () => {
       }
     } catch (error) {
       console.error('Erro ao apagar produto:', error?.response?.data || error.message);
-      Alert.alert('Erro', 'Não foi possível apagar o produto.');
+      showMessage({
+        message: 'Erro',
+        description: 'Não foi possível apagar o produto.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -117,7 +124,13 @@ const handleToggleStatus = async (product) => {
     }
   } catch (error) {
     console.error('Erro ao atualizar status:', error);
-    Alert.alert('Erro', 'Não foi possível alterar o status do produto.');
+    showMessage({
+        message: 'Erro',
+        description: 'Não foi possível alterar o status do produto.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
   }
 };
 

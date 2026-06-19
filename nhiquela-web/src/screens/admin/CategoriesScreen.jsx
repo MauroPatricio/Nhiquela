@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faPlus, faFolderOpen, faSpinner, faSave, faTimes, faImage, faTags } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faPlus, faFolderOpen, faSpinner, faSave, faTimes, faImage, faTags, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function CategoriesScreen() {
   const [categories, setCategories] = useState([]);
@@ -45,6 +47,11 @@ export default function CategoriesScreen() {
       setLoading(false);
     }
   };
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentCategories,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(categories, 10, ['name']);
 
   // --- CRUD CATEGORIAS PRINCIPAIS ---
   const handleOpenModal = (category = null) => {
@@ -164,8 +171,18 @@ export default function CategoriesScreen() {
         {/* Painel Esquerdo: Categorias Principais */}
         <div className="col-md-7">
           <div className="card shadow-sm-custom border-0 rounded-4 h-100">
-            <div className="card-header bg-white border-0 pt-4 pb-2">
+            <div className="card-header bg-white border-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
               <h5 className="fw-bold m-0 text-dark">Categorias Principais</h5>
+              <div className="position-relative" style={{ width: '200px' }}>
+                <FontAwesomeIcon icon={faSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+                <input 
+                  type="text" 
+                  className="form-control form-control-sm bg-light border-0 rounded-pill ps-5" 
+                  placeholder="Pesquisar categoria..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
             <div className="card-body p-0">
               <div className="table-responsive">
@@ -184,11 +201,11 @@ export default function CategoriesScreen() {
                           <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary-custom mb-3" />
                         </td>
                       </tr>
-                    ) : categories.length === 0 ? (
+                    ) : currentCategories.length === 0 ? (
                       <tr>
-                        <td colSpan="3" className="text-center py-5 text-muted">Nenhuma categoria principal registada.</td>
+                        <td colSpan="3" className="text-center py-5 text-muted">Nenhuma categoria principal encontrada.</td>
                       </tr>
-                    ) : categories.map(cat => (
+                    ) : currentCategories.map(cat => (
                       <tr 
                         key={cat._id} 
                         className={selectedCategory?._id === cat._id ? 'bg-primary-subtle' : ''}
@@ -221,6 +238,11 @@ export default function CategoriesScreen() {
                 </table>
               </div>
             </div>
+            <PaginationControls 
+              currentPage={currentPage} totalPages={totalPages} 
+              onNext={nextPage} onPrev={prevPage} 
+              totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+            />
           </div>
         </div>
 

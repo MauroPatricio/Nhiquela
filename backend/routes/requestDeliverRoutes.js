@@ -45,12 +45,12 @@ requestDeliver.get(
     const page = req.query.page || 1;
     const pageSize = 10    
     
-    const requests = await RequestDeliv.find({
+    const requests = await requestDeliver.find({
       isPaid: {$eq: true},
       deleted: { $eq: false},
     }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
-    const countRequests = await RequestDeliv.countDocuments({
+    const countRequests = await requestDeliver.countDocuments({
       isPaid: {$eq: true},
       deleted: { $eq: false },
     });
@@ -84,29 +84,20 @@ requestDeliver.post(
       status: 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
-      stepStatus: req.body.stepStatus,
-      
-      // Novos campos do Nhiquela Deliver (Mapa)
-      serviceType: req.body.serviceType,
-      priority: req.body.priority || 'Normal',
-      originLocation: req.body.originLocation,
-      destinationLocation: req.body.destinationLocation,
-      distanceKm: req.body.distanceKm,
-      estimatedTimeMin: req.body.estimatedTimeMin,
-      shoppingList: req.body.shoppingList
+      stepStatus: req.body.stepStatus
     });
 
-    let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela.`; 
+    let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
     
     //  Para envio de mensagens
     // const sellerOfProduct = await User.findById(newOrder.seller);
 
       if (newOrder.isPaid){
         // Enviar sms para o fornecedor
-      let msg = `Ola, a nhiquela. informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
+      let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
       sendSMSToUSendItDeliverman( msg);
     }else{
-       let msg = `Ola, a nhiquela. informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
+       let msg = `Ola, a Nhiquela Shop informa que possui um novo pedido com o codigo nr ${newOrder.code}`; 
         sendSMSToUSendItAdmin(msg);
     }
 
@@ -222,6 +213,10 @@ requestDeliver.put(
     const requestDeliv = await RequestDeliv.findById(req.params.id);
     const user_deliver = await User.findById(req.user._id);
 
+    if (!user_deliver) {
+      return res.status(404).send({ message: 'Motorista não encontrado na base de dados. Por favor, inicie sessão novamente.' });
+    }
+
     if (requestDeliv) {
       requestDeliv.status = 'Aceite pelo entregador';
       requestDeliv.stepStatus=4;
@@ -230,12 +225,12 @@ requestDeliver.put(
 
         requestDeliv.deliveryman = {
           id: user_deliver._id,
-          photo: user_deliver.deliveryman.photo,
-          name:  user_deliver.deliveryman.name,
-          phoneNumber:  user_deliver.deliveryman.phoneNumber,
-          transport_type:  user_deliver.deliveryman.transport_type,
-          transport_color:  user_deliver.deliveryman.transport_color,
-          transport_registration:  user_deliver.deliveryman.transport_registration,
+          photo: user_deliver.deliveryman?.photo || '',
+          name:  user_deliver.deliveryman?.name || '',
+          phoneNumber:  user_deliver.deliveryman?.phoneNumber || '',
+          transport_type:  user_deliver.deliveryman?.transport_type || '',
+          transport_color:  user_deliver.deliveryman?.transport_color || '',
+          transport_registration:  user_deliver.deliveryman?.transport_registration || '',
         }
       }
 
@@ -246,12 +241,12 @@ requestDeliver.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a nhiquela. informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
+       let msg =`Ola, a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
  
        sendSMSToUSendIt(req, msg)
       
 
-       let mailText = `Ola ${req.user.name},\n \n a nhiquela. informa que o entregador aceitou o pedido nr ${updateOrder.code}. \n \n Atenciosamente, \n nhiquela.`; 
+       let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador aceitou o pedido nr ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
@@ -279,7 +274,7 @@ requestDeliver.put(
 
         //  Para envio de mensagens
 
-        let msg =`Ola ${req.user.name},\n \n A nhiquela. tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
+        let msg =`Ola ${req.user.name},\n \n A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
  
  
         sendSMSToUSendIt(req, msg)
@@ -312,7 +307,7 @@ requestDeliver.put(
 
       //  Para envio de mensagens
 
-       let msg =`Ola, a nhiquela. informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
+       let msg =`Ola, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
  
  
        sendSMSToUSendIt(req, msg)
@@ -363,7 +358,7 @@ requestDeliver.put(
  
       sendSMSToUSendIt(req,msg);
 
-      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n nhiquela.`; 
+      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
@@ -394,11 +389,11 @@ requestDeliver.put(
       
       //  Para envio de mensagens
 
-      let msg =`Ola, a nhiquela. lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
+      let msg =`Ola, a Nhiquela Shop lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar no site pesquisando pelo codigo.`;
  
       sendSMSToUSendIt(req,msg);
 
-      let mailText = `Ola ${req.user.name},\n \n a nhiquela. informa que o seu pedido foi cancelado. \n \n Atenciosamente, \n nhiquela.`; 
+      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
@@ -430,7 +425,7 @@ requestDeliver.put(
        
 
       //  Para envio de mensagens
-      let msg =`Ola, a nhiquela. gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
+      let msg =`Ola, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido nr ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
 
       // Em falta metodo para envio de mensagem e email
       sendSMSToUSendItDeliverman( msg);

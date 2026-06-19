@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap } from '@fortawesome/free-solid-svg-icons';
+import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/Admin/PaginationControls';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -64,8 +66,22 @@ export default function OrdersScreen() {
 
   const [filterMonth, setFilterMonth] = useState('');
   const [filterDay, setFilterDay] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+
+  // Date filtering logic
+  const dateFilteredOrders = orders.filter(order => {
+    const orderDate = new Date(order.createdAt);
+    const m = (orderDate.getMonth() + 1).toString().padStart(2, '0');
+    const d = orderDate.getDate().toString().padStart(2, '0');
+    
+    if (filterMonth && m !== filterMonth) return false;
+    if (filterDay && d !== filterDay) return false;
+    return true;
+  });
+
+  const {
+    currentPage, searchQuery, setSearchQuery, currentData: currentOrders,
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+  } = usePagination(dateFilteredOrders, 10, ['_id', 'code', 'status', 'orderType']);
 
   useEffect(() => {
     fetchOrdersAndRelatedData();
@@ -155,15 +171,27 @@ export default function OrdersScreen() {
           <h2 className="fw-bold m-0 text-dark">Mesa de Encomendas / Pedidos</h2>
           <span className="text-muted small">Rastreio e gestão de todas as entregas logísticas em tempo real</span>
         </div>
-        <div className="d-flex gap-2 flex-wrap">
-          <select className="form-select form-select-sm border-0 shadow-sm" value={filterDay} onChange={(e) => {setFilterDay(e.target.value); setCurrentPage(1);}}>
+        <div className="d-flex gap-2 flex-wrap align-items-center">
+          <div className="position-relative" style={{ width: '200px' }}>
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <FontAwesomeIcon icon={faSearch} />
+            </span>
+            <input 
+              type="text" 
+              className="form-control form-control-sm rounded-pill ps-5 bg-white border-0 shadow-sm py-2" 
+              placeholder="Pesquisar pedido..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <select className="form-select form-select-sm border-0 shadow-sm" value={filterDay} onChange={(e) => setFilterDay(e.target.value)}>
             <option value="">Todos os Dias</option>
             {[...Array(31)].map((_, i) => {
               const d = (i + 1).toString().padStart(2, '0');
               return <option key={d} value={d}>{d}</option>
             })}
           </select>
-          <select className="form-select form-select-sm border-0 shadow-sm" value={filterMonth} onChange={(e) => {setFilterMonth(e.target.value); setCurrentPage(1);}}>
+          <select className="form-select form-select-sm border-0 shadow-sm" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
             <option value="">Todos os Meses</option>
             <option value="01">Janeiro</option>
             <option value="02">Fevereiro</option>
@@ -272,25 +300,11 @@ export default function OrdersScreen() {
               </tbody>
             </table>
           </div>
-          {totalPages > 1 && (
-            <div className="card-footer bg-white border-0 py-3">
-              <nav>
-                <ul className="pagination justify-content-center m-0">
-                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                    <button className="page-link shadow-sm border-0" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Anterior</button>
-                  </li>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <li key={i+1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                      <button className="page-link shadow-sm border-0" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-                    </li>
-                  ))}
-                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                    <button className="page-link shadow-sm border-0" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Seguinte</button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
-          )}
+          <PaginationControls 
+            currentPage={currentPage} totalPages={totalPages} 
+            onNext={nextPage} onPrev={prevPage} 
+            totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          />
         </div>
       </div>
 

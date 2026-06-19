@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 // components/DriverHeader.tsx - COM SUPORTE PARA BASE64
 import React from "react";
 import {
@@ -63,7 +64,13 @@ export default function DriverHeader({
               await logout();
             } catch (error) {
               console.error("❌ [DriverHeader] Erro no logout:", error);
-              Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+              showMessage({
+        message: "Erro",
+        description: "Não foi possível fazer logout. Tente novamente.",
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
             }
           }
         }
@@ -159,7 +166,7 @@ export default function DriverHeader({
       {/* Top Row */}
       <View style={styles.topRow}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>Nhiquela+</Text>
+          <Text style={styles.logoText}>nhiquela</Text>
           
           {/* ✅ BADGE DINÂMICO - PREMIUM OU MOTORISTA */}
           {isDeliveryMan ? (
