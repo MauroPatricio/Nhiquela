@@ -1,7 +1,8 @@
 import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
-import { isAuth } from '../utils.js';
+import { body, validationResult } from 'express-validator';
+import { isAuth, isSellerOrAdmin } from '../utils.js';
 
 const router = express.Router();
 
@@ -9,9 +10,20 @@ const router = express.Router();
 router.post(
   '/',
   isAuth,
+  isSellerOrAdmin,
+  [
+    body('nome').notEmpty().withMessage('Nome é obrigatório'),
+    body('img').notEmpty().withMessage('Imagem é obrigatória'),
+    body('averagePreparationTime').isNumeric().withMessage('averagePreparationTime deve ser numérico'),
+    body('autoAssignDriver').isBoolean().withMessage('autoAssignDriver deve ser boolean'),
+  ],
   expressAsyncHandler(async (req, res) => {
-    const { nome, img } = req.body;
-    const novoTipo = new TipoEstabelecimento({ nome, img });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { nome, img, averagePreparationTime, autoAssignDriver, paymentMethods } = req.body;
+    const novoTipo = new TipoEstabelecimento({ nome, img, averagePreparationTime, autoAssignDriver, paymentMethods });
     await novoTipo.save();
     res.status(201).json(novoTipo);
   })
@@ -21,15 +33,34 @@ router.post(
 router.put(
   '/:id',
   isAuth,
+  isSellerOrAdmin,
+  [
+    body('nome').optional().notEmpty().withMessage('Nome não pode ser vazio'),
+    body('img').optional().notEmpty().withMessage('Imagem não pode ser vazia'),
+    body('averagePreparationTime').optional().isNumeric().withMessage('averagePreparationTime deve ser numérico'),
+    body('autoAssignDriver').optional().isBoolean().withMessage('autoAssignDriver deve ser boolean'),
+    body('isActive').optional().isBoolean().withMessage('isActive deve ser boolean'),
+  ],
   expressAsyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     const tipoEstabelecimento = await TipoEstabelecimento.findById(req.params.id);
 
     if (tipoEstabelecimento) {
-      tipoEstabelecimento.nome = req.body.nome || tipoEstabelecimento.nome;
-      tipoEstabelecimento.img = req.body.img || tipoEstabelecimento.img;
-      tipoEstabelecimento.isActive =
-        req.body.isActive !== undefined ? req.body.isActive : tipoEstabelecimento.isActive;
-
+      if (req.body.nome !== undefined) tipoEstabelecimento.nome = req.body.nome;
+      if (req.body.img !== undefined) tipoEstabelecimento.img = req.body.img;
+      if (req.body.isActive !== undefined) tipoEstabelecimento.isActive = req.body.isActive;
+      if (req.body.averagePreparationTime !== undefined) {
+        tipoEstabelecimento.averagePreparationTime = req.body.averagePreparationTime;
+      }
+      if (req.body.autoAssignDriver !== undefined) {
+        tipoEstabelecimento.autoAssignDriver = req.body.autoAssignDriver;
+      }
+      if (req.body.paymentMethods !== undefined) {
+        tipoEstabelecimento.paymentMethods = req.body.paymentMethods;
+      }
       await tipoEstabelecimento.save();
       res.send({ message: 'Tipo de estabelecimento atualizado com sucesso' });
     } else {
@@ -38,13 +69,31 @@ router.put(
   })
 );
 
-// Obter todos os tipos de estabelecimentos
+// Obter todos os tipos de estabelecimentos com paginação e busca
 router.get(
   '/',
   expressAsyncHandler(async (req, res) => {
-    const tipoestabelecimentos = await TipoEstabelecimento.find();
-    res.send({tipoestabelecimentos});
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const page = parseInt(req.query.page) || 1;
+    const search = req.query.search || '';
 
+    const filter = search && search !== 'all' ? { nome: { $regex: search, $options: 'i' } } : {};
+
+    const [tipoestabelecimentos, total] = await Promise.all([
+      TipoEstabelecimento.find(filter)
+        .populate('paymentMethods')
+        .skip(pageSize * (page - 1))
+        .limit(pageSize)
+        .lean(),
+      TipoEstabelecimento.countDocuments(filter),
+    ]);
+
+    res.send({
+      tipoestabelecimentos,
+      page,
+      pages: Math.ceil(total / pageSize),
+      total,
+    });
   })
 );
 
@@ -54,7 +103,7 @@ router.get(
   '/:id',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const tipoestabelecimento = await TipoEstabelecimento.findById(req.params.id);
+    const tipoestabelecimento = await TipoEstabelecimento.findById(req.params.id).populate('paymentMethods');
     if (tipoestabelecimento) {
       res.send(tipoestabelecimento);
     } else {
@@ -67,6 +116,7 @@ router.get(
 router.delete(
   '/:id',
   isAuth,
+  isSellerOrAdmin,
   expressAsyncHandler(async (req, res) => {
     const tipo = await TipoEstabelecimento.findById(req.params.id);
     if (tipo) {
@@ -75,6 +125,22 @@ router.delete(
     } else {
       res.status(404).json({ message: 'Tipo de estabelecimento não encontrado' });
     }
+  })
+);
+
+// Toggle active status
+router.patch(
+  '/:id/toggle-status',
+  isAuth,
+  isSellerOrAdmin,
+  expressAsyncHandler(async (req, res) => {
+    const tipo = await TipoEstabelecimento.findById(req.params.id);
+    if (!tipo) {
+      return res.status(404).json({ message: 'Tipo de estabelecimento não encontrado' });
+    }
+    tipo.isActive = !tipo.isActive;
+    await tipo.save();
+    res.send({ message: `Tipo de estabelecimento ${tipo.isActive ? 'ativado' : 'desativado'}`, tipo });
   })
 );
 

@@ -91,6 +91,15 @@ export const isSellerOrAdmin=(req, res ,next) =>{
     res.status(401).send({ message: 'Invalid Seller or Admin token' });
   }
 }
+export const isPartner = (req, res, next) => {
+  // Partner and Seller are treated as the same entity
+  if (req.user && (req.user.isPartner || req.user.isSeller)) {
+    next();
+  } else {
+    res.status(401).send({ message: 'Invalid partner/seller token' });
+  }
+};
+
 export const isDeliveryMan = (req,  next) => {
   if(req.user && req.user.isDeliveryMan){
     next()

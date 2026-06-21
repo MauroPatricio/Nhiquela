@@ -9,12 +9,12 @@ statsRouter.get(
   '/landing',
   expressAsyncHandler(async (req, res) => {
     const provincesCount = await Province.countDocuments({ isActive: true });
-    const activePartnersCount = await User.countDocuments({ isSeller: true });
+    const clientsCount = await User.countDocuments({ isSeller: false, isDeliveryMan: false, isAdmin: false });
 
     res.send({
       provinces: provincesCount || 11,
       cities: 38, // Placeholder para cidades
-      activePartners: activePartnersCount || 142,
+      clients: clientsCount || 0,
     });
   })
 );

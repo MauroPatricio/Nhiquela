@@ -74,7 +74,23 @@ export default function SuppliersScreen() {
     if (supplier) {
       setIsEditing(true);
       setCurrentId(supplier._id || supplier.id);
-      setFormData({ ...supplier, password: '' });
+      setFormData({ 
+        name: supplier.seller?.name || '', 
+        representanteNome: supplier.name || '', 
+        representanteTelefone: supplier.phoneNumber || '', 
+        email: supplier.email || '', 
+        password: '',
+        phoneNumberAccount: supplier.seller?.phoneNumberAccount || '', 
+        alternativePhoneNumberAccount: supplier.seller?.alternativePhoneNumberAccount || '', 
+        province: supplier.seller?.province || '', 
+        tipoEstabelecimento: supplier.seller?.tipoEstabelecimento || '', 
+        address: supplier.seller?.address || '', 
+        description: supplier.seller?.description || '', 
+        logo: supplier.seller?.logo || '',
+        latitude: supplier.seller?.latitude || '', 
+        longitude: supplier.seller?.longitude || '', 
+        status: supplier.isBanned ? 'Inativo' : (supplier.isApproved ? 'Ativo' : 'Pendente')
+      });
     } else {
       setIsEditing(false);
       setCurrentId(null);
@@ -97,25 +113,47 @@ export default function SuppliersScreen() {
     }
     
     try {
+      const payload = {
+        name: formData.representanteNome,
+        email: formData.email,
+        phoneNumber: formData.representanteTelefone,
+        password: formData.password,
+        isSeller: true,
+        seller: {
+          name: formData.name,
+          logo: formData.logo,
+          description: formData.description,
+          province: formData.province,
+          address: formData.address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          phoneNumberAccount: formData.phoneNumberAccount,
+          alternativePhoneNumberAccount: formData.alternativePhoneNumberAccount,
+          tipoEstabelecimento: formData.tipoEstabelecimento
+        },
+        isApproved: formData.status === 'Ativo',
+        isBanned: formData.status === 'Inativo'
+      };
+
       if (isEditing) {
-        await api.put(`/suppliers/${currentId}`, formData);
+        await api.put(`/users/${currentId}`, payload);
         toast.success('Fornecedor atualizado com sucesso!');
       } else {
         if(!formData.password) return toast.error('Para novos cadastros a senha inicial é obrigatória.');
-        await api.post('/suppliers', formData);
+        await api.post('/users/signup', payload);
         toast.success('Novo Fornecedor registado com sucesso!');
       }
       fetchSuppliers();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar os dados do fornecedor.');
+      toast.error(error.response?.data?.message || 'Erro ao guardar os dados do fornecedor.');
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Eliminar este estabelecimento permanentemente?')) {
       try {
-        await api.delete(`/suppliers/${id}`);
+        await api.delete(`/users/${id}`);
         toast.success('Eliminado com sucesso!');
         fetchSuppliers();
       } catch (error) {
@@ -194,28 +232,28 @@ export default function SuppliersScreen() {
                   <tr key={supplier._id || supplier.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
-                        {supplier.logo ? (
-                          <img src={supplier.logo} alt={supplier.name} className="rounded-circle shadow-sm border me-3" style={{width:'45px', height:'45px', objectFit:'cover'}} />
+                        {supplier.seller?.logo ? (
+                          <img src={supplier.seller.logo} alt={supplier.seller?.name || 'Logo'} className="rounded-circle shadow-sm border me-3" style={{width:'45px', height:'45px', objectFit:'cover'}} />
                         ) : (
                           <div className="bg-light rounded-circle border d-flex justify-content-center align-items-center text-muted me-3" style={{width:'45px', height:'45px'}}>
                             <FontAwesomeIcon icon={faStore} />
                           </div>
                         )}
                         <div>
-                          <span className="fw-bold text-dark d-block">{supplier.name}</span>
-                          <span className="text-muted small">{supplier.id}</span>
+                          <span className="fw-bold text-dark d-block">{supplier.seller?.name || 'Sem nome empresarial'}</span>
+                          <span className="text-muted small">{supplier._id || supplier.id}</span>
                         </div>
                       </div>
                     </td>
-                    <td><span className="badge bg-light text-dark border">{supplier.tipoEstabelecimento || 'N/A'}</span></td>
-                    <td><span className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>{supplier.province || 'N/A'}</span></td>
+                    <td><span className="badge bg-light text-dark border">{supplier.seller?.tipoEstabelecimento || 'N/A'}</span></td>
+                    <td><span className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>{supplier.seller?.province || 'N/A'}</span></td>
                     <td>
-                      <span className="text-dark small d-block fw-bold">{supplier.representanteNome}</span>
-                      <span className="text-muted" style={{fontSize: '11px'}}>{supplier.representanteTelefone}</span>
+                      <span className="text-dark small d-block fw-bold">{supplier.name}</span>
+                      <span className="text-muted" style={{fontSize: '11px'}}>{supplier.phoneNumber}</span>
                     </td>
                     <td className="text-center">
-                      <span className={`badge rounded-pill px-3 py-2 ${supplier.status === 'Ativo' ? 'bg-success-subtle text-success border border-success border-opacity-25' : supplier.status === 'Inativo' ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
-                        {supplier.status}
+                      <span className={`badge rounded-pill px-3 py-2 ${(!supplier.isBanned && supplier.isApproved) ? 'bg-success-subtle text-success border border-success border-opacity-25' : supplier.isBanned ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
+                        {supplier.isBanned ? 'Inativo' : (supplier.isApproved ? 'Ativo' : 'Pendente')}
                       </span>
                     </td>
                     <td className="text-end px-4">
@@ -388,18 +426,18 @@ export default function SuppliersScreen() {
             
             <div className="card-body p-4" style={{ overflowY: 'auto', maxHeight: '75vh' }}>
               <div className="text-center mb-4">
-                {selectedSupplier.logo ? (
-                  <img src={selectedSupplier.logo} alt={selectedSupplier.name} className="img-fluid rounded-circle shadow-sm border mb-3" style={{ width: '120px', height: '120px', objectFit: 'cover' }} />
+                {selectedSupplier.seller?.logo ? (
+                  <img src={selectedSupplier.seller.logo} alt={selectedSupplier.seller?.name} className="img-fluid rounded-circle shadow-sm border mb-3" style={{ width: '120px', height: '120px', objectFit: 'cover' }} />
                 ) : (
                   <div className="bg-light rounded-circle d-flex justify-content-center align-items-center text-muted border border-dashed mx-auto mb-3" style={{ width: '120px', height: '120px' }}>
                     <FontAwesomeIcon icon={faStore} size="3x" />
                   </div>
                 )}
-                <h4 className="fw-bold text-dark mb-0">{selectedSupplier.name}</h4>
-                <div className="text-muted small">{selectedSupplier.id} | {selectedSupplier.tipoEstabelecimento}</div>
+                <h4 className="fw-bold text-dark mb-0">{selectedSupplier.seller?.name}</h4>
+                <div className="text-muted small">{selectedSupplier._id || selectedSupplier.id} | {selectedSupplier.seller?.tipoEstabelecimento}</div>
                 <div className="mt-2">
-                  <span className={`badge rounded-pill px-3 py-2 ${selectedSupplier.status === 'Ativo' ? 'bg-success-subtle text-success border border-success border-opacity-25' : selectedSupplier.status === 'Inativo' ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
-                    {selectedSupplier.status}
+                  <span className={`badge rounded-pill px-3 py-2 ${(!selectedSupplier.isBanned && selectedSupplier.isApproved) ? 'bg-success-subtle text-success border border-success border-opacity-25' : selectedSupplier.isBanned ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
+                    {selectedSupplier.isBanned ? 'Inativo' : (selectedSupplier.isApproved ? 'Ativo' : 'Pendente')}
                   </span>
                 </div>
               </div>
@@ -407,16 +445,16 @@ export default function SuppliersScreen() {
               <div className="row g-4 mb-4">
                 <div className="col-md-6 border-end">
                   <h6 className="fw-bold text-muted mb-3 text-uppercase small">Dados da Empresa</h6>
-                  <p className="small text-dark mb-2"><strong>Especialidade:</strong> <br/>{selectedSupplier.description || 'Não especificada'}</p>
-                  <p className="small text-dark mb-2"><strong>Endereço:</strong> <br/>{selectedSupplier.address}</p>
-                  <p className="small text-dark mb-2"><strong>Província:</strong> {selectedSupplier.province}</p>
-                  <p className="small text-dark mb-0 text-muted" style={{fontSize: '11px'}}>GPS: {selectedSupplier.latitude}, {selectedSupplier.longitude}</p>
+                  <p className="small text-dark mb-2"><strong>Especialidade:</strong> <br/>{selectedSupplier.seller?.description || 'Não especificada'}</p>
+                  <p className="small text-dark mb-2"><strong>Endereço:</strong> <br/>{selectedSupplier.seller?.address || 'N/A'}</p>
+                  <p className="small text-dark mb-2"><strong>Província:</strong> {selectedSupplier.seller?.province || 'N/A'}</p>
+                  <p className="small text-dark mb-0 text-muted" style={{fontSize: '11px'}}>GPS: {selectedSupplier.seller?.latitude}, {selectedSupplier.seller?.longitude}</p>
                 </div>
                 
                 <div className="col-md-6">
                   <h6 className="fw-bold text-muted mb-3 text-uppercase small">Representante & Contactos</h6>
-                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faIdCard} className="text-primary-custom me-2"/> {selectedSupplier.representanteNome}</p>
-                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faPhone} className="text-primary-custom me-2"/> {selectedSupplier.representanteTelefone}</p>
+                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faIdCard} className="text-primary-custom me-2"/> {selectedSupplier.name}</p>
+                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faPhone} className="text-primary-custom me-2"/> {selectedSupplier.phoneNumber}</p>
                   <p className="small text-dark mb-2"><FontAwesomeIcon icon={faEnvelope} className="text-primary-custom me-2"/> {selectedSupplier.email}</p>
                 </div>
               </div>
@@ -424,8 +462,8 @@ export default function SuppliersScreen() {
               <div className="bg-light p-3 rounded-4 mb-2 border border-primary border-opacity-25">
                 <h6 className="fw-bold text-dark mb-2 border-bottom pb-2"><FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-2"/> Contas de Pagamento</h6>
                 <div className="d-flex justify-content-between">
-                  <div className="small"><strong>M-Pesa:</strong> {selectedSupplier.phoneNumberAccount || 'N/A'}</div>
-                  <div className="small"><strong>e-Mola:</strong> {selectedSupplier.alternativePhoneNumberAccount || 'N/A'}</div>
+                  <div className="small"><strong>M-Pesa:</strong> {selectedSupplier.seller?.phoneNumberAccount || 'N/A'}</div>
+                  <div className="small"><strong>e-Mola:</strong> {selectedSupplier.seller?.alternativePhoneNumberAccount || 'N/A'}</div>
                 </div>
               </div>
 

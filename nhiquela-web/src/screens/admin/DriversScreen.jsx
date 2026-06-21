@@ -1,34 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMotorcycle, faTruck, faFileAlt, faImage, faCheckCircle, faPhone, faEnvelope, faMapMarkerAlt, faPalette, faShieldAlt, faExclamationTriangle, faStar, faBoxOpen, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMotorcycle, faTruck, faFileAlt, faImage, faCheckCircle, faPhone, faEnvelope, faMapMarkerAlt, faPalette, faShieldAlt, faExclamationTriangle, faStar, faBoxOpen, faSearch, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
+import api from '../../api';
 
 export default function DriversScreen() {
-  const [drivers, setDrivers] = useState([
-    { 
-      id: 1, name: 'Armando Cossa', email: 'armando@email.com', phone: '841234567', province: 'Maputo Cidade',
-      transport_type: 'carro', transport_color: 'Prata', plate: 'ACF 123 MC', 
-      licenseNumber: 'L-12345678', idNumber: '1100223344M', document_type: 'bi',
-      status: 'Disponível', rating: '4.8', totalDeliveries: 142,
-      documents: { photo: true, vihicle_picture: true, license_front: true, license_back: true, document_front: true, document_back: true, vihicle_inspection: false, vihicle_Insurance: false, Proof_of_Address: true }
-    },
-    { 
-      id: 2, name: 'Filipe Ndeve', email: 'filipe.n@email.com', phone: '829876543', province: 'Maputo Província',
-      transport_type: 'motocicleta', transport_color: 'Preto', plate: 'MM 456', 
-      licenseNumber: 'L-98765432', idNumber: '0900887766M', document_type: 'bi',
-      status: 'Em Entrega', rating: '4.5', totalDeliveries: 89,
-      documents: { photo: true, vihicle_picture: true, license_front: true, license_back: true, document_front: true, document_back: true, vihicle_inspection: true, vihicle_Insurance: true, Proof_of_Address: true }
-    },
-    { 
-      id: 3, name: 'José Matlombe', email: 'jose.m@email.com', phone: '861112233', province: 'Gaza',
-      transport_type: 'caminhao', transport_color: 'Branco', plate: 'AHD 990 MC', 
-      licenseNumber: 'L-44556677', idNumber: '0400556677M', document_type: 'passport',
-      status: 'Pendente', rating: 'Novo', totalDeliveries: 0,
-      documents: { photo: false, vihicle_picture: false, license_front: true, license_back: false, document_front: false, document_back: false, vihicle_inspection: false, vihicle_Insurance: false, Proof_of_Address: false }
-    },
-  ]);
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+
+  const fetchDrivers = async () => {
+    try {
+      const { data } = await api.get('/drivers');
+      setDrivers(data.drivers || []);
+    } catch (error) {
+      toast.error('Erro ao carregar motoristas');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -58,13 +53,13 @@ export default function DriversScreen() {
   const handleOpenModal = (driver = null) => {
     if (driver) {
       setIsEditing(true);
-      setCurrentId(driver.id);
-      setFormData({ ...driver });
+      setCurrentId(driver._id || driver.id);
+      setFormData({ ...driver, phoneNumber: driver.phoneNumber || driver.phone, password: '' });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ 
-        name: '', email: '', phone: '', password: '',
+      setFormData({
+        name: '', email: '', phoneNumber: '', password: '',
         transport_type: 'motocicleta', transport_color: 'Branco', plate: '', 
         licenseNumber: '', idNumber: '', document_type: 'bi',
         status: 'Pendente' 
@@ -75,29 +70,34 @@ export default function DriversScreen() {
 
   const handleCloseModal = () => setShowModal(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.plate) return toast.error('Nome e Matrícula são obrigatórios');
+    if (!formData.name) return toast.error('Nome é obrigatório');
     
-    if (isEditing) {
-      setDrivers(drivers.map(d => d.id === currentId ? { ...d, ...formData } : d));
-      toast.success('Motorista atualizado!');
-    } else {
-      const newDriver = { 
-        id: Date.now(), 
-        ...formData, 
-        documents: { photo: false, vihicle_picture: false, license_front: false, license_back: false, document_front: false, document_back: false, vihicle_inspection: false, vihicle_Insurance: false, Proof_of_Address: false } // Default for new
-      };
-      setDrivers([newDriver, ...drivers]);
-      toast.success('Motorista registado!');
+    try {
+      if (isEditing) {
+        await api.put(`/drivers/${currentId}`, formData);
+        toast.success('Motorista atualizado!');
+      } else {
+        await api.post('/drivers', formData);
+        toast.success('Motorista registado!');
+      }
+      fetchDrivers();
+      handleCloseModal();
+    } catch (error) {
+      toast.error('Erro ao guardar motorista');
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Eliminar este motorista do sistema?')) {
-      setDrivers(drivers.filter(d => d.id !== id));
-      toast.success('Eliminado com sucesso!');
+      try {
+        await api.delete(`/drivers/${id}`);
+        toast.success('Eliminado com sucesso!');
+        fetchDrivers();
+      } catch (error) {
+        toast.error('Erro ao eliminar');
+      }
     }
   };
 
@@ -148,10 +148,12 @@ export default function DriversScreen() {
                 </tr>
               </thead>
               <tbody>
-                {currentDrivers.length === 0 ? (
+                {loading ? (
+                  <tr><td colSpan="6" className="text-center py-5 text-muted"><FontAwesomeIcon icon={faSpinner} spin className="me-2"/> A carregar...</td></tr>
+                ) : currentDrivers.length === 0 ? (
                   <tr><td colSpan="6" className="text-center py-5 text-muted">Nenhum motorista encontrado.</td></tr>
                 ) : currentDrivers.map(driver => (
-                  <tr key={driver.id}>
+                  <tr key={driver._id || driver.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-1">
                         <div className="bg-light rounded-circle d-flex justify-content-center align-items-center me-3 text-primary-custom shadow-sm" style={{ width: '45px', height: '45px' }}>
@@ -159,7 +161,7 @@ export default function DriversScreen() {
                         </div>
                         <div>
                           <div className="fw-bold text-dark">{driver.name}</div>
-                          <small className="text-muted">{driver.phone}</small>
+                          <small className="text-muted">{driver.phoneNumber || driver.phone}</small>
                         </div>
                       </div>
                     </td>
@@ -167,22 +169,23 @@ export default function DriversScreen() {
                       <div className="d-flex flex-column">
                         <div className="fw-bold text-dark">
                           <FontAwesomeIcon icon={faStar} className="text-warning me-1" />
-                          {driver.rating}
+                          {driver.rating || 'Novo'}
                         </div>
-                        <small className="text-muted mt-1"><FontAwesomeIcon icon={faBoxOpen} className="me-1" /> {driver.totalDeliveries} entregas</small>
+                        <small className="text-muted mt-1"><FontAwesomeIcon icon={faBoxOpen} className="me-1" /> {driver.totalDeliveries || 0} entregas</small>
+
                       </div>
                     </td>
                     <td>
                       <div className="d-flex flex-column">
-                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.transport_type)} className="me-2 text-muted" />{driver.transport_type}</div>
-                        <small className="text-muted"><FontAwesomeIcon icon={faPalette} className="me-1" /> {driver.transport_color}</small>
+                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.transport_type || 'motocicleta')} className="me-2 text-muted" />{driver.transport_type || 'N/A'}</div>
+                        <small className="text-muted"><FontAwesomeIcon icon={faPalette} className="me-1" /> {driver.transport_color || 'N/A'}</small>
                       </div>
                     </td>
-                    <td><span className="fw-bold px-3 py-1 bg-light rounded-2 border text-uppercase">{driver.plate}</span></td>
+                    <td><span className="fw-bold px-3 py-1 bg-light rounded-2 border text-uppercase">{driver.plate || '---'}</span></td>
                     <td>
                       <div className="d-flex flex-column align-items-start">
-                        <span className={`badge rounded-pill px-3 py-2 mb-1 ${driver.status === 'Disponível' ? 'bg-success' : driver.status === 'Em Entrega' ? 'bg-info' : driver.status === 'Pendente' ? 'bg-warning text-dark' : 'bg-danger'}`}>
-                          {driver.status}
+                        <span className={`badge rounded-pill px-3 py-2 mb-1 ${(driver.status || 'Pendente') === 'Disponível' ? 'bg-success' : (driver.status || 'Pendente') === 'Em Entrega' ? 'bg-info' : (driver.status || 'Pendente') === 'Pendente' ? 'bg-warning text-dark' : 'bg-danger'}`}>
+                          {driver.status || 'Pendente'}
                         </span>
                         {driver.status === 'Pendente' && (
                           <small className="text-danger fw-bold"><FontAwesomeIcon icon={faExclamationTriangle} className="me-1" /> Docs pendentes</small>
@@ -196,7 +199,7 @@ export default function DriversScreen() {
                       <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm" onClick={() => handleOpenModal(driver)} title="Editar">
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
-                      <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(driver.id)} title="Eliminar">
+                      <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(driver._id || driver.id)} title="Eliminar">
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </td>
@@ -235,7 +238,7 @@ export default function DriversScreen() {
                   </div>
                   <div className="col-md-6">
                     <label className="form-label fw-bold small text-muted mb-1">Telefone *</label>
-                    <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} required />
+                    <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.phoneNumber || formData.phone || ''} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} required />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label fw-bold small text-muted mb-1">{isEditing ? 'Nova Senha (Opcional)' : 'Senha *'}</label>

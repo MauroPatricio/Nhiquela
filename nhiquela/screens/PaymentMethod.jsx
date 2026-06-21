@@ -5,10 +5,12 @@ import api from '../hooks/createConnectionApi';
 import Radio from '../components/Radio';
 import SubmitPaymentButton from '../components/SubmitPaymentButton';
 import { Ionicons } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useRoute } from '@react-navigation/native'
 
 const PaymentMethod = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { tipoEstabelecimentoId } = route.params || {};
 
   const [selectedPayment, setSelectedPayment] = useState("");
   const [payments, setPayments] = useState(null);
@@ -17,9 +19,25 @@ const PaymentMethod = () => {
   const fechtData = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`payments`);
-      if (response.status == 200) {
-        setPayments(response.data)
+      if (tipoEstabelecimentoId) {
+        const response = await api.get(`tipo-estabelecimento/${tipoEstabelecimentoId}`);
+        if (response.status === 200 && response.data.paymentMethods?.length > 0) {
+          const formattedPayments = response.data.paymentMethods.map(pm => ({
+             ...pm,
+             shortName: pm.name 
+          }));
+          setPayments(formattedPayments);
+          return;
+        }
+      }
+      
+      const response = await api.get(`payment-methods`);
+      if (response.status === 200) {
+        const formattedPayments = response.data.map(pm => ({
+             ...pm,
+             shortName: pm.name
+        }));
+        setPayments(formattedPayments);
       }
     } catch (error) {
       console.log(error);

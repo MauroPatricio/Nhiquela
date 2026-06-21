@@ -8,11 +8,12 @@ import PaginationControls from '../../components/Admin/PaginationControls';
 
 export default function EstablishmentTypesScreen() {
   const [types, setTypes] = useState([]);
+  const [allPaymentMethods, setAllPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', icon: '🏢' });
+  const [formData, setFormData] = useState({ name: '', description: '', icon: '🏢', averagePreparationTime: 0, autoAssignDriver: false, paymentMethods: [] });
   
   const [showModal, setShowModal] = useState(false);
 
@@ -23,6 +24,7 @@ export default function EstablishmentTypesScreen() {
 
   useEffect(() => {
     fetchTypes();
+    fetchPaymentMethods();
   }, []);
 
   const fetchTypes = async () => {
@@ -35,17 +37,45 @@ export default function EstablishmentTypesScreen() {
       setLoading(false);
     }
   };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const { data } = await api.get('/payment-methods');
+      setAllPaymentMethods(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar métodos de pagamento', error);
+    }
+  };
   const handleOpenModal = (type = null) => {
     if (type) {
       setIsEditing(true);
       setCurrentId(type._id || type.id);
-      setFormData({ name: type.nome || type.name || '', description: type.description || '', icon: type.icon || type.img || '🏢' });
+      setFormData({ 
+        name: type.nome || type.name || '', 
+        description: type.description || '', 
+        icon: type.icon || type.img || '🏢', 
+        averagePreparationTime: type.averagePreparationTime ?? 0, 
+        autoAssignDriver: type.autoAssignDriver ?? false,
+        paymentMethods: type.paymentMethods ? type.paymentMethods.map(pm => pm._id || pm) : []
+      });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', description: '', icon: '🏢' });
+      setFormData({ name: '', description: '', icon: '🏢', averagePreparationTime: 0, autoAssignDriver: false, paymentMethods: [] });
     }
     setShowModal(true);
+  };
+
+  const handlePaymentMethodToggle = (methodId) => {
+    setFormData(prev => {
+      const isSelected = prev.paymentMethods.includes(methodId);
+      return {
+        ...prev,
+        paymentMethods: isSelected 
+          ? prev.paymentMethods.filter(id => id !== methodId)
+          : [...prev.paymentMethods, methodId]
+      };
+    });
   };
 
   const handleCloseModal = () => setShowModal(false);
@@ -199,6 +229,48 @@ export default function EstablishmentTypesScreen() {
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                       placeholder="Descrição do tipo de estabelecimento"
                     ></textarea>
+                        {/* Average preparation time */}
+                        <div className="mb-3">
+                          <label className="form-label fw-bold small text-muted mb-1">Tempo Médio de Preparação (minutos)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="form-control bg-light border-0 py-3 rounded-3"
+                            value={formData.averagePreparationTime}
+                            onChange={(e) => setFormData({ ...formData, averagePreparationTime: parseInt(e.target.value) || 0 })}
+                            placeholder="Ex: 20"
+                          />
+                        </div>
+                        {/* Auto assign driver */}
+                        <div className="form-check mb-3">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="autoAssignDriver"
+                            checked={formData.autoAssignDriver}
+                            onChange={(e) => setFormData({ ...formData, autoAssignDriver: e.target.checked })}
+                          />
+                          <label className="form-check-label fw-bold small text-muted ms-2" htmlFor="autoAssignDriver">
+                            Acionar Entregador Automaticamente
+                          </label>
+                        </div>
+                        
+                        {/* Payment Methods */}
+                        <div className="mb-3">
+                          <label className="form-label fw-bold small text-muted mb-2">Métodos de Pagamento Aceites</label>
+                          <div className="d-flex flex-wrap gap-2">
+                            {allPaymentMethods.map(pm => (
+                              <div 
+                                key={pm._id} 
+                                className={`border rounded-pill px-3 py-1 cursor-pointer transition-all ${formData.paymentMethods.includes(pm._id) ? 'bg-primary-custom text-white border-primary-custom' : 'bg-light text-muted'}`}
+                                onClick={() => handlePaymentMethodToggle(pm._id)}
+                                style={{ cursor: 'pointer', fontSize: '0.85rem' }}
+                              >
+                                {pm.icon && <span className="me-1">{pm.icon}</span>} {pm.name}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                   </div>
                   <div className="col-2">
                     <label className="form-label fw-bold small text-muted mb-1">Ícone</label>

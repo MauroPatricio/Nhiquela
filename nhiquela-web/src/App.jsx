@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import PublicLayout from './components/Layout/PublicLayout';
 import AdminLayout from './components/Layout/AdminLayout';
 import SupplierLayout from './components/Layout/SupplierLayout';
+import DocumentOrderScreen from './screens/DocumentOrder/DocumentOrderScreen';
 import LandingPage from './screens/LandingPage';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
@@ -12,7 +13,7 @@ import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
 import DashboardScreen from './screens/admin/DashboardScreen';
 import SuppliersScreen from './screens/admin/SuppliersScreen';
-import ProductsScreen from './screens/admin/ProductsScreen';
+import ProductsScreen from './screens/ProductsScreen';
 import CategoriesScreen from './screens/admin/CategoriesScreen';
 import DriversScreen from './screens/admin/DriversScreen';
 import ServicesScreen from './screens/admin/ServicesScreen';
@@ -20,11 +21,16 @@ import IncidentsScreen from './screens/admin/IncidentsScreen';
 import SubscriptionsScreen from './screens/admin/SubscriptionsScreen';
 import FinanceScreen from './screens/admin/FinanceScreen';
 import OrdersScreen from './screens/admin/OrdersScreen';
+import DocumentOrdersValidationScreen from './screens/admin/DocumentOrdersValidationScreen';
 import CustomersScreen from './screens/admin/CustomersScreen';
 import MarketingScreen from './screens/admin/MarketingScreen';
 import SettingsScreen from './screens/admin/SettingsScreen';
 import ProductAttributesScreen from './screens/admin/ProductAttributesScreen';
 import EstablishmentTypesScreen from './screens/admin/EstablishmentTypesScreen';
+import EstablishmentsScreen from './screens/admin/EstablishmentsScreen';
+import PaymentMethodsScreen from './screens/admin/PaymentMethodsScreen';
+import CancellationPoliciesScreen from './screens/admin/CancellationPoliciesScreen';
+import ProcessingFeesScreen from './screens/admin/ProcessingFeesScreen';
 import ProvincesScreen from './screens/admin/ProvincesScreen';
 import VehicleTypesScreen from './screens/admin/VehicleTypesScreen';
 import PushNotificationsScreen from './screens/admin/PushNotificationsScreen';
@@ -47,10 +53,11 @@ function App() {
         <Route path="/shop" element={<PublicLayout />}>
           <Route index element={<HomeScreen />} />
           <Route path="product/:id" element={<ProductDetailScreen />} />
-
           <Route path="cart" element={<CartScreen />} />
           <Route path="checkout" element={<CheckoutScreen />} />
+          <Route path="document-order" element={<DocumentOrderScreen />} />
         </Route>
+        <Route path="/products" element={<PublicLayout />}>\n          <Route index element={<ProductsScreen />} />\n        </Route>
 
         {/* Rotas do Fornecedor */}
         <Route path="/supplier" element={<SupplierLayout />}>
@@ -72,9 +79,14 @@ function App() {
           <Route path="subscriptions" element={<SubscriptionsScreen />} />
           <Route path="finance" element={<FinanceScreen />} />
           <Route path="orders" element={<OrdersScreen />} />
+          <Route path="document-validation" element={<DocumentOrdersValidationScreen />} />
           <Route path="customers" element={<CustomersScreen />} />
           <Route path="attributes" element={<ProductAttributesScreen />} />
           <Route path="establishment-types" element={<EstablishmentTypesScreen />} />
+          <Route path="establishments" element={<EstablishmentsScreen />} />
+          <Route path="payment-methods" element={<PaymentMethodsScreen />} />
+          <Route path="fees" element={<ProcessingFeesScreen />} />
+          <Route path="cancellation-policies" element={<CancellationPoliciesScreen />} />
           <Route path="provinces" element={<ProvincesScreen />} />
           <Route path="vehicle-types" element={<VehicleTypesScreen />} />
           <Route path="push-notifications" element={<PushNotificationsScreen />} />

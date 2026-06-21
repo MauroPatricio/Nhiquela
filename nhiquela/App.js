@@ -44,6 +44,7 @@ import SellersByEstablishment from './components/SellersByEstablishment';
 import RequestDelivScreen from './screens/RequestDeliv';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
+import DocumentUploadScreen from './screens/DocumentUploadScreen';
 
 // --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
@@ -158,6 +159,7 @@ export default function App() {
               <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
               <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
               <Stack.Screen name="Favorite" component={Favorite} />
+              <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
             </Stack.Navigator>
           </NavigationContainer>
 

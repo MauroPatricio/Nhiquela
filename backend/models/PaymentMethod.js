@@ -3,20 +3,13 @@ import mongoose from 'mongoose';
 const paymentMethodSchema = new mongoose.Schema(
 
   {
-
-    shortName: { type: String, required: true },
-    fullName: { type: String, required: true },
-    description: { type: String },
-    accountNumber: { type: Number, required: true },
-    accountNumberAlternative: { type: Number },
-    shortCode: { type: Number },
-    NIB: { type: Number },
-    NUIB: { type: Number },
-    NUIT: { type: Number },
-    logo: { type: String },
-    isActive:  { type: Boolean, default: true },
-
-    },
+    name: { type: String, required: true },
+    description: { type: String, default: '' },
+    icon: { type: String, default: '' },
+    status: { type: String, enum: ['Ativo', 'Inativo'], default: 'Ativo' },
+    order: { type: Number, default: 0 },
+    type: { type: String, required: true }
+  },
   {
     timestamps: true,
   }

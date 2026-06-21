@@ -346,10 +346,28 @@ userRouter.put(
       user.name = req.body.name;
       user.email = req.body.email;
       user.isAdmin = Boolean(req.body.isAdmin);
-      user.isSeller = Boolean(req.body.isSeller);
-      user.isBanned = Boolean(req.body.isBanned);
-      user.isDeliveryMan = Boolean(req.body.isDeliveryMan);
-      user.isApproved = Boolean(req.body.isApproved);
+      user.isSeller = Boolean(req.body.isSeller !== undefined ? req.body.isSeller : user.isSeller);
+      user.isBanned = Boolean(req.body.isBanned !== undefined ? req.body.isBanned : user.isBanned);
+      user.isDeliveryMan = Boolean(req.body.isDeliveryMan !== undefined ? req.body.isDeliveryMan : user.isDeliveryMan);
+      user.isApproved = Boolean(req.body.isApproved !== undefined ? req.body.isApproved : user.isApproved);
+      user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
+
+      // Se o Admin atualizar os dados do Seller (Fornecedor)
+      if (user.isSeller && req.body.seller) {
+        user.seller = {
+          ...user.seller,
+          name: req.body.seller.name || user.seller?.name,
+          logo: req.body.seller.logo || user.seller?.logo,
+          description: req.body.seller.description || user.seller?.description,
+          province: req.body.seller.province || user.seller?.province,
+          tipoEstabelecimento: req.body.seller.tipoEstabelecimento || user.seller?.tipoEstabelecimento,
+          address: req.body.seller.address || user.seller?.address,
+          latitude: req.body.seller.latitude || user.seller?.latitude,
+          longitude: req.body.seller.longitude || user.seller?.longitude,
+          phoneNumberAccount: req.body.seller.phoneNumberAccount !== undefined ? req.body.seller.phoneNumberAccount : user.seller?.phoneNumberAccount,
+          alternativePhoneNumberAccount: req.body.seller.alternativePhoneNumberAccount !== undefined ? req.body.seller.alternativePhoneNumberAccount : user.seller?.alternativePhoneNumberAccount,
+        };
+      }
 
       if(user.isBanned){
         user.isApproved=false;

@@ -64,11 +64,24 @@ export class WalletController {
 
   public static async getDriverEarnings(req: Request, res: Response) {
     try {
-      // Retorna resumo de ganhos diários e semanais para motoristas/entregadores
+      // Mock daily earnings for the last 7 days
+      const dailyEarnings = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return {
+          date: date.toISOString().split('T')[0],
+          amount: Math.floor(Math.random() * 200) + 50, // Random mock amount between 50 and 250
+        };
+      });
+
+      const totalWeek = dailyEarnings.reduce((sum, d) => sum + d.amount, 0);
+      const today = dailyEarnings[dailyEarnings.length - 1].amount;
+
       return res.status(200).json({
-        today: 750.00,
-        week: 4850.00,
-        currency: 'MZN'
+        today,
+        week: totalWeek,
+        dailyEarnings,
+        currency: 'MZN',
       });
     } catch (error: any) {
       return res.status(500).json({ message: 'Erro ao obter ganhos do motorista.', error: error.message });

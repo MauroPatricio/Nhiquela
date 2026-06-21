@@ -5,12 +5,19 @@ const data = {
     {
       // _id:'1',
       name: 'Mauro Patricio',
-      email: 'mauro.patricio@gmail.com',
-      password: bcrypt.hashSync('Patrick2019#'),
+      email: 'mauro.patricio1@gmail.com',
+      password: bcrypt.hashSync('password'),
       phoneNumber: 840575992,
       isAdmin: true,
       isDeliveryMan: true,
  
+    },
+    {
+      name: 'Owner',
+      email: 'owner@example.com',
+      password: bcrypt.hashSync('password123'),
+      phoneNumber: 123456789,
+      isAdmin: true,
     },
    
   ],

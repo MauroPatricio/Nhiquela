@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -61,13 +61,40 @@ export default function FinanceScreen() {
       setWithdrawData({ amount: '', phone: '' });
       fetchWalletData(); // Atualiza o saldo e extrato
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Erro ao processar levantamento.');
+      toast.error('Erro ao processar o levantamento. Verifique se o telemóvel é válido (ex: 84..., 85...).');
     } finally {
       setWithdrawing(false);
     }
   };
 
-  // Helper to extract phone numbers from description
+  const exportToCSV = () => {
+    if (transactions.length === 0) return toast.info('Não há transações para exportar.');
+    
+    const headers = ['Data', 'Tipo', 'Descrição', 'Referência', 'Montante', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...transactions.map(t => {
+        const date = new Date(t.createdAt || t.created_at || t.date).toLocaleString('pt-MZ');
+        const type = t.type === 'credit' ? 'Crédito' : 'Débito';
+        const description = `"${(t.description || '').replace(/"/g, '""')}"`;
+        const ref = t.reference || '';
+        const amount = t.amount;
+        const status = t.status || 'completed';
+        return `${date},${type},${description},${ref},${amount},${status}`;
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `extrato_financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Ficheiro CSV gerado com sucesso!');
+  };
+
+  // Aplica filtro (todos, credit, debit) phone numbers from description
   const extractPhone = (desc) => {
     if (!desc) return "Sistema";
     const phoneMatch = desc.match(/(?:para|por|de)\s+(8[45627]\d{7})/i) || desc.match(/\b(8[45627]\d{7})\b/);
@@ -139,6 +166,10 @@ export default function FinanceScreen() {
           <h5 className="fw-bold m-0 text-dark">Extrato Contabilístico (Ledger API)</h5>
           
           <div className="d-flex align-items-center gap-3">
+            <button className="btn btn-outline-secondary rounded-pill px-4 shadow-sm fw-bold d-flex align-items-center" onClick={exportToCSV}>
+              <FontAwesomeIcon icon={faDownload} className="me-2" />
+              Exportar CSV
+            </button>
             <div className="position-relative" style={{ width: '200px' }}>
               <FontAwesomeIcon icon={faSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
               <input 

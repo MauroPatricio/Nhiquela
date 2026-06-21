@@ -184,8 +184,9 @@ const DeliveryDetailsScreen = () => {
       Alert.alert('Erro', 'Por favor, forneça sua localização antes de prosseguir.');
       return;
     }
-    navigation.replace('PaymentMethod');
-  }, [navigation, userLocation]);
+    const tipoEstId = seller?.tipoEstabelecimento?._id || seller?.tipoEstabelecimento;
+    navigation.replace('PaymentMethod', { tipoEstabelecimentoId: tipoEstId });
+  }, [navigation, userLocation, seller]);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

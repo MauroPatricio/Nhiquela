@@ -7,7 +7,7 @@ import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import * as XLSX from '@e965/xlsx';
 
 const OrderTiming = ({ order }) => {
   const [elapsed, setElapsed] = useState('--');
@@ -163,6 +163,49 @@ export default function OrdersScreen() {
       default: return faBoxOpen;
     }
   };
+
+  // Export orders to Excel
+  const exportToExcel = () => {
+    try {
+      const data = orders.map((order) => ({
+        ID: order._id,
+        Código: order.code || order._id.slice(-6),
+        Cliente: order.user?.name || order.name || customersMap[order.user] || 'Desconhecido',
+        Valor: Number(order.totalPrice || order.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' }),
+        Estado: order.status,
+        Data: new Date(order.createdAt).toLocaleString('pt-PT'),
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+      XLSX.writeFile(wb, 'orders.xlsx');
+    } catch (err) {
+      console.error('Erro ao exportar para Excel:', err);
+      toast.error('Falha ao gerar o Excel.');
+    }
+  };
+
+  // Export orders to PDF
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const tableColumn = ['ID', 'Código', 'Cliente', 'Valor', 'Estado', 'Data'];
+      const tableRows = orders.map((order) => [
+        order._id,
+        order.code || order._id.slice(-6),
+        order.user?.name || order.name || customersMap[order.user] || 'Desconhecido',
+        Number(order.totalPrice || order.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' }),
+        order.status,
+        new Date(order.createdAt).toLocaleString('pt-PT'),
+      ]);
+      doc.autoTable({ head: [tableColumn], body: tableRows });
+      doc.save('orders.pdf');
+    } catch (err) {
+      console.error('Erro ao exportar para PDF:', err);
+      toast.error('Falha ao gerar o PDF.');
+    }
+  };
+
 
   return (
     <div className="animation-fade-in pb-5">

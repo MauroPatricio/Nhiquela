@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: '.env' });
 import mongoose from 'mongoose';
 import seedRoutes from './routes/seedRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -30,16 +30,23 @@ import './firebase.js';
 
 // **Nova importação**
 import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
+import serviceRouter from './routes/serviceRoutes.js';
+import homeRouter from './routes/homeRoutes.js';
+import statsRouter from './routes/statsRoutes.js';
 
 import mpesa from 'mpesa-node-api';
 
 import Payment from './models/PaymentModel.js'
 import config from './config.js';
+import documentOrderRoutes from './routes/documentOrderRoutes.js';
 import Order from './models/OrderModel.js';
 import cron from 'node-cron';
 import notificationRouter from './routes/notificationRoutes.js';
 import paymentRouterEmola from './routes/paymentEmolaRoutes.js';
 import walletRouter from './routes/walletRoutes.js';
+import trackingRoutes from './routes/trackingRoutes.js';
+import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
+import processingFeeRoutes from './routes/processingFeeRoutes.js';
 
 
 
@@ -67,6 +74,7 @@ mongoose
 // **Inicializando Express**
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -74,6 +82,33 @@ const __dirname = dirname(__filename);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Mount API routers under the '/api' namespace
+app.use('/api/seed', seedRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/users', userRouter);
+app.use('/api/orders', orderRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/categories', categoryRouter);
+app.use('/api/provinces', provinceRoutes);
+app.use('/api/document-types', documentTypeRoutes);
+app.use('/api/quality-types', qualityTypeRouter);
+app.use('/api/condition-status', conditionStatusRouter);
+app.use('/api/colors', colorRoutes);
+app.use('/api/sizes', sizeRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/request-deliver', requestDeliverRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
+app.use('/api/notifications', notificationRouter);
+app.use('/api/payments-emola', paymentRouterEmola);
+app.use('/api/wallet', walletRouter);
+app.use('/api/tracking', trackingRoutes);
+app.use('/api/stats', statsRouter);
+app.use('/api/services', serviceRouter);
+app.use('/api/home', homeRouter);
+app.use('/api/document-order', documentOrderRoutes);
+app.use('/api/payment-methods', paymentMethodRoutes);
+app.use('/api/processing-fees', processingFeeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -82,9 +117,11 @@ app.use((err, req, res, next) => {
 });
 
 const httpServer = http.Server(app);
+
 const users = [];
 
 const io = new Server(httpServer, { cors: { origin: '*' } });
+app.set('io', io);
 
 
 
@@ -125,64 +162,27 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('onUserSelected', (user) => {
-    const admin = users.find((x) => x.isAdmin && x.online);
-    if (admin) {
-      const existUser = users.find((x) => x._id === user._id);
-      io.to(admin.socketId).emit('selectUser', existUser);
+  // Tracking Rooms
+  socket.on('joinRoom', (data) => {
+    if (data && data.orderId) {
+      const roomName = `order_${data.orderId}`;
+      socket.join(roomName);
+      console.log(`Socket ${socket.id} joined room ${roomName}`);
     }
   });
 
-  socket.on('onMessage', (message) => {
-    if (message.isAdmin) {
-      const user = users.find((x) => x._id === message._id && x.online);
-      if (user) {
-        io.to(user.socketId).emit('message', message);
-        user.messages.push(message);
-      }
-    } else {
-      const admin = users.find((x) => x.isAdmin && x.online);
-      if (admin) {
-        io.to(admin.socketId).emit('message', message);
-        const user = users.find((x) => x._id === message._id && x.online);
-        user.messages.push(message);
-      } else {
-        io.to(socket.id).emit('message', {
-          name: 'Admin',
-          body: 'Me desculpe. Neste momento não me encontro disponível',
-        });
-      }
+  socket.on('leaveRoom', (data) => {
+    if (data && data.orderId) {
+      const roomName = `order_${data.orderId}`;
+      socket.leave(roomName);
+      console.log(`Socket ${socket.id} left room ${roomName}`);
     }
   });
 });
 
-const port = process.env.PORT || 5001;
-httpServer.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-});
-
-app.set('io', io);
 
 
-// Executa a cada 1 minutos
-// cron.schedule('*/1 * * * *', async () => {
-//   const start = Date.now();
-//   console.log(`🚀 Início da execução do cron às ${new Date().toISOString()}`);
-
-//   try {
-//     const orders = await Order.aggregate([
-//       { $match: { isPaid: true, isSupplierPaid: false } },
-//       {
-//         $lookup: {
-//           from: 'users',
-//           localField: 'seller',
-//           foreignField: '_id',
-//           as: 'seller'
-//         }
-//       },
-//       { $unwind: "$seller" },
-//       { $project: { "seller.password": 0 } }
-//     ]);
+// const port = process.env.PORT || 5001;
 
 //     await Promise.allSettled(orders.map(async (order) => {
 //       try {
@@ -294,3 +294,11 @@ function randomString(codeLength){
     const randomString = randomArray.join("");
     return randomString;
 }
+const port = process.env.PORT || 5002;
+console.log('Port configuration: process.env.PORT =', process.env.PORT);
+httpServer.listen(port, () => {
+  console.log(`Servidor rodando em http://localhost:${port}`);
+});
+
+// Export the Express app for integration testing when in test mode
+export default app;

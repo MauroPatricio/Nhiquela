@@ -21,7 +21,8 @@ import * as Location from 'expo-location';
 import api from '../hooks/createConnectionApi';
 import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 import { useToast } from "react-native-toast-notifications";
-import { io } from 'socket.io-client';
+import useTrackingSocket from '../hooks/useTrackingSocket';
+import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import TripMap from "../components/TripMap";
@@ -38,7 +39,7 @@ const OrderDetailsScreen = () => {
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [driverLocation, setDriverLocation] = useState(null);
+  // Driver location now handled by useTrackingSocket hook
   const [canFinishTrip, setCanFinishTrip] = useState(false);
   const [routeDrawn, setRouteDrawn] = useState(false);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
@@ -134,23 +135,13 @@ const OrderDetailsScreen = () => {
 
   // Socket.io integration for real-time tracking
   useEffect(() => {
+    // Ensure we have an order ID before establishing the socket.
     if (!currentOrder?._id) return;
-
-    // Conectar ao websocket usando o baseURL da API (removendo /api)
-    const baseUrl = api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000';
-    const socket = io(baseUrl);
-
-    // Entrar na sala do pedido específico
-    socket.emit('joinOrderRoom', currentOrder._id);
-
-    // Escutar por atualizações do motorista
-    socket.on('driverLocationChanged', (location) => {
-      setDriverLocation(location);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    const { driverLocation: dl, eta } = useTrackingSocket(currentOrder._id);
+    // The hook updates driverLocation state internally; we expose it via a local variable.
+    // Update component state if you need to use eta elsewhere.
+    // Here we simply assign to a local variable for rendering.
+    // Note: driverLocation is not stored in component state any more.
   }, [currentOrder]);
 
   const checkIfUserExist = async () => {
@@ -325,20 +316,14 @@ const OrderDetailsScreen = () => {
 
       {/* Mapa - Ocupa quase toda a tela */}
       <Animated.View style={[styles.mapContainer, { transform: [{ scale: mapScale }] }]}>
-        {currentLocation && (
-          <TripMap
-            origin={currentLocation}
-            destination={driverLocation || {
-              latitude: currentLocation.latitude + 0.005,
-              longitude: currentLocation.longitude + 0.005,
-            }}
-            onRouteReady={() => {
-              setRouteDrawn(true);
-              setCanFinishTrip(true);
-            }}
-          />
-        )}
-      </Animated.View>
+          {currentLocation && (
+            <TrackingMap
+              orderId={currentOrder._id}
+              initialCenter={currentLocation}
+              darkMode={true}
+            />
+          )}
+        </Animated.View>
 
       {/* Bottom Sheet Premium */}
       <Animated.View

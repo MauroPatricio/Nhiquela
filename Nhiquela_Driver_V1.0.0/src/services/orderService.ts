@@ -17,12 +17,16 @@ export const acceptOrderByDeliveryman = async (orderId: string, initialLocation?
 
 // Adicionar função para atualizar localização
 export const updateDeliverymanLocation = async (orderId: string, locationData: any) => {
-  const response = await apiClient.put(
-    ENDPOINTS.UPDATE_DELIVERYMAN_LOCATION(orderId),
-    locationData
+  const response = await apiClient.post(
+    ENDPOINTS.UPDATE_DELIVERYMAN_LOCATION(),
+    {
+      orderId,
+      latitude: locationData.latitude,
+      longitude: locationData.longitude
+    }
   );
   return response.data;
-}; // 🔥 FALTAVA FECHAR ESTA FUNÇÃO
+};
 
 export const startOrderInTransit = async (orderId: string) => {
   const response = await apiClient.put(ENDPOINTS.START_ORDER_IN_TRANSIT(orderId));

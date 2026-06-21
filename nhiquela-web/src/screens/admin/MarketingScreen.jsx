@@ -27,13 +27,13 @@ export default function MarketingScreen() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ title: '', location: '', status: 'Ativo' });
+  const [formData, setFormData] = useState({ title: '', type: 'Home Principal', imageUrl: '', link: '', isActive: true });
   const [showModal, setShowModal] = useState(false);
 
   const {
     currentPage, searchQuery, setSearchQuery, currentData: currentBanners,
     totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
-  } = usePagination(banners, 10, ['title', 'location', 'status']);
+  } = usePagination(banners, 10, ['title', 'type']);
 
   const handleOpenModal = (banner = null) => {
     if (banner) {
@@ -43,7 +43,7 @@ export default function MarketingScreen() {
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ title: '', location: 'Home Principal', status: 'Ativo' });
+      setFormData({ title: '', type: 'Home Principal', imageUrl: '', link: '', isActive: true });
     }
     setShowModal(true);
   };
@@ -114,7 +114,7 @@ export default function MarketingScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Título do Banner</th>
-                  <th className="border-0 text-muted py-3">Localização (Posição)</th>
+                  <th className="border-0 text-muted py-3">Tipo (Posição)</th>
                   <th className="border-0 text-muted py-3">Estado</th>
                   <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                 </tr>
@@ -134,10 +134,10 @@ export default function MarketingScreen() {
                         <span className="fw-bold text-dark">{banner.title}</span>
                       </div>
                     </td>
-                    <td><span className="text-muted">{banner.location}</span></td>
+                    <td><span className="text-muted">{banner.type || 'Sem Tipo'}</span></td>
                     <td>
-                      <span className={`badge rounded-pill ${banner.status === 'Ativo' ? 'bg-success' : 'bg-secondary'}`}>
-                        {banner.status}
+                      <span className={`badge rounded-pill ${banner.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                        {banner.isActive ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="text-end px-4">
@@ -171,16 +171,17 @@ export default function MarketingScreen() {
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Imagem do Banner</label>
-                  <div className="border border-dashed rounded-3 p-4 text-center bg-light cursor-pointer">
-                    <FontAwesomeIcon icon={faImage} size="2x" className="text-muted mb-2" />
-                    <p className="small text-muted m-0">Clique para fazer upload da imagem</p>
-                  </div>
+                  <label className="form-label fw-bold small text-muted mb-1">URL da Imagem (Link Externo)</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.imageUrl} onChange={(e) => setFormData({...formData, imageUrl: e.target.value})} placeholder="https://..." />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted mb-1">Link de Redirecionamento (Ao Clicar)</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} placeholder="https://..." />
                 </div>
                 <div className="row g-3 mb-4">
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Localização</label>
-                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})}>
+                    <label className="form-label fw-bold small text-muted mb-1">Tipo de Banner (Posição)</label>
+                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
                       <option value="Home Principal">Home Principal</option>
                       <option value="Home Secundário">Home Secundário</option>
                       <option value="App Mobile Top">App Mobile Top</option>
@@ -189,7 +190,7 @@ export default function MarketingScreen() {
                   </div>
                   <div className="col-6">
                     <label className="form-label fw-bold small text-muted mb-1">Status</label>
-                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.isActive ? 'Ativo' : 'Inativo'} onChange={(e) => setFormData({...formData, isActive: e.target.value === 'Ativo'})}>
                       <option value="Ativo">Ativo</option>
                       <option value="Inativo">Inativo</option>
                     </select>

@@ -11,14 +11,18 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Liga Socket
-    const socket = io(`${SOCKET_URL}/products`, { 
+    // Initialize Socket.IO connection (root namespace)
+    const socket = io(SOCKET_URL, {
       transports: ['websocket'],
-      reconnectionAttempts: 3 // Evita spam no console se o backend local não tiver sockets
+      reconnectionAttempts: 3,
     });
 
-    socket.on("newProduct", (newProduct) => {
-      setFeaturedProducts(prev => [newProduct, ...prev.slice(0, 19)]);
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err);
+    });
+
+    socket.on('newProduct', (newProduct) => {
+      setFeaturedProducts((prev) => [newProduct, ...prev.slice(0, 19)]);
     });
 
     const loadData = async () => {

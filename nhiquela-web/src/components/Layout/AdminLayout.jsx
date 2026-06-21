@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,6 +20,7 @@ export default function AdminLayout() {
     { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
     { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog },
     { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart },
+    { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
     { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
     { name: 'Tipos Estabel.', path: '/admin/establishment-types', icon: faBuilding },
     { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
@@ -35,6 +36,8 @@ export default function AdminLayout() {
     { name: 'Push Notificações', path: '/admin/push-notifications', icon: faBell },
     { name: 'Banners & Marketing', path: '/admin/marketing', icon: faBullhorn },
     { name: 'Financeiro', path: '/admin/finance', icon: faMoneyBillWave },
+    { name: 'Métodos Pagamento', path: '/admin/payment-methods', icon: faMoneyBillWave },
+    { name: 'Taxas Processamento', path: '/admin/fees', icon: faMoneyBillWave },
     { name: 'Configurações', path: '/admin/settings', icon: faCog },
   ];
 

@@ -156,7 +156,7 @@ export default function RequestDeliv() {
         shoppingList: []
       };
 
-      await api.post('/requestdeliver', payload);
+      await api.post('/request-deliver', payload);
       toast.show("Serviço solicitado com sucesso! 🚀", { type: "success" });
       navigation.goBack();
     } catch (error) {
@@ -185,32 +185,34 @@ export default function RequestDeliv() {
         
         <View style={styles.grid}>
           {servicesList.length === 0 ? (
-            <ActivityIndicator size="large" color={PRIMARY_COLOR} style={{ marginVertical: 30 }} />
-          ) : servicesList.map((srv) => {
-            const isActive = serviceType?.id === srv.id;
-            return (
-              <TouchableOpacity
-                key={srv.id}
-                style={[styles.serviceCard, isActive && styles.serviceCardActive]}
-                activeOpacity={0.8}
-                onPress={() => setServiceType(srv)}
-              >
-                {isActive ? (
-                  <LinearGradient colors={['#A855F7', '#C084FC']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.serviceGradient}>
-                    <MaterialCommunityIcons name={srv.icon} size={34} color="#FFF" />
-                    <Text style={[styles.serviceText, { color: '#FFF' }]}>{srv.name}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.serviceContent}>
-                    <View style={[styles.iconCircle, { backgroundColor: `${srv.color}15` }]}>
-                      <MaterialCommunityIcons name={srv.icon} size={28} color={srv.color} />
+            <Text style={{ textAlign: 'center', marginVertical: 30, color: '#666' }}>Nenhum serviço disponível.</Text>
+          ) : (
+            servicesList.map((srv) => {
+              const isActive = serviceType?.id === srv.id;
+              return (
+                <TouchableOpacity
+                  key={srv.id}
+                  style={[styles.serviceCard, isActive && styles.serviceCardActive]}
+                  activeOpacity={0.8}
+                  onPress={() => setServiceType(srv)}
+                >
+                  {isActive ? (
+                    <LinearGradient colors={['#A855F7', '#C084FC']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.serviceGradient}>
+                      <MaterialCommunityIcons name={srv.icon} size={34} color="#FFF" />
+                      <Text style={[styles.serviceText, { color: '#FFF' }]}>{srv.name}</Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.serviceContent}>
+                      <View style={[styles.iconCircle, { backgroundColor: `${srv.color}15` }]}>
+                        <MaterialCommunityIcons name={srv.icon} size={28} color={srv.color} />
+                      </View>
+                      <Text style={styles.serviceText}>{srv.name}</Text>
                     </View>
-                    <Text style={styles.serviceText}>{srv.name}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+                  )}
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         {serviceType && (

@@ -9,12 +9,21 @@ const modelSchema = new mongoose.Schema({
     isAdmin: {type: Boolean, default: false},
     isDeliveryMan: {type: Boolean, default: false},
     isSeller: {type: Boolean, default: false},
+    // Reputation counters (denormalized for fast access)
+    totalOrders: { type: Number, default: 0 },
+    completedOrders: { type: Number, default: 0 },
+    cancelledOrders: { type: Number, default: 0 },
+    rating: { type: String, default: 'Excelente' },
     isBanned: {type: Boolean, default: false},
     isApproved: {type: Boolean, default: false},
     location: {type: String},
     latitude: {type: String},
     longitude: {type: String},
     token: { type: String },
+    isShopper: { type: Boolean, default: false },
+    availability: { type: String, enum: ['active','paused','inactive'], default: 'inactive' },
+    zones: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Zone' }],
+    assignedEstablishments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // References sellers/stores where the shopper works
     deviceToken: { type: String },
     seller:{
         name: {type: String},

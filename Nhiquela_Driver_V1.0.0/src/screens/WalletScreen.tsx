@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList, 
-  ActivityIndicator, 
-  RefreshControl,
-  Alert,
-  SafeAreaView
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/apiConfig';
 import { COLORS } from '../styles/colors';
+import { LineChart, Grid } from 'react-native-svg-charts';
 
 interface Transaction {
   id: string;
@@ -28,6 +19,7 @@ export default function WalletScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
   const [earnings, setEarnings] = useState({ today: 0, week: 0 });
+  const [dailyEarnings, setDailyEarnings] = useState<Array<{date:string, amount:number}>>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userData, setUserData] = useState<any>(null);
 
@@ -41,7 +33,6 @@ export default function WalletScreen({ navigation }: any) {
       const user = JSON.parse(storedUser);
       setUserData(user);
 
-      // Chamadas simultâneas à API com tolerância a falhas locais
       const [balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
         api.get('/wallet/balance', { headers: { authorization: `Bearer ${user.token}` } }),
         api.get('/wallet/transactions', { headers: { authorization: `Bearer ${user.token}` } }),
@@ -58,14 +49,14 @@ export default function WalletScreen({ navigation }: any) {
       if (transactionsRes.status === 'fulfilled') {
         setTransactions(transactionsRes.value.data || []);
       }
-      
+
       if (earningsRes.status === 'fulfilled') {
         setEarnings({
           today: earningsRes.value.data.today || 0,
-          week: earningsRes.value.data.week || 0
+          week: earningsRes.value.data.week || 0,
         });
+        setDailyEarnings(earningsRes.value.data.dailyEarnings || []);
       }
-
     } catch (error: any) {
       console.error('Erro ao buscar dados da carteira:', error.message);
       Alert.alert('Erro', 'Não foi possível atualizar a carteira.');
@@ -89,14 +80,13 @@ export default function WalletScreen({ navigation }: any) {
       Alert.alert('Saldo Insuficiente', 'Não tem saldo disponível para efetuar um levantamento.');
       return;
     }
-    // Navega para uma tela de saque ou modal
     Alert.alert(
       'Solicitar Levantamento',
       `Deseja levantar o valor total de ${formatCurrency(balance.available)} para sua conta M-Pesa?`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Confirmar', 
+        {
+          text: 'Confirmar',
           onPress: async () => {
             try {
               setLoading(true);
@@ -126,14 +116,13 @@ export default function WalletScreen({ navigation }: any) {
     const isCredit = item.type === 'credit';
     const date = new Date(item.created_at);
     const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} às ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
     return (
       <View style={styles.transactionCard}>
         <View style={[styles.iconContainer, { backgroundColor: isCredit ? '#E8F5E9' : '#FFEBEE' }]}>
-          <Ionicons 
-            name={isCredit ? 'arrow-up' : 'arrow-down'} 
-            size={20} 
-            color={isCredit ? '#2E7D32' : '#C62828'} 
+          <Ionicons
+            name={isCredit ? 'arrow-up' : 'arrow-down'}
+            size={20}
+            color={isCredit ? '#2E7D32' : '#C62828'}
           />
         </View>
         <View style={styles.transactionDetails}>
@@ -180,7 +169,7 @@ export default function WalletScreen({ navigation }: any) {
               <View style={styles.mainCard}>
                 <Text style={styles.cardLabel}>Saldo Disponível</Text>
                 <Text style={styles.cardValue}>{formatCurrency(balance.available)}</Text>
-                
+
                 <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdrawPress}>
                   <Ionicons name="cash-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
                   <Text style={styles.withdrawText}>Levantar Fundos</Text>
@@ -209,6 +198,19 @@ export default function WalletScreen({ navigation }: any) {
                 <Text style={styles.statLabel}>Esta Semana</Text>
                 <Text style={styles.statValue}>{formatCurrency(earnings.week)}</Text>
               </View>
+            </View>
+
+            {/* Gráfico de Ganhos Diários */}
+            <View style={styles.chartContainer}>
+              <Text style={styles.sectionTitle}>Ganhos Diários</Text>
+              <LineChart
+                style={{ height: 200 }}
+                data={dailyEarnings.map(e => e.amount)}
+                svg={{ stroke: COLORS.primary, strokeWidth: 2 }}
+                contentInset={{ top: 20, bottom: 20 }}
+              >
+                <Grid />
+              </LineChart>
             </View>
 
             {/* Título Histórico */}
@@ -346,6 +348,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  chartContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
   transactionCard: {
     flexDirection: 'row',

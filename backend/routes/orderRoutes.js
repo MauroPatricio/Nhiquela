@@ -7,6 +7,9 @@ import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 import sendNotification from '../utils/sendNotification.js';
 import createNotification from '../utils/createNotification.js';
+import Partner from '../models/PartnerModel.js';
+import partnerService from '../services/partnerService.js';
+import reputationTracker from '../utils/reputationTracker.js';
 
 
 
@@ -29,20 +32,20 @@ orderRouter.get(
     const seller = req.query.seller || '';
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await Order.find({
       ...sellerFilter,
-      deleted: { $eq: false},
-    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+      deleted: { $eq: false },
+    }).populate('user', 'name').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
       deleted: { $eq: false },
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
@@ -52,20 +55,20 @@ orderRouter.get(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await Order.find({
-      isPaid: {$eq: true},
-      deleted: { $eq: false},
-    }).populate('user', 'name').populate('seller').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+      isPaid: { $eq: true },
+      deleted: { $eq: false },
+    }).populate('user', 'name').populate('seller').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
-      isPaid: {$eq: true},
+      isPaid: { $eq: true },
       deleted: { $eq: false },
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
@@ -75,22 +78,22 @@ orderRouter.get(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await Order.find({
-      isPaid: {$eq: true},
-      deleted: { $eq: false},
+      isPaid: { $eq: true },
+      deleted: { $eq: false },
       deliveryman: { $exists: true }
-    }).populate('user', 'name').populate('deliveryman.id').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    }).populate('user', 'name').populate('deliveryman.id').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
-      isPaid: {$eq: true},
+      isPaid: { $eq: true },
       deleted: { $eq: false },
       deliveryman: { $exists: true }
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
@@ -102,26 +105,26 @@ orderRouter.get(
     const seller = req.query.seller || '';
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await Order.find({
       ...sellerFilter,
-      isPaid: { $eq: true},
-      deleted: { $eq: false},
+      isPaid: { $eq: true },
+      deleted: { $eq: false },
       status: { $ne: 'Finalizado' }
 
-    }).populate('user', 'name phoneNumber').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    }).populate('user', 'name phoneNumber').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
-      isPaid: { $eq: true},
+      isPaid: { $eq: true },
       deleted: { $eq: false },
       status: { $ne: 'Finalizado' }
 
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
@@ -134,27 +137,27 @@ orderRouter.get(
     const seller = req.query.seller || '';
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await Order.find({
       ...sellerFilter,
-      isPaid: { $eq: true},
-      deleted: { $eq: false},
+      isPaid: { $eq: true },
+      deleted: { $eq: false },
       status: { $ne: 'Cancelado' }
 
-    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    }).populate('user', 'name').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
-      isPaid: { $eq: true},
+      isPaid: { $eq: true },
       deleted: { $eq: false },
       status: { $ne: 'Cancelado' }
 
 
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
@@ -162,54 +165,54 @@ orderRouter.get(
 orderRouter.get(
   '/popularitems',
   expressAsyncHandler(async (req, res) => {
-    const pageSize = 10    
-    
-    const orders = await Order.aggregate([
-  
-        { $unwind: "$orderItems" },
-  
-        {
-          $lookup: {
-            from: "products",
-            localField:"orderItems.product",
-            foreignField: "_id",
-            as: "product"
-          }
-    
-        },
-        {
-          $match: {
-            "product.isActive": true
-          }
-        },
-        
-      // Match orders that have at least one order item
-        { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
+    const pageSize = 10
 
-        // Group by the order item properties and calculate the total quantity
-        {
-          $group: {
-            _id: "$orderItems._id",
-            slug: { $first: "$orderItems.slug" },
-            name: { $first: "$orderItems.name" },
-            nome: { $first: "$orderItems.nome" },
-            image: { $first: "$orderItems.image" },
-            price: { $first: "$orderItems.price" },
-            onSale: { $first: "$orderItems.onSale" },
-            onSalePercentage: { $first: "$orderItems.onSalePercentage" },
-            discount: { $first: "$orderItems.discount" },
-  
-            totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
-          },
+    const orders = await Order.aggregate([
+
+      { $unwind: "$orderItems" },
+
+      {
+        $lookup: {
+          from: "products",
+          localField: "orderItems.product",
+          foreignField: "_id",
+          as: "product"
+        }
+
+      },
+      {
+        $match: {
+          "product.isActive": true
+        }
+      },
+
+      // Match orders that have at least one order item
+      { $match: { orderItems: { $exists: true, $not: { $size: 0 } } } },
+
+      // Group by the order item properties and calculate the total quantity
+      {
+        $group: {
+          _id: "$orderItems._id",
+          slug: { $first: "$orderItems.slug" },
+          name: { $first: "$orderItems.name" },
+          nome: { $first: "$orderItems.nome" },
+          image: { $first: "$orderItems.image" },
+          price: { $first: "$orderItems.price" },
+          onSale: { $first: "$orderItems.onSale" },
+          onSalePercentage: { $first: "$orderItems.onSalePercentage" },
+          discount: { $first: "$orderItems.discount" },
+
+          totalQuantity: { $sum: { $toInt: "$orderItems.quantity" } },
         },
-        
-        // Sort in descending order based on the total quantity
-        { $sort: { totalQuantity: -1 } },
-      
-        // Optionally, limit the results to a specific number of items
-        { $limit: 10 }, 
+      },
+
+      // Sort in descending order based on the total quantity
+      { $sort: { totalQuantity: -1 } },
+
+      // Optionally, limit the results to a specific number of items
+      { $limit: 10 },
     ]);
-    res.send({orders});
+    res.send({ orders });
   })
 );
 
@@ -221,41 +224,49 @@ orderRouter.get(
     const seller = req.query.seller || '';
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await Order.find({
       ...sellerFilter,
       deleted: { $eq: false },
       isPaid: { $eq: true },
       isAvailableToDeliver: { $eq: true },
       status: { $ne: 'Finalizado' }
-    }).populate('user', 'name').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    }).populate('user', 'name').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
       deleted: { $eq: false },
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
 
 
-orderRouter.post(
-  '/',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-
-    const comission_price = parseFloat(process.env.COMISSION_PRICE);
+orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
     const priceFromSeller = parseFloat(req.body.itemsPriceForSeller);
-    const priceComission  = parseFloat(priceFromSeller * comission_price);
+    let commissionRate = 0.15; // default 15%
+    let priceComission = 0;
+    let comissionPercentage = commissionRate * 100;
 
-    
+    // If a partnerId is provided, fetch partner commissionRate
+    if (req.body.partnerId) {
+      const partner = await Partner.findById(req.body.partnerId);
+      if (partner && partner.commissionRate) {
+        commissionRate = partner.commissionRate;
+        comissionPercentage = commissionRate * 100;
+      }
+    }
+    // Calculate commission using partnerService
+    priceComission = partnerService.calculateCommission(commissionRate, priceFromSeller);
+
+
     // Create a new order object
     const newOrder = new Order({
-   
+
       seller: req.body.orderItems[0].seller,
       orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id })),
       deliveryAddress: req.body.address,
@@ -277,7 +288,7 @@ orderRouter.post(
       stepStatus: req.body.stepStatus,
       customerId: req.user ? req.user._id : req.body.user._id,
       priceComission: priceComission,
-      comissionPercentage: comission_price,
+      comissionPercentage: comissionPercentage,
       priceFromSeller: priceFromSeller,
       sellerPriceWithDeliver: req.body.sellerPriceWithDeliver
     });
@@ -291,70 +302,108 @@ orderRouter.post(
             throw new Error(`Produto invalido: ${JSON.stringify(item)}`);
           }
 
-          const product = await Product.findById(item._id);
-          
-          // Ensure product exists and quantity is valid
-          if (!product) {
-            throw new Error(`Produto nao encontrado: ${item._id}`);
+          // Determine if the item is from a partner
+          if (item.partnerProductId) {
+            // Use PartnerProduct for stock management
+            const PartnerProduct = (await import('../models/PartnerProductModel.js')).default;
+            const pp = await PartnerProduct.findById(item.partnerProductId);
+            if (!pp) {
+              throw new Error(`Partner product not found: ${item.partnerProductId}`);
+            }
+            if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
+              throw new Error(`Invalid quantity for partner product: ${item.name}`);
+            }
+            const newStock = pp.stock - item.quantity;
+            if (newStock < 0) {
+              throw new Error(`Insufficient stock for partner product: ${pp.name}`);
+            }
+            pp.stock = newStock;
+            await pp.save();
+            // Assign partner info to order item
+            item.partner = pp.partner;
+            item.partnerProduct = pp._id;
+            item.price = pp.price; // use partner's price
+          } else {
+            const product = await Product.findById(item._id);
+            // Ensure product exists and quantity is valid
+            if (!product) {
+              throw new Error(`Produto nao encontrado: ${item._id}`);
+            }
+            if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
+              throw new Error(`Quantidade Invalida para o produto: ${item.name}`);
+            }
+            // Ensure stock doesn't go below 0
+            const newCountInStock = product.countInStock - item.quantity;
+            if (newCountInStock < 0) {
+              throw new Error(`Estoque insuficiente para o produto: ${product.name}.  Por favor verifique a quantidade`);
+            }
+            // Update and save product stock
+            product.countInStock = newCountInStock;
+            await product.save();
           }
-          if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
-            throw new Error(`Quantidade Invalida para o produto: ${item.name}`);
-          }
-
-          // Ensure stock doesn't go below 0
-          const newCountInStock = product.countInStock - item.quantity;
-          if (newCountInStock < 0) {
-            throw new Error(`Estoque insuficiente para o produto: ${product.name}.  Por favor verifique a quantidade`);
-          }
-
-          // Update and save product stock
-          product.countInStock = newCountInStock;
-          await product.save();
         })
       );
 
       // Save the order
 
+      // Calculate commission using partner's rate if applicable
+      if (req.body.orderItems && req.body.orderItems.length) {
+        const firstPartnerItem = req.body.orderItems.find(i => i.partnerProductId);
+        if (firstPartnerItem) {
+          const PartnerProduct = (await import('../models/PartnerProductModel.js')).default;
+          // Additional partner-specific commission logic can be placed here if needed
+        }
+      }
+
+      // Save the order
       const savedOrder = await newOrder.save();
       const order = await savedOrder.populate('seller');
 
+      // Debit partner commission if this is a marketplace order
+      if (req.body.partnerId) {
+        const { debitCommissionFromPartner } = await import('../services/walletService.js');
+        const partner = await Partner.findById(req.body.partnerId);
+        const commissionRate = partner?.commissionRate ?? 0.1;
+        await debitCommissionFromPartner(req.body.partnerId, parseFloat(req.body.itemsPriceForSeller), commissionRate);
+      }
+
       // Create a notification after the order is saved
       const mensagem = `Olá! Seu pedido com o código ${order.code} foi criado com sucesso! 🎉 Agora, aguarde a confirmação do fornecedor. Acompanhe o status do seu pedido diretamente no app. Obrigado por escolher a Nhiquela! ❤️`;
-     
+
 
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-  //toSeller
+      //toSeller
 
-  if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
-    await createNotification({
-      message: mensagem,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
-      pushToken: sellerOfProduct.pushToken,
-    
-    });
-    //toOrderClient
-    await createNotification({
-    message: mensagem,
-    receiver_id: order.seller,
-    sender_id: order.user,
-    orderID: order._id,
-    pushToken: clientOfProduct.pushToken
-    });
-  }
+      if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+        await createNotification({
+          message: mensagem,
+          receiver_id: order.seller,
+          sender_id: order.user,
+          orderID: order._id,
+          pushToken: sellerOfProduct.pushToken,
+
+        });
+        //toOrderClient
+        await createNotification({
+          message: mensagem,
+          receiver_id: order.seller,
+          sender_id: order.user,
+          orderID: order._id,
+          pushToken: clientOfProduct.pushToken
+        });
+      }
 
       // Respond with success message
       res.status(201).send({ mensagem, order });
-      
+
     } catch (error) {
       // Handle errors during product update or order save
       res.status(400).send({ message: error.message });
     }
-  })
-);
+  }));
+
 
 
 // get orders by user id
@@ -362,8 +411,8 @@ orderRouter.get(
   '/mine',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    
-    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false,   deleted: { $eq: false} }).populate('seller deliveryman').sort({createdAt: -1});
+
+    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false, deleted: { $eq: false } }).populate('seller deliveryman').sort({ createdAt: -1 });
     res.send(orders);
   })
 );
@@ -435,6 +484,44 @@ orderRouter.get(
     res.send({ users, orders, deliveryMen, dailyOrders, productCategories });
   })
 );
+
+  // Seller earnings endpoint (daily and weekly)
+  orderRouter.get(
+    '/seller-earnings',
+    isAuth,
+    expressAsyncHandler(async (req, res) => {
+      const sellerId = req.user && req.user.isSeller ? req.user._id : null;
+      if (!sellerId) {
+        return res.status(400).send({ message: 'Seller not identified' });
+      }
+      // Daily earnings for last 30 days
+      const daily = await Order.aggregate([
+        { $match: { seller: sellerId, isPaid: true, deleted: { $eq: false } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$paidAt' } },
+            total: { $sum: '$totalPrice' },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 30 },
+      ]);
+      // Weekly earnings for last 12 weeks
+      const weekly = await Order.aggregate([
+        { $match: { seller: sellerId, isPaid: true, deleted: { $eq: false } } },
+        {
+          $group: {
+            _id: { $isoWeek: '$paidAt' },
+            weekStart: { $min: '$paidAt' },
+            total: { $sum: '$totalPrice' },
+          },
+        },
+        { $sort: { weekStart: -1 } },
+        { $limit: 12 },
+      ]);
+      res.send({ daily, weekly });
+    })
+  );
 
 // Deleted by the user
 orderRouter.delete(
@@ -533,12 +620,12 @@ orderRouter.put(
 
     const sellerOfProduct = await User.findById(updatedOrder.seller);
     const clientOfProduct = await User.findById(updatedOrder.user);
-     
+
     //  Para envio de mensagens
-    let message =`Olá! 👋 O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para você. Obrigado por confiar na Nhiquela!`;
+    let message = `Olá! 👋 O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para você. Obrigado por confiar na Nhiquela!`;
     // sendEmailOrderToSeller(req,message, sellerOfProduct, updatedOrder, res);
 
-    if(sellerOfProduct?.pushToken && clientOfProduct?.pushToken){
+    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
       //toSeller
       await createNotification({
         message: message,
@@ -557,9 +644,9 @@ orderRouter.put(
       });
     }
 
-    if (sellerOfProduct){
+    if (sellerOfProduct) {
       //  Para envio de mensagens
-      let msgSeller =`Ola, a Nhiquela gostaria de lhe informar que possui um novo pedido com o codigo ${updatedOrder.code}.`;
+      let msgSeller = `Ola, a Nhiquela gostaria de lhe informar que possui um novo pedido com o codigo ${updatedOrder.code}.`;
       //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
     }
 
@@ -590,12 +677,12 @@ orderRouter.put(
 
     //  Para envio de mensagens
     const message = `Ola, o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
- 
+
     //  sendSMSToUSendIt(req, message);
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if(sellerOfProduct?.pushToken && clientOfProduct?.pushToken){
+    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
       //toSeller
       await createNotification({
         message: message,
@@ -634,7 +721,7 @@ orderRouter.put(
     order.isAvailableToDeliver = true;
     order.status = 'Pronto';
     order.stepStatus = 3;
-    if(order.addressPrice === 0){
+    if (order.addressPrice === 0) {
       order.status = 'Finalizado';
       order.isInTransit = true;
       order.isDelivered = true;
@@ -651,7 +738,7 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if(sellerOfProduct?.pushToken && clientOfProduct?.pushToken){
+    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
       //toSeller
       await createNotification({
         message: message,
@@ -670,7 +757,7 @@ orderRouter.put(
       });
     }
 
-    sendEmailOrderStatus(req,message, order, res);
+    sendEmailOrderStatus(req, message, order, res);
 
     // sendSMSToUSendItAdmin(message);
     res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
@@ -691,7 +778,7 @@ orderRouter.put(
       order.isAvailableToDeliver = true;
       order.status = 'Disponível para entrega';
       order.stepStatus = 3;
-      if(order.addressPrice === 0){
+      if (order.addressPrice === 0) {
         order.status = 'Finalizado';
         order.isInTransit = true;
         order.isDelivered = true;
@@ -700,12 +787,12 @@ orderRouter.put(
 
       const savedOrder = await order.save();
 
-      let message =`Ola, a Nhiquela lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+      let message = `Ola, a Nhiquela lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
 
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
-  
-      if(sellerOfProduct.pushToken && clientOfProduct.pushToken){
+
+      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
 
         //toSeller
         await createNotification({
@@ -714,21 +801,21 @@ orderRouter.put(
           sender_id: order.user,
           orderID: order._id,
           pushToken: sellerOfProduct.pushToken,
-        
+
         });
         //toOrderClient
         await createNotification({
-        message: message,
-        receiver_id: order.user,
-        sender_id: order.seller,
-        orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+          message: message,
+          receiver_id: order.user,
+          sender_id: order.seller,
+          orderID: order._id,
+          pushToken: clientOfProduct.pushToken
         });
       }
-  
-  
 
-      sendEmailOrderStatus(req,message, order, res);
+
+
+      sendEmailOrderStatus(req, message, order, res);
 
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
@@ -778,7 +865,7 @@ orderRouter.put(
       */
     }
 
-  //  sendEmailOrderStatus(req, message, order, res);
+    //  sendEmailOrderStatus(req, message, order, res);
 
     res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
   })
@@ -798,14 +885,14 @@ orderRouter.put(
       order.isSupplierPaid = true;
       const savedOrder = await order.save();
 
-      let message =`Ola, a Nhiquela lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let message = `Ola, a Nhiquela lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,message, order, res);
 
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
-  
-      if(sellerOfProduct.pushToken && clientOfProduct.pushToken){
+
+      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
 
         //toSeller
         await createNotification({
@@ -814,19 +901,19 @@ orderRouter.put(
           sender_id: order.user,
           orderID: order._id,
           pushToken: sellerOfProduct.pushToken,
-        
+
         });
         //toOrderClient
         await createNotification({
-        message: message,
-        receiver_id: order.user,
-        sender_id: order.seller,
-        orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+          message: message,
+          receiver_id: order.user,
+          sender_id: order.seller,
+          orderID: order._id,
+          pushToken: clientOfProduct.pushToken
         });
       }
-  
-  
+
+
 
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Fornecedor pago com sucesso` });
@@ -847,14 +934,14 @@ orderRouter.put(
       order.isDeliverPaid = true;
       const savedOrder = await order.save();
 
-      let message =`Ola, a Nhiquela lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let message = `Ola, a Nhiquela lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,message, order, res);
 
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
-  
-      if( sellerOfProduct.pushToken && clientOfProduct.pushToken){
+
+      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
         //toSeller
         await createNotification({
           message: message,
@@ -862,20 +949,20 @@ orderRouter.put(
           sender_id: order.user,
           orderID: order._id,
           pushToken: sellerOfProduct.pushToken,
-        
+
         });
         //toOrderClient
         await createNotification({
-        message: message,
-        receiver_id: order.user,
-        sender_id: order.seller,
-        orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+          message: message,
+          receiver_id: order.user,
+          sender_id: order.seller,
+          orderID: order._id,
+          pushToken: clientOfProduct.pushToken
         });
 
       }
-  
-  
+
+
 
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Entregador pago com sucesso` });
@@ -899,18 +986,18 @@ orderRouter.put(
 
     if (order) {
       order.status = 'Aceite pelo entregador';
-      order.stepStatus=4;
+      order.stepStatus = 4;
 
-      if(user_deliver.isDeliveryMan){
+      if (user_deliver.isDeliveryMan) {
 
         order.deliveryman = {
           id: user_deliver._id,
           photo: user_deliver.deliveryman?.photo || '',
-          name:  user_deliver.deliveryman?.name || '',
-          phoneNumber:  user_deliver.deliveryman?.phoneNumber || '',
-          transport_type:  user_deliver.deliveryman?.transport_type || '',
-          transport_color:  user_deliver.deliveryman?.transport_color || '',
-          transport_registration:  user_deliver.deliveryman?.transport_registration || '',
+          name: user_deliver.deliveryman?.name || '',
+          phoneNumber: user_deliver.deliveryman?.phoneNumber || '',
+          transport_type: user_deliver.deliveryman?.transport_type || '',
+          transport_color: user_deliver.deliveryman?.transport_color || '',
+          transport_registration: user_deliver.deliveryman?.transport_registration || '',
         }
       }
 
@@ -921,34 +1008,34 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let message =`Ola, a Nhiquela informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
- 
+      let message = `Ola, a Nhiquela informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
+
       //  sendSMSToSellerUSendIt(sellerOfProduct,message);
 
-  //    sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
+      //    sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
 
 
       const clientOfProduct = await User.findById(order.user);
-  
-  //toSeller
-  // await createNotification({
-  //   message: message,
-  //   receiver_id: order.seller,
-  //   sender_id: order.user,
-  //   orderID: order._id,
-  //   deviceToken: sellerOfProduct.deviceToken,
-  
-  // });
-  //toOrderClient
-  await createNotification({
-  message: message,
-  receiver_id: order.user,
-  sender_id: order.seller,
-  orderID: order._id,
-  pushToken: clientOfProduct.pushToken
-  });
-  
-  
+
+      //toSeller
+      // await createNotification({
+      //   message: message,
+      //   receiver_id: order.seller,
+      //   sender_id: order.user,
+      //   orderID: order._id,
+      //   deviceToken: sellerOfProduct.deviceToken,
+
+      // });
+      //toOrderClient
+      await createNotification({
+        message: message,
+        receiver_id: order.user,
+        sender_id: order.seller,
+        orderID: order._id,
+        pushToken: clientOfProduct.pushToken
+      });
+
+
 
 
       res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
@@ -970,7 +1057,7 @@ orderRouter.put(
       //     order.paidAt= Date.now();
       order.status = 'Em trânsito';
       order.isInTransit = true;
-      order.stepStatus=5;
+      order.stepStatus = 5;
 
       // if(user_deliver.isDeliveryMan){
 
@@ -991,36 +1078,36 @@ orderRouter.put(
       //   update_time: req.body.update_time,
       //   email_address: req.body.email_address,
       // };
-      const savedOrder =await order.save();
+      const savedOrder = await order.save();
 
-        //  Para envio de mensagens
+      //  Para envio de mensagens
 
-        let message =`A Nhiquela lhe informa que o pedido ${order.code} esta a caminho do destino indicado.`;
- 
-        //  sendSMSToUSendIt(req,message);
+      let message = `A Nhiquela lhe informa que o pedido ${order.code} esta a caminho do destino indicado.`;
 
-        const sellerOfProduct = await User.findById(order.seller);
-        const clientOfProduct = await User.findById(order.user);
-    
-    //toSeller
-    await createNotification({
-      message: message,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
-      pushToken: sellerOfProduct.pushToken,
-    
-    });
-    //toOrderClient
-    await createNotification({
-    message: message,
-    receiver_id: order.user,
-    sender_id: order.seller,
-    orderID: order._id,
-    pushToken: clientOfProduct.pushToken
-    });
+      //  sendSMSToUSendIt(req,message);
 
- //     sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+
+      //toSeller
+      await createNotification({
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+        pushToken: sellerOfProduct.pushToken,
+
+      });
+      //toOrderClient
+      await createNotification({
+        message: message,
+        receiver_id: order.user,
+        sender_id: order.seller,
+        orderID: order._id,
+        pushToken: clientOfProduct.pushToken
+      });
+
+      //     sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
 
       res.send({ order: savedOrder, message: `Pedido em trânsito` });
     } else {
@@ -1079,7 +1166,7 @@ orderRouter.put(
 
     if (order) {
       order.status = 'No destino indicado';
-      order.stepStatus= 5;
+      order.stepStatus = 5;
       const updateOrder = await order.save();
 
 
@@ -1087,32 +1174,32 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-       let message =`Ola, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
- 
+      let message = `Ola, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
+
       //  sendSMSToUSendIt(req,message);
 
       // sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
 
-      
+
       const clientOfProduct = await User.findById(order.user);
-  
-  //toSeller
-  // await createNotification({
-  //   message: message,
-  //   receiver_id: order.seller,
-  //   sender_id: order.user,
-  //   orderID: order._id,
-  //   deviceToken: sellerOfProduct.deviceToken,
-  
-  // });
-  //toOrderClient
-  await createNotification({
-  message: message,
-  receiver_id: order.user,
-  sender_id: order.seller,
-  orderID: order._id,
-  pushToken: clientOfProduct.pushToken
-  });
+
+      //toSeller
+      // await createNotification({
+      //   message: message,
+      //   receiver_id: order.seller,
+      //   sender_id: order.user,
+      //   orderID: order._id,
+      //   deviceToken: sellerOfProduct.deviceToken,
+
+      // });
+      //toOrderClient
+      await createNotification({
+        message: message,
+        receiver_id: order.user,
+        sender_id: order.seller,
+        orderID: order._id,
+        pushToken: clientOfProduct.pushToken
+      });
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -1135,7 +1222,10 @@ orderRouter.put(
       order.status = 'Entregue';
       order.isDelivered = true
       order.deliveredAt = Date.now();
-      order.stepStatus=6;
+      order.stepStatus = 6;
+
+      // Track reputation for completed order
+      await reputationTracker.recordOrderCompleted(order.user);
 
       // if(user_deliver.isDeliveryMan){
 
@@ -1156,34 +1246,34 @@ orderRouter.put(
       //   update_time: req.body.update_time,
       //   email_address: req.body.email_address,
       // };
-      const savedOrder =await order.save();
+      const savedOrder = await order.save();
 
-        //  Para envio de mensagens
+      //  Para envio de mensagens
 
-        let message =`A Nhiquela informa que o pedido ${order.code} foi entregue com sucesso.`;
- 
-        //  sendSMSToUSendIt(req,message);
+      let message = `A Nhiquela informa que o pedido ${order.code} foi entregue com sucesso.`;
 
-        const sellerOfProduct = await User.findById(order.seller);
-        const clientOfProduct = await User.findById(order.user);
-    
-    //toSeller
-    await createNotification({
-      message: message,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
-      pushToken: sellerOfProduct.pushToken,
-    
-    });
-    //toOrderClient
-    await createNotification({
-    message: message,
-    receiver_id: order.user,
-    sender_id: order.seller,
-    orderID: order._id,
-    pushToken: clientOfProduct.pushToken
-    });
+      //  sendSMSToUSendIt(req,message);
+
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+
+      //toSeller
+      await createNotification({
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+        pushToken: sellerOfProduct.pushToken,
+
+      });
+      //toOrderClient
+      await createNotification({
+        message: message,
+        receiver_id: order.user,
+        sender_id: order.seller,
+        orderID: order._id,
+        pushToken: clientOfProduct.pushToken
+      });
       // sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);       
       res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
     } else {
@@ -1201,7 +1291,7 @@ orderRouter.put(
     const order = await Order.findById(req.params.id);
 
     if (order) {
-      order.orderItems.map(async o=>{
+      order.orderItems.map(async o => {
 
         const product = await Product.findById(o);
         product.countInStock = parseInt(product.countInStock) + parseInt(o.quantity)
@@ -1214,41 +1304,44 @@ orderRouter.put(
       order.stepStatus = 7;
       order.canceledReason = req.body.message;
 
+      // Track reputation for cancelled order
+      await reputationTracker.recordOrderCancelled(order.user);
 
-     const savedOrder = await order.save();
-      
+
+      const savedOrder = await order.save();
+
       //  Para envio de mensagens
 
-      let message =`Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar pesquisando pelo codigo.`;
+      let message = `Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar pesquisando pelo codigo.`;
 
-        // sendSMSToUSendIt(req,message);    
+      // sendSMSToUSendIt(req,message);    
 
-        const sellerOfProduct = await User.findById(order.seller);
-        const clientOfProduct = await User.findById(order.user);
-    
-    //toSeller
-    await createNotification({
-      message: message,
-      receiver_id: order.seller,
-      sender_id: order.user,
-      orderID: order._id,
-      pushToken: sellerOfProduct.pushToken,
-    
-    });
-    //toOrderClient
-    await createNotification({
-    message: message,
-    receiver_id: order.user,
-    sender_id: order.seller,
-    orderID: order._id,
-    pushToken: clientOfProduct.pushToken
-    });
-  
+      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
+
+      //toSeller
+      await createNotification({
+        message: message,
+        receiver_id: order.seller,
+        sender_id: order.user,
+        orderID: order._id,
+        pushToken: sellerOfProduct.pushToken,
+
+      });
+      //toOrderClient
+      await createNotification({
+        message: message,
+        receiver_id: order.user,
+        sender_id: order.seller,
+        orderID: order._id,
+        pushToken: clientOfProduct.pushToken
+      });
 
 
-      sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
 
-      res.send({ message: `Pedido cancelado com sucesso`, order: savedOrder});
+      sendEmailOrderToSeller(req, message, sellerOfProduct, order, res);
+
+      res.send({ message: `Pedido cancelado com sucesso`, order: savedOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -1269,6 +1362,9 @@ orderRouter.put(
     order.status = 'Cancelado';
     order.stepStatus = 7;
     order.canceledReason = req.body.message;
+
+    // Track reputation for cancelled order
+    await reputationTracker.recordOrderCancelled(order.user);
 
     await order.save();
 
@@ -1309,7 +1405,7 @@ orderRouter.put(
 
 
 // Pedidos disponíveis para entrega (stepStatus = 3)
-orderRouter.get('/status/:status', isAuth, async (req, res) => {  
+orderRouter.get('/status/:status', isAuth, async (req, res) => {
   if (req.params.status === 'available') {
     try {
       const orders = await Order.find({ stepStatus: 3, deleted: false })
@@ -1323,10 +1419,10 @@ orderRouter.get('/status/:status', isAuth, async (req, res) => {
         ...order.toObject(),
         sellerInfo: order.user?.seller
           ? {
-              name: order.user.seller.name,
-              latitude: order.user.seller.latitude,
-              longitude: order.user.seller.longitude,
-            }
+            name: order.user.seller.name,
+            latitude: order.user.seller.latitude,
+            longitude: order.user.seller.longitude,
+          }
           : null
       }));
 
@@ -1354,8 +1450,8 @@ orderRouter.get(
   '/orderHistory',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    
-    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false,   deleted: { $eq: false} }).populate('deliveryman').sort({createdAt: -1});
+
+    const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false, deleted: { $eq: false } }).populate('deliveryman').sort({ createdAt: -1 });
     res.send(orders);
   })
 );
@@ -1412,7 +1508,7 @@ orderRouter.get(
 
     console.log("Chegou ate aqui", deliverymanId)
     const pageSize = 10;
-    
+
     // Buscar Orders normais
     const ordersPromise = Order.find({
       'deliveryman.id': deliverymanId,

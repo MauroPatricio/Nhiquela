@@ -664,6 +664,19 @@ responseListener.remove();
                 windowSize={5}
               />
               
+              {/* Botão Upload Documento */}
+              <TouchableOpacity 
+                style={styles.documentUploadCard}
+                onPress={() => navigation.navigate('DocumentUploadScreen')}
+                activeOpacity={0.9}
+              >
+                <View style={styles.documentUploadContent}>
+                  <Text style={styles.documentUploadTitle}>Tem uma lista ou receita?</Text>
+                  <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
+                </View>
+                <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />
+              </TouchableOpacity>
+
               {/* Produtos em Destaque */}
               {renderFeaturedProducts()}
 
@@ -767,6 +780,36 @@ responseListener.remove();
 };
 
 const styles = StyleSheet.create({
+  documentUploadCard: {
+    backgroundColor: '#9333EA',
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  documentUploadContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  documentUploadTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  documentUploadDesc: {
+    color: '#E9D5FF',
+    fontSize: 13,
+  },
   // Estilos para produtos em destaque
   featuredSection: {
     marginVertical: 20,

@@ -315,12 +315,26 @@ export default function HomeScreen({ navigation }: any) {
 
   // 🔥 ATUALIZAR COMPARTILHAMENTO DE LOCALIZAÇÃO QUANDO A VIAGEM MUDAR
   useEffect(() => {
-    if (acceptedTrip && isConnected) {
-      startLocationSharing();
+    if (acceptedTrip) {
+      // Pare o anterior se existir
+      if (locationSharingRef.current) {
+        locationSharingRef.current();
+      }
+      locationSharingRef.current = startLocationSharingToBackend(acceptedTrip.id);
     } else {
-      stopLocationSharing();
+      if (locationSharingRef.current) {
+        locationSharingRef.current();
+        locationSharingRef.current = null;
+      }
     }
-  }, [acceptedTrip, isConnected]);
+
+    return () => {
+      if (locationSharingRef.current) {
+        locationSharingRef.current();
+        locationSharingRef.current = null;
+      }
+    };
+  }, [acceptedTrip]);
 
   // 🔥 CARREGAMENTO SILENCIOSO (para WebSocket)
   const loadAllOrdersSilent = async () => {

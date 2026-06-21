@@ -1,13 +1,17 @@
 import axios from 'axios';
 
-let baseURL = '';
+import Constants from 'expo-constants';
 
-if (process.env.NODE_ENV === 'development') {
-  baseURL = 'http://192.168.0.6:5000/api'; // ou localhost se estiver no navegador
-} else {
-  baseURL = 'https://deliveryshop.herokuapp.com/api';
-}
+// ---------------------------------------------------------------------
+// 1️⃣ Definir a URL base da API (hardcoded)
+// ---------------------------------------------------------------------
+const baseURL = process.env.NODE_ENV === 'production'
+  ? 'https://deliveryshop.herokuapp.com/api'
+  : 'http://localhost:5000/api';
 
+// ---------------------------------------------------------------------
+// 2️⃣ Cria a instância do Axios
+// ---------------------------------------------------------------------
 const api = axios.create({ baseURL });
 
 export default api;
