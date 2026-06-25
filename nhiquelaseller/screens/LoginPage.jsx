@@ -12,8 +12,9 @@ import {
   Keyboard,
   ActivityIndicator,
   Image,
+  Alert
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
 import { useNavigation } from '@react-navigation/native';
@@ -29,39 +30,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [hideText, setHideText] = useState(true);
-  const [errors, setErrors] = useState({ phoneNumber: '', password: '' });
+
+  const handleForgotPassword = () => {
+    if (phoneNumber.length < 9) {
+      toast.show("Insira o número de telefone primeiro", {
+        type: "warning",
+        placement: "top"
+      });
+      return;
+    }
+    Alert.alert(
+      "Funcionalidade Indisponível",
+      "Por favor contacte o suporte para recuperar a sua conta de Vendedor."
+    );
+  };
 
   const handleLogin = async () => {
     let valid = true;
-    const newErrors = { phoneNumber: '', password: '' };
 
     // --- VALIDAÇÕES ---
-    if (!phoneNumber) {
-      newErrors.phoneNumber = 'Preencha o telefone';
+    if (!phoneNumber || !/^\d{9}$/.test(phoneNumber)) {
+      toast.show("O telefone deve ter exatamente 9 dígitos", { type: 'danger', placement: 'top' });
       valid = false;
-    } else if (!/^\d{9}$/.test(phoneNumber)) {
-      newErrors.phoneNumber = 'O telefone deve ter exatamente 9 dígitos';
-      valid = false;
-    }
-
-    if (!password) {
-      newErrors.password = 'Preencha a senha';
-      valid = false;
-    } else if (password.length < 6) {
-      newErrors.password = 'A senha deve ter no mínimo 6 caracteres';
+    } else if (!password || password.length < 6) {
+      toast.show("A senha deve ter no mínimo 6 caracteres", { type: 'danger', placement: 'top' });
       valid = false;
     }
 
-    setErrors(newErrors);
     if (!valid) return;
 
     setLoading(true);
 
     try {
-
       const response = await api.post('/users/signinseller', { phoneNumber, password });
-
-
 
       if (!response.data) {
         throw new Error('Resposta inválida do servidor');
@@ -81,10 +82,8 @@ export default function LoginPage() {
       });
 
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || 'Erro ao fazer login';
+      const errorMessage = err.response?.data?.message || 'Erro ao fazer login';
 
-      // Show error toast
       toast.show(errorMessage, {
         type: 'danger',
         placement: 'top',
@@ -97,7 +96,6 @@ export default function LoginPage() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.safeArea}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -108,117 +106,104 @@ export default function LoginPage() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.innerContainer}>
+            {/* Header com Botão Voltar */}
+            <View style={styles.topHeader}>
               <BackBtn onPress={() => navigation.goBack()} />
+            </View>
 
+            {/* Cabeçalho */}
+            <View style={styles.header}>
               <Image
                 source={require('../assets/nhiquela2.png')}
-                style={styles.cover}
+                style={styles.logo}
               />
+              <Text style={styles.welcomeTitle}>Bem-vindo à Nhiquela Partner</Text>
+              <Text style={styles.welcomeSubtitle}>
+                Entre para gerir o seu estabelecimento, produtos e vendas.
+              </Text>
 
-              <Text style={styles.title}>Bem-vindo à NhiquelaPRO</Text>
-              <Text style={styles.subtitle}>Faça login para continuar</Text>
+              <View style={styles.illustration}>
+                <MaterialCommunityIcons name="storefront-outline" size={40} color="#7F00FF" />
+                <MaterialCommunityIcons name="basket-outline" size={40} color="#7F00FF" />
+                <MaterialCommunityIcons name="cash-register" size={40} color="#7F00FF" />
+                <MaterialCommunityIcons name="truck-delivery-outline" size={40} color="#7F00FF" />
+              </View>
+            </View>
 
-              {/* TELEFONE */}
-              <View style={styles.wrapper}>
-                <Text style={styles.label}>Telefone</Text>
-                <View
-                  style={styles.inputWrapper(
-                    errors.phoneNumber ? 'red' : '#7F00FF'
-                  )}
-                >
-                  <Ionicons
-                    name="phone-portrait"
-                    size={20}
-                    color="grey"
-                    style={styles.iconStyle}
-                  />
-
-                  <TextInput
-                    placeholder="Insira o telefone"
-                    placeholderTextColor="#999"
-                    style={styles.input}
-                    value={phoneNumber}
-                    keyboardType="phone-pad"
-                    onChangeText={(text) => {
-                      setPhoneNumber(text);
-                      setErrors({ ...errors, phoneNumber: '' });
-                    }}
-                  />
-                </View>
-                {errors.phoneNumber ? (
-                  <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-                ) : null}
+            {/* Formulário */}
+            <View style={styles.formContainer}>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.prefix}>+258 |</Text>
+                <TextInput
+                  placeholder="84 123 4567"
+                  placeholderTextColor="#9CA3AF"
+                  style={styles.input}
+                  value={phoneNumber}
+                  keyboardType="numeric"
+                  maxLength={9}
+                  onChangeText={setPhoneNumber}
+                />
               </View>
 
-              {/* SENHA */}
-              <View style={styles.wrapper}>
-                <Text style={styles.label}>Senha</Text>
-                <View
-                  style={styles.inputWrapper(
-                    errors.password ? 'red' : '#7F00FF'
-                  )}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color="grey"
-                    style={styles.iconStyle}
+              <View style={styles.inputWrapper}>
+                <MaterialCommunityIcons 
+                  name="lock-outline" 
+                  size={24} 
+                  color="#374151" 
+                  style={{ marginRight: 12 }} 
+                />
+                <TextInput
+                  placeholder="Palavra-passe"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={hideText}
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity onPress={() => setHideText(!hideText)} style={{ padding: 5 }}>
+                  <MaterialCommunityIcons
+                    name={hideText ? 'eye-outline' : 'eye-off-outline'}
+                    size={24}
+                    color="#6B7280"
                   />
-
-                  <TextInput
-                    placeholder="Insira a senha"
-                    placeholderTextColor="#999"
-                    secureTextEntry={hideText}
-                    style={styles.input}
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      setErrors({ ...errors, password: '' });
-                    }}
-                  />
-
-                  <TouchableOpacity onPress={() => setHideText(!hideText)}>
-                    <Ionicons
-                      name={hideText ? 'eye-outline' : 'eye-off-outline'}
-                      size={20}
-                      color="grey"
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {errors.password ? (
-                  <Text style={styles.errorText}>{errors.password}</Text>
-                ) : null}
+                </TouchableOpacity>
               </View>
 
-              {/* BOTÃO LOGIN */}
+              {/* Esqueci a palavra-passe */}
+              <TouchableOpacity style={styles.forgotPasswordContainer} onPress={handleForgotPassword}>
+                <Text style={styles.forgotPasswordText}>Esqueci a palavra-passe</Text>
+              </TouchableOpacity>
+
+              {/* Botão de Ação */}
               <TouchableOpacity
-                style={styles.loginButton}
+                style={[styles.primaryButton, loading && styles.disabledButton]}
                 onPress={handleLogin}
                 disabled={loading}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.loginText}>Entrar</Text>
+                  <Text style={styles.primaryButtonText}>Entrar</Text>
                 )}
               </TouchableOpacity>
 
-              {/* REGISTAR */}
-              <TouchableOpacity
-                onPress={() => navigation.navigate('SignUp')}
-                style={{ marginTop: 15 }}
-              >
-                <Text style={styles.registerText}>
-                  Não tens conta? <Text style={styles.link}>Criar conta</Text>
-                </Text>
-              </TouchableOpacity>
+              {/* Criar Conta */}
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Ainda não é parceiro?</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                  <Text style={styles.registerLink}>Criar conta</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* Rodapé */}
+            <View style={styles.footer}>
+              <Text style={styles.footerLinks}>Termos • Privacidade • Suporte</Text>
+            </View>
+
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
-    </TouchableWithoutFeedback>
   );
 }
 
@@ -229,86 +214,119 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    padding: 24,
   },
-  innerContainer: {
-    alignItems: 'center',
+  topHeader: {
     width: '100%',
+    alignItems: 'flex-start',
+    marginTop: Platform.OS === 'ios' ? 10 : 30,
+    marginBottom: 10,
+    marginLeft: -10,
   },
-  cover: {
-    height: 150,
-    width: 320,
+  header: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  logo: {
+    width: 120,
+    height: 120,
     resizeMode: 'contain',
-    marginVertical: 30,
+    marginBottom: 16,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#4A4A4A',
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
     textAlign: 'center',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#777',
-    marginTop: 5,
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  wrapper: {
-    marginBottom: 20,
-    width: '100%',
-  },
-  label: {
+  welcomeSubtitle: {
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 6,
-    color: '#7F00FF',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
-  inputWrapper: (borderColor) => ({
-    borderColor,
-    backgroundColor: '#F8F8F8',
-    borderWidth: 1,
-    height: 55,
-    borderRadius: 12,
+  illustration: {
     flexDirection: 'row',
-    paddingHorizontal: 15,
+    gap: 24,
+    marginBottom: 32,
+    opacity: 0.8,
+  },
+  formContainer: {
+    width: '100%',
+    marginBottom: 40,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
     alignItems: 'center',
-  }),
-  iconStyle: {
-    marginRight: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 60,
+    marginBottom: 16,
+  },
+  prefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 15,
-    color: '#000',
+    fontSize: 16,
+    color: '#111827',
   },
-  loginButton: {
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  primaryButton: {
     backgroundColor: '#7F00FF',
-    borderRadius: 12,
-    width: '100%',
-    height: 50,
+    borderRadius: 16,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    marginBottom: 32,
   },
-  loginText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  disabledButton: {
+    opacity: 0.7,
+  },
+  primaryButtonText: {
+    color: '#FFF',
     fontSize: 16,
+    fontWeight: 'bold',
   },
-  errorText: {
-    color: 'red',
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 6,
+  registerContainer: {
+    alignItems: 'center',
+    gap: 8,
   },
   registerText: {
+    color: '#6B7280',
     fontSize: 14,
-    color: '#555',
   },
-  link: {
+  registerLink: {
     color: '#7F00FF',
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  footerLinks: {
+    color: '#9CA3AF',
+    fontSize: 12,
   },
 });

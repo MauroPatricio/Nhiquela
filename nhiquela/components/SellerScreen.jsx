@@ -18,7 +18,7 @@ import SellerProduct from './SellerProduct';
 import BasketIcon from './BasketIcon';
 import { useDispatch } from 'react-redux';
 import { setSeller } from '../features/sellerSlice';
-import MapView, { Marker } from 'react-native-maps';
+import { SafeMapView as MapView, SafeMarker as Marker } from './SafeMapView';
 import * as Location from 'expo-location';
 import { StarIcon } from 'react-native-heroicons/solid';
 
@@ -231,11 +231,11 @@ const SellerScreen = () => {
             onSale={product.onSale}
             countInStock={product.countInStock}
             seller={product.seller}
-            sellerName={product.seller?.seller?.name}
+            sellerName={product.seller?.name}
             discount={product.discount}
             comissionPercentage={product.comissionPercentage}
             sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
-            isSellerOpen={product.isSellerOpen}
+            isSellerOpen={product.seller?.businessData?.isOpen || product.isSellerOpen}
             isOrdered={product.isOrdered}
             orderPeriod={product.orderPeriod}
           />

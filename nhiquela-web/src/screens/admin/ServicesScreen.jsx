@@ -9,12 +9,11 @@ import PaginationControls from '../../components/Admin/PaginationControls';
 export default function ServicesScreen() {
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', categoryId: '', subcategoryId: '', basePrice: '', status: 'Ativo' });
+  const [formData, setFormData] = useState({ name: '', categoryId: '', pricingModel: 'distance', basePrice: '', status: 'Ativo' });
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -29,14 +28,12 @@ export default function ServicesScreen() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [srvRes, catRes, subRes] = await Promise.all([
-        api.get('/services').catch(() => ({ data: [] })),
-        api.get('/categories').catch(() => ({ data: [] })),
-        api.get('/subcategories').catch(() => ({ data: [] }))
+      const [srvRes, catRes] = await Promise.all([
+        api.get('/catalog/services').catch(() => ({ data: [] })),
+        api.get('/catalog/categories').catch(() => ({ data: [] }))
       ]);
       setServices(srvRes.data || []);
-      setCategories(catRes.data?.categories || catRes.data || []);
-      setSubcategories(subRes.data || []);
+      setCategories(catRes.data || []);
     } catch (error) {
       toast.error('Erro ao carregar catálogo de serviços.');
     } finally {
@@ -51,19 +48,19 @@ export default function ServicesScreen() {
       setFormData({ 
         name: service.name, 
         categoryId: service.categoryId || '', 
-        subcategoryId: service.subcategoryId || '', 
+        pricingModel: service.pricingModel || 'distance', 
         basePrice: service.basePrice || '', 
-        status: service.status || 'Ativo',
+        status: service.active ? 'Ativo' : 'Inativo',
         icon: service.icon || '',
         color: service.color || '',
         description: service.description || '',
-        order: service.order || 0,
+        order: service.sortOrder || 0,
         image: service.image || ''
       });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', categoryId: '', subcategoryId: '', basePrice: '', status: 'Ativo', icon: '', color: '', description: '', order: 0, image: '' });
+      setFormData({ name: '', categoryId: '', pricingModel: 'distance', basePrice: '', status: 'Ativo', icon: '', color: '', description: '', order: 0, image: '' });
     }
     setShowModal(true);
   };
@@ -77,13 +74,14 @@ export default function ServicesScreen() {
     }
     
     try {
+      const dataToSend = { ...formData, active: formData.status === 'Ativo', sortOrder: formData.order };
       if (isEditing) {
-        const { data } = await api.put(`/services/${currentId}`, formData);
-        setServices(services.map(s => s._id === currentId ? data : s));
+        const { data } = await api.put(`/catalog/services/${currentId}`, dataToSend);
+        setServices(services.map(s => s._id === currentId ? data.service : s));
         toast.success('Serviço atualizado!');
       } else {
-        const { data } = await api.post('/services', formData);
-        setServices([...services, data]);
+        const { data } = await api.post('/catalog/services', dataToSend);
+        setServices([...services, data.service]);
         toast.success('Serviço criado!');
       }
       handleCloseModal();
@@ -95,7 +93,7 @@ export default function ServicesScreen() {
   const handleDelete = async (id) => {
     if (window.confirm('Tem a certeza que deseja eliminar este serviço do catálogo?')) {
       try {
-        await api.delete(`/services/${id}`);
+        await api.delete(`/catalog/services/${id}`);
         setServices(services.filter(s => s._id !== id));
         toast.success('Eliminado com sucesso!');
       } catch (error) {
@@ -105,9 +103,6 @@ export default function ServicesScreen() {
   };
 
   const getCategoryName = (id) => (Array.isArray(categories) ? categories : []).find(c => c._id === id)?.name || 'Sem Categoria';
-  const getSubcategoryName = (id) => (Array.isArray(subcategories) ? subcategories : []).find(s => s._id === id)?.name || '';
-
-  const availableSubcategories = Array.isArray(subcategories) ? subcategories.filter(sub => sub.categoryId === formData.categoryId) : [];
 
   return (
     <div className="animation-fade-in pb-5">
@@ -142,7 +137,7 @@ export default function ServicesScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Serviço</th>
-                  <th className="border-0 text-muted py-3">Categoria & Subcategoria</th>
+                  <th className="border-0 text-muted py-3">Categoria & Modelo de Preço</th>
                   <th className="border-0 text-muted py-3">Preço Base</th>
                   <th className="border-0 text-muted py-3">Estado</th>
                   <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
@@ -175,16 +170,14 @@ export default function ServicesScreen() {
                     </td>
                     <td>
                       <div className="fw-bold text-dark">{getCategoryName(service.categoryId)}</div>
-                      {service.subcategoryId && (
-                        <small className="text-muted"><FontAwesomeIcon icon={faTags} className="me-1" /> {getSubcategoryName(service.subcategoryId)}</small>
-                      )}
+                      <small className="text-muted"><FontAwesomeIcon icon={faTags} className="me-1" /> {service.pricingModel === 'distance' ? 'Por Distância' : service.pricingModel === 'hourly' ? 'Por Hora' : 'Preço Fixo'}</small>
                     </td>
                     <td>
                       <span className="fw-bold text-success fs-5">{Number(service.basePrice).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
                     </td>
                     <td>
-                      <span className={`badge rounded-pill px-3 py-2 ${service.status === 'Ativo' ? 'bg-success-subtle text-success border border-success border-opacity-25' : 'bg-danger-subtle text-danger border border-danger border-opacity-25'}`}>
-                        {service.status}
+                      <span className={`badge rounded-pill px-3 py-2 ${service.active ? 'bg-success-subtle text-success border border-success border-opacity-25' : 'bg-danger-subtle text-danger border border-danger border-opacity-25'}`}>
+                        {service.active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="text-end px-4">
@@ -244,7 +237,7 @@ export default function ServicesScreen() {
                     <select 
                       className="form-select bg-light border-0 py-3 rounded-3" 
                       value={formData.categoryId} 
-                      onChange={(e) => setFormData({...formData, categoryId: e.target.value, subcategoryId: ''})} 
+                      onChange={(e) => setFormData({...formData, categoryId: e.target.value})} 
                       required
                     >
                       <option value="">Selecione...</option>
@@ -254,21 +247,17 @@ export default function ServicesScreen() {
                     </select>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Subcategoria (Opcional)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Modelo de Preço *</label>
                     <select 
                       className="form-select bg-light border-0 py-3 rounded-3" 
-                      value={formData.subcategoryId} 
-                      onChange={(e) => setFormData({...formData, subcategoryId: e.target.value})}
-                      disabled={!formData.categoryId || availableSubcategories.length === 0}
+                      value={formData.pricingModel} 
+                      onChange={(e) => setFormData({...formData, pricingModel: e.target.value})}
+                      required
                     >
-                      <option value="">Selecione...</option>
-                      {availableSubcategories.map(sub => (
-                        <option key={sub._id} value={sub._id}>{sub.name}</option>
-                      ))}
+                      <option value="distance">Por Distância (OSRM/Escalões)</option>
+                      <option value="fixed">Preço Fixo</option>
+                      <option value="hourly">Por Hora</option>
                     </select>
-                    {formData.categoryId && availableSubcategories.length === 0 && (
-                      <div className="form-text text-warning small mt-1">Nenhuma subcategoria registada para esta categoria.</div>
-                    )}
                   </div>
                 </div>
 

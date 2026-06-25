@@ -5,14 +5,15 @@ class WebsocketService {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
+    const isDev = process.env.NODE_ENV !== 'production';
+    this.SOCKET_URL = process.env.EXPO_PUBLIC_API_URL 
+      ? process.env.EXPO_PUBLIC_API_URL.replace('/api', '') 
+      : (isDev ? 'http://localhost:3000' : 'https://deliveryshop.herokuapp.com');
   }
 
   connect(token) {
     try {
-      // Substitua pela URL do seu servidor WebSocket
-      const SOCKET_URL = 'http://localhost:3000'; // ou sua URL de produção
-      
-      this.socket = io(SOCKET_URL, {
+      this.socket = io(this.SOCKET_URL, {
         auth: {
           token: token
         },

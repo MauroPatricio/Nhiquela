@@ -4,7 +4,6 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     TouchableOpacity,
     TextInput,
     Image,
@@ -12,14 +11,18 @@ import {
     Animated,
     Dimensions,
     StatusBar,
-    ActivityIndicator
+    ActivityIndicator,
+    Modal
 } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 //@ts-ignore
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../styles/colors";
 import SelectField from "../components/SelectField";
-import { registerDriver, uploadLocalFile } from "../services/deliveryService";
+import { registerDriver, uploadLocalFile, getProviderSubcategories, getVehicleColors } from "../services/deliveryService";
+import { API_BASE_URL } from "../api/apiConfig";
 import { useLoadingContext } from '../context/LoadingContext';
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -35,6 +38,7 @@ interface DriverForm {
     vihicle_picture: string;
     vihicle_inspection: string;
     vihicle_Insurance: string;
+    vihicle_logbook: string;
     license_front: string;
     license_back: string;
     document_type: string;
@@ -43,38 +47,71 @@ interface DriverForm {
     Proof_of_Address: string;
 }
 
-const colorOptions = [
-    { label: "Branco", value: "branco" },
-    { label: "Preto", value: "preto" },
-    { label: "Prata", value: "prata" },
-    { label: "Cinza", value: "cinza" },
-    { label: "Azul", value: "azul" },
-    { label: "Vermelho", value: "vermelho" },
-    { label: "Outra", value: "outra" },
-];
-
 export default function RegisterDriverScreen({ navigation }: any) {
     const [step, setStep] = useState(0);
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    
+    const [subcategories, setSubcategories] = useState<{ label: string, value: string }[]>([]);
+    const [colorOptions, setColorOptions] = useState<{ label: string, value: string }[]>([]);
+
+    useEffect(() => {
+        const fetchSubcategoriesAndColors = async () => {
+            try {
+                // Fetch subcategories
+                const data = await getProviderSubcategories();
+                const filtered = data.filter((item: any) => {
+                    const typeName = item.providerTypeId?.name?.toLowerCase() || '';
+                    const classIdName = item.providerTypeId?.classificationId?.name?.toLowerCase() || '';
+                    return (typeName === 'motorista' || typeName === 'motoristas') &&
+                        (classIdName.includes('serviço') || classIdName.includes('service') || classIdName.includes('serviços'));
+                });
+                const formatted = filtered.map((item: any) => ({
+                    label: item.name,
+                    value: item.name
+                }));
+                setSubcategories(formatted);
+                
+                // Fetch colors
+                const colorsData = await getVehicleColors();
+                const colorsFormatted = colorsData.map((color: any) => ({
+                    label: color.name,
+                    value: color.name.toLowerCase()
+                }));
+                setColorOptions(colorsFormatted);
+            } catch (error) {
+                console.error("Failed to fetch data", error);
+            }
+        };
+        fetchSubcategoriesAndColors();
+    }, []);
+
     const [form, setForm] = useState<DriverForm>({
         photo: "", name: "", phoneNumber: "", email: "", password: "",
         transport_type: "", transport_color: "", transport_registration: "", vihicle_picture: "",
-        vihicle_inspection: "", vihicle_Insurance: "", license_front: "", license_back: "",
+        vihicle_inspection: "", vihicle_Insurance: "", vihicle_logbook: "", license_front: "", license_back: "",
         document_type: "bi", document_front: "", document_back: "", Proof_of_Address: "",
     });
 
-    const [uploadingField, setUploadingField] = useState<string | null>(null);
     const { showLoading, hideLoading, showProcessing } = useLoadingContext();
     const [showPassword, setShowPassword] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [apiErrorMessage, setApiErrorMessage] = useState("");
+    const [uploadingField, setUploadingField] = useState<string | null>(null);
 
     const handleChange = (field: keyof DriverForm, value: string) => {
         setForm(prev => ({ ...prev, [field]: value }));
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
+    };
+
+    const getImageUrl = (path: string) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        const baseUrl = API_BASE_URL.replace('/api', '');
+        return path.startsWith('/') ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
     };
 
     // 🚀 NOVO UPLOAD IMEDIATO
@@ -94,8 +131,26 @@ export default function RegisterDriverScreen({ navigation }: any) {
         if (!result.canceled && result.assets[0].uri) {
             setUploadingField(field);
             try {
-                // Upload direto para o backend local ao invés de Base64
-                const uploadedUrl = await uploadLocalFile(result.assets[0].uri);
+                // 1. Reduzir a imagem sem perder muita qualidade usando ImageManipulator
+                const manipResult = await ImageManipulator.manipulateAsync(
+                    result.assets[0].uri,
+                    [{ resize: { width: 1200 } }], // Reduz tamanho máximo mantendo proporções
+                    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+                );
+
+                // 2. Verificar se excede 3MB
+                const response = await fetch(manipResult.uri);
+                const blob = await response.blob();
+                const fileSizeMB = blob.size / (1024 * 1024);
+
+                if (fileSizeMB > 3) {
+                    showMessage({ message: 'Imagem muito grande', description: 'A imagem deve ter menos de 3MB. Tente outra foto.', type: "danger" });
+                    setUploadingField(null);
+                    return;
+                }
+
+                // 3. Upload direto para o backend local
+                const uploadedUrl = await uploadLocalFile(manipResult.uri);
                 handleChange(field, uploadedUrl);
                 showMessage({ message: 'Imagem carregada com sucesso!', type: "success" });
             } catch (error) {
@@ -111,7 +166,12 @@ export default function RegisterDriverScreen({ navigation }: any) {
         if (!form.photo) newErrors.photo = 'Obrigatório';
         if (!form.name) newErrors.name = 'Obrigatório';
         if (form.phoneNumber.length < 9) newErrors.phoneNumber = 'Número muito curto';
-        if (!form.email) newErrors.email = 'Obrigatório';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!form.email) {
+            newErrors.email = 'Obrigatório';
+        } else if (!emailRegex.test(form.email)) {
+            newErrors.email = 'E-mail inválido';
+        }
         if (form.password.length < 6) newErrors.password = 'Mínimo 6 caracteres';
         if (!confirmPassword) newErrors.confirmPassword = 'Obrigatório';
         if (form.password && confirmPassword && form.password !== confirmPassword) {
@@ -129,13 +189,13 @@ export default function RegisterDriverScreen({ navigation }: any) {
 
     const validateStep1 = () => {
         const newErrors: Record<string, string> = {};
-        if (!form.transport_type) newErrors.transport_type = 'Obrigatório';
-        if (!form.transport_color) newErrors.transport_color = 'Obrigatório';
-        if (!form.transport_registration) newErrors.transport_registration = 'Obrigatório';
-        if (!form.vihicle_picture) newErrors.vihicle_picture = 'Obrigatório';
+        if (!form.document_front) newErrors.document_front = 'Obrigatório';
+        if (!form.document_back) newErrors.document_back = 'Obrigatório';
+        if (!form.license_front) newErrors.license_front = 'Obrigatório';
+        if (!form.license_back) newErrors.license_back = 'Obrigatório';
         if (Object.keys(newErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...newErrors }));
-            showMessage({ message: "Preencha todos os campos obrigatórios do veículo", type: "warning" });
+            showMessage({ message: "As fotos dos documentos pessoais são obrigatórias", type: "warning" });
             return false;
         }
         return true;
@@ -143,13 +203,16 @@ export default function RegisterDriverScreen({ navigation }: any) {
 
     const validateStep2 = () => {
         const newErrors: Record<string, string> = {};
-        if (!form.document_front) newErrors.document_front = 'Obrigatório';
-        if (!form.document_back) newErrors.document_back = 'Obrigatório';
-        if (!form.license_front) newErrors.license_front = 'Obrigatório';
-        if (!form.license_back) newErrors.license_back = 'Obrigatório';
+        if (!form.transport_type) newErrors.transport_type = 'Obrigatório';
+        if (!form.transport_color) newErrors.transport_color = 'Obrigatório';
+        if (!form.transport_registration) newErrors.transport_registration = 'Obrigatório';
+        if (!form.vihicle_picture) newErrors.vihicle_picture = 'Obrigatório';
+        if (!form.vihicle_logbook) newErrors.vihicle_logbook = 'Obrigatório';
+        if (!form.vihicle_inspection) newErrors.vihicle_inspection = 'Obrigatório';
+        if (!form.vihicle_Insurance) newErrors.vihicle_Insurance = 'Obrigatório';
         if (Object.keys(newErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...newErrors }));
-            showMessage({ message: "As fotos dos documentos são obrigatórias", type: "warning" });
+            showMessage({ message: "Preencha todos os dados e documentos do veículo", type: "warning" });
             return false;
         }
         return true;
@@ -163,7 +226,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
             Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
             Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true })
         ]).start();
-        
+
         setTimeout(() => setStep(step + 1), 200);
     };
 
@@ -174,35 +237,46 @@ export default function RegisterDriverScreen({ navigation }: any) {
 
     const handleSubmit = async () => {
         if (!validateStep2()) return;
-        
+
         setErrors({});
         showLoading('A submeter candidatura...');
         try {
             const finalData = { ...form, isDeliveryMan: true };
-            
+
             showProcessing('Finalizando...');
             await registerDriver(finalData);
-            
+
             hideLoading();
-            Alert.alert(
-                "✅ Sucesso",
-                "Cadastro enviado para validação! Iremos analisar e responder em breve.",
-                [{ text: "OK", onPress: () => navigation.replace('Login') }]
-            );
+            setShowSuccessModal(true);
         } catch (error: any) {
             hideLoading();
-            let errorMessage = "Erro ao cadastrar motorista. Tente novamente.";
-            if (error.isAxiosError && error.response) {
-                errorMessage = error.response.data?.message || errorMessage;
+            let errorMessage = "Erro ao cadastrar motorista. Verifique a sua ligação e tente novamente.";
+            if (error.response && error.response.data) {
+                errorMessage = error.response.data.message || errorMessage;
+            } else if (error.message) {
+                errorMessage = error.message;
             }
-            Alert.alert("❌ Erro", errorMessage);
+            setApiErrorMessage(errorMessage);
+            setShowErrorModal(true);
         }
+    };
+
+    const renderLabel = (text: string) => {
+        if (text.includes('*')) {
+            const parts = text.split('*');
+            return (
+                <Text style={styles.inputLabel}>
+                    {parts[0]}<Text style={{ color: 'red' }}>*</Text>{parts[1]}
+                </Text>
+            );
+        }
+        return <Text style={styles.inputLabel}>{text}</Text>;
     };
 
     const renderInput = (label: string, field: keyof DriverForm, icon: string, props?: any) => (
         <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{label}</Text>
-            <View style={[styles.inputWrapper, errors[field] && { borderColor: '#FF0000' }] }>
+            {renderLabel(label)}
+            <View style={[styles.inputWrapper, errors[field] && { borderColor: '#FF0000' }]}>
                 <Ionicons name={icon as any} size={20} color="#6B7280" style={styles.inputIcon} />
                 <TextInput
                     style={styles.input}
@@ -216,20 +290,42 @@ export default function RegisterDriverScreen({ navigation }: any) {
 
     const renderImageUpload = (label: string, field: keyof DriverForm, icon: string) => (
         <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{label}</Text>
-            <TouchableOpacity 
-                style={[styles.uploadBox, errors[field] && { borderColor: '#FF0000' }]} 
+            {renderLabel(label)}
+            <TouchableOpacity
+                style={[styles.uploadBox, errors[field] && { borderColor: '#FF0000' }]}
                 onPress={() => pickImage(field)}
                 disabled={uploadingField === field}
             >
                 {uploadingField === field ? (
                     <ActivityIndicator color="#7F00FF" />
                 ) : form[field] ? (
-                    <Image source={{ uri: `http://127.0.0.1:5000${form[field]}` }} style={styles.previewImage} />
+                    <Image source={{ uri: getImageUrl(form[field]) }} style={styles.previewImage} />
                 ) : (
                     <>
                         <MaterialCommunityIcons name={icon as any} size={32} color="#9CA3AF" />
                         <Text style={styles.uploadText}>Toque para adicionar foto</Text>
+                    </>
+                )}
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderGridImageUpload = (label: string, field: keyof DriverForm, icon: string) => (
+        <View style={styles.gridItem}>
+            {renderLabel(label)}
+            <TouchableOpacity
+                style={[styles.uploadBoxSquare, errors[field] && { borderColor: '#FF0000' }]}
+                onPress={() => pickImage(field)}
+                disabled={uploadingField === field}
+            >
+                {uploadingField === field ? (
+                    <ActivityIndicator color="#7F00FF" />
+                ) : form[field] ? (
+                    <Image source={{ uri: getImageUrl(form[field]) }} style={styles.previewImage} />
+                ) : (
+                    <>
+                        <MaterialCommunityIcons name={icon as any} size={28} color="#9CA3AF" />
+                        <Text style={styles.uploadTextSmall}>Toque para adicionar</Text>
                     </>
                 )}
             </TouchableOpacity>
@@ -244,7 +340,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Novo Motorista</Text>
-                <View style={{width: 24}} />
+                <View style={{ width: 24 }} />
             </View>
 
             <View style={styles.stepperContainer}>
@@ -256,30 +352,35 @@ export default function RegisterDriverScreen({ navigation }: any) {
                     <View style={[styles.stepDot, step >= 2 && styles.stepDotActive]} />
                 </View>
                 <Text style={styles.stepTitle}>
-                    {step === 0 ? "Passo 1: Dados Pessoais" : step === 1 ? "Passo 2: O Veículo" : "Passo 3: Documentação"}
+                    {step === 0 ? "Passo 1: Dados Pessoais" : step === 1 ? "Passo 2: Documentação Pessoal" : "Passo 3: A Viatura"}
                 </Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <KeyboardAwareScrollView
+                contentContainerStyle={styles.scrollContent}
+                enableOnAndroid={true}
+                keyboardShouldPersistTaps="handled"
+                extraScrollHeight={20}
+            >
                 <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
-                    
+
                     {step === 0 && (
                         <View style={styles.stepContent}>
-                            <View style={{alignItems: 'center', marginBottom: 20}}>
-                                <TouchableOpacity 
-                                    style={[styles.profileUpload, errors.photo && { borderColor: '#FF0000' }]} 
+                            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                                <TouchableOpacity
+                                    style={[styles.profileUpload, errors.photo && { borderColor: '#FF0000' }]}
                                     onPress={() => pickImage('photo')}
                                     disabled={uploadingField === 'photo'}
                                 >
                                     {uploadingField === 'photo' ? (
                                         <ActivityIndicator color="#FFF" />
                                     ) : form.photo ? (
-                                        <Image source={{ uri: `http://127.0.0.1:5000${form.photo}` }} style={styles.profileImage} />
+                                        <Image source={{ uri: getImageUrl(form.photo) }} style={styles.profileImage} />
                                     ) : (
                                         <Ionicons name="camera" size={32} color="#FFF" />
                                     )}
                                 </TouchableOpacity>
-                                <Text style={styles.profileText}>Foto de Perfil *</Text>
+                                <Text style={styles.profileText}>Foto de Perfil <Text style={{ color: 'red' }}>*</Text></Text>
                             </View>
 
                             {renderInput("Nome Completo *", "name", "person-outline", { placeholder: "Ex: João Silva" })}
@@ -287,8 +388,8 @@ export default function RegisterDriverScreen({ navigation }: any) {
                             {renderInput("Email *", "email", "mail-outline", { placeholder: "email@exemplo.com", keyboardType: "email-address", autoCapitalize: "none" })}
                             {/* Password with visibility toggle */}
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Senha (mín 6) *</Text>
-                                <View style={[styles.inputWrapper, errors.password && { borderColor: '#FF0000' }] }>
+                                {renderLabel("Senha (mín 6) *")}
+                                <View style={[styles.inputWrapper, errors.password && { borderColor: '#FF0000' }]}>
                                     <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                                     <TextInput
                                         style={styles.input}
@@ -304,13 +405,13 @@ export default function RegisterDriverScreen({ navigation }: any) {
                             </View>
                             {/* Confirm Password */}
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Confirmar Senha *</Text>
-                                <View style={[styles.inputWrapper, errors.confirmPassword && { borderColor: '#FF0000' }] }>
+                                {renderLabel("Confirmar Senha *")}
+                                <View style={[styles.inputWrapper, errors.confirmPassword && { borderColor: '#FF0000' }]}>
                                     <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                                     <TextInput
                                         style={styles.input}
                                         value={confirmPassword}
-                                        onChangeText={(v) => { setConfirmPassword(v); if(errors.confirmPassword) setErrors(prev => ({...prev, confirmPassword: ''})) }}
+                                        onChangeText={(v) => { setConfirmPassword(v); if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: '' })) }}
                                         placeholder="******"
                                         secureTextEntry={!showPassword}
                                     />
@@ -321,12 +422,28 @@ export default function RegisterDriverScreen({ navigation }: any) {
 
                     {step === 1 && (
                         <View style={styles.stepContent}>
+                            <Text style={styles.sectionTitle}>Documentos Pessoais</Text>
+                            <View style={styles.gridContainer}>
+                                {renderGridImageUpload("Carta de Condução (Frente) *", "license_front", "card-account-details-outline")}
+                                {renderGridImageUpload("Carta de Condução (Verso) *", "license_back", "card-account-details-outline")}
+                                {renderGridImageUpload("BI ou Passaporte (Frente) *", "document_front", "passport")}
+                                {renderGridImageUpload("BI ou Passaporte (Verso) *", "document_back", "passport")}
+                            </View>
+                            <View style={{ marginTop: 10, marginBottom: 20 }}>
+                                {renderImageUpload("Comprovativo de Morada (Opcional)", "Proof_of_Address", "home-map-marker")}
+                            </View>
+                        </View>
+                    )}
+
+                    {step === 2 && (
+                        <View style={styles.stepContent}>
+                            <Text style={styles.sectionTitle}>Detalhes da Viatura</Text>
                             <SelectField
                                 label="Tipo de Transporte *"
                                 field="transport_type"
                                 value={form.transport_type}
                                 onChange={(f, v) => handleChange('transport_type', v)}
-                                options={[
+                                options={subcategories.length > 0 ? subcategories : [
                                     { label: "Motocicleta", value: "motocicleta" },
                                     { label: "Carro", value: "carro" },
                                     { label: "Caminhão", value: "caminhao" },
@@ -340,29 +457,80 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                 onChange={(f, v) => handleChange('transport_color', v)}
                             />
                             {renderInput("Matrícula/Placa *", "transport_registration", "car-outline", { placeholder: "AAA-111-MC", autoCapitalize: "characters" })}
+                            
+                            <Text style={styles.sectionTitle}>Fotografia da Viatura</Text>
                             {renderImageUpload("Foto do Veículo *", "vihicle_picture", "car-hatchback")}
-                        </View>
-                    )}
 
-                    {step === 2 && (
-                        <View style={styles.stepContent}>
-                            {renderImageUpload("Carta de Condução (Frente) *", "license_front", "card-account-details-outline")}
-                            {renderImageUpload("Carta de Condução (Verso) *", "license_back", "card-account-details-outline")}
-                            {renderImageUpload("BI ou Passaporte (Frente) *", "document_front", "passport")}
-                            {renderImageUpload("BI ou Passaporte (Verso) *", "document_back", "passport")}
-                            {renderImageUpload("Comprovativo de Morada (Opcional)", "Proof_of_Address", "home-map-marker")}
+                            <Text style={styles.sectionTitle}>Documentos da Viatura</Text>
+                            <View style={styles.gridContainer}>
+                                {renderGridImageUpload("Livrete *", "vihicle_logbook", "file-document-outline")}
+                                {renderGridImageUpload("Inspeção *", "vihicle_inspection", "car-cog")}
+                                {renderGridImageUpload("Seguros *", "vihicle_Insurance", "shield-car")}
+                            </View>
                         </View>
                     )}
 
                 </Animated.View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.primaryButton} onPress={step === 2 ? handleSubmit : handleNext}>
                     <Text style={styles.primaryButtonText}>{step === 2 ? "Concluir Cadastro" : "Avançar"}</Text>
-                    {step < 2 && <Ionicons name="arrow-forward" size={20} color="#FFF" style={{marginLeft: 8}} />}
+                    {step < 2 && <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
             </View>
+
+            <Modal
+                visible={showSuccessModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.iconCircle}>
+                            <Ionicons name="checkmark" size={50} color="#FFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>Cadastro Enviado!</Text>
+                        <Text style={styles.modalMessage}>
+                            Os seus dados foram enviados para validação. Iremos analisar a sua submissão e entrar em contacto em breve.
+                        </Text>
+                        <TouchableOpacity 
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setShowSuccessModal(false);
+                                navigation.replace('Login');
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>Voltar ao Login</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ERROR MODAL (Premium Card) */}
+            <Modal
+                visible={showErrorModal}
+                transparent={true}
+                animationType="slide"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={[styles.iconCircle, { backgroundColor: '#EF4444', shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 }]}>
+                            <Ionicons name="close" size={40} color="#FFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>Ops, ocorreu um erro!</Text>
+                        <Text style={styles.modalMessage}>
+                            {apiErrorMessage}
+                        </Text>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, { backgroundColor: '#EF4444', marginTop: 10 }]}
+                            onPress={() => setShowErrorModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Tentar Novamente</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -389,11 +557,24 @@ const styles = StyleSheet.create({
     inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, height: 56, paddingHorizontal: 16 },
     inputIcon: { marginRight: 12 },
     input: { flex: 1, fontSize: 16, color: '#111827' },
-    uploadBox: { height: 120, backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    uploadBox: { height: 220, backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+    gridItem: { width: '48%', marginBottom: 15 },
+    uploadBoxSquare: { width: '100%', aspectRatio: 1, backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    uploadTextSmall: { marginTop: 8, fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
     uploadText: { marginTop: 8, fontSize: 14, color: '#9CA3AF' },
     previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
     footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#F3F4F6', backgroundColor: '#FFF' },
     primaryButton: { backgroundColor: '#7F00FF', borderRadius: 16, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#7F00FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     primaryButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-    eyeButton: { marginLeft: 12 }
+    eyeButton: { marginLeft: 12 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(17, 24, 39, 0.7)', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { width: '85%', backgroundColor: '#FFF', borderRadius: 24, padding: 30, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 },
+    iconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#111827', marginBottom: 12, textAlign: 'center' },
+    modalMessage: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 30, lineHeight: 24 },
+    subtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 30 },
+    sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 15, marginTop: 10 },
+    modalButton: { width: '100%', backgroundColor: '#7F00FF', borderRadius: 16, height: 56, justifyContent: 'center', alignItems: 'center' },
+    modalButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });

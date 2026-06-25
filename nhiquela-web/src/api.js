@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Mantemos idêntico à configuração da app Mobile (createConnectionApi.js)
 const isDev = import.meta.env.DEV;
-export const SOCKET_URL = isDev ? 'http://localhost:5000' : 'https://deliveryshop.herokuapp.com';
+export const SOCKET_URL = import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:5000' : 'https://deliveryshop.herokuapp.com');
 const baseURL = `${SOCKET_URL}/api`;
 
 const api = axios.create({

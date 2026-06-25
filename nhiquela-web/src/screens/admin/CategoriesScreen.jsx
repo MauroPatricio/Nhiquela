@@ -79,7 +79,7 @@ export default function CategoriesScreen() {
         toast.success('Categoria principal atualizada!');
       } else {
         const { data } = await api.post('/categories', formData);
-        setCategories([...categories, data]);
+        setCategories([...categories, data.category]);
         toast.success('Categoria principal criada!');
       }
       setShowModal(false);
@@ -130,7 +130,7 @@ export default function CategoriesScreen() {
         toast.success('Subcategoria atualizada!');
       } else {
         const { data } = await api.post('/subcategories', payload);
-        setSubcategories([...subcategories, data]);
+        setSubcategories([...subcategories, data.subcategory]);
         toast.success('Subcategoria criada!');
       }
       setShowSubModal(false);

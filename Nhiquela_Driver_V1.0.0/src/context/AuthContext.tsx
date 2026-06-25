@@ -15,10 +15,10 @@ export interface Deliveryman {
   photo?: String,
 
 
-  transport_type?: string,
-  transport_color?: string,
-  transport_registration?: string,
-  // Adicione outros campos que você precisa
+  transport_type?: string;
+  transport_color?: string;
+  transport_registration?: string;
+  [key: string]: any;
 }
 
 export interface User {

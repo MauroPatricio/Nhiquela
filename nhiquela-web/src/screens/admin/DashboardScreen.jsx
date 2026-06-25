@@ -29,8 +29,8 @@ export default function DashboardScreen() {
       setStats({
         wallet: { available: walletRes.data.available_balance || 24500, pending: walletRes.data.pending_balance || 1200 },
         orders: ordersRes.data.orders || ordersRes.data || [],
-        drivers: driversRes.data || [],
-        customers: custRes.data || []
+        drivers: driversRes.data.drivers || (Array.isArray(driversRes.data) ? driversRes.data : []),
+        customers: custRes.data.customers || (Array.isArray(custRes.data) ? custRes.data : [])
       });
     } catch (error) {
       console.error('Erro ao carregar dashboard', error);
@@ -41,6 +41,8 @@ export default function DashboardScreen() {
 
   const activeDriversCount = stats.drivers.filter(d => d.status === 'Disponível' || d.status === 'Em Entrega').length;
   const pendingOrdersCount = stats.orders.filter(o => o.status === 'Em Preparação' || o.status === 'Pendente').length;
+  
+  const totalRevenue = stats.orders.reduce((sum, order) => sum + Number(order.totalPrice || order.itemsPrice || 0), 0);
   
   // Real dynamic data from orders
   const generateChartData = (orders) => {
@@ -60,7 +62,7 @@ export default function DashboardScreen() {
         return orderDate.getTime() === d.getTime();
       });
 
-      const amount = dayOrders.reduce((sum, order) => sum + Number(order.amount || 0), 0);
+      const amount = dayOrders.reduce((sum, order) => sum + Number(order.totalPrice || order.itemsPrice || 0), 0);
       data.push({ day: dayName.charAt(0).toUpperCase() + dayName.slice(1), amount });
     }
     return data;
@@ -104,7 +106,7 @@ export default function DashboardScreen() {
               </div>
               <div>
                 <h6 className="text-muted fw-bold mb-1">Receita Total</h6>
-                <h3 className="fw-bold text-dark m-0">{stats.wallet.available.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
+                <h3 className="fw-bold text-dark m-0">{totalRevenue.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
               </div>
             </div>
           </div>
@@ -178,7 +180,7 @@ export default function DashboardScreen() {
             </div>
             <div className="card-body p-4 d-flex flex-column justify-content-end">
               <div className="w-100" style={{ height: '250px' }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">

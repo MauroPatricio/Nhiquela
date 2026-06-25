@@ -59,6 +59,28 @@ router.put(
   })
 );
 
+// Atualizar Disponibilidade do Motorista (Online / Offline)
+router.put(
+  '/availability',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const { availability } = req.body;
+    
+    if (!['active', 'paused', 'inactive'].includes(availability)) {
+      return res.status(400).send({ message: 'Status de disponibilidade inválido.' });
+    }
+
+    const driver = await User.findById(req.user._id);
+    if (driver) {
+      driver.availability = availability;
+      await driver.save();
+      res.send({ message: 'Disponibilidade atualizada com sucesso', availability: driver.availability });
+    } else {
+      res.status(404).send({ message: 'Motorista não encontrado' });
+    }
+  })
+);
+
 // Estatísticas do Motorista
 router.get(
   '/stats/mine',
@@ -94,17 +116,49 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const { name, email, password, phoneNumber } = req.body;
+    const { name, email, password, phoneNumber, transport_type, transport_color, plate, licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices } = req.body;
     const exists = await User.findOne({ $or: [{ email }, { phoneNumber }] });
     if (exists) {
       return res.status(400).send({ message: 'Email ou telefone já registado' });
     }
+    
+    // Process VehicleType to get baseFee
+    let assigned_base_fee = 0;
+    let final_transport_type = transport_type;
+    
+    if (vehicle_type_id) {
+      const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
+      const vType = await VehicleType.findById(vehicle_type_id);
+      if (vType) {
+        assigned_base_fee = vType.basePrice || 0;
+        final_transport_type = vType.name;
+      }
+    }
+
+    const driverServices = Array.isArray(providedServices) 
+      ? providedServices.map(id => ({ serviceId: id, isAvailable: true })) 
+      : [];
+
     const driver = new User({
       name,
       email,
       password,
       phoneNumber,
       isDeliveryMan: true,
+      deliveryman: {
+        name,
+        phoneNumber,
+        transport_type: final_transport_type,
+        transport_color,
+        transport_registration: plate,
+        vehicle_type_id,
+        assigned_base_fee,
+        license_front: licenseNumber,
+        document_type,
+        document_front: idNumber,
+        providedServices: driverServices
+      },
+      status: status || 'Pendente',
     });
     await driver.save();
     res.status(201).send({ message: 'Motorista criado', driver });
@@ -116,7 +170,7 @@ router.get(
   '/:id',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const driver = await User.findById(req.params.id);
+    const driver = await User.findById(req.params.id).populate('deliveryman.providedServices.serviceId');
     if (!driver || !driver.isDeliveryMan) {
       return res.status(404).send({ message: 'Motorista não encontrado' });
     }
@@ -151,12 +205,76 @@ router.put(
     if (req.user._id !== driver._id.toString() && !req.user.isAdmin) {
       return res.status(403).send({ message: 'Acesso negado' });
     }
-    const { name, email, phoneNumber, password } = req.body;
+    const { name, email, phoneNumber, password, transport_type, transport_color, plate, licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices } = req.body;
     if (name) driver.name = name;
     if (email) driver.email = email;
     if (phoneNumber) driver.phoneNumber = phoneNumber;
     if (password) driver.password = password;
+    if (status) {
+      driver.status = status;
+      // Sincroniza register_conformance com o status para que o app mobile
+      // reflita imediatamente a decisão tomada no painel de administração.
+      if (!driver.deliveryman) driver.deliveryman = {};
+      if (status === 'Disponível') {
+        driver.deliveryman.register_conformance = 'CONFORMANCE';
+      } else if (status === 'Inativo') {
+        driver.deliveryman.register_conformance = 'INCONFORMANCE';
+      } else if (status === 'Pendente') {
+        driver.deliveryman.register_conformance = 'PENDING_CONFORMANCE';
+      }
+    }
+
+    // Process VehicleType
+    if (vehicle_type_id || transport_type || transport_color || plate || licenseNumber || idNumber || document_type || providedServices) {
+      driver.deliveryman = driver.deliveryman || {};
+      
+      if (name) driver.deliveryman.name = name;
+      if (phoneNumber) driver.deliveryman.phoneNumber = phoneNumber;
+      if (transport_type) driver.deliveryman.transport_type = transport_type;
+      if (transport_color) driver.deliveryman.transport_color = transport_color;
+      if (plate) driver.deliveryman.transport_registration = plate;
+      if (licenseNumber) driver.deliveryman.license_front = licenseNumber;
+      if (document_type) driver.deliveryman.document_type = document_type;
+      if (idNumber) driver.deliveryman.document_front = idNumber;
+      
+      if (Array.isArray(providedServices)) {
+        driver.deliveryman.providedServices = providedServices.map(id => ({ serviceId: id, isAvailable: true }));
+      }
+      
+      if (vehicle_type_id && (!driver.deliveryman.vehicle_type_id || driver.deliveryman.vehicle_type_id.toString() !== vehicle_type_id.toString())) {
+        const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
+        const vType = await VehicleType.findById(vehicle_type_id);
+        if (vType) {
+          driver.deliveryman.vehicle_type_id = vehicle_type_id;
+          driver.deliveryman.assigned_base_fee = vType.basePrice || 0;
+          driver.deliveryman.transport_type = vType.name;
+        }
+      }
+    }
+
     await driver.save();
+
+    // 🔔 Notifica o motorista em tempo real via Socket.io
+    try {
+      const io = req.app.get('io');
+      if (io && status) {
+        // Emite para a sala pessoal do motorista (driver_<id>)
+        io.to(`driver_${driver._id}`).emit('driver_status_updated', {
+          status: driver.status,
+          register_conformance: driver.deliveryman?.register_conformance,
+          isApproved: driver.status === 'Disponível',
+          message: driver.status === 'Disponível'
+            ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
+            : driver.status === 'Inativo'
+            ? '❌ A sua conta foi suspensa. Contacte o suporte.'
+            : '⏳ A sua conta está em análise.',
+        });
+        console.log(`📡 Evento driver_status_updated enviado para driver_${driver._id}: ${driver.status}`);
+      }
+    } catch (socketError) {
+      console.error('Erro ao emitir evento socket:', socketError);
+    }
+
     res.send({ message: 'Motorista atualizado', driver });
   })
 );

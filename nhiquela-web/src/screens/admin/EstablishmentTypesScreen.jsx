@@ -29,7 +29,7 @@ export default function EstablishmentTypesScreen() {
 
   const fetchTypes = async () => {
     try {
-      const { data } = await api.get('/tipo_estabelecimento');
+      const { data } = await api.get('/establishment-types');
       setTypes(data.tipoestabelecimentos || []);
     } catch (error) {
       toast.error('Erro ao carregar tipos de estabelecimento');
@@ -86,10 +86,10 @@ export default function EstablishmentTypesScreen() {
     
     try {
       if (isEditing) {
-        await api.put(`/tipo_estabelecimento/${currentId}`, formData);
+        await api.put(`/establishment-types/${currentId}`, formData);
         toast.success('Tipo atualizado com sucesso!');
       } else {
-        await api.post('/tipo_estabelecimento', formData);
+        await api.post('/establishment-types', formData);
         toast.success('Tipo criado com sucesso!');
       }
       fetchTypes();
@@ -102,7 +102,7 @@ export default function EstablishmentTypesScreen() {
   const handleDelete = async (id) => {
     if (window.confirm('Tem a certeza que deseja eliminar este tipo de estabelecimento?')) {
       try {
-        await api.delete(`/tipo_estabelecimento/${id}`);
+        await api.delete(`/establishment-types/${id}`);
         toast.success('Tipo eliminado com sucesso!');
         fetchTypes();
       } catch (error) {

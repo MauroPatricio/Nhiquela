@@ -44,6 +44,7 @@ export const generateToken = (user) => {
       phoneNumber: user.phoneNumber,
       isAdmin: user.isAdmin,
       isSeller: user.isSeller,
+      roleId: user.roleId,
     },
     process.env.JWT_SECRET,
     { expiresIn: '30d' }

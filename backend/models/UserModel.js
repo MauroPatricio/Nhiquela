@@ -9,6 +9,7 @@ const modelSchema = new mongoose.Schema({
     isAdmin: {type: Boolean, default: false},
     isDeliveryMan: {type: Boolean, default: false},
     isSeller: {type: Boolean, default: false},
+    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' }, // Nova referência para Role dinâmica
     // Reputation counters (denormalized for fast access)
     totalOrders: { type: Number, default: 0 },
     completedOrders: { type: Number, default: 0 },
@@ -22,6 +23,12 @@ const modelSchema = new mongoose.Schema({
     token: { type: String },
     isShopper: { type: Boolean, default: false },
     availability: { type: String, enum: ['active','paused','inactive'], default: 'inactive' },
+    isDeleted: { type: Boolean, default: false },
+    status: { 
+        type: String, 
+        enum: ['Pendente', 'Disponível', 'Em Entrega', 'Inativo'],
+        default: 'Pendente'
+    },
     zones: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Zone' }],
     assignedEstablishments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // References sellers/stores where the shopper works
     deviceToken: { type: String },
@@ -32,7 +39,7 @@ const modelSchema = new mongoose.Schema({
         rating: {type: Number, default: 0,},
         numReviews: {type: Number, default: 0, },
         province: {type: mongoose.Schema.Types.ObjectId, ref: 'Province',  default: null},
-        tipoEstabelecimento: {type: mongoose.Schema.Types.ObjectId, ref: 'TipoEstabelecimento',  default: null},
+        tipoEstabelecimento: {type: mongoose.Schema.Types.ObjectId, ref: 'EstablishmentType',  default: null},
         address: {type: String},
         latitude: {type: String},
         longitude: {type: String},
@@ -62,10 +69,13 @@ const modelSchema = new mongoose.Schema({
         transport_type: {type: String},
         transport_color: {type: String},
         transport_registration: {type: String},
+        vehicle_type_id: { type: mongoose.Schema.Types.ObjectId, ref: 'VehicleType' },
+        assigned_base_fee: { type: Number },
 
         vihicle_picture: {type: String},
         vihicle_inspection: {type: String},
         vihicle_Insurance: {type: String},
+        vihicle_logbook: {type: String},
 
         license_front: {type: String},// Carta de conducao
         license_back: {type: String},
@@ -80,8 +90,14 @@ const modelSchema = new mongoose.Schema({
             type: String,
             enum: ["PENDING_CONFORMANCE", "CONFORMANCE", "INCONFORMANCE"],
             default: "PENDING_CONFORMANCE"
-          }
-        
+        },
+        providedServices: [
+            {
+                serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+                customBasePrice: { type: Number }, // Optional override
+                isAvailable: { type: Boolean, default: true }
+            }
+        ]
     }
 },{
     timestamps: true

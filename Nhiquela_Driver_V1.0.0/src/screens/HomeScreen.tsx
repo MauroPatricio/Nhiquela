@@ -9,6 +9,8 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
+  Modal,
+  Switch,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +26,8 @@ import {
 import websocketService from "../services/websocketService";
 import * as Location from "expo-location";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../api/apiConfig";
+import { showMessage } from "react-native-flash-message";
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -88,7 +92,9 @@ export default function HomeScreen({ navigation }: any) {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const [isSharingLocation, setIsSharingLocation] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
   
+  const [isToggling, setIsToggling] = useState(false);
   const { user, updateUser, updateDeliveryman } = useAuth();
 
   const isMounted = useRef(true);
@@ -191,24 +197,35 @@ export default function HomeScreen({ navigation }: any) {
   // 🔥 VERIFICAR APROVAÇÃO DO MOTORISTA
   const checkDriverApproval = async () => {
     try {
-      // ✅ Obter o status real do usuário
-      const driverStatus = true;
+      // Verifica os dois campos: status (novo) e register_conformance (legado)
+      const driverStatus = user?.status;
+      const conformance = user?.deliveryman?.register_conformance;
 
-      // ✅ Corrigir a verificação — o campo isApproved é booleano
-      const isApproved = driverStatus === true;
+      const isApproved =
+        driverStatus === 'Disponível' ||
+        driverStatus === 'Em Entrega' ||
+        conformance === 'CONFORMANCE';
 
-      // ✅ Atualiza estado local
+      const isPending =
+        !driverStatus ||
+        driverStatus === 'Pendente' ||
+        conformance === 'PENDING_CONFORMANCE';
+
       setIsDriverApproved(isApproved);
 
-      // 🔥 CARREGAR VIAGENS IMEDIATAMENTE SE APROVADO
       if (isApproved) {
         await loadAllOrders();
         await setupWebSocket();
       } else {
+        // Pendente ou rejeitado — mostra modal de análise e conecta socket
+        // para receber notificação em tempo real quando o admin aprovar
+        setShowApprovalModal(true);
+        await setupWebSocket(); // Mantém socket ativo para receber eventos do admin
       }
     } catch (error: any) {
       console.error('❌ Erro ao verificar status do motorista:', error.message);
       setIsDriverApproved(false);
+      setShowApprovalModal(true);
     } finally {
       setLoading(false);
     }
@@ -247,10 +264,42 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA REQUISIÇÕES DE LOCALIZAÇÃO
         websocketService.on('request_location_update', (data: any) => {
           if (isMounted.current && acceptedTrip) {
-            // Forçar atualização imediata da localização
             if (isSharingLocation) {
               startLocationSharing();
             }
+          }
+        });
+
+        // 🔔 LISTENER EM TEMPO REAL — Admin aprova/rejeita conta do motorista
+        websocketService.on('driver_status_updated', (data: any) => {
+          if (!isMounted.current) return;
+          console.log('🔔 Estado atualizado pelo admin:', data);
+
+          const nowApproved = data.status === 'Disponível' || data.status === 'Em Entrega';
+
+          if (nowApproved) {
+            // ✅ Conta aprovada: fecha o modal e carrega as ordens
+            setIsDriverApproved(true);
+            setShowApprovalModal(false);
+            Alert.alert(
+              '✅ Conta Aprovada!',
+              'A sua conta foi aprovada. Já pode receber pedidos de entrega!',
+              [{ text: 'Começar!', style: 'default' }]
+            );
+            loadAllOrders();
+          } else if (data.status === 'Inativo') {
+            // ❌ Conta suspensa
+            setIsDriverApproved(false);
+            setShowApprovalModal(true);
+            Alert.alert(
+              '❌ Conta Suspensa',
+              'A sua conta foi suspensa. Contacte o suporte para mais informações.',
+              [{ text: 'OK' }]
+            );
+          } else {
+            // ⏳ De volta a Pendente
+            setIsDriverApproved(false);
+            setShowApprovalModal(true);
           }
         });
 
@@ -313,6 +362,84 @@ export default function HomeScreen({ navigation }: any) {
     };
   }, []);
 
+  // 🔥 ATUALIZAR STATUS DE DISPONIBILIDADE LOCALMENTE NA HOME
+  const handleToggleOnline = async (value: boolean) => {
+    try {
+      setIsToggling(true);
+      const newStatus = value ? 'active' : 'paused';
+      
+      const token = await AsyncStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/drivers/availability`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ availability: newStatus })
+      });
+
+      if (response.ok) {
+        if (updateUser) {
+          updateUser({ ...user, availability: newStatus });
+        }
+        
+        showMessage({
+          message: value ? "Conectado!" : "Modo Offline",
+          description: value ? "Pronto para receber pedidos." : "Você não receberá pedidos.",
+          type: value ? "success" : "info",
+          icon: "auto",
+          style: {
+            paddingTop: 40,
+            borderRadius: 16,
+            margin: 10,
+            backgroundColor: value ? COLORS.success : COLORS.gray,
+          },
+          titleStyle: {
+            fontSize: 16,
+            fontWeight: "bold",
+            color: "#FFF"
+          },
+          textStyle: {
+            fontSize: 14,
+            color: "#FFF"
+          },
+          duration: 3500,
+        });
+        
+        // Se ficou offline, limpa a lista de viagens disponíveis
+        if (!value) {
+           setAllTrips([]);
+        } else {
+           // Se ficou online, carrega imediatamente
+           loadAllOrdersSilent();
+        }
+      } else {
+        throw new Error("Falha ao atualizar");
+      }
+    } catch (error) {
+      showMessage({
+        message: "Erro",
+        description: "Não foi possível alterar seu status de disponibilidade.",
+        type: "danger",
+        icon: "auto"
+      });
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  useEffect(() => {
+    // Manter tracking ativo para o modal
+    const checkStatus = () => {
+      if (user?.status === 'Pendente') {
+        setShowApprovalModal(true);
+      } else {
+        setShowApprovalModal(false);
+      }
+    };
+    checkStatus();
+  }, [user?.status]);
+
   // 🔥 ATUALIZAR COMPARTILHAMENTO DE LOCALIZAÇÃO QUANDO A VIAGEM MUDAR
   useEffect(() => {
     if (acceptedTrip) {
@@ -339,6 +466,13 @@ export default function HomeScreen({ navigation }: any) {
   // 🔥 CARREGAMENTO SILENCIOSO (para WebSocket)
   const loadAllOrdersSilent = async () => {
     try {
+      // 🔥 NÃO CARREGAR PEDIDOS SE ESTIVER OFFLINE
+      if (user?.availability !== 'active') {
+        setAllTrips([]);
+        setLastUpdate(new Date());
+        return;
+      }
+
       const response = await getAllOrdersForDeliveryman();
       let ordersData = response?.trips || response?.orders || response || [];
 
@@ -405,6 +539,14 @@ export default function HomeScreen({ navigation }: any) {
 
   const loadAllOrders = async () => {
     try {
+      // 🔥 NÃO CARREGAR PEDIDOS SE ESTIVER OFFLINE
+      if (user?.availability !== 'active') {
+        setAllTrips([]);
+        setLastUpdate(new Date());
+        setLoadingOrders(false);
+        return;
+      }
+
       setLoadingOrders(true);
   
       // 🔥 LIMPAR CACHE ANTES DE CARREGAR
@@ -1109,6 +1251,38 @@ const startTrip = async (trip: Trip) => {
           </View>
         )}
 
+        {/* 🔥 BOTÃO DE ONLINE/OFFLINE */}
+        {isDriverApproved && (
+          <View style={styles.onlineToggleContainer}>
+            <View style={styles.onlineToggleInfo}>
+              <Ionicons 
+                name={user?.availability === 'active' ? "car-sport" : "car-sport-outline"} 
+                size={24} 
+                color={user?.availability === 'active' ? COLORS.success : COLORS.gray} 
+              />
+              <View style={styles.onlineToggleTexts}>
+                <Text style={[styles.onlineToggleTitle, { color: user?.availability === 'active' ? COLORS.success : COLORS.gray }]}>
+                  {user?.availability === 'active' ? "Você está Online" : "Você está Offline"}
+                </Text>
+                <Text style={styles.onlineToggleSubtitle}>
+                  {user?.availability === 'active' ? "Recebendo novas viagens" : "Pausado para novas viagens"}
+                </Text>
+              </View>
+            </View>
+            {isToggling ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Switch
+                trackColor={{ false: "#767577", true: COLORS.success }}
+                thumbColor="#f4f3f4"
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={handleToggleOnline}
+                value={user?.availability === 'active'}
+              />
+            )}
+          </View>
+        )}
+
         {/* 🔥 INDICADOR DE LOCALIZAÇÃO COMPARTILHADA */}
         {isSharingLocation && acceptedTrip && (
           <View style={styles.locationSharingContainer}>
@@ -1122,18 +1296,18 @@ const startTrip = async (trip: Trip) => {
         {/* 🔥 CARD DA ROTA ATUAL (EM TRÂNSITO) */}
         {renderCurrentRouteCard()}
 
-        {/* 🔥 CORREÇÃO: MOSTRAR MENSAGEM DE APROVAÇÃO APENAS SE NÃO APROVADO */}
-        {!isDriverApproved ? (
-          renderNotApprovedMessage()
-        ) : (
+        {/* 🔥 CORREÇÃO: O modal de aprovação substituiu a mensagem estática de bloqueio */}
+        <View style={{ flex: 1 }}>
           <>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>
-                  {acceptedTrip ? "🎯 Sua Viagem" : "🚗 Solicitações de Viagem"}
+                  {acceptedTrip ? "Sua Viagem" : "Solicitações de Viagem"}
                 </Text>
                 <Text style={styles.sectionSubtitle}>
-                  {allTrips.length} viagem{allTrips.length !== 1 ? 'ens' : ''} disponível{allTrips.length !== 1 ? 'eis' : ''}
+                  {allTrips.length === 0 
+                    ? "Nenhuma viagem disponível no momento" 
+                    : `${allTrips.length} viagem${allTrips.length !== 1 ? 'ens' : ''} disponível${allTrips.length !== 1 ? 'eis' : ''}`}
                 </Text>
               </View>
               <TouchableOpacity
@@ -1182,8 +1356,33 @@ const startTrip = async (trip: Trip) => {
               />
             )}
           </>
-        )}
+        </View>
       </ScrollView>
+
+      {/* 🔥 MODAL PREMIUM "CONTA EM ANÁLISE" */}
+      <Modal visible={showApprovalModal} transparent animationType="slide">
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={styles.premiumModalHeader}>
+              <Ionicons name="time-outline" size={40} color="#F39C12" />
+              <Text style={styles.premiumModalTitle}>Conta em Análise</Text>
+            </View>
+            <Text style={styles.premiumModalText}>
+              O seu perfil de motorista encontra-se neste momento sob avaliação pela nossa equipa.
+            </Text>
+            <Text style={styles.premiumModalSubText}>
+              Aguarde pela aprovação para começar a receber as solicitações de entrega e poder realizar viagens!
+            </Text>
+            <TouchableOpacity 
+              style={styles.premiumModalCloseBtn}
+              onPress={() => setShowApprovalModal(false)}
+            >
+              <Text style={styles.premiumModalCloseBtnText}>Compreendi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -1199,6 +1398,36 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
+  },
+  onlineToggleContainer: {
+    backgroundColor: '#FFF',
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  onlineToggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  onlineToggleTexts: {
+    marginLeft: 12,
+  },
+  onlineToggleTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  onlineToggleSubtitle: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
   },
   connectionInfo: {
     flexDirection: 'row',
@@ -1529,4 +1758,61 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   refreshText: { color: "#FFF", fontWeight: "bold", marginLeft: 8 },
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFF',
+    width: '85%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  premiumModalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#333',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  premiumModalText: {
+    fontSize: 16,
+    color: '#444',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  premiumModalSubText: {
+    fontSize: 13,
+    color: '#777',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  premiumModalCloseBtn: {
+    backgroundColor: '#F39C12',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  premiumModalCloseBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

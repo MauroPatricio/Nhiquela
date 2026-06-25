@@ -194,7 +194,7 @@ const MpesaScreen = () => {
       style={{ flex: 1, backgroundColor: 'white' }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <>
         <SafeAreaView style={{ flex: 1 }}>
           <ScrollView
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}
@@ -253,7 +253,7 @@ const MpesaScreen = () => {
             </Animated.View>
           </ScrollView>
         </SafeAreaView>
-      </TouchableWithoutFeedback>
+      </>
     </KeyboardAvoidingView>
   );
 };

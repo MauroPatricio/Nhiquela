@@ -7,7 +7,7 @@ import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import haversine from 'haversine';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
+import { SafeMapView as MapView, SafeMarker as Marker } from './SafeMapView';
 
 const CartDetails = () => {
     const items = useSelector(selectBasketItems);

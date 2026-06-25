@@ -23,13 +23,13 @@ userRouter.get(
       const page = req.query.page || 1;
       const pageSize = 10;
       
-      const users = await User.find()
+      const users = await User.find({ isDeleted: { $ne: true } })
         .skip(pageSize * (page - 1))
         .limit(pageSize)
         .sort({ createdAt: -1 })
         .populate('seller.tipoEstabelecimento'); // Adicionado populate para tipoEstabelecimento
       
-      const countUsers = await User.countDocuments();
+      const countUsers = await User.countDocuments({ isDeleted: { $ne: true } });
       const pages = Math.ceil(countUsers / pageSize);
   
       res.send({ users, pages });
@@ -121,6 +121,7 @@ userRouter.get(
         isSeller: true,
         isApproved: true,
         isBanned: false,
+        isDeleted: { $ne: true }
       };
 
       if (tipoEstabelecimento && mongoose.Types.ObjectId.isValid(tipoEstabelecimento)) {
@@ -275,6 +276,32 @@ userRouter.put(
             workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime || user.seller.workDayAndTime,
             tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento || user.seller.tipoEstabelecimento // Adicionado tipoEstabelecimento
           };
+          
+          try {
+            const Provider = mongoose.model('Provider');
+            let provider = await Provider.findOne({ ownerId: user._id, providerType: 'BUSINESS' });
+            if (!provider) {
+              provider = new Provider({ ownerId: user._id, providerType: 'BUSINESS', status: 'active' });
+            }
+            provider.name = user.seller.name;
+            provider.categoryId = user.seller.tipoEstabelecimento;
+            provider.location = {
+              lat: user.seller.latitude,
+              lng: user.seller.longitude,
+              address: user.seller.address,
+              province: user.seller.province
+            };
+            provider.businessData = {
+              logo: user.seller.logo,
+              description: user.seller.description,
+              openTime: user.seller.opentime,
+              closeTime: user.seller.closetime,
+              isOpen: user.seller.openstore
+            };
+            await provider.save();
+          } catch (e) {
+            console.log('Erro ao sincronizar Provider: ', e);
+          }
         } else {
           // Limpa os dados do seller se não for mais um vendedor
           user.seller = {
@@ -343,9 +370,9 @@ userRouter.put(
   expressAsyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (user) {
-      user.name = req.body.name;
-      user.email = req.body.email;
-      user.isAdmin = Boolean(req.body.isAdmin);
+      user.name = req.body.name || user.name;
+      user.email = req.body.email || user.email;
+      user.isAdmin = Boolean(req.body.isAdmin !== undefined ? req.body.isAdmin : user.isAdmin);
       user.isSeller = Boolean(req.body.isSeller !== undefined ? req.body.isSeller : user.isSeller);
       user.isBanned = Boolean(req.body.isBanned !== undefined ? req.body.isBanned : user.isBanned);
       user.isDeliveryMan = Boolean(req.body.isDeliveryMan !== undefined ? req.body.isDeliveryMan : user.isDeliveryMan);
@@ -371,7 +398,7 @@ userRouter.put(
 
       if(user.isBanned){
         user.isApproved=false;
-         await Product.deleteMany({ seller: user._id });
+        await Product.updateMany({ seller: user._id }, { $set: { isActive: false } });
       }
 
       if(user.isApproved){
@@ -775,19 +802,23 @@ userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
 userRouter.post(
   '/signin',
   expressAsyncHandler(async (req, res) => {
-    const { phoneNumber, password, deviceToken } = req.body;
+    const { phoneNumber, email, password, deviceToken } = req.body;
 
     let user = null;
 
     // --- Buscar usuário por email ou telefone ---
-    if (phoneNumber.includes('@')) {
-      user = await User.findOne({ email: phoneNumber });
-    } else {
-      if (!isNaN(phoneNumber)) {
+    if (email) {
+      user = await User.findOne({ email });
+    } else if (phoneNumber) {
+      if (typeof phoneNumber === 'string' && phoneNumber.includes('@')) {
+        user = await User.findOne({ email: phoneNumber });
+      } else if (!isNaN(phoneNumber)) {
         user = await User.findOne({ phoneNumber });
       } else {
         return res.status(400).send({ message: 'Número de telefone inválido.' });
       }
+    } else {
+      return res.status(400).send({ message: 'E-mail ou Telefone são obrigatórios.' });
     }
 
     // --- Verificar se usuário existe ---
@@ -824,6 +855,8 @@ userRouter.post(
       isBanned: user.isBanned,
       isDeliveryMan: user.isDeliveryMan,
       isSeller: user.isSeller,
+      isShopper: user.isShopper || false,
+      assignedEstablishments: user.assignedEstablishments || [],
       name: user.name,
       phoneNumber: user.phoneNumber,
       seller: user.seller || null,
@@ -857,15 +890,41 @@ userRouter.post(
           email: req.body.email,
           password: bcrypt.hashSync(req.body.password),
           isSeller: req.body.isSeller,
+          isDeliveryMan: req.body.isDeliveryMan,
+          isShopper: req.body.isShopper,
         });
 
 
         if (newUser.isSeller) {
+          let provinceId = null;
+          const provinceInput = req.body.sellerLocation || req.body.seller?.province;
+          if (provinceInput) {
+            if (mongoose.Types.ObjectId.isValid(provinceInput)) {
+              provinceId = provinceInput;
+            } else {
+              const Province = mongoose.model('Province');
+              const foundProv = await Province.findOne({ name: { $regex: new RegExp(`^${provinceInput}$`, 'i') } });
+              if (foundProv) provinceId = foundProv._id;
+            }
+          }
+
+          let tipoEstId = null;
+          const tipoEstInput = req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento;
+          if (tipoEstInput) {
+            if (mongoose.Types.ObjectId.isValid(tipoEstInput)) {
+              tipoEstId = tipoEstInput;
+            } else {
+              const EstablishmentType = mongoose.model('EstablishmentType');
+              const foundType = await EstablishmentType.findOne({ name: { $regex: new RegExp(`^${tipoEstInput}$`, 'i') } });
+              if (foundType) tipoEstId = foundType._id;
+            }
+          }
+
           newUser.seller = {
             name: req.body.sellerName || req.body.seller?.name,
             logo: req.body.sellerLogo || req.body.seller?.logo,
             description: req.body.sellerDescription || req.body.seller?.description,
-            province: req.body.sellerLocation || req.body.seller?.province,
+            province: provinceId,
             address: req.body.sellerAddress || req.body.seller?.address,
             phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount,
             alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount,
@@ -876,11 +935,58 @@ userRouter.post(
             workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime,
             latitude: req.body.latitude || req.body.seller?.latitude,
             longitude: req.body.longitude || req.body.seller?.longitude,
-            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento // Adicionado tipoEstabelecimento
+            tipoEstabelecimento: tipoEstId
+          };
+        }
+
+        if (newUser.isDeliveryMan) {
+          newUser.deliveryman = {
+            photo: req.body.photo,
+            name: req.body.name,
+            phoneNumber: req.body.phoneNumber,
+            transport_type: req.body.transport_type,
+            transport_color: req.body.transport_color,
+            transport_registration: req.body.transport_registration,
+            vihicle_picture: req.body.vihicle_picture,
+            vihicle_inspection: req.body.vihicle_inspection,
+            vihicle_Insurance: req.body.vihicle_Insurance,
+            vihicle_logbook: req.body.vihicle_logbook,
+            license_front: req.body.license_front,
+            license_back: req.body.license_back,
+            document_type: req.body.document_type || 'bi',
+            document_front: req.body.document_front,
+            document_back: req.body.document_back,
+            Proof_of_Address: req.body.Proof_of_Address,
+            register_conformance: "PENDING_CONFORMANCE"
           };
         }
 
         const user = await newUser.save();
+
+        if (user.isSeller) {
+          const Provider = mongoose.model('Provider');
+          const provider = new Provider({
+            ownerId: user._id,
+            providerType: 'BUSINESS',
+            status: 'active',
+            name: user.seller.name,
+            categoryId: user.seller.tipoEstabelecimento,
+            location: {
+              lat: user.seller.latitude,
+              lng: user.seller.longitude,
+              address: user.seller.address,
+              province: user.seller.province
+            },
+            businessData: {
+              logo: user.seller.logo,
+              description: user.seller.description,
+              openTime: user.seller.opentime || '08:00',
+              closeTime: user.seller.closetime || '18:00',
+              isOpen: user.seller.openstore || false
+            }
+          });
+          await provider.save();
+        }
         return res.send({
           _id: user._id,
           name: user.name,
@@ -911,12 +1017,14 @@ userRouter.delete(
     const user = await User.findById(req.params.id);
 
     if (user) {
+      await Product.updateMany({ seller: user._id }, { $set: { isActive: false } });
 
-      await Product.deleteMany({seller: user._id });
+      user.isDeleted = true;
+      user.isBanned = true;
+      user.isApproved = false;
+      await user.save();
 
-      await user.deleteOne();
-
-      res.send({ message: `Utilizador removido com sucesso` });
+      res.send({ message: `Utilizador removido com sucesso (Soft Delete)` });
     } else {
       res.status(404).send({ message: 'Utilizador não encontrado' });
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -9,6 +9,7 @@ import PaginationControls from '../../components/Admin/PaginationControls';
 export default function UsersScreen() {
   const [users, setUsers] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [servicesList, setServicesList] = useState([]);
   
@@ -16,12 +17,23 @@ export default function UsersScreen() {
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', isAdmin: false, isSeller: false, isDeliveryMan: false, planId: '', services: [] });
   const [showModal, setShowModal] = useState(false);
+  const [selectedUserView, setSelectedUserView] = useState(null);
 
   useEffect(() => {
     fetchUsers();
     fetchPlans();
     fetchServices();
+    fetchRoles();
   }, []);
+
+  const fetchRoles = async () => {
+    try {
+      const { data } = await api.get('/roles');
+      setRoles(data || []);
+    } catch (error) {
+      console.warn('Roles não carregadas', error);
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -61,6 +73,7 @@ export default function UsersScreen() {
       isAdmin: user.isAdmin || false, 
       isSeller: user.isSeller || false,
       isDeliveryMan: user.isDeliveryMan || false,
+      roleId: user.roleId ? (typeof user.roleId === 'object' ? user.roleId._id : user.roleId) : '',
       planId: user.planId || '',
       services: user.services || []
     });
@@ -92,6 +105,16 @@ export default function UsersScreen() {
       } catch (error) {
         toast.error('Erro ao eliminar utilizador');
       }
+    }
+  };
+
+  const handleUpdateStatus = async (user, newStatusObj) => {
+    try {
+      await api.put(`/users/${user._id || user.id}`, newStatusObj);
+      toast.success('Estado do utilizador atualizado com sucesso!');
+      fetchUsers();
+    } catch (error) {
+      toast.error('Erro ao atualizar estado do utilizador');
     }
   };
 
@@ -132,17 +155,18 @@ export default function UsersScreen() {
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Utilizador</th>
                   <th className="border-0 text-muted py-3">Papel (Role)</th>
                   <th className="border-0 text-muted py-3">Data de Registo</th>
+                  <th className="border-0 text-muted py-3">Estado</th>
                   <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-5 text-muted">A carregar contas de utilizadores...</td>
+                    <td colSpan="5" className="text-center py-5 text-muted">A carregar contas de utilizadores...</td>
                   </tr>
                 ) : currentUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-5 text-muted">Nenhum utilizador encontrado no sistema.</td>
+                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum utilizador encontrado no sistema.</td>
                   </tr>
                 ) : currentUsers.map(user => (
                   <tr key={user._id || user.id}>
@@ -168,15 +192,59 @@ export default function UsersScreen() {
                           )}
                         </div>
                       ) : user.isDeliveryMan ? (
-                        <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUser} className="me-1" /> Prestador/Entregador</span>
+                        <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                          <FontAwesomeIcon icon={faUser} className="me-1" /> 
+                          Motorista/{(user.deliveryman?.transport_type || user.transport_type) ? (user.deliveryman?.transport_type || user.transport_type).charAt(0).toUpperCase() + (user.deliveryman?.transport_type || user.transport_type).slice(1) : 'Geral'}
+                        </span>
+                      ) : user.isShopper ? (
+                        <span className="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUser} className="me-1" /> Shopper</span>
                       ) : (
-                        <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUser} className="me-1" /> Cliente</span>
+                        <span className="badge px-3 py-2 rounded-pill" style={{ color: '#20c997', backgroundColor: 'rgba(32, 201, 151, 0.1)' }}><FontAwesomeIcon icon={faUser} className="me-1" /> Cliente</span>
+                      )}
+                      
+                      {user.roleId && (
+                        <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 rounded-pill mt-1 d-block" style={{ width: 'fit-content' }}>
+                          <FontAwesomeIcon icon={faShieldAlt} className="me-1" /> {user.roleId.name || 'Papel RBAC'}
+                        </span>
                       )}
                     </td>
                     <td className="text-muted">
                       {user.createdAt ? new Date(user.createdAt._seconds ? user.createdAt._seconds * 1000 : user.createdAt).toLocaleDateString() : 'Desconhecido'}
                     </td>
+                    <td>
+                      {user.isBanned ? (
+                        <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faBan} className="me-1" /> Bloqueado</span>
+                      ) : !user.isApproved && (user.isSeller || user.isDeliveryMan) ? (
+                        <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faTimes} className="me-1" /> Pendente</span>
+                      ) : (
+                        <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Ativo</span>
+                      )}
+                    </td>
                     <td className="text-end px-4">
+                      {/* Estado Actions */}
+                      {user.isBanned ? (
+                        <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: false, isApproved: true })} title="Desbloquear / Reativar">
+                          <FontAwesomeIcon icon={faCheckCircle} /> Desbloquear
+                        </button>
+                      ) : !user.isApproved && (user.isSeller || user.isDeliveryMan) ? (
+                        <>
+                          <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm transition-all hover-transform fw-bold" onClick={() => handleUpdateStatus(user, { isApproved: true, isBanned: false })} title="Autorizar">
+                            <FontAwesomeIcon icon={faCheckCircle} /> Autorizar
+                          </button>
+                          <button className="btn btn-sm btn-light text-danger me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isApproved: false, isBanned: true })} title="Rejeitar">
+                            <FontAwesomeIcon icon={faTimes} /> Rejeitar
+                          </button>
+                        </>
+                      ) : (
+                        <button className="btn btn-sm btn-light text-warning me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: true, isApproved: false })} title="Bloquear Conta">
+                          <FontAwesomeIcon icon={faBan} /> Bloquear
+                        </button>
+                      )}
+
+                      {/* Outras Actions */}
+                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => setSelectedUserView(user)} title="Ver Detalhes">
+                        <FontAwesomeIcon icon={faEye} />
+                      </button>
                       <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(user)} title="Editar Permissões">
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
@@ -232,9 +300,22 @@ export default function UsersScreen() {
                 <div className="mb-4 p-3 bg-light rounded-3 border">
                   <h6 className="fw-bold mb-3">Papel do Utilizador (Roles)</h6>
                   
+                  <div className="mb-4">
+                    <label className="form-label fw-bold text-dark mb-1">Papel Dinâmico (RBAC)</label>
+                    <select className="form-select bg-white border py-2 rounded-3" value={formData.roleId} onChange={(e) => setFormData({...formData, roleId: e.target.value})}>
+                      <option value="">-- Sem papel dinâmico (Usa permissões antigas) --</option>
+                      {roles.map(role => (
+                        <option key={role._id} value={role._id}>{role.name} {role.isSystem ? '(Sistema)' : ''}</option>
+                      ))}
+                    </select>
+                    <small className="text-muted d-block mt-1">Substitui as opções abaixo se selecionado.</small>
+                  </div>
+
+                  <hr className="my-3 opacity-25" />
+                  
                   <div className="form-check form-switch mb-3">
                     <input className="form-check-input" type="checkbox" id="isAdmin" checked={formData.isAdmin} onChange={(e) => setFormData({...formData, isAdmin: e.target.checked})} />
-                    <label className="form-check-label fw-bold text-danger" htmlFor="isAdmin">Administrador (Acesso Total)</label>
+                    <label className="form-check-label fw-bold text-danger" htmlFor="isAdmin">Administrador (Acesso Total) [Legacy]</label>
                   </div>
                   
                   <div className="form-check form-switch mb-3">
@@ -298,6 +379,133 @@ export default function UsersScreen() {
                   Salvar Alterações
                 </button>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ver Detalhes */}
+      {selectedUserView && (
+        <div 
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" 
+          style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }}
+          onClick={() => setSelectedUserView(null)}
+        >
+          <div 
+            className="modal-dialog modal-dialog-centered m-0" 
+            style={{ width: '100%', maxWidth: '500px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card border-0 shadow-lg rounded-4 w-100">
+              <div className="card-header bg-white border-bottom-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+                <h5 className="fw-bold m-0 text-dark">Ficha de Utilizador</h5>
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-light rounded-circle text-muted" 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedUserView(null); }} 
+                  style={{ width: '35px', height: '35px', cursor: 'pointer', zIndex: 1060 }}
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+              <div className="card-body p-4">
+                <div className="d-flex align-items-center mb-4">
+                  <div className="bg-primary-subtle text-primary-custom rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fw-bold fs-3" style={{ width: '80px', height: '80px' }}>
+                    {selectedUserView.name ? selectedUserView.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <div>
+                    <h4 className="fw-bold mb-1">{selectedUserView.name}</h4>
+                    {selectedUserView.isAdmin ? (
+                      <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faShieldAlt} className="me-1" /> Administrador</span>
+                    ) : selectedUserView.isSeller ? (
+                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUserTie} className="me-1" /> Vendedor</span>
+                    ) : selectedUserView.isDeliveryMan ? (
+                      <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                        <FontAwesomeIcon icon={faUser} className="me-1" /> 
+                        Motorista/{(selectedUserView.deliveryman?.transport_type || selectedUserView.transport_type) ? (selectedUserView.deliveryman?.transport_type || selectedUserView.transport_type).charAt(0).toUpperCase() + (selectedUserView.deliveryman?.transport_type || selectedUserView.transport_type).slice(1) : 'Geral'}
+                      </span>
+                    ) : selectedUserView.isShopper ? (
+                      <span className="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faUser} className="me-1" /> Shopper</span>
+                    ) : (
+                      <span className="badge px-3 py-2 rounded-pill" style={{ color: '#20c997', backgroundColor: 'rgba(32, 201, 151, 0.1)' }}><FontAwesomeIcon icon={faUser} className="me-1" /> Cliente</span>
+                    )}
+                    {selectedUserView.roleId && (
+                      <span className="badge bg-dark px-3 py-2 rounded-pill ms-2">
+                        <FontAwesomeIcon icon={faShieldAlt} className="me-1" /> {selectedUserView.roleId.name || 'Papel Dinâmico'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-light rounded-4 p-3 mb-4 border">
+                  {selectedUserView.email && (
+                    <div className="d-flex mb-2">
+                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faEnvelope} /></div>
+                      <div className="fw-bold text-dark">{selectedUserView.email}</div>
+                    </div>
+                  )}
+                  {(selectedUserView.phone || selectedUserView.phoneNumber) && (
+                    <div className="d-flex mb-2">
+                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faPhone} /></div>
+                      <div className="fw-bold text-dark">{selectedUserView.phone || selectedUserView.phoneNumber}</div>
+                    </div>
+                  )}
+                  {selectedUserView.location && (
+                    <div className="d-flex mb-2">
+                      <div className="text-muted" style={{width: '30px'}}>📍</div>
+                      <div className="fw-bold text-dark">{selectedUserView.location}</div>
+                    </div>
+                  )}
+                  {selectedUserView.rating && (
+                    <div className="d-flex mb-2">
+                      <div className="text-muted" style={{width: '30px'}}>⭐</div>
+                      <div className="fw-bold text-dark">{selectedUserView.rating}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="row g-2 mb-4">
+                  <div className="col-4">
+                    <div className="border rounded-3 p-2 text-center bg-white h-100 shadow-sm">
+                      <div className="text-muted small fw-bold mb-1">Pedidos</div>
+                      <div className="fw-bold m-0 text-dark fs-5">{selectedUserView.totalOrders || 0}</div>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div className="border rounded-3 p-2 text-center bg-white h-100 shadow-sm">
+                      <div className="text-muted small fw-bold mb-1">Concluídos</div>
+                      <div className="fw-bold m-0 text-success fs-5">{selectedUserView.completedOrders || 0}</div>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div className="border rounded-3 p-2 text-center bg-white h-100 shadow-sm">
+                      <div className="text-muted small fw-bold mb-1">Cancelados</div>
+                      <div className="fw-bold m-0 text-danger fs-5">{selectedUserView.cancelledOrders || 0}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row g-2 mb-4">
+                  <div className="col-12">
+                    <div className="border rounded-3 p-3 text-center bg-white h-100 shadow-sm">
+                      <div className="text-muted small fw-bold mb-1">Membro Desde</div>
+                      <div className="fw-bold m-0 text-dark fs-5">
+                        <FontAwesomeIcon icon={faCalendarAlt} className="text-muted me-2" />
+                        {selectedUserView.createdAt ? new Date(selectedUserView.createdAt._seconds ? selectedUserView.createdAt._seconds * 1000 : selectedUserView.createdAt).toLocaleDateString('pt-PT') : 'Desconhecido'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="button" 
+                  className="btn btn-light w-100 fw-bold border py-2" 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedUserView(null); }}
+                  style={{ cursor: 'pointer', zIndex: 1060, position: 'relative' }}
+                >
+                  Fechar Detalhes
+                </button>
+              </div>
             </div>
           </div>
         </div>

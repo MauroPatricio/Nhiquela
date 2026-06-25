@@ -21,6 +21,7 @@ vehicleTypeRouter.post(
     const newType = new VehicleType({
       name: req.body.name,
       icon: req.body.icon,
+      category: req.body.category,
       capacityKg: req.body.capacityKg,
       basePrice: req.body.basePrice,
       pricePerKm: req.body.pricePerKm,
@@ -40,6 +41,7 @@ vehicleTypeRouter.put(
     if (type) {
       type.name = req.body.name || type.name;
       type.icon = req.body.icon || type.icon;
+      type.category = req.body.category || type.category;
       type.capacityKg = req.body.capacityKg !== undefined ? req.body.capacityKg : type.capacityKg;
       type.basePrice = req.body.basePrice !== undefined ? req.body.basePrice : type.basePrice;
       type.pricePerKm = req.body.pricePerKm !== undefined ? req.body.pricePerKm : type.pricePerKm;

@@ -7,10 +7,16 @@
     "start:clear": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo start --clear",
     "android": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo run:android",
     "ios": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo run:ios",
-    "web": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo start --web"
+    "web": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo start --web",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "jest",
+    "security-check": "npm audit --audit-level=critical",
+    "eas-build-pre-install": "npm run security-check",
+    "eas-build-pre-build": "npm run lint"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~5.0.5",
+    "@expo/metro-runtime": "~6.1.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-firebase/app": "^23.4.1",
@@ -28,14 +34,14 @@
     "expo-constants": "~18.0.10",
     "expo-dev-client": "~6.0.21",
     "expo-device": "~8.0.10",
-    "expo-file-system": "~18.1.11",
+    "expo-file-system": "~19.0.23",
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.8",
     "expo-location": "~19.0.8",
     "expo-notifications": "~0.32.17",
-    "expo-splash-screen": "~0.30.10",
+    "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
-    "expo-system-ui": "~5.0.11",
+    "expo-system-ui": "~6.0.9",
     "expo-updates": "~29.0.18",
     "formik": "^2.4.6",
     "leaflet": "^1.9.4",
@@ -44,21 +50,23 @@
     "react-native": "0.81.5",
     "react-native-elements": "^3.4.3",
     "react-native-flash-message": "^0.4.2",
-    "react-native-gesture-handler": "~2.24.0",
+    "react-native-gesture-handler": "~2.28.0",
     "react-native-get-random-values": "~1.11.0",
     "react-native-google-places-autocomplete": "^2.5.7",
     "react-native-heroicons": "^4.0.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-maps": "1.20.1",
     "react-native-maps-directions": "^1.9.0",
-    "react-native-pager-view": "6.7.1",
+    "react-native-pager-view": "6.9.1",
     "react-native-paper": "^5.14.5",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-svg": "15.11.2",
+    "react-native-svg": "15.12.1",
     "react-native-toast-message": "^2.3.3",
     "react-native-toast-notifications": "^3.4.0",
+    "react-native-worklets": "^0.5.1",
+    "react-native-worklets-core": "^1.3.3",
     "react-navigation": "^5.0.0",
     "react-redux": "9.2.0",
     "socket.io-client": "^4.8.3",
@@ -67,9 +75,21 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@react-native-community/cli": "20.0.0",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^14.0.0",
     "@types/react": "~19.1.10",
+    "babel-jest": "^30.4.1",
     "babel-preset-expo": "~54.0.0",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "jest-expo": "^56.0.5",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.8.4",
     "react-native-dotenv": "^3.4.11",
+    "react-test-renderer": "^19.2.7",
     "tailwindcss": "^3.3.2",
     "typescript": "~5.8.3"
   },
@@ -86,5 +106,11 @@
       }
     }
   },
-  "private": true
+  "private": true,
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
 }

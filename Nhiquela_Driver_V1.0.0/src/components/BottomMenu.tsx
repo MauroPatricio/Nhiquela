@@ -12,10 +12,11 @@ import { Ionicons } from "@expo/vector-icons";
 const { width } = Dimensions.get('window');
 
 const menuItems = [
-  { name: "Home",    iconActive: "home",    iconInactive: "home-outline",    route: "Home" },
-  { name: "Trips",   iconActive: "car",     iconInactive: "car-outline",     route: "Trips" },
-  { name: "Map",     iconActive: "map",     iconInactive: "map-outline",     route: "Map" },
-  { name: "Profile", iconActive: "person",  iconInactive: "person-outline",  route: "Profile" },
+  { name: "Home",    iconActive: "home",          iconInactive: "home-outline",          route: "Home" },
+  { name: "Trips",   iconActive: "car",            iconInactive: "car-outline",            route: "Trips" },
+  { name: "Map",     iconActive: "map",            iconInactive: "map-outline",            route: "Map" },
+  { name: "Wallet",  iconActive: "wallet",         iconInactive: "wallet-outline",         route: "Wallet" },
+  { name: "Profile", iconActive: "person",         iconInactive: "person-outline",         route: "Profile" },
 ];
 
 type Props = {
@@ -59,8 +60,8 @@ export default function BottomMenu({ state, navigation }: Props) {
               <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
                 <Ionicons
                   name={isActive ? (item.iconActive as any) : (item.iconInactive as any)}
-                  size={24}
-                  color={isActive ? "#FFFFFF" : "#7F00FF"}
+                  size={isActive ? 26 : 24}
+                  color={isActive ? "#7F00FF" : "#9CA3AF"}
                 />
               </View>
             </TouchableOpacity>
@@ -74,25 +75,25 @@ export default function BottomMenu({ state, navigation }: Props) {
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    bottom: 24,
-    left: 16,
-    right: 16,
+    bottom: 30,
+    left: 20,
+    right: 20,
     alignItems: "center",
   },
   bar: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 36,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.98)",
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     width: "100%",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     alignItems: "center",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowRadius: 20,
+    elevation: 15,
   },
   tab: {
     flex: 1,
@@ -100,19 +101,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "transparent",
   },
   iconWrapActive: {
-    backgroundColor: "#7F00FF",
-    borderRadius: 24,
-    shadowColor: "#7F00FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    backgroundColor: "rgba(127, 0, 255, 0.12)",
+    borderRadius: 16,
   },
 });

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from "react";
-import MapView, { Marker } from "react-native-maps";
-import MapViewDirections from "react-native-maps-directions";
+import { SafeMapView, SafeMarker as Marker, SafeMapViewDirections as MapViewDirections, isMapAvailable } from './SafeMapView';
 import { 
   StyleSheet, 
   Dimensions, 
@@ -88,7 +87,7 @@ const OptimizedDriverPhoto = React.memo(({ base64String }: { base64String: strin
 });
 
 export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed, deliveryman }: Props) {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [origin, setOrigin] = useState<any>(null);
@@ -497,7 +496,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
   return (
     <View style={styles.container}>
       {/* Mapa OTIMIZADO - SEM CONGELAMENTO */}
-      <MapView
+      <SafeMapView
         ref={mapRef}
         style={styles.map}
         showsUserLocation={false}
@@ -572,7 +571,7 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
             timePrecision="none"
           />        
         )}
-      </MapView>
+      </SafeMapView>
 
       {/* Quadro de Informações do Motorista - VISÍVEL */}
       {showDriverInfo && renderDriverInfo()}

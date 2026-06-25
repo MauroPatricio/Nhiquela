@@ -92,18 +92,20 @@ export default function OrdersScreen() {
     try {
       const [ordersRes, requestsRes, custRes, driversRes] = await Promise.all([
         api.get('/orders'),
-        api.get('/requestdeliver/admin'),
+        api.get('/request-deliver/admin'),
         api.get('/customers'),
         api.get('/drivers')
       ]);
 
       // Create maps for quick lookup O(1)
       const cMap = {};
-      custRes.data.forEach(c => cMap[c._id] = c.name);
+      const customersArray = Array.isArray(custRes.data) ? custRes.data : (custRes.data.customers || custRes.data.users || []);
+      customersArray.forEach(c => cMap[c._id] = c.name);
       setCustomersMap(cMap);
 
       const dMap = {};
-      driversRes.data.forEach(d => dMap[d._id] = d.name);
+      const driversArray = Array.isArray(driversRes.data) ? driversRes.data : (driversRes.data.drivers || driversRes.data.users || []);
+      driversArray.forEach(d => dMap[d._id] = d.name);
       setDriversMap(dMap);
 
       // Sort by newest first

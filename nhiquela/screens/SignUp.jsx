@@ -99,7 +99,7 @@ const SignUp = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 30 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -109,7 +109,8 @@ const SignUp = ({ navigation }) => {
 
             <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
 
-            <Text style={styles.title}>NOVO REGISTO</Text>
+            <Text style={styles.title}>Criar Conta</Text>
+            <Text style={styles.subtitle}>Junte-se a nós e comece a enviar hoje mesmo.</Text>
 
             <Formik
               initialValues={{ phoneNumber: '', password: '', name: '', email: '' }}
@@ -123,7 +124,7 @@ const SignUp = ({ navigation }) => {
                   <View style={styles.wrapper}>
                     <Text style={styles.label}>Nome e apelido</Text>
                     <View style={styles.inputWrapper(touched.name ? '#7F00FF' : '#ccc')}>
-                      <MaterialCommunityIcons name="face-man" size={20} color="black" style={styles.iconStyle} />
+                      <MaterialCommunityIcons name="face-man" size={20} color={touched.name ? '#7F00FF' : '#9CA3AF'} style={styles.iconStyle} />
                       <TextInput
                         placeholder="Nome e apelido"
                         onFocus={() => setFieldTouched('name')}
@@ -139,7 +140,7 @@ const SignUp = ({ navigation }) => {
                   <View style={styles.wrapper}>
                     <Text style={styles.label}>Número de telefone</Text>
                     <View style={styles.inputWrapper(touched.phoneNumber ? '#7F00FF' : '#ccc')}>
-                      <MaterialCommunityIcons name="phone" size={20} color="black" style={styles.iconStyle} />
+                      <MaterialCommunityIcons name="phone" size={20} color={touched.phoneNumber ? '#7F00FF' : '#9CA3AF'} style={styles.iconStyle} />
                       <TextInput
                         placeholder="Insira o número de telefone"
                         onFocus={() => setFieldTouched('phoneNumber')}
@@ -156,7 +157,7 @@ const SignUp = ({ navigation }) => {
                   <View style={styles.wrapper}>
                     <Text style={styles.label}>Email</Text>
                     <View style={styles.inputWrapper(touched.email ? '#7F00FF' : '#ccc')}>
-                      <MaterialCommunityIcons name="email" size={20} color="black" style={styles.iconStyle} />
+                      <MaterialCommunityIcons name="email" size={20} color={touched.email ? '#7F00FF' : '#9CA3AF'} style={styles.iconStyle} />
                       <TextInput
                         placeholder="Seu email"
                         onFocus={() => setFieldTouched('email')}
@@ -172,7 +173,7 @@ const SignUp = ({ navigation }) => {
                   <View style={styles.wrapper}>
                     <Text style={styles.label}>Senha</Text>
                     <View style={styles.inputWrapper(touched.password ? '#7F00FF' : '#ccc')}>
-                      <MaterialCommunityIcons name="lock" size={20} color="black" style={styles.iconStyle} />
+                      <MaterialCommunityIcons name="lock" size={20} color={touched.password ? '#7F00FF' : '#9CA3AF'} style={styles.iconStyle} />
                       <TextInput
                         placeholder="Sua senha"
                         secureTextEntry={hideText}
@@ -182,7 +183,7 @@ const SignUp = ({ navigation }) => {
                         onChangeText={handleChange('password')}
                       />
                       <TouchableOpacity onPress={() => setHideText(!hideText)} style={styles.eyeButton}>
-                        <MaterialCommunityIcons name={hideText ? 'eye-outline' : 'eye-off-outline'} size={22} color="black" />
+                        <MaterialCommunityIcons name={hideText ? 'eye-outline' : 'eye-off-outline'} size={22} color="#666" />
                       </TouchableOpacity>
                     </View>
                     {touched.password && errors.password && <Text style={styles.errorMessage}>{errors.password}</Text>}
@@ -210,45 +211,52 @@ export default SignUp;
 
 const styles = StyleSheet.create({
   cover: {
-    height: 200,
+    height: 140,
     width: '100%',
     resizeMode: 'contain',
-    marginBottom: 20,
+    marginBottom: 5,
     backgroundColor: 'white',
+    marginTop: -20,
   },
   title: {
     textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 24,
-    marginBottom: 7,
-    color: '#333',
+    fontWeight: '800',
+    fontSize: 28,
+    marginBottom: 8,
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: '#6B7280',
+    marginBottom: 25,
+    lineHeight: 22,
   },
   wrapper: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    marginBottom: 5,
-    color: '#7F00FF',
+    marginBottom: 6,
+    color: '#4B5563',
+    fontWeight: '600',
   },
   inputWrapper: (borderColor) => ({
-    borderColor: borderColor,
-    backgroundColor: '#F8F8F8',
-    borderWidth: 1,
-    height: 50,
-    borderRadius: 12,
+    borderColor: borderColor === '#ccc' ? '#E5E7EB' : borderColor,
+    backgroundColor: borderColor === '#ccc' ? '#F9FAFB' : '#F3E8FF',
+    borderWidth: 1.5,
+    height: 56,
+    borderRadius: 14,
     flexDirection: 'row',
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
   }),
   input: {
     flex: 1,
-    color: '#333',
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '500',
   },
   iconStyle: {
     marginRight: 10,

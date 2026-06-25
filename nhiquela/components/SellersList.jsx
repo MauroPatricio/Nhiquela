@@ -29,10 +29,10 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
   setLoading(!isRefresh);
 
   try {
-    const response = await api.get(`users/sellers?page=${pageNum}`);
+    const response = await api.get(`providers?type=BUSINESS&page=${pageNum}`);
     const data = response.data;
 
-    const newSellers = data.sellers;
+    const newSellers = data.providers;
     
     setSellers(prevSellers => {
       const combinedSellers = isRefresh ? newSellers : [...prevSellers, ...newSellers];
@@ -43,8 +43,10 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
       return Array.from(uniqueSellersMap.values());
     });
 
-    setTotalPages(data.pages);
-    setHasMore(pageNum < data.pages);
+    // Assume the backend returns pages or just use hasMore based on count
+    const totalPagesCount = data.pages || Math.ceil(data.count / 10);
+    setTotalPages(totalPagesCount);
+    setHasMore(pageNum < totalPagesCount);
     setPage(pageNum + 1);
   } catch (error) {
     console.error(error);
@@ -61,6 +63,7 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
 
   // Limit description length to 30 characters
   const truncateDescription = (description) => {
+    if (!description) return '';
     return description.length > 30 ? description.substring(0, 30) + '...' : description;
   };
 
@@ -72,9 +75,9 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
   // Render each seller card
   const renderSeller = ({ item }) => {
     let distanceText = '';
-    if (userLocation && item.seller.latitude && item.seller.longitude) {
-      const lat = parseFloat(item.seller.latitude);
-      const lng = parseFloat(item.seller.longitude);
+    if (userLocation && item.location?.lat && item.location?.lng) {
+      const lat = parseFloat(item.location.lat);
+      const lng = parseFloat(item.location.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
         const dist = getDistance(
           { latitude: userLocation.latitude, longitude: userLocation.longitude },
@@ -90,20 +93,20 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
       onPress={() => {
   
         const {
-          
-          name,
           logo,
           description,
-          rating,
-          numReviews,
-          province,
-          address,
-          latitude,
-          longitude,
-          openstore
-        } = item.seller; // Destructure properties from item.seller
+          openTime,
+          closeTime,
+          isOpen
+        } = item.businessData || {}; 
 
-        const _id =item._id
+        const name = item.name;
+        const address = item.location?.address;
+        const latitude = item.location?.lat;
+        const longitude = item.location?.lng;
+        const rating = item.rating;
+        const numReviews = item.numReviews;
+        const _id = item._id;
 
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {
@@ -113,22 +116,21 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
           description,
           rating,
           numReviews,
-          province, // Ensure province is the correct type expected by SellerScreen
           address,
           latitude,
           longitude,
-          openstore
+          openstore: isOpen
         });
       }}
     >
       {/* Seller's Logo */}
-      <Image source={{ uri: item.seller.logo }} style={styles.sellerLogo} />
+      <Image source={{ uri: item.businessData?.logo || 'https://via.placeholder.com/65' }} style={styles.sellerLogo} />
       
       {/* Seller's Information */}
       <View style={styles.sellerInfo}>
-        <Text style={styles.sellerName}>{item.seller.name}</Text>
+        <Text style={styles.sellerName}>{item.name}</Text>
         <Text style={styles.sellerDescription}>
-          {truncateDescription(item.seller.description)}
+          {truncateDescription(item.businessData?.description)}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
           <Ionicons name="location-outline" size={14} color="#9CA3AF" />

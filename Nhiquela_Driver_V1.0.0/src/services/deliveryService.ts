@@ -1,8 +1,20 @@
+import * as FileSystem from 'expo-file-system/legacy';
 import apiClient from "../api/apiClient";
 import { ENDPOINTS } from "../api/endpoints";
+import { API_BASE_URL } from "../api/apiConfig";
 
 export const registerDriver = async (driverData: any) => {
   const response = await apiClient.post(ENDPOINTS.REGISTER_DRIVER,driverData);
+  return response.data;
+};
+
+export const getProviderSubcategories = async () => {
+  const response = await apiClient.get(ENDPOINTS.PROVIDER_SUBCATEGORIES);
+  return response.data;
+};
+
+export const getVehicleColors = async () => {
+  const response = await apiClient.get(`${ENDPOINTS.VEHICLE_COLORS}?activeOnly=true`);
   return response.data;
 };
 
@@ -36,34 +48,33 @@ export const updateDeliverymanRequest = async (driverUpdateData: any, user: any)
 
 export const uploadLocalFile = async (fileUri: string): Promise<string> => {
   try {
-    const formData = new FormData();
     const filename = fileUri.split('/').pop() || 'upload.jpg';
+    const fileType = filename.split('.').pop() || 'jpeg';
     
-    // Configura o objeto FormData para upload em React Native
-    formData.append('file', {
-      uri: fileUri,
-      name: filename,
-      type: 'image/jpeg',
-    } as any);
-
     console.log("🚀 [DEBUG] Fazendo upload do ficheiro...", filename);
 
-    const response = await apiClient.post(ENDPOINTS.UPLOAD_LOCAL, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      transformRequest: (data, headers) => {
-        return formData;
-      },
-    });
+    // Usa FileSystem.uploadAsync para evitar o erro de Network Error ao fazer upload via FormData no React Native
+    const response = await FileSystem.uploadAsync(
+      `${API_BASE_URL}${ENDPOINTS.UPLOAD_LOCAL}`,
+      fileUri,
+      {
+        httpMethod: 'POST',
+        uploadType: 1, // FileSystemUploadType.MULTIPART = 1
+        fieldName: 'file',
+        mimeType: `image/${fileType}`,
+      }
+    );
 
-    console.log("✅ [SUCCESS] Upload feito:", response.data);
-    return response.data.url; // Retorna o link final da imagem alojada
+    if (response.status !== 200 && response.status !== 201) {
+      console.error("❌ [API ERROR]:", response.body);
+      throw new Error(`Erro do servidor: ${response.status}`);
+    }
+
+    const responseData = JSON.parse(response.body);
+    console.log("✅ [SUCCESS] Upload feito:", responseData);
+    return responseData.url; // Retorna o link final da imagem alojada
   } catch (error: any) {
     console.error("❌ [ERROR] Falha no upload:", error.message);
-    if (error.response) {
-      console.error("📩 [API RESPONSE ERROR]:", error.response.data);
-    }
     throw new Error('Falha ao enviar imagem. Verifique a conexão.');
   }
 };

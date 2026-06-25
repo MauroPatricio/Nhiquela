@@ -1,549 +1,973 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions, Alert } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Easing,
+  Modal,
+  Dimensions,
+  PanResponder,
+  Keyboard,
+  LogBox
+} from 'react-native';
+
+LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
+
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('VirtualizedLists should never be nested')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import api from '../hooks/createConnectionApi';
-import { useNavigation } from '@react-navigation/native';
-import { useToast } from 'react-native-toast-notifications';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import api from '../hooks/createConnectionApi';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import { EXPO_GOOGLE_MAPS_APIKEY } from '@env';
 
-const { width, height } = Dimensions.get('window');
-const PRIMARY_COLOR = '#7F00FF';
-
-const REASON_SUGGESTIONS = [
-  'Fazer compras',
-  'Buscar algo',
-  'Entregar algo',
-  'Transporte pessoal',
-  'Mudança residencial',
-  'Avaria mecânica',
-  'Outro'
-];
-
-export default function RequestDeliv() {
+export default function RequestDelivSimple() {
   const navigation = useNavigation();
-  const toast = useToast();
-  const mapRef = useRef(null);
+  const route = useRoute();
 
-  // Flow State
+  const service = route.params?.selectedService;
+
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [location, setLocation] = useState(null);
 
-  // Step 1: Service & Reason
-  const [servicesList, setServicesList] = useState([]);
-  const [serviceType, setServiceType] = useState(null);
   const [reason, setReason] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
+  
+  const [originCoord, setOriginCoord] = useState(null);
+  const [destCoord, setDestCoord] = useState(null);
+  
+  // Radar Search State
+  const [radius, setRadius] = useState(5);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showBusyModal, setShowBusyModal] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState({ visible: false, message: '' });
+  const [duration, setDuration] = useState(null);
+  const pulseAnim = React.useRef(new Animated.Value(0)).current;
+  const originRef = React.useRef(null);
+  const mapRef = React.useRef(null);
+  const scrollViewRef = React.useRef(null);
+  const focusedInputRef = React.useRef(null);
+  const [showMotives, setShowMotives] = useState(true);
 
-  // Step 2: Locations
-  const [origin, setOrigin] = useState({ address: '', lat: null, lng: null });
-  const [destination, setDestination] = useState({ address: '', lat: null, lng: null });
+  // Native Bottom Sheet State
+  const { height: screenHeight } = Dimensions.get('window');
+  // Since sheet is 90% of screen height, these translates push it down
+  const SNAP_TOP = screenHeight * 0.15; // 85% visible
+  const SNAP_MIDDLE = screenHeight * 0.30; // 70% visible
+  const SNAP_BOTTOM = screenHeight * 0.70; // 30% visible
 
-  // Estimations
-  const [distance, setDistance] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const translateY = React.useRef(new Animated.Value(SNAP_MIDDLE)).current;
+  const currentSnap = React.useRef(SNAP_MIDDLE);
+
+  const snapTo = (toValue) => {
+    currentSnap.current = toValue;
+    Animated.spring(translateY, {
+      toValue,
+      useNativeDriver: true,
+      bounciness: 0,
+    }).start();
+  };
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (e, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (e, gestureState) => {
+        let newY = currentSnap.current + gestureState.dy;
+        if (newY < SNAP_TOP) newY = SNAP_TOP; // Prevents dragging above 90%
+        translateY.setValue(newY);
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        const finalY = currentSnap.current + gestureState.dy;
+        const velocityY = gestureState.vy;
+
+        let closestSnap = SNAP_MIDDLE;
+        if (velocityY > 1.5) {
+          closestSnap = SNAP_BOTTOM;
+        } else if (velocityY < -1.5) {
+          closestSnap = SNAP_TOP;
+        } else {
+          const distTop = Math.abs(finalY - SNAP_TOP);
+          const distMid = Math.abs(finalY - SNAP_MIDDLE);
+          const distBot = Math.abs(finalY - SNAP_BOTTOM);
+          const minDist = Math.min(distTop, distMid, distBot);
+
+          if (minDist === distTop) closestSnap = SNAP_TOP;
+          else if (minDist === distMid) closestSnap = SNAP_MIDDLE;
+          else closestSnap = SNAP_BOTTOM;
+        }
+        snapTo(closestSnap);
+      }
+    })
+  ).current;
+
+  const isDistance = service?.pricingModel === 'distance';
+
   const [price, setPrice] = useState(0);
+  const [routeCoords, setRouteCoords] = useState([]);
 
-  // Initialize Location & Services
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Aviso', 'A sua localização ajuda-nos a preencher os campos automaticamente.');
-      } else {
-        let location = await Location.getCurrentPositionAsync({});
-        const coords = { lat: location.coords.latitude, lng: location.coords.longitude };
-        setCurrentLocation(coords);
-      }
-    })();
+  const handleGetCurrentLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return;
 
-    const fetchServices = async () => {
+    try {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      if (!loc) return;
+
+      setLocation({
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude
+      });
+      setOriginCoord({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      // Reverse Geocoding para obter o nome da rua
       try {
-        const { data } = await api.get('/services');
-        const activeServices = data.filter(s => s.status === 'Ativo').map(s => ({
-          id: s._id,
-          name: s.name,
-          icon: s.icon || 'star',
-          color: s.color || '#7F00FF'
-        }));
-        setServicesList(activeServices);
+        const addressArray = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude
+        });
+        
+        let placeName = 'Minha localização atual';
+        if (addressArray && addressArray.length > 0) {
+          const addr = addressArray[0];
+          const street = addr.street || addr.name || '';
+          const city = addr.city || addr.subregion || addr.region || '';
+          
+          if (street && city) {
+            placeName = `${street}, ${city}`;
+          } else if (street) {
+            placeName = street;
+          } else if (city) {
+            placeName = city;
+          }
+        }
+        
+        setOrigin(placeName);
+        if (originRef.current) {
+          originRef.current.setAddressText(placeName);
+        }
       } catch (error) {
-        console.warn('Erro ao carregar serviços no RequestDeliv', error);
+        console.log('Erro no reverse geocoding:', error);
+        setOrigin('Minha localização atual');
+        if (originRef.current) {
+          originRef.current.setAddressText('Minha localização atual');
+        }
       }
+
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015
+        }, 1000);
+      }
+    } catch (e) {
+      console.log('Error getting location: ', e);
+    }
+  };
+
+  /* ---------------- LOCATION & KEYBOARD ---------------- */
+  useEffect(() => {
+    handleGetCurrentLocation();
+
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      snapTo(SNAP_TOP);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      // Deixar o utilizador visualizar os resultados sem forçar o scroll para 0 nem encolher o ecrã
+    });
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
     };
-    fetchServices();
   }, []);
 
-  // Quick Buttons Logic
-  const handleQuickLocation = (type, target) => {
-    if (type === 'Minha Localização' && currentLocation) {
-      if (target === 'origin') setOrigin({ address: 'A Minha Localização Atual', ...currentLocation });
-      else setDestination({ address: 'A Minha Localização Atual', ...currentLocation });
-    } else {
-      // Mock for Home/Work (Would be pulled from user profile)
-      if (target === 'origin') setOrigin({ address: type, lat: currentLocation?.lat || -25.9692, lng: currentLocation?.lng || 32.5732 });
-      else setDestination({ address: type, lat: currentLocation?.lat || -25.9692, lng: currentLocation?.lng || 32.5732 });
-    }
-  };
-
-  // Cálculo Real da Rota (OSRM)
+  /* ---------------- PRICE API ---------------- */
   useEffect(() => {
-    if (origin.address && destination.address && origin.lat && origin.lng && destination.lat && destination.lng) {
-      
-      const calculateRoute = async () => {
+    const fetchPrice = async () => {
+      if (originCoord && destCoord) {
         try {
-          const { data } = await api.get(`/osrm/route?origin=${origin.lng},${origin.lat}&destination=${destination.lng},${destination.lat}`);
+          const { data } = await api.post('/pricing/calculate', {
+            serviceId: service._id,
+            originLoc: originCoord,
+            destLoc: destCoord,
+            weightKg: 5
+          });
           
-          const distKm = parseFloat(data.distanceKm) || 5;
-          const durMin = parseFloat(data.durationMin) || 15;
-          
-          setDistance(distKm);
-          setDuration(durMin);
-          setPrice(50 + (distKm * 25)); // Preço base 50 MT + 25 MT por Km
+          if (!isDistance) {
+            setPrice(service?.basePrice || 0);
+          } else {
+            setPrice(data.price || 0);
+          }
+
+          snapTo(SNAP_TOP); // Auto-expand to 90% when calculated
+          if (data.routeCoordinates && data.routeCoordinates.length > 0) {
+            setRouteCoords(data.routeCoordinates);
+          }
+          if (data.breakdown && data.breakdown.durationMin) {
+            setDuration(Math.round(data.breakdown.durationMin));
+          }
         } catch (error) {
-          console.warn("Erro ao calcular rota OSRM, usando fallback", error);
-          const fakeDistance = 5;
-          setDistance(fakeDistance);
-          setDuration(15);
-          setPrice(50 + (fakeDistance * 25));
+          console.log('Erro ao consultar motor de preços:', error);
+          setPrice(120); // Fallback
+          snapTo(SNAP_TOP);
+          setRouteCoords([]);
         }
-      };
+      }
+    };
+    
+    fetchPrice();
+  }, [originCoord, destCoord]);
 
-      calculateRoute();
-    } else {
-      setDistance(0);
-      setDuration(0);
-      setPrice(0);
+  // Zoom and Fit map when origin, destination, or route changes
+  useEffect(() => {
+    if (mapRef.current && originCoord) {
+      if (destCoord && routeCoords.length > 0) {
+        mapRef.current.fitToCoordinates([originCoord, destCoord, ...routeCoords], {
+          edgePadding: { top: 100, right: 50, bottom: Dimensions.get('window').height * 0.5, left: 50 },
+          animated: true,
+        });
+      } else {
+        mapRef.current.animateToRegion({
+          latitude: originCoord.lat,
+          longitude: originCoord.lng,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015
+        }, 1000);
+      }
     }
-  }, [origin, destination]);
+  }, [originCoord, destCoord, routeCoords]);
 
-  const handleNext = () => {
-    if (step === 1) {
-      if (!serviceType) return toast.show("Selecione um serviço primeiro! 👆", { type: "warning", placement: "top" });
-      if (!reason.trim()) return toast.show("Diga-nos o motivo para o ajudarmos melhor!", { type: "warning", placement: "top" });
-      setStep(2);
-    } else if (step === 2) {
-      if (!origin.address || !destination.address) return toast.show("Preencha de onde para onde vamos!", { type: "warning", placement: "top" });
-      setStep(3);
+  // Search Logic (Timer & Radius)
+  useEffect(() => {
+    let timer;
+    if (step === 2 && isSearching) {
+      // Simulate search delay (10 seconds)
+      timer = setTimeout(() => {
+        if (radius >= 7) {
+          // Simulate finding a driver on the second try
+          setIsSearching(false);
+          Alert.alert("Sucesso!", "Encontrámos um motorista próximo de si!");
+          navigation.navigate('Pedidos'); // Replace with actual order detail navigation
+        } else {
+          setIsSearching(false);
+          setShowBusyModal(true);
+        }
+      }, 10000); // 10 seconds per try for UX purposes
     }
+    return () => clearTimeout(timer);
+  }, [step, isSearching, radius]);
+
+  const startPulse = () => {
+    pulseAnim.setValue(0);
+    Animated.loop(
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      })
+    ).start();
   };
 
-  const handleConfirmOrder = async () => {
-    setLoading(true);
-    try {
-      const payload = {
-        name: "Serviço Nhiquela",
-        phoneNumber: "000000000",
-        goodType: serviceType.name,
-        transportType: serviceType.name,
-        deliverCity: "Maputo",
-        origin: origin.address,
-        destination: destination.address,
-        originLocation: { address: origin.address, lat: origin.lat || 0, lng: origin.lng || 0 },
-        destinationLocation: { address: destination.address, lat: destination.lat || 0, lng: destination.lng || 0 },
-        paymentOption: "M-Pesa",
-        description: reason,
-        paymentMethod: "M-Pesa",
-        deliveryPrice: price,
-        isPaid: true, // Mudado para true temporariamente (ou manter false se o backend lida bem)
-        stepStatus: 1,
-        serviceType: serviceType.id, // Aqui vai o ObjectId
-        priority: "Normal",
-        distanceKm: distance,
-        estimatedTimeMin: duration,
-        shoppingList: []
-      };
+  if (!service) return null;
 
-      await api.post('/request-deliver', payload);
-      toast.show("Serviço solicitado com sucesso! 🚀", { type: "success" });
-      navigation.goBack();
-    } catch (error) {
-      console.error(error);
-      toast.show("Erro ao solicitar serviço.", { type: "danger" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- RENDERS ---
-
-  const renderStep1 = () => (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFC' }}>
-      <ScrollView contentContainerStyle={styles.scrollStep}>
+  /* ================= VARIABLES ================= */
+  const motivesList = service.motives && service.motives.length > 0
+    ? service.motives
+    : [
+        'Transporte de documentos',
+        'Mudança de casa',
+        'Mercadorias gerais',
+        'Equipamento frágil'
+      ];
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFillObject}
+        showsUserLocation
+        initialRegion={{
+          latitude: location?.lat || -25.9692,
+          longitude: location?.lng || 32.5732,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05
+        }}
+      >
+        {originCoord && <Marker coordinate={{ latitude: originCoord.lat, longitude: originCoord.lng }} pinColor="green" />}
+        {destCoord && <Marker coordinate={{ latitude: destCoord.lat, longitude: destCoord.lng }} pinColor="red" />}
         
-        <View style={styles.headerContainer}>
-           <View style={styles.headerTopRow}>
-             <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
-               <Ionicons name="close" size={24} color="#1A1A1A" />
-             </TouchableOpacity>
-           </View>
-           <Text style={styles.headerTitle}>O que pretende fazer?</Text>
-           <Text style={styles.headerSubtitle}>Escolha o serviço para começar.</Text>
-        </View>
-        
-        <View style={styles.grid}>
-          {servicesList.length === 0 ? (
-            <Text style={{ textAlign: 'center', marginVertical: 30, color: '#666' }}>Nenhum serviço disponível.</Text>
-          ) : (
-            servicesList.map((srv) => {
-              const isActive = serviceType?.id === srv.id;
-              return (
-                <TouchableOpacity
-                  key={srv.id}
-                  style={[styles.serviceCard, isActive && styles.serviceCardActive]}
-                  activeOpacity={0.8}
-                  onPress={() => setServiceType(srv)}
-                >
-                  {isActive ? (
-                    <LinearGradient colors={['#A855F7', '#C084FC']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.serviceGradient}>
-                      <MaterialCommunityIcons name={srv.icon} size={34} color="#FFF" />
-                      <Text style={[styles.serviceText, { color: '#FFF' }]}>{srv.name}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={styles.serviceContent}>
-                      <View style={[styles.iconCircle, { backgroundColor: `${srv.color}15` }]}>
-                        <MaterialCommunityIcons name={srv.icon} size={28} color={srv.color} />
-                      </View>
-                      <Text style={styles.serviceText}>{srv.name}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
+        {routeCoords.length > 0 && (
+          <Polyline 
+            coordinates={routeCoords} 
+            strokeWidth={4} 
+            strokeColor="#A855F7" 
+          />
+        )}
+      </MapView>
 
-        {serviceType && (
-          <View style={styles.reasonContainer}>
-            <Text style={styles.subtitleBold}>Qual é o motivo da solicitação?</Text>
-            <TextInput
-              style={styles.textArea}
-              placeholder="Ex: Comprar produtos no supermercado..."
-              placeholderTextColor="#A0A0A0"
-              multiline
-              numberOfLines={3}
-              value={reason}
-              onChangeText={setReason}
-            />
-            <View style={styles.suggestionsContainer}>
-              {REASON_SUGGESTIONS.map((sug, idx) => (
-                <TouchableOpacity key={idx} style={styles.suggestionPill} onPress={() => setReason(sug)}>
-                  <Text style={styles.suggestionText}>{sug}</Text>
-                </TouchableOpacity>
-              ))}
+      <TouchableOpacity 
+        style={styles.floatingBackBtn} 
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={26} color="#1A1A1A" />
+      </TouchableOpacity>
+
+      <View style={[styles.overlay, { zIndex: 10 }]} pointerEvents="box-none">
+        <Animated.View style={[styles.sheet, { height: screenHeight - SNAP_TOP, transform: [{ translateY }] }]}>
+          
+          {/* DRAGGABLE HEADER ZONE */}
+          <View {...panResponder.panHandlers} style={{ backgroundColor: '#FFF', paddingBottom: 10 }}>
+            <View style={styles.dragHandleContainer}>
+              <View style={styles.dragHandle} />
+            </View>
+            
+            <View style={[styles.headerRow, { marginTop: 0 }]}>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
+                <Ionicons name="close" size={24} color="#1A1A1A" />
+              </TouchableOpacity>
+              <Text style={styles.mainTitle}>O que pretende fazer?</Text>
             </View>
           </View>
-        )}
 
-        {serviceType && (
-          <TouchableOpacity activeOpacity={0.8} style={styles.primaryBtnWrapper} onPress={handleNext}>
-            <LinearGradient colors={['#9333EA', '#A855F7']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnText}>Continuar</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
+            <ScrollView 
+              ref={scrollViewRef}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 200, paddingHorizontal: 20 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+            <View>
+              <Text style={styles.label}>Serviço</Text>
+              <Text style={styles.serviceName}>{service.name}</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => {
+                if (!reason && showMotives) {
+                  setShowWarningModal({ visible: true, message: 'Selecione primeiro o motivo da solicitação.' });
+                  return;
+                }
+                setShowMotives(!showMotives);
+              }}
+              style={{ padding: 5 }}
+            >
+              <Ionicons name={showMotives ? "chevron-up" : "chevron-down"} size={26} color="#A855F7" />
+            </TouchableOpacity>
+          </View>
+
+          {showMotives && (
+            <>
+              <Text style={[styles.label, { marginTop: 5 }]}>
+                Motivo da solicitação <Text style={{ color: 'red' }}>*</Text>
+              </Text>
+              <View style={styles.grid}>
+                {motivesList.map((motive, i) => {
+                  const isActive = reason === motive;
+                  return (
+                    <TouchableOpacity 
+                      key={i} 
+                      style={[styles.card, isActive && styles.cardActive]} 
+                      onPress={() => {
+                        setReason(motive);
+                        setShowMotives(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      {isActive ? (
+                        <LinearGradient colors={['#9800FF', '#B400FF']} style={styles.cardGradient}>
+                          <Text style={[styles.cardTitle, { color: '#FFF' }]}>{motive}</Text>
+                        </LinearGradient>
+                      ) : (
+                        <View style={styles.cardContent}>
+                          <Text style={styles.cardTitle}>{motive}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {reason && !showMotives && (
+            <Text style={{ fontSize: 14, color: '#A855F7', fontWeight: '600', marginBottom: 10 }}>
+              Motivo escolhido: {reason}
+            </Text>
+          )}
+
+          <View style={{ zIndex: 10, position: 'relative', marginTop: 10 }}>
+            <Text style={styles.label}>Origem</Text>
+            <GooglePlacesAutocomplete
+              ref={originRef}
+              placeholder="De onde partimos?"
+              nearbyPlacesAPI="GooglePlacesSearch"
+              debounce={400}
+              fetchDetails={true}
+              minLength={2}
+              enablePoweredByContainer={false}
+              query={{
+                key: EXPO_GOOGLE_MAPS_APIKEY,
+                language: 'pt',
+                components: 'country:mz',
+              }}
+              textInputProps={{
+                style: styles.input,
+                onFocus: () => {
+                  snapTo(SNAP_TOP);
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: showMotives ? 220 : 120, animated: true });
+                  }, 250);
+                }
+              }}
+              listProps={{
+                scrollEnabled: false,
+                keyboardShouldPersistTaps: 'always'
+              }}
+              renderRightButton={() => (
+                <TouchableOpacity 
+                  style={{ justifyContent: 'center', paddingRight: 10, marginTop: 5 }}
+                  onPress={handleGetCurrentLocation}
+                >
+                  <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#A855F7" />
+                </TouchableOpacity>
+              )}
+              onPress={(data, details = null) => {
+                setOrigin(data.description);
+                if (details) {
+                  setOriginCoord({
+                    lat: details.geometry.location.lat,
+                    lng: details.geometry.location.lng,
+                  });
+                }
+              }}
+              styles={autocompleteStyles}
+            />
+          </View>
+
+          <View style={{ zIndex: 9, position: 'relative', marginTop: 0 }}>
+            <Text style={styles.label}>Destino</Text>
+              <GooglePlacesAutocomplete
+                placeholder="Para onde vamos?"
+                nearbyPlacesAPI="GooglePlacesSearch"
+                debounce={400}
+                fetchDetails={true}
+                minLength={2}
+                enablePoweredByContainer={false}
+                query={{
+                  key: EXPO_GOOGLE_MAPS_APIKEY,
+                  language: 'pt',
+                  components: 'country:mz',
+                }}
+                textInputProps={{
+                  style: styles.input,
+                  onFocus: () => {
+                    snapTo(SNAP_TOP);
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: showMotives ? 300 : 200, animated: true });
+                    }, 250);
+                  }
+                }}
+                listProps={{
+                  scrollEnabled: false,
+                  keyboardShouldPersistTaps: 'always'
+                }}
+                onPress={(data, details = null) => {
+                  setDestination(data.description);
+                  if (details) {
+                    setDestCoord({
+                      lat: details.geometry.location.lat,
+                      lng: details.geometry.location.lng,
+                    });
+                  }
+                }}
+                styles={autocompleteStyles}
+              />
+            </View>
+          
+          {duration !== null && !isSearching && (
+            <View style={{ backgroundColor: '#F3E8FF', padding: 12, borderRadius: 10, marginTop: 15, alignItems: 'center' }}>
+              <Text style={{ color: '#A855F7', fontWeight: 'bold', fontSize: 16 }}>
+                <MaterialCommunityIcons name="clock-outline" size={16} /> Estimativa de tempo: {duration} min
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.btn, { marginBottom: 40, marginTop: duration !== null ? 15 : 40 }]}
+            onPress={() => {
+              if (!reason) {
+                setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitação.' });
+                return;
+              }
+              if (!originCoord || !destCoord) {
+                setShowWarningModal({ visible: true, message: 'Por favor indique a origem e o destino.' });
+                return;
+              }
+              Keyboard.dismiss();
+              snapTo(screenHeight); // Ocultar o form principal
+              setIsSearching(true);
+              startPulse();
+            }}
+          >
+            <LinearGradient colors={['#7F00FF', '#A855F7']} style={styles.gradient}>
+              <Text style={styles.btnText}>Confirmar Pedido</Text>
             </LinearGradient>
           </TouchableOpacity>
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
-
-  const renderStep2 = () => (
-    <KeyboardAvoidingView style={styles.stepContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.mapContainer}>
-        {currentLocation ? (
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={{
-              latitude: currentLocation.lat,
-              longitude: currentLocation.lng,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-            showsUserLocation
-            showsMyLocationButton={false}
-          >
-            {origin.lat && <Marker coordinate={{ latitude: origin.lat, longitude: origin.lng }} pinColor="#2196F3" />}
-            {destination.lat && <Marker coordinate={{ latitude: destination.lat, longitude: destination.lng }} pinColor="#FF3B30" />}
-          </MapView>
-        ) : (
-          <View style={[styles.map, { justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-          </View>
-        )}
-
-        <SafeAreaView style={styles.mapHeaderAbs}>
-           <TouchableOpacity style={styles.headerBackBtnAbs} onPress={() => setStep(1)}>
-             <Ionicons name="chevron-back" size={24} color="#1A1A1A" />
-           </TouchableOpacity>
-        </SafeAreaView>
-      </View>
-
-      <View style={styles.cardOverlay}>
-        <View style={styles.dragHandle} />
-        
-        <View style={styles.rowBetween}>
-          <Text style={styles.cardOverlayTitle}>Para onde vamos?</Text>
-        </View>
-
-        <View style={styles.timelineContainer}>
-           <View style={styles.timelineGraphics}>
-              <View style={[styles.dot, { backgroundColor: '#2196F3' }]} />
-              <View style={styles.verticalLine} />
-              <View style={[styles.dotSquare, { backgroundColor: '#FF3B30' }]} />
-           </View>
-
-           <View style={styles.timelineInputs}>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.inputClean}
-                  placeholder="Ponto de recolha"
-                  placeholderTextColor="#A0A0A0"
-                  value={origin.address}
-                  onChangeText={(text) => setOrigin({ ...origin, address: text })}
-                />
-              </View>
-              <View style={styles.inputDivider} />
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.inputClean}
-                  placeholder="Ponto de entrega"
-                  placeholderTextColor="#A0A0A0"
-                  value={destination.address}
-                  onChangeText={(text) => setDestination({ ...destination, address: text })}
-                />
-              </View>
-           </View>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickButtonsScroll}>
-          <TouchableOpacity style={styles.quickBtnFlat} onPress={() => handleQuickLocation('Minha Localização', 'origin')}>
-            <Ionicons name="navigate" size={14} color="#1A1A1A" style={{marginRight: 4}} />
-            <Text style={styles.quickBtnFlatText}>A minha Loc.</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickBtnFlat} onPress={() => handleQuickLocation('Casa', 'destination')}>
-            <Ionicons name="home" size={14} color="#1A1A1A" style={{marginRight: 4}} />
-            <Text style={styles.quickBtnFlatText}>Casa</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickBtnFlat} onPress={() => handleQuickLocation('Trabalho', 'destination')}>
-            <Ionicons name="briefcase" size={14} color="#1A1A1A" style={{marginRight: 4}} />
-            <Text style={styles.quickBtnFlatText}>Trabalho</Text>
-          </TouchableOpacity>
         </ScrollView>
+      </Animated.View>
+    </View>
 
-        {distance > 0 && (
-          <View style={styles.estimationPremiumBar}>
-            <Ionicons name="flash" size={18} color="#FF9500" />
-            <Text style={styles.estimationPremiumText}>
-               <Text style={{fontWeight: '900', color: '#1A1A1A'}}>{distance} km</Text>  •  ~{duration} min  •  <Text style={{fontWeight: '900', color: '#34C759'}}>{price} MT</Text>
-            </Text>
-          </View>
-        )}
-
-        <TouchableOpacity activeOpacity={0.8} style={styles.primaryBtnWrapper} onPress={handleNext}>
-          <LinearGradient colors={['#9333EA', '#A855F7']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={styles.primaryBtn}>
-            <Text style={styles.primaryBtnText}>Rever Pedido</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
-  );
-
-  const renderStep3 = () => (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F5F7' }}>
-      <ScrollView contentContainerStyle={styles.scrollStep3}>
-        
-        <View style={styles.headerContainer}>
-           <TouchableOpacity style={styles.headerBackBtn} onPress={() => setStep(2)}>
-             <Ionicons name="chevron-back" size={24} color="#1A1A1A" />
-           </TouchableOpacity>
-           <Text style={styles.headerTitleCenter}>Resumo do Pedido</Text>
-           <View style={{width: 40}} />
-        </View>
-
-        <View style={styles.ticketCard}>
-          <View style={styles.ticketHeader}>
-             <MaterialCommunityIcons name={serviceType?.icon} size={28} color={PRIMARY_COLOR} />
-             <Text style={styles.ticketServiceText}>{serviceType?.name}</Text>
-          </View>
-          
-          <View style={styles.ticketBody}>
-            <Text style={styles.ticketLabel}>Motivo da Solicitação</Text>
-            <Text style={styles.ticketValue}>{reason}</Text>
-
-            <View style={{ height: 15 }} />
-
-            <View style={styles.ticketRouteRow}>
-               <View style={styles.timelineGraphicsMini}>
-                  <View style={[styles.dotMini, { backgroundColor: '#2196F3' }]} />
-                  <View style={styles.verticalLineMini} />
-                  <View style={[styles.dotSquareMini, { backgroundColor: '#FF3B30' }]} />
-               </View>
-               <View style={styles.ticketRouteTexts}>
-                  <View style={styles.ticketRouteBlock}>
-                     <Text style={styles.ticketRouteLabel}>De (Recolha)</Text>
-                     <Text style={styles.ticketRouteAddress} numberOfLines={2}>{origin.address}</Text>
-                  </View>
-                  <View style={styles.ticketRouteBlock}>
-                     <Text style={styles.ticketRouteLabel}>Para (Entrega)</Text>
-                     <Text style={styles.ticketRouteAddress} numberOfLines={2}>{destination.address}</Text>
-                  </View>
-               </View>
+    {/* Nova Aba de Procura (Modal Centralizado) */}
+    <Modal visible={isSearching} transparent animationType="fade">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <View style={{ backgroundColor: '#FFF', borderRadius: 20, padding: 30, width: '85%', alignItems: 'center', elevation: 10 }}>
+          <View style={{ width: 100, height: 100, justifyContent: 'center', alignItems: 'center' }}>
+            <Animated.View style={[styles.radarCenter, { 
+                position: 'absolute',
+                backgroundColor: 'rgba(168, 85, 247, 0.3)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.5] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+            }]} />
+            <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF' }]}>
+              <MaterialCommunityIcons name="circle" size={24} color="#A855F7" />
             </View>
           </View>
-
-          <View style={styles.ticketDashedLine}>
-             {[...Array(25)].map((_, i) => <View key={i} style={styles.dash} />)}
-          </View>
+          <Text style={{ marginTop: 20, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>À procura de motoristas...</Text>
+          <Text style={{ color: '#666', marginTop: 10 }}>Raio de busca: {radius} KM</Text>
           
-          <View style={styles.ticketFooter}>
-             <View style={styles.ticketStat}>
-                <Text style={styles.ticketStatLabel}>Distância</Text>
-                <Text style={styles.ticketStatValue}>{distance} km</Text>
-             </View>
-             <View style={styles.ticketStat}>
-                <Text style={styles.ticketStatLabel}>Tempo</Text>
-                <Text style={styles.ticketStatValue}>~{duration} min</Text>
-             </View>
-             <View style={styles.ticketStatRight}>
-                <Text style={styles.ticketStatLabel}>Valor Total</Text>
-                <Text style={styles.ticketPriceValue}>{price} MT</Text>
-             </View>
+          <TouchableOpacity 
+            style={{ marginTop: 30, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#FEF2F2', borderRadius: 10 }} 
+            onPress={() => {
+              setIsSearching(false);
+              snapTo(SNAP_MIDDLE); // Voltar a mostrar o form
+            }}
+          >
+            <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 16 }}>Cancelar Busca</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+
+      <Modal visible={showBusyModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modernModal}>
+            <View style={styles.modalIconBox}>
+              <MaterialCommunityIcons name="clock-alert-outline" size={32} color="#D97706" />
+            </View>
+            <Text style={styles.modalTitle}>Motoristas Ocupados</Text>
+            <Text style={styles.modalDesc}>
+              Não encontrámos nenhum motorista disponível num raio de {radius} KM. Deseja aumentar o raio em +2 KM?
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalBtnCancel]} 
+                onPress={() => {
+                  setShowBusyModal(false);
+                  setStep(1);
+                }}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalBtnConfirm]} 
+                onPress={() => {
+                  setShowBusyModal(false);
+                  setRadius(r => r + 2);
+                  setIsSearching(true);
+                  startPulse();
+                }}
+              >
+                <LinearGradient colors={['#A855F7', '#7F00FF']} style={styles.modalBtnGradient}>
+                  <Text style={styles.modalBtnConfirmText}>Aumentar Raio</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
+      </Modal>
 
-        <TouchableOpacity 
-          activeOpacity={0.9}
-          style={[styles.primaryBtnWrapper, { marginTop: 40 }]} 
-          onPress={handleConfirmOrder}
-          disabled={loading}
-        >
-          <LinearGradient colors={['#11998e', '#38ef7d']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={styles.confirmBtnGradient}>
-            {loading ? (
-               <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-               <>
-                 <Text style={[styles.primaryBtnText, { fontSize: 20, marginRight: 8 }]}>Solicitar Agora</Text>
-                 <MaterialCommunityIcons name="rocket-launch" size={24} color="#FFF" />
-               </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </ScrollView>
+      <Modal visible={showWarningModal.visible} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modernModal}>
+            <View style={[styles.modalIconBox, { backgroundColor: '#FEE2E2' }]}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Atenção</Text>
+            <Text style={styles.modalDesc}>
+              {showWarningModal.message}
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%', marginLeft: 0 }]} 
+                onPress={() => setShowWarningModal({ visible: false, message: '' })}
+              >
+                <LinearGradient colors={['#A855F7', '#7F00FF']} style={styles.modalBtnGradient}>
+                  <Text style={styles.modalBtnConfirmText}>Entendido</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
-  );
-
-  return (
-    <View style={styles.container}>
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
-    </View>
   );
 }
 
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFC' },
-  stepContainer: { flex: 1 },
-  scrollStep: { padding: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 150 },
-  scrollStep3: { padding: 20, paddingBottom: 150 },
-  
-  // Header Defaults
-  headerContainer: { marginBottom: 25 },
-  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  headerBackBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: '#F0F2F5' },
-  headerTitle: { fontSize: 28, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5 },
-  headerTitleCenter: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
-  headerSubtitle: { fontSize: 16, color: '#666', marginTop: 8, fontWeight: '500' },
-  
-  // Step 1 Grid
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  serviceCard: { 
-    width: '48%', backgroundColor: '#FFF', borderRadius: 24, marginBottom: 15, 
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 4, 
-    borderWidth: 1.5, borderColor: '#F8F9FA', overflow: 'hidden'
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end'
   },
-  serviceCardActive: { borderWidth: 0, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8, transform: [{ scale: 1.02 }] },
-  serviceGradient: { padding: 15, alignItems: 'center', justifyContent: 'center', height: 110 },
-  serviceContent: { padding: 15, alignItems: 'center', justifyContent: 'center', height: 110 },
-  iconCircle: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  serviceText: { fontSize: 13, fontWeight: '700', textAlign: 'center', color: '#1A1A1A' },
-  
-  // Step 1 Reason
-  reasonContainer: { marginTop: 20, marginBottom: 30 },
-  subtitleBold: { fontSize: 16, fontWeight: '800', color: '#1A1A1A', marginBottom: 15 },
-  textArea: { backgroundColor: '#FFF', borderRadius: 16, padding: 18, fontSize: 15, color: '#1A1A1A', textAlignVertical: 'top', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 6, elevation: 2 },
-  suggestionsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 15, gap: 10 },
-  suggestionPill: { backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#E9ECEF', shadowColor: '#000', shadowOpacity: 0.02, elevation: 1 },
-  suggestionText: { color: '#495057', fontSize: 13, fontWeight: '600' },
-  
-  // Step 2 Map
-  mapContainer: { flex: 1, position: 'relative' },
-  map: { width: '100%', height: '100%' },
-  mapHeaderAbs: { position: 'absolute', top: 0, left: 20, zIndex: 10 },
-  headerBackBtnAbs: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8, elevation: 5, marginTop: 10 },
-  
-  cardOverlay: {
-    position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#FFF',
-    borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, paddingBottom: Platform.OS === 'ios' ? 90 : 80, 
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 25
+
+  sheet: {
+    backgroundColor: '#FFF',
+    padding: 20,
+    paddingTop: 5,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10
   },
-  dragHandle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
-  cardOverlayTitle: { fontSize: 20, fontWeight: '900', color: '#1A1A1A', marginBottom: 20 },
-  
-  // Timeline Inputs
-  timelineContainer: { flexDirection: 'row', backgroundColor: '#F8F9FA', borderRadius: 20, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: '#F1F3F5' },
-  timelineGraphics: { width: 20, alignItems: 'center', justifyContent: 'center', marginRight: 15 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  verticalLine: { width: 2, height: 35, backgroundColor: '#E9ECEF', my: 2 },
-  dotSquare: { width: 10, height: 10, borderRadius: 2 },
-  timelineInputs: { flex: 1 },
-  inputWrapper: { height: 40, justifyContent: 'center' },
-  inputClean: { fontSize: 15, color: '#1A1A1A', fontWeight: '500' },
-  inputDivider: { height: 1, backgroundColor: '#E9ECEF', marginVertical: 5 },
-  
-  // Quick buttons flat
-  quickButtonsScroll: { flexDirection: 'row', alignItems: 'center', paddingBottom: 15 },
-  quickBtnFlat: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#E9ECEF', marginRight: 10 },
-  quickBtnFlatText: { color: '#1A1A1A', fontSize: 13, fontWeight: '600' },
-  
-  estimationPremiumBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF9E6', padding: 15, borderRadius: 16, marginBottom: 15 },
-  estimationPremiumText: { color: '#666', fontSize: 14, marginLeft: 10 },
 
-  // Summary Ticket
-  ticketCard: { backgroundColor: '#FFF', borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, elevation: 4, overflow: 'hidden' },
-  ticketHeader: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#FAF5FF', borderBottomWidth: 1, borderBottomColor: '#F3E8FF' },
-  ticketServiceText: { fontSize: 18, fontWeight: '800', color: PRIMARY_COLOR, marginLeft: 10 },
-  ticketBody: { padding: 20 },
-  ticketLabel: { fontSize: 13, color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  ticketValue: { fontSize: 16, color: '#1A1A1A', fontWeight: '600', marginTop: 5 },
-  
-  ticketRouteRow: { flexDirection: 'row' },
-  timelineGraphicsMini: { width: 15, alignItems: 'center', marginRight: 15, paddingTop: 5 },
-  dotMini: { width: 8, height: 8, borderRadius: 4 },
-  verticalLineMini: { width: 2, flex: 1, backgroundColor: '#E9ECEF', marginVertical: 4 },
-  dotSquareMini: { width: 8, height: 8, borderRadius: 2 },
-  ticketRouteTexts: { flex: 1 },
-  ticketRouteBlock: { marginBottom: 15 },
-  ticketRouteLabel: { fontSize: 12, color: '#A0A0A0', fontWeight: '500' },
-  ticketRouteAddress: { fontSize: 15, color: '#1A1A1A', fontWeight: '600', marginTop: 2 },
-  
-  ticketDashedLine: { flexDirection: 'row', overflow: 'hidden', width: '100%', height: 1, justifyContent: 'space-between', paddingHorizontal: 20 },
-  dash: { width: 8, height: 1, backgroundColor: '#E0E0E0' },
-  
-  ticketFooter: { flexDirection: 'row', padding: 20, backgroundColor: '#FAFAFC', alignItems: 'center' },
-  ticketStat: { flex: 1 },
-  ticketStatRight: { flex: 1, alignItems: 'flex-end' },
-  ticketStatLabel: { fontSize: 12, color: '#888', fontWeight: '500' },
-  ticketStatValue: { fontSize: 16, color: '#1A1A1A', fontWeight: '700', marginTop: 2 },
-  ticketPriceValue: { fontSize: 24, color: '#34C759', fontWeight: '900', marginTop: 2 },
+  dragHandleContainer: {
+    width: '100%',
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  dragHandle: {
+    width: 50,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D1D5DB'
+  },
 
-  // Global Buttons
-  primaryBtnWrapper: { shadowColor: PRIMARY_COLOR, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 },
-  primaryBtn: { borderRadius: 16, height: 60, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  confirmBtnGradient: { borderRadius: 16, height: 60, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', shadowColor: '#38ef7d', shadowOpacity: 0.4, shadowRadius: 10, elevation: 8 },
-  primaryBtnText: { color: '#FFF', fontSize: 18, fontWeight: '800' },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 10
+  },
+
+  label: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 10
+  },
+
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10
+  },
+
+  input: {
+    backgroundColor: '#F5F5F5',
+    height: 56,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginTop: 5,
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontWeight: '500'
+  },
+
+  btn: {
+    marginTop: 20
+  },
+
+  gradient: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center'
+  },
+
+  btnText: {
+    color: '#FFF',
+    fontWeight: '700'
+  },
+
+  priceBox: {
+    marginTop: 15,
+    backgroundColor: '#FFF7E6',
+    padding: 12,
+    borderRadius: 10
+  },
+
+  price: {
+    fontWeight: '800'
+  },
+
+  back: {
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#666'
+  },
+
+  pulseCircle: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#A855F7'
+  },
+
+  floatingBackBtn: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 8
+  },
+
+  radarCenter: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#7F00FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6
+  },
+  
+  // New Styles for Step 1 Layout
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  mainTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  subtitleRight: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  card: {
+    width: '47%',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  cardContent: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+  },
+  cardGradient: {
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+  },
+  cardActive: {
+    borderColor: '#A855F7',
+    elevation: 5,
+  },
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#1A1A1A'
+  },
+  
+  // Custom Modal Styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  modernModal: {
+    width: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10
+  },
+  modalIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 8
+  },
+  modalDesc: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 25
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%'
+  },
+  modalBtn: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden'
+  },
+  modalBtnCancel: {
+    backgroundColor: '#F3F4F6',
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14
+  },
+  modalBtnCancelText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15
+  },
+  modalBtnConfirm: {
+    marginLeft: 10,
+  },
+  modalBtnGradient: {
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalBtnConfirmText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 15
+  }
+});
+
+const autocompleteStyles = StyleSheet.create({
+  container: {
+    flex: 0,
+  },
+  textInputContainer: {
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+  },
+  textInput: {
+    height: 56,
+    color: '#1A1A1A',
+    fontSize: 16,
+    fontWeight: '500',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    marginTop: 5,
+  },
+  listView: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    position: 'absolute',
+    top: 65,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    maxHeight: 220,
+  },
+  row: {
+    padding: 13,
+    height: 44,
+    flexDirection: 'row',
+  },
+  separator: {
+    height: 0.5,
+    backgroundColor: '#c8c7cc',
+  },
+  description: {
+    fontSize: 14,
+  },
 });

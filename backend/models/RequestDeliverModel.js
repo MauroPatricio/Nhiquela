@@ -39,7 +39,7 @@ const requestDeliverSchema = new mongoose.Schema(
     isDeletedByAdmin: { type: Boolean, default: false },
 
     deliveryman: {
-      id:{type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+      id:{type: mongoose.Schema.Types.ObjectId, ref: 'Provider'},
       photo: { type: String },
       name: { type: String},
       phoneNumber: {type: Number},

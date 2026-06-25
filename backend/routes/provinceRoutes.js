@@ -29,8 +29,9 @@ provinceRoutes.post(
   expressAsyncHandler(async (req, res) => {
     const newProvince = new Province({
       name: req.body.name,
-      nome: req.body.nome,
-      isActive: true,
+      nome: req.body.nome || req.body.name,
+      code: req.body.code,
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     });
 
     const province = await newProvince.save();
@@ -63,8 +64,9 @@ provinceRoutes.put(
 
     if (province) {
       province.name = req.body.name;
-      province.nome = req.body.nome;
-      province.isActive = req.body.isActive;
+      if (req.body.nome) province.nome = req.body.nome;
+      if (req.body.code !== undefined) province.code = req.body.code;
+      if (req.body.isActive !== undefined) province.isActive = req.body.isActive;
 
       await province.save();
       res.send({ message: `Província actualizada com sucesso` });

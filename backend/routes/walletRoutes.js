@@ -3,6 +3,17 @@ import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import { isAuth } from '../utils.js';
+import mpesa from 'mpesa-node-api';
+import config from '../config.js';
+
+function randomString(codeLength){
+    const chars = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890";
+    const randomArray = Array.from(
+        { length: codeLength },
+        (v, k) => chars[Math.floor(Math.random() * chars.length)]
+      );
+    return randomArray.join("");
+}
 
 const walletRouter = express.Router();
 
@@ -52,9 +63,36 @@ async function updateWallet(userId, amount, type, method, description, status = 
  */
 walletRouter.post('/topup', isAuth, async (req, res) => {
   try {
-    const { amount, method, description } = req.body;
+    const { amount, method, description, phone } = req.body;
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Valor inválido para recarga.' });
+    }
+
+    if (method === 'M-Pesa/e-Mola' || method === 'M-Pesa') {
+      if (!phone) {
+        return res.status(400).json({ message: 'Número de telefone é obrigatório para pagamentos M-Pesa.' });
+      }
+
+      const referenceCode = randomString(5);
+      mpesa.initializeApi({
+        baseUrl: config.MPESA_API_HOST,
+        apiKey: config.MPESA_API_KEY,
+        publicKey: config.MPESA_PUBLIC_KEY,
+        origin: config.MPESA_ORIGIN,
+        serviceProviderCode: config.MPESA_SERVICE_PROVIDER_CODE,
+        timeout: 60000 
+      });
+
+      const cleanPhone = phone.replace('+', '');
+
+      // Iniciar STK Push (C2B)
+      const mpesaRes = await mpesa.initiate_c2b(amount, cleanPhone, referenceCode, referenceCode);
+
+      if (mpesaRes.output_ResponseCode !== 'INS-0') {
+        return res.status(400).json({ 
+          message: mpesaRes.output_ResponseDesc || 'Transação rejeitada pelo M-Pesa.' 
+        });
+      }
     }
 
     const balance = await updateWallet(
@@ -67,8 +105,9 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
 
     return res.json({ message: 'Saldo recarregado com sucesso', balance });
   } catch (error) {
-    console.error('Erro ao recarregar saldo:', error);
-    return res.status(500).json({ message: error.message || 'Erro interno ao recarregar saldo.' });
+    console.error('Erro ao recarregar saldo:', error?.response?.data || error.message);
+    const mpesaError = error?.response?.data?.output?.ResponseDesc;
+    return res.status(500).json({ message: mpesaError || error.message || 'Erro interno ao recarregar saldo.' });
   }
 });
 

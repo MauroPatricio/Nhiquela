@@ -27,7 +27,7 @@ export default function ProvincesScreen() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', code: '', status: 'Ativo' });
+  const [formData, setFormData] = useState({ name: '', code: '', isActive: true });
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -39,11 +39,15 @@ export default function ProvincesScreen() {
     if (province) {
       setIsEditing(true);
       setCurrentId(province._id || province.id);
-      setFormData({ ...province });
+      setFormData({ 
+        name: province.name || '', 
+        code: province.code || '', 
+        isActive: province.isActive !== undefined ? province.isActive : true 
+      });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', code: '', status: 'Ativo' });
+      setFormData({ name: '', code: '', isActive: true });
     }
     setShowModal(true);
   };
@@ -134,10 +138,10 @@ export default function ProvincesScreen() {
                         <span className="fw-bold text-dark">{province.name}</span>
                       </div>
                     </td>
-                    <td><span className="text-muted fw-bold">{province.code}</span></td>
+                    <td><span className="text-muted fw-bold">{province.code || '-'}</span></td>
                     <td>
-                      <span className={`badge rounded-pill ${province.status === 'Ativo' ? 'bg-success' : 'bg-secondary'}`}>
-                        {province.status}
+                      <span className={`badge rounded-pill ${province.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                        {province.isActive ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="text-end px-4">
@@ -177,7 +181,7 @@ export default function ProvincesScreen() {
                   </div>
                   <div className="col-6">
                     <label className="form-label fw-bold small text-muted mb-1">Status</label>
-                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.isActive ? 'Ativo' : 'Inativo'} onChange={(e) => setFormData({...formData, isActive: e.target.value === 'Ativo'})}>
                       <option value="Ativo">Ativo</option>
                       <option value="Inativo">Inativo</option>
                     </select>

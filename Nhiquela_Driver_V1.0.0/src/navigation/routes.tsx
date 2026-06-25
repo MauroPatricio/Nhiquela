@@ -9,6 +9,7 @@ export type RootStackParamList = {
   Map: undefined;
   Profile?: undefined;
   Notifications?: undefined;
+  Wallet?: undefined;
   Earnings?: undefined;
   Stats?: undefined;
   EditProfile?: undefined;
@@ -24,7 +25,7 @@ export const ROUTES = {
   MAP: "Map",
   PROFILE: "Profile",
   NOTIFICATIONS: "Notifications",
-  EARNINGS: "Earnings",
+  EARNINGS: "Wallet",   // Agora aponta para o Tab "Wallet" — consistente com BottomMenu
   STATS: "Stats",
   REGISTER_USER: "RegisterUser",
   UPDATE_PROFILE: "EditProfile",

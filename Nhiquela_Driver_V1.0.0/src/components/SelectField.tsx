@@ -18,11 +18,11 @@ interface SelectFieldProps<K extends string> {
   value: string;
   options: Array<{ label: string; value: string }>;
   onChange: (field: K, value: string) => void;
-  onBlur: (field: K) => void;
+  onBlur?: (field: K) => void;
   error?: string;
   touched?: boolean;
   placeholder?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
 }
 
 export default function SelectField<K extends string>({
@@ -43,12 +43,12 @@ export default function SelectField<K extends string>({
   const handleSelect = (selectedValue: string) => {
     onChange(field, selectedValue);
     setModalVisible(false);
-    onBlur(field);
+    onBlur?.(field);
   };
 
   const handleOpen = () => {
     setModalVisible(true);
-    onBlur(field);
+    onBlur?.(field);
   };
 
   const selectedOption = options.find(opt => opt.value === value);
@@ -56,7 +56,13 @@ export default function SelectField<K extends string>({
   return (
     <View style={styles.container}>
       <Text style={[styles.label, showError && styles.labelError]}>
-        {label}
+        {label.includes('*') ? (
+            <Text>
+                {label.split('*')[0]}<Text style={{ color: 'red' }}>*</Text>{label.split('*')[1]}
+            </Text>
+        ) : (
+            label
+        )}
       </Text>
       
       <TouchableOpacity

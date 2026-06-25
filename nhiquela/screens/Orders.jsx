@@ -10,6 +10,7 @@ import api from '../hooks/createConnectionApi';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getRoute } from '../src/services/routingService';
 
 const { width } = Dimensions.get('window');
 
@@ -133,32 +134,51 @@ const Orders = () => {
     }, [userData])
   );
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
+  const [etas, setEtas] = useState({});
+
+  useEffect(() => {
+    const fetchEtas = async () => {
+      if (!currentLocation || !orders || orders.length === 0) return;
+
+      const newEtas = { ...etas };
+      let updated = false;
+
+      for (const item of orders) {
+        if (
+          (item.status === 'Pendente' || item.status === 'Em trânsito') &&
+          item.deliveryAddress?.latitude &&
+          item.deliveryAddress?.longitude &&
+          !newEtas[item._id]
+        ) {
+          try {
+            const result = await getRoute(
+              currentLocation.latitude,
+              currentLocation.longitude,
+              item.deliveryAddress.latitude,
+              item.deliveryAddress.longitude
+            );
+            if (result && result.durationMinutes) {
+              newEtas[item._id] = Math.round(result.durationMinutes);
+              updated = true;
+            }
+          } catch (error) {
+            console.warn('Erro ao calcular ETA do pedido:', error);
+          }
+        }
+      }
+
+      if (updated) {
+        setEtas(newEtas);
+      }
+    };
+
+    fetchEtas();
+  }, [orders, currentLocation]);
 
   const renderItem = ({ item }) => {
     if (!item) return null;
 
-    let timeMinutes = null;
-    if (currentLocation && item.deliveryAddress?.latitude && item.deliveryAddress?.longitude) {
-      const distance = calculateDistance(
-        parseFloat(currentLocation.latitude),
-        parseFloat(currentLocation.longitude),
-        parseFloat(item.deliveryAddress.latitude),
-        parseFloat(item.deliveryAddress.longitude)
-      );
-      timeMinutes = Math.round((distance / 40) * 60); // velocidade média de 40 km/h
-    }
+    let timeMinutes = etas[item._id] || null;
 
     const sellerName = item?.seller?.seller?.name || 'Fornecedor';
     const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
@@ -189,6 +209,24 @@ const Orders = () => {
           <Text style={styles.orderCode}>Código: {code}</Text>
           <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
           <Text style={styles.orderPrice}>{item.totalPrice ?? '---'} MT</Text>
+          {item.deliveryman && item.deliveryman.transport_color && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <Ionicons name="car-outline" size={14} color="#666" style={{ marginRight: 4 }} />
+              <View style={{ 
+                width: 10, height: 10, borderRadius: 5, marginRight: 4, borderWidth: 1, borderColor: '#ddd',
+                backgroundColor: (() => {
+                  const c = String(item.deliveryman.transport_color).toLowerCase().trim();
+                  const map = {
+                    'branco': '#F8FAFC', 'preto': '#000000', 'cinzento': '#9CA3AF', 'cinza': '#9CA3AF', 'prata': '#D1D5DB', 
+                    'vermelho': '#EF4444', 'azul': '#3B82F6', 'verde': '#10B981', 'amarelo': '#F59E0B', 
+                    'laranja': '#F97316', 'castanho': '#78350F', 'marrom': '#78350F', 'rosa': '#EC4899', 'roxo': '#8B5CF6'
+                  };
+                  return map[c] || '#D1D5DB';
+                })()
+              }} />
+              <Text style={{ fontSize: 11, color: '#666' }}>{item.deliveryman.transport_type || 'Viatura'}</Text>
+            </View>
+          )}
         </View>
 
         {/* Status e tempo estimado na direita */}

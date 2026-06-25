@@ -203,7 +203,7 @@ const PremiumLoadingOverlay: React.FC<PremiumLoadingProps> = ({
     </View>
   );
 
-  const getSpinnerIcon = (): keyof typeof Ionicons.glyphMap => {
+  const getSpinnerIcon = (icon?: React.ComponentProps<typeof Ionicons>['name']): React.ComponentProps<typeof Ionicons>['name'] => {
     switch (type) {
       case 'upload': return 'cloud-upload-outline';
       case 'processing': return 'sync-outline';

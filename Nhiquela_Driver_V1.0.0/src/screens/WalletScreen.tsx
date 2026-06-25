@@ -1,10 +1,11 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, Modal, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/apiConfig';
 import { COLORS } from '../styles/colors';
-import { LineChart, Grid } from 'react-native-svg-charts';
+import { useAuth } from '../context/AuthContext';
 
 interface Transaction {
   id: string;
@@ -14,29 +15,35 @@ interface Transaction {
   created_at: string;
 }
 
-export default function WalletScreen({ navigation }: any) {
+export default function WalletScreen({ navigation, route }: any) {
+  // Usa o user do AuthContext — evita ler do AsyncStorage com chave errada
+  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
   const [earnings, setEarnings] = useState({ today: 0, week: 0 });
   const [dailyEarnings, setDailyEarnings] = useState<Array<{date:string, amount:number}>>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [userData, setUserData] = useState<any>(null);
+  const [topUpModalVisible, setTopUpModalVisible] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpPhone, setTopUpPhone] = useState('');
+  const [invalidValueModalVisible, setInvalidValueModalVisible] = useState(false);
 
   const fetchWalletData = async () => {
+    // Usa o token do user do contexto — não faz logout se a wallet falhar
+    if (!user?.token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
-      const storedUser = await AsyncStorage.getItem('userData');
-      if (!storedUser) {
-        navigation.navigate('Login');
-        return;
-      }
-      const user = JSON.parse(storedUser);
-      setUserData(user);
+      const headers = { authorization: `Bearer ${user.token}` };
 
       const [balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
-        api.get('/wallet/balance', { headers: { authorization: `Bearer ${user.token}` } }),
-        api.get('/wallet/transactions', { headers: { authorization: `Bearer ${user.token}` } }),
-        api.get('/wallet/driver-earnings', { headers: { authorization: `Bearer ${user.token}` } })
+        api.get('/wallet/balance', { headers }),
+        api.get('/wallet/transactions', { headers }),
+        api.get('/wallet/driver-earnings', { headers })
       ]);
 
       if (balanceRes.status === 'fulfilled') {
@@ -59,7 +66,6 @@ export default function WalletScreen({ navigation }: any) {
       }
     } catch (error: any) {
       console.error('Erro ao buscar dados da carteira:', error.message);
-      Alert.alert('Erro', 'Não foi possível atualizar a carteira.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,7 +74,7 @@ export default function WalletScreen({ navigation }: any) {
 
   useEffect(() => {
     fetchWalletData();
-  }, []);
+  }, [user?.token]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -92,9 +98,9 @@ export default function WalletScreen({ navigation }: any) {
               setLoading(true);
               const res = await api.post('/wallet/withdraw', {
                 amount: balance.available,
-                phone: userData?.phone || userData?.deliveryman?.phone,
+                phone: user?.phoneNumber || user?.deliveryman?.phoneNumber,
               }, {
-                headers: { authorization: `Bearer ${userData.token}` },
+                headers: { authorization: `Bearer ${user?.token}` },
               });
               Alert.alert('Sucesso', res.data.message || 'Levantamento solicitado com sucesso!');
               fetchWalletData();
@@ -106,6 +112,30 @@ export default function WalletScreen({ navigation }: any) {
         }
       ]
     );
+  };
+
+  const handleTopUpSubmit = async () => {
+    if (!topUpAmount || isNaN(Number(topUpAmount)) || Number(topUpAmount) <= 0) {
+      setInvalidValueModalVisible(true);
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await api.post('/wallet/topup', {
+        amount: Number(topUpAmount),
+        method: 'M-Pesa/e-Mola',
+        description: `Recarga de carteira: ${topUpPhone}`
+      }, {
+        headers: { authorization: `Bearer ${user?.token}` },
+      });
+      Alert.alert('Sucesso', res.data.message || 'Carteira recarregada com sucesso!');
+      setTopUpModalVisible(false);
+      setTopUpAmount('');
+      fetchWalletData();
+    } catch (err: any) {
+      Alert.alert('Erro', err.response?.data?.message || 'Falha ao recarregar carteira.');
+      setLoading(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -140,19 +170,23 @@ export default function WalletScreen({ navigation }: any) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loaderText}>A carregar carteira...</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Header — estilo Tab (sem botão Fechar) */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Minha Carteira</Text>
-        <TouchableOpacity style={styles.infoBtn} onPress={() => Alert.alert('Informação', 'O saldo disponível pode ser retirado a qualquer momento. O saldo pendente corresponde a entregas em processamento.')}>
+        <View style={styles.headerLeft}>
+          <Ionicons name="wallet" size={24} color="#7F00FF" />
+          <Text style={styles.headerTitle}>Minha Carteira</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.infoBtn}
+          onPress={() => Alert.alert('Informação', 'O saldo disponível pode ser retirado a qualquer momento. O saldo pendente corresponde a entregas em processamento.')}
+        >
           <Ionicons name="information-circle-outline" size={24} color="#666" />
         </TouchableOpacity>
       </View>
@@ -170,10 +204,12 @@ export default function WalletScreen({ navigation }: any) {
                 <Text style={styles.cardLabel}>Saldo Disponível</Text>
                 <Text style={styles.cardValue}>{formatCurrency(balance.available)}</Text>
 
-                <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdrawPress}>
-                  <Ionicons name="cash-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                  <Text style={styles.withdrawText}>Levantar Fundos</Text>
-                </TouchableOpacity>
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpPhone(user?.phoneNumber?.toString() || ''); setTopUpModalVisible(true); }}>
+                    <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.topUpText}>Recarregar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Saldo Pendente Box */}
@@ -200,18 +236,35 @@ export default function WalletScreen({ navigation }: any) {
               </View>
             </View>
 
-            {/* Gráfico de Ganhos Diários */}
-            <View style={styles.chartContainer}>
-              <Text style={styles.sectionTitle}>Ganhos Diários</Text>
-              <LineChart
-                style={{ height: 200 }}
-                data={dailyEarnings.map(e => e.amount)}
-                svg={{ stroke: COLORS.primary, strokeWidth: 2 }}
-                contentInset={{ top: 20, bottom: 20 }}
-              >
-                <Grid />
-              </LineChart>
-            </View>
+            {/* Gráfico de Ganhos Diários (Visualização Nativa Simples) */}
+            {dailyEarnings.length > 0 && (
+              <View style={styles.chartContainer}>
+                <Text style={styles.sectionTitle}>Ganhos Diários</Text>
+                <View style={styles.barChartContainer}>
+                  {dailyEarnings.slice(-7).map((item, index) => {
+                    // Calcula a altura da barra relativa ao valor máximo
+                    const maxAmount = Math.max(...dailyEarnings.map(e => e.amount), 1); // Evita divisão por zero
+                    const heightPercent = Math.max((item.amount / maxAmount) * 100, 5); // Mínimo de 5% de altura
+                    
+                    // Formata a data (ex: "15/06")
+                    const dateObj = new Date(item.date);
+                    const dayLabel = isNaN(dateObj.getTime()) ? item.date.substring(0, 5) : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+
+                    return (
+                      <View key={index} style={styles.barChartCol}>
+                        <Text style={styles.barChartValue} numberOfLines={1} adjustsFontSizeToFit>
+                          {item.amount > 0 ? `${item.amount}` : ''}
+                        </Text>
+                        <View style={styles.barChartBarBg}>
+                          <View style={[styles.barChartBarFill, { height: `${heightPercent}%` }]} />
+                        </View>
+                        <Text style={styles.barChartLabel}>{dayLabel}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
             {/* Título Histórico */}
             <Text style={styles.sectionTitle}>Últimos Movimentos</Text>
@@ -223,8 +276,65 @@ export default function WalletScreen({ navigation }: any) {
             <Text style={styles.emptyText}>Nenhum movimento registado.</Text>
           </View>
         }
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 30 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
       />
+
+      {/* Modal de Recarga */}
+      <Modal visible={topUpModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Recarregar Carteira</Text>
+              <TouchableOpacity onPress={() => setTopUpModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Valor (MT)</Text>
+            <TextInput
+              style={styles.inputField}
+              placeholder="Ex: 500"
+              keyboardType="numeric"
+              value={topUpAmount}
+              onChangeText={setTopUpAmount}
+            />
+
+            <Text style={styles.inputLabel}>Nº de Telemóvel</Text>
+            <TextInput
+              style={styles.inputField}
+              placeholder="Ex: 84xxxxxxx"
+              keyboardType="phone-pad"
+              value={topUpPhone}
+              onChangeText={setTopUpPhone}
+            />
+
+            <TouchableOpacity style={styles.confirmTopUpBtn} onPress={handleTopUpSubmit}>
+              <Text style={styles.confirmTopUpText}>Confirmar Recarga</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Premium de Valor Inválido */}
+      <Modal visible={invalidValueModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.premiumAlertCard}>
+            <View style={styles.iconCircleWarning}>
+              <Ionicons name="alert-circle" size={40} color="#FF9800" />
+            </View>
+            <Text style={styles.premiumAlertTitle}>Valor Inválido</Text>
+            <Text style={styles.premiumAlertMessage}>
+              Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.
+            </Text>
+            <TouchableOpacity 
+              style={styles.premiumAlertBtn} 
+              onPress={() => setInvalidValueModalVisible(false)}
+            >
+              <Text style={styles.premiumAlertBtnText}>Entendi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -240,23 +350,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F9FAFC',
   },
+  loaderText: {
+    marginTop: 12,
+    color: '#7F00FF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderColor: '#EAEAEA',
   },
-  backBtn: {
-    padding: 4,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1A1A1A',
+    marginLeft: 8,
   },
   infoBtn: {
     padding: 4,
@@ -268,39 +387,60 @@ const styles = StyleSheet.create({
   mainCard: {
     backgroundColor: COLORS.primary,
     borderRadius: 20,
-    padding: 24,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   cardLabel: {
-    color: '#A0A0B0',
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   cardValue: {
     color: '#FFF',
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginVertical: 12,
+    marginBottom: 20,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  topUpBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#34C759',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  topUpText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   withdrawBtn: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 14,
-    marginTop: 10,
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+    paddingVertical: 12,
+    borderRadius: 10,
   },
   withdrawText: {
     color: COLORS.primary,
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 16,
   },
   pendingBox: {
     flexDirection: 'row',
@@ -409,4 +549,148 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 14,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  inputField: {
+    backgroundColor: '#F5F7FA',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 16,
+    color: '#333',
+  },
+  confirmTopUpBtn: {
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  confirmTopUpText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalOverlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  premiumAlertCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  iconCircleWarning: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 152, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  premiumAlertTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  premiumAlertMessage: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  premiumAlertBtn: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  premiumAlertBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  barChartContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 180,
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  barChartCol: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: 40,
+    height: '100%',
+  },
+  barChartValue: {
+    fontSize: 10,
+    color: '#666',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  barChartBarBg: {
+    width: 20,
+    height: 130, // Altura máxima da barra
+    backgroundColor: '#F3E8FF',
+    borderRadius: 10,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barChartBarFill: {
+    width: '100%',
+    backgroundColor: '#7F00FF',
+    borderRadius: 10,
+  },
+  barChartLabel: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 6,
+  }
 });

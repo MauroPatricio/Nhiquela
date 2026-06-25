@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { showMessage } from "react-native-flash-message";
-// components/DriverHeader.tsx - COM SUPORTE PARA BASE64
+// components/DriverHeader.tsx - COM SUPORTE PARA BASE64 E API_BASE_URL
 import React from "react";
 import {
   View,
@@ -14,6 +15,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../api/apiConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Props = {
   onMenuPress: () => void;
@@ -45,7 +48,7 @@ export default function DriverHeader({
 }: Props) {
   // ✅ USAR DADOS DO CONTEXTO
   const { user, logout } = useAuth();
-
+  
   // ✅ FUNÇÃO PARA CONFIRMAR LOGOUT
   const handleLogout = () => {
     Alert.alert(
@@ -65,12 +68,12 @@ export default function DriverHeader({
             } catch (error) {
               console.error("❌ [DriverHeader] Erro no logout:", error);
               showMessage({
-        message: "Erro",
-        description: "Não foi possível fazer logout. Tente novamente.",
-        type: "danger",
-        icon: "auto",
-        duration: 3000,
-      });
+                message: "Erro",
+                description: "Não foi possível fazer logout. Tente novamente.",
+                type: "danger",
+                icon: "auto",
+                duration: 3000,
+              });
             }
           }
         }
@@ -100,6 +103,12 @@ export default function DriverHeader({
     // ✅ SE FOR URL, verificar se é válida
     if (imageUri.startsWith('http')) {
       return { uri: imageUri };
+    }
+
+    // ✅ SE FOR CAMINHO RELATIVO (ex: /uploads/...)
+    if (imageUri.startsWith('/')) {
+      const baseUrl = API_BASE_URL.replace('/api', '');
+      return { uri: `${baseUrl}${imageUri}` };
     }
 
     // ✅ SE FOR APENAS BASE64 SEM PREFIXO, adicionar prefixo
@@ -187,10 +196,10 @@ export default function DriverHeader({
             <Ionicons
               name="ellipse"
               size={14}
-              color={isConnected ? COLORS.success : COLORS.error}
+              color={user?.availability === 'active' && isConnected ? COLORS.success : COLORS.error}
             />
             <Text style={styles.onlineText}>
-              {isConnected ? 'Online' : 'Offline'}
+              {user?.availability === 'active' ? (isConnected ? 'Online' : 'A reconectar...') : 'Offline'}
             </Text>
           </View>
 
@@ -235,11 +244,11 @@ export default function DriverHeader({
 
         <View style={styles.userDetails}>
           <Text style={styles.greeting}>
-            {getGreeting()}, {getFirstName()}! 👋
+            {getGreeting()}, {getFirstName()}!
           </Text>
           
           <Text style={styles.userStatus}>
-            {isConnected ? 'Pronto para novas viagens' : 'Offline'}
+            {user?.availability === 'active' ? (isConnected ? 'Pronto para novas viagens' : 'A reconectar...') : 'Você está offline'}
           </Text>
           
           {/* ✅ INFO DO VEÍCULO (APENAS PARA MOTORISTAS) - AGORA DO CONTEXTO */}

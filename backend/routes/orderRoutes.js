@@ -29,7 +29,15 @@ orderRouter.get(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const seller = req.query.seller || '';
+    const sellerQuery = req.query.seller || '';
+    let seller = sellerQuery;
+    if (sellerQuery) {
+      try {
+        const mongoose = await import('mongoose');
+        const provider = await mongoose.default.model('Provider').findOne({ ownerId: sellerQuery });
+        if (provider) seller = provider._id;
+      } catch (e) {}
+    }
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
     const pageSize = 10
@@ -102,7 +110,15 @@ orderRouter.get(
   '/sellerview',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const seller = req.query.seller || '';
+    const sellerQuery = req.query.seller || '';
+    let seller = sellerQuery;
+    if (sellerQuery) {
+      try {
+        const mongoose = await import('mongoose');
+        const provider = await mongoose.default.model('Provider').findOne({ ownerId: sellerQuery });
+        if (provider) seller = provider._id;
+      } catch (e) {}
+    }
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
     const pageSize = 10
@@ -134,7 +150,15 @@ orderRouter.get(
   '/sellerordersview',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const seller = req.query.seller || '';
+    const sellerQuery = req.query.seller || '';
+    let seller = sellerQuery;
+    if (sellerQuery) {
+      try {
+        const mongoose = await import('mongoose');
+        const provider = await mongoose.default.model('Provider').findOne({ ownerId: sellerQuery });
+        if (provider) seller = provider._id;
+      } catch (e) {}
+    }
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
     const pageSize = 10
@@ -221,7 +245,15 @@ orderRouter.get(
   '/deliveryman',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const seller = req.query.seller || '';
+    const sellerQuery = req.query.seller || '';
+    let seller = sellerQuery;
+    if (sellerQuery) {
+      try {
+        const mongoose = await import('mongoose');
+        const provider = await mongoose.default.model('Provider').findOne({ ownerId: sellerQuery });
+        if (provider) seller = provider._id;
+      } catch (e) {}
+    }
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
     const pageSize = 10
@@ -571,9 +603,9 @@ orderRouter.delete(
       order.deleted = true;
       order.isActive = false;
 
-      await order.deleteOne();
+      await order.save();
 
-      res.send({ message: `Pedido removido com sucesso` });
+      res.send({ message: `Pedido removido com sucesso (Soft Delete)` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }

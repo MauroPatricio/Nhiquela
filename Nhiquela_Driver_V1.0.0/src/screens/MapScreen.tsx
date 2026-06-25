@@ -25,7 +25,7 @@ export default function MapScreen({ route, navigation }: any) {
   const [startingTrip, setStartingTrip] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timer;
+    let interval: any;
     let socket: any;
   
     const startAutoUpdate = async () => {
@@ -37,7 +37,8 @@ export default function MapScreen({ route, navigation }: any) {
         const orderId = storedTrip.id;
 
         // Conectar ao Socket do Backend para Rastreamento em Tempo Real
-        const backendUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+        const isDev = process.env.NODE_ENV !== 'production';
+        const backendUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || (isDev ? 'http://localhost:5000' : 'https://deliveryshop.herokuapp.com');
         socket = io(backendUrl);
   
         await updateDeliverymanLocation(orderId);
@@ -83,7 +84,18 @@ export default function MapScreen({ route, navigation }: any) {
     const loadTripData = async () => {
       try {
         setLoading(true);
-  
+
+        // 🔥 Obter localização atual com fallback PRIMEIRO
+        try {
+          const location = await getCurrentLocation();
+          setCurrentLocation(location);
+          setLocationError(null);
+        } catch (locationError: any) {
+          console.warn("⚠️ Não foi possível obter localização, usando fallback:", locationError.message);
+          setCurrentLocation(FALLBACK_LOCATION);
+          setLocationError(locationError.message);
+        }
+
         const storedTripString = await AsyncStorage.getItem("acceptedTrip");
   
         if (!storedTripString) {
@@ -95,17 +107,6 @@ export default function MapScreen({ route, navigation }: any) {
   
         // 🔥 Guardar dados no estado
         setTripData(storedTrip);
-  
-        // 🔥 Obter localização atual com fallback
-        try {
-          const location = await getCurrentLocation();
-          setCurrentLocation(location);
-          setLocationError(null);
-        } catch (locationError: any) {
-          console.warn("⚠️ Não foi possível obter localização, usando fallback:", locationError.message);
-          setCurrentLocation(FALLBACK_LOCATION);
-          setLocationError(locationError.message);
-        }
   
         // 🔥 Definir destino baseado no stepStatus
         if (storedTrip) {  

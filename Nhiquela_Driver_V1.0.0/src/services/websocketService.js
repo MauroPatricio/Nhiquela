@@ -6,16 +6,19 @@ class WebSocketService {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
+    const isDev = process.env.NODE_ENV !== 'production';
+    // Pega o mesmo URL do apiConfig, mas tira o /api no final se existir
+    let API_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://deliveryshop.herokuapp.com/api');
+    API_URL = API_URL.replace('/api', '');
+    this.baseURL = API_URL;
   }
 
   connect(token) {
     if (this.socket) {
       this.disconnect();
     }
-
-    const API_URL = process.env.API_URL || 'http://192.168.0.9:5000';
     
-    this.socket = io(API_URL, {
+    this.socket = io(this.baseURL, {
       auth: {
         token: token
       },
@@ -42,6 +45,12 @@ class WebSocketService {
     this.socket.on('order_assigned', (data) => {
       console.log('🎯 Pedido atribuído em tempo real:', data);
       this.emit('order_assigned', data);
+    });
+
+    // 🔔 Notificação em tempo real quando o admin aprova/rejeita a conta
+    this.socket.on('driver_status_updated', (data) => {
+      console.log('🔔 Estado do motorista atualizado pelo admin:', data);
+      this.emit('driver_status_updated', data);
     });
 
     this.socket.on('error', (error) => {

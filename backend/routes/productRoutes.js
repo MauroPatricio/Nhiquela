@@ -304,9 +304,15 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
     const priceWithComission = parseFloat(priceComission + priceFromSeller);
 
     const user = await User.findById(req.user._id);
+    const provider = await mongoose.model('Provider').findOne({ ownerId: req.user._id });
+    
+    if (!provider) {
+      return res.status(400).send({ message: 'Provider profile not found for this user.' });
+    }
+
     const newProduct = new Product({
       ...req.body,
-      seller: req.user._id,
+      seller: provider._id,
       priceFromSeller,
       priceComission,
       price: priceWithComission,

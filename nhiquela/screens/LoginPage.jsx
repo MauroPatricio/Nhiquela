@@ -89,7 +89,7 @@ export default function LoginPage() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: '#FFFFFF' }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -221,7 +221,7 @@ export default function LoginPage() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+    </>
   );
 }
 

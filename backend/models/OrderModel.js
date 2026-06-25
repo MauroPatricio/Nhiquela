@@ -15,8 +15,7 @@ const orderSchema = new mongoose.Schema(
     sellers: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Assuming there's a Seller model in your database
-        // required: true
+        ref: 'Provider', 
       }
     ],
     orderItems: [
@@ -79,7 +78,7 @@ const orderSchema = new mongoose.Schema(
       alternativePhoneNumber: { type: String }
     },
     deliveryman: {
-      id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      id: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider' },
       photo: { type: String },
       name: { type: String },
       phoneNumber: { type: Number },
@@ -136,7 +135,7 @@ const orderSchema = new mongoose.Schema(
     totalPrice: { type: Number, require: false },
     ivaTax: { type: Number, require: false },
     siteTax: { type: Number, require: false },
-    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider' },
     isPaid: { type: Boolean, default: false },
     paidAt: { type: Date },
     isCanceled: { type: Boolean, default: false },

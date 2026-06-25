@@ -278,7 +278,7 @@ export default function TripScreen({ navigation }: any) {
       <ScrollView style={styles.container}>
         <>
           <View style={styles.header}>
-            <Text style={styles.sectionTitle}>📋 Histórico de Viagens</Text>
+            <Text style={styles.sectionTitle}>Histórico de Viagens</Text>
             <TouchableOpacity style={styles.refreshButton} onPress={loadTripsHistory}>
               <Ionicons name="refresh-outline" size={20} color={COLORS.primary} />
             </TouchableOpacity>
@@ -313,7 +313,7 @@ export default function TripScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: COLORS.gray50 },
+  mainContainer: { flex: 1, backgroundColor: COLORS.gray50, paddingTop: 45 },
   container: { flex: 1, padding: 16 },
   header: {
     flexDirection: "row",
@@ -322,9 +322,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: { 
-    fontSize: 22, 
-    fontWeight: "700", 
-    color: COLORS.black,
+    fontSize: 26, 
+    fontWeight: "800", 
+    color: '#9D4EDD',
   },
   sectionSubtitle: {
     fontSize: 14,

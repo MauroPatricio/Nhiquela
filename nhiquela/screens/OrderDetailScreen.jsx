@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   Modal,
@@ -14,6 +13,7 @@ import {
   Dimensions,
   PanResponder
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,12 +21,8 @@ import * as Location from 'expo-location';
 import api from '../hooks/createConnectionApi';
 import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 import { useToast } from "react-native-toast-notifications";
-import useTrackingSocket from '../hooks/useTrackingSocket';
 import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
-
-import TripMap from "../components/TripMap";
-import TripControls from '../components/TripControls';
 
 const { width, height } = Dimensions.get('window');
 
@@ -133,16 +129,8 @@ const OrderDetailsScreen = () => {
     checkIfUserExist();
   }, []);
 
-  // Socket.io integration for real-time tracking
-  useEffect(() => {
-    // Ensure we have an order ID before establishing the socket.
-    if (!currentOrder?._id) return;
-    const { driverLocation: dl, eta } = useTrackingSocket(currentOrder._id);
-    // The hook updates driverLocation state internally; we expose it via a local variable.
-    // Update component state if you need to use eta elsewhere.
-    // Here we simply assign to a local variable for rendering.
-    // Note: driverLocation is not stored in component state any more.
-  }, [currentOrder]);
+  // Socket.io tracking is handled directly inside TrackingMap component.
+  // No need for a separate hook call here.
 
   const checkIfUserExist = async () => {
     try {
@@ -401,6 +389,58 @@ const OrderDetailsScreen = () => {
                 </View>
               </View>
             </View>
+
+            {/* Informações do Motorista / Veículo */}
+            {currentOrder.deliveryman && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Detalhes do Transporte</Text>
+                <View style={styles.infoGrid}>
+                  {currentOrder.deliveryman.name && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Motorista</Text>
+                      <Text style={styles.infoValue}>{currentOrder.deliveryman.name}</Text>
+                    </View>
+                  )}
+                  {currentOrder.deliveryman.transport_type && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Veículo</Text>
+                      <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_type}</Text>
+                    </View>
+                  )}
+                  {currentOrder.deliveryman.transport_color && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Cor da Viatura</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ 
+                          width: 12, 
+                          height: 12, 
+                          borderRadius: 6, 
+                          backgroundColor: (() => {
+                            const c = String(currentOrder.deliveryman.transport_color).toLowerCase().trim();
+                            const map = {
+                              'branco': '#F8FAFC', 'preto': '#000000', 'cinzento': '#9CA3AF', 'cinza': '#9CA3AF', 'prata': '#D1D5DB', 
+                              'vermelho': '#EF4444', 'azul': '#3B82F6', 'verde': '#10B981', 'amarelo': '#F59E0B', 
+                              'laranja': '#F97316', 'castanho': '#78350F', 'marrom': '#78350F', 'rosa': '#EC4899', 'roxo': '#8B5CF6'
+                            };
+                            return map[c] || '#D1D5DB';
+                          })(),
+                          marginRight: 6, 
+                          borderWidth: 1, 
+                          borderColor: '#E5E7EB' 
+                        }} />
+                        <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_color}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {currentOrder.deliveryman.transport_registration && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Matrícula</Text>
+                      <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_registration}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* Produtos */}
             <View style={styles.section}>

@@ -7,14 +7,14 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform
+  Platform,
+  Modal
 } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from "react-native-safe-area-context";
 //@ts-ignore
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { loginUser, forgotPassword } from "../services/authService";
 import { Alert } from "react-native";
 import { useAuth } from '../context/AuthContext';
@@ -24,13 +24,17 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   
   const authContext = useAuth();
 
   
   const handleForgotPassword = async () => {
     if (phoneNumber.length < 9) {
-      showMessage({ message: "Insira o número de telefone", description: "Insira primeiro o seu número de telefone e depois prima Esqueci a palavra-passe.", type: "warning" });
+      setErrorMessage("Insira primeiro o seu número de telefone e depois prima Esqueci a palavra-passe.");
+      setErrorModalVisible(true);
       return;
     }
     setLoading(true);
@@ -41,7 +45,8 @@ export default function LoginScreen({ navigation }: any) {
         `${response.message}\n\nUm email foi enviado para ${response.emailMasked}`
       );
     } catch (error: any) {
-      showMessage({ message: "Erro", description: error.message, type: "danger" });
+      setErrorMessage(error.message);
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -49,11 +54,13 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     if (phoneNumber.length < 9) {
-      showMessage({ message: "Número inválido", type: "warning" });
+      setErrorMessage("Por favor, introduza um número de telefone válido com 9 dígitos.");
+      setErrorModalVisible(true);
       return;
     }
     if (password.length < 6) {
-      showMessage({ message: "Senha muito curta", type: "warning" });
+      setErrorMessage("A palavra-passe deve conter pelo menos 6 caracteres.");
+      setErrorModalVisible(true);
       return;
     }
 
@@ -65,27 +72,26 @@ export default function LoginScreen({ navigation }: any) {
         authContext.login(userData);
       }
       
-      // Post-Login Routing based on register_conformance
-      const status = userData.deliveryman?.register_conformance;
-      if (status === "CONFORMANCE") {
-        navigation.replace("MainTabs");
-      } else if (status === "PENDING_CONFORMANCE") {
-        showMessage({ 
-          message: "Conta em Análise", 
-          description: "A sua conta está em análise. Receberá uma notificação assim que for aprovada.",
-          type: "info",
-          duration: 5000
-        });
+      // authContext.login() atualiza isAuthenticated → o AppNavigator redireciona automaticamente
+      const conformance = userData.deliveryman?.register_conformance;
+      const driverStatus = userData.status;
+
+      const isApproved = conformance === "CONFORMANCE" || driverStatus === "Disponível" || driverStatus === "Em Entrega";
+      const isRejected = conformance === "INCONFORMANCE" || driverStatus === "Inativo";
+
+      if (isApproved) {
+        // isAuthenticated já é true após login() — a navegação acontece automaticamente
+        return;
+      } else if (isRejected) {
+        setErrorMessage("A sua conta foi suspensa. Contacte o suporte para mais informações.");
+        setErrorModalVisible(true);
       } else {
-        showMessage({ 
-          message: "Documentação Incompleta", 
-          description: "Complete os documentos para começar a receber pedidos.",
-          type: "warning",
-          duration: 5000
-        });
+        // PENDING_CONFORMANCE ou Pendente
+        setShowAnalysisModal(true);
       }
     } catch (error: any) {
-      showMessage({ message: "Erro", description: error.message, type: "danger" });
+      setErrorMessage(error.message);
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -93,8 +99,13 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{flex:1}}>
-        <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAwareScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={styles.container}
+        enableOnAndroid={true}
+        keyboardShouldPersistTaps="handled"
+        extraScrollHeight={20}
+      >
           
           {/* Cabeçalho */}
           <View style={styles.header}>
@@ -167,8 +178,53 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={styles.footerLinks}>Termos • Privacidade • Suporte</Text>
           </View>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+
+        {/* 🔥 MODAL PREMIUM "CONTA EM ANÁLISE" */}
+        <Modal visible={showAnalysisModal} transparent animationType="fade">
+          <View style={styles.premiumModalOverlay}>
+            <View style={styles.premiumModalContainer}>
+              <View style={styles.premiumModalHeader}>
+                <Ionicons name="time-outline" size={40} color="#F39C12" />
+                <Text style={styles.premiumModalTitle}>Conta em Análise</Text>
+              </View>
+              <Text style={styles.premiumModalText}>
+                O seu perfil encontra-se sob avaliação pela equipa.
+              </Text>
+              <Text style={styles.premiumModalSubText}>
+                Receberá uma notificação assim que a sua documentação for verificada e aprovada.
+              </Text>
+              <TouchableOpacity 
+                style={styles.premiumModalCloseBtn}
+                onPress={() => setShowAnalysisModal(false)}
+              >
+                <Text style={styles.premiumModalCloseBtnText}>Compreendi</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* 🔥 MODAL PREMIUM DE ERRO */}
+        <Modal visible={errorModalVisible} transparent animationType="fade">
+          <View style={styles.premiumModalOverlay}>
+            <View style={styles.premiumErrorModalContainer}>
+              <View style={styles.premiumModalHeader}>
+                <Ionicons name="alert-circle-outline" size={54} color="#FF3B30" />
+                <Text style={styles.premiumErrorModalTitle}>Ops! Algo correu mal</Text>
+              </View>
+              <Text style={styles.premiumModalText}>
+                {errorMessage}
+              </Text>
+              <TouchableOpacity 
+                style={styles.premiumErrorModalCloseBtn}
+                onPress={() => setErrorModalVisible(false)}
+              >
+                <Text style={styles.premiumModalCloseBtnText}>Tentar Novamente</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
     </SafeAreaView>
   );
 }
@@ -194,5 +250,98 @@ const styles = StyleSheet.create({
   registerText: { color: '#6B7280', fontSize: 14 },
   registerLink: { color: '#7F00FF', fontSize: 16, fontWeight: 'bold' },
   footer: { alignItems: 'center', marginBottom: 16 },
-  footerLinks: { color: '#9CA3AF', fontSize: 12 }
+  footerLinks: { color: '#9CA3AF', fontSize: 12 },
+
+  // 🔥 ESTILOS PARA O MODAL PREMIUM
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFF',
+    width: '85%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  premiumModalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#333',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  premiumModalText: {
+    fontSize: 16,
+    color: '#444',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  premiumModalSubText: {
+    fontSize: 13,
+    color: '#777',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  premiumModalCloseBtn: {
+    backgroundColor: '#F39C12',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  premiumModalCloseBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  premiumErrorModalContainer: {
+    backgroundColor: '#FFF',
+    width: '85%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.15)',
+  },
+  premiumErrorModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FF3B30',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  premiumErrorModalCloseBtn: {
+    backgroundColor: '#FF3B30',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
 });

@@ -9,6 +9,8 @@ export const ENDPOINTS = {
   GET_ROUTES: "/routes",
   GET_ROUTE_DETAILS: (routeId: string) => `/routes/${routeId}`,
   UPDATE_DRIVER_PROFILE: "/drivers/update",
+  PROVIDER_SUBCATEGORIES: "/provider-subcategories",
+  VEHICLE_COLORS: "/vehicle-colors",
 
   GET_ORDERS_STATUS: (status: string) => `/orders/statusDelivery/${status}`,
   GET_TRIPS: (status: string) => `/orders/status/${status}`,

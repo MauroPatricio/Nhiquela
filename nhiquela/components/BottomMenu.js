@@ -13,7 +13,7 @@ const { width } = Dimensions.get('window');
 const menuItems = [
   { name: "Início",     iconActive: "home",              iconInactive: "home-outline",              route: "Início" },
   { name: "Pesquisa",   iconActive: "search",            iconInactive: "search-outline",            route: "Pesquisa" },
-  { name: "NovoPedido", iconActive: "add",               iconInactive: "add",                       route: "NovoPedido", isCenter: true },
+  { name: "Serviços",   iconActive: "construct",         iconInactive: "construct-outline",         route: "Serviços", isCenter: true },
   { name: "Pedidos",    iconActive: "file-tray-full",    iconInactive: "file-tray-full-outline",    route: "Pedidos" },
   { name: "Perfil",     iconActive: "person",            iconInactive: "person-outline",            route: "Perfil" },
 ];
@@ -45,8 +45,8 @@ export default function BottomMenu({ state, navigation }) {
               >
                 <View style={[styles.centerIconWrap, isActive && styles.centerIconWrapActive]}>
                   <Ionicons
-                    name="add"
-                    size={30}
+                    name="construct"
+                    size={28}
                     color="#FFFFFF"
                   />
                 </View>

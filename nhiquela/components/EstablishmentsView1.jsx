@@ -15,10 +15,14 @@ const EstablishmentsView = ({ title }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/tipoestabelecimentos');
+      const response = await api.get('/provider-types');
 
       if (response.status === 200) {
-        setTipoestabelecimentos(response.data?.tipoestabelecimentos);
+        // Filtrar apenas os que são do tipo 'Business' (Estabelecimentos)
+        const businessTypes = response.data.filter(
+          (tipo) => tipo.classificationId?.name === 'Business' || tipo.classificationId?.name?.toLowerCase() === 'business'
+        );
+        setTipoestabelecimentos(businessTypes);
       }
     } catch (error) {
       console.error('Erro ao buscar Tipos de estabelecimentos:', error);
@@ -65,8 +69,8 @@ const EstablishmentsView = ({ title }) => {
             <EstablishmentCard
               key={tipoestabelecimento._id}
               id={tipoestabelecimento._id}
-              nome={tipoestabelecimento.nome}
-              img={tipoestabelecimento.img}
+              nome={tipoestabelecimento.name || tipoestabelecimento.nome}
+              img={tipoestabelecimento.iconUrl || tipoestabelecimento.img}
             />
           ))
         ) : (

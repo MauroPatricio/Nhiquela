@@ -3,15 +3,14 @@ import mongoose from 'mongoose';
 const serviceSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
-    subcategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subcategory' },
-    basePrice: { type: Number, required: true },
-    status: { type: String, required: true, default: 'Ativo' },
-    icon: { type: String },
-    color: { type: String },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCategory', required: true },
     description: { type: String },
-    order: { type: Number, default: 0 },
-    image: { type: String },
+    pricingModel: { type: String, enum: ['distance', 'fixed', 'hourly'], required: true, default: 'distance' },
+    basePrice: { type: Number, default: 0 }, // fallback or fixed price
+    active: { type: Boolean, default: true },
+    icon: { type: String }, // icon name
+    image: { type: String }, // image url
+    sortOrder: { type: Number, default: 0 },
   },
   {
     timestamps: true,

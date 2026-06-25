@@ -30,7 +30,8 @@ import useDebounce from '../hooks/useDebounce';
 import useThrottle from '../hooks/useThrottle';
 
 const { width } = Dimensions.get('window');
-const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL || 'http://localhost:3000');
+const isDev = process.env.NODE_ENV !== 'production';
+const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://deliveryshop.herokuapp.com'));
 const socket = io(`${SOCKET_URL}/products`, { transports: ['websocket'] });
 
 Notifications.setNotificationHandler({
@@ -44,9 +45,9 @@ Notifications.setNotificationHandler({
 // Componente memoizado para item de produto
 const ProductItem = React.memo(({ item, onPress, userLocation }) => {
   let distanceText = '';
-  if (userLocation && (item.seller?.latitude || item.seller?.seller?.latitude)) {
-    const prodLat = parseFloat(item.seller?.seller?.latitude || item.seller?.latitude);
-    const prodLng = parseFloat(item.seller?.seller?.longitude || item.seller?.longitude);
+  if (userLocation && (item.seller?.location?.lat || item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.location?.lat || item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.location?.lng || item.seller?.seller?.longitude || item.seller?.longitude);
     if (!isNaN(prodLat) && !isNaN(prodLng)) {
       const dist = getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
@@ -107,9 +108,9 @@ const CategoryPill = React.memo(({ item, onPress }) => (
 // Componente memoizado para linha de produto no BottomSheet
 const ProductRow = React.memo(({ item, onPress, userLocation }) => {
   let distanceText = '';
-  if (userLocation && (item.seller?.latitude || item.seller?.seller?.latitude)) {
-    const prodLat = parseFloat(item.seller?.seller?.latitude || item.seller?.latitude);
-    const prodLng = parseFloat(item.seller?.seller?.longitude || item.seller?.longitude);
+  if (userLocation && (item.seller?.location?.lat || item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.location?.lat || item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.location?.lng || item.seller?.seller?.longitude || item.seller?.longitude);
     if (!isNaN(prodLat) && !isNaN(prodLng)) {
       const dist = getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
@@ -141,7 +142,7 @@ const ProductRow = React.memo(({ item, onPress, userLocation }) => {
             `${item.price} MT`
           )}
         </Text>
-        <Text>Fornecedor: {item.seller?.seller?.name} <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text></Text>
+        <Text>Fornecedor: {item.seller?.name || item.seller?.seller?.name} <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text></Text>
       </View>
     </View>
   </TouchableOpacity>
@@ -617,7 +618,7 @@ responseListener.remove();
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
           <View style={style.userInfoContainer}>
-            <OptimizedImage source={require('../assets/default1.jpg')} style={style.cover} />
+            <OptimizedImage source={require('../assets/nhiquela.png')} style={style.cover} resizeMode="contain" />
             <View style={style.textContainer}>
               <Text style={style.greetingText}>Olá, bem-vindo</Text>
               <Text style={style.location}>{userData ? userData.name : 'Faça login'}</Text>

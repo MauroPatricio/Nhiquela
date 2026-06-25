@@ -1,5 +1,5 @@
 import { showMessage } from "react-native-flash-message";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,17 @@ import {
   ScrollView,
   StyleSheet,
   Image,
-  SafeAreaView,
   TouchableOpacity,
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
   ActivityIndicator,
-  Alert
+  Animated,
+  StatusBar
 } from 'react-native';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BackBtn from '../components/BackBtn';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,103 +25,91 @@ import * as Location from 'expo-location';
 import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
 import * as Notifications from 'expo-notifications';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Validation schema
-const validationSchema = Yup.object().shape({
-  name: Yup.string().trim().required('O nome é obrigatório'),
-  email: Yup.string().trim().email('Email inválido').required('O email é obrigatório'),
-  password: Yup.string().min(6, 'A senha deve conter no mínimo 6 dígitos').required('A senha é obrigatória'),
-  phoneNumber: Yup.string()
-    .trim()
-    .matches(/^8[2-7][0-9]{7}$/, 'Número inválido. Deve possuir 9 dígitos.')
-    .required('Número de telefone é obrigatório'),
-  confirmPassword: Yup.string().oneOf([Yup.ref('password'), null], 'As senhas não coincidem').required('Confirmação é obrigatória'),
-  checkedTerms: Yup.boolean().oneOf([true], 'Você deve aceitar os termos e condições'),
-  seller: Yup.object().shape({
-    name: Yup.string().trim().required('O nome do estabelecimento é obrigatório'),
-    description: Yup.string().trim().required('A descrição do estabelecimento é obrigatória'),
-    address: Yup.string().trim().required('O endereço do estabelecimento é obrigatório'),
-
-    phoneNumberAccount: Yup.string()
-      .trim()
-      .matches(/^8[4-5][0-9]{7}$/, 'O telefone deve ter 9 dígitos e começar com 84 ou 85.')
-      .required('Número de telefone obrigatório'),
-    alternativePhoneNumberAccount: Yup.string()
-      .trim()
-      .matches(/^8[6-7][0-9]{7}$/, 'O telefone deve ter 9 dígitos e começar com 86 ou 87.')
-      .required('Número de telefone obrigatório'),
-    province: Yup.string().trim().required('A localização do estabelecimento é obrigatória'),
-    tipoEstabelecimento: Yup.string().trim().required('O tipo de estabelecimento é obrigatório'),
-  }),
-});
-
-const SignUp = () => {
+export default function SignUp() {
   const navigation = useNavigation();
-  const [image, setImage] = useState(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [step, setStep] = useState(0);
+
+  // Data Sources
   const [provinces, setProvinces] = useState([]);
-  const [location, setLocation] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [tiposEstabelecimentos, setTiposEstabelecimentos] = useState([]);
+  
+  // Loading states
+  const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Fetch provinces
+  // Form State
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phoneNumber: '',
+    seller: {
+      name: '',
+      logo: '',
+      description: '',
+      address: '',
+      phoneNumberAccount: '',
+      alternativePhoneNumberAccount: '',
+      province: '',
+      tipoEstabelecimento: '',
+      latitude: null,
+      longitude: null,
+    }
+  });
+
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
     const fetchProvinces = async () => {
-      setLoading(true);
       try {
         const { data } = await api.get('provinces');
         setProvinces(data.provinces);
       } catch (error) {
         console.error('Erro ao buscar províncias:', error);
-      } finally {
-        setLoading(false);
       }
     };
     fetchProvinces();
   }, []);
 
-  // Fetch tiposEstabelecimentos
   useEffect(() => {
     const fetchTipos = async () => {
-      setLoading(true);
       try {
-        const { data } = await api.get('tipoestabelecimentos');
-        setTiposEstabelecimentos(data.tipoestabelecimentos);
+        const { data } = await api.get('establishment-types');
+        setTiposEstabelecimentos(data.establishmentTypes);
       } catch (error) {
         console.error('Erro ao buscar tipos de estabelecimento:', error);
-      } finally {
-        setLoading(false);
       }
     };
     fetchTipos();
   }, []);
 
-  // Get current location
   const getCurrentLocation = async () => {
     setLocationLoading(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Toast.show({
-          type: 'error',
-          text1: 'Permissão de localização negada',
-          text2: 'Permita o acesso à localização para continuar.',
-        });
+        Toast.show({ type: 'error', text1: 'Permissão negada' });
         return;
       }
       const currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
+      setForm(prev => ({
+        ...prev,
+        seller: {
+          ...prev.seller,
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude
+        }
+      }));
       Toast.show({ type: 'success', text1: 'Localização atualizada' });
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao obter localização',
-        text2: 'Não foi possível obter a localização.',
-      });
+      Toast.show({ type: 'error', text1: 'Erro ao obter localização' });
     } finally {
       setLocationLoading(false);
     }
@@ -133,20 +119,22 @@ const SignUp = () => {
     getCurrentLocation();
   }, []);
 
-  // Handle image picker - CORRIGIDO para evitar salto de tela
-  const handleImagePicker = async (setFieldValue, setFieldTouched) => {
+  const handleChange = (field, value, isSeller = false) => {
+    if (isSeller) {
+      setForm(prev => ({ ...prev, seller: { ...prev.seller, [field]: value } }));
+    } else {
+      setForm(prev => ({ ...prev, [field]: value }));
+    }
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleImagePicker = async () => {
     try {
-      // Desabilita o scroll temporariamente para evitar saltos
-      setScrollEnabled(false);
-      
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Toast.show({
-          type: 'error',
-          text1: 'Permissão negada',
-          text2: 'Permissão para acessar a galeria é necessária!',
-        });
-        setScrollEnabled(true);
+        Toast.show({ type: 'error', text1: 'Permissão necessária' });
         return;
       }
 
@@ -157,119 +145,124 @@ const SignUp = () => {
         quality: 0.7,
       });
 
-      if (result.canceled || !result.assets?.length) {
-        setScrollEnabled(true);
-        return;
-      }
-
-      
+      if (result.canceled || !result.assets?.length) return;
 
       const imageUri = result.assets[0].uri;
-      setImage(imageUri);
       setImageUploading(true);
 
-      const uploadedUrl = await uploadImage(imageUri);
-
-      if (uploadedUrl) {
-        setFieldValue('seller.logo', uploadedUrl);
-        setFieldTouched('seller.logo', true);
-                
-        Toast.show({ 
-          type: 'success', 
-          text1: 'Logo carregada com sucesso!' 
-        });
-      }
-    } catch (err) {
-      console.error('Erro ao escolher imagem:', err);
-      Toast.show({ 
-        type: 'error', 
-        text1: 'Erro ao selecionar a imagem' 
-      });
-    } finally {
-      setImageUploading(false);
-      // Pequeno delay para garantir que a UI foi atualizada antes de reabilitar o scroll
-      setTimeout(() => setScrollEnabled(true), 100);
-    }
-  };
-
-  // Upload image - CORRIGIDO com melhor tratamento de erros
-  const uploadImage = async (uri) => {
-    try {
-      const fileName = uri.split('/').pop();
+      const fileName = imageUri.split('/').pop();
       const fileType = fileName.split('.').pop();
-
       const formData = new FormData();
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
         name: fileName,
         type: `image/${fileType}`,
       });
 
       const response = await api.post('/upload', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 30000, // 30 segundos timeout
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000,
       });
 
       const imageUrl = response.data?.secure_url || response.data?.url || null;
-      if (!imageUrl) {
-        console.warn('Backend não retornou URL:', response.data);
-        throw new Error('URL da imagem não retornada pelo servidor');
+      if (imageUrl) {
+        handleChange('logo', imageUrl, true);
+        Toast.show({ type: 'success', text1: 'Logo carregada com sucesso!' });
       }
-      
-      return imageUrl;
-    } catch (error) {
-      console.error('Erro ao enviar imagem:', error.response?.data || error);
-      Toast.show({ 
-        type: 'error', 
-        text1: 'Erro no upload da imagem',
-        text2: 'Tente novamente com uma imagem menor'
-      });
-      return null;
+    } catch (err) {
+      console.error('Erro ao escolher imagem:', err);
+      Toast.show({ type: 'error', text1: 'Erro no upload da imagem' });
+    } finally {
+      setImageUploading(false);
     }
   };
 
-  // Handle form submit - CORRIGIDO
-  const handleSubmit = async (values) => {
+  const validateStep1 = () => {
+    const newErrors = {};
+    if (!form.name.trim()) newErrors.name = 'Obrigatório';
+    if (!form.phoneNumber.trim() || !/^8[2-7][0-9]{7}$/.test(form.phoneNumber)) {
+      newErrors.phoneNumber = 'Número inválido (8x xxx xxxx)';
+    }
+    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) {
+      newErrors.email = 'Email inválido';
+    }
+    if (!form.password || form.password.length < 6) {
+      newErrors.password = 'Mínimo 6 caracteres';
+    }
+    if (!form.confirmPassword || form.password !== form.confirmPassword) {
+      newErrors.confirmPassword = 'Senhas não coincidem';
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      showMessage({ message: "Preencha todos os campos corretamente", type: "warning" });
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
+    if (!form.seller.logo) newErrors.logo = 'A logo é obrigatória';
+    if (!form.seller.name.trim()) newErrors.sellerName = 'Obrigatório';
+    if (!form.seller.description.trim()) newErrors.description = 'Obrigatório';
+    if (!form.seller.province) newErrors.province = 'Obrigatório';
+    if (!form.seller.address.trim()) newErrors.address = 'Obrigatório';
+    if (!form.seller.tipoEstabelecimento) newErrors.tipoEstabelecimento = 'Obrigatório';
+    if (!form.seller.phoneNumberAccount || !/^8[4-5][0-9]{7}$/.test(form.seller.phoneNumberAccount)) {
+      newErrors.phoneNumberAccount = 'Número inválido (Comece por 84 ou 85)';
+    }
+    if (!form.seller.alternativePhoneNumberAccount || !/^8[6-7][0-9]{7}$/.test(form.seller.alternativePhoneNumberAccount)) {
+      newErrors.alternativePhoneNumberAccount = 'Número inválido (Comece por 86 ou 87)';
+    }
+    if (!form.seller.latitude || !form.seller.longitude) {
+      newErrors.location = 'A localização GPS é obrigatória';
+      Toast.show({ type: 'error', text1: 'Atualize a sua localização GPS.' });
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      showMessage({ message: "Preencha os campos do estabelecimento", type: "warning" });
+      return false;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step === 0 && !validateStep1()) return;
+
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true })
+    ]).start();
+
+    setTimeout(() => setStep(1), 150);
+  };
+
+  const handleBack = () => {
+    if (step === 1) {
+      Animated.sequence([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true })
+      ]).start();
+      setTimeout(() => setStep(0), 150);
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep2()) return;
+
+    setLoading(true);
     try {
-      // 🚨 1️⃣ Validação de localização
-      if (!location?.coords) {
-        Toast.show({
-          type: 'error',
-          text1: 'Ative a localização para continuar.',
-        });
-        return;
-      }
+      const payload = {
+        ...form,
+        isSeller: true,
+      };
 
-      // 🔧 2️⃣ Preenche coordenadas e flag de vendedor
-      values.seller.latitude = location.coords.latitude;
-      values.seller.longitude = location.coords.longitude;
-      values.isSeller = true;
-      values.seller.logo=image;
+      await api.post('/users/signup', payload);
 
-      if(!values.seller.logo){
-                 showMessage({
-        message: 'Erro',
-        description: 'A logo do estabelecimento é obrigatória!',
-        type: "danger",
-        icon: "auto",
-        duration: 3000,
-      });
-                      return;
-
-      }
-
-     
- 
-
-      // ⏳ 3️⃣ Mostra loader
-      setLoading(true);
-
-      // 📡 4️⃣ Envia dados para o backend
-      const response = await api.post('/users/signup', values);
-
-      // 🔔 5️⃣ Permissão de notificações
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       if (existingStatus !== 'granted') {
@@ -277,479 +270,289 @@ const SignUp = () => {
         finalStatus = status;
       }
       if (finalStatus !== 'granted') {
-        throw new Error('Permissão de notificações não concedida.');
+        console.warn('Permissão de notificações não concedida.');
       }
 
-      // 🎉 6️⃣ Sucesso
       Toast.show({
         type: 'success',
         text1: 'Perfil criado com sucesso!',
-        text2: 'Agora podes iniciar sessão na tua conta.',
+        text2: 'Agora podes iniciar sessão.',
       });
-
       navigation.navigate('Login');
+
     } catch (error) {
-
-        Toast.show({
-        type: 'error',
-        text1: 'Conta nao registada!',
-        text2: 'Sem sucesso.',
-      });
       console.error('Erro no cadastro:', error.response?.data || error);
-
-      // 🔍 7️⃣ Tenta extrair a mensagem do backend de forma inteligente
-      let backendMessage = null;
-
-      if (error.response?.data) {
-        const data = error.response.data;
-
-        if (typeof data === 'string') {
-          backendMessage = data;
-        } else if (Array.isArray(data?.errors)) {
-          backendMessage = data.errors[0]?.msg || JSON.stringify(data.errors[0]);
-        } else if (typeof data?.message === 'string') {
-          backendMessage = data.message;
-        } else if (typeof data?.error === 'string') {
-          backendMessage = data.error;
-        } else if (typeof data?.msg === 'string') {
-          backendMessage = data.msg;
-        } else if (typeof data === 'object') {
-          backendMessage = Object.values(data).join(', ');
-        }
-      }
-
-      const msg =
-        backendMessage ||
-        error.message ||
-        'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
-
-      // 🚨 8️⃣ Mostra mensagem em Toast
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao criar conta',
-        text2: msg.length > 120 ? msg.substring(0, 117) + '...' : msg,
-      });
+      let backendMessage = error.response?.data?.message || 'Erro ao criar conta. Tente novamente.';
+      Toast.show({ type: 'error', text1: 'Erro', text2: backendMessage });
     } finally {
-      // ✅ 9️⃣ Sempre fecha o loader
       setLoading(false);
     }
   };
 
+  const renderInput = (label, field, icon, isSeller, props) => {
+    const value = isSeller ? form.seller[field] : form[field];
+    const hasError = errors[isSeller ? (field === 'name' ? 'sellerName' : field) : field];
+
+    return (
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>{label}</Text>
+        <View style={[styles.inputWrapper, hasError && { borderColor: '#FF0000' }]}>
+          <Ionicons name={icon} size={20} color="#6B7280" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            value={value}
+            onChangeText={(v) => handleChange(field, v, isSeller)}
+            {...props}
+          />
+        </View>
+        {hasError && <Text style={styles.errorText}>{hasError}</Text>}
+      </View>
+    );
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: 'white' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <SafeAreaView style={styles.container}>
-          <ScrollView
-            keyboardDismissMode="on-drag"
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          {/* Cabeçalho de Navegação */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name="arrow-back" size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Novo Parceiro</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {/* Indicador de Passos */}
+          <View style={styles.stepperContainer}>
+            <View style={styles.stepIndicator}>
+              <View style={[styles.stepDot, step >= 0 && styles.stepDotActive]} />
+              <View style={[styles.stepLine, step >= 1 && styles.stepLineActive]} />
+              <View style={[styles.stepDot, step >= 1 && styles.stepDotActive]} />
+            </View>
+            <Text style={styles.stepTitle}>
+              {step === 0 ? "Passo 1: Dados do Representante" : "Passo 2: O Estabelecimento"}
+            </Text>
+          </View>
+
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            scrollEnabled={scrollEnabled} // Controla o scroll para evitar saltos
           >
-            <BackBtn onPress={() => navigation.goBack()} />
-            <Image source={require('../assets/nhiquela2.png')} style={styles.cover} />
-            <Text style={styles.title}>NOVO REGISTO</Text>
+            <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+              
+              {/* PASSO 1: DADOS PESSOAIS */}
+              {step === 0 && (
+                <View style={styles.stepContent}>
+                  {renderInput("Nome e Apelido *", "name", "person-outline", false, { placeholder: "Ex: João Silva" })}
+                  {renderInput("Número de Telefone *", "phoneNumber", "call-outline", false, { placeholder: "84...", keyboardType: "phone-pad", maxLength: 9 })}
+                  {renderInput("Email *", "email", "mail-outline", false, { placeholder: "email@exemplo.com", keyboardType: "email-address", autoCapitalize: "none" })}
+                  
+                  {/* Password */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Senha (mín. 6) *</Text>
+                    <View style={[styles.inputWrapper, errors.password && { borderColor: '#FF0000' }]}>
+                      <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        value={form.password}
+                        onChangeText={(v) => handleChange('password', v, false)}
+                        placeholder="******"
+                        secureTextEntry={!showPassword}
+                      />
+                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                        <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                  </View>
 
-            <Formik
-              initialValues={{
-                name: '',
-                email: '',
-                password: '',
-                confirmPassword: '',
-                phoneNumber: '',
-                seller: {
-                  name: '',
-                  logo: '',
-                  description: '',
-                  address: '',
-                  phoneNumberAccount: '',
-                  alternativePhoneNumberAccount: '',
-                  province: '',
-                  tipoEstabelecimento: '',
-                },
-              }}
-              validationSchema={validationSchema}
-              onSubmit={handleSubmit}
+                  {/* Confirm Password */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Confirmar Senha *</Text>
+                    <View style={[styles.inputWrapper, errors.confirmPassword && { borderColor: '#FF0000' }]}>
+                      <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        value={form.confirmPassword}
+                        onChangeText={(v) => handleChange('confirmPassword', v, false)}
+                        placeholder="******"
+                        secureTextEntry={!showConfirmPassword}
+                      />
+                      <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeButton}>
+                        <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+                  </View>
+                </View>
+              )}
+
+              {/* PASSO 2: ESTABELECIMENTO */}
+              {step === 1 && (
+                <View style={styles.stepContent}>
+                  
+                  {/* Upload Logo */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Logótipo do Estabelecimento *</Text>
+                    <TouchableOpacity 
+                      style={[styles.uploadBox, errors.logo && { borderColor: '#FF0000' }]} 
+                      onPress={handleImagePicker}
+                      disabled={imageUploading}
+                    >
+                      {imageUploading ? (
+                        <ActivityIndicator color="#7F00FF" />
+                      ) : form.seller.logo ? (
+                        <Image source={{ uri: form.seller.logo }} style={styles.previewImage} />
+                      ) : (
+                        <>
+                          <MaterialCommunityIcons name="storefront-outline" size={32} color="#9CA3AF" />
+                          <Text style={styles.uploadText}>Toque para adicionar logótipo</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    {errors.logo && <Text style={styles.errorText}>{errors.logo}</Text>}
+                  </View>
+
+                  {/* Tipo de Estabelecimento */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Categoria Principal *</Text>
+                    <View style={[styles.pickerContainer, errors.tipoEstabelecimento && { borderColor: '#FF0000' }]}>
+                      <Picker 
+                        selectedValue={form.seller.tipoEstabelecimento} 
+                        onValueChange={(v) => handleChange('tipoEstabelecimento', v, true)}
+                        style={styles.picker}
+                      >
+                        <Picker.Item label="Selecione a categoria" value="" color="#9CA3AF" />
+                        {tiposEstabelecimentos.map((tipo) => (
+                          <Picker.Item key={tipo._id} label={tipo.name} value={tipo._id} />
+                        ))}
+                      </Picker>
+                    </View>
+                    {errors.tipoEstabelecimento && <Text style={styles.errorText}>{errors.tipoEstabelecimento}</Text>}
+                  </View>
+
+                  {renderInput("Nome do Estabelecimento *", "name", "business-outline", true, { placeholder: "A minha loja" })}
+                  {renderInput("Descrição / Especialidade *", "description", "information-circle-outline", true, { placeholder: "Restaurante, Mercearia..." })}
+                  
+                  {/* Província */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Localização *</Text>
+                    <View style={[styles.pickerContainer, errors.province && { borderColor: '#FF0000' }]}>
+                      <Picker 
+                        selectedValue={form.seller.province} 
+                        onValueChange={(v) => handleChange('province', v, true)}
+                        style={styles.picker}
+                      >
+                        <Picker.Item label="Selecione a província" value="" color="#9CA3AF" />
+                        {provinces.map((prov) => (
+                          <Picker.Item key={prov._id} label={prov.name} value={prov._id} />
+                        ))}
+                      </Picker>
+                    </View>
+                    {errors.province && <Text style={styles.errorText}>{errors.province}</Text>}
+                  </View>
+
+                  {renderInput("Morada (Rua/Avenida) *", "address", "location-outline", true, { placeholder: "Av. principal..." })}
+
+
+                  {renderInput("Telefone de Pagamentos (M-PESA) *", "phoneNumberAccount", "cash-outline", true, { placeholder: "84 ou 85...", keyboardType: "numeric", maxLength: 9 })}
+                  {renderInput("Telefone de Pagamentos (E-MOLA) *", "alternativePhoneNumberAccount", "wallet-outline", true, { placeholder: "86 ou 87...", keyboardType: "numeric", maxLength: 9 })}
+
+                  {/* GPS */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Coordenadas GPS *</Text>
+                    <TouchableOpacity 
+                      style={[styles.secondaryButton, locationLoading && { opacity: 0.7 }]} 
+                      onPress={getCurrentLocation} 
+                      disabled={locationLoading}
+                    >
+                      {locationLoading ? (
+                        <ActivityIndicator color="#7F00FF" />
+                      ) : (
+                        <>
+                          <Ionicons name="location-outline" size={20} color="#7F00FF" />
+                          <Text style={styles.secondaryButtonText}>Atualizar Localização</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    {form.seller.latitude ? (
+                      <Text style={styles.locationText}>Lat: {form.seller.latitude.toFixed(6)} | Lng: {form.seller.longitude.toFixed(6)}</Text>
+                    ) : (
+                      <Text style={[styles.locationText, { color: 'red' }]}>Aguardando localização...</Text>
+                    )}
+                  </View>
+
+                </View>
+              )}
+            </Animated.View>
+          </ScrollView>
+
+          {/* Footer Action */}
+          <View style={styles.footer}>
+            <TouchableOpacity 
+              style={[styles.primaryButton, loading && styles.disabledButton]} 
+              onPress={step === 1 ? handleSubmit : handleNext}
+              disabled={loading}
             >
-{({ handleChange, handleBlur, handleSubmit, setFieldValue, setFieldTouched, values, errors, touched }) => (
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
                 <>
-                  {/* User info */}
-                  <Text style={styles.sectionTitle}>Dados do representante</Text>
-                  <Text style={styles.label}>Nome e apelido</Text>
-                  <View style={styles.inputWrapper(touched.name ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.name} 
-                      onChangeText={handleChange('name')} 
-                      onBlur={handleBlur('name')} 
-                    />
-                  </View>
-                  {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
-
-                  <Text style={styles.label}>Número de telefone</Text>
-                  <View style={styles.inputWrapper(touched.phoneNumber ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.phoneNumber} 
-                      onChangeText={handleChange('phoneNumber')} 
-                      onBlur={handleBlur('phoneNumber')} 
-                      keyboardType="numeric" 
-                    />
-                  </View>
-                  {touched.phoneNumber && errors.phoneNumber && <Text style={styles.error}>{errors.phoneNumber}</Text>}
-
-                  <Text style={styles.label}>Email</Text>
-                  <View style={styles.inputWrapper(touched.email ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.email} 
-                      onChangeText={handleChange('email')} 
-                      onBlur={handleBlur('email')} 
-                      keyboardType="email-address" 
-                      autoCapitalize="none"
-                    />
-                  </View>
-                  {touched.email && errors.email && <Text style={styles.error}>{errors.email}</Text>}
-
-                  <Text style={styles.label}>Senha</Text>
-                  <View style={styles.inputWrapper(touched.password ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.password} 
-                      onChangeText={handleChange('password')} 
-                      onBlur={handleBlur('password')} 
-                      secureTextEntry={!showPassword} 
-                    />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                      <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={24} color="#7F00FF" />
-                    </TouchableOpacity>
-                  </View>
-                  {touched.password && errors.password && <Text style={styles.error}>{errors.password}</Text>}
-
-                  <Text style={styles.label}>Confirmar Senha</Text>
-                  <View style={styles.inputWrapper(touched.confirmPassword ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.confirmPassword} 
-                      onChangeText={handleChange('confirmPassword')} 
-                      onBlur={handleBlur('confirmPassword')} 
-                      secureTextEntry={!showConfirmPassword} 
-                    />
-                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                      <MaterialCommunityIcons name={showConfirmPassword ? 'eye-off' : 'eye'} size={24} color="#7F00FF" />
-                    </TouchableOpacity>
-                  </View>
-                  {touched.confirmPassword && errors.confirmPassword && <Text style={styles.error}>{errors.confirmPassword}</Text>}
-
-                  {/* Seller info */}
-                  <Text style={styles.sectionTitle}>Detalhes do estabelecimento</Text>
-
-                  {/* Logo do estabelecimento - CORRIGIDO */}
-                  <Text style={styles.label}>Logo do estabelecimento</Text>
-
-                  <View style={styles.imageContainer}>
-                    {image ? (
-                      <Image source={{ uri: image }} style={styles.logo} />
-                    ) : (
-                      <View style={styles.placeholderContainer}>
-                        <MaterialCommunityIcons name="image-outline" size={40} color="#7F00FF" />
-                        <Text style={styles.placeholderText}>Nenhuma imagem selecionada</Text>
-                      </View>
-                    )}
-                    
-                    {imageUploading && (
-                      <View style={styles.uploadingOverlay}>
-                        <ActivityIndicator size="large" color="#7F00FF" />
-                        <Text style={styles.uploadingText}>Carregando...</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {errors.seller?.logo && touched.seller?.logo && (
-                    <Text style={styles.error}>{errors.seller.logo}</Text>
-                  )}
-
-                  <TouchableOpacity
-                    style={[styles.button, imageUploading && styles.buttonDisabled]}
-                    onPress={() => handleImagePicker(setFieldValue, setFieldTouched)}
-                    disabled={imageUploading}
-                  >
-                    {imageUploading ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.buttonText}>
-                        {image ? 'Alterar Logo' : 'Adicionar Logo'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <Text style={styles.label}>Nome da empresa</Text>
-                  <View style={styles.inputWrapper(touched.seller?.name ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.seller.name} 
-                      onChangeText={handleChange('seller.name')} 
-                      onBlur={handleBlur('seller.name')} 
-                    />
-                  </View>
-                  {touched.seller?.name && errors.seller?.name && <Text style={styles.error}>{errors.seller?.name}</Text>}
-
-                  <Text style={styles.label}>Descrição do estabelecimento [Especialidade]</Text>
-                  <View style={styles.inputWrapper(touched.seller?.description ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.seller.description} 
-                      onChangeText={handleChange('seller.description')} 
-                      onBlur={handleBlur('seller.description')} 
-                    />
-                  </View>
-                  {touched.seller?.description && errors.seller?.description && <Text style={styles.error}>{errors.seller?.description}</Text>}
-
-                  <Text style={styles.label}>Localização do estabelecimento</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker 
-                      selectedValue={values.seller.province} 
-                      onValueChange={(item) => setFieldValue('seller.province', item)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Selecione a localização" value="" />
-                      {provinces.map((province) => (
-                        <Picker.Item key={province._id} label={province.name} value={province._id} />
-                      ))}
-                    </Picker>
-                  </View>
-                  {touched.seller?.province && errors.seller?.province && <Text style={styles.error}>{errors.seller?.province}</Text>}
-
-                  <Text style={styles.label}>Endereço do estabelecimento [Rua/Av.]</Text>
-                  <View style={styles.inputWrapper(touched.seller?.address ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.seller.address} 
-                      onChangeText={handleChange('seller.address')} 
-                      onBlur={handleBlur('seller.address')} 
-                    />
-                  </View>
-                  {touched.seller?.address && errors.seller?.address && <Text style={styles.error}>{errors.seller?.address}</Text>}
-
-                  <Text style={styles.label}>Tipo de Estabelecimento</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker 
-                      selectedValue={values.seller.tipoEstabelecimento} 
-                      onValueChange={(item) => setFieldValue('seller.tipoEstabelecimento', item)} 
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Selecione o tipo de estabelecimento" value="" />
-                      {tiposEstabelecimentos.map((tipo) => (
-                        <Picker.Item key={tipo._id} label={tipo.nome} value={tipo._id} />
-                      ))}
-                    </Picker>
-                  </View>
-                  {touched.seller?.tipoEstabelecimento && errors.seller?.tipoEstabelecimento && <Text style={styles.error}>{errors.seller?.tipoEstabelecimento}</Text>}
-
-                  <Text style={styles.label}>Número de telefone da empresa para pagamentos [MPESA]</Text>
-                  <View style={styles.inputWrapper(touched.seller?.phoneNumberAccount ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.seller.phoneNumberAccount} 
-                      onChangeText={handleChange('seller.phoneNumberAccount')} 
-                      onBlur={handleBlur('seller.phoneNumberAccount')} 
-                      keyboardType="numeric" 
-                    />
-                  </View>
-                  {touched.seller?.phoneNumberAccount && errors.seller?.phoneNumberAccount && <Text style={styles.error}>{errors.seller?.phoneNumberAccount}</Text>}
-
-                  <Text style={styles.label}>Número de telefone da empresa para pagamentos [EMOLA]</Text>
-                  <View style={styles.inputWrapper(touched.seller?.alternativePhoneNumberAccount ? '#7F00FF' : '#7F00FF')}>
-                    <TextInput 
-                      style={styles.input} 
-                      value={values.seller.alternativePhoneNumberAccount} 
-                      onChangeText={handleChange('seller.alternativePhoneNumberAccount')} 
-                      onBlur={handleBlur('seller.alternativePhoneNumberAccount')} 
-                      keyboardType="numeric" 
-                    />
-                  </View>
-                  {touched.seller?.alternativePhoneNumberAccount && errors.seller?.alternativePhoneNumberAccount && <Text style={styles.error}>{errors.seller?.alternativePhoneNumberAccount}</Text>}
-
-                  {/* Location */}
-                  <Text style={styles.label}>Localização GPS</Text>
-                  <TouchableOpacity 
-                    style={[styles.button, locationLoading && styles.buttonDisabled]} 
-                    onPress={getCurrentLocation} 
-                    disabled={locationLoading}
-                  >
-                    {locationLoading ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.buttonText}>Atualizar Localização</Text>
-                    )}
-                  </TouchableOpacity>
-                  {location?.coords && (
-                    <Text style={styles.locationText}>
-                      Latitude: {location.coords.latitude.toFixed(6)}, Longitude: {location.coords.longitude.toFixed(6)}
-                    </Text>
-                  )}
-                  {!location?.coords && <Text style={styles.error}>Localização não disponível</Text>}
-
-                  <TouchableOpacity 
-                    style={[styles.button, loading && styles.buttonDisabled]} 
-                    onPress={handleSubmit} 
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.buttonText}>Registar</Text>
-                    )}
-                  </TouchableOpacity>
-                  <View style={{ marginBottom: 210 }} />
+                  <Text style={styles.primaryButtonText}>{step === 1 ? "Registar Estabelecimento" : "Avançar"}</Text>
+                  {step === 0 && <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />}
                 </>
               )}
-            </Formik>
-          </ScrollView>
-        </SafeAreaView>
+            </TouchableOpacity>
+          </View>
+
+        </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: 'white', 
-    padding: 20 
-  },
-  cover: { 
-    height: 120, 
-    width: '100%', 
-    resizeMode: 'contain', 
-    marginBottom: 20 
-  },
-  title: { 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    textAlign: 'center', 
-    color: '#7F00FF', 
-    marginBottom: 20 
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: '500', 
-    marginTop: 15, 
-    marginBottom: 10, 
-    color: '#7F00FF' 
-  },
-  label: { 
-    fontSize: 14, 
-    color: '#7F00FF', 
-    marginBottom: 5 
-  },
-  inputWrapper: (borderColor) => ({
-    borderColor,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    height: 50,
-    borderRadius: 12,
-    flexDirection: 'row',
-    paddingHorizontal: 15,
-    alignItems: 'center',
-    marginBottom: 15,
-  }),
-  input: { 
-    flex: 1, 
-    fontSize: 16, 
-    color: '#333' 
-  },
-  error: { 
-    color: 'red', 
-    fontSize: 12, 
-    marginBottom: 10, 
-    marginLeft: 5 
-  },
-  // Estilos CORRIGIDOS para a imagem
-  imageContainer: {
-    alignItems: 'center',
-    marginVertical: 15,
-    position: 'relative',
-  },
-  logo: { 
-    width: 120, 
-    height: 120, 
-    resizeMode: 'cover', 
-    borderRadius: 12, 
-    borderWidth: 2, 
-    borderColor: '#7F00FF' 
-  },
-  placeholderContainer: {
-    width: 120,
-    height: 120,
-    borderWidth: 2,
-    borderColor: '#7F00FF',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9F9F9',
-  },
-  placeholderText: {
-    color: '#7F00FF',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 5,
-  },
-  uploadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  uploadingText: {
-    color: '#7F00FF',
-    marginTop: 8,
-    fontSize: 12,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#7F00FF',
-    borderRadius: 12,
-    marginBottom: 15,
-    overflow: 'hidden',
-  },
-  picker: { 
-    backgroundColor: '#FFF',
-  },
-  button: { 
-    backgroundColor: '#7F00FF', 
-    paddingVertical: 15, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    marginVertical: 10 
-  },
-  buttonText: { 
-    color: '#FFF', 
-    fontSize: 18, 
-    fontWeight: '700' 
-  },
-  buttonDisabled: { 
-    backgroundColor: '#A9A9A9' 
-  },
-  eyeIcon: { 
-    padding: 10 
-  },
-  locationText: { 
-    fontSize: 12, 
-    color: '#555', 
-    textAlign: 'center', 
-    marginBottom: 10 
-  },
-});
+  safeArea: { flex: 1, backgroundColor: "#FFF" },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 15 },
+  backButton: { padding: 5 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
+  stepperContainer: { paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E5E7EB' },
+  stepDotActive: { backgroundColor: '#7F00FF' },
+  stepLine: { width: 60, height: 2, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
+  stepLineActive: { backgroundColor: '#7F00FF' },
+  stepTitle: { textAlign: 'center', fontSize: 16, fontWeight: '600', color: '#374151' },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  stepContent: { flex: 1 },
+  
+  inputContainer: { marginBottom: 20 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, height: 56, paddingHorizontal: 16 },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, color: '#111827' },
+  errorText: { color: 'red', fontSize: 12, marginTop: 4, marginLeft: 4 },
+  
+  eyeButton: { padding: 5 },
 
-export default SignUp;
+  uploadBox: { height: 120, backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  uploadText: { marginTop: 8, fontSize: 14, color: '#9CA3AF' },
+  previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+
+  pickerContainer: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, overflow: 'hidden' },
+  picker: { height: 56, color: '#111827' },
+
+  secondaryButton: { backgroundColor: '#F3E8FF', borderRadius: 12, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  secondaryButtonText: { color: '#7F00FF', fontSize: 15, fontWeight: '600', marginLeft: 8 },
+  locationText: { fontSize: 13, color: '#6B7280', textAlign: 'center' },
+
+  footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#F3F4F6', backgroundColor: '#FFF' },
+  primaryButton: { backgroundColor: '#7F00FF', borderRadius: 16, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#7F00FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  disabledButton: { opacity: 0.7 },
+  primaryButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
+});

@@ -15,9 +15,9 @@ const SellersView = ({ title, description }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/sellers');
+      const response = await api.get('/providers?type=Business');
       if (response.status === 200) {
-        setSellers(response.data.sellers);
+        setSellers(response.data.providers);
       }
     } catch (error) {
       console.error('Erro ao buscar vendedores:', error);
@@ -66,16 +66,16 @@ const SellersView = ({ title, description }) => {
             <SellerCard
               key={seller._id}
               id={seller._id}
-              name={seller.seller.name}
-              logo={seller.seller.logo}
-              description={seller.seller.description}
-              rating={seller.seller.rating}
-              numReviews={seller.seller.numReviews}
-              province={seller.seller.province}
-              address={seller.seller.address}
-              latitude={seller.seller.latitude}
-              longitude={seller.seller.longitude}
-              openstore={seller.seller.openstore}
+              name={seller.name}
+              logo={seller.businessData?.logo || 'https://via.placeholder.com/65'}
+              description={seller.businessData?.description}
+              rating={seller.rating}
+              numReviews={seller.numReviews}
+              province={seller.location?.province}
+              address={seller.location?.address}
+              latitude={seller.location?.lat}
+              longitude={seller.location?.lng}
+              openstore={seller.businessData?.isOpen}
             />
           ))
         ) : (

@@ -51,7 +51,7 @@ export default function VehicleTypesScreen() {
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', iconName: 'faCar', maxWeight: '', status: 'Ativo' });
+      setFormData({ name: '', iconName: 'faCar', category: 'ligeiro', basePrice: 0, maxWeight: '', status: 'Ativo' });
     }
     setShowModal(true);
   };
@@ -122,6 +122,8 @@ export default function VehicleTypesScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Tipo</th>
+                  <th className="border-0 text-muted py-3">Categoria</th>
+                  <th className="border-0 text-muted py-3">Taxa Base (MZN)</th>
                   <th className="border-0 text-muted py-3">Peso Máx. (Capacidade)</th>
                   <th className="border-0 text-muted py-3">Estado</th>
                   <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
@@ -137,15 +139,17 @@ export default function VehicleTypesScreen() {
                     <td className="px-4">
                       <div className="d-flex align-items-center py-1">
                         <div className="bg-light rounded-circle d-flex justify-content-center align-items-center me-3 text-primary-custom shadow-sm" style={{ width: '40px', height: '40px' }}>
-                          <FontAwesomeIcon icon={getIcon(vehicle.iconName)} />
+                          <FontAwesomeIcon icon={getIcon(vehicle.iconName || vehicle.icon)} />
                         </div>
                         <span className="fw-bold text-dark">{vehicle.name}</span>
                       </div>
                     </td>
-                    <td><span className="text-muted fw-bold">{vehicle.maxWeight || 'N/A'}</span></td>
+                    <td><span className="text-muted fw-bold text-capitalize">{vehicle.category || 'ligeiro'}</span></td>
+                    <td><span className="text-dark fw-bold">{vehicle.basePrice || 0} MZN</span></td>
+                    <td><span className="text-muted fw-bold">{vehicle.capacityKg || vehicle.maxWeight || 'N/A'}</span></td>
                     <td>
-                      <span className={`badge rounded-pill ${vehicle.status === 'Ativo' ? 'bg-success' : 'bg-secondary'}`}>
-                        {vehicle.status}
+                      <span className={`badge rounded-pill ${vehicle.status === 'Ativo' || vehicle.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                        {vehicle.status || (vehicle.isActive ? 'Ativo' : 'Inativo')}
                       </span>
                     </td>
                     <td className="text-end px-4">
@@ -178,9 +182,23 @@ export default function VehicleTypesScreen() {
                   <label className="form-label fw-bold small text-muted mb-1">Nome (ex: Mota, Furgão)</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                 </div>
+                <div className="row g-3 mb-3">
+                  <div className="col-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Categoria</label>
+                    <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
+                      <option value="leve">Leve (Motocicletas, Bicicletas)</option>
+                      <option value="ligeiro">Ligeiro (Carros Pequenos, Ligeiros)</option>
+                      <option value="pesado">Pesado (Camiões, Furgões grandes)</option>
+                    </select>
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Taxa Base (MZN)</label>
+                    <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.basePrice} onChange={(e) => setFormData({...formData, basePrice: Number(e.target.value)})} required />
+                  </div>
+                </div>
                 <div className="mb-3">
                   <label className="form-label fw-bold small text-muted mb-1">Capacidade de Carga / Peso Máx.</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.maxWeight} onChange={(e) => setFormData({...formData, maxWeight: e.target.value})} placeholder="Ex: 50 kg" />
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.maxWeight || formData.capacityKg || ''} onChange={(e) => setFormData({...formData, capacityKg: e.target.value, maxWeight: e.target.value})} placeholder="Ex: 50 kg" />
                 </div>
                 <div className="row g-3 mb-4">
                   <div className="col-6">

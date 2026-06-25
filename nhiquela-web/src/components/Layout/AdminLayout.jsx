@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,18 +19,24 @@ export default function AdminLayout() {
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
     { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog },
+    { name: 'Papéis (Roles)', path: '/admin/roles', icon: faShieldAlt },
     { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart },
     { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
     { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
     { name: 'Tipos Estabel.', path: '/admin/establishment-types', icon: faBuilding },
+    { name: 'Classificações Prestador', path: '/admin/provider-classifications', icon: faTags },
+    { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
+    { name: 'Subcategorias de Prestador', path: '/admin/provider-subcategories', icon: faTags },
     { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
     { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers },
+    { name: 'Provedores', path: '/admin/providers', icon: faStore },
     { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
     { name: 'Categorias', path: '/admin/categories', icon: faTags },
     { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },
     { name: 'Serviços', path: '/admin/services', icon: faTools },
     { name: 'Motoristas', path: '/admin/drivers', icon: faCar },
     { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },
+    { name: 'Cores de Veículos', path: '/admin/vehicle-colors', icon: faPalette },
     { name: 'Incidentes', path: '/admin/incidents', icon: faExclamationTriangle },
     { name: 'Subscrições', path: '/admin/subscriptions', icon: faCrown },
     { name: 'Push Notificações', path: '/admin/push-notifications', icon: faBell },
@@ -38,6 +44,7 @@ export default function AdminLayout() {
     { name: 'Financeiro', path: '/admin/finance', icon: faMoneyBillWave },
     { name: 'Métodos Pagamento', path: '/admin/payment-methods', icon: faMoneyBillWave },
     { name: 'Taxas Processamento', path: '/admin/fees', icon: faMoneyBillWave },
+    { name: 'Tarifas de Entrega', path: '/admin/delivery-tariffs', icon: faCar },
     { name: 'Configurações', path: '/admin/settings', icon: faCog },
   ];
 

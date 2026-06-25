@@ -1,13 +1,15 @@
 import axios from 'axios';
 
-// Define a URL base dinamicamente de acordo com o ambiente
-export const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.0.6:5000/api'  // IP local para desenvolvimento
-  : 'http://192.168.0.6:5000/api'; // Forçar ambiente local por agora
+// ---------------------------------------------------------------------
+// 1️⃣ Configuração Automática de Ambiente (Auto QA / Gatekeeper)
+// ---------------------------------------------------------------------
+const isDev = process.env.NODE_ENV !== 'production';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://deliveryshop.herokuapp.com/api');
+export const API_TIMEOUT = 10000;
 
-export const API_TIMEOUT = 5000;
-
-// Cria instância Axios
+// ---------------------------------------------------------------------
+// 2️⃣ Instância do Axios
+// ---------------------------------------------------------------------
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,

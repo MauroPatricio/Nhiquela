@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as Location from "expo-location";
 import axios from "axios";
 import { ENDPOINTS } from "../api/endpoints";

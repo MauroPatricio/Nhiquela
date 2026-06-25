@@ -4,14 +4,18 @@ import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMot
 import { toast } from 'react-toastify';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
-import api from '../../api';
+import api, { SOCKET_URL } from '../../api';
 
 export default function DriversScreen() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [servicesList, setServicesList] = useState([]);
 
   useEffect(() => {
     fetchDrivers();
+    fetchVehicleTypes();
+    fetchServicesList();
   }, []);
 
   const fetchDrivers = async () => {
@@ -24,6 +28,27 @@ export default function DriversScreen() {
       setLoading(false);
     }
   };
+
+  const fetchVehicleTypes = async () => {
+    try {
+      const [{ data: vTypes }, { data: subCats }] = await Promise.all([
+        api.get('/vehicle-types'),
+        api.get('/provider-subcategories')
+      ]);
+      setVehicleTypes([...(vTypes || []), ...(subCats || [])]);
+    } catch (error) {
+      toast.error('Erro ao carregar tipos de veículo/subcategorias');
+    }
+  };
+
+  const fetchServicesList = async () => {
+    try {
+      const { data } = await api.get('/catalog/services');
+      setServicesList(data || []);
+    } catch (error) {
+      console.log('Erro ao carregar serviços', error);
+    }
+  };
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -31,14 +56,15 @@ export default function DriversScreen() {
   // All fields from a standard mobile driver registration
   const [formData, setFormData] = useState({ 
     name: '', email: '', phone: '', password: '',
-    transport_type: 'motocicleta', transport_color: 'Branco', plate: '', 
+    transport_type: '', transport_color: 'Branco', plate: '', 
     licenseNumber: '', idNumber: '', document_type: 'bi',
-    status: 'Pendente' 
+    status: 'Pendente', vehicle_type_id: '', providedServices: []
   });
   
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const {
     currentPage, searchQuery, setSearchQuery, currentData: currentDrivers,
@@ -54,15 +80,18 @@ export default function DriversScreen() {
     if (driver) {
       setIsEditing(true);
       setCurrentId(driver._id || driver.id);
-      setFormData({ ...driver, phoneNumber: driver.phoneNumber || driver.phone, password: '' });
+      
+      const mappedServices = driver.deliveryman?.providedServices?.map(s => s.serviceId?._id || s.serviceId) || [];
+      
+      setFormData({ ...driver, phoneNumber: driver.phoneNumber || driver.phone, password: '', providedServices: mappedServices });
     } else {
       setIsEditing(false);
       setCurrentId(null);
       setFormData({
         name: '', email: '', phoneNumber: '', password: '',
-        transport_type: 'motocicleta', transport_color: 'Branco', plate: '', 
+        transport_type: '', transport_color: 'Branco', plate: '', 
         licenseNumber: '', idNumber: '', document_type: 'bi',
-        status: 'Pendente' 
+        status: 'Pendente', vehicle_type_id: '', providedServices: []
       });
     }
     setShowModal(true);
@@ -101,10 +130,53 @@ export default function DriversScreen() {
     }
   };
 
+  const handleServiceToggle = (serviceId) => {
+    setFormData(prev => {
+      const current = prev.providedServices || [];
+      if (current.includes(serviceId)) {
+        return { ...prev, providedServices: current.filter(id => id !== serviceId) };
+      } else {
+        return { ...prev, providedServices: [...current, serviceId] };
+      }
+    });
+  };
+
   const getVehicleIcon = (type) => {
-    if (type === 'motocicleta') return faMotorcycle;
-    if (type === 'caminhao') return faTruck;
+    const name = getVehicleName(type)?.toLowerCase() || '';
+    if (name.includes('motocicleta') || name.includes('moto')) return faMotorcycle;
+    if (name.includes('caminhao') || name.includes('caminhão')) return faTruck;
     return faCar;
+  };
+
+  const getVehicleName = (typeValue) => {
+    if (!typeValue) return 'N/A';
+    if (/^[a-fA-F0-9]{24}$/.test(typeValue)) {
+      const found = vehicleTypes.find(v => v._id === typeValue || v.id === typeValue);
+      return found ? found.name : typeValue;
+    }
+    return typeValue;
+  };
+
+  const handleUpdateStatus = async (status) => {
+    if (!selectedDriver) return;
+    try {
+      await api.put(`/drivers/${selectedDriver._id || selectedDriver.id}`, { status });
+      toast.success(`Motorista ${status === 'Disponível' ? 'Aprovado' : 'Rejeitado'} com sucesso!`);
+      setShowDetailsModal(false);
+      fetchDrivers();
+    } catch (error) {
+      toast.error('Erro ao atualizar o status do motorista.');
+    }
+  };
+
+  const handleUpdateStatusDirect = async (driver, status) => {
+    try {
+      await api.put(`/drivers/${driver._id || driver.id}`, { status });
+      toast.success('Motorista aprovado com sucesso!');
+      fetchDrivers();
+    } catch (error) {
+      toast.error('Erro ao aprovar motorista.');
+    }
   };
 
   return (
@@ -177,22 +249,27 @@ export default function DriversScreen() {
                     </td>
                     <td>
                       <div className="d-flex flex-column">
-                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.transport_type || 'motocicleta')} className="me-2 text-muted" />{driver.transport_type || 'N/A'}</div>
-                        <small className="text-muted"><FontAwesomeIcon icon={faPalette} className="me-1" /> {driver.transport_color || 'N/A'}</small>
+                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.deliveryman?.transport_type)} className="me-2 text-muted" />{getVehicleName(driver.deliveryman?.transport_type)}</div>
+                        <small className="text-muted"><FontAwesomeIcon icon={faPalette} className="me-1" /> {driver.deliveryman?.transport_color || 'N/A'}</small>
                       </div>
                     </td>
-                    <td><span className="fw-bold px-3 py-1 bg-light rounded-2 border text-uppercase">{driver.plate || '---'}</span></td>
+                    <td><span className="fw-bold px-3 py-1 bg-light rounded-2 border text-uppercase">{driver.deliveryman?.transport_registration || '---'}</span></td>
                     <td>
                       <div className="d-flex flex-column align-items-start">
                         <span className={`badge rounded-pill px-3 py-2 mb-1 ${(driver.status || 'Pendente') === 'Disponível' ? 'bg-success' : (driver.status || 'Pendente') === 'Em Entrega' ? 'bg-info' : (driver.status || 'Pendente') === 'Pendente' ? 'bg-warning text-dark' : 'bg-danger'}`}>
                           {driver.status || 'Pendente'}
                         </span>
-                        {driver.status === 'Pendente' && (
+                        {(!driver.status || driver.status === 'Pendente') && (
                           <small className="text-danger fw-bold"><FontAwesomeIcon icon={faExclamationTriangle} className="me-1" /> Docs pendentes</small>
                         )}
                       </div>
                     </td>
                     <td className="text-end px-4">
+                      {(!driver.status || driver.status === 'Pendente') && (
+                        <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm fw-bold" onClick={() => handleUpdateStatusDirect(driver, 'Disponível')} title="Aprovar Diretamente">
+                          <FontAwesomeIcon icon={faCheckCircle} /> Aprovar
+                        </button>
+                      )}
                       <button className="btn btn-sm btn-light text-info me-2 rounded-3 shadow-sm" onClick={() => handleOpenDetails(driver)} title="Ver Detalhes e Documentos">
                         <FontAwesomeIcon icon={faEye} /> Detalhes
                       </button>
@@ -265,12 +342,14 @@ export default function DriversScreen() {
                 <h6 className="fw-bold text-primary-custom mb-3 mt-4 border-bottom pb-2">Informações do Veículo</h6>
                 <div className="row g-3 mb-4">
                   <div className="col-md-4">
-                    <label className="form-label fw-bold small text-muted mb-1">Tipo de Transporte *</label>
-                    <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.transport_type} onChange={(e) => setFormData({...formData, transport_type: e.target.value})} required>
-                      <option value="motocicleta">Motocicleta</option>
-                      <option value="carro">Carro</option>
-                      <option value="caminhao">Caminhão</option>
-                      <option value="outro">Outro</option>
+                    <label className="form-label fw-bold small text-muted mb-1">Tipo de Veículo (Categoria) *</label>
+                    <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.vehicle_type_id || ''} onChange={(e) => setFormData({...formData, vehicle_type_id: e.target.value})} required>
+                      <option value="">Selecione o Veículo</option>
+                      {vehicleTypes.map((vType) => (
+                        <option key={vType._id || vType.id} value={vType._id || vType.id}>
+                          {vType.name} ({vType.basePrice || 0} MZN) - {vType.category || 'ligeiro'}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="col-md-4">
@@ -288,6 +367,32 @@ export default function DriversScreen() {
                   <div className="col-md-4">
                     <label className="form-label fw-bold small text-muted mb-1">Matrícula/Placa *</label>
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3 text-uppercase" value={formData.plate} onChange={(e) => setFormData({...formData, plate: e.target.value})} placeholder="Ex: ABC 123 MC" required />
+                  </div>
+                </div>
+
+                <h6 className="fw-bold text-primary-custom mb-3 mt-4 border-bottom pb-2">Serviços que Presta</h6>
+                <div className="bg-light p-3 rounded-3 border mb-4">
+                  <div className="row g-2">
+                    {servicesList.length === 0 ? (
+                      <div className="text-muted small">Nenhum serviço disponível no catálogo.</div>
+                    ) : (
+                      servicesList.map(srv => (
+                        <div key={srv._id} className="col-md-6 col-lg-4">
+                          <div className="form-check">
+                            <input 
+                              className="form-check-input" 
+                              type="checkbox" 
+                              id={`srv_${srv._id}`}
+                              checked={formData.providedServices?.includes(srv._id) || false}
+                              onChange={() => handleServiceToggle(srv._id)}
+                            />
+                            <label className="form-check-label fw-bold small text-dark" htmlFor={`srv_${srv._id}`}>
+                              {srv.name}
+                            </label>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -324,9 +429,9 @@ export default function DriversScreen() {
             <div className="card-body p-4" style={{ overflowY: 'auto' }}>
               <div className="row mb-4">
                 <div className="col-md-3 text-center">
-                  {selectedDriver.documents?.photo ? (
+                  {selectedDriver.deliveryman?.photo || selectedDriver.photo ? (
                     <div className="bg-light rounded-4 mx-auto mb-3 overflow-hidden border shadow-sm position-relative" style={{ width: '100%', aspectRatio: '3/4' }}>
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedDriver.name}`} alt="Selfie" className="w-100 h-100 object-fit-cover" />
+                      <img src={(selectedDriver.deliveryman?.photo || selectedDriver.photo).startsWith('http') ? (selectedDriver.deliveryman?.photo || selectedDriver.photo) : `${SOCKET_URL}${selectedDriver.deliveryman?.photo || selectedDriver.photo}`} alt="Selfie" className="w-100 h-100 object-fit-cover" />
                       <div className="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-50 text-white small py-1">Selfie</div>
                     </div>
                   ) : (
@@ -359,38 +464,38 @@ export default function DriversScreen() {
                   <div className="row g-3">
                     <div className="col-sm-6">
                       <div className="text-muted small fw-bold"><FontAwesomeIcon icon={faPhone} className="me-2" />Telefone</div>
-                      <div className="fw-bold text-dark">{selectedDriver.phone}</div>
+                      <div className="fw-bold text-dark">{selectedDriver.phoneNumber || selectedDriver.deliveryman?.phoneNumber}</div>
                     </div>
                     <div className="col-sm-6">
                       <div className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />Localização Base</div>
-                      <div className="fw-bold text-dark">{selectedDriver.province || 'N/A'}</div>
+                      <div className="fw-bold text-dark">{selectedDriver.location || selectedDriver.province || 'N/A'}</div>
                     </div>
                     <div className="col-sm-6">
-                      <div className="text-muted small fw-bold"><FontAwesomeIcon icon={faIdCard} className="me-2" />{selectedDriver.document_type === 'passport' ? 'Passaporte' : 'BI'}</div>
-                      <div className="fw-bold text-dark">{selectedDriver.idNumber}</div>
+                      <div className="text-muted small fw-bold"><FontAwesomeIcon icon={faIdCard} className="me-2" />{selectedDriver.deliveryman?.document_type === 'passport' ? 'Passaporte' : 'BI'}</div>
+                      <div className="fw-bold text-dark">{selectedDriver.deliveryman?.document_front ? 'Enviado' : 'Não Enviado'}</div>
                     </div>
                     <div className="col-sm-6">
                       <div className="text-muted small fw-bold"><FontAwesomeIcon icon={faFileAlt} className="me-2" />Carta de Condução</div>
-                      <div className="fw-bold text-dark">{selectedDriver.licenseNumber}</div>
+                      <div className="fw-bold text-dark">{selectedDriver.deliveryman?.license_front ? 'Enviada' : 'Não Enviada'}</div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="bg-primary-subtle p-3 rounded-4 mb-4 border border-primary-custom shadow-sm">
-                <h6 className="fw-bold text-primary-custom mb-3"><FontAwesomeIcon icon={getVehicleIcon(selectedDriver.transport_type)} className="me-2" />Dados do Veículo</h6>
+                <h6 className="fw-bold text-primary-custom mb-3"><FontAwesomeIcon icon={getVehicleIcon(selectedDriver.deliveryman?.transport_type)} className="me-2" />Dados do Veículo</h6>
                 <div className="row g-3">
                   <div className="col-4">
                     <div className="text-primary-custom small fw-bold text-uppercase">Tipo</div>
-                    <div className="fw-bold text-dark text-capitalize">{selectedDriver.transport_type}</div>
+                    <div className="fw-bold text-dark text-capitalize">{getVehicleName(selectedDriver.deliveryman?.transport_type)}</div>
                   </div>
                   <div className="col-4">
                     <div className="text-primary-custom small fw-bold text-uppercase">Cor</div>
-                    <div className="fw-bold text-dark"><FontAwesomeIcon icon={faPalette} className="text-muted me-1" /> {selectedDriver.transport_color}</div>
+                    <div className="fw-bold text-dark"><FontAwesomeIcon icon={faPalette} className="text-muted me-1" /> {selectedDriver.deliveryman?.transport_color || 'N/A'}</div>
                   </div>
                   <div className="col-4">
                     <div className="text-primary-custom small fw-bold text-uppercase">Matrícula</div>
-                    <div className="fw-bold px-2 py-1 bg-white text-dark rounded border border-primary-custom d-inline-block mt-1 text-uppercase">{selectedDriver.plate}</div>
+                    <div className="fw-bold px-2 py-1 bg-white text-dark rounded border border-primary-custom d-inline-block mt-1 text-uppercase">{selectedDriver.deliveryman?.transport_registration || 'N/A'}</div>
                   </div>
                 </div>
               </div>
@@ -402,21 +507,28 @@ export default function DriversScreen() {
                   { key: 'vihicle_picture', label: 'Foto do Veículo', icon: faCar },
                   { key: 'license_front', label: 'Carta de Condução (Frente)', icon: faFileAlt },
                   { key: 'license_back', label: 'Carta de Condução (Verso)', icon: faFileAlt },
-                  { key: 'document_front', label: `${selectedDriver.document_type === 'passport' ? 'Passaporte' : 'BI'} (Frente)`, icon: faIdCard },
-                  { key: 'document_back', label: `${selectedDriver.document_type === 'passport' ? 'Passaporte' : 'BI'} (Verso)`, icon: faIdCard },
+                  { key: 'document_front', label: `${selectedDriver.deliveryman?.document_type === 'passport' ? 'Passaporte' : 'BI'} (Frente)`, icon: faIdCard },
+                  { key: 'document_back', label: `${selectedDriver.deliveryman?.document_type === 'passport' ? 'Passaporte' : 'BI'} (Verso)`, icon: faIdCard },
+                  { key: 'vihicle_logbook', label: 'Livrete', icon: faFileAlt },
                   { key: 'vihicle_inspection', label: 'Inspeção do Veículo', icon: faCheckCircle },
                   { key: 'vihicle_Insurance', label: 'Seguro Automóvel', icon: faShieldAlt },
                   { key: 'Proof_of_Address', label: 'Comprovativo de Morada', icon: faMapMarkerAlt },
                 ].map(doc => (
                   <div key={doc.key} className="col-md-6 col-lg-4">
-                    <div className={`p-3 rounded-3 border h-100 d-flex flex-column ${selectedDriver.documents?.[doc.key] ? 'bg-white border-success shadow-sm' : 'bg-light border-dashed'}`}>
+                    <div className={`p-3 rounded-3 border h-100 d-flex flex-column ${selectedDriver.deliveryman?.[doc.key] ? 'bg-white border-success shadow-sm' : 'bg-light border-dashed'}`}>
                       <div className="d-flex justify-content-between align-items-start mb-2">
                         <span className="fw-bold text-dark small lh-sm" style={{flex: 1}}><FontAwesomeIcon icon={doc.icon} className="me-2 text-primary-custom" /> {doc.label}</span>
-                        {selectedDriver.documents?.[doc.key] ? <FontAwesomeIcon icon={faCheckCircle} className="text-success ms-2" /> : <span className="badge bg-secondary ms-2" style={{fontSize: '0.65rem'}}>Em falta</span>}
+                        {selectedDriver.deliveryman?.[doc.key] ? <FontAwesomeIcon icon={faCheckCircle} className="text-success ms-2" /> : <span className="badge bg-secondary ms-2" style={{fontSize: '0.65rem'}}>Em falta</span>}
                       </div>
                       <div className="mt-auto pt-2">
-                        {selectedDriver.documents?.[doc.key] ? (
-                          <button className="btn btn-sm btn-outline-success w-100 rounded-3 fw-bold"><FontAwesomeIcon icon={faEye} className="me-1" /> Ver Imagem</button>
+                        {selectedDriver.deliveryman?.[doc.key] ? (
+                          <button 
+                            type="button" 
+                            onClick={() => setSelectedImage(selectedDriver.deliveryman[doc.key].startsWith('http') ? selectedDriver.deliveryman[doc.key] : `${SOCKET_URL}${selectedDriver.deliveryman[doc.key]}`)} 
+                            className="btn btn-sm btn-outline-success w-100 rounded-3 fw-bold"
+                          >
+                            <FontAwesomeIcon icon={faEye} className="me-1" /> Ver Imagem
+                          </button>
                         ) : (
                           <button className="btn btn-sm btn-light w-100 rounded-3 text-muted disabled">Não Submetido</button>
                         )}
@@ -427,19 +539,71 @@ export default function DriversScreen() {
               </div>
             </div>
             
-            <div className="card-footer bg-light border-top p-4 d-flex gap-3">
-              <button className="btn btn-outline-secondary flex-grow-1 py-3 rounded-pill fw-bold" onClick={() => setShowDetailsModal(false)}>
-                Fechar Dossier
-              </button>
-              {selectedDriver.status === 'Pendente' && (
-                <button className="btn btn-success flex-grow-1 py-3 rounded-pill fw-bold shadow-sm" onClick={() => {
-                  toast.success('Documentos validados! Motorista Aprovado e Ativado na App.');
-                  setShowDetailsModal(false);
-                }}>
-                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Validar Documentos & Aprovar
+            <div className="card-footer bg-white border-top p-4">
+              {/* Barra de status atual */}
+              <div className="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3 bg-light border">
+                <div>
+                  <div className="text-muted small fw-bold text-uppercase mb-1">Estado atual da conta</div>
+                  <span className={`badge fs-6 rounded-pill px-3 py-2 ${
+                    selectedDriver.status === 'Disponível' ? 'bg-success' :
+                    selectedDriver.status === 'Pendente' ? 'bg-warning text-dark' :
+                    selectedDriver.status === 'Em Entrega' ? 'bg-info' : 'bg-danger'
+                  }`}>
+                    {selectedDriver.status || 'Pendente'}
+                  </span>
+                </div>
+                <div className="text-muted small text-end">
+                  {selectedDriver.status === 'Disponível' && <span className="text-success fw-bold"><FontAwesomeIcon icon={faCheckCircle} className="me-1" />Conta ativa e operacional</span>}
+                  {(selectedDriver.status === 'Pendente' || !selectedDriver.status) && <span className="text-warning fw-bold"><FontAwesomeIcon icon={faExclamationTriangle} className="me-1" />Aguarda aprovação dos documentos</span>}
+                  {selectedDriver.status === 'Inativo' && <span className="text-danger fw-bold"><FontAwesomeIcon icon={faTimes} className="me-1" />Conta suspensa ou rejeitada</span>}
+                </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="d-flex gap-2 flex-wrap">
+                <button className="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold" onClick={() => setShowDetailsModal(false)}>
+                  Fechar Dossier
                 </button>
-              )}
+                <div className="d-flex gap-2 ms-auto flex-wrap">
+                  {selectedDriver.status !== 'Inativo' && (
+                    <button
+                      className="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm"
+                      onClick={() => { if(window.confirm(`Rejeitar e suspender a conta de ${selectedDriver.name}?`)) handleUpdateStatus('Inativo'); }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} className="me-2" /> Rejeitar / Suspender
+                    </button>
+                  )}
+                  {selectedDriver.status !== 'Disponível' && (
+                    <button
+                      className="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm"
+                      onClick={() => handleUpdateStatus('Disponível')}
+                    >
+                      <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Aprovar Motorista
+                    </button>
+                  )}
+                  {selectedDriver.status === 'Disponível' && (
+                    <button
+                      className="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark"
+                      onClick={() => { if(window.confirm(`Colocar a conta de ${selectedDriver.name} em modo Pendente?`)) handleUpdateStatus('Pendente'); }}
+                    >
+                      <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" /> Colocar Pendente
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visualizador de Imagem */}
+      {selectedImage && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1100, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }} onClick={() => setSelectedImage(null)}>
+          <div className="position-relative" style={{ maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+            <button className="btn btn-light rounded-circle position-absolute" style={{ top: '-40px', right: '-40px', width: '40px', height: '40px', zIndex: 1101 }} onClick={() => setSelectedImage(null)}>
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <img src={selectedImage} alt="Visualização do Documento" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} />
           </div>
         </div>
       )}

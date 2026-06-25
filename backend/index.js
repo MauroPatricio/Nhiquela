@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config({ path: '.env' });
 import mongoose from 'mongoose';
@@ -12,6 +14,7 @@ import uploadRouter from './routes/uploadRoutes.js';
 import http from 'http';
 import { Server } from 'socket.io';
 import categoryRouter from './routes/categoryRoutes.js';
+import subcategoryRouter from './routes/subcategoryRoutes.js';
 import path from 'path';
 import provinceRoutes from './routes/provinceRoutes.js';
 import documentTypeRoutes from './routes/documentTypeRoutes.js';
@@ -33,6 +36,11 @@ import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
 import serviceRouter from './routes/serviceRoutes.js';
 import homeRouter from './routes/homeRoutes.js';
 import statsRouter from './routes/statsRoutes.js';
+import providerRouter from './routes/providerRoutes.js';
+import providerTypeRoutes from './routes/providerTypeRoutes.js';
+import providerClassificationRoutes from './routes/providerClassificationRoutes.js';
+import providerSubcategoryRoutes from './routes/providerSubcategoryRoutes.js';
+import NotificationModel from './models/NotificationModel.js';
 
 import mpesa from 'mpesa-node-api';
 
@@ -47,8 +55,7 @@ import walletRouter from './routes/walletRoutes.js';
 import trackingRoutes from './routes/trackingRoutes.js';
 import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
-
-
+import routingRoutes from './routes/routingRoutes.js';
 
 // Conectar ao MongoDB
 mongoose
@@ -61,44 +68,88 @@ mongoose
     w: 'majority' // ✅ Write concern
   })
   .then(() => {
-    console.log('Conectei me ao MongoDB com SUCESSO');
+    console.log('✅ Conectei me ao MongoDB com SUCESSO');
   })
   .catch((err) => {
-    console.log('❌ ERRO MongoDB:', err.message);
-    console.log('🔧 Dica: Verifique:');
-    console.log('   - String de conexão no .env');
-    console.log('   - MongoDB Atlas online');
-    console.log('   - Internet estável');
+    console.log('❌ ERRO INICIAL MongoDB:', err.message);
+    process.exit(1); // Exit if initial connection fails so nodemon/pm2 restarts it
   });
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ MongoDB desconectado. O Mongoose tentará reconectar automaticamente...');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.log('❌ ERRO MongoDB na conexão ativa:', err.message);
+});
 
 // **Inicializando Express**
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Proteções básicas de segurança (Helmet)
+app.use(helmet());
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domínios
+
+// Rate Limiting (Bloqueia DDoS e ataques de força bruta)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 1000, // limite de 1000 requisicoes por IP
+  message: { message: 'Muitas requisições deste IP, tente novamente mais tarde.' }
+});
+app.use('/api', limiter); // Aplica o limitador a todas as rotas de API
+
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+import establishmentTypeRoutes from './routes/establishmentTypeRoutes.js';
+import driverRoutes from './routes/driverRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import planRoutes from './routes/planRoutes.js';
+import vehicleTypeRoutes from './routes/vehicleTypeRoutes.js';
+import vehicleColorRoutes from './routes/vehicleColorRoutes.js';
+import incidentRoutes from './routes/incidentRoutes.js';
+import marketingRoutes from './routes/marketingRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
+import pricingRoutes from './routes/pricingRoutes.js';
+
+import serviceCatalogRoutes from './routes/serviceCatalogRoutes.js';
+import serviceRequestRoutes from './routes/serviceRequestRoutes.js';
+import roleRouter from './routes/roleRoutes.js';
+
 // Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Mount API routers under the '/api' namespace
+app.use('/api/catalog', serviceCatalogRoutes);
+app.use('/api/service-requests', serviceRequestRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/categories', categoryRouter);
+app.use('/api/subcategories', subcategoryRouter);
+app.use('/api/tipoEstabelecimentos', tipoEstabelecimentoRoutes);
+app.use('/api/services', serviceRouter);
+app.use('/api/service-requests', requestDeliverRoutes);
+app.use('/api/providers', providerRouter);
+
 app.use('/api/provinces', provinceRoutes);
 app.use('/api/document-types', documentTypeRoutes);
 app.use('/api/quality-types', qualityTypeRouter);
 app.use('/api/condition-status', conditionStatusRouter);
+app.use('/api/provider-types', providerTypeRoutes);
+app.use('/api/provider-classifications', providerClassificationRoutes);
+app.use('/api/provider-subcategories', providerSubcategoryRoutes);
 app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/request-deliver', requestDeliverRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
+app.use('/api/establishment-types', establishmentTypeRoutes);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/payments-emola', paymentRouterEmola);
 app.use('/api/wallet', walletRouter);
@@ -109,7 +160,17 @@ app.use('/api/home', homeRouter);
 app.use('/api/document-order', documentOrderRoutes);
 app.use('/api/payment-methods', paymentMethodRoutes);
 app.use('/api/processing-fees', processingFeeRoutes);
-
+app.use('/api/drivers', driverRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/plans', planRoutes);
+app.use('/api/vehicle-types', vehicleTypeRoutes);
+app.use('/api/vehicle-colors', vehicleColorRoutes);
+app.use('/api/incidents', incidentRoutes);
+app.use('/api/marketing', marketingRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/roles', roleRouter);
+app.use('/api/routing', routingRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.log(err);
@@ -153,6 +214,15 @@ io.on('connection', (socket) => {
       users.push(updatedUser);
     }
     console.log('Online', user.name);
+
+    // 🔔 Motoristas entram automaticamente na sua sala pessoal
+    // Isso permite que o admin envie notificações direcionadas (ex: aprovação de conta)
+    if (user._id && user.isDeliveryMan) {
+      const driverRoom = `driver_${user._id}`;
+      socket.join(driverRoom);
+      console.log(`🚗 Motorista ${user.name} entrou na sala ${driverRoom}`);
+    }
+
     const admin = users.find((x) => x.isAdmin && x.online);
     if (admin) {
       io.to(admin.socketId).emit('updateUser', updatedUser);

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import MapView, { Marker, Camera, UrlTile } from "react-native-maps";
-import MapViewDirections from "react-native-maps-directions";
+import MapView, { Marker, Camera, UrlTile, Polyline } from "react-native-maps";
 import { 
   StyleSheet, 
   Dimensions, 
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 import { COLORS } from "../styles/colors";
 import * as Location from 'expo-location';
+import { getRoute } from "../services/routingService";
 //@ts-ignore
 import { Ionicons } from "@expo/vector-icons";
 
@@ -43,16 +43,19 @@ export default function TripMap({
   tripData, // Recebe os dados da viagem
   onStartTrip // Recebe a função startTrip
 }: Props) {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [origin, setOrigin] = useState<any>(null);
   const [heading, setHeading] = useState<number>(0);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  
+  const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
+  const [speed, setSpeed] = useState<number>(0);
+
   const lastPositionRef = useRef<any>(null);
   const animationRef = useRef<any>(null);
+  const hasInitialZoomed = useRef(false);
 
   // 🔥 OBTER LOCALIZAÇÃO EM TEMPO REAL
   useEffect(() => {
@@ -93,6 +96,12 @@ export default function TripMap({
             setHeading(newHeading);
           }
           
+          // Capturar e converter velocidade (m/s para km/h)
+          const currentSpeed = newLocation.coords.speed !== null && newLocation.coords.speed > 0 
+            ? newLocation.coords.speed * 3.6 
+            : 0;
+          setSpeed(Math.round(currentSpeed));
+
           // Atualizar posição
           setOrigin(updatedLocation);
           lastPositionRef.current = updatedLocation;
@@ -138,12 +147,15 @@ export default function TripMap({
   const updateCamera = (center: any, customHeading?: number) => {
     const camera: Camera = {
       center,
-      pitch: 0,
+      pitch: 45,
       heading: customHeading !== undefined ? customHeading : heading,
-      altitude: 1000,
-      zoom: 15,
+      altitude: 50,
+      zoom: 19,
     };
-    mapRef.current?.animateCamera(camera, { duration: 500 });
+    
+    const animDuration = hasInitialZoomed.current ? 1000 : 5000;
+    mapRef.current?.animateCamera(camera, { duration: animDuration });
+    hasInitialZoomed.current = true;
   };
 
   const startBlinkAnimation = () => {
@@ -163,28 +175,50 @@ export default function TripMap({
     ).start();
   };
 
-  const handleRouteReady = (result: any) => {
-    if (result.duration_in_traffic) {
-      setDuration(result.duration_in_traffic);
-    } else {
-      setDuration(result.duration);
-    }
-  
-    setDistance(result.distance);
-  
-    if (origin && destination) {
-      mapRef.current?.fitToCoordinates([origin, destination], {
-        edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
-        animated: true,
-      });
-    }
-    
-    if (onRouteReady) onRouteReady();
+  useEffect(() => {
+    if (origin && destination && shouldDrawRoute) {
+      const fetchRoute = async () => {
+        try {
+          const result = await getRoute(origin.latitude, origin.longitude, destination.latitude, destination.longitude);
+          if (result && result.coordinates) {
+            setDuration(result.durationMinutes);
+            setDistance(result.distanceKm);
 
-    if (result.coordinates.length > 1 && origin) {
-      const routeHeading = calculateHeading(result.coordinates);
-      updateCamera(origin, routeHeading);
+            // OSRM devolve [lng, lat], o MapView precisa de {latitude, longitude}
+            const coords = result.coordinates.map((coord: [number, number]) => ({
+              latitude: coord[1],
+              longitude: coord[0]
+            }));
+
+            setRouteCoordinates(coords);
+
+            // Removemos fitToCoordinates para garantir que a câmera fica sempre aproximada no motorista
+            // mapRef.current?.fitToCoordinates([origin, destination], {
+            //  edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
+            //  animated: true,
+            // });
+
+            if (onRouteReady) onRouteReady();
+
+            if (coords.length > 1 && origin) {
+              const routeHeading = calculateHeading(coords);
+              updateCamera(origin, routeHeading);
+            }
+          }
+        } catch (error) {
+          console.warn("Erro ao buscar rota via OSRM:", error);
+        }
+      };
+      fetchRoute();
+    } else {
+      setRouteCoordinates([]);
+      setDuration(null);
+      setDistance(null);
     }
+  }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude, shouldDrawRoute]);
+
+  const handleRouteReady = (result: any) => {
+    // Mantido para não quebrar referências, mas o desenho principal agora usa useEffect
   };
 
   const calculateHeading = (coordinates: any[]) => {
@@ -261,7 +295,12 @@ export default function TripMap({
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={null}
+        initialRegion={{
+          latitude: -18.665695,
+          longitude: 35.529562,
+          latitudeDelta: 25,
+          longitudeDelta: 25,
+        }}
         showsUserLocation={false}
         loadingEnabled
         rotateEnabled={true}
@@ -303,17 +342,13 @@ export default function TripMap({
           </Marker>
         )}
 
-        {/* 🔥 ROTA (APENAS SE DEVE DESENHAR E TEM ORIGEM+DESTINO) */}
-        {origin && destination && shouldDrawRoute && (
-          <MapViewDirections
-            origin={origin}
-            destination={destination}
-            apikey={GOOGLE_API_KEY}
+        {/* 🔥 ROTA OSRM CENTRALIZADA (APENAS SE DEVE DESENHAR E TEM ORIGEM+DESTINO) */}
+        {origin && destination && shouldDrawRoute && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
             strokeWidth={4}
             strokeColor={statusInfo.color}
-            optimizeWaypoints={true}
-            mode="DRIVING"
-            onReady={handleRouteReady}
+            lineDashPattern={[0]}
           />        
         )}
       </MapView>
@@ -368,6 +403,15 @@ export default function TripMap({
           <Text style={styles.compassDegree}>{Math.round(heading)}°</Text>
         </View>
       )}
+
+      {/* 🔥 SPEED BOX (APENAS SE TEM LOCALIZAÇÃO) */}
+      {origin && (
+        <View style={styles.speedBox}>
+          <Text style={styles.speedValue}>{speed}</Text>
+          <Text style={styles.speedLabel}>km/h</Text>
+        </View>
+      )}
+
 
       {/* 🔥 MODAL DE CONFIRMAÇÃO */}
       <Modal
@@ -564,22 +608,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   compassArrow: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
+    height: 24,
     justifyContent: 'center',
   },
   compassIcon: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   compassDegree: {
-    fontSize: 8,
-    color: '#333',
-    marginTop: 1,
+    fontSize: 10,
     fontWeight: 'bold',
+    color: '#333',
+    marginTop: 2,
+  },
+  speedBox: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 8,
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  speedValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#2E86DE',
+  },
+  speedLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#666',
   },
   // 🔥 Estilos do Modal
   modalOverlay: {

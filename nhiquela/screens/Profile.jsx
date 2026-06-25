@@ -87,7 +87,7 @@ const Profile = () => {
 
       {/* 1. TOP PREMIUM HEADER BACKDROP */}
       <LinearGradient
-        colors={['#1E293B', '#0F172A']} // Tom escuro neutro que harmoniza com qualquer foto
+        colors={['#7F00FF', '#A855F7']} // Cor do aplicativo
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerBackdrop}
@@ -95,7 +95,7 @@ const Profile = () => {
         {/* Floating rounded Brand Logo Container */}
         <View style={styles.logoBadgeContainer}>
           <Image
-            source={require('../assets/nhiquela2.png')}
+            source={require('../assets/nhiquela.png')}
             style={styles.logoBadge}
             resizeMode="contain"
           />
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   logoBadgeContainer: {
     width: 200,
-    height: 60,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
@@ -264,7 +264,6 @@ const styles = StyleSheet.create({
   logoBadge: {
     width: '100%',
     height: '100%',
-    transform: [{ scale: 2.2 }], // Escala adequada para não cortar os bordos
   },
   profileContainer: {
     alignItems: "center",
