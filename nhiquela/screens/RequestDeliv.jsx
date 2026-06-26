@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,9 @@ import {
   Dimensions,
   PanResponder,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  FlatList,
   LogBox
 } from 'react-native';
 
@@ -26,7 +29,7 @@ console.error = (...args) => {
   }
   originalConsoleError(...args);
 };
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -64,6 +67,21 @@ export default function RequestDelivSimple() {
   const scrollViewRef = React.useRef(null);
   const focusedInputRef = React.useRef(null);
   const [showMotives, setShowMotives] = useState(true);
+  const [searchSeconds, setSearchSeconds] = useState(0); // contador visivel na busca
+  const searchTimerRef = React.useRef(null);
+  const searchCounterRef = React.useRef(null);
+
+  // Autocomplete state
+  const [originText, setOriginText] = useState('');
+  const [destText, setDestText] = useState('');
+  const [originSuggestions, setOriginSuggestions] = useState([]);
+  const [destSuggestions, setDestSuggestions] = useState([]);
+  const [loadingOrigin, setLoadingOrigin] = useState(false);
+  const [loadingDest, setLoadingDest] = useState(false);
+  const originInputRef = useRef(null);
+  const destInputRef = useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isMinimized, setIsMinimized] = useState(false); // toggle ver rota
 
   // Native Bottom Sheet State
   const { height: screenHeight } = Dimensions.get('window');
@@ -159,16 +177,14 @@ export default function RequestDelivSimple() {
           }
         }
         
-        setOrigin(placeName);
+        setOriginText(placeName);
         if (originRef.current) {
           originRef.current.setAddressText(placeName);
         }
       } catch (error) {
         console.log('Erro no reverse geocoding:', error);
+        setOriginText('Minha localização atual');
         setOrigin('Minha localização atual');
-        if (originRef.current) {
-          originRef.current.setAddressText('Minha localização atual');
-        }
       }
 
       if (mapRef.current) {
@@ -184,20 +200,76 @@ export default function RequestDelivSimple() {
     }
   };
 
+  /* ---------------- PLACES AUTOCOMPLETE ---------------- */
+  const fetchSuggestions = async (text, type) => {
+    if (!text || text.length < 2) {
+      if (type === 'origin') setOriginSuggestions([]);
+      else setDestSuggestions([]);
+      return;
+    }
+    if (type === 'origin') setLoadingOrigin(true);
+    else setLoadingDest(true);
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${EXPO_GOOGLE_MAPS_APIKEY}&language=pt&components=country:mz`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.predictions) {
+        if (type === 'origin') setOriginSuggestions(json.predictions);
+        else setDestSuggestions(json.predictions);
+      }
+    } catch (e) {
+      console.log('Autocomplete error:', e);
+    } finally {
+      if (type === 'origin') setLoadingOrigin(false);
+      else setLoadingDest(false);
+    }
+  };
+
+  const selectPlace = async (placeId, description, type) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${EXPO_GOOGLE_MAPS_APIKEY}&fields=geometry`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const loc = json.result?.geometry?.location;
+      if (type === 'origin') {
+        setOriginText(description);
+        setOriginSuggestions([]);
+        setOrigin(description);
+        if (loc) setOriginCoord({ lat: loc.lat, lng: loc.lng });
+        Keyboard.dismiss();
+      } else {
+        setDestText(description);
+        setDestSuggestions([]);
+        setDestination(description);
+        if (loc) setDestCoord({ lat: loc.lat, lng: loc.lng });
+        Keyboard.dismiss();
+      }
+    } catch (e) {
+      console.log('Place details error:', e);
+    }
+  };
+
   /* ---------------- LOCATION & KEYBOARD ---------------- */
   useEffect(() => {
     handleGetCurrentLocation();
 
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+      const kbHeight = e.endCoordinates.height;
+      setKeyboardHeight(kbHeight);
       snapTo(SNAP_TOP);
+      // Aguarda o snap terminar antes de scrollar
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 350);
     });
+
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      // Deixar o utilizador visualizar os resultados sem forçar o scroll para 0 nem encolher o ecrã
+      setKeyboardHeight(0);
     });
 
     return () => {
-      keyboardDidHideListener.remove();
       keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, []);
 
@@ -218,8 +290,7 @@ export default function RequestDelivSimple() {
           } else {
             setPrice(data.price || 0);
           }
-
-          snapTo(SNAP_TOP); // Auto-expand to 90% when calculated
+          // NAO forcar snap aqui — deixar o utilizador controlar a posicao do sheet
           if (data.routeCoordinates && data.routeCoordinates.length > 0) {
             setRouteCoords(data.routeCoordinates);
           }
@@ -229,7 +300,6 @@ export default function RequestDelivSimple() {
         } catch (error) {
           console.log('Erro ao consultar motor de preços:', error);
           setPrice(120); // Fallback
-          snapTo(SNAP_TOP);
           setRouteCoords([]);
         }
       }
@@ -257,25 +327,66 @@ export default function RequestDelivSimple() {
     }
   }, [originCoord, destCoord, routeCoords]);
 
-  // Search Logic (Timer & Radius)
+  // REAL Search Logic — calls API, waits 10s, then asks to expand radius
   useEffect(() => {
-    let timer;
-    if (step === 2 && isSearching) {
-      // Simulate search delay (10 seconds)
-      timer = setTimeout(() => {
-        if (radius >= 7) {
-          // Simulate finding a driver on the second try
-          setIsSearching(false);
-          Alert.alert("Sucesso!", "Encontrámos um motorista próximo de si!");
-          navigation.navigate('Pedidos'); // Replace with actual order detail navigation
-        } else {
-          setIsSearching(false);
-          setShowBusyModal(true);
-        }
-      }, 10000); // 10 seconds per try for UX purposes
+    if (!isSearching) {
+      // Limpar timers ao parar a busca
+      clearTimeout(searchTimerRef.current);
+      clearInterval(searchCounterRef.current);
+      setSearchSeconds(0);
+      return;
     }
-    return () => clearTimeout(timer);
-  }, [step, isSearching, radius]);
+
+    setSearchSeconds(0);
+
+    // Contador visual (0 -> 10s)
+    searchCounterRef.current = setInterval(() => {
+      setSearchSeconds(prev => prev + 1);
+    }, 1000);
+
+    // Chamar API para procurar motoristas
+    const searchDrivers = async () => {
+      try {
+        const response = await api.get('/drivers/available', {
+          params: {
+            lat: originCoord?.lat,
+            lng: originCoord?.lng,
+            radius,
+            serviceId: service?._id,
+          }
+        });
+        const drivers = response.data?.drivers || response.data || [];
+        if (drivers.length > 0) {
+          clearTimeout(searchTimerRef.current);
+          clearInterval(searchCounterRef.current);
+          setIsSearching(false);
+          // Navegar para detalhes do pedido com o primeiro motorista disponivel
+          navigation.navigate('Pedidos');
+          return;
+        }
+      } catch (err) {
+        console.log('Erro ao procurar motoristas:', err);
+      }
+    };
+
+    // Chamar imediatamente e depois a cada 3s
+    searchDrivers();
+    const pollInterval = setInterval(searchDrivers, 3000);
+
+    // Apos 60s sem motorista encontrado -> perguntar para aumentar o raio
+    searchTimerRef.current = setTimeout(() => {
+      clearInterval(pollInterval);
+      clearInterval(searchCounterRef.current);
+      setIsSearching(false);
+      setShowBusyModal(true);
+    }, 60000);
+
+    return () => {
+      clearTimeout(searchTimerRef.current);
+      clearInterval(searchCounterRef.current);
+      clearInterval(pollInterval);
+    };
+  }, [isSearching, radius]);
 
   const startPulse = () => {
     pulseAnim.setValue(0);
@@ -313,8 +424,52 @@ export default function RequestDelivSimple() {
           longitudeDelta: 0.05
         }}
       >
-        {originCoord && <Marker coordinate={{ latitude: originCoord.lat, longitude: originCoord.lng }} pinColor="green" />}
-        {destCoord && <Marker coordinate={{ latitude: destCoord.lat, longitude: destCoord.lng }} pinColor="red" />}
+        {originCoord && (
+          <Marker
+            coordinate={{ latitude: originCoord.lat, longitude: originCoord.lng }}
+            pinColor="green"
+            title="Origem"
+          />
+        )}
+        {destCoord && (
+          <Marker
+            coordinate={{ latitude: destCoord.lat, longitude: destCoord.lng }}
+            pinColor="red"
+            title="Destino"
+            description="Arraste para ajustar"
+            draggable
+            onDragEnd={async (e) => {
+              const { latitude, longitude } = e.nativeEvent.coordinate;
+              setDestCoord({ lat: latitude, lng: longitude });
+              // Reverse geocode para actualizar o texto do campo
+              try {
+                const addressArray = await Location.reverseGeocodeAsync({ latitude, longitude });
+                if (addressArray && addressArray.length > 0) {
+                  const addr = addressArray[0];
+                  const street = addr.street || addr.name || '';
+                  const city = addr.city || addr.subregion || addr.region || '';
+                  const newName = street && city ? `${street}, ${city}` : street || city || 'Destino ajustado';
+                  setDestText(newName);
+                  setDestination(newName);
+                }
+              } catch (err) {
+                console.log('Reverse geocode destino:', err);
+              }
+            }}
+          >
+            <Callout tooltip>
+              <View style={{
+                backgroundColor: '#7F00FF',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 10,
+                alignItems: 'center',
+              }}>
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>📍 Arraste para ajustar</Text>
+              </View>
+            </Callout>
+          </Marker>
+        )}
         
         {routeCoords.length > 0 && (
           <Polyline 
@@ -346,13 +501,46 @@ export default function RequestDelivSimple() {
                 <Ionicons name="close" size={24} color="#1A1A1A" />
               </TouchableOpacity>
               <Text style={styles.mainTitle}>O que pretende fazer?</Text>
+              {/* Botão de minimizar — toggle ver rota / voltar */}
+              {originCoord && destCoord ? (
+                <TouchableOpacity
+                  style={[
+                    styles.minimizeBtn,
+                    isMinimized && { backgroundColor: '#EDE9FE' }
+                  ]}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    if (isMinimized) {
+                      snapTo(SNAP_TOP);
+                      setIsMinimized(false);
+                    } else {
+                      snapTo(SNAP_BOTTOM);
+                      setIsMinimized(true);
+                    }
+                  }}
+                >
+                  <Ionicons
+                    name={isMinimized ? "chevron-up" : "map"}
+                    size={18}
+                    color="#A855F7"
+                  />
+                  <Text style={styles.minimizeBtnText}>
+                    {isMinimized ? 'Ver form' : 'Ver rota'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={{ width: 80 }} />
+              )}
             </View>
           </View>
 
             <ScrollView 
               ref={scrollViewRef}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 200, paddingHorizontal: 20 }}
+              contentContainerStyle={{
+                paddingBottom: keyboardHeight > 0 ? keyboardHeight + 40 : 120,
+                paddingHorizontal: 20,
+              }}
               showsVerticalScrollIndicator={false}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
@@ -414,154 +602,206 @@ export default function RequestDelivSimple() {
             </Text>
           )}
 
-          <View style={{ zIndex: 10, position: 'relative', marginTop: 10 }}>
+          {/* ORIGIN INPUT - FIXED HEIGHT */}
+          <View style={styles.inputBlock}>
             <Text style={styles.label}>Origem</Text>
-            <GooglePlacesAutocomplete
-              ref={originRef}
-              placeholder="De onde partimos?"
-              nearbyPlacesAPI="GooglePlacesSearch"
-              debounce={400}
-              fetchDetails={true}
-              minLength={2}
-              enablePoweredByContainer={false}
-              query={{
-                key: EXPO_GOOGLE_MAPS_APIKEY,
-                language: 'pt',
-                components: 'country:mz',
-              }}
-              textInputProps={{
-                style: styles.input,
-                onFocus: () => {
+            <View style={styles.inputRow}>
+              <TextInput
+                ref={originInputRef}
+                style={styles.fixedInput}
+                placeholder="De onde partimos?"
+                placeholderTextColor="#9CA3AF"
+                value={originText}
+                onFocus={() => {
                   snapTo(SNAP_TOP);
                   setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: showMotives ? 220 : 120, animated: true });
-                  }, 250);
-                }
-              }}
-              listProps={{
-                scrollEnabled: false,
-                keyboardShouldPersistTaps: 'always'
-              }}
-              renderRightButton={() => (
-                <TouchableOpacity 
-                  style={{ justifyContent: 'center', paddingRight: 10, marginTop: 5 }}
-                  onPress={handleGetCurrentLocation}
-                >
-                  <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#A855F7" />
-                </TouchableOpacity>
-              )}
-              onPress={(data, details = null) => {
-                setOrigin(data.description);
-                if (details) {
-                  setOriginCoord({
-                    lat: details.geometry.location.lat,
-                    lng: details.geometry.location.lng,
-                  });
-                }
-              }}
-              styles={autocompleteStyles}
-            />
+                    scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+                  }, 350);
+                }}
+                onChangeText={(text) => {
+                  setOriginText(text);
+                  setOrigin(text);
+                  setOriginCoord(null);
+                  fetchSuggestions(text, 'origin');
+                }}
+              />
+              <TouchableOpacity style={styles.gpsBtn} onPress={handleGetCurrentLocation}>
+                <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#A855F7" />
+              </TouchableOpacity>
+            </View>
+            {/* Suggestions dropdown */}
+            {originSuggestions.length > 0 && (
+              <View style={styles.suggestionsBox}>
+                {loadingOrigin && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
+                {originSuggestions.map((item) => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={styles.suggestionRow}
+                    onPress={() => selectPlace(item.place_id, item.description, 'origin')}
+                  >
+                    <Ionicons name="location-outline" size={16} color="#A855F7" style={{ marginRight: 8 }} />
+                    <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
-          <View style={{ zIndex: 9, position: 'relative', marginTop: 0 }}>
+          {/* DESTINATION INPUT - FIXED HEIGHT */}
+          <View style={[styles.inputBlock, { marginTop: 12 }]}>
             <Text style={styles.label}>Destino</Text>
-              <GooglePlacesAutocomplete
+            <View style={styles.inputRow}>
+              <TextInput
+                ref={destInputRef}
+                style={styles.fixedInput}
                 placeholder="Para onde vamos?"
-                nearbyPlacesAPI="GooglePlacesSearch"
-                debounce={400}
-                fetchDetails={true}
-                minLength={2}
-                enablePoweredByContainer={false}
-                query={{
-                  key: EXPO_GOOGLE_MAPS_APIKEY,
-                  language: 'pt',
-                  components: 'country:mz',
+                placeholderTextColor="#9CA3AF"
+                value={destText}
+                onFocus={() => {
+                  snapTo(SNAP_TOP);
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+                  }, 350);
                 }}
-                textInputProps={{
-                  style: styles.input,
-                  onFocus: () => {
-                    snapTo(SNAP_TOP);
-                    setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ y: showMotives ? 300 : 200, animated: true });
-                    }, 250);
-                  }
+                onChangeText={(text) => {
+                  setDestText(text);
+                  setDestination(text);
+                  setDestCoord(null);
+                  fetchSuggestions(text, 'dest');
                 }}
-                listProps={{
-                  scrollEnabled: false,
-                  keyboardShouldPersistTaps: 'always'
-                }}
-                onPress={(data, details = null) => {
-                  setDestination(data.description);
-                  if (details) {
-                    setDestCoord({
-                      lat: details.geometry.location.lat,
-                      lng: details.geometry.location.lng,
-                    });
-                  }
-                }}
-                styles={autocompleteStyles}
               />
             </View>
+            {/* Suggestions dropdown */}
+            {destSuggestions.length > 0 && (
+              <View style={styles.suggestionsBox}>
+                {loadingDest && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
+                {destSuggestions.map((item) => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={styles.suggestionRow}
+                    onPress={() => selectPlace(item.place_id, item.description, 'dest')}
+                  >
+                    <Ionicons name="location-outline" size={16} color="#EF4444" style={{ marginRight: 8 }} />
+                    <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
           
+          {/* Estimativa de tempo */}
           {duration !== null && !isSearching && (
-            <View style={{ backgroundColor: '#F3E8FF', padding: 12, borderRadius: 10, marginTop: 15, alignItems: 'center' }}>
-              <Text style={{ color: '#A855F7', fontWeight: 'bold', fontSize: 16 }}>
-                <MaterialCommunityIcons name="clock-outline" size={16} /> Estimativa de tempo: {duration} min
-              </Text>
+            <View style={styles.durationBadge}>
+              <MaterialCommunityIcons name="clock-fast" size={15} color="#A855F7" />
+              <Text style={styles.durationText}> {duration} min de viagem estimados</Text>
             </View>
           )}
 
-          <TouchableOpacity
-            style={[styles.btn, { marginBottom: 40, marginTop: duration !== null ? 15 : 40 }]}
-            onPress={() => {
-              if (!reason) {
-                setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitação.' });
-                return;
-              }
-              if (!originCoord || !destCoord) {
-                setShowWarningModal({ visible: true, message: 'Por favor indique a origem e o destino.' });
-                return;
-              }
-              Keyboard.dismiss();
-              snapTo(screenHeight); // Ocultar o form principal
-              setIsSearching(true);
-              startPulse();
-            }}
-          >
-            <LinearGradient colors={['#7F00FF', '#A855F7']} style={styles.gradient}>
-              <Text style={styles.btnText}>Confirmar Pedido</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          {/* BOTAO CONFIRMAR dentro do sheet — sempre presente quando origem+destino definidos */}
+          {originCoord && destCoord && !isSearching && (
+            <TouchableOpacity
+              style={styles.confirmBtnInSheet}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (!reason) {
+                  setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitação.' });
+                  return;
+                }
+                Keyboard.dismiss();
+                snapTo(screenHeight);
+                setIsSearching(true);
+                startPulse();
+              }}
+            >
+              <LinearGradient colors={['#6D00E0', '#A855F7']} style={styles.confirmGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Ionicons name="checkmark-circle" size={22} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={styles.confirmBtnText}>Confirmar Pedido</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* Espaco extra no fundo do scroll */}
+          <View style={{ height: 60 }} />
         </ScrollView>
       </Animated.View>
     </View>
 
-    {/* Nova Aba de Procura (Modal Centralizado) */}
+
     <Modal visible={isSearching} transparent animationType="fade">
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-        <View style={{ backgroundColor: '#FFF', borderRadius: 20, padding: 30, width: '85%', alignItems: 'center', elevation: 10 }}>
-          <View style={{ width: 100, height: 100, justifyContent: 'center', alignItems: 'center' }}>
-            <Animated.View style={[styles.radarCenter, { 
-                position: 'absolute',
-                backgroundColor: 'rgba(168, 85, 247, 0.3)',
-                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.5] }) }],
-                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <View style={{
+          backgroundColor: '#FFF',
+          borderRadius: 28,
+          padding: 32,
+          width: '88%',
+          alignItems: 'center',
+          elevation: 20,
+          shadowColor: '#7F00FF',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.2,
+          shadowRadius: 20,
+        }}>
+          {/* Radar pulse */}
+          <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+            <Animated.View style={[styles.radarCenter, {
+              position: 'absolute',
+              width: 110,
+              height: 110,
+              borderRadius: 55,
+              backgroundColor: 'rgba(168, 85, 247, 0.15)',
+              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
             }]} />
-            <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF' }]}>
-              <MaterialCommunityIcons name="circle" size={24} color="#A855F7" />
+            <Animated.View style={[styles.radarCenter, {
+              position: 'absolute',
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: 'rgba(168, 85, 247, 0.2)',
+              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+            }]} />
+            <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
+              <MaterialCommunityIcons name="car-search" size={30} color="#A855F7" />
             </View>
           </View>
-          <Text style={{ marginTop: 20, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>À procura de motoristas...</Text>
-          <Text style={{ color: '#666', marginTop: 10 }}>Raio de busca: {radius} KM</Text>
-          
-          <TouchableOpacity 
-            style={{ marginTop: 30, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#FEF2F2', borderRadius: 10 }} 
+
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+            A procurar motoristas...
+          </Text>
+          <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14 }}>
+            Raio de busca: <Text style={{ color: '#A855F7', fontWeight: '700' }}>{radius} KM</Text>
+          </Text>
+
+          {/* Barra de progresso */}
+          <View style={{ width: '100%', height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, marginTop: 20, overflow: 'hidden' }}>
+            <Animated.View style={{
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: '#A855F7',
+              width: `${Math.min((searchSeconds / 60) * 100, 100)}%`,
+            }} />
+          </View>
+          <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 6 }}>
+            {searchSeconds < 60 ? `${searchSeconds}s / 60s` : 'A expandir raio...'}
+          </Text>
+
+          <TouchableOpacity
+            style={{
+              marginTop: 24,
+              paddingVertical: 12,
+              paddingHorizontal: 32,
+              backgroundColor: '#FEF2F2',
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: '#FECACA',
+            }}
             onPress={() => {
               setIsSearching(false);
-              snapTo(SNAP_MIDDLE); // Voltar a mostrar o form
+              snapTo(SNAP_TOP);
             }}
           >
-            <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 16 }}>Cancelar Busca</Text>
+            <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Busca</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -583,10 +823,12 @@ export default function RequestDelivSimple() {
                 style={[styles.modalBtn, styles.modalBtnCancel]} 
                 onPress={() => {
                   setShowBusyModal(false);
-                  setStep(1);
+                  setRadius(5); // Reset raio para o valor inicial
+                  snapTo(SNAP_TOP); // Abrir o formulario para o utilizador mudar destino
+                  setIsMinimized(false);
                 }}
               >
-                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                <Text style={styles.modalBtnCancelText}>Mudar Destino</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -691,23 +933,138 @@ const styles = StyleSheet.create({
 
   input: {
     backgroundColor: '#F5F5F5',
-    height: 56,
+    height: 52,
     paddingHorizontal: 16,
     borderRadius: 12,
     marginTop: 5,
-    fontSize: 16,
+    fontSize: 15,
     color: '#1A1A1A',
     fontWeight: '500'
+  },
+
+  // New fixed input styles
+  inputBlock: {
+    marginTop: 10,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    marginTop: 6,
+    height: 52, // ALWAYS 52px, never grows
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  fixedInput: {
+    flex: 1,
+    height: 52, // FIXED HEIGHT
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: '#1A1A1A',
+    fontWeight: '500',
+  },
+  gpsBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  suggestionsBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginTop: 4,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    overflow: 'hidden',
+    zIndex: 999,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    maxHeight: 180,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#1A1A1A',
+    flex: 1,
   },
 
   btn: {
     marginTop: 20
   },
 
+  minimizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    gap: 4,
+  },
+  minimizeBtnText: {
+    fontSize: 13,
+    color: '#A855F7',
+    fontWeight: '700',
+  },
+
+
   gradient: {
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center'
+  },
+
+  // Confirm button inside the sheet
+  confirmBtnInSheet: {
+    marginTop: 20,
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  confirmGradient: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmBtnText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 14,
+    alignSelf: 'center',
+  },
+  durationText: {
+    color: '#7F00FF',
+    fontWeight: '700',
+    fontSize: 13,
   },
 
   btnText: {
@@ -956,7 +1313,7 @@ const autocompleteStyles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    maxHeight: 220,
+    height: 180, // Fixed height instead of maxHeight so it's always predictable and uses scroll
   },
   row: {
     padding: 13,

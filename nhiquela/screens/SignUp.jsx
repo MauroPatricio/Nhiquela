@@ -96,10 +96,10 @@ const SignUp = ({ navigation }) => {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: 'white' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 80 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

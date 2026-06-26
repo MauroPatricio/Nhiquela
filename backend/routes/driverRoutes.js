@@ -165,6 +165,67 @@ router.post(
   })
 );
 
+// Get available drivers near a location (public endpoint)
+router.get(
+  '/available',
+  expressAsyncHandler(async (req, res) => {
+    const lat = parseFloat(req.query.lat);
+    const lng = parseFloat(req.query.lng);
+    const radius = parseFloat(req.query.radius) || 5; // km
+    const serviceId = req.query.serviceId;
+
+    const filter = {
+      isDeliveryMan: true,
+      availability: 'active',
+    };
+
+    if (serviceId) {
+      filter['deliveryman.providedServices.serviceId'] = serviceId;
+      filter['deliveryman.providedServices.isAvailable'] = true;
+    }
+
+    // Try to find drivers. Since geoPosition index might not be created, we'll do an initial find
+    // and filter by Haversine distance in Javascript to be safe and avoid index errors.
+    const drivers = await User.find(filter).lean();
+
+    if (!lat || !lng) {
+      return res.send({ drivers });
+    }
+
+    const toRad = (value) => (value * Math.PI) / 180;
+    const calcDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371; // km
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    const nearbyDrivers = drivers.filter(driver => {
+      let dLat, dLng;
+      if (driver.geoPosition && driver.geoPosition.coordinates) {
+        dLng = driver.geoPosition.coordinates[0];
+        dLat = driver.geoPosition.coordinates[1];
+      } else if (driver.latitude && driver.longitude) {
+        dLat = parseFloat(driver.latitude);
+        dLng = parseFloat(driver.longitude);
+      }
+      
+      if (dLat && dLng) {
+        const dist = calcDistance(lat, lng, dLat, dLng);
+        return dist <= radius;
+      }
+      return false;
+    });
+
+    res.send({ drivers: nearbyDrivers });
+  })
+);
+
 // Get driver by ID (auth driver or admin)
 router.get(
   '/:id',

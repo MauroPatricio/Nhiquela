@@ -45,8 +45,8 @@ export default function BottomMenu({ state, navigation }) {
               >
                 <View style={[styles.centerIconWrap, isActive && styles.centerIconWrapActive]}>
                   <Ionicons
-                    name="construct"
-                    size={28}
+                    name="add"
+                    size={34}
                     color="#FFFFFF"
                   />
                 </View>
