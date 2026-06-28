@@ -1,6 +1,7 @@
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ArrowRightIcon } from 'react-native-heroicons/outline';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import EstablishmentCard from './EstablishmentCard2';
@@ -14,10 +15,14 @@ const EstablishmentsView = ({ title }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/tipoestabelecimentos');
+      const response = await api.get('/provider-types');
 
       if (response.status === 200) {
-        setTipoestabelecimentos(response.data?.tipoestabelecimentos);
+        // Filtrar apenas os que são do tipo 'Business' (Estabelecimentos)
+        const businessTypes = response.data.filter(
+          (tipo) => tipo.classificationId?.name === 'Business' || tipo.classificationId?.name?.toLowerCase() === 'business'
+        );
+        setTipoestabelecimentos(businessTypes);
       }
     } catch (error) {
       console.error('Erro ao buscar Tipos de estabelecimentos:', error);
@@ -56,20 +61,29 @@ const EstablishmentsView = ({ title }) => {
 
       <ScrollView 
         horizontal
-        contentContainerStyle={{ paddingHorizontal: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 5 }}
         showsHorizontalScrollIndicator={false}
       >
-        {tipoestabelecimentos ? (
+        {tipoestabelecimentos && tipoestabelecimentos.length > 0 ? (
           tipoestabelecimentos.map(tipoestabelecimento => (
             <EstablishmentCard
               key={tipoestabelecimento._id}
               id={tipoestabelecimento._id}
-              nome={tipoestabelecimento.nome}
-              img={tipoestabelecimento.img}
+              nome={tipoestabelecimento.name || tipoestabelecimento.nome}
+              img={tipoestabelecimento.iconUrl || tipoestabelecimento.img}
             />
           ))
         ) : (
-          <Text style={styles.loadingText}>{isLoading ? 'Carregando Estabelecimentos...' : 'Nenhum Estabelecimento encontrado.'}</Text>
+          <View style={styles.emptyCard}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#7F00FF" />
+            ) : (
+              <>
+                <Ionicons name="business-outline" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+                <Text style={styles.emptyCardText}>Sem estabelecimentos registados de momento</Text>
+              </>
+            )}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -95,10 +109,23 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     letterSpacing: 1.2
   },
-  loadingText: {
-    fontSize: 14,
-    color: 'gray',
-    marginLeft: 15,
-    marginTop: 10
+  emptyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    marginHorizontal: 15,
+    marginVertical: 10,
+    width: 320,
+  },
+  emptyCardText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
   }
 });

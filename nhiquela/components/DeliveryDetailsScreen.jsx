@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
   View,
@@ -10,6 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
+  Animated,
+  Easing,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -31,8 +35,7 @@ const DeliveryDetailsScreen = () => {
   const basketTotal = useSelector(selectBasketTotal);
   const sellers = useSelector(selectSellers);
 
-
-  const seller = (sellers[0].seller)
+  const seller = sellers[0]?.seller;
 
   const [userLocation, setUserLocation] = useState(null);
   const [distance, setDistance] = useState(null);
@@ -42,7 +45,7 @@ const DeliveryDetailsScreen = () => {
   const [manualLocation, setManualLocation] = useState({ latitude: '', longitude: '' });
   const [permissionDenied, setPermissionDenied] = useState(false);
 
-  const sellerLocation = useMemo(() => ({ latitude: seller?.latitude, longitude: seller?.longitude }), []);
+  const sellerLocation = useMemo(() => ({ latitude: seller?.latitude, longitude: seller?.longitude }), [seller]);
   const pricePerKm = 10;
   const minDelivPrice = 100;
   const iva = 0;
@@ -52,7 +55,39 @@ const DeliveryDetailsScreen = () => {
   const [distanceToPay, setDistanceToPay] = useState(0);
   const [totalToPay, setTotalToPay] = useState(subtotal);
 
-  const HeaderWithBack = ({ title, navigation }) => (
+  // --- Keyboard Animated ---
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const keyboardShow = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration || 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const keyboardHide = Keyboard.addListener(hideEvent, () => {
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardShow.remove();
+      keyboardHide.remove();
+    };
+  }, [keyboardOffset]);
+
+  // --- Header ---
+  const HeaderWithBack = ({ title }) => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Ionicons name="chevron-back-circle" size={35} color="#7F00FF" />
@@ -61,13 +96,12 @@ const DeliveryDetailsScreen = () => {
     </View>
   );
 
-  // --- Rastrear localização ---
+  // --- Location ---
   useEffect(() => {
     let locationSubscription;
 
     const startLocationTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-
       if (status !== 'granted') {
         setPermissionDenied(true);
         setLoadingLocation(false);
@@ -78,25 +112,14 @@ const DeliveryDetailsScreen = () => {
         return;
       }
 
-      // Obter localização atual
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      setUserLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       setLoadingLocation(false);
 
-      // Atualizações periódicas
       locationSubscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 50 },
         (loc) => {
-          setUserLocation({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-          });
+          setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
         }
       );
     };
@@ -105,7 +128,7 @@ const DeliveryDetailsScreen = () => {
     return () => locationSubscription?.remove();
   }, []);
 
-  // --- Caso o usuário insira manualmente ---
+  // --- Manual Location ---
   useEffect(() => {
     if (permissionDenied && manualLocation.latitude && manualLocation.longitude) {
       setUserLocation({
@@ -115,7 +138,7 @@ const DeliveryDetailsScreen = () => {
     }
   }, [manualLocation, permissionDenied]);
 
-  // --- Calcular distância ---
+  // --- Distance ---
   useEffect(() => {
     if (userLocation) {
       const dist = haversine(userLocation, sellerLocation, { unit: 'km' });
@@ -123,7 +146,7 @@ const DeliveryDetailsScreen = () => {
     }
   }, [userLocation, sellerLocation]);
 
-  // --- Calcular total ---
+  // --- Total ---
   useEffect(() => {
     let newDistanceToPay = 0;
     if (isUserWantDelivery) {
@@ -135,7 +158,7 @@ const DeliveryDetailsScreen = () => {
     setTotalToPay(subtotal + newDistanceToPay);
   }, [isUserWantDelivery, distance, subtotal]);
 
-  // --- Atualizar Redux ---
+  // --- Redux Update with Debounce ---
   const updateRedux = useCallback(
     debounce((addr, total, deliv) => {
       const deliveryAddress = {
@@ -161,58 +184,60 @@ const DeliveryDetailsScreen = () => {
       Alert.alert('Erro', 'Por favor, forneça sua localização antes de prosseguir.');
       return;
     }
-    navigation.replace('PaymentMethod');
-  }, [navigation, userLocation]);
+    const tipoEstId = seller?.tipoEstabelecimento?._id || seller?.tipoEstabelecimento;
+    navigation.replace('PaymentMethod', { tipoEstabelecimentoId: tipoEstId });
+  }, [navigation, userLocation, seller]);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={{ flex: 1 }}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#fff' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView
-          style={styles.container}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 20 }}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 200 }}
+          showsVerticalScrollIndicator={false}
         >
-          <HeaderWithBack title="Detalhes do Endereço de Entrega" navigation={navigation} />
+          <Animated.View style={{ paddingBottom: keyboardOffset }}>
+            <HeaderWithBack title="Detalhes do Endereço de Entrega" />
 
-          <StatusLocation userLocation={userLocation} distance={distance} />
+            <StatusLocation userLocation={userLocation} distance={distance} />
 
-          
+            <DeliveryToggle
+              isUserWantDelivery={isUserWantDelivery}
+              setIsUserWantDelivery={setIsUserWantDelivery}
+              disabled={loadingLocation}
+            />
 
-          <DeliveryToggle
-            isUserWantDelivery={isUserWantDelivery}
-            setIsUserWantDelivery={setIsUserWantDelivery}
-            disabled={loadingLocation}
-          />
+            {isUserWantDelivery && (
+              <AddressInput address={address} setAddress={setAddress} editable={!loadingLocation} />
+            )}
 
-          {isUserWantDelivery && (
-            <AddressInput address={address} setAddress={setAddress} editable={!loadingLocation} />
-          )}
+            <DeliveryStatus isUserWantDelivery={isUserWantDelivery} />
 
-          <DeliveryStatus isUserWantDelivery={isUserWantDelivery} />
+            <Summary
+              basketTotal={basketTotal}
+              distanceToPay={distanceToPay}
+              totalToPay={totalToPay}
+              isUserWantDelivery={isUserWantDelivery}
+            />
 
-          <Summary
-            basketTotal={basketTotal}
-            distanceToPay={distanceToPay}
-            totalToPay={totalToPay}
-            isUserWantDelivery={isUserWantDelivery}
-          />
+            <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
+
+            {loadingLocation && (
+              <View style={styles.loadingOverlay}>
+                <Text style={styles.loadingText}>Carregando localização...</Text>
+              </View>
+            )}
+          </Animated.View>
         </ScrollView>
-
-        <View style={styles.fixedButtonContainer}>
-          <FinalizeButton onPress={handleFinalize} disabled={loadingLocation} />
-        </View>
-
-        {loadingLocation && (
-          <View style={styles.loadingOverlay}>
-            <Text style={styles.loadingText}>Carregando localização...</Text>
-          </View>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 
-// --- Componentes reutilizados (mantêm o mesmo estilo do seu código atual) ---
+// --- Componentes ---
 const StatusLocation = React.memo(({ userLocation, distance }) => {
   const distanceText = useMemo(() => (distance ? distance.toFixed(2) : null), [distance]);
   return (
@@ -296,28 +321,149 @@ const FinalizeButton = React.memo(({ onPress, disabled }) => (
 ));
 
 const styles = StyleSheet.create({
-  // (mantive os seus estilos originais)
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginVertical: 10, fontSize: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 10, color: '#333' },
-  locationText: { textAlign: 'center', marginBottom: 10, fontSize: 16, color: '#666' },
-  distanceText: { textAlign: 'center', fontWeight: '600', marginBottom: 20, fontSize: 16, color: '#000' },
-  toggleContainerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
-  switchText: { fontWeight: '600', fontSize: 18, color: '#7F00FF' },
-  toggleButtons: { flexDirection: 'row', gap: 8 },
-  toggleButtonSmall: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-  toggleButtonTextSmall: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
-  statusText: { fontSize: 16, textAlign: 'center', marginVertical: 12 },
-  summary: { marginVertical: 20, padding: 16, backgroundColor: '#F5F5F5', borderRadius: 15 },
-  summaryText: { fontSize: 16, fontWeight: '600' },
-  priceText: { fontSize: 16, fontWeight: '900', color: '#7F00FF' },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  button: { backgroundColor: '#7F00FF', paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 18 },
-  loadingOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
-  loadingText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  fixedButtonContainer: { position: 'absolute', bottom: 20, left: 20, right: 20 },
+  input: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 10,
+    fontSize: 15,
+    color: '#1F2937',
+    textAlignVertical: 'top',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginLeft: 12,
+    color: '#1F2937',
+  },
+  locationText: {
+    textAlign: 'center',
+    marginBottom: 6,
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  distanceText: {
+    textAlign: 'center',
+    fontWeight: '800',
+    marginBottom: 24,
+    fontSize: 18,
+    color: '#9333EA',
+  },
+  toggleContainerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  switchText: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: '#374151',
+  },
+  toggleButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  toggleButtonSmall: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  toggleButtonTextSmall: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  statusText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginVertical: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  summary: {
+    marginVertical: 20,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  summaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  priceText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#9333EA',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  button: {
+    backgroundColor: '#9333EA',
+    paddingVertical: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginVertical: 20,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 20,
+  },
+  loadingText: {
+    color: '#9333EA',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
 
 export default DeliveryDetailsScreen;

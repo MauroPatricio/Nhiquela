@@ -1,13 +1,14 @@
 import axios from 'axios';
 
-let baseURL = '';
+// ---------------------------------------------------------------------
+// 1️⃣ Configuração Automática de Ambiente (Auto QA / Gatekeeper)
+// ---------------------------------------------------------------------
+const isDev = process.env.NODE_ENV !== 'production';
+const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.3:5000/api' : 'https://deliveryshop.herokuapp.com/api');
 
-if (process.env.NODE_ENV === 'development') {
-  baseURL = 'http://192.168.0.6:5000/api'; // ou localhost se estiver no navegador
-} else {
-  baseURL = 'https://deliveryshop.herokuapp.com/api';
-}
-
+// ---------------------------------------------------------------------
+// 2️⃣ Instância do Axios
+// ---------------------------------------------------------------------
 const api = axios.create({ baseURL });
 
 export default api;

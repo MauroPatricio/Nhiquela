@@ -12,12 +12,15 @@ import SellersView from '../components/SellersView';
 import ProductHomeView from '../components/ProductHomeView';
 import style from './home.style';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { selectBasketItems } from '../features/basketSlice';
+import { setLocationSuccess, setLocationFailure, selectUserLocation } from '../features/locationSlice';
+import { getDistance } from 'geolib';
 import { Welcome } from './Index';
 import BottomSheetComponent from '../components/BottomSheetComponent';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
 import { io } from "socket.io-client";
@@ -27,7 +30,8 @@ import useDebounce from '../hooks/useDebounce';
 import useThrottle from '../hooks/useThrottle';
 
 const { width } = Dimensions.get('window');
-const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL || 'http://localhost:3000');
+const isDev = process.env.NODE_ENV !== 'production';
+const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://deliveryshop.herokuapp.com'));
 const socket = io(`${SOCKET_URL}/products`, { transports: ['websocket'] });
 
 Notifications.setNotificationHandler({
@@ -39,7 +43,21 @@ Notifications.setNotificationHandler({
 });
 
 // Componente memoizado para item de produto
-const ProductItem = React.memo(({ item, onPress }) => (
+const ProductItem = React.memo(({ item, onPress, userLocation }) => {
+  let distanceText = '';
+  if (userLocation && (item.seller?.location?.lat || item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.location?.lat || item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.location?.lng || item.seller?.seller?.longitude || item.seller?.longitude);
+    if (!isNaN(prodLat) && !isNaN(prodLng)) {
+      const dist = getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: prodLat, longitude: prodLng }
+      );
+      distanceText = ` • ${(dist / 1000).toFixed(1)} km`;
+    }
+  }
+
+  return (
   <TouchableOpacity
     style={styles.productCard}
     onPress={() => onPress(item)}
@@ -62,9 +80,12 @@ const ProductItem = React.memo(({ item, onPress }) => (
           `${item.price} MT`
         )}
       </Text>
+      <Text style={[styles.productName, { fontSize: 11, color: '#9CA3AF', marginTop: 2 }]} numberOfLines={1}>
+        <Ionicons name="location-outline" size={10} />{distanceText || ' Distância N/A'}
+      </Text>
     </View>
   </TouchableOpacity>
-));
+)});
 
 // Componente memoizado para item de categoria
 const CategoryPill = React.memo(({ item, onPress }) => (
@@ -85,7 +106,21 @@ const CategoryPill = React.memo(({ item, onPress }) => (
 ));
 
 // Componente memoizado para linha de produto no BottomSheet
-const ProductRow = React.memo(({ item, onPress }) => (
+const ProductRow = React.memo(({ item, onPress, userLocation }) => {
+  let distanceText = '';
+  if (userLocation && (item.seller?.location?.lat || item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.location?.lat || item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.location?.lng || item.seller?.seller?.longitude || item.seller?.longitude);
+    if (!isNaN(prodLat) && !isNaN(prodLng)) {
+      const dist = getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: prodLat, longitude: prodLng }
+      );
+      distanceText = ` • ${(dist / 1000).toFixed(1)} km`;
+    }
+  }
+
+  return (
   <TouchableOpacity
     style={styles.productContainer}
     onPress={() => onPress(item)}
@@ -107,11 +142,11 @@ const ProductRow = React.memo(({ item, onPress }) => (
             `${item.price} MT`
           )}
         </Text>
-        <Text>Fornecedor: {item.seller?.seller?.name}</Text>
+        <Text>Fornecedor: {item.seller?.name || item.seller?.seller?.name} <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text></Text>
       </View>
     </View>
   </TouchableOpacity>
-));
+)});
 
 const Home = () => {
   const [userData, setUserData] = useState(null);
@@ -130,10 +165,24 @@ const Home = () => {
   const [catTotalPages, setCatTotalPages] = useState(1);
   const [loadingCatProducts, setLoadingCatProducts] = useState(false);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  const fetchWalletBalance = async (token) => {
+    try {
+      const res = await api.get('/wallet/balance', {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      setWalletBalance(res.data.available_balance || 0);
+    } catch (err) {
+      console.log('Erro ao buscar saldo', err.message);
+    }
+  };
 
   const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
+  const userLocation = useSelector(selectUserLocation);
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   // Memoizar dados para evitar recálculos desnecessários
   const memoizedCategories = useMemo(() => categories, [categories]);
@@ -145,11 +194,30 @@ const Home = () => {
     registerForPushNotificationsAsync();
     setupNotificationListeners();
     loadFeaturedProducts();
+    requestUserLocation();
   }, []);
+
+  const requestUserLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        let location = await Location.getCurrentPositionAsync({});
+        dispatch(setLocationSuccess({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        }));
+      } else {
+        dispatch(setLocationFailure('Permission denied'));
+      }
+    } catch (err) {
+      dispatch(setLocationFailure(err.message));
+    }
+  };
 
   // Carrega/recupera categorias na volta do foco com cache
   useFocusEffect(
     useCallback(() => {
+      let intervalId;
       const loadDataWithCache = async () => {
         try {
           // Tentar carregar do cache primeiro
@@ -173,6 +241,18 @@ const Home = () => {
           
           // Sempre atualizar em background
           loadCategories(true);
+          
+          const storedUserData = await AsyncStorage.getItem('userData');
+          if (storedUserData) {
+            const parsedUser = JSON.parse(storedUserData);
+            if (parsedUser && parsedUser.token) {
+              fetchWalletBalance(parsedUser.token);
+              // Sincronização em tempo real (polling)
+              intervalId = setInterval(() => {
+                fetchWalletBalance(parsedUser.token);
+              }, 5000);
+            }
+          }
         } catch (error) {
           console.error('Erro ao carregar cache:', error);
           loadCategories(true);
@@ -180,6 +260,10 @@ const Home = () => {
       };
       
       loadDataWithCache();
+
+      return () => {
+        if (intervalId) clearInterval(intervalId);
+      };
     }, [])
   );
 
@@ -507,8 +591,8 @@ responseListener.remove();
 
   // Renderizar produto individual para featured
   const renderProductItem = useCallback(({ item }) => (
-    <ProductItem item={item} onPress={handleProductPress} />
-  ), [handleProductPress]);
+    <ProductItem item={item} onPress={handleProductPress} userLocation={userLocation} />
+  ), [handleProductPress, userLocation]);
 
   // Renderizar bloco de categoria com produtos
   const renderCategoryBlock = useCallback(({ item }) => (
@@ -521,12 +605,13 @@ responseListener.remove();
       onPress={() => handleCategoryPress(item)}
       productCount={item.productCount || item.count || 0}
       loading={loadingCategoryProducts[item._id]}
+      userLocation={userLocation}
     />
   ), [categoryProducts, loadingCategoryProducts, handleCategoryPress]);
 
   const renderProductRow = useCallback(({ item }) => (
-    <ProductRow item={item} onPress={handleProductPress} />
-  ), [handleProductPress]);
+    <ProductRow item={item} onPress={handleProductPress} userLocation={userLocation} />
+  ), [handleProductPress, userLocation]);
 
   // Renderizar seção de produtos em destaque
   const renderFeaturedProducts = () => (
@@ -543,7 +628,10 @@ responseListener.remove();
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.featuredList}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Nenhum produto em destaque</Text>
+            <View style={styles.emptyFeaturedContainer}>
+              <Ionicons name="gift-outline" size={24} color="#9CA3AF" />
+              <Text style={styles.emptyFeaturedText}>Sem destaques disponíveis de momento</Text>
+            </View>
           }
           initialNumToRender={5}
           maxToRenderPerBatch={5}
@@ -558,14 +646,25 @@ responseListener.remove();
       {/* AppBar */}
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
-          <OptimizedImage source={require('../assets/default1.jpg')} style={style.cover} />
-          <Text style={style.location}>{userData ? `Olá, ${userData.name}` : 'Faça login'}</Text>
-          <View style={{ alignItems: "flex-end" }}>
-            <View style={style.cartCount}>
-              <Text style={style.cartNumber}>{items.length}</Text>
+          <View style={style.userInfoContainer}>
+            <OptimizedImage source={require('../assets/nhiquela.png')} style={style.cover} resizeMode="contain" />
+            <View style={style.textContainer}>
+              <Text style={style.greetingText}>Olá, bem-vindo</Text>
+              <Text style={style.location}>{userData ? userData.name : 'Faça login'}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-              <Ionicons name="cart-outline" size={35} />
+          </View>
+
+          <View style={style.appBarRight}>
+            <View style={{ backgroundColor: '#F3E8FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="wallet-outline" size={16} color="#7F00FF" style={{ marginRight: 5 }} />
+              <Text style={{ color: '#7F00FF', fontWeight: 'bold', fontSize: 12 }}>{parseFloat(walletBalance).toFixed(2)} MT</Text>
+            </View>
+
+            <TouchableOpacity style={style.cartBtn} onPress={() => navigation.navigate('Cart')} activeOpacity={0.8}>
+              <View style={style.cartCount}>
+                <Text style={style.cartNumber}>{items.length}</Text>
+              </View>
+              <Ionicons name="basket-outline" size={24} color="#7F00FF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -600,6 +699,19 @@ responseListener.remove();
                 windowSize={5}
               />
               
+              {/* Botão Upload Documento */}
+              <TouchableOpacity 
+                style={styles.documentUploadCard}
+                onPress={() => navigation.navigate('DocumentUploadScreen')}
+                activeOpacity={0.9}
+              >
+                <View style={styles.documentUploadContent}>
+                  <Text style={styles.documentUploadTitle}>Tem uma lista de compras ou receita?</Text>
+                  <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
+                </View>
+                <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />
+              </TouchableOpacity>
+
               {/* Produtos em Destaque */}
               {renderFeaturedProducts()}
 
@@ -609,8 +721,10 @@ responseListener.remove();
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.empty}>Nenhuma categoria encontrada.</Text>
-              <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+              <Ionicons name="cloud-offline-outline" size={56} color="#9CA3AF" style={{ marginBottom: 12 }} />
+              <Text style={styles.empty}>Oops! Não conseguimos carregar as categorias de momento.</Text>
+              <Text style={styles.emptySub}>Verifique a sua ligação à internet ou tente novamente.</Text>
+              <TouchableOpacity onPress={onRefresh} style={styles.retryButton} activeOpacity={0.8}>
                 <Text style={styles.retryText}>Tentar novamente</Text>
               </TouchableOpacity>
             </View>
@@ -623,58 +737,70 @@ responseListener.remove();
       )}
 
       {/* BottomSheet com produtos paginados da categoria */}
-      <BottomSheetComponent
-        isOpen={bottomSheetOpen}
-        toggleSheet={() => {
+<BottomSheetComponent
+  isOpen={bottomSheetOpen}
+  toggleSheet={() => {
+    setBottomSheetOpen(false);
+    bottomSheetRef.current?.close?.();
+  }}
+  ref={bottomSheetRef}
+  height={600} // ← aumenta um pouco para melhor experiência
+>
+  <View style={styles.bottomSheetContent}>
+    {/* Header do BottomSheet */}
+    <View style={styles.bottomSheetHeader}>
+      <Text style={styles.bottomSheetTitle}>
+        Produtos em {selectedCategory?.name}
+      </Text>
+      <Text style={styles.productCountText}>
+        {catProducts.length} de {selectedCategory?.productCount || selectedCategory?.count || 0} produtos
+      </Text>
+
+      {/* Botão de fechar fixo */}
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => {
           setBottomSheetOpen(false);
           bottomSheetRef.current?.close?.();
         }}
-        ref={bottomSheetRef}
-        height={600}
       >
-        <View style={styles.bottomSheetContent}>
-          <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>
-              Produtos em {selectedCategory?.name}
-            </Text>
-            <Text style={styles.productCountText}>
-              {catProducts.length} de {selectedCategory?.productCount || selectedCategory?.count || 0} produtos
-            </Text>
-          </View>
+        <Ionicons name="close" size={26} color="#fff" />
+      </TouchableOpacity>
+    </View>
 
-          {loadingCatProducts && catProducts.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#7F00FF" />
-              <Text style={styles.loadingText}>Carregando produtos...</Text>
+    {/* Lista de produtos */}
+    {loadingCatProducts && catProducts.length === 0 ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7F00FF" />
+        <Text style={styles.loadingText}>Carregando produtos...</Text>
+      </View>
+    ) : (
+      <FlatList
+        data={catProducts}
+        keyExtractor={(item) => String(item._id)}
+        renderItem={renderProductRow}
+        onEndReached={debouncedLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={
+          !loadingCatProducts && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.empty}>Nenhum produto nesta categoria.</Text>
             </View>
-          ) : (
-            <FlatList
-              data={catProducts}
-              keyExtractor={(item) => String(item._id)}
-              renderItem={renderProductRow}
-              onEndReached={debouncedLoadMore}
-              onEndReachedThreshold={0.5}
-              ListFooterComponent={renderFooter}
-              ListEmptyComponent={
-                !loadingCatProducts && (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.empty}>Nenhum produto nesta categoria.</Text>
-                  </View>
-                )
-              }
-              initialNumToRender={10}
-              maxToRenderPerBatch={5}
-              windowSize={7}
-              updateCellsBatchingPeriod={50}
-              removeClippedSubviews={true}
-              contentContainerStyle={catProducts.length === 0 ? { flexGrow: 1 } : {}}
-            />
-          )}
-        </View>
-      </BottomSheetComponent>
+          )
+        }
+        contentContainerStyle={[
+          { paddingBottom: 90 }, // espaço extra para o botão flutuante
+          catProducts.length === 0 ? { flexGrow: 1 } : {}
+        ]}
+      />
+    )}
+  </View>
+</BottomSheetComponent>
 
       <FlashMessage position="top" />
 
+      {/* Botão do WhatsApp Oculto a pedido
       {userData && (
         <TouchableOpacity
           style={styles.whatsappButton}
@@ -683,11 +809,42 @@ responseListener.remove();
           <Ionicons name="logo-whatsapp" size={30} color="white" />
         </TouchableOpacity>
       )}
+      */}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  documentUploadCard: {
+    backgroundColor: '#9333EA',
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  documentUploadContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  documentUploadTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  documentUploadDesc: {
+    color: '#E9D5FF',
+    fontSize: 13,
+  },
   // Estilos para produtos em destaque
   featuredSection: {
     marginVertical: 20,
@@ -703,39 +860,39 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   productCard: {
-    width: 160,
-    backgroundColor: 'white',
-    borderRadius: 12,
+    width: 170,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     marginRight: 15,
     padding: 12,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 15,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   productImage: {
     width: '100%',
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 10,
+    height: 150,
+    borderRadius: 14,
+    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
   },
   productDetails: {
     flex: 1,
   },
   productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+    color: '#111827',
   },
   productPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#7F00FF',
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#9333EA',
   },
   discountContainer: {
     flexDirection: 'row',
@@ -773,13 +930,32 @@ const styles = StyleSheet.create({
   bottomSheetContent: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 16,
+    padding: 5,
     backgroundColor: '#fff',
     flex: 1,
   },
-  bottomSheetHeader: {
-    marginBottom: 16,
-  },
+ closeButton: {
+  position: 'absolute',
+  top: 10,
+  right: 10,
+  backgroundColor: '#7F00FF',
+  borderRadius: 20,
+  width: 36,
+  height: 36,
+  justifyContent: 'center',
+  alignItems: 'center',
+  elevation: 3,
+  zIndex: 10,
+},
+bottomSheetHeader: {
+  marginBottom: 16,
+  alignItems: 'center',
+  paddingTop: 15,
+  paddingHorizontal: 10,
+  borderBottomWidth: 1,
+  borderBottomColor: '#eee',
+},
+
   bottomSheetTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -845,22 +1021,24 @@ const styles = StyleSheet.create({
 
   // Estilos para categorias
   wrapper: {
-    marginRight: 8,
-    backgroundColor: '#7F00FF',
+    marginRight: 10,
+    backgroundColor: '#F9F5FF',
     paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
   },
   title: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: '700',
+    color: '#9333EA',
   },
   countBadge: {
-    backgroundColor: 'white',
+    backgroundColor: '#9333EA',
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -869,45 +1047,82 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   countText: {
-    color: '#7F00FF',
+    color: '#FFF',
     fontSize: 12,
     fontWeight: 'bold',
   },
 
   // Estilos gerais
   emptyContainer: {
-    flex: 1,
+    paddingVertical: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 30,
   },
   empty: {
     textAlign: 'center',
-    color: '#555',
+    color: '#1F2937',
     fontSize: 16,
-    marginBottom: 10,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySub: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontSize: 13,
+    marginBottom: 22,
+    lineHeight: 18,
   },
   retryButton: {
     backgroundColor: '#7F00FF',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    borderRadius: 14,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   retryText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  emptyFeaturedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    width: width - 40,
+    height: 100,
+    gap: 10,
+    marginVertical: 10,
+  },
+  emptyFeaturedText: {
+    color: '#6B7280',
+    fontSize: 13,
+    fontWeight: '600',
   },
   whatsappButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 160, // Aumentado bastante para criar um espaçamento limpo entre o menu e o botão
     right: 20,
-    backgroundColor: '#7F00FF',
+    backgroundColor: '#25D366', // Cor oficial do WhatsApp para maior reconhecimento (ou #9333EA se preferir manter o tema)
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
     zIndex: 999,
   },
   footerLoader: {

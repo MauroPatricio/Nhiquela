@@ -7,23 +7,27 @@
     "orientation": "portrait",
     "icon": "./assets/nhiquela3.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/nhiquela3.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "assetBundlePatterns": ["**/*"],
     "platforms": ["ios", "android", "web"],
+
     "android": {
       "package": "com.mpatricio.nhiquelap",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 2,
-      "useNextNotificationsApi": true,
+      "versionCode": 3,
       "icon": "./assets/nhiquela3.png",
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela3.png",
         "backgroundColor": "#ffffff"
       },
+
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -33,59 +37,91 @@
         "FOREGROUND_SERVICE",
         "POST_NOTIFICATIONS",
         "VIBRATE",
-        "WAKE_LOCK",
-        "RECORD_AUDIO"
+        "WAKE_LOCK"
       ],
+
+      "notification": {
+        "icon": "./assets/nhiquela3.png",
+        "color": "#7F00FF",
+        "androidCollapsedTitle": "NhiquelaPRO"
+      },
+
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
         }
-      }
+      },
+
+      "buildProperties": {
+        "enableProguardInReleaseBuilds": true
+      },
+
+      "blocklistPatterns": ["*.so"],
+
+      "abiFilters": ["arm64-v8a"],
+
+      "enableDangerousExperimentalMemory16KbPageSupport": true
     },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mpatricio.nhiquelap",
       "icon": "./assets/nhiquela3.png",
+
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs access to your camera to upload images.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images.",
+        "NSCameraUsageDescription": "NhiquelaPRO precisa acessar sua câmera para upload de imagens.",
+        "NSPhotoLibraryUsageDescription": "NhiquelaPRO precisa acessar sua galeria para upload de fotos.",
+        "NSLocationWhenInUseUsageDescription": "Nhiquela usa sua localização para entregas e mapas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Nhiquela precisa da sua localização para rastreamento.",
         "UIBackgroundModes": ["fetch", "remote-notification"],
-        "NSUserTrackingUsageDescription": "NhiquelaPRO uses notifications to update you about new orders and deliveries."
+        "NSUserTrackingUsageDescription": "O app utiliza dados para melhorar a experiência."
+      },
+
+      "config": {
+        "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
       }
     },
+
     "web": {
       "favicon": "./assets/nhiquela3.png"
     },
+
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 23,
+            "ndkVersion": "26.1.10909125",
+            "softwareKeyboardLayoutMode": "pan",
+            "enableProguardInReleaseBuilds": true
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
       [
         "expo-camera",
         {
-          "cameraPermission": "This app needs access to your camera to upload images."
+          "cameraPermission": "NhiquelaPRO precisa de acesso à câmera."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "This app needs access to your location to find nearby delivery agents."
+          "locationAlwaysAndWhenInUsePermission": "NhiquelaPRO usa localização para mapas e entregas."
         }
       ],
       "expo-notifications",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0"
-          },
-          "ios": {
-            "deploymentTarget": "13.0"
-          }
-        }
-      ],
       "expo-font"
     ],
+
     "extra": {
+      "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA",
+
       "firebase": {
         "apiKey": "AIzaSyCY-wvry4w6GAsMJQ4zD_e3LiMSVx3qoGU",
         "authDomain": "nhiquela-pro.firebaseapp.com",
@@ -95,10 +131,12 @@
         "appId": "1:321336552110:web:2883153d447c5abe96db3f",
         "measurementId": "G-2HJXSQN0Z7"
       },
+
       "eas": {
         "projectId": "3955dd7f-ad17-497a-966b-33dfae1b0b18"
       }
     },
+
     "runtimeVersion": "1.0.0"
   }
 }

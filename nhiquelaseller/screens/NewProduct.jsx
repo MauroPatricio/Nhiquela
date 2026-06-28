@@ -1,5 +1,6 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator } from 'react-native';
 import { Formik } from 'formik';
 import api from '../hooks/createConnectionApi';
 import { Picker } from '@react-native-picker/picker';
@@ -8,6 +9,8 @@ import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 // import io from 'socket.io-client';
 
 const validationSchema = Yup.object().shape({
@@ -22,6 +25,7 @@ const validationSchema = Yup.object().shape({
 });
 
 const NewProduct = () => {
+
   const navigation = useNavigation();
   const route = useRoute();
   const [editingProduct, setEditingProduct] = useState(null);
@@ -38,6 +42,7 @@ const NewProduct = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socket, setSocket] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false); // novo estado
 
   // Estados locais para os campos do formulário
   const [name, setName] = useState('');
@@ -194,7 +199,13 @@ const NewProduct = () => {
   const handleImagePicker = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Erro', 'Permissão para acessar a galeria é necessária!');
+      showMessage({
+        message: 'Erro',
+        description: 'Permissão para acessar a galeria é necessária!',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       return;
     }
 
@@ -230,7 +241,13 @@ const NewProduct = () => {
       setImage(data.secure_url);
       return data.secure_url;
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao enviar a imagem.');
+      showMessage({
+        message: 'Erro',
+        description: 'Falha ao enviar a imagem.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -285,25 +302,25 @@ const NewProduct = () => {
         response = await api.put(`products/${editingProduct._id}`, values, {
           headers: { Authorization: `Bearer ${userData.token}` },
         });
-        
+
         // Atualiza o estado com os dados retornados
         setEditingProduct(response.data.product);
 
-              const body =  `O produto ${response.data.product.nome} foi actualizado. Confira já!`;
-              const data = response.data.product;
-              const title = 'Produto actualizado na Nhiquela'
+        const body = `O produto ${response.data.product.nome} foi actualizado. Confira já!`;
+        const data = response.data.product;
+        const title = 'Produto actualizado na Nhiquela'
 
-         // Envia para os utilizadores registrados
-          response = await api.post('notifications/broadcast', {title, body, data}, {
+        // Envia para os utilizadores registrados
+        response = await api.post('notifications/broadcast', { title, body, data }, {
           headers: { Authorization: `Bearer ${userData.token}` },
         });
-        
+
 
         navigation.navigate('ProductListSeller');
 
-        Toast.show({ 
-          type: 'success', 
-          text1: 'SUCESSO', 
+        Toast.show({
+          type: 'success',
+          text1: 'SUCESSO',
           text2: 'Produto actualizado com sucesso!',
           position: 'top',
           visibilityTime: 2000
@@ -313,19 +330,18 @@ const NewProduct = () => {
           headers: { Authorization: `Bearer ${userData.token}` },
         });
 
-      const body =  `O produto ${response.data.product.nome} agora está disponível. Confira na Nhiquela!`;
-      const data = response.data.product;
-      const title = 'Novo produto disponível na Nhiquela'
+        const body = `O produto ${response.data.product.nome} agora está disponível. Confira na Nhiquela!`;
+        const data = response.data.product;
+        const title = 'Novo produto disponível na Nhiquela'
 
-         // Envia para os utilizadores registrados
-          response = await api.post('notifications/broadcast', {title, body, data}, {
+        // Envia para os utilizadores registrados
+        response = await api.post('notifications/broadcast', { title, body, data }, {
           headers: { Authorization: `Bearer ${userData.token}` },
         });
-        
-        Toast.show({ 
-          type: 'success', 
-          text1: 'SUCESSO', 
-          text2: 'Produto criado com sucesso!', 
+        Toast.show({
+          type: 'success',
+          text1: 'SUCESSO',
+          text2: 'Produto criado com sucesso!',
           position: 'top',
           visibilityTime: 2000
         });
@@ -336,11 +352,12 @@ const NewProduct = () => {
         navigation.navigate('ProductListSeller');
       }
     } catch (error) {
+      console.log(error)
       const errorMessage = error.response?.data.error || 'Erro ao salvar o produto.';
-      Toast.show({ 
-        type: 'error', 
-        text1: 'Erro', 
-        text2: errorMessage, 
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: errorMessage,
         position: 'top',
         visibilityTime: 3000
       });
@@ -350,327 +367,376 @@ const NewProduct = () => {
   };
 
   return (
-    <ScrollView style={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#7F00FF']}
-          tintColor="#7F00FF"
-        />
-      }>
-      <Text style={styles.title}>
-        {editingProduct ? 'Editar Produto' : 'Criar novo produto'}
-      </Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-      {userData && userData?.isApproved ? (
-        <Formik
-          enableReinitialize
-          initialValues={{
-            nome: nome,
-            name: name,
-            image: image || '',
-            price: price,
-            category: category,
-            province: province,
-            brand: brand,
-            countInStock: countInStock,
-            description: description,
-            onSale: editingProduct?.onSale || false,
-            onSalePercentage: editingProduct?.onSalePercentage || 0,
-            color: selectedColors,
-            size: selectedSizes,
-            orderPeriod: editingProduct?.orderPeriod || 0,
-            isGuaranteed: editingProduct?.isGuaranteed || false,
-            guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
-            isOrdered: editingProduct?.isOrdered || false,
-            isSellerOpen: userData?.seller?.openstore||false
-          }}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
-        >
-          {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
-            <>
-              <Picker
-                selectedValue={values.category || ''}
-                onValueChange={(itemValue) => {
-                  setFieldValue('category', itemValue);
-                  setCategory(itemValue);
-                }}
-                style={styles.picker}
-              >
-                <Picker.Item label="Categoria" value="" />
-                {categories &&
-                  categories.map((categorie) => (
-                    <Picker.Item key={categorie._id} label={categorie.nome} value={categorie._id} />
-                  ))}
-              </Picker>
-              {touched.category && errors.category && <Text style={styles.error}>{errors.category}</Text>}
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: 'white' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} // evita "jump" no Android
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
 
-              <Picker
-                selectedValue={values.province || ''}
-                onValueChange={(itemValue) => {
-                  setFieldValue('province', itemValue);
-                  setProvince(itemValue);
-                }}
-                style={styles.picker}
-              >
-                <Picker.Item label="Localização do produto" value="" />
-                {provinces &&
-                  provinces.map((province) => (
-                    <Picker.Item key={province._id} label={province.name} value={province._id} />
-                  ))}
-              </Picker>
-              {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
+        <ScrollView style={styles.container}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7F00FF']}
+              tintColor="#7F00FF"
+            />
+          }>
+          <Text style={styles.title}>
+            {editingProduct ? 'Editar Produto' : 'Criar novo produto'}
+          </Text>
 
-              <Picker
-                selectedValue={null}
-                onValueChange={(itemValue) => handleColorSelect(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Selecione a cor" value="" />
-                {colors &&
-                  colors.map((color) => (
-                    <Picker.Item key={color._id} label={color.nome} value={color} />
-                  ))}
-              </Picker>
-              <Text>Cores selecionadas: {selectedColors.map((color) => color.nome).join(', ')}</Text>
-              {errorColor && <Text style={styles.error}>{errorColor}</Text>}
-
-              <Picker
-                selectedValue={null}
-                onValueChange={(itemValue) => handleSizeSelect(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Selecione o tamanho" value="" />
-                {sizes &&
-                  sizes.map((size) => (
-                    <Picker.Item key={size._id} label={size.nome} value={size} />
-                  ))}
-              </Picker>
-              <Text>Tamanhos selecionados: {selectedSizes.map((size) => size.nome).join(', ')}</Text>
-              {errorSize && <Text style={styles.error}>{errorSize}</Text>}
-
-              <TextInput
-                style={styles.input}
-                placeholder="Nome do produto (PT)"
-                onChangeText={(text) => {
-                  handleChange('nome')(text);
-                  setNome(text);
-                }}
-                onBlur={handleBlur('nome')}
-                value={values.nome}
-              />
-              {touched.nome && errors.nome && <Text style={styles.error}>{errors.nome}</Text>}
-
-              <TextInput
-                style={styles.input}
-                placeholder="Nome do produto (En)"
-                onChangeText={(text) => {
-                  handleChange('name')(text);
-                  setName(text);
-                }}
-                onBlur={handleBlur('name')}
-                value={values.name}
-              />
-              {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
-
-         
-
-              <TextInput
-                style={styles.input}
-                placeholder="Descrição do produto"
-                onChangeText={(text) => {
-                  handleChange('description')(text);
-                  setDescription(text);
-                }}
-                onBlur={handleBlur('description')}
-                value={values.description}
-              />
-              {touched.description && errors.description && <Text style={styles.error}>{errors.description}</Text>}
-
-              {image ? (
-                <Image source={{ uri: image }} style={styles.logo} />
-              ) : (
-                <Text style={{ color: 'red' }}>Adicione a imagem</Text>
-              )}
-              {touched.image && errors.image && <Text style={styles.error}>{errors.image}</Text>}
-
-                <TouchableOpacity
-                style={styles.imagePicker}
-                onPress={() => handleImagePicker(setFieldValue)}
-              >
-                <Text style={styles.imagePickerText}>
-                  {values.image ? 'Mudar Imagem' : 'Imagem do produto'}
-                </Text>
-              </TouchableOpacity>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Preço"
-                onChangeText={(text) => {
-                  const filteredText = text.replace(/[^0-9]/g, '');
-                  handleChange('price')(filteredText);
-                  setPrice(filteredText);
-                }}
-                onBlur={handleBlur('price')}
-                value={values.price}
-                keyboardType="numeric"
-              />
-              {touched.price && errors.price && <Text style={styles.error}>{errors.price}</Text>}
-
-              <TextInput
-                style={styles.input}
-                placeholder="Marca/Sabor"
-                onChangeText={(text) => {
-                  handleChange('brand')(text);
-                  setBrand(text);
-                }}
-                onBlur={handleBlur('brand')}
-                value={values.brand}
-              />
-              {touched.brand && errors.brand && <Text style={styles.error}>{errors.brand}</Text>}
-
-              <TextInput
-                style={styles.input}
-                placeholder="Quantidade disponível"
-                onChangeText={(text) => {
-                  const filteredText = text.replace(/[^0-9]/g, '');
-                  handleChange('countInStock')(filteredText);
-                  setCountInStock(filteredText);
-                }}
-                onBlur={handleBlur('countInStock')}
-                value={values.countInStock}
-                keyboardType="numeric"
-              />
-              {touched.countInStock && errors.countInStock && <Text style={styles.error}>{errors.countInStock}</Text>}
-
-              <View style={styles.switchRow}>
-                <Text>Está em promoção?</Text>
-                <TouchableOpacity
-                  onPress={() => setFieldValue('onSale', !values.onSale)}
-                  style={[styles.switchButton, values.onSale ? styles.active : styles.inactive]}
-                >
-                  <Text style={styles.switchText}>{values.onSale ? 'Sim' : 'Não'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {values.onSale && (
-                <View>
+          {userData && userData?.isApproved ? (
+            <Formik
+              enableReinitialize
+              initialValues={{
+                nome: nome,
+                name: name,
+                image: image || '',
+                price: price,
+                category: category,
+                province: province,
+                brand: brand,
+                countInStock: countInStock,
+                description: description,
+                onSale: editingProduct?.onSale || false,
+                onSalePercentage: editingProduct?.onSalePercentage || 0,
+                color: selectedColors,
+                size: selectedSizes,
+                orderPeriod: editingProduct?.orderPeriod || 0,
+                isGuaranteed: editingProduct?.isGuaranteed || false,
+                guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
+                isOrdered: editingProduct?.isOrdered || false,
+                isSellerOpen: userData?.seller?.openstore || false
+              }}
+              validationSchema={validationSchema}
+              onSubmit={handleSubmit}
+            >
+              {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
+                <>
                   <Picker
-                    selectedValue={values.onSalePercentage}
-                    onValueChange={(itemValue) => setFieldValue('onSalePercentage', itemValue)}
-                    style={styles.input}
+                    selectedValue={values.category || ''}
+                    onValueChange={(itemValue) => {
+                      setFieldValue('category', itemValue);
+                      setCategory(itemValue);
+                    }}
+                    style={styles.picker}
                   >
-                    <Picker.Item label="Selecione a percentagem de desconto" value="" />
-                    {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((percent) => (
-                      <Picker.Item key={percent} label={`${percent}%`} value={percent} />
-                    ))}
+                    <Picker.Item label="Categoria" value="" />
+                    {categories &&
+                      categories.map((categorie) => (
+                        <Picker.Item key={categorie._id} label={categorie.nome} value={categorie._id} />
+                      ))}
                   </Picker>
-                </View>
-              )}
-              {touched.onSalePercentage && errors.onSalePercentage && (
-                <Text style={styles.error}>{errors.onSalePercentage}</Text>
-              )}
+                  {touched.category && errors.category && <Text style={styles.error}>{errors.category}</Text>}
 
-              <View style={styles.switchRow}>
-                <Text>Produto solicitado por encomenda?</Text>
-                <TouchableOpacity
-                  onPress={() => setFieldValue('isOrdered', !values.isOrdered)}
-                  style={[styles.switchButton, values.isOrdered ? styles.active : styles.inactive]}
-                >
-                  <Text style={styles.switchText}>{values.isOrdered ? 'Sim' : 'Não'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {values.isOrdered && (
-                <View>
                   <Picker
-                    selectedValue={values.orderPeriod}
-                    onValueChange={(itemValue) => setFieldValue('orderPeriod', itemValue)}
-                    style={styles.input}
+                    selectedValue={values.province || ''}
+                    onValueChange={(itemValue) => {
+                      setFieldValue('province', itemValue);
+                      setProvince(itemValue);
+                    }}
+                    style={styles.picker}
                   >
-                    <Picker.Item label="Em quantos dias a encomenda será entregue?" value="" />
-                    {['1 dia', '2 dias', '5 dias', '7 dias', '10 dias', '15 dias', '20 dias', '30 dias', '45 dias'].map((days) => (
-                      <Picker.Item key={days} label={`${days}`} value={days} />
-                    ))}
+                    <Picker.Item label="Localização do produto" value="" />
+                    {provinces &&
+                      provinces.map((province) => (
+                        <Picker.Item key={province._id} label={province.name} value={province._id} />
+                      ))}
                   </Picker>
-                </View>
-              )}
-              {touched.orderPeriod && errors.orderPeriod && (
-                <Text style={styles.error}>{errors.orderPeriod}</Text>
-              )}
+                  {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
 
-              <View style={styles.switchRow}>
-                <Text>Tem garantia?</Text>
-                <TouchableOpacity
-                  onPress={() => setFieldValue('isGuaranteed', !values.isGuaranteed)}
-                  style={[styles.switchButton, values.isGuaranteed ? styles.active : styles.inactive]}
-                >
-                  <Text style={styles.switchText}>{values.isGuaranteed ? 'Sim' : 'Não'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {values.isGuaranteed && (
-                <View>
-                  <Text style={styles.label}>Período de garantia (meses)</Text>
                   <Picker
-                    selectedValue={values.guaranteedPeriod}
-                    onValueChange={(itemValue) => setFieldValue('guaranteedPeriod', itemValue)}
-                    style={styles.input}
+                    selectedValue={null}
+                    onValueChange={(itemValue) => handleColorSelect(itemValue)}
+                    style={styles.picker}
                   >
-                    <Picker.Item label="1 mês" value="1 mês" />
-                    <Picker.Item label="3 meses" value="3 meses" />
-                    <Picker.Item label="6 meses" value="6 meses" />
-                    <Picker.Item label="9 meses" value="9 meses" />
-                    <Picker.Item label="12 meses" value="12 meses" />
+                    <Picker.Item label="Selecione a cor" value="" />
+                    {colors &&
+                      colors.map((color) => (
+                        <Picker.Item key={color._id} label={color.nome} value={color} />
+                      ))}
                   </Picker>
-                </View>
-              )}
-              {touched.guaranteedPeriod && errors.guaranteedPeriod && (
-                <Text style={styles.error}>{errors.guaranteedPeriod}</Text>
-              )}
+                  <Text>Cores selecionadas: {selectedColors.map((color) => color.nome).join(', ')}</Text>
+                  {errorColor && <Text style={styles.error}>{errorColor}</Text>}
 
-              <TouchableOpacity 
-                style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? 'Processando...' : editingProduct ? 'Atualizar Produto' : 'Criar Produto'}
-                </Text>
-              </TouchableOpacity>
+                  <Picker
+                    selectedValue={null}
+                    onValueChange={(itemValue) => handleSizeSelect(itemValue)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Selecione o tamanho" value="" />
+                    {sizes &&
+                      sizes.map((size) => (
+                        <Picker.Item key={size._id} label={size.nome} value={size} />
+                      ))}
+                  </Picker>
+                  <Text>Tamanhos selecionados: {selectedSizes.map((size) => size.nome).join(', ')}</Text>
+                  {errorSize && <Text style={styles.error}>{errorSize}</Text>}
 
-              <View style={{ marginBottom: 250 }} />
-            </>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nome do produto (PT)"
+                    onChangeText={(text) => {
+                      handleChange('nome')(text);
+                      setNome(text);
+                    }}
+                    onBlur={handleBlur('nome')}
+                    value={values.nome}
+                  />
+                  {touched.nome && errors.nome && <Text style={styles.error}>{errors.nome}</Text>}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nome do produto (En)"
+                    onChangeText={(text) => {
+                      handleChange('name')(text);
+                      setName(text);
+                    }}
+                    onBlur={handleBlur('name')}
+                    value={values.name}
+                  />
+                  {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
+
+
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Descrição do produto"
+                    onChangeText={(text) => {
+                      handleChange('description')(text);
+                      setDescription(text);
+                    }}
+                    onBlur={handleBlur('description')}
+                    value={values.description}
+                  />
+                  {touched.description && errors.description && <Text style={styles.error}>{errors.description}</Text>}
+
+                  {/* ---------- Espaço reservado fixo para evitar 'jump' ---------- */}
+                  {/* ---------- Espaço reservado fixo para evitar 'jump' ---------- */}
+                  <View style={styles.logoContainer}>
+                    <View style={styles.logoWrapper}>
+                      {image ? (
+                        <Image
+                          source={{ uri: image }}
+                          style={styles.logo}
+                        />
+                      ) : (
+                        <View style={styles.logoPlaceholder}>
+                          <MaterialCommunityIcons name="image-outline" size={50} color="#bbb" />
+                          <Text style={{ color: '#999' }}>Sem imagem</Text>
+                        </View>
+                      )}
+
+                      {imageUploading && (
+                        <View style={styles.logoOverlay}>
+                          <ActivityIndicator size="large" color="#fff" />
+                        </View>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.button, imageUploading && styles.buttonDisabled]}
+                      onPress={async () => {
+                        // evita re-render desnecessário durante upload
+                        setImageUploading(true);
+                        await handleImagePicker((field, value) => { }); // ignora Formik setFieldValue
+                        setImageUploading(false);
+                      }}
+                      disabled={imageUploading}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.buttonText}>
+                        {imageUploading ? 'Enviando imagem...' : 'Adicionar imagem'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* <TouchableOpacity
+               style={[styles.button, imageUploading && styles.buttonDisabled]}
+               onPress={() => handleImagePicker(setFieldValue)}
+               disabled={imageUploading}
+             >
+               <Text style={styles.buttonText}>
+                 {imageUploading ? 'Enviando imagem...' : 'Adicionar imagem'}
+               </Text>
+             </TouchableOpacity> */}
+
+                  {touched.seller?.logo && errors.seller?.logo && (
+                    <Text style={styles.error}>{errors.seller.logo}</Text>
+                  )}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Preço"
+                    onChangeText={(text) => {
+                      const filteredText = text.replace(/[^0-9]/g, '');
+                      handleChange('price')(filteredText);
+                      setPrice(filteredText);
+                    }}
+                    onBlur={handleBlur('price')}
+                    value={values.price}
+                    keyboardType="numeric"
+                  />
+                  {touched.price && errors.price && <Text style={styles.error}>{errors.price}</Text>}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Marca/Sabor"
+                    onChangeText={(text) => {
+                      handleChange('brand')(text);
+                      setBrand(text);
+                    }}
+                    onBlur={handleBlur('brand')}
+                    value={values.brand}
+                  />
+                  {touched.brand && errors.brand && <Text style={styles.error}>{errors.brand}</Text>}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Quantidade disponível"
+                    onChangeText={(text) => {
+                      const filteredText = text.replace(/[^0-9]/g, '');
+                      handleChange('countInStock')(filteredText);
+                      setCountInStock(filteredText);
+                    }}
+                    onBlur={handleBlur('countInStock')}
+                    value={values.countInStock}
+                    keyboardType="numeric"
+                  />
+                  {touched.countInStock && errors.countInStock && <Text style={styles.error}>{errors.countInStock}</Text>}
+
+                  <View style={styles.switchRow}>
+                    <Text>Está em promoção?</Text>
+                    <TouchableOpacity
+                      onPress={() => setFieldValue('onSale', !values.onSale)}
+                      style={[styles.switchButton, values.onSale ? styles.active : styles.inactive]}
+                    >
+                      <Text style={styles.switchText}>{values.onSale ? 'Sim' : 'Não'}</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {values.onSale && (
+                    <View>
+                      <Picker
+                        selectedValue={values.onSalePercentage}
+                        onValueChange={(itemValue) => setFieldValue('onSalePercentage', itemValue)}
+                        style={styles.input}
+                      >
+                        <Picker.Item label="Selecione a percentagem de desconto" value="" />
+                        {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((percent) => (
+                          <Picker.Item key={percent} label={`${percent}%`} value={percent} />
+                        ))}
+                      </Picker>
+                    </View>
+                  )}
+                  {touched.onSalePercentage && errors.onSalePercentage && (
+                    <Text style={styles.error}>{errors.onSalePercentage}</Text>
+                  )}
+
+                  <View style={styles.switchRow}>
+                    <Text>Produto solicitado por encomenda?</Text>
+                    <TouchableOpacity
+                      onPress={() => setFieldValue('isOrdered', !values.isOrdered)}
+                      style={[styles.switchButton, values.isOrdered ? styles.active : styles.inactive]}
+                    >
+                      <Text style={styles.switchText}>{values.isOrdered ? 'Sim' : 'Não'}</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {values.isOrdered && (
+                    <View>
+                      <Picker
+                        selectedValue={values.orderPeriod}
+                        onValueChange={(itemValue) => setFieldValue('orderPeriod', itemValue)}
+                        style={styles.input}
+                      >
+                        <Picker.Item label="Em quantos dias a encomenda será entregue?" value="" />
+                        {['1 dia', '2 dias', '5 dias', '7 dias', '10 dias', '15 dias', '20 dias', '30 dias', '45 dias'].map((days) => (
+                          <Picker.Item key={days} label={`${days}`} value={days} />
+                        ))}
+                      </Picker>
+                    </View>
+                  )}
+                  {touched.orderPeriod && errors.orderPeriod && (
+                    <Text style={styles.error}>{errors.orderPeriod}</Text>
+                  )}
+
+                  <View style={styles.switchRow}>
+                    <Text>Tem garantia?</Text>
+                    <TouchableOpacity
+                      onPress={() => setFieldValue('isGuaranteed', !values.isGuaranteed)}
+                      style={[styles.switchButton, values.isGuaranteed ? styles.active : styles.inactive]}
+                    >
+                      <Text style={styles.switchText}>{values.isGuaranteed ? 'Sim' : 'Não'}</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {values.isGuaranteed && (
+                    <View>
+                      <Text style={styles.label}>Período de garantia (meses)</Text>
+                      <Picker
+                        selectedValue={values.guaranteedPeriod}
+                        onValueChange={(itemValue) => setFieldValue('guaranteedPeriod', itemValue)}
+                        style={styles.input}
+                      >
+                        <Picker.Item label="1 mês" value="1 mês" />
+                        <Picker.Item label="3 meses" value="3 meses" />
+                        <Picker.Item label="6 meses" value="6 meses" />
+                        <Picker.Item label="9 meses" value="9 meses" />
+                        <Picker.Item label="12 meses" value="12 meses" />
+                      </Picker>
+                    </View>
+                  )}
+                  {touched.guaranteedPeriod && errors.guaranteedPeriod && (
+                    <Text style={styles.error}>{errors.guaranteedPeriod}</Text>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.submitButtonText}>
+                      {isSubmitting ? 'Processando...' : editingProduct ? 'Atualizar Produto' : 'Criar Produto'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <View style={{ marginBottom: 250 }} />
+                </>
+              )}
+            </Formik>
+          ) : (
+            <View style={styles.notAccepted}>
+              <Text style={styles.notAcceptedTitle}>Sua conta está em análise!</Text>
+
+              <Text style={styles.notAcceptedText}>
+                Para começar a publicar seus produtos e vender na NHIQUELA, precisamos finalizar a ativação da sua conta.
+              </Text>
+
+              <Text style={styles.notAcceptedContact}>
+                Entre em contato conosco pelo <Text style={styles.notAcceptedHighlight}>WhatsApp: 85 3600036</Text>
+              </Text>
+
+              <Text style={styles.notAcceptedContact}> ou pelo email:
+                <Text style={styles.notAcceptedHighlight}>nhiquelaservicosconsultoria@gmail.com</Text>
+              </Text>
+
+              <Text style={styles.notAcceptedText}>
+                Nossa equipe está pronta para ajudar você a começar suas vendas o mais rápido possível!
+              </Text>
+
+              <Text style={styles.notAcceptedFooter}>
+                Agradecemos sua paciência e interesse em fazer parte da nossa plataforma.
+              </Text>
+            </View>
           )}
-        </Formik>
-      ) : (
-        <View style={styles.notAccepted}>
-          <Text style={styles.notAcceptedTitle}>Sua conta está em análise!</Text>
-          
-          <Text style={styles.notAcceptedText}>
-            Para começar a publicar seus produtos e vender na NHIQUELA, precisamos finalizar a ativação da sua conta.
-          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
 
-          <Text style={styles.notAcceptedContact}>
-            Entre em contato conosco pelo <Text style={styles.notAcceptedHighlight}>WhatsApp: 85 3600036</Text>
-          </Text>
-          
-          <Text style={styles.notAcceptedContact}> ou pelo email:
-            <Text style={styles.notAcceptedHighlight}>nhiquelaservicosconsultoria@gmail.com</Text>
-          </Text>
-
-          <Text style={styles.notAcceptedText}>
-            Nossa equipe está pronta para ajudar você a começar suas vendas o mais rápido possível!
-          </Text>
-
-          <Text style={styles.notAcceptedFooter}>
-            Agradecemos sua paciência e interesse em fazer parte da nossa plataforma.
-          </Text>
-        </View>
-      )}
-    </ScrollView>
   );
 };
 
@@ -814,7 +880,65 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '600',
     color: '#4A5568',
-  }
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 15,
+  },
+  logoWrapper: {
+    position: 'relative',
+    width: 140,
+    height: 140,
+    borderRadius: 15,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: '#F8F8F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F1F1F1',
+    width: '100%',
+    height: '100%',
+    borderRadius: 15,
+  },
+  logoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  button: {
+    backgroundColor: '#7F00FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: '#BFA3FF',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
 });
 
 export default NewProduct;

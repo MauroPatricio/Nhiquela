@@ -34,16 +34,9 @@ export default function BottomSheetComponent({ isOpen, toggleSheet, children, du
         style={[
           sheetStyles.sheet,
           sheetStyle,
-          { backgroundColor: colorScheme === 'light' ? '#fff' : '#272B3C', height: windowHeight },
+          { backgroundColor: colorScheme === 'light' ? '#fff' : '#272B3C', maxHeight: windowHeight * 0.9 },
         ]}
       >
-        {/* Botão de fechar */}
-        <View style={sheetStyles.closeButtonContainer}>
-          <TouchableOpacity onPress={toggleSheet}>
-            <Ionicons name="close-circle" size={30} color="gray" />
-          </TouchableOpacity>
-        </View>
-
         {/* Conteúdo */}
         {children}
       </Animated.View>
