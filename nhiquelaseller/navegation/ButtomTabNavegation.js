@@ -24,7 +24,7 @@ const BottomTabNavigation = () => {
       <Tab.Screen name="Orders" component={Orders} />
       <Tab.Screen name="Profile" component={Profile} />
     </Tab.Navigator>
-  );
+  )
 };
 
 export default BottomTabNavigation;

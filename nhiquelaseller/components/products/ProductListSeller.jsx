@@ -220,8 +220,8 @@ const handleToggleStatus = async (product) => {
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
-  );
-};
+  )
+}
 
 export default ProductListSeller;
 
