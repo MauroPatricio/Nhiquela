@@ -1,5 +1,6 @@
 node_modules
-build
+build
+echo "*.json" >> .gitignore
 # Node
 npm-debug.log*
 yarn-error.log*
