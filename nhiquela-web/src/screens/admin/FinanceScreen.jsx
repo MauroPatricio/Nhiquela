@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch, faDownload, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -14,14 +14,65 @@ export default function FinanceScreen() {
   // Filter States
   const [filterType, setFilterType] = useState('all'); // 'all', 'credit', 'debit'
   
-  // Modal de Simulação de Levantamento (M-Pesa / e-Mola)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawData, setWithdrawData] = useState({ amount: '', phone: '' });
   const [withdrawing, setWithdrawing] = useState(false);
 
+  // Settings Modal
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [financeEmails, setFinanceEmails] = useState('');
+  const [financeEmailSettingId, setFinanceEmailSettingId] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Receipt Modal
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [currentReceiptUrl, setCurrentReceiptUrl] = useState('');
+
+  const openReceiptModal = (url) => {
+    setCurrentReceiptUrl(url);
+    setShowReceiptModal(true);
+  };
+
   useEffect(() => {
     fetchWalletData();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await api.get('/settings');
+      const emailSetting = data.find(s => s.key === 'finance_emails');
+      if (emailSetting) {
+        setFinanceEmailSettingId(emailSetting._id);
+        setFinanceEmails(emailSetting.value);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações de email:', error);
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      if (financeEmailSettingId) {
+        await api.put(`/settings/${financeEmailSettingId}`, { value: financeEmails });
+      } else {
+        const { data } = await api.post('/settings', { 
+          key: 'finance_emails', 
+          value: financeEmails, 
+          description: 'Emails para notificação de recargas pendentes (separados por vírgula)' 
+        });
+        setFinanceEmailSettingId(data.setting._id);
+      }
+      toast.success('Notificações de email configuradas com sucesso!');
+      setShowSettingsModal(false);
+    } catch (error) {
+      toast.error('Erro ao guardar configurações de email.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchWalletData = async () => {
     setLoading(true);
@@ -48,20 +99,19 @@ export default function FinanceScreen() {
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
-    if (!withdrawData.amount || !withdrawData.phone) return toast.error('Preencha valor e telefone.');
+    if (!withdrawData.amount) return toast.error('Preencha o valor.');
     
     setWithdrawing(true);
     try {
       const { data } = await api.post('/wallet/withdraw', {
-        amount: withdrawData.amount,
-        phone: withdrawData.phone
+        amount: withdrawData.amount
       });
       toast.success(data.message);
       setShowWithdrawModal(false);
       setWithdrawData({ amount: '', phone: '' });
       fetchWalletData(); // Atualiza o saldo e extrato
     } catch (error) {
-      toast.error('Erro ao processar o levantamento. Verifique se o telemóvel é válido (ex: 84..., 85...).');
+      toast.error('Erro ao processar o levantamento. Verifique o saldo.');
     } finally {
       setWithdrawing(false);
     }
@@ -123,12 +173,16 @@ export default function FinanceScreen() {
           <span className="text-muted small">Conectado ao Backend API - Levantamentos e Extratos Reais</span>
         </div>
         <div>
-          <button className="btn btn-outline-primary rounded-pill px-4 fw-bold me-3 shadow-sm bg-white" onClick={fetchWalletData} disabled={loading}>
+          <button className="btn btn-outline-secondary rounded-pill px-3 fw-bold me-2 shadow-sm bg-white" onClick={() => setShowSettingsModal(true)}>
+            <FontAwesomeIcon icon={faEnvelope} className="me-2" /> Notificações
+          </button>
+          <button className="btn btn-outline-primary rounded-pill px-4 fw-bold me-2 shadow-sm bg-white" onClick={fetchWalletData} disabled={loading}>
             {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Atualizar'}
           </button>
-          <button className="btn bg-success text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => setShowWithdrawModal(true)}>
-            <FontAwesomeIcon icon={faMobileAlt} className="me-2" /> Simular Levantamento
-          </button>
+          <button className="btn btn-success rounded-pill px-4 shadow-sm fw-bold d-flex align-items-center" onClick={() => setShowWithdrawModal(true)}>
+          <FontAwesomeIcon icon={faMobileAlt} className="me-2" />
+          Levantar
+        </button>
         </div>
       </div>
 
@@ -200,11 +254,11 @@ export default function FinanceScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4">ID Transação</th>
-                  <th className="border-0 text-muted py-3">Data</th>
+                  <th className="border-0 text-muted py-3 px-4">Data</th>
                   <th className="border-0 text-muted py-3">Agente / Utilizador</th>
                   <th className="border-0 text-muted py-3">Descrição do Lançamento</th>
-                  <th className="border-0 text-muted py-3 text-end px-4">Valor (MT)</th>
+                  <th className="border-0 text-muted py-3 text-end">Valor (MT)</th>
+                  <th className="border-0 text-muted py-3 text-center px-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,19 +270,37 @@ export default function FinanceScreen() {
                   const rawDate = t.createdAt || t.created_at || t.date;
                   const dateObj = new Date(rawDate);
                   const isCredit = t.type === 'credit';
-                  const phoneUser = extractPhone(t.description);
                   
+                  let phoneUser = extractPhone(t.description) || 'Sistema';
+                  let nameUser = '';
+                  
+                  if (t.walletId && t.walletId.ownerId) {
+                    phoneUser = t.walletId.ownerId.phoneNumber || t.walletId.ownerId.phone || phoneUser;
+                    nameUser = t.walletId.ownerId.name || 'Utilizador';
+                  }
+
+                  const extractedUrl = t.receiptImage || (t.description?.includes('http') ? t.description.match(/https?:\/\/[^\s]+/)?.[0] : null);
+                  
+                  let displayDescription = t.description || '';
+                  if (displayDescription.includes('Recarga Manual. Comprovativo:')) {
+                    displayDescription = 'Recarga Manual (Saldo). Comprovativo';
+                  } else if (displayDescription.includes('http')) {
+                    displayDescription = displayDescription.replace(/https?:\/\/[^\s]+/, '').trim();
+                  }
+
                   return (
                     <tr key={t._id || t.id || Math.random().toString()}>
-                      <td className="px-4 text-muted small fw-bold">{t._id || t.id}</td>
-                      <td className="text-muted small">
+                      <td className="px-4 text-muted small">
                         <div>{isNaN(dateObj) ? 'Data Inválida' : dateObj.toLocaleDateString()}</div>
                         <div style={{fontSize: '10px'}}>{isNaN(dateObj) ? '' : dateObj.toLocaleTimeString()}</div>
                       </td>
                       <td>
                         <div className="d-flex align-items-center">
                           <FontAwesomeIcon icon={faUserCircle} className="text-muted me-2 fs-5" />
-                          <span className="fw-bold text-dark">{phoneUser}</span>
+                          <div className="d-flex flex-column">
+                            {nameUser ? <span className="fw-bold text-dark">{nameUser}</span> : null}
+                            <span className={t.status === 'falhado' ? "text-danger small fw-bold" : (nameUser ? "text-muted small" : "fw-bold text-dark")}>{phoneUser}</span>
+                          </div>
                         </div>
                       </td>
                       <td>
@@ -236,11 +308,66 @@ export default function FinanceScreen() {
                           <div className={`rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm ${isCredit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ width: '40px', height: '40px', minWidth: '40px' }}>
                             <FontAwesomeIcon icon={isCredit ? faArrowUp : faArrowDown} />
                           </div>
-                          <span className="fw-bold text-dark" style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</span>
+                          <span className="fw-bold text-dark" style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayDescription}</span>
                         </div>
                       </td>
-                      <td className={`text-end px-4 fw-bold ${isCredit ? 'text-success' : 'text-danger'}`}>
+                      <td className={`text-end fw-bold ${t.status === 'falhado' ? 'text-danger text-decoration-line-through' : (isCredit ? 'text-success' : 'text-danger')}`}>
                         {isCredit ? '+' : '-'}{parseFloat(t.amount || 0).toFixed(2)}
+                      </td>
+                      <td className="text-center px-4">
+                        <div className="d-flex justify-content-center gap-2">
+                          {extractedUrl && (
+                            <button 
+                              className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                              onClick={() => openReceiptModal(extractedUrl)}
+                              title="Ver Comprovativo"
+                            >
+                              Ver Recibo
+                            </button>
+                          )}
+                          {t.status === 'pendente' && isCredit && (
+                            <>
+                              <button 
+                                className="btn btn-sm btn-success rounded-pill px-3"
+                                onClick={async () => {
+                                  try {
+                                    await api.put(`/wallet/${t._id || t.id}/authorize-topup`);
+                                    toast.success('Recarga aprovada com sucesso!');
+                                    fetchWalletData();
+                                  } catch (err) {
+                                    toast.error('Erro ao aprovar recarga');
+                                  }
+                                }}
+                                title="Aprovar Recarga"
+                              >
+                                Aprovar
+                              </button>
+                              <button 
+                                className="btn btn-sm btn-danger rounded-pill px-3"
+                                onClick={async () => {
+                                  if(window.confirm('Tem a certeza que deseja rejeitar esta recarga?')) {
+                                    try {
+                                      await api.put(`/wallet/${t._id || t.id}/reject-topup`);
+                                      toast.success('Recarga rejeitada!');
+                                      fetchWalletData();
+                                    } catch (err) {
+                                      toast.error('Erro ao rejeitar recarga');
+                                    }
+                                  }
+                                }}
+                                title="Rejeitar Recarga"
+                              >
+                                Rejeitar
+                              </button>
+                            </>
+                          )}
+                          {t.status === 'pendente' && !isCredit && (
+                            <span className="badge bg-warning text-dark align-self-center">Pendente</span>
+                          )}
+                          {t.status === 'falhado' && (
+                            <span className="badge bg-danger align-self-center px-3 py-2 rounded-pill">Rejeitado</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -261,25 +388,18 @@ export default function FinanceScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '450px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">Simulador: M-Pesa / e-Mola</h5>
+              <h5 className="fw-bold m-0 text-dark">Levantar</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={() => setShowWithdrawModal(false)} style={{ width: '35px', height: '35px' }} disabled={withdrawing}><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             <div className="card-body p-4">
               <div className="alert alert-info border-0 rounded-3 small">
                 <FontAwesomeIcon icon={faMobileAlt} className="me-2" />
-                Vai testar o endpoint B2C <code>/api/wallet/withdraw</code>.
+                Levantamento para M-Pesa / e-Mola via endpoint <code>/api/wallet/withdraw</code>.
               </div>
               <form onSubmit={handleWithdraw}>
-                <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Telemóvel (ex: 84 ou 86...)</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={withdrawData.phone} onChange={(e) => setWithdrawData({...withdrawData, phone: e.target.value})} placeholder="Ex: 841234567" required disabled={withdrawing} />
-                </div>
                 <div className="mb-4">
-                  <label className="form-label fw-bold small text-muted mb-1">Valor do Levantamento (MT)</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Valor a Levantar (MT)</label>
                   <input type="number" className="form-control bg-light border-0 py-3 rounded-3 fw-bold" value={withdrawData.amount} onChange={(e) => setWithdrawData({...withdrawData, amount: e.target.value})} placeholder="0.00" required disabled={withdrawing} />
-                  <div className="text-end mt-1">
-                    <small className="text-muted">A plataforma reterá 1% de taxa.</small>
-                  </div>
                 </div>
                 
                 <button type="submit" className="btn bg-success text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm" disabled={withdrawing || balances.available <= 0}>
@@ -287,6 +407,60 @@ export default function FinanceScreen() {
                     <><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> Processando Gateway...</>
                   ) : (
                     <><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" /> Processar Levantamento</>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '90%', maxWidth: '600px' }}>
+            <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+              <h5 className="fw-bold m-0 text-dark">Comprovativo</h5>
+              <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={() => setShowReceiptModal(false)} style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTimes} /></button>
+            </div>
+            <div className="card-body p-4 text-center">
+              <img src={currentReceiptUrl} alt="Comprovativo da Transação" style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: '8px' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSettingsModal && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
+          <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '450px' }}>
+            <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+              <h5 className="fw-bold m-0 text-dark">Notificações Financeiras</h5>
+              <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={() => setShowSettingsModal(false)} style={{ width: '35px', height: '35px' }} disabled={savingSettings}><FontAwesomeIcon icon={faTimes} /></button>
+            </div>
+            <div className="card-body p-4">
+              <div className="alert alert-primary border-0 rounded-3 small">
+                <FontAwesomeIcon icon={faEnvelope} className="me-2" />
+                Adicione os emails que deverão ser notificados quando houver novos pedidos de recarga de carteira.
+              </div>
+              <form onSubmit={handleSaveSettings}>
+                <div className="mb-4">
+                  <label className="form-label fw-bold small text-muted mb-1">Emails (separados por vírgula)</label>
+                  <textarea 
+                    className="form-control bg-light border-0 py-3 rounded-3" 
+                    rows="3"
+                    value={financeEmails} 
+                    onChange={(e) => setFinanceEmails(e.target.value)} 
+                    placeholder="exemplo@nhiquela.com, admin@nhiquela.com" 
+                    required 
+                    disabled={savingSettings} 
+                  />
+                </div>
+                
+                <button type="submit" className="btn btn-primary w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm" disabled={savingSettings}>
+                  {savingSettings ? (
+                    <><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A guardar...</>
+                  ) : (
+                    <><FontAwesomeIcon icon={faSave} className="me-2" /> Guardar Configurações</>
                   )}
                 </button>
               </form>

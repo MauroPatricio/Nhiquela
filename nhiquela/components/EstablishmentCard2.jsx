@@ -4,6 +4,7 @@ import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import { StarIcon } from 'react-native-heroicons/outline';
 import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const EstablishmentCard = ({
   id,
@@ -25,8 +26,12 @@ const EstablishmentCard = ({
     >
       <View style={styles.card_template}>
         {/* Container da Imagem */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: img }} style={styles.image} />
+        <View style={[styles.imageContainer, { backgroundColor: img?.startsWith('http') ? 'transparent' : '#F3E8FF', justifyContent: 'center', alignItems: 'center', height: 85 }]}>
+          {img && img.startsWith('http') ? (
+            <Image source={{ uri: img }} style={styles.image} />
+          ) : (
+            <MaterialCommunityIcons name={img || 'storefront-outline'} size={40} color="#7F00FF" />
+          )}
         </View>
       </View>
       <Text style={styles.titleText} numberOfLines={1}>{nome}</Text>

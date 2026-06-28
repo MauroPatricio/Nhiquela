@@ -463,3 +463,27 @@ transporter.sendMail(mailOptions, function (error, info) {
     res.status(404).send({message: 'Utilizador não encontrado'})
   }
 }
+
+export const sendEmailTopUpRequestAdmin = async (driverName, amount, description, emails) => {
+  if (emails && emails.length > 0) {
+    const mailOptions = {
+      from: 'Nhiquela Shop <nhiquelaservicosconsultoria@gmail.com>',
+      to: emails,
+      subject: `Nhiquela - Novo Pedido de Recarga Pendente`,
+      html: `<h2>Novo Pedido de Recarga Pendente</h2>
+             <p>O motorista <b>${driverName}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.</p>
+             <p>Detalhes: ${description}</p>
+             <p>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.</p>`,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error('Erro ao enviar email de notificação de recarga:', error);
+      } else {
+        console.log('Email de notificação enviado:', info.response);
+      }
+    });
+  } else {
+    console.log('Nenhum email configurado para notificações financeiras.');
+  }
+};

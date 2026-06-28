@@ -767,7 +767,7 @@ export default function RequestDelivSimple() {
           </View>
 
           <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-            A procurar motoristas...
+            Procurando motoristas...
           </Text>
           <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14 }}>
             Raio de busca: <Text style={{ color: '#A855F7', fontWeight: '700' }}>{radius} KM</Text>

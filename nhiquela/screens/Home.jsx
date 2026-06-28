@@ -165,6 +165,18 @@ const Home = () => {
   const [catTotalPages, setCatTotalPages] = useState(1);
   const [loadingCatProducts, setLoadingCatProducts] = useState(false);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  const fetchWalletBalance = async (token) => {
+    try {
+      const res = await api.get('/wallet/balance', {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      setWalletBalance(res.data.available_balance || 0);
+    } catch (err) {
+      console.log('Erro ao buscar saldo', err.message);
+    }
+  };
 
   const bottomSheetRef = useRef(null);
   const items = useSelector(selectBasketItems);
@@ -205,6 +217,7 @@ const Home = () => {
   // Carrega/recupera categorias na volta do foco com cache
   useFocusEffect(
     useCallback(() => {
+      let intervalId;
       const loadDataWithCache = async () => {
         try {
           // Tentar carregar do cache primeiro
@@ -228,6 +241,18 @@ const Home = () => {
           
           // Sempre atualizar em background
           loadCategories(true);
+          
+          const storedUserData = await AsyncStorage.getItem('userData');
+          if (storedUserData) {
+            const parsedUser = JSON.parse(storedUserData);
+            if (parsedUser && parsedUser.token) {
+              fetchWalletBalance(parsedUser.token);
+              // Sincronização em tempo real (polling)
+              intervalId = setInterval(() => {
+                fetchWalletBalance(parsedUser.token);
+              }, 5000);
+            }
+          }
         } catch (error) {
           console.error('Erro ao carregar cache:', error);
           loadCategories(true);
@@ -235,6 +260,10 @@ const Home = () => {
       };
       
       loadDataWithCache();
+
+      return () => {
+        if (intervalId) clearInterval(intervalId);
+      };
     }, [])
   );
 
@@ -626,6 +655,11 @@ responseListener.remove();
           </View>
 
           <View style={style.appBarRight}>
+            <View style={{ backgroundColor: '#F3E8FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="wallet-outline" size={16} color="#7F00FF" style={{ marginRight: 5 }} />
+              <Text style={{ color: '#7F00FF', fontWeight: 'bold', fontSize: 12 }}>{parseFloat(walletBalance).toFixed(2)} MT</Text>
+            </View>
+
             <TouchableOpacity style={style.cartBtn} onPress={() => navigation.navigate('Cart')} activeOpacity={0.8}>
               <View style={style.cartCount}>
                 <Text style={style.cartNumber}>{items.length}</Text>
@@ -672,7 +706,7 @@ responseListener.remove();
                 activeOpacity={0.9}
               >
                 <View style={styles.documentUploadContent}>
-                  <Text style={styles.documentUploadTitle}>Tem uma lista ou receita?</Text>
+                  <Text style={styles.documentUploadTitle}>Tem uma lista de compras ou receita?</Text>
                   <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
                 </View>
                 <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />

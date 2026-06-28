@@ -70,6 +70,62 @@ export default function DashboardScreen() {
 
   const chartData = generateChartData(stats.orders);
 
+  const formatTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return `Há ${Math.floor(interval)} anos`;
+    interval = seconds / 2592000;
+    if (interval > 1) return `Há ${Math.floor(interval)} meses`;
+    interval = seconds / 86400;
+    if (interval > 1) return `Há ${Math.floor(interval)} dias`;
+    interval = seconds / 3600;
+    if (interval > 1) return `Há ${Math.floor(interval)} horas`;
+    interval = seconds / 60;
+    if (interval > 1) return `Há ${Math.floor(interval)} minutos`;
+    return 'Agora mesmo';
+  };
+
+  const generateActivityFeed = () => {
+    let feed = [];
+
+    // Adicionar encomendas recentes
+    (stats.orders || []).forEach(o => {
+      if (o.createdAt) {
+        feed.push({
+          id: `order_${o._id}`,
+          type: 'order',
+          title: `Nova Encomenda #${o._id.substring(o._id.length - 4).toUpperCase()}`,
+          desc: `Cliente ${o.user?.name || o.shippingAddress?.fullName || 'Desconhecido'} pagou ${Number(o.totalPrice || o.itemsPrice || 0).toLocaleString('pt-MZ')} MT.`,
+          date: new Date(o.createdAt),
+          color: 'bg-success',
+        });
+      }
+    });
+
+    // Adicionar motoristas recentes
+    (stats.drivers || []).forEach(d => {
+      if (d.createdAt) {
+        const isApproved = d.status === 'Disponível';
+        feed.push({
+          id: `driver_${d._id}`,
+          type: 'driver',
+          title: isApproved ? 'Motorista Aprovado' : 'Novo Motorista',
+          desc: `Dossier de ${d.name || 'Desconhecido'} foi ${isApproved ? 'validado' : 'recebido'}.`,
+          date: new Date(d.createdAt),
+          color: isApproved ? 'bg-primary-custom' : 'bg-warning',
+        });
+      }
+    });
+
+    // Ordernar do mais recente para o mais antigo
+    feed.sort((a, b) => b.date - a.date);
+    
+    // Retornar os top 4
+    return feed.slice(0, 4);
+  };
+
+  const activityFeed = generateActivityFeed();
+
   if (loading) {
     return (
       <div className="d-flex flex-column justify-content-center align-items-center h-100 py-5">
@@ -211,28 +267,16 @@ export default function DashboardScreen() {
             </div>
             <div className="card-body p-4">
               <div className="activity-feed position-relative ps-4" style={{ borderLeft: '2px solid #f0f0f0' }}>
-                
-                <div className="activity-item position-relative mb-4">
-                  <div className="activity-dot position-absolute bg-success rounded-circle border border-3 border-white" style={{ width: '16px', height: '16px', left: '-25px', top: '2px' }}></div>
-                  <h6 className="fw-bold text-dark m-0 fs-6">Nova Encomenda #1024</h6>
-                  <p className="text-muted small m-0 mb-1">Cliente <span className="fw-bold text-dark">João Silva</span> pagou 530 MT.</p>
-                  <small className="text-muted d-flex align-items-center"><FontAwesomeIcon icon={faClock} className="me-1" /> Há 10 minutos</small>
-                </div>
-
-                <div className="activity-item position-relative mb-4">
-                  <div className="activity-dot position-absolute bg-primary-custom rounded-circle border border-3 border-white" style={{ width: '16px', height: '16px', left: '-25px', top: '2px' }}></div>
-                  <h6 className="fw-bold text-dark m-0 fs-6">Motorista Aprovado</h6>
-                  <p className="text-muted small m-0 mb-1">Dossier de <span className="fw-bold text-dark">Filipe Ndeve</span> foi validado.</p>
-                  <small className="text-muted d-flex align-items-center"><FontAwesomeIcon icon={faClock} className="me-1" /> Há 2 horas</small>
-                </div>
-
-                <div className="activity-item position-relative">
-                  <div className="activity-dot position-absolute bg-danger rounded-circle border border-3 border-white" style={{ width: '16px', height: '16px', left: '-25px', top: '2px' }}></div>
-                  <h6 className="fw-bold text-dark m-0 fs-6">Falta de Stock</h6>
-                  <p className="text-muted small m-0 mb-1">Produto <span className="fw-bold text-dark">Arroz 5kg</span> atingiu limite mínimo.</p>
-                  <small className="text-muted d-flex align-items-center"><FontAwesomeIcon icon={faClock} className="me-1" /> Há 5 horas</small>
-                </div>
-
+                {activityFeed.length > 0 ? activityFeed.map((item, index) => (
+                  <div key={item.id} className={`activity-item position-relative ${index < activityFeed.length - 1 ? 'mb-4' : ''}`}>
+                    <div className={`activity-dot position-absolute ${item.color} rounded-circle border border-3 border-white`} style={{ width: '16px', height: '16px', left: '-25px', top: '2px' }}></div>
+                    <h6 className="fw-bold text-dark m-0 fs-6">{item.title}</h6>
+                    <p className="text-muted small m-0 mb-1" dangerouslySetInnerHTML={{ __html: item.desc.replace(/([^ ]+)( foi | pagou )/, '<span class="fw-bold text-dark">$1</span>$2') }}></p>
+                    <small className="text-muted d-flex align-items-center"><FontAwesomeIcon icon={faClock} className="me-1" /> {formatTimeAgo(item.date)}</small>
+                  </div>
+                )) : (
+                  <p className="text-muted small">Nenhuma atividade recente encontrada.</p>
+                )}
               </div>
               <button className="btn btn-light w-100 mt-4 rounded-pill fw-bold text-primary-custom shadow-sm">Ver Todo o Histórico</button>
             </div>

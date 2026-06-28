@@ -97,7 +97,9 @@ const modelSchema = new mongoose.Schema({
                 customBasePrice: { type: Number }, // Optional override
                 isAvailable: { type: Boolean, default: true }
             }
-        ]
+        ],
+        hasHelpers: { type: Boolean, default: false },
+        helperCount: { type: Number, default: 0 }
     }
 },{
     timestamps: true

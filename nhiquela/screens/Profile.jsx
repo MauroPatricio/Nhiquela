@@ -12,8 +12,9 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { AntDesign, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback } from 'react';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,43 @@ const Profile = () => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  const fetchWalletBalance = async (token) => {
+    try {
+      const { default: api } = await import('../hooks/createConnectionApi');
+      const res = await api.get('/wallet/balance', {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      setWalletBalance(res.data.available_balance || 0);
+    } catch (err) {
+      console.log('Erro ao buscar saldo no perfil', err.message);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let intervalId;
+      const loadBalance = async () => {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        if (storedUserData) {
+          const parsedUser = JSON.parse(storedUserData);
+          if (parsedUser && parsedUser.token) {
+            fetchWalletBalance(parsedUser.token);
+            intervalId = setInterval(() => {
+              fetchWalletBalance(parsedUser.token);
+            }, 5000);
+          }
+        }
+      };
+      
+      loadBalance();
+      
+      return () => {
+        if (intervalId) clearInterval(intervalId);
+      };
+    }, [])
+  );
 
   useEffect(() => {
     checkIfUserExist();
@@ -122,6 +160,20 @@ const Profile = () => {
         {/* 3. CONDITIONAL BODY SECTIONS */}
         {userLogin ? (
           <View style={{ width: '100%' }}>
+            
+            {/* Wallet Balance Card */}
+            <View style={{ backgroundColor: '#F3E8FF', padding: 15, borderRadius: 16, width: '100%', marginBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#E9D5FF' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#7F00FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                  <Ionicons name="wallet" size={20} color="#FFF" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '700', textTransform: 'uppercase' }}>Saldo da Carteira</Text>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#7F00FF' }}>{parseFloat(walletBalance).toFixed(2)} MT</Text>
+                </View>
+              </View>
+            </View>
+
             {/* Personal Details Information Card */}
             <View style={styles.infoCard}>
               <Text style={styles.cardSectionTitle}>Informações de Perfil</Text>
