@@ -1,19 +1,14 @@
-import axios from 'axios'
+import axios from 'axios';
 
- const instance = axios.create({baseURL: 'https://deliveryshop.herokuapp.com/api'});
-// const instance = axios.create({baseURL: 'http://localhost:5000/api'});
+// Obtém a URL da variável de ambiente ou usa fallback
+const isDev = process.env.NODE_ENV !== 'production';
 
+// Para emuladores Android use 'http://10.0.2.2:5000/api'
+// Para dispositivos físicos use o IP da máquina local (ex: 'http://192.168.0.2:5000/api')
+const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://10.237.193.176:5000/api' : 'https://deliveryshop.herokuapp.com/api');
 
- export  const registerNotification = async data => {
-    return instance.post(`notification`, data);
-  };
-  
- export const updateNotification = async data => {
-    return instance.patch(`notification?userid=${data?.userId}`, {
-      tokenID: data?.token,
-    })};
+const api = axios.create({
+  baseURL,
+});
 
-
-
-
-export default instance;
+export default api;

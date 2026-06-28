@@ -3,15 +3,15 @@ import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { selectDestination, selectOrigin, selectTravelTimeInfo } from '../features/navSlice'
-import { Icon } from 'react-native-elements'
+import { AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 
 const images ={
     image1: require('../assets/vehicle/bycicle.png'),
     image2: require('../assets/vehicle/car.png'),
-    image3: require('../assets/vehicle/truck.png'),
-    image4: require('../assets/vehicle/reboque.png')
+    // image3: require('../assets/vehicle/truck.png'),
+    // image4: require('../assets/vehicle/reboque.png')
 
 }
 const data = [
@@ -30,22 +30,22 @@ const data = [
       price: 300,
       type: 2
     }
-    ,{
-        id: '3',
-        title: 'Camião',
-        image:'image3',
-        screen: 'MapScreen',
-        price: 3500,
-        type: 3
-      }
-      ,{
-        id: '4',
-        title: 'Reboque',
-        image:'image4',
-        screen: 'MapScreen',
-        price: 4000,
-        type: 4
-      }
+    // ,{
+    //     id: '3',
+    //     title: 'Camião',
+    //     image:'image3',
+    //     screen: 'MapScreen',
+    //     price: 3500,
+    //     type: 3
+    //   }
+    //   ,{
+    //     id: '4',
+    //     title: 'Reboque',
+    //     image:'image4',
+    //     screen: 'MapScreen',
+    //     price: 4000,
+    //     type: 4
+    //   }
   ]
 const TransportType = () => {
     const dispatch = useDispatch();
@@ -88,9 +88,9 @@ const TransportType = () => {
               />
               <Text style={styles.title}>{item.title}</Text>
                            {/* <Text style={{fontWeight:'500'}}>{item.price} MT</Text> */}
-              <Icon 
+              <AntDesign 
               name='arrowright'
-              type='antdesign' color={'black'}
+              size={24} color={'black'}
               />
             </View>
               </TouchableOpacity>

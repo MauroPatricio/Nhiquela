@@ -1,13 +1,13 @@
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView, Switch } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView, Switch, TextInput } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers } from '../features/basketSlice';
+import { addTotalToPay, selectBasketItems, selectBasketTotal, addIva, addDeliverPrice, selectSellers, addAddress } from '../features/basketSlice';
 import { useNavigation } from '@react-navigation/native';
 import BottomSheetComponent from './BottomSheetComponent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import haversine from 'haversine';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
+import { SafeMapView as MapView, SafeMarker as Marker } from './SafeMapView';
 
 const CartDetails = () => {
     const items = useSelector(selectBasketItems);
@@ -110,6 +110,8 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
             } else {
                 newDistanceToPay = minDelivPrice; // Valor mínimo quando distância ainda não foi calculada
             }
+        }else{
+            setAddress('')
         }
     
         setDistanceToPay(newDistanceToPay);
@@ -123,6 +125,11 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
         dispatch(addIva(iva));
         dispatch(addDeliverPrice(distanceToPay));
     }, [totalToPay, distanceToPay, dispatch]);
+
+
+    useEffect(() => {
+  dispatch(addAddress(address));
+}, [address]);
 
     // useEffect(() => {
     //     if (totalToPay && distanceToPay) {
@@ -161,88 +168,12 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
                 <Text style={styles.totalDescript}>Total a pagar</Text>
                 <Text style={styles.totalPrice}>{subtotal.toFixed(2)} MT</Text>
             </View>
-            <TouchableOpacity style={styles.barPayment} onPress={handleOpenBottomSheet}>
-                <Text style={styles.payment}>Detalhes do destino de entrega</Text>
-            </TouchableOpacity>
-
-            <SafeAreaView>
-                <BottomSheetComponent isOpen={isBottomSheetOpen} toggleSheet={handleCloseBottomSheet}>
-                    <View style={styles.bottomSheetContent}>
-                        <Text style={styles.bottomSheetTitle}>Endereço de entrega</Text>
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <View>
-                                {userLocation ? (
-                                    <Text style={styles.locationText}>
-                                    </Text>
-                                ) : (
-                                    <Text style={styles.locationText}>Obtendo localização...</Text>
-                                )}
-                                {distance ? (
-                                    <Text style={styles.distanceText}>Distância até o fornecedor: {distance.toFixed(2)} km</Text>
-                                ) : (
-                                    <Text style={styles.distanceText}>Calculando distância...</Text>
-                                )}
-                            </View>
-
-                            {userLocation && sellerLocation.latitude && sellerLocation.longitude ? (
-                                <></>
-                                // <MapView
-                                //     style={styles.map}
-                                //     initialRegion={{
-                                //         latitude: userLocation.latitude,
-                                //         longitude: userLocation.longitude,
-                                //         latitudeDelta: 0.0922,
-                                //         longitudeDelta: 0.0421,
-                                //     }}
-                                // >
-                                //     <Marker coordinate={userLocation} title="Sua Localização" />
-                                //     <Marker coordinate={sellerLocation} title="Localização do Fornecedor" />
-                                // </MapView>
-                            ) : (
-                                <Text style={styles.locationText}>Localização do vendedor não disponível.</Text>
-                            )}
-
-                            {/* Switch para habilitar ou desabilitar a entrega */}
-                            <View style={styles.switchContainer}>
-                                <Text style={styles.switchText}>Deseja entrega?</Text>
-                                <TouchableOpacity
-                                style={[styles.switchButton, { backgroundColor: isUserWantDelivery ? '#4CD137' : '#FF4D4D' }]}
-                                onPress={() => setIsUserWantDelivery(prevState => !prevState)}
-                            >
-                                <Text style={styles.switchButtonText}>
-                                    {isUserWantDelivery ? 'Sim' : 'Não'}
-                                </Text>
-                            </TouchableOpacity>
-                            </View>
-
-                            <View style={styles.barPopup}>
-                                <Text style={styles.length}>Subtotal</Text>
-                                <Text style={styles.total}>{basketTotal} Mt</Text>
-                            </View>
-                            <View style={styles.barPopup}>
-                                <Text style={styles.length}>Custo de entrega</Text>
-                                <Text style={styles.total}>{isUserWantDelivery ? (distance ? distanceToPay : 'Calculando...') : 'Sem custo'} Mt</Text>
-                            </View>
-                            <View style={styles.barPopup}>
-                                <Text style={styles.totalDescript}>Total a pagar</Text>
-                                <Text style={styles.totalPrice}>{parseFloat(totalToPay).toFixed(2)} Mt</Text>
-                            </View>
-                        </ScrollView>
-                    </View>
-
-                    {/* Exibe o status da entrega */}
-                    <Text style={styles.statusText}>
-                        {isUserWantDelivery ? 'Entrega Activada' : 'Entrega Desativada -  deverá buscar pessoalmente no estabelecimento do fornecedor.'}
-                    
-                    </Text>
-
-                    {userLocation && sellerLocation.latitude && sellerLocation.longitude && (
-                        <TouchableOpacity style={styles.barPayment} onPress={() => navigation.navigate('PaymentMethod')}>
-                            <Text style={styles.payment}>Finalizar compra</Text>
-                        </TouchableOpacity>
-                    )}
-                </BottomSheetComponent>
-            </SafeAreaView>
+           <TouchableOpacity
+                    style={styles.barPayment}
+                    onPress={() => navigation.navigate('DeliveryDetails')}
+                >
+                    <Text style={styles.payment}>Detalhes do destino de entrega</Text>
+                </TouchableOpacity>
         </View>
     );
 };
@@ -296,7 +227,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 22,
         borderRadius: 30,
-        marginTop: 20,
+        marginTop: 40,
         shadowColor: '#7F00FF',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.5,
@@ -373,4 +304,42 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontWeight: 'bold',
     },
+    popupContent: {
+    position: 'absolute',
+    bottom: 20, // Distância da parte inferior da tela
+    width: '100%',
+    paddingHorizontal: 16, // Margem lateral para não encostar nas bordas
+    zIndex: 500,
+    backgroundColor: '#fff', // Fundo para o botão se destacar
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingVertical: 20,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: -3 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 5,
+    // elevation: 6,
+},
+
+barPayment: {
+    backgroundColor: '#7F00FF',
+    paddingVertical: 16,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    alignSelf: 'center',
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 6,
+    marginTop: 20,
+},
+
+// Opcional: aumentar o touch target do botão
+payment: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+},
 });

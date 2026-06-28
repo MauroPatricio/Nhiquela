@@ -11,102 +11,143 @@ const ProductSellerDetail = () => {
     const navigation = useNavigation();
 
     if (!product) {
-        return <Text>Processando...</Text>;
+        return <View style={styles.loader}><Text>Processando...</Text></View>;
     }
 
     return (
         <ScrollView style={styles.container}>
-            <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
-            <View style={styles.icons}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name='chevron-back-circle' size={40} style={styles.back} />
+            {/* Top Section with Image and Back Button */}
+            <View style={styles.top}>
+                <Image 
+                    source={{ uri: product.image }} 
+                    style={styles.image} 
+                    resizeMode="cover" 
+                />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Ionicons name='chevron-back-circle' size={40} color="#ffffff" />
                 </TouchableOpacity>
             </View>
-            <View style={styles.details}>
+
+            {/* Card with Product Details */}
+            <View style={styles.card}>
                 <Text style={styles.name}>{product?.nome}</Text>
 
-                <Text style={styles.category}>Categoria: {product.category?.nome || 'Sem categoria'}</Text>
-                <Text style={styles.province}>Localização do produto: {product.province?.name || 'Sem provincia'}</Text>
-                <Text style={styles.brand}>Marca/sabor: {product.brand}</Text>
-                <Text style={[styles.stock, { color: product.countInStock > 0 ? '#7F00FF' : 'red' }]}> 
-                    {product.countInStock > 0 ? `Quantidade disponível: ${product.countInStock} unidade(s)` : 'Fora de estoque'}
-                </Text>
-                <Text style={styles.price}>Valor do fornecedor: {product.priceFromSeller} Mt</Text>
+<Text style={styles.category}>
+    Categoria do Produto: {product?.category?.nome || 'Não categorizado'}
+</Text>
 
-                <Text style={styles.price}>Preço de Venda: {product.price} Mt</Text>
-                
-                {product.onSale && (
-                    <Text style={styles.onSale}>Em promoção: {product.onSalePercentage}%</Text>
-                )}
-                
-                <Text style={styles.description}>{product.description}</Text>
-                
-                
-                {product.isGuaranteed && (
-                    <Text style={styles.guarantee}>Garantia: {product.guaranteedPeriod} meses</Text>
-                )}
-                
-                {product.isOrdered && (
-                    <Text style={styles.delivery}>Entrega em: {product.orderPeriod} dias</Text>
-                )}
+<Text style={styles.province}>
+    Localização: {product?.province?.name || 'Não especificada'}
+</Text>
+
+<Text style={styles.brand}>
+    Marca ou Sabor: {product?.brand || 'Não especificado'}
+</Text>
+
+<Text style={[
+    styles.stock, 
+    { color: product?.countInStock > 0 ? '#1B5E20' : 'red' }
+]}>
+    {product?.countInStock > 0 ? 
+      `Quantidade em Estoque: ${product?.countInStock} unidade(s)` : 
+      'Produto Esgotado'}
+</Text>
+
+<Text style={styles.price}>
+    Preço do Fornecedor: {product?.priceFromSeller} MT
+</Text>
+
+<Text style={styles.price}>
+    Preço de Venda ao Consumidor: {product?.price} MT
+</Text>
+
+{product?.onSale && (
+    <>
+        <Text style={styles.onSale}>
+            Desconto Aplicado: {product?.onSalePercentage}%
+        </Text>
+
+        <Text style={styles.onSale}>
+            Preço Promocional: {product?.discount} MT
+        </Text>
+
+        <Text style={styles.onSale}>
+              Valor que o fornecedor receberá : {product?.sellerEarningsAfterDiscount} MT
+        </Text>
+    </>
+)}
+
+<Text style={styles.description}>
+    Descrição: {product?.description}
+</Text>
+
+{product?.isGuaranteed && (
+    <Text style={styles.guarantee}>
+        Garantia: {product?.guaranteedPeriod} meses
+    </Text>
+)}
+
+{product?.isOrdered && (
+    <Text style={styles.delivery}>
+        Prazo de Entrega: {product?.orderPeriod}
+    </Text>
+)}
+
             </View>
-            <View style={{ marginBottom: 210 }} />
+
+            {/* Spacer at bottom */}
+            <View style={{ marginBottom: 100 }}/>
         </ScrollView>
-    );
+    )
 };
 
 export default ProductSellerDetail;
-const styles = StyleSheet.create({
-    back: {
-        top: 40,
-        color: '#7F00FF',
-    },
-    icons: {
-        position: 'absolute',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '90%',
-    },
+
+const styles = StyleSheet.create({  
     container: {
         flex: 1,
         backgroundColor: '#F4F4F4',
-        padding: 20,
+    },
+    top: {
+        position: 'relative',
     },
     image: {
         width: '100%',
-        height: 300,
-        borderRadius: 15,
-        // backgroundColor: '#EAEAEA',
+        height: 350,
     },
-    details: {
+    backBtn: {
+        position: 'absolute',
+        top: 40,
+        left: 20,
+    },
+    card: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 20,
+        marginTop: -30,
+        marginHorizontal: 20,
         padding: 25,
-        shadowColor: '#000',
+        borderRadius: 20,
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 6,
         elevation: 5,
-        marginBottom: 25,
     },
     name: {
-        fontSize: 26,
-        fontWeight: '700',
+        fontSize: 24,
+        fontWeight: 'bold',
         color: '#222',
         textAlign: 'center',
-        marginBottom: 12,
+        marginBottom: 20,
     },
-    price: {
+    category: {
         fontSize: 17,
-        // color: '#6A0DAD',
-        fontWeight: '600',
+        color: '#666',
         marginBottom: 12,
         textAlign: 'center',
     },
-    onSale: {
+    province: {
         fontSize: 17,
-        // color: '#E63946',
-        fontWeight: '600',
+        color: '#666',
         marginBottom: 12,
         textAlign: 'center',
     },
@@ -116,35 +157,36 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         textAlign: 'center',
     },
-    description: {
-        fontSize: 17,
-        color: '#444',
-        textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 22,
-    },
     stock: {
         fontSize: 17,
         fontWeight: '600',
         textAlign: 'center',
         marginBottom: 12,
-        color: '#1B5E20',
     },
-    category: {
-        fontSize: 17,
-        color: '#666',
-        textAlign: 'center',
+    price: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#6A0DAD',
         marginBottom: 12,
+        textAlign: 'center',
     },
-    province: {
-        fontSize: 17,
-        color: '#666',
-        textAlign: 'center',
+    onSale: {
+        fontSize: 15,
+        color: 'blue',
+        fontWeight: 'bold',
         marginBottom: 12,
+        textAlign: 'center',
+    },
+    description: {
+        fontSize: 17,
+        color: '#444',
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 24,
     },
     guarantee: {
         fontSize: 17,
-        color: '#008000',
+        color: '#1B5E20',
         fontWeight: '600',
         marginBottom: 12,
         textAlign: 'center',
@@ -156,4 +198,9 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         textAlign: 'center',
     },
+    loader: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    }
 });

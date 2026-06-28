@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "321336552110",
+    "project_id": "nhiquela-pro",
+    "storage_bucket": "nhiquela-pro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:321336552110:android:3630327fef51b47f96db3f",
+        "android_client_info": {
+          "package_name": "com.mpatricio.nhiquelap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNztuHBymDz7So1v-kWjY4WCoFYQRZ3J0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
