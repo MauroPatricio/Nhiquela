@@ -27,6 +27,9 @@ output.log
 # Firebase
 *-firebase-adminsdk-*.json
 
+.env
+keys.json
+
 # Uploads
 uploads/
 
