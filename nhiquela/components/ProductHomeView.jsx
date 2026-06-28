@@ -10,17 +10,34 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { getDistance } from 'geolib';
+import { Ionicons } from '@expo/vector-icons';
 
 const ProductHomeView = ({ 
   title, 
   description, 
   categoryid, 
   products, 
-  loading = false 
+  loading = false,
+  userLocation
 }) => {
   const navigation = useNavigation();
 
-const renderProductItem = ({ item }) => (
+const renderProductItem = ({ item }) => {
+  let distanceText = '';
+  if (userLocation && (item.seller?.latitude || item.seller?.seller?.latitude)) {
+    const prodLat = parseFloat(item.seller?.seller?.latitude || item.seller?.latitude);
+    const prodLng = parseFloat(item.seller?.seller?.longitude || item.seller?.longitude);
+    if (!isNaN(prodLat) && !isNaN(prodLng)) {
+      const dist = getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: prodLat, longitude: prodLng }
+      );
+      distanceText = ` • ${(dist / 1000).toFixed(1)} km`;
+    }
+  }
+
+  return (
   <TouchableOpacity
     style={styles.productItem}
     onPress={() => navigation.navigate('ProductDetail', { item })}
@@ -43,6 +60,9 @@ const renderProductItem = ({ item }) => (
       {item.isOrdered ? (
         <View style={styles.badgeOrdered}>
           <Text style={styles.badgeText}>Por encomenda</Text>
+                    <Text style={styles.badgePeriodOrder}>{item.orderPeriod}</Text>
+
+          
         </View>
       ) : item.countInStock > 0 ? (
         <View style={styles.badgeInStock}>
@@ -70,12 +90,16 @@ const renderProductItem = ({ item }) => (
       )}
 
       <View style={styles.extraInfo}>
-        <Text style={styles.infoTextB}>Fornecedor: {item.sellerName || item.seller?.name || 'N/A'}</Text>
-        <Text style={styles.infoText}>{item.province?.name || 'N/A'}</Text>
+        <Text style={styles.infoTextB} numberOfLines={1}>Forn.: {item.sellerName || item.seller?.seller?.name || 'N/A'}</Text>
+        <Text style={styles.infoText}>
+          {item.province?.name || 'N/A'}
+          <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text>
+        </Text>
       </View>
     </View>
   </TouchableOpacity>
-);
+  );
+};
 
 
 
@@ -281,6 +305,12 @@ badgeText: {
   fontSize: 10,
   fontWeight: 'bold',
   color: 'white',
+},
+badgePeriodOrder: {
+  fontSize: 10,
+  fontWeight: 'bold',
+  color: 'white',
+  textAlign: 'right'
 },
 badgeTextQ: {
   fontSize: 10,

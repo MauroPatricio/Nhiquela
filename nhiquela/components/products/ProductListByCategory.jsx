@@ -53,34 +53,54 @@ const ProductListByCategory = () => {
     fetchProducts();
   }, [categoryid]);
 
-  const renderProduct = ({ item }) => (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => {
-        if (item.isSellerOpen) {
-          navigation.navigate('ProductDetail', { item });
-        }
-      }}
-      disabled={!item.isSellerOpen}
-    >
-      <View style={styles.cardWrapper}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-
-        {/* Overlay quando loja estiver fechada */}
-        {!item.isSellerOpen && (
-          <View style={styles.overlay}>
-            <Text style={styles.overlayText}>Loja fechada</Text>
-          </View>
-        )}
-
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{truncateText(item.name, 30)}</Text>
-          <Text style={styles.productSeller}>{item.seller?.seller?.name || 'Fornecedor'}</Text>
-          <Text style={styles.productPrice}>{`${item.price} MT`}</Text>
+  const renderProduct = ({ item }) => {
+    const isClosed = !item.isSellerOpen;
+    return (
+      <TouchableOpacity
+        style={styles.cardContainer}
+        onPress={() => {
+          if (!isClosed) navigation.navigate('ProductDetail', { item });
+        }}
+        activeOpacity={isClosed ? 1 : 0.8}
+      >
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          {isClosed && (
+            <View style={styles.closedOverlay}>
+              <Text style={styles.closedText}>Indisponível</Text>
+            </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+
+        <View style={styles.textContainer}>
+          <View style={styles.supplierRow}>
+            <Ionicons name="storefront-outline" size={12} color="#7F00FF" />
+            <Text style={styles.productSeller} numberOfLines={1}>
+              {' '}{item.seller?.seller?.name || 'Fornecedor'}
+            </Text>
+          </View>
+          <Text style={styles.productName} numberOfLines={2}>{item.name || item.nome}</Text>
+          
+          <View style={styles.priceRow}>
+            {item.onSale ? (
+               <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                 <Text style={styles.promoPrice}>{item.discount} MT</Text>
+                 <Text style={styles.originalPrice}>{item.price} MT</Text>
+               </View>
+            ) : (
+               <Text style={styles.productPrice}>{item.price} MT</Text>
+            )}
+            
+            {!isClosed && (
+              <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('ProductDetail', { item })}>
+                <Ionicons name="cart-outline" size={18} color="#FFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -117,62 +137,103 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 20,
   },
-  productCard: {
-    width: width * 0.95,
-    marginVertical: 10,
-    alignSelf: 'center',
-  },
-  cardWrapper: {
-    backgroundColor: '#FFF',
-    borderRadius: 15,
-    padding: 15,
+  cardContainer: {
     flexDirection: 'row',
-    elevation: 5,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  imageContainer: {
+    width: 100,
+    height: 110,
+    backgroundColor: '#F8F9FA',
     position: 'relative',
   },
   productImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
-    marginRight: 15,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  productInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  productName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  productSeller: {
-    fontSize: 16,
-    color: '#6C757D',
-  },
-  productPrice: {
-    fontSize: 16,
-    color: '#7F00FF',
-    fontWeight: '500',
-  },
-  overlay: {
+  closedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
   },
-  overlayText: {
+  closedText: {
+    backgroundColor: '#FF3B30',
     color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-    padding: 6,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  textContainer: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  supplierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  productSeller: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7F00FF',
+    marginBottom: 4,
+  },
+  productName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  productPrice: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  promoPrice: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#FF3B30',
+  },
+  originalPrice: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+    textDecorationLine: 'line-through',
+    marginLeft: 6,
+  },
+  addBtn: {
+    backgroundColor: '#7F00FF',
+    padding: 6,
+    borderRadius: 8,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   icons: {
     flexDirection: 'row',

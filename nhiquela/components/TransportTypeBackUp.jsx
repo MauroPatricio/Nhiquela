@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { selectDestination, selectOrigin, selectTravelTimeInfo } from '../features/navSlice'
-import { Icon } from 'react-native-elements'
+import { AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 
@@ -86,9 +86,9 @@ const TransportType = () => {
               />
               <Text style={styles.title}>{item.title}</Text>
                            <Text style={{fontWeight:'500'}}>{item.price} MT</Text>
-              <Icon 
+              <AntDesign 
               name='arrowright'
-              type='antdesign' color={'black'}
+              size={24} color={'black'}
               />
             </View>
               </TouchableOpacity>

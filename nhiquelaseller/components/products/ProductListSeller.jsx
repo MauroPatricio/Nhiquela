@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
@@ -96,29 +97,42 @@ const ProductListSeller = () => {
       }
     } catch (error) {
       console.error('Erro ao apagar produto:', error?.response?.data || error.message);
-      Alert.alert('Erro', 'Não foi possível apagar o produto.');
+      showMessage({
+        message: 'Erro',
+        description: 'Não foi possível apagar o produto.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
-  const handleToggleStatus = async (product) => {
-    try {
-      const newStatus = !product.isActive;
-      const response = await api.patch(`products/${product._id}`, 
-        { isActive: newStatus },
-        { headers: { Authorization: `Bearer ${userData.token}` } }
+const handleToggleStatus = async (product) => {
+  try {
+    const response = await api.patch(
+      `products/${product._id}/toggle-status`,
+      {},
+      { headers: { Authorization: `Bearer ${userData.token}` } }
+    );
+
+    if (response.status === 200) {
+      setProductsOfSeller(prev =>
+        prev.map(p =>
+          p._id === product._id ? { ...p, isActive: response.data.product.isActive } : p
+        )
       );
-      if (response.status === 200) {
-        setProductsOfSeller(prev =>
-          prev.map(p =>
-            p._id === product._id ? { ...p, isActive: newStatus } : p
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-      Alert.alert('Erro', 'Não foi possível alterar o status do produto.');
     }
-  };
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+    showMessage({
+        message: 'Erro',
+        description: 'Não foi possível alterar o status do produto.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
+  }
+};
 
   const renderProduct = ({ item: product }) => (
     <TouchableOpacity 

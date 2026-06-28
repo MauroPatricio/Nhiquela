@@ -1,6 +1,9 @@
 import { createSlice, configureStore, createSelector } from '@reduxjs/toolkit';
 import { Alert } from 'react-native';
 
+
+
+
 function calculateValues(item) {
   if (!item) return { price: 0, discount: 0, earnings: 0 };
 
@@ -221,7 +224,7 @@ export const getItemsBySellerId = (sellerId) =>
 
 export const selectBasketItemsWithId = (id) =>
   createSelector(selectBasketItems, (items) =>
-    items?.filter((item) => item?.id === id) ?? []
+    items?.filter((item) => item?._id === id) ?? []
   );
 
 // --- Reducer ---

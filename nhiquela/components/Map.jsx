@@ -1,12 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
-import MapView, {Marker} from 'react-native-maps'
-// import MapView from 'react-native-maps';
+import { SafeMapView as MapView, SafeMarker as Marker, SafeMapViewDirections as MapViewDirections } from './SafeMapView'
 
-// import styles from '../screens/home.style'
 import {selectDestination, selectOrigin, selectTravelTimeInfo, setTravelTimeInfo} from '../features/navSlice'
 import { useDispatch, useSelector } from 'react-redux'
-import MapViewDirections from 'react-native-maps-directions'
 import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";
 
 const Map = () => {

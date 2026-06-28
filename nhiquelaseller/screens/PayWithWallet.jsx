@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useState } from 'react';
 import { View, TextInput, Button, Alert } from 'react-native';
 import api from '../hooks/createConnectionApi';
@@ -11,10 +12,22 @@ const PayWithWallet = ({ navigation }) => {
         amount: parseFloat(amount),
         description: 'Pagamento de pedido',
       });
-      Alert.alert('Sucesso', response.data.message);
+      showMessage({
+        message: 'Sucesso',
+        description: response.data.message,
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Erro', error.response?.data?.message || 'Falha ao pagar');
+      showMessage({
+        message: 'Erro',
+        description: error.response?.data?.message || 'Falha ao pagar',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 

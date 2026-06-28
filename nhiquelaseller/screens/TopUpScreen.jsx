@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import api from '../hooks/createConnectionApi';
@@ -12,10 +13,22 @@ const TopUpScreen = ({ navigation }) => {
         method: 'mpesa',
         description: 'Recarga via app',
       });
-      Alert.alert('Sucesso', response.data.message);
+      showMessage({
+        message: 'Sucesso',
+        description: response.data.message,
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível recarregar');
+      showMessage({
+        message: 'Erro',
+        description: 'Não foi possível recarregar',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 

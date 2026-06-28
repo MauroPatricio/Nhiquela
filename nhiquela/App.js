@@ -1,23 +1,23 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-} from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Platform, View } from 'react-native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
+import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-import { store } from './store';
-import api from './hooks/createConnectionApi'; // certifique-se disso
+import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORRETO
+// ❌ REMOVIDO: import Toast from 'react-native-toast-message';
 
-// COMPONENTES/TELAS
+import { store } from './store';
+import api from './hooks/createConnectionApi';
+
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+// --- SCREENS ---
 import ButtomTabNavegation from './navegation/ButtomTabNavegation';
 import ProductDetail from './components/products/ProductDetail';
 import NewProducts from './screens/NewProducts';
@@ -41,30 +41,37 @@ import SellersList from './components/SellersList';
 import ForgotPassword from './screens/ForgotPassword';
 import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
-    import AsyncStorage from '@react-native-async-storage/async-storage';
-    import { createNavigationContainerRef } from '@react-navigation/native';
-import { StatusBar } from 'expo-status-bar';
 import RequestDelivScreen from './screens/RequestDeliv';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
+import Favorite from './screens/Favorite';
+import DocumentUploadScreen from './screens/DocumentUploadScreen';
 
+// --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
-
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-   const responseListener = useRef();
+  const responseListener = useRef();
 
+  // Handler de notificações
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-    shouldShowBanner: true, // exibe notificação como banner
-    shouldShowList: true,   // exibe na central de notificações      
-    shouldPlaySound: true,
-    shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
     }),
   });
 
+
+  Notifications.setNotificationChannelAsync('default', {
+    name: 'default',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+
+
+  // Criar canal Android
   useEffect(() => {
-    // Canal de notificacao Android
     if (Platform.OS === 'android') {
       Notifications.setNotificationChannelAsync('order-updates', {
         name: 'Atualizações de Pedido',
@@ -76,8 +83,8 @@ export default function App() {
     }
   }, []);
 
+  // Listener → abre a página ao clicar na notificação
   useEffect(() => {
-    // Listener para quando o app estiver em segundo plano ou fechado
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       if (navigationRef.isReady() && data.orderId) {
@@ -86,101 +93,85 @@ export default function App() {
     });
 
     return () => {
-responseListener.current?.remove();
+      responseListener.current?.remove();
     };
   }, []);
 
+  // Registar token do dispositivo
+  useEffect(() => {
+    const registerToken = async () => {
+      const deviceToken = await registerForPushNotificationsAsync();
+      if (deviceToken) {
+        try {
+          const userDataString = await AsyncStorage.getItem('userData');
+          if (userDataString) {
+            const userData = JSON.parse(userDataString);
+            const userId = userData?._id || userData?.id;
 
-//   Notifications.addNotificationResponseReceivedListener(response => {
-//   const data = response.notification?.request?.content?.data;
-
-//   if (data?.action === 'navigate' && data?.screen && data?.orderId) {
-//     navigationRef.current?.navigate(data.screen, { orderId: data.orderId });
-//   }
-// });
-
-
-useEffect(() => {
-  const registerToken = async () => {
-    const deviceToken = await registerForPushNotificationsAsync();
-
-    if (deviceToken) {
-      try {
-        const userDataString = await AsyncStorage.getItem('userData');
-
-        if (userDataString) {
-          const userData = JSON.parse(userDataString);
-          const userId = userData?._id || userData?.id;
-
-          if (userId) {
-            await api.post('/notifications/savedevicetoken', {
-              deviceToken,
-              userId,
-              platform: Platform.OS,
-            });
+            if (userId) {
+              await api.post('/notifications/savedevicetoken', {
+                deviceToken,
+                userId,
+                platform: Platform.OS,
+              });
+            }
           }
+        } catch (err) {
+          console.error('Erro ao salvar token do dispositivo:', err);
         }
-      } catch (err) {
-        console.error('Erro ao salvar token do dispositivo:', err);
       }
-    }
-  };
+    };
 
-  registerToken();
-}, []);
+    registerToken();
+  }, []);
 
   return (
-    <>
-                <StatusBar backgroundColor="white" style="dark" />
-                <NavigationContainer>
-                  <Provider store={store}>
-                    <SafeAreaProvider>
-                      <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
-                        style={{ flex: 1 }}
-                      >
-                        <Stack.Navigator>
-                          <Stack.Screen name='BottomNavigation' component={ButtomTabNavegation} options={{ headerShown: false }} />
-                          <Stack.Screen name='ProductDetail' component={ProductDetail} options={{ headerShown: false }} />
-                          <Stack.Screen name='ProductList' component={NewProducts} options={{ headerShown: false }} />
-                          <Stack.Screen name='ProductList2' component={ProductList} options={{ headerShown: false }} />
-                          <Stack.Screen name='Login' component={LoginPage} options={{ headerShown: false }} />
-                          <Stack.Screen name='SignUp' component={SignUp} options={{ headerShown: false }} />
-                          <Stack.Screen name='SellerScreen' component={SellerScreen} options={{ headerShown: false }} />
-                          <Stack.Screen name='SellerProduct' component={SellerProduct} options={{ headerShown: false }} />
-                          <Stack.Screen name='SellersList' component={SellersList} options={{ headerShown: false }} />
-                          <Stack.Screen name='PaymentMethod' component={PaymentMethod} options={{ presentation: 'modal', headerShown: false }} />
-                          <Stack.Screen name='Cart' component={Cart} options={{ headerShown: false }} />
-                          <Stack.Screen name='MpesaScreen' component={MpesaScreen} options={{ headerShown: false }} />
-                          <Stack.Screen name='ProductListByCategory' component={ProductListByCategory} options={{ headerShown: false }} />
-                          <Stack.Screen name='SuccessPayment' component={SuccessPayment} options={{ headerShown: false }} />
-                          <Stack.Screen name='FailedPayment' component={FailedPayment} options={{ headerShown: false }} />
-                          <Stack.Screen name='MapScreen' component={MapScreen} options={{ headerShown: false }} />
-                          <Stack.Screen name='EstablishmentList' component={EstablishmentList} options={{ headerShown: false }} />
-                          <Stack.Screen name='RideOptionsCard' component={RideOptionsCard} options={{ headerShown: false }} />
-                          <Stack.Screen name='TransportType' component={TransportType} options={{ headerShown: false }} />
-                          <Stack.Screen name='OrderDetailsScreen' component={OrderDetailsScreen} options={{ headerShown: false }} />
-                          <Stack.Screen name='OrderList' component={OrderList} options={{ headerShown: false }} />
-                          <Stack.Screen name='SellersByEstablishment' component={SellersByEstablishment} options={{ headerShown: false }} />
-                          <Stack.Screen name='ForgotPassword' component={ForgotPassword} options={{ headerShown: false }} />
-                          <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen}  options={{ headerShown: false }}/>
+    <ToastProvider>
+      <StatusBar backgroundColor="white" style="dark" />
 
-                       
-                                                <Stack.Screen name='RequestDeliv' component={RequestDelivScreen} options={{ headerShown: false }} />
-  </Stack.Navigator>
+      <Provider store={store}>
+        <SafeAreaProvider>
 
-                        <Toast />
-                      </KeyboardAvoidingView>
-                    </SafeAreaProvider>
-                  </Provider>
-                </NavigationContainer>
+          <NavigationContainer ref={navigationRef}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
+              <Stack.Screen name="ProductDetail" component={ProductDetail} />
+              <Stack.Screen name="ProductList" component={NewProducts} />
+              <Stack.Screen name="ProductList2" component={ProductList} />
+              <Stack.Screen name="Login" component={LoginPage} />
+              <Stack.Screen name="SignUp" component={SignUp} />
+              <Stack.Screen name="SellerScreen" component={SellerScreen} />
+              <Stack.Screen name="SellerProduct" component={SellerProduct} />
+              <Stack.Screen name="SellersList" component={SellersList} />
+              <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+              <Stack.Screen name="Cart" component={Cart} />
+              <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
+              <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
+              <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
+              <Stack.Screen name="FailedPayment" component={FailedPayment} />
+              <Stack.Screen name="MapScreen" component={MapScreen} />
+              <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
+              <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
+              <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
+              <Stack.Screen name="OrderList" component={OrderList} />
+              <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+              <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
+              <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
+              <Stack.Screen name="Favorite" component={Favorite} />
+              <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
 
-    </>
+        </SafeAreaProvider>
+      </Provider>
+
+    </ToastProvider>
   );
 }
 
-// Função para solicitar permissão e obter token
+// Push Notifications
+
 async function registerForPushNotificationsAsync() {
   if (!Device.isDevice) {
     alert('Push notifications só funcionam em dispositivos físicos!');
@@ -200,9 +191,7 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
-  });
+  const tokenData = await Notifications.getDevicePushTokenAsync();
 
   return tokenData.data;
 }

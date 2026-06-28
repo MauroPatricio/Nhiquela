@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { removeFromBasket, removeSeller, selectBasketItems } from '../features/basketSlice';
 import CartDetails from '../components/CartDetails';
 import { XCircleIcon, TrashIcon } from 'react-native-heroicons/outline';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const Cart = () => {
   const navigation = useNavigation();
@@ -36,16 +37,15 @@ const Cart = () => {
         <View style={styles.cart}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Carrinho</Text>
-              <Text style={styles.subtitle}>Produtos</Text>
+              <Text style={styles.title}>Meu Carrinho</Text>
+              <Text style={styles.subtitle}>{items.length} produto(s) adicionados</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-              <XCircleIcon style={styles.icon} height={35} width={35} />
+              <XCircleIcon style={styles.icon} height={32} width={32} color="#9333EA" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView>
-            <Text style={styles.itemsLength}>{items.length} produto(s) no carrinho</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
 
             {Object.entries(groupedItemsInTheCart).map(([sellerId, products]) => (
               <View key={sellerId} style={{ marginBottom: 10 }}>
@@ -65,13 +65,13 @@ const Cart = () => {
                       {item.name?.length < 20 ? item.name : item.name.substring(0, 25) + '...'}
                     </Text>
 
-                    <View>
+                    <View style={styles.priceContainer}>
                       {parseFloat(item.discount || 0) > 0 ? (
                         <>
-                          <Text style={{ color: 'grey', textDecorationLine: 'line-through' }}>
+                          <Text style={styles.originalPrice}>
                             {parseFloat(item.price || 0).toFixed(2)} MT
                           </Text>
-                          <Text style={{ color: 'green', fontWeight: 'bold' }}>
+                          <Text style={styles.discountPrice}>
                             {parseFloat(item.discount).toFixed(2)} MT
                           </Text>
                         </>
@@ -81,6 +81,7 @@ const Cart = () => {
                     </View>
 
                     <TouchableOpacity
+                      style={styles.deleteButton}
                       onPress={() => {
                         const itemInBasket = items.find(basketItem => basketItem._id === item._id);
                         if (itemInBasket) {
@@ -89,7 +90,7 @@ const Cart = () => {
                         }
                       }}
                     >
-                      <TrashIcon color="#7F00FF" size={28} />
+                      <TrashIcon color="#EF4444" size={24} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -105,50 +106,79 @@ const Cart = () => {
 export default Cart;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white', paddingHorizontal: 10 },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#7F00FF',
-    padding: 20,
-    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
+    marginBottom: 16,
   },
-  cart: { paddingBottom: 250 },
-  title: { fontWeight: '500', textAlign: 'center', fontSize: 18 },
-  subtitle: { fontWeight: '500', textAlign: 'center', color: 'grey' },
+  cart: { paddingBottom: 250, flex: 1 },
+  title: { fontWeight: '800', fontSize: 24, color: '#1F2937' },
+  subtitle: { fontWeight: '500', color: '#6B7280', fontSize: 13, marginTop: 4 },
   closeButton: {
-    position: 'absolute',
-    top: 9,
-    right: 40,
-    backgroundColor: '#7F00FF',
+    padding: 6,
+    backgroundColor: '#F3E8FF',
     borderRadius: 50,
-    marginTop: 10,
   },
-  icon: { color: 'white' },
-  itemsLength: { textAlign: 'center', fontWeight: '400', fontSize: 18, marginTop: 10, marginBottom: 15 },
+  icon: { color: '#9333EA' },
+  itemsLength: { textAlign: 'center', fontWeight: '600', fontSize: 15, marginVertical: 15, color: '#6B7280' },
   itemLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    marginBottom: 10,
-    alignItems: 'center'
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    marginHorizontal: 16,
   },
-  quantity: { fontWeight: '600', width: 25 },
-  itemName: { width: 80, marginTop: 2 },
-  itemImage: { width: 50, height: 50, marginRight: 10, borderRadius: 5 },
-  price: { marginTop: 15 },
-  sellerName: { bottom: 5, fontWeight: '500', color: '#7F00FF', paddingHorizontal: 10 },
+  quantity: { 
+    fontWeight: '800', 
+    fontSize: 14, 
+    color: '#9333EA', 
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  itemName: { flex: 1, fontSize: 14, fontWeight: '700', color: '#374151' },
+  itemImage: { width: 60, height: 60, marginRight: 12, borderRadius: 12, backgroundColor: '#F3F4F6' },
+  priceContainer: { alignItems: 'flex-end', marginRight: 12 },
+  price: { fontWeight: '800', color: '#1F2937', fontSize: 15 },
+  discountPrice: { color: '#10B981', fontWeight: '800', fontSize: 15 },
+  originalPrice: { color: '#9CA3AF', textDecorationLine: 'line-through', fontSize: 11, marginBottom: 2 },
+  sellerName: { 
+    fontWeight: '800', 
+    color: '#9333EA', 
+    paddingHorizontal: 20, 
+    marginBottom: 10,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    fontSize: 12,
+    letterSpacing: 0.5
+  },
+  deleteButton: {
+    padding: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+  }
 });

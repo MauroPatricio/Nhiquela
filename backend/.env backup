@@ -1,0 +1,20 @@
+BASE_URL=http://localhost:3000
+JWT_SECRET=Pgbkw0DQCkiJC3+tSmTaIA==
+
+# BASE de DADOS de DESENVOLVIMENTO
+MONGODB_URI=mongodb+srv://nhiquelabd:root123@nhiquela.7pafgjv.mongodb.net/?retryWrites=true&w=majority
+CLOUDINARY_CLOUD_NAME=dmiydjcnw
+CLOUDINARY_API_KEY=928529551882955
+CLOUDINARY_API_SECRET=dh37tWNkwElKU2CWhltStZy9ARM
+CLOUDINARY_URL=cloudinary://928529551882955:dh37tWNkwElKU2CWhltStZy9ARM@dmiydjcnw
+
+
+# BASE de DADOS de PRODUCAO
+# MONGODB_URI=mongodb+srv://root:root@cluster0.uw5pjuq.mongodb.net/?retryWrites=true&w=majority
+# CLOUDINARY_CLOUD_NAME=dajwznqco
+# CLOUDINARY_API_KEY=717576819937273
+# CLOUDINARY_API_SECRET=u9nLEaBBpuxPzBxhVz6KnfurHEY
+# CLOUDINARY_URL=cloudinary://717576819937273:u9nLEaBBpuxPzBxhVz6KnfurHEY@dajwznqco
+
+# Valor da comissao para o site 0,1 o que equivale a 10%
+COMISSION_PRICE=0.1

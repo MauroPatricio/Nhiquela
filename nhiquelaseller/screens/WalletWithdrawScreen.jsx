@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 // screens/WalletWithdrawScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, Alert, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
@@ -33,7 +34,13 @@ const WalletWithdrawScreen = ({ navigation }) => {
         }
       } catch (err) {
         console.error(err);
-        Alert.alert('Erro', 'Não foi possível carregar os dados da carteira.');
+        showMessage({
+        message: 'Erro',
+        description: 'Não foi possível carregar os dados da carteira.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       } finally {
         setLoading(false);
       }
@@ -44,15 +51,33 @@ const WalletWithdrawScreen = ({ navigation }) => {
 
   const handleWithdraw = async () => {
     if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-      return Alert.alert('Erro', 'Digite um valor válido para levantamento.');
+      return showMessage({
+        message: 'Erro',
+        description: 'Digite um valor válido para levantamento.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
 
     if (parseFloat(amount) > balance) {
-      return Alert.alert('Erro', 'Saldo insuficiente.');
+      return showMessage({
+        message: 'Erro',
+        description: 'Saldo insuficiente.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
 
     if (!phone || phone.length < 9) {
-      return Alert.alert('Erro', 'Digite um número de telefone válido.');
+      return showMessage({
+        message: 'Erro',
+        description: 'Digite um número de telefone válido.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
 
     try {
@@ -62,10 +87,22 @@ const WalletWithdrawScreen = ({ navigation }) => {
       }, {
         headers: { authorization: `Bearer ${userData.token}` },
       });
-      Alert.alert('Sucesso', res.data.message);
+      showMessage({
+        message: 'Sucesso',
+        description: res.data.message,
+        type: "success",
+        icon: "auto",
+        duration: 3000,
+      });
       navigation.goBack();
     } catch (err) {
-      Alert.alert('Erro', err.response?.data?.message || 'Erro ao solicitar levantamento');
+      showMessage({
+        message: 'Erro',
+        description: err.response?.data?.message || 'Erro ao solicitar levantamento',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -76,6 +113,9 @@ const WalletWithdrawScreen = ({ navigation }) => {
       </View>
     );
   }
+
+  const calculatedFee = amount && !isNaN(amount) && parseFloat(amount) > 0 ? parseFloat(amount) * 0.01 : 0;
+  const netAmount = amount && !isNaN(amount) && parseFloat(amount) > 0 ? Math.max(0, parseFloat(amount) - calculatedFee) : 0;
 
   return (
     <View style={styles.container}>
@@ -100,7 +140,12 @@ const WalletWithdrawScreen = ({ navigation }) => {
         style={styles.input}
       />
 
-   
+      {amount && !isNaN(amount) && parseFloat(amount) > 0 ? (
+        <View style={styles.feeContainer}>
+          <Text style={styles.feeText}>Taxa de Levantamento (1%): {calculatedFee.toFixed(2)} MT</Text>
+          <Text style={styles.netText}>Receberá líquido no celular: {netAmount.toFixed(2)} MT</Text>
+        </View>
+      ) : null}
 
       <TouchableOpacity style={styles.button} onPress={handleWithdraw}>
         <Text style={styles.buttonText}>Solicitar Levantamento</Text>
@@ -170,6 +215,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f7fa',
+  },
+  feeContainer: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 20,
+  },
+  feeText: {
+    fontSize: 14,
+    color: '#E65100',
+    fontWeight: '600',
+  },
+  netText: {
+    fontSize: 15,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    marginTop: 6,
   },
 });
 
