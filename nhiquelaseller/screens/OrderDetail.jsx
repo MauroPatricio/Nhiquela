@@ -471,7 +471,7 @@ const OrderDetail = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create({ 
   container: {
     top: 10,
     flex: 1,
