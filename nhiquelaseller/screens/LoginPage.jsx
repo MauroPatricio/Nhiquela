@@ -1,219 +1,332 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import BackBtn from '../components/BackBtn';
-import Button from '../components/Button';
-import { Formik } from 'formik';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Yup from 'yup';
-import api from '../hooks/createConnectionApi';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ActivityIndicator,
+  Image,
+  Alert
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../hooks/createConnectionApi';
+import { useNavigation } from '@react-navigation/native';
+import registerDeviceToken from '../utils/registerDeviceToken';
+import BackBtn from '../components/BackBtn';
+import { useToast } from 'react-native-toast-notifications';
 
-const validationSchema = Yup.object().shape({
-  phoneNumber: Yup.string()
-    .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
-    .max(9, 'O número de telefone não pode ser superior a 9 dígitos')
-    .required('Obrigatório'),
-  password: Yup.string()
-    .min(6, 'A senha deve conter 6 dígitos')
-    .required('Obrigatório'),
-});
+export default function LoginPage() {
+  const navigation = useNavigation();
+  const toast = useToast();
 
-const LoginPage = ({ navigation }) => {
-  const [loader, setLoader] = useState(false);
-  const [responseData, setResponseData] = useState(null);
-  const [hideText, setHideText] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [hideText, setHideText] = useState(true);
 
-  const login = async (values) => {
-    setLoader(true);
+  const handleForgotPassword = () => {
+    if (phoneNumber.length < 9) {
+      toast.show("Insira o número de telefone primeiro", {
+        type: "warning",
+        placement: "top"
+      });
+      return;
+    }
+    Alert.alert(
+      "Funcionalidade Indisponível",
+      "Por favor contacte o suporte para recuperar a sua conta de Vendedor."
+    );
+  };
+
+  const handleLogin = async () => {
+    let valid = true;
+
+    // --- VALIDAÇÕES ---
+    if (!phoneNumber || !/^\d{9}$/.test(phoneNumber)) {
+      toast.show("O telefone deve ter exatamente 9 dígitos", { type: 'danger', placement: 'top' });
+      valid = false;
+    } else if (!password || password.length < 6) {
+      toast.show("A senha deve ter no mínimo 6 caracteres", { type: 'danger', placement: 'top' });
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    setLoading(true);
+
     try {
-      const data = values;
-      const response = await api.post('/users/signin', data);
+      const response = await api.post('/users/signinseller', { phoneNumber, password });
 
-      if (response.status === 200) {
-        setLoader(false);
-        setResponseData(response.data);
-        await AsyncStorage.setItem(`user${response.data._id}`, JSON.stringify(response.data));
-        await AsyncStorage.setItem('id', JSON.stringify(response.data._id));
-        navigation.replace('Bottom Navigation');
+      if (!response.data) {
+        throw new Error('Resposta inválida do servidor');
       }
-    } catch (error) {
-      Alert.alert('Informe o número de telefone ou a senha correcta');
+
+      const userData = response.data;
+
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      await AsyncStorage.setItem('id', userData._id);
+
+      // Registra token (push notifications)
+      registerDeviceToken(userData);
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'BottomNavigation' }],
+      });
+
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Erro ao fazer login';
+
+      toast.show(errorMessage, {
+        type: 'danger',
+        placement: 'top',
+        duration: 4000,
+        animationType: 'slide-in',
+      });
     } finally {
-      setLoader(false);
+      setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={{ backgroundColor: 'white' }}>
-      <SafeAreaView style={{ marginHorizontal: 20 }}>
-        <View>
-          <BackBtn onPress={() => navigation.goBack()} />
-          <Image
-            source={require('../assets/nhiquela2.png')}
-            style={styles.cover}
-          />
-          <Text style={styles.title}>Login</Text>
-          <Formik
-            initialValues={{ phoneNumber: '', password: '' }}
-            validationSchema={validationSchema}
-            onSubmit={(values) => login(values)}
+      <View style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            {({ handleChange, handleBlur, touched, handleSubmit, values, errors, isValid }) => (
-              <View>
-                <View style={styles.wrapper}>
-                  <Text style={styles.label}>Número de telefone</Text>
-                  <View style={styles.inputWrapper(errors.phoneNumber && touched.phoneNumber ? 'red' : '#7F00FF')}>
-                    <MaterialCommunityIcons
-                      name="phone"
-                      size={20}
-                      color="grey"
-                      style={styles.iconStyle}
-                    />
-                    <TextInput
-                      placeholder="Insira o número de telefone"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      style={{ flex: 1 }}
-                      value={values.phoneNumber}
-                      onChangeText={handleChange('phoneNumber')}
-                      onBlur={handleBlur('phoneNumber')}
-                    />
-                  </View>
-                  {touched.phoneNumber && errors.phoneNumber && (
-                    <Text style={styles.errorMessage}>{errors.phoneNumber}</Text>
-                  )}
-                </View>
+            {/* Header com Botão Voltar */}
+            <View style={styles.topHeader}>
+              <BackBtn onPress={() => navigation.goBack()} />
+            </View>
 
-                <View style={styles.wrapper}>
-                  <Text style={styles.label}>Senha</Text>
-                  <View style={styles.inputWrapper(errors.password && touched.password ? 'red' : '#7F00FF')}>
-                    <MaterialCommunityIcons
-                      name="lock"
-                      size={20}
-                      color="grey"
-                      style={styles.iconStyle}
-                    />
-                    <TextInput
-                      placeholder="Insira a senha"
-                      secureTextEntry={hideText}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      style={{ flex: 1 }}
-                      value={values.password}
-                      onChangeText={handleChange('password')}
-                      onBlur={handleBlur('password')}
-                    />
-                    <TouchableOpacity onPress={() => { setHideText(!hideText); }}>
-                      <MaterialCommunityIcons
-                        name={hideText ? 'eye-outline' : 'eye-off-outline'}
-                        size={18}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  {touched.password && errors.password && (
-                    <Text style={styles.errorMessage}>{errors.password}</Text>
-                  )}
-                </View>
+            {/* Cabeçalho */}
+            <View style={styles.header}>
+              <Image
+                source={require('../assets/nhiquela2.png')}
+                style={styles.logo}
+              />
+              <Text style={styles.welcomeTitle}>Bem-vindo à Nhiquela Partner</Text>
+              <Text style={styles.welcomeSubtitle}>
+                Entre para gerir o seu estabelecimento, produtos e vendas.
+              </Text>
 
-                <View>
-                  <Button loader={loader} title="Entrar" onPress={isValid ? handleSubmit : null} isValid={isValid ? '#7F00FF' : 'red'} />
-                  <Text style={styles.registration} onPress={() => navigation.navigate('SignUp')}>Registrar</Text>
-                </View>
+              <View style={styles.illustration}>
+                <MaterialCommunityIcons name="storefront-outline" size={40} color="#7F00FF" />
+                <MaterialCommunityIcons name="basket-outline" size={40} color="#7F00FF" />
+                <MaterialCommunityIcons name="cash-register" size={40} color="#7F00FF" />
+                <MaterialCommunityIcons name="truck-delivery-outline" size={40} color="#7F00FF" />
               </View>
-            )}
-          </Formik>
-        </View>
-      </SafeAreaView>
-    </ScrollView>
-  );
-};
+            </View>
 
-export default LoginPage
+            {/* Formulário */}
+            <View style={styles.formContainer}>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.prefix}>+258 |</Text>
+                <TextInput
+                  placeholder="84 123 4567"
+                  placeholderTextColor="#9CA3AF"
+                  style={styles.input}
+                  value={phoneNumber}
+                  keyboardType="numeric"
+                  maxLength={9}
+                  onChangeText={setPhoneNumber}
+                />
+              </View>
+
+              <View style={styles.inputWrapper}>
+                <MaterialCommunityIcons 
+                  name="lock-outline" 
+                  size={24} 
+                  color="#374151" 
+                  style={{ marginRight: 12 }} 
+                />
+                <TextInput
+                  placeholder="Palavra-passe"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={hideText}
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity onPress={() => setHideText(!hideText)} style={{ padding: 5 }}>
+                  <MaterialCommunityIcons
+                    name={hideText ? 'eye-outline' : 'eye-off-outline'}
+                    size={24}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Esqueci a palavra-passe */}
+              <TouchableOpacity style={styles.forgotPasswordContainer} onPress={handleForgotPassword}>
+                <Text style={styles.forgotPasswordText}>Esqueci a palavra-passe</Text>
+              </TouchableOpacity>
+
+              {/* Botão de Ação */}
+              <TouchableOpacity
+                style={[styles.primaryButton, loading && styles.disabledButton]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Entrar</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Criar Conta */}
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Ainda não é parceiro?</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                  <Text style={styles.registerLink}>Criar conta</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Rodapé */}
+            <View style={styles.footer}>
+              <Text style={styles.footerLinks}>Termos • Privacidade • Suporte</Text>
+            </View>
+
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+  );
+}
 
 const styles = StyleSheet.create({
-    cover: {
-      height: 200,
-      width: 320,
-      resizeMode: "contain",
-      marginBottom: 0,
-      backgroundColor: 'white',
-      alignSelf: 'center',
-      marginVertical: 30,
-    },
-    title: {
-      fontWeight: "600",
-      textAlign: "center",
-      fontSize: 22,
-      marginBottom: 25,
-      color: '#4A4A4A',
-      letterSpacing: 1,
-    },
-    wrapper: {
-    //   marginBottom: 20,
-    },
-    label: {
-      fontSize: 14,
-      fontWeight: '500',
-      marginBottom: 5,
-      marginEnd: 2,
-      color: '#7F00FF',
-    },
-    inputWrapper: (borderColor) => ({
-      borderColor: borderColor,
-      backgroundColor: '#F8F8F8',
-      borderWidth: 0.5,
-      height: 55,
-      borderRadius: 12,
-      flexDirection: 'row',
-      paddingHorizontal: 15,
-      alignItems: 'center',
-      shadowColor: '#7F00FF',
-      shadowOpacity: 0.1,
-      shadowRadius: 5,
-      elevation: 3,
-    }),
-    errorMessage: {
-      color: 'red',
-      marginTop: 5,
-      marginLeft: 6,
-      fontSize: 12,
-    },
-    registration: {
-      marginTop: 25,
-      textAlign: "center",
-      fontWeight: "500",
-      borderColor: '#7F00FF',
-      borderWidth: 1.5,
-      height: 50,
-      borderRadius: 12,
-      justifyContent: 'center',
-      color: '#7F00FF',
-      paddingVertical: 10,
-      fontSize: 16,
-    },
-    iconStyle: {
-      marginRight: 10,
-    },
-    loginButton: {
-      backgroundColor: '#7F00FF',
-      borderRadius: 12,
-      height: 50,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: 20,
-    },
-    loginButtonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    forgotPasswordText: {
-      textAlign: 'center',
-      color: '#4A4A4A',
-      marginTop: 10,
-      fontSize: 14,
-    },
-  });
-  
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    padding: 24,
+  },
+  topHeader: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginTop: Platform.OS === 'ios' ? 10 : 30,
+    marginBottom: 10,
+    marginLeft: -10,
+  },
+  header: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+    marginBottom: 16,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  illustration: {
+    flexDirection: 'row',
+    gap: 24,
+    marginBottom: 32,
+    opacity: 0.8,
+  },
+  formContainer: {
+    width: '100%',
+    marginBottom: 40,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 60,
+    marginBottom: 16,
+  },
+  prefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  primaryButton: {
+    backgroundColor: '#7F00FF',
+    borderRadius: 16,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    marginBottom: 32,
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  primaryButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  registerContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  registerText: {
+    color: '#6B7280',
+    fontSize: 14,
+  },
+  registerLink: {
+    color: '#7F00FF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  footerLinks: {
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
+});

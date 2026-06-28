@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,6 +12,8 @@ const Orders = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
+
+  const [userLogin, setUserLogin] = useState(false)
 
   useEffect(() => {
     checkIfUserExist();
@@ -64,19 +66,33 @@ const Orders = () => {
   };
 
   const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
-
     try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
+
+      if (storedUserData && storedUserId) {
+        const parsedUserData = JSON.parse(storedUserData);
+
+        if (parsedUserData._id === storedUserId) {
+          setUserData(parsedUserData);
+          setUserLogin(true);
+        } else {
+          setIsLoading(false); // ✅ Para o loading se inconsistente
+          navigation.navigate('Login');
+
+        }
+      } else {
+        setIsLoading(false); // ✅ Para o loading se não logado
+        navigation.navigate('Login');
+
       }
     } catch (error) {
-      console.error(error);
+      setIsLoading(false); // ✅ Garante parada mesmo em erro
+      navigation.navigate('Login');
+
     }
   };
+
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -90,6 +106,12 @@ const Orders = () => {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 
   };
+
+  const onRefresh = useCallback(async () => {
+    if (userData) {
+      await fetchData();
+    }
+  }, [userData, fetchData]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -106,11 +128,21 @@ const Orders = () => {
 
       {/* Loading Indicator */}
       {isLoading ? (
-        <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }}/>
+        <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={onRefresh}
+              colors={['#7F00FF']}
+              tintColor="#7F00FF"
+            />
+          }
+        >
           {ordersHistory?.length > 0 ? ordersHistory?.map((order) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={order._id}
               style={styles.card}
               onPress={() => navigation.navigate('OrderDetail', { order })}
@@ -126,22 +158,23 @@ const Orders = () => {
               {/* Detalhes do pedido */}
               <View style={styles.content}>
                 <Text style={styles.code}>
-                   Pedido #{order?.code}
+                  Pedidos #{order?.code}
                 </Text>
                 <Text style={styles.createAt}>
-                   {formatDate(order?.createdAt)}
+                  {formatDate(order?.createdAt)}
                 </Text>
                 <Text style={styles.price}>
-                   {order?.totalPrice} MT
+                  {order?.totalPrice} MT
                 </Text>
                 <Text style={styles.status}>
-                   {order?.status}
+                  {order?.status}
                 </Text>
               </View>
             </TouchableOpacity>
           )) : <Text style={styles.empty}>
             Nenhum pedido encontrado.
           </Text>}
+          <View style={{ paddingBottom: 100 }} />
         </ScrollView>
       )}
 
@@ -151,15 +184,15 @@ const Orders = () => {
 
 export default Orders;
 
-const styles = StyleSheet.create({  
+const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F2F4F8',
   },
   header: {
-    flexDirection:'row',
-    alignItems:'center',
-    justifyContent:'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 10,
@@ -169,15 +202,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight:'bold',
+    fontWeight: 'bold',
     color: '#333',
   },
   scroll: {
     padding: 16,
   },
   card: {
-    flexDirection:'row',
-    alignItems:'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
@@ -187,11 +220,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    overflow:'hidden',
+    overflow: 'hidden',
   },
   statusBar: {
     width: 6,
-    height:'100%',
+    height: '100%',
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12,
     marginRight: 16,
@@ -201,8 +234,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 50,
     marginRight: 16,
-    alignItems:'center',
-    justifyContent:'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cartIcon: {
     fontSize: 24,
@@ -213,7 +246,7 @@ const styles = StyleSheet.create({
   },
   code: {
     fontSize: 16,
-    fontWeight:'bold',
+    fontWeight: 'bold',
     color: '#333',
     marginBottom: 4,
   },
@@ -225,17 +258,17 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 15,
     color: '#7F00FF',
-    fontWeight:'500',
+    fontWeight: '500',
     marginBottom: 4,
   },
   status: {
     fontSize: 14,
     color: '#666',
-    fontWeight:'500',
-    textTransform:'capitalize',
+    fontWeight: '500',
+    textTransform: 'capitalize',
   },
   empty: {
-    textAlign:'center',
+    textAlign: 'center',
     color: '#555',
     marginTop: 20,
     fontSize: 16,

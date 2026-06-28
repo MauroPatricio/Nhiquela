@@ -1,8 +1,14 @@
-import axios from 'axios'
+import axios from 'axios';
 
-//const instance = axios.create({baseURL: 'http://deliveryshop.herokuapp.com/api'})
-const instance = axios.create({baseURL: 'https://deliveryshop.herokuapp.com/api'})
+// ---------------------------------------------------------------------
+// 1️⃣ Configuração Automática de Ambiente (Auto QA / Gatekeeper)
+// ---------------------------------------------------------------------
+const isDev = process.env.NODE_ENV !== 'production';
+const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.3:5000/api' : 'https://deliveryshop.herokuapp.com/api');
 
-//const instance = axios.create({baseURL: 'http://localhost:5000/api'})
+// ---------------------------------------------------------------------
+// 2️⃣ Instância do Axios
+// ---------------------------------------------------------------------
+const api = axios.create({ baseURL });
 
-export default instance;
+export default api;

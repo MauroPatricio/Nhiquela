@@ -1,0 +1,18 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Firebase credentials
+firebase-nhiquela-plus.js
+google-services.json
+GoogleService-Info.plist
+
+# DS_Store
+.DS_Store

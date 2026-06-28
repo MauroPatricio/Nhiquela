@@ -85,7 +85,7 @@ const renderItem = ({ item }) => (
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name='chevron-back-circle' size={35} color="#7F00FF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Tipos de Estabelecimentos</Text>
+        <Text style={styles.title}>Tipos de estabelecimentos</Text>
       </View>
 
       {/* Lista de estabelecimentos */}

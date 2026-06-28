@@ -1,2 +1,46 @@
 node_modules
 build
+echo "*.json" >> .gitignore
+# Node
+npm-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# Expo
+.expo/
+.expo-shared/
+
+# Cache
+.cache/
+tmp/
+tmp-npm-cache/
+coverage/
+
+# Logs
+*.log
+output.log
+
+# Environment
+.env
+.env.*
+
+# Firebase
+*-firebase-adminsdk-*.json
+
+.env
+keys.json
+
+# Uploads
+uploads/
+
+# Office
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ 
