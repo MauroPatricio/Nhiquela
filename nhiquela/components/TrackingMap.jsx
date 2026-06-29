@@ -18,7 +18,7 @@ export default function TrackingMap({ orderId, initialCenter, darkMode = false }
     if (!orderId) return;
 
     const isDev = process.env.NODE_ENV !== 'production';
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000' : 'https://deliveryshop.herokuapp.com');
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000' : 'https://api.nhiquelaservicos.com');
     const socketUrl = apiUrl.replace('/api', '');
 
     const socket = io(socketUrl, { transports: ['websocket'] });

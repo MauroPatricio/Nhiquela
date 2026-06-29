@@ -31,7 +31,7 @@ import useThrottle from '../hooks/useThrottle';
 
 const { width } = Dimensions.get('window');
 const isDev = process.env.NODE_ENV !== 'production';
-const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://deliveryshop.herokuapp.com'));
+const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://api.nhiquelaservicos.com'));
 const socket = io(`${SOCKET_URL}/products`, { transports: ['websocket'] });
 
 Notifications.setNotificationHandler({

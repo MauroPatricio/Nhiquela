@@ -63,8 +63,9 @@ const updateUserRating = async (userId) => {
     const { totalOrders, completedOrders, cancelledOrders } = user;
     let rating = 'Excelente';
     if (cancelledOrders > completedOrders) rating = 'Alto índice de cancelamento';
-    else if (cancelledOrders > 0) rating = 'Regular';
-    else if (completedOrders > 0) rating = 'Bom';
+    else if (cancelledOrders > 0 && completedOrders <= cancelledOrders) rating = 'Regular';
+    else if (cancelledOrders > 0 && completedOrders > cancelledOrders) rating = 'Bom';
+    else if (cancelledOrders === 0 && completedOrders > 0) rating = 'Excelente';
     await User.findByIdAndUpdate(userId, { rating });
   } catch (err) {
     console.error('Failed to update user rating:', err);

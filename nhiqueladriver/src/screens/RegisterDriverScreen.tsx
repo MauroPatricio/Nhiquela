@@ -45,12 +45,14 @@ interface DriverForm {
     document_front: string;
     document_back: string;
     Proof_of_Address: string;
+    assigned_base_fee?: string;
 }
+
 
 export default function RegisterDriverScreen({ navigation }: any) {
     const [step, setStep] = useState(0);
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    const [subcategories, setSubcategories] = useState<{ label: string, value: string }[]>([]);
+    const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string }[]>([]);
     const [colorOptions, setColorOptions] = useState<{ label: string, value: string }[]>([]);
 
     useEffect(() => {
@@ -66,7 +68,8 @@ export default function RegisterDriverScreen({ navigation }: any) {
                 });
                 const formatted = filtered.map((item: any) => ({
                     label: item.name,
-                    value: item.name
+                    value: item.name,
+                    pricingMode: item.pricingMode
                 }));
                 setSubcategories(formatted);
                 
@@ -449,6 +452,9 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                     { label: "Caminhão", value: "caminhao" },
                                 ]}
                             />
+                            {subcategories.find(s => s.value === form.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (
+                                renderInput("Preço Base do Serviço (MT) *", "assigned_base_fee", "cash-multiple", { keyboardType: "numeric", placeholder: "Ex: 500" })
+                            )}
                             <SelectField
                                 label="Cor do Veículo *"
                                 field="transport_color"

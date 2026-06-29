@@ -250,6 +250,12 @@ requestDeliver.put(
     
       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`driver_${user_deliver._id}`).emit('order_assigned', updateOrder);
+        io.to(`order_${requestDeliv._id}`).emit('order_updated', updateOrder);
+      }
 
       res.send({ message: `Aceite pelo entregador`, order: updateOrder });
     } else {
@@ -284,6 +290,14 @@ requestDeliver.put(
      
        sendEmailOrderStatus(req,mailText, order, res);
 
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', order);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+        }
+      }
         
       res.send({ message: `Pedido em trânsito` });
     } else {
@@ -315,10 +329,18 @@ requestDeliver.put(
 
        let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
-       sendEmailOrderStatus(req,mailText, order, res);
+       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        if (updateOrder.deliveryman?.id) {
+          io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
+        }
+      }
 
-      res.send({ message: `No destino indicado`, order: order });
+      res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -360,7 +382,17 @@ requestDeliver.put(
 
       let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
-      sendEmailOrderStatus(req,mailText, updateOrder, res);
+      // Note: updateOrder variable is missing here in the original code, should use order
+      // sendEmailOrderStatus(req,mailText, order, res);
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', order);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+        }
+      }
 
       res.send({ message: `Pedido entregue com sucesso` });
     } else {
@@ -393,12 +425,20 @@ requestDeliver.put(
  
       sendSMSToUSendIt(req,msg);
 
-      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
+      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o pedido nr ${order.code} foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
-      sendEmailOrderStatus(req,mailText, updateOrder, res);
+      sendEmailOrderStatus(req,mailText, order, res);
 
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', order);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+        }
+      }
 
-      res.send({ message: `Pedido cancelado com sucesso` });
+      res.send({ message: `Pedido Cancelado`, order: order });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }

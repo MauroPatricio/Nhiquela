@@ -8,7 +8,7 @@ class WebsocketService {
     const isDev = process.env.NODE_ENV !== 'production';
     this.SOCKET_URL = process.env.EXPO_PUBLIC_API_URL 
       ? process.env.EXPO_PUBLIC_API_URL.replace('/api', '') 
-      : (isDev ? 'http://localhost:3000' : 'https://deliveryshop.herokuapp.com');
+      : (isDev ? 'http://localhost:3000' : 'https://api.nhiquelaservicos.com');
   }
 
   connect(token) {
@@ -59,6 +59,23 @@ class WebsocketService {
     this.socket.on('order_cancelled', (data) => {
       console.log('❌ Pedido cancelado via WebSocket:', data);
       this.emit('order_cancelled', data);
+    });
+
+    // 🔥 NOVO PEDIDO (emitido quando um cliente faz um pedido)
+    this.socket.on('new_order', (data) => {
+      console.log('🆕 Novo pedido via WebSocket:', data);
+      this.emit('new_order', data);
+    });
+
+    // 🔥 STATUS DO MOTORISTA ATUALIZADO PELO ADMIN
+    this.socket.on('driver_status_updated', (data) => {
+      console.log('👤 Estado do motorista atualizado:', data);
+      this.emit('driver_status_updated', data);
+    });
+
+    // 🔥 PEDIDO DE ATUALIZAÇÃO DE LOCALIZAÇÃO
+    this.socket.on('request_location_update', (data) => {
+      this.emit('request_location_update', data);
     });
   }
 

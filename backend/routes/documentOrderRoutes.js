@@ -13,7 +13,10 @@ const router = express.Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const upload = multer({ dest: path.join(__dirname, '../../uploads/document-orders') });
+const upload = multer({ 
+  dest: path.join(__dirname, '../../uploads/document-orders'),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit para documentos
+});
 
 // 1. Submit new Document Order (Customer)
 router.post('/submit', isAuth, upload.single('file'), expressAsyncHandler(async (req, res) => {

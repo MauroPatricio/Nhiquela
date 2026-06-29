@@ -8,7 +8,7 @@ class WebSocketService {
     this.listeners = new Map();
     const isDev = process.env.NODE_ENV !== 'production';
     // Pega o mesmo URL do apiConfig, mas tira o /api no final se existir
-    let API_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://deliveryshop.herokuapp.com/api');
+    let API_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://api.nhiquelaservicos.com/api');
     API_URL = API_URL.replace('/api', '');
     this.baseURL = API_URL;
   }

@@ -4,7 +4,7 @@ import streamifier from 'streamifier';
 import multer from 'multer';
 const uploadRouter = express.Router();
 
-const upload = multer()
+const upload = multer({ limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
 // upload Media files
 uploadRouter.post('/',  upload.single('file'),async (req, res) => {

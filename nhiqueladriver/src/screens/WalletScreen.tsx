@@ -26,6 +26,17 @@ export default function WalletScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
+  const [balanceSummary, setBalanceSummary] = useState({
+    saldo_atual: 0,
+    limite_credito: 0,
+    saldo_operacional_minimo: 0,
+    saldo_disponivel: 0,
+    estado_atual: 'Ativo',
+    total_recarregado: 0,
+    total_comissoes: 0,
+    permite_negativo: false,
+    bloqueio_automatico: true,
+  });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
   const [dailyEarnings, setDailyEarnings] = useState<Array<{ date: string, amount: number }>>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -50,11 +61,16 @@ export default function WalletScreen({ navigation, route }: any) {
     try {
       const headers = { authorization: `Bearer ${user.token}` };
 
-      const [balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
+      const [summaryRes, balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
+        api.get('/wallet/driver-summary', { headers }),
         api.get('/wallet/balance', { headers }),
         api.get('/wallet/transactions', { headers }),
         api.get('/wallet/driver-earnings', { headers })
       ]);
+
+      if (summaryRes.status === 'fulfilled') {
+        setBalanceSummary(summaryRes.value.data);
+      }
 
       if (balanceRes.status === 'fulfilled') {
         setBalance({
@@ -200,6 +216,16 @@ export default function WalletScreen({ navigation, route }: any) {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Ativo': return '#34C759'; // Verde
+      case 'Aviso': return '#FFCC00'; // Amarelo
+      case 'Crédito Controlado': return '#FF9500'; // Laranja
+      case 'Suspenso': return '#FF3B30'; // Vermelho
+      default: return '#34C759';
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return `${value.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT`;
   };
@@ -271,16 +297,45 @@ export default function WalletScreen({ navigation, route }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={
           <>
-            {/* Cards de Saldo Principal */}
+            {/* Cards de Saldo Principal (Motor Financeiro) */}
             <View style={styles.balanceContainer}>
-              <View style={styles.mainCard}>
-                <Text style={styles.cardLabel}>Saldo Disponível</Text>
-                <Text style={styles.cardValue}>{formatCurrency(balance.available)}</Text>
+              <View style={[styles.mainCard, { borderTopWidth: 4, borderTopColor: getStatusColor(balanceSummary.estado_atual) }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={styles.cardLabel}>Saldo da Conta</Text>
+                  <View style={{ backgroundColor: getStatusColor(balanceSummary.estado_atual) + '20', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ color: getStatusColor(balanceSummary.estado_atual), fontWeight: 'bold', fontSize: 12 }}>
+                      {balanceSummary.estado_atual}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.cardValue}>{formatCurrency(balanceSummary.saldo_atual)}</Text>
+                
+                <View style={{ marginTop: 15, backgroundColor: '#f0f0f0', padding: 10, borderRadius: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <Text style={{ fontSize: 12, color: '#666' }}>Mín. Operacional: {balanceSummary.saldo_operacional_minimo} MT</Text>
+                    {balanceSummary.permite_negativo && (
+                       <Text style={{ fontSize: 12, color: '#666' }}>Limite: {balanceSummary.limite_credito} MT</Text>
+                    )}
+                  </View>
+                  <View style={{ height: 6, backgroundColor: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
+                    <View style={{ 
+                        height: '100%', 
+                        backgroundColor: getStatusColor(balanceSummary.estado_atual),
+                        width: `${Math.min(100, Math.max(0, ((balanceSummary.saldo_atual - balanceSummary.limite_credito) / (balanceSummary.saldo_operacional_minimo - balanceSummary.limite_credito + 100)) * 100))}%`
+                      }} 
+                    />
+                  </View>
+                </View>
 
                 <View style={styles.actionButtonsRow}>
                   <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpModalVisible(true); }}>
                     <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
                     <Text style={styles.topUpText}>Recarregar</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.withdrawBtn} onPress={() => { /* Levantar fundos logic */ }}>
+                    <Ionicons name="cash-outline" size={20} color="#34C759" style={{ marginRight: 8 }} />
+                    <Text style={styles.withdrawText}>Levantar</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -366,13 +421,14 @@ export default function WalletScreen({ navigation, route }: any) {
 
             <View style={styles.bankInfoBox}>
               <Text style={styles.bankInfoTitle}>Paga aqui com M-Pesa</Text>
-              <Text style={styles.bankInfoText}>1) Digita <Text style={{fontWeight: 'bold'}}>*150#</Text></Text>
-              <Text style={styles.bankInfoText}>2) Escolhe a opção <Text style={{fontWeight: 'bold'}}>6-Pagamentos</Text></Text>
-              <Text style={styles.bankInfoText}>3) Selecciona <Text style={{fontWeight: 'bold'}}>7-Digitar o código de serviço</Text></Text>
-              <Text style={styles.bankInfoText}>4) Digita o código de serviço <Text style={{fontWeight: 'bold'}}>(A informar)</Text></Text>
-              <Text style={styles.bankInfoText}>5) Digita a referência <Text style={{fontWeight: 'bold'}}>(A informar)</Text></Text>
-              <Text style={styles.bankInfoText}>6) Digita o valor a pagar</Text>
-              <Text style={styles.bankInfoText}>7) Digita o teu PIN e Confirma</Text>
+              <Text style={styles.bankInfoText}>1) Digita <Text style={{fontWeight: 'bold'}}>*150#;</Text></Text>
+              <Text style={styles.bankInfoText}>2) Escolha a opção <Text style={{fontWeight: 'bold'}}>6. Pagamentos;</Text></Text>
+              <Text style={styles.bankInfoText}>3) Escolha a opção <Text style={{fontWeight: 'bold'}}>7. Digita o código do serviço;</Text></Text>
+              <Text style={styles.bankInfoText}>4) Digita <Text style={{fontWeight: 'bold'}}>901811</Text> (código de serviço);</Text>
+              <Text style={styles.bankInfoText}>5) Digita a referência <Text style={{fontWeight: 'bold'}}>(Opcional);</Text></Text>
+              <Text style={styles.bankInfoText}>6) Digita o valor a pagar (Ex: 100);</Text>
+              <Text style={styles.bankInfoText}>7) Digita o teu PIN;</Text>
+              <Text style={styles.bankInfoText}>8) Confirma a transação.</Text>
             </View>
 
             <Text style={styles.inputLabel}>Valor Depositado (MT)</Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, Text } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +14,11 @@ import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORR
 
 import { store } from './store';
 import api from './hooks/createConnectionApi';
+
+import { zegoConfig } from './src/api/zegoConfig';
+import ZegoUIKitPrebuiltCallService, { ZegoUIKitPrebuiltCallInvitationDialog } from '@zegocloud/zego-uikit-prebuilt-call-rn';
+import * as ZIM from 'zego-zim-react-native';
+import * as ZPNs from 'zego-zpns-react-native';
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -97,6 +102,26 @@ export default function App() {
     };
   }, []);
 
+  const [appConfig, setAppConfig] = React.useState(null);
+  const [configLoading, setConfigLoading] = React.useState(true);
+
+  // Buscar configuracoes globais (Forced Update & Maintenance)
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await api.get('/system/app-config');
+        setAppConfig(response.data);
+        // Guardar as configuracoes globalmente para acesso nos ecrãs (ex: WhatsApp)
+        await AsyncStorage.setItem('appConfig', JSON.stringify(response.data));
+      } catch (err) {
+        console.error('Erro ao buscar app config:', err);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
   // Registar token do dispositivo
   useEffect(() => {
     const registerToken = async () => {
@@ -107,8 +132,28 @@ export default function App() {
           if (userDataString) {
             const userData = JSON.parse(userDataString);
             const userId = userData?._id || userData?.id;
+            const userName = userData?.name || "Client";
 
             if (userId) {
+              // Init ZegoCloud Prebuilt Call Service
+              ZegoUIKitPrebuiltCallService.init(
+                zegoConfig.appID,
+                zegoConfig.appSign,
+                userId,
+                userName,
+                [ZIM, ZPNs],
+                {
+                  ringtoneConfig: {
+                    incomingCallFileName: 'zego_incoming.mp3',
+                    outgoingCallFileName: 'zego_outgoing.mp3',
+                  },
+                  androidNotificationConfig: {
+                    channelID: "ZegoUIKit",
+                    channelName: "ZegoUIKit",
+                  },
+                }
+              );
+
               await api.post('/notifications/savedevicetoken', {
                 deviceToken,
                 userId,
@@ -125,14 +170,73 @@ export default function App() {
     registerToken();
   }, []);
 
+  // Logica de bloqueio
+  const currentVersion = Constants.expoConfig?.version || '1.0.0';
+  const isVersionObsolete = (current, min) => {
+    if (!min) return false;
+    const currParts = current.split('.').map(Number);
+    const minParts = min.split('.').map(Number);
+    for (let i = 0; i < Math.max(currParts.length, minParts.length); i++) {
+      const c = currParts[i] || 0;
+      const m = minParts[i] || 0;
+      if (c < m) return true;
+      if (c > m) return false;
+    }
+    return false;
+  };
+
+  const forceUpdate = appConfig && isVersionObsolete(currentVersion, appConfig.minAppVersionClient);
+  const inMaintenance = appConfig && appConfig.isMaintenanceModeClient;
+
+  // Ecrã de bloqueio
+  if (!configLoading && (forceUpdate || inMaintenance)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' }}>
+        <StatusBar style="dark" />
+        <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: forceUpdate ? '#E3F2FD' : '#FFF3E0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+           <Text style={{ fontSize: 40 }}>{forceUpdate ? '🚀' : '🔧'}</Text>
+        </View>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#333' }}>
+          {forceUpdate ? 'Atualização Necessária' : 'Em Manutenção'}
+        </Text>
+        <Text style={{ fontSize: 16, textAlign: 'center', color: '#666', marginBottom: 30, lineHeight: 24 }}>
+          {forceUpdate 
+            ? 'Uma nova versão da Nhiquela está disponível. Por favor, atualize a sua aplicação para continuar a usar os nossos serviços com as últimas novidades e melhorias de segurança.' 
+            : (appConfig?.maintenanceMessage || 'Estamos a realizar melhorias na plataforma. Voltaremos muito em breve!')}
+        </Text>
+        
+        {forceUpdate && (
+          <View style={{ width: '100%', marginTop: 10 }}>
+            {/* Botao de Update (aqui usaria Linking para a App Store/Play Store real) */}
+            <View style={{ backgroundColor: '#7F00FF', padding: 15, borderRadius: 10, alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Atualizar Agora</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+
   return (
     <ToastProvider>
+      <ZegoUIKitPrebuiltCallInvitationDialog />
       <StatusBar backgroundColor="white" style="dark" />
 
       <Provider store={store}>
         <SafeAreaProvider>
 
-          <NavigationContainer ref={navigationRef}>
+          <NavigationContainer 
+              ref={navigationRef}
+              linking={{
+                prefixes: ['nhiquela://'],
+                config: {
+                  screens: {
+                    OrderDetailsScreen: 'order/:orderId',
+                    OrderList: 'orders'
+                  }
+                }
+              }}
+          >
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
               <Stack.Screen name="ProductDetail" component={ProductDetail} />

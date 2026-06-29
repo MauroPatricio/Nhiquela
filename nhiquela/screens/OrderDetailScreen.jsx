@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -13,6 +12,7 @@ import {
   Dimensions,
   PanResponder
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -398,7 +398,15 @@ const OrderDetailsScreen = () => {
                   {currentOrder.deliveryman.name && (
                     <View style={styles.infoItem}>
                       <Text style={styles.infoLabel}>Motorista</Text>
-                      <Text style={styles.infoValue}>{currentOrder.deliveryman.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        {currentOrder.deliveryman.photo && (
+                          <Image 
+                            source={{ uri: currentOrder.deliveryman.photo }} 
+                            style={{ width: 30, height: 30, borderRadius: 15, marginRight: 8 }} 
+                          />
+                        )}
+                        <Text style={styles.infoValue}>{currentOrder.deliveryman.name}</Text>
+                      </View>
                     </View>
                   )}
                   {currentOrder.deliveryman.transport_type && (
