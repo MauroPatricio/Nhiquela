@@ -3,6 +3,7 @@
 import express from 'express';
 import axios from 'axios';
 import Payment from '../models/PaymentModel.js';
+import expressAsyncHandler from 'express-async-handler';
 
 const paymentRouterEmola = express.Router();
 
@@ -42,7 +43,7 @@ async function ensureToken(req, res, next) {
 }
 
 // Enviar solicitação de pagamento via Push USSD
-paymentRouterEmola.post('/pay', ensureToken, async (req, res) => {
+paymentRouterEmola.post('/pay', ensureToken, expressAsyncHandler(async (req, res) => {
   const { phone, amount, orderId } = req.body;
 
   if (!phone || !amount || !orderId) {
@@ -90,10 +91,10 @@ paymentRouterEmola.post('/pay', ensureToken, async (req, res) => {
     console.error('Erro no pagamento Emola:', err.response?.data || err.message);
     res.status(500).json({ error: 'Erro ao enviar solicitação Emola' });
   }
-});
+}));
 
 // Verificar saldo
-paymentRouterEmola.get('/balance', ensureToken, async (req, res) => {
+paymentRouterEmola.get('/balance', ensureToken, expressAsyncHandler(async (req, res) => {
   try {
     const response = await axios.get(BALANCE_URL, {
       headers: {
@@ -104,10 +105,10 @@ paymentRouterEmola.get('/balance', ensureToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Erro ao obter saldo' });
   }
-});
+}));
 
 // Fazer disbursement (pagamento ao fornecedor)
-paymentRouterEmola.post('/disburse', ensureToken, async (req, res) => {
+paymentRouterEmola.post('/disburse', ensureToken, expressAsyncHandler(async (req, res) => {
   const { phone, amount, orderId } = req.body;
 
   if (!phone || !amount || !orderId) {
@@ -136,6 +137,47 @@ paymentRouterEmola.post('/disburse', ensureToken, async (req, res) => {
     console.error('Erro ao fazer disbursement:', err.response?.data || err.message);
     res.status(500).json({ error: 'Erro ao enviar disbursement' });
   }
-});
+}));
+
+// Webhook para confirmação assíncrona do E-Mola
+paymentRouterEmola.post('/webhook', expressAsyncHandler(async (req, res) => {
+  console.log('🔔 Webhook E-Mola Recebido:', req.body);
+  
+  // Exemplo de estrutura que a Vitae/E-mola envia no body do webhook
+  // Deve ajustar as propriedades abaixo caso a documentação da Vitae use nomes diferentes.
+  const { reference, transId, status } = req.body;
+
+  if (!reference) {
+    return res.status(400).send({ error: 'Referência não fornecida no webhook' });
+  }
+
+  try {
+    const payment = await Payment.findOne({ reference });
+    
+    if (!payment) {
+      console.error('❌ Pagamento não encontrado para a referência:', reference);
+      return res.status(404).send({ error: 'Pagamento não encontrado' });
+    }
+
+    // "SUCCESS" ou "0" é o código comum para sucesso, depende da API E-Mola.
+    if (status === 'SUCCESS' || status === '0' || status === 'COMPLETED') {
+      payment.paid = true;
+      payment.status = 'Sucesso';
+      payment.transaction = transId || payment.transaction;
+      await payment.save();
+      console.log(`✅ Pagamento E-Mola ${reference} confirmado com sucesso!`);
+    } else {
+      payment.paid = false;
+      payment.status = 'Falha';
+      await payment.save();
+      console.log(`❌ Pagamento E-Mola ${reference} falhou ou foi cancelado. Status: ${status}`);
+    }
+
+    res.status(200).send({ message: 'Webhook processado' });
+  } catch (error) {
+    console.error('Erro ao processar webhook E-Mola:', error);
+    res.status(500).send({ error: 'Erro interno' });
+  }
+}));
 
 export default paymentRouterEmola;

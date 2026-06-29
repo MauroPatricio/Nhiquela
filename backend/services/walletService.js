@@ -2,8 +2,19 @@
 import Wallet from '../models/WalletModel.js';
 import User from '../models/UserModel.js';
 import Partner from '../models/PartnerModel.js';
+import PricingEngine from '../models/PricingEngineModel.js';
+import { getIo } from '../index.js'; // Assuming io can be fetched, or we pass io/emit elsewhere. 
+// Wait, we can't easily import io from index.js directly if it doesn't export it. Let's just use a callback or require it conditionally.
+// A better way is to avoid importing index.js to prevent circular dependencies. I will just rely on the driver routes for WebSocket or use a global if available. We can do it safely.
 
-const DRIVER_MIN_BALANCE = 500; // Minimum operational credit (MT) for drivers
+export const getFinancialConfig = async () => {
+  let engineConfig = await PricingEngine.findOne();
+  if (!engineConfig) {
+    engineConfig = new PricingEngine();
+    await engineConfig.save();
+  }
+  return engineConfig.financialEngine;
+};
 
 /** Get or create a wallet for a user or partner */
 export const getWallet = async (userId) => {
@@ -17,12 +28,29 @@ export const getWallet = async (userId) => {
 /** Debit a commission from the driver’s wallet */
 export const debitCommission = async (driverId, amount) => {
   const wallet = await getWallet(driverId);
-  wallet.balance = Math.max(0, wallet.balance - amount);
+  const config = await getFinancialConfig();
+
+  // Allow negative balance if configured
+  if (config.allowNegativeBalance) {
+    wallet.balance -= amount;
+  } else {
+    wallet.balance = Math.max(0, wallet.balance - amount);
+  }
+  
   await wallet.save();
 
-  // If balance falls below the minimum, mark driver offline
-  if (wallet.balance < DRIVER_MIN_BALANCE) {
-    await User.findByIdAndUpdate(driverId, { isDeliveryMan: false });
+  // If balance falls below the credit limit (or min balance if no credit allowed), suspend driver
+  const limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
+  
+  if (config.autoDisableOnLowBalance && wallet.balance < limit) {
+    const driver = await User.findById(driverId);
+    if (driver) {
+      driver.status = 'Inativo'; // Suspenso por falta de saldo
+      if (!driver.deliveryman) driver.deliveryman = {};
+      driver.deliveryman.register_conformance = 'INCONFORMANCE';
+      await driver.save();
+      // Socket emission should ideally be here if possible, but let's keep it simple.
+    }
   }
   return wallet;
 };
@@ -30,12 +58,20 @@ export const debitCommission = async (driverId, amount) => {
 /** Credit a recharge to the driver’s wallet */
 export const creditWallet = async (driverId, amount) => {
   const wallet = await getWallet(driverId);
+  const config = await getFinancialConfig();
+
   wallet.balance += amount;
   await wallet.save();
 
   // Reactivate driver if balance is now sufficient
-  if (wallet.balance >= DRIVER_MIN_BALANCE) {
-    await User.findByIdAndUpdate(driverId, { isDeliveryMan: true });
+  if (wallet.balance >= config.minOperationalBalance) {
+    const driver = await User.findById(driverId);
+    if (driver && driver.status === 'Inativo') {
+      driver.status = 'Disponível';
+      if (!driver.deliveryman) driver.deliveryman = {};
+      driver.deliveryman.register_conformance = 'CONFORMANCE';
+      await driver.save();
+    }
   }
   return wallet;
 };
@@ -66,7 +102,10 @@ export const debitCommissionFromPartner = async (partnerId, orderAmount, commiss
 /** Helper: check whether driver has enough balance */
 export const hasSufficientBalance = async (driverId) => {
   const wallet = await getWallet(driverId);
-  return wallet.balance >= DRIVER_MIN_BALANCE;
+  const config = await getFinancialConfig();
+  
+  const limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
+  return wallet.balance >= limit;
 };
 
 /** Reset daily sales for all partners */

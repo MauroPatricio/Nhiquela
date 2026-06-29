@@ -946,6 +946,9 @@ userRouter.post(
       }
 
       if (!userExist) {
+        if (!req.body.password) {
+          return res.status(400).send({ message: 'A palavra-passe é obrigatória' });
+        }
         const newUser = new User({
           name: req.body.name,
           phoneNumber: req.body.phoneNumber,

@@ -443,9 +443,15 @@ orderRouter.get(
   '/mine',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-
     const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false, deleted: { $eq: false } }).populate('seller deliveryman').sort({ createdAt: -1 });
-    res.send(orders);
+    
+    // 🔥 IMPORTANTE: Incluir também os serviços (RequestDeliver)
+    const trips = await RequestDeliver.find({ user: req.user._id, deleted: { $eq: false } }).populate('user deliveryman').sort({ createdAt: -1 });
+    
+    // Mesclar ambos e ordenar por data
+    const all = [...orders, ...trips].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.send(all);
   })
 );
 
@@ -1049,16 +1055,6 @@ orderRouter.put(
 
       const clientOfProduct = await User.findById(order.user);
 
-      //toSeller
-      // await createNotification({
-      //   message: message,
-      //   receiver_id: order.seller,
-      //   sender_id: order.user,
-      //   orderID: order._id,
-      //   deviceToken: sellerOfProduct.deviceToken,
-
-      // });
-      //toOrderClient
       await createNotification({
         message: message,
         receiver_id: order.user,
@@ -1067,8 +1063,14 @@ orderRouter.put(
         pushToken: clientOfProduct.pushToken
       });
 
-
-
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        // Emit to the specific driver's room
+        io.to(`driver_${user_deliver._id}`).emit('order_assigned', updateOrder);
+        // Also emit to the general order tracking room
+        io.to(`order_${order._id}`).emit('order_updated', updateOrder);
+      }
 
       res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
     } else {
@@ -1140,6 +1142,15 @@ orderRouter.put(
       });
 
       //     sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', savedOrder);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+        }
+      }
 
       res.send({ order: savedOrder, message: `Pedido em trânsito` });
     } else {
@@ -1232,6 +1243,16 @@ orderRouter.put(
         orderID: order._id,
         pushToken: clientOfProduct.pushToken
       });
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', updateOrder);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', updateOrder);
+        }
+      }
+
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -1307,6 +1328,16 @@ orderRouter.put(
         pushToken: clientOfProduct.pushToken
       });
       // sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);       
+      
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', savedOrder);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+        }
+      }
+      
       res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -1372,6 +1403,15 @@ orderRouter.put(
 
 
       sendEmailOrderToSeller(req, message, sellerOfProduct, order, res);
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', savedOrder);
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+        }
+      }
 
       res.send({ message: `Pedido cancelado com sucesso`, order: savedOrder });
     } else {
@@ -1494,27 +1534,49 @@ orderRouter.get(
   expressAsyncHandler(async (req, res) => {
     const deliverymanId = req.user._id;
 
-    // Buscar Orders que estão disponíveis (stepStatus: 3) OU que pertencem a este entregador
+    const driver = await User.findById(deliverymanId);
+    if (!driver) {
+      return res.status(404).send({ message: 'Motorista não encontrado' });
+    }
+
+    const isDriverActive = driver.availability === 'active';
+    const driverTransportType = driver.deliveryman?.transport_type;
+
+    // Buscar Orders normais
+    const orderConditions = [
+      { 'deliveryman.id': deliverymanId },
+      { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
+    ];
+    if (isDriverActive) {
+      orderConditions.push({ stepStatus: 3 }); // Disponíveis para aceitar se ativo
+    }
+
     const ordersPromise = Order.find({
       deleted: false,
-      $or: [
-        { stepStatus: 3 }, // Disponíveis para aceitar
-        { 'deliveryman.id': deliverymanId } // Já aceites por mim
-      ]
+      $or: orderConditions
     })
-      .populate('user', 'name')
-      .populate('sellers', 'name')
+      .populate('user', 'name phoneNumber')
+      .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestDelivers que estão disponíveis (stepStatus: 3) OU pertencem a este entregador
+    // Buscar RequestDelivers de serviços (reboque, etc)
+    const requestDeliverConditions = [
+      { 'deliveryman.id': deliverymanId },
+      { 'deliveryman._id': deliverymanId }  // compatibilidade
+    ];
+    if (isDriverActive) {
+      const availableCondition = { stepStatus: 3 };
+      if (driverTransportType) {
+        availableCondition.transportType = driverTransportType; // Match exato com o veículo do motorista
+      }
+      requestDeliverConditions.push(availableCondition);
+    }
+
     const requestDeliversPromise = RequestDeliver.find({
       deleted: false,
-      $or: [
-        { stepStatus: 3 }, // Disponíveis
-        { 'deliveryman.id': deliverymanId } // Já aceites por mim
-      ]
+      $or: requestDeliverConditions
     })
-      .populate('user', 'name')
+      .populate('user', 'name phoneNumber')
       .lean();
 
     const [ordersResult, requestDeliversResult] = await Promise.all([ordersPromise, requestDeliversPromise]);

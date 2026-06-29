@@ -22,7 +22,7 @@ L.Icon.Default.mergeOptions({
 const TrackingMap = ({ orderId, destination }) => {
   const [position, setPosition] = useState(null); // { lat, lng }
   const [eta, setEta] = useState(null);
-  const socket = io(SOCKET_URL || 'http://localhost:5002');
+  const socket = io(SOCKET_URL || 'https://api.nhiquelaservicos.com');
 
   // Join order‑specific room
   useEffect(() => {

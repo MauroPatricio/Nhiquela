@@ -31,8 +31,10 @@ export interface User {
   token?: string;
   deliveryman?: Deliveryman;
   isApproved?: boolean;
-  isBanned: boolean,
-  isSeller: boolean,
+  isBanned: boolean;
+  isSeller: boolean;
+  status?: string;
+  availability?: 'active' | 'paused' | 'inactive';
 }
 
 interface AuthContextData {

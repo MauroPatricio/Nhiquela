@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import TripMap from "../components/TripMap";
 import TripControls from "../components/TripControls";
-import { getCurrentLocation, updateDeliverymanLocation } from "../services/locationService";
+import { getCurrentLocation, updateDeliverymanLocation } from "../services/driverLocationService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from 'expo-location';
 import { startOrderInTransit } from "../services/orderService"; 
@@ -38,7 +38,7 @@ export default function MapScreen({ route, navigation }: any) {
 
         // Conectar ao Socket do Backend para Rastreamento em Tempo Real
         const isDev = process.env.NODE_ENV !== 'production';
-        const backendUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || (isDev ? 'http://localhost:5000' : 'https://deliveryshop.herokuapp.com');
+        const backendUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || (isDev ? 'http://localhost:5000' : 'https://api.nhiquelaservicos.com');
         socket = io(backendUrl);
   
         await updateDeliverymanLocation(orderId);

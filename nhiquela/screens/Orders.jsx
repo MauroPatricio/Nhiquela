@@ -1,7 +1,8 @@
 import { 
   View, Text, StyleSheet, FlatList, ActivityIndicator, 
-  TouchableOpacity, Image, ScrollView, Animated, Dimensions
+  TouchableOpacity, ScrollView, Animated, Dimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -180,7 +181,7 @@ const Orders = () => {
 
     let timeMinutes = etas[item._id] || null;
 
-    const sellerName = item?.seller?.seller?.name || 'Fornecedor';
+    const sellerName = item?.seller?.seller?.name || item?.goodType || 'Serviço';
     const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
     const code = item?.code || '---';
 
@@ -208,7 +209,7 @@ const Orders = () => {
           </Text>
           <Text style={styles.orderCode}>Código: {code}</Text>
           <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
-          <Text style={styles.orderPrice}>{item.totalPrice ?? '---'} MT</Text>
+          <Text style={styles.orderPrice}>{item.totalPrice ?? item.deliveryPrice ?? '---'} MT</Text>
           {item.deliveryman && item.deliveryman.transport_color && (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
               <Ionicons name="car-outline" size={14} color="#666" style={{ marginRight: 4 }} />

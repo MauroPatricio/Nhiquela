@@ -299,6 +299,7 @@ export default function RequestDelivSimple() {
           }
         } catch (error) {
           console.log('Erro ao consultar motor de preços:', error);
+          Alert.alert("Aviso", "Falha ao calcular o preço. Verifique a sua internet.");
           setPrice(120); // Fallback
           setRouteCoords([]);
         }
@@ -366,6 +367,7 @@ export default function RequestDelivSimple() {
         }
       } catch (err) {
         console.log('Erro ao procurar motoristas:', err);
+        Alert.alert("Erro de Rede", "Falha ao procurar motoristas disponíveis. Verifique a sua ligação.");
       }
     };
 

@@ -1,37 +1,37 @@
-import { Expo } from 'expo-server-sdk';
-
-const expo = new Expo();
+import admin from '../firebase.js';
 
 /**
- * Envia notificação para um único token Expo
+ * Envia notificação nativa para um único token Firebase (FCM)
  */
 export async function sendNotification(deviceToken, title, body, data = {}) {
-  if (!Expo.isExpoPushToken(deviceToken)) {
-    return { success: false, error: 'Token inválido do Expo' };
+  if (!deviceToken || deviceToken === 'null') {
+    return { success: false, error: 'Token inválido' };
   }
 
-  const messages = [
-    {
-      to: deviceToken,
-      sound: 'default',
+  // O Firebase apenas aceita strings dentro do objeto "data"
+  const stringifiedData = {};
+  for (const key in data) {
+    if (data[key] !== null && data[key] !== undefined) {
+      stringifiedData[key] = String(data[key]);
+    }
+  }
+
+  const message = {
+    notification: {
       title,
       body,
-      data,
     },
-  ];
+    data: stringifiedData,
+    token: deviceToken,
+  };
 
   try {
-    const chunks = expo.chunkPushNotifications(messages);
-    const tickets = [];
-
-    for (let chunk of chunks) {
-      const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-      tickets.push(...ticketChunk);
-    }
-    return { success: true, tickets };
+    const response = await admin.messaging().send(message);
+    return { success: true, tickets: [response] };
   } catch (error) {
+    console.error('Erro ao enviar pelo Firebase:', error);
     return { success: false, error: error.message };
   }
 }
 
-export default sendNotification ;
+export default sendNotification;

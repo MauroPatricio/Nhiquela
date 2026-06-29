@@ -41,6 +41,7 @@ const validationSchema = Yup.object().shape({
   transport_type: Yup.string(),
   transport_color: Yup.string(),
   transport_registration: Yup.string(),
+  assigned_base_fee: Yup.string(),
 });
 
 export default function EditProfileScreen({ navigation, route }: Props) {
@@ -110,6 +111,7 @@ export default function EditProfileScreen({ navigation, route }: Props) {
     transport_type: user?.deliveryman?.transport_type || "",
     transport_color: user?.deliveryman?.transport_color || "",
     transport_registration: user?.deliveryman?.transport_registration || "",
+    assigned_base_fee: user?.deliveryman?.assigned_base_fee?.toString() || "",
     document_type: user?.deliveryman?.document_type || "BI",
     Proof_of_Addres_Reason: user?.deliveryman?.Proof_of_Addres_Reason || "",
     hasHelpers: user?.deliveryman?.hasHelpers || false,
@@ -244,6 +246,7 @@ const handleSave = async (values: any) => {
           transport_type: values.transport_type,
           transport_color: values.transport_color,
           transport_registration: values.transport_registration,
+          assigned_base_fee: values.assigned_base_fee ? parseFloat(values.assigned_base_fee) : null,
           document_type: values.document_type,
           Proof_of_Addres_Reason: values.Proof_of_Addres_Reason,
           // Imagens
@@ -657,6 +660,20 @@ const handleSave = async (values: any) => {
                       />
                     </View>
 
+                    <View style={[styles.inputGroup, styles.flex1]}>
+                      <Text style={styles.label}>Preço Base (MT)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ex: 500"
+                        keyboardType="numeric"
+                        value={values.assigned_base_fee}
+                        onChangeText={handleChange('assigned_base_fee')}
+                        onBlur={handleBlur('assigned_base_fee')}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputRow}>
                     <View style={[styles.inputGroup, styles.flex1]}>
                       <Text style={styles.label}>Cor</Text>
                       <TextInput

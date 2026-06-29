@@ -70,8 +70,22 @@ router.put(
       return res.status(400).send({ message: 'Status de disponibilidade inválido.' });
     }
 
+    // Integrar Motor Financeiro (verificação de saldo antes de ficar online)
+    if (availability === 'active') {
+      const { hasSufficientBalance } = await import('../services/walletService.js');
+      const canGoOnline = await hasSufficientBalance(req.user._id);
+      if (!canGoOnline) {
+        return res.status(402).send({ message: 'Saldo insuficiente. Faça um recarregamento para voltar a receber pedidos.' });
+      }
+    }
+
     const driver = await User.findById(req.user._id);
     if (driver) {
+      // Se estava suspenso (Inativo por administração ou saldo), não deixa ficar ativo
+      if (availability === 'active' && driver.status === 'Inativo') {
+         return res.status(403).send({ message: 'A sua conta encontra-se suspensa. Contacte o suporte ou recarregue o seu saldo.' });
+      }
+
       driver.availability = availability;
       await driver.save();
       res.send({ message: 'Disponibilidade atualizada com sucesso', availability: driver.availability });

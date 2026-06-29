@@ -144,6 +144,62 @@ walletRouter.get('/balance', isAuth, async (req, res) => {
 });
 
 /**
+ * Consultar sumário financeiro do Motorista (Dashboard Financeiro)
+ */
+walletRouter.get('/driver-summary', isAuth, async (req, res) => {
+  try {
+    const { getFinancialConfig } = await import('../services/walletService.js');
+    const config = await getFinancialConfig();
+
+    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
+    const balance = wallet?.balance || 0;
+    
+    // Calcular estatísticas usando transações
+    // Total Recarregado (Soma de todos os 'credit')
+    const recharges = await Transaction.aggregate([
+      { $match: { walletId: wallet?._id, type: 'credit', status: 'confirmado' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalRecharged = recharges[0]?.total || 0;
+
+    // Comissões descontadas (Soma de todos os 'debit' de serviço)
+    const commissions = await Transaction.aggregate([
+      { $match: { walletId: wallet?._id, type: 'debit', status: 'confirmado' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalCommissions = commissions[0]?.total || 0;
+
+    // Determinar o Estado
+    const limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
+    let currentState = 'Ativo';
+    
+    if (balance < limit) {
+      currentState = 'Suspenso';
+    } else if (config.allowNegativeBalance && balance < 0) {
+      currentState = 'Crédito Controlado';
+    } else if (balance <= config.lowBalanceWarningThreshold) {
+      currentState = 'Aviso';
+    }
+
+    res.json({
+      saldo_atual: balance,
+      limite_credito: config.allowNegativeBalance ? config.creditLimit : 0,
+      saldo_operacional_minimo: config.minOperationalBalance,
+      saldo_disponivel: balance - limit,
+      estado_atual: currentState,
+      total_recarregado: totalRecharged,
+      total_comissoes: totalCommissions,
+      permite_negativo: config.allowNegativeBalance,
+      bloqueio_automatico: config.autoDisableOnLowBalance,
+      currency: 'MZN'
+    });
+  } catch (error) {
+    console.error('Erro ao buscar sumário financeiro:', error);
+    res.status(500).json({ message: 'Erro interno ao consultar sumário financeiro.' });
+  }
+});
+
+/**
  * Listar transações
  */
 walletRouter.get('/transactions', isAuth, async (req, res) => {

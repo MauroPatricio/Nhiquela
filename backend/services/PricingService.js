@@ -1,33 +1,20 @@
 import axios from 'axios';
 import VehicleType from '../models/VehicleTypeModel.js';
-import Settings from '../models/SettingsModel.js';
+import PricingEngine from '../models/PricingEngineModel.js';
 import ProviderSubcategory from '../models/ProviderSubcategoryModel.js';
+import User from '../models/UserModel.js';
 
 class PricingService {
   /**
-   * Obtém as definições globais armazenadas na base de dados
+   * Obtém as definições globais armazenadas na base de dados (novo PricingEngineModel)
    */
   async getGlobalSettings() {
-    const settings = await Settings.find({});
-    const config = {};
-    settings.forEach((s) => {
-      config[s.key] = s.value;
-    });
-
-    // Valores padrão (fallbacks)
-    return {
-      currency: config.currency || 'MZN',
-      rounding: config.rounding || 10,
-      minimumSystemFare: config.minimumSystemFare || 50,
-      routingProvider: config.routingProvider || 'OSRM',
-      nightStart: config.nightStart || '22:00',
-      nightEnd: config.nightEnd || '05:00',
-      nightMultiplier: config.nightMultiplier || 1.3,
-      weekendMultiplier: config.weekendMultiplier || 1.2,
-      rainMultiplier: config.rainMultiplier || 1.5,
-      surgeDemand: config.surgeDemand || 1.0, // multiplier
-      helperPrice: config.helperPrice || 200,
-    };
+    let engineConfig = await PricingEngine.findOne();
+    if (!engineConfig) {
+      engineConfig = new PricingEngine();
+      await engineConfig.save();
+    }
+    return engineConfig;
   }
 
   /**
@@ -88,47 +75,49 @@ class PricingService {
   }
 
   /**
-   * Calcula se é horário noturno ou fim-de-semana
+   * Calcula multiplicadores de tempo usando PricingEngineModel
    */
-  getTimeMultipliers(settings) {
-    let multiplier = 1.0;
-    
+  getTimeMultipliers(engineConfig) {
     const now = new Date();
+    const hour = now.getHours();
     const day = now.getDay();
-    const isWeekend = day === 0 || day === 6;
-    if (isWeekend) multiplier *= settings.weekendMultiplier;
-
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
     
-    const [startH, startM] = settings.nightStart.split(':').map(Number);
-    const [endH, endM] = settings.nightEnd.split(':').map(Number);
-    
-    const currentMins = currentHour * 60 + currentMin;
-    const startMins = startH * 60 + startM;
-    const endMins = endH * 60 + endM;
+    let timeMult = engineConfig.timeMultipliers.day;
+    if (hour >= 20 || hour < 2) timeMult = engineConfig.timeMultipliers.night;
+    else if (hour >= 2 && hour < 6) timeMult = engineConfig.timeMultipliers.latenight;
 
-    let isNight = false;
-    if (startMins < endMins) {
-      isNight = currentMins >= startMins && currentMins <= endMins;
-    } else {
-      // Cruza a meia-noite
-      isNight = currentMins >= startMins || currentMins <= endMins;
-    }
+    let dayMult = engineConfig.dayMultipliers.weekday;
+    if (day === 6) dayMult = engineConfig.dayMultipliers.saturday;
+    else if (day === 0) dayMult = engineConfig.dayMultipliers.sunday;
+    // Feriados não implementados nativamente (precisaria de API externa)
 
-    if (isNight) multiplier *= settings.nightMultiplier;
-
-    return multiplier;
+    return timeMult * dayMult;
   }
 
   /**
    * Cálculo Final
    */
-  async calculatePrice({ serviceId, originLoc, destLoc, weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false }) {
-    const settings = await this.getGlobalSettings();
+  async calculatePrice({ serviceId, originLoc, destLoc, weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false, trafficCondition = 'normal', demandLevel = 'normal', providerId = null }) {
+    const engineConfig = await this.getGlobalSettings();
     const service = await ProviderSubcategory.findById(serviceId);
     
     if (!service) throw new Error("Serviço não encontrado");
+
+    let providerRatingMult = engineConfig.ratingMultipliers.threeStar;
+    let customBasePrice = null;
+
+    if (providerId) {
+      const provider = await User.findById(providerId);
+      if (provider && provider.deliveryman) {
+        customBasePrice = provider.deliveryman.assigned_base_fee;
+        // Rating multiplier
+        const rating = provider.rating || 5;
+        if (rating >= 4.8) providerRatingMult = engineConfig.ratingMultipliers.fiveStar;
+        else if (rating >= 4.0) providerRatingMult = engineConfig.ratingMultipliers.fourStar;
+        else if (rating < 3.0 && rating >= 2.0) providerRatingMult = engineConfig.ratingMultipliers.twoStar;
+        else if (rating < 2.0) providerRatingMult = engineConfig.ratingMultipliers.oneStar;
+      }
+    }
 
     // 1. Rota (OSRM)
     const { distanceKm, durationMin, routeCoordinates } = await this.getRouteInfo(originLoc, destLoc);
@@ -140,47 +129,53 @@ class PricingService {
     }
 
     // 3. Somatório Base
-    let baseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
+    let actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
+    if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
+      actualBaseFare = customBasePrice;
+    }
+
     let distanceCost = vehicle ? (distanceKm * (vehicle.pricePerKm || 0)) : (distanceKm * (service.pricePerKm || 0));
     let timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
     
     let extras = 0;
-    if (hasHelper && service.supportsHelpers) extras += settings.helperPrice;
+    if (hasHelper && service.supportsHelpers) extras += 200; // Helper price could be moved to config
     if (vehicle && vehicle.includesLoading) extras += vehicle.loadingFee;
 
-    let totalPreMultipliers = baseFare + distanceCost + timeCost + extras;
+    let subtotal = actualBaseFare + distanceCost + timeCost + extras;
 
     // 4. Multiplicadores
-    let timeMult = this.getTimeMultipliers(settings);
-    let weatherMult = isRaining ? settings.rainMultiplier : 1.0;
-    let demandMult = settings.surgeDemand;
+    let timeMult = this.getTimeMultipliers(engineConfig);
+    let weatherMult = isRaining ? engineConfig.weatherMultipliers.rain : engineConfig.weatherMultipliers.clear;
+    let demandMult = engineConfig.demandMultipliers[demandLevel] || 1.0;
+    let trafficMult = engineConfig.trafficMultipliers[trafficCondition] || 1.0;
 
-    let totalPostMultipliers = totalPreMultipliers * timeMult * weatherMult * demandMult;
+    let totalPostMultipliers = subtotal * timeMult * weatherMult * demandMult * trafficMult * providerRatingMult;
 
     // Minimums
     if (vehicle && totalPostMultipliers < vehicle.minFare) totalPostMultipliers = vehicle.minFare;
-    if (totalPostMultipliers < settings.minimumSystemFare) totalPostMultipliers = settings.minimumSystemFare;
+    const minSystemFare = service.pricingMode === 'PROVIDER_DEFINED' ? engineConfig.minFareService : engineConfig.minFareDelivery;
+    if (totalPostMultipliers < minSystemFare) totalPostMultipliers = minSystemFare;
 
-    // Arredondamento (ex: múltiplos de 10)
-    if (settings.rounding > 0) {
-      totalPostMultipliers = Math.ceil(totalPostMultipliers / settings.rounding) * settings.rounding;
-    }
+    // Arredondamento (multiplos de 10)
+    totalPostMultipliers = Math.ceil(totalPostMultipliers / 10) * 10;
 
     return {
       price: totalPostMultipliers,
-      currency: settings.currency,
+      currency: 'MZN',
       routeCoordinates, // Retornamos as coordenadas ao frontend!
       breakdown: {
-        baseFare,
+        actualBaseFare,
         distanceCost,
         timeCost,
         extras,
         distanceKm,
         durationMin,
         multipliers: {
-          time: timeMult,
+          timeAndDay: timeMult,
           weather: weatherMult,
-          demand: demandMult
+          demand: demandMult,
+          traffic: trafficMult,
+          rating: providerRatingMult
         },
         vehicle: vehicle ? vehicle.name : null
       }
