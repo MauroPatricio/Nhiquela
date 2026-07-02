@@ -65,7 +65,7 @@ catalogRouter.put(
       const updated = await category.save();
       res.send({ message: 'Categoria atualizada', category: updated });
     } else {
-      res.status(404).send({ message: 'Categoria n√£o encontrada' });
+      res.status(404).send({ message: 'Categoria n„o encontrada' });
     }
   })
 );
@@ -89,7 +89,7 @@ catalogRouter.post(
   expressAsyncHandler(async (req, res) => {
     const newService = new Service(req.body);
     const saved = await newService.save();
-    res.status(201).send({ message: 'Servi√ßo criado', service: saved });
+    res.status(201).send({ message: 'ServiÁo criado', service: saved });
   })
 );
 
@@ -111,9 +111,9 @@ catalogRouter.put(
       service.sortOrder = req.body.sortOrder || service.sortOrder;
       
       const updated = await service.save();
-      res.send({ message: 'Servi√ßo atualizado', service: updated });
+      res.send({ message: 'ServiÁo atualizado', service: updated });
     } else {
-      res.status(404).send({ message: 'Servi√ßo n√£o encontrado' });
+      res.status(404).send({ message: 'ServiÁo n„o encontrado' });
     }
   })
 );

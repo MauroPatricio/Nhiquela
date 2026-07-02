@@ -37,7 +37,7 @@ provinceRoutes.post(
     const province = await newProvince.save();
     res
       .status(201)
-      .send({ message: 'Prov√≠ncia criada com sucesso', province });
+      .send({ message: 'ProvÌncia criada com sucesso', province });
   })
 );
 
@@ -50,7 +50,7 @@ provinceRoutes.get(
     if (province) {
       res.send(province);
     } else {
-      res.status(404).send({ message: 'Prov√≠ncia n√£o encontrada' });
+      res.status(404).send({ message: 'ProvÌncia n„o encontrada' });
     }
   })
 );
@@ -69,9 +69,9 @@ provinceRoutes.put(
       if (req.body.isActive !== undefined) province.isActive = req.body.isActive;
 
       await province.save();
-      res.send({ message: `Prov√≠ncia actualizada com sucesso` });
+      res.send({ message: `ProvÌncia actualizada com sucesso` });
     } else {
-      res.status(404).send({ message: 'Prov√≠ncia n√£o encontrada' });
+      res.status(404).send({ message: 'ProvÌncia n„o encontrada' });
     }
   })
 );
@@ -87,9 +87,9 @@ provinceRoutes.delete(
       province.isActive = false;
       await province.save();
 
-      res.send({ message: `Prov√≠ncia removida Com Sucesso` });
+      res.send({ message: `ProvÌncia removida Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Prov√≠ncia n√£o encontrada' });
+      res.status(404).send({ message: 'ProvÌncia n„o encontrada' });
     }
   })
 );

@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { showMessage } from "react-native-flash-message";
 // components/DriverHeader.tsx - COM SUPORTE PARA BASE64 E API_BASE_URL
 import React from "react";
@@ -41,9 +41,9 @@ export default function DriverHeader({
   batteryLevel = 85,
   isConnected = true,
   profileImage,
-  todayEarnings = "MZN 0,00",
+  todayEarnings = "MT 0,00",
   totalPassengers = 12,
-  credit = "MZN 0,00",
+  credit = "MT 0,00",
   userRating = 4.9,
 }: Props) {
   // ✅ USAR DADOS DO CONTEXTO

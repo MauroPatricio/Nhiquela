@@ -4,7 +4,7 @@
 
 import { jest, beforeEach, afterEach, test, expect, describe } from '@jest/globals';
 
-// ── Mock the ProcessingFee model BEFORE importing the module under test ──
+// -- Mock the ProcessingFee model BEFORE importing the module under test --
 const mockFindOne = jest.fn();
 jest.unstable_mockModule('../models/ProcessingFee.js', () => ({
   default: { findOne: mockFindOne },

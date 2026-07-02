@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -21,9 +21,9 @@ export default function MainTabs() {
         onNotificationPress={() => console.log("Notifications pressed")}
         onStartTrip={() => console.log("Viagem iniciada")}
         profileImage="https://via.placeholder.com/150"
-        todayEarnings="MZN 245,00"
+        todayEarnings="MT 245,00"
         totalPassengers={12}
-        credit="MZN 100,00"
+        credit="MT 100,00"
         currentLocation="Maputo, Moçambique"
         batteryLevel={92}
         online={true}

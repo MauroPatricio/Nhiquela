@@ -34,6 +34,7 @@ const requestDeliverSchema = new mongoose.Schema(
     code: {type: String},
     deleted: { type: Boolean, default: false },
     canceledReason: { type: String},
+    targetDriverId: { type: String},
     isDeletedBySeller: { type: Boolean, default: false },
     isDeletedByDeliverman: { type: Boolean, default: false },
     isDeletedByAdmin: { type: Boolean, default: false },

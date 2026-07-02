@@ -1,3 +1,4 @@
+import 'express-async-errors';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -31,7 +32,7 @@ import { dirname } from 'path';
 import { readFile } from 'fs/promises';
 import './firebase.js';
 
-// **Nova importação**
+// **Nova importa��o**
 import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
 import serviceRouter from './routes/serviceRoutes.js';
 import homeRouter from './routes/homeRoutes.js';
@@ -56,31 +57,32 @@ import trackingRoutes from './routes/trackingRoutes.js';
 import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
+import appConfigRouter from './routes/appConfigRoutes.js';
 
 // Conectar ao MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 30000, // ✅ 30 segundos timeout
-    socketTimeoutMS: 45000, // ✅ 45 segundos socket
-    maxPoolSize: 10, // ✅ Limite de conexões
-    minPoolSize: 5, // ✅ Mínimo de conexões
-    retryWrites: true, // ✅ Re-tentar escritas
-    w: 'majority' // ✅ Write concern
+    serverSelectionTimeoutMS: 30000, // ? 30 segundos timeout
+    socketTimeoutMS: 45000, // ? 45 segundos socket
+    maxPoolSize: 10, // ? Limite de conex�es
+    minPoolSize: 5, // ? M�nimo de conex�es
+    retryWrites: true, // ? Re-tentar escritas
+    w: 'majority' // ? Write concern
   })
   .then(() => {
-    console.log('✅ Conectei me ao MongoDB com SUCESSO');
+    console.log('? Conectei me ao MongoDB com SUCESSO');
   })
   .catch((err) => {
-    console.log('❌ ERRO INICIAL MongoDB:', err.message);
+    console.log('? ERRO INICIAL MongoDB:', err.message);
     process.exit(1); // Exit if initial connection fails so nodemon/pm2 restarts it
   });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠️ MongoDB desconectado. O Mongoose tentará reconectar automaticamente...');
+  console.log('?? MongoDB desconectado. O Mongoose tentar� reconectar automaticamente...');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.log('❌ ERRO MongoDB na conexão ativa:', err.message);
+  console.log('? ERRO MongoDB na conex�o ativa:', err.message);
 });
 
 // **Inicializando Express**
@@ -88,15 +90,15 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Proteções básicas de segurança (Helmet)
+// Prote��es b�sicas de seguran�a (Helmet)
 app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domínios
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros dom�nios
 
-// Rate Limiting (Bloqueia DDoS e ataques de força bruta)
+// Rate Limiting (Bloqueia DDoS e ataques de for�a bruta)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 1000, // limite de 1000 requisicoes por IP
-  message: { message: 'Muitas requisições deste IP, tente novamente mais tarde.' }
+  max: 100000, // Aumentado para evitar bloqueios 429 no desenvolvimento (limite de 100000 reqs/IP)
+  message: { message: 'Muitas requisi��es deste IP, tente novamente mais tarde.' }
 });
 app.use('/api', limiter); // Aplica o limitador a todas as rotas de API
 
@@ -171,6 +173,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/roles', roleRouter);
 app.use('/api/routing', routingRoutes);
+app.use('/api/system/app-config', appConfigRouter);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.log(err);
@@ -192,6 +195,14 @@ io.on('connection', (socket) => {
     if (user) {
       user.online = false;
       console.log('Offline', user.name);
+      // PREVENT MEMORY LEAK: Remove user from global array after 5 mins if not reconnected
+      setTimeout(() => {
+        const checkUser = users.find((x) => x.socketId === socket.id);
+        if (checkUser && !checkUser.online) {
+          const index = users.findIndex((x) => x.socketId === socket.id);
+          if (index !== -1) users.splice(index, 1);
+        }
+      }, 300000);
       const admin = users.find((x) => x.isAdmin && x.online);
       if (admin) {
         io.to(admin.socketId).emit('updateUser', user);
@@ -215,12 +226,12 @@ io.on('connection', (socket) => {
     }
     console.log('Online', user.name);
 
-    // 🔔 Motoristas entram automaticamente na sua sala pessoal
-    // Isso permite que o admin envie notificações direcionadas (ex: aprovação de conta)
+    // ?? Motoristas entram automaticamente na sua sala pessoal
+    // Isso permite que o admin envie notifica��es direcionadas (ex: aprova��o de conta)
     if (user._id && user.isDeliveryMan) {
       const driverRoom = `driver_${user._id}`;
       socket.join(driverRoom);
-      console.log(`🚗 Motorista ${user.name} entrou na sala ${driverRoom}`);
+      console.log(`?? Motorista ${user.name} entrou na sala ${driverRoom}`);
     }
 
     const admin = users.find((x) => x.isAdmin && x.online);
@@ -287,10 +298,10 @@ io.on('connection', (socket) => {
 //             receiverNumber: process.env.MPESA_SERVICE_PROVIDER_CODE,
 //           });
 
-//           console.log(`✅ Pagamento realizado para o pedido ${orderToProcess.code}`);
+//           console.log(`? Pagamento realizado para o pedido ${orderToProcess.code}`);
 //         }
 //       } catch (err) {
-//         console.error(`❌ Erro no pagamento do pedido ${order.code}: ${err.message}`);
+//         console.error(`? Erro no pagamento do pedido ${order.code}: ${err.message}`);
 //         await Order.findByIdAndUpdate(order._id, { $set: { isSupplierPaid: false } });
 //       }
 //     }));
@@ -298,7 +309,7 @@ io.on('connection', (socket) => {
 //     console.error('Erro ao verificar pedidos pagos pelo comprador!', err?.message);
 //   } finally {
 //     const duration = Date.now() - start;
-//     console.log(`✅ Fim da execução do cron. Duração: ${duration}ms`);
+//     console.log(`? Fim da execu��o do cron. Dura��o: ${duration}ms`);
 //   }
 // });
 

@@ -97,7 +97,7 @@ statsRouter.get(
       processRecord(d, 'paidAt', 'deliveryPrice', profit, true);
     });
 
-    const motoristasAtivos = await User.countDocuments({ isDeliveryMan: true, status: { $in: ['DisponÃ­vel', 'Em Entrega'] } });
+    const motoristasAtivos = await User.countDocuments({ isDeliveryMan: true, status: { $in: ['Disponível', 'Em Entrega'] } });
     const clientesAtivos = await User.countDocuments({ isDeliveryMan: false, isSeller: false });
 
     // Formatting ranking

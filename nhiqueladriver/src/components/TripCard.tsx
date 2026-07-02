@@ -1,9 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../styles/colors";
 import { Trip } from "../types";
-import { ZegoSendCallInvitationButton } from '@zegocloud/zego-uikit-prebuilt-call-rn';
 
 type Props = {
   item: Trip;
@@ -15,7 +14,7 @@ type Props = {
   isTripStarted: boolean;
   startTrip: (item: Trip) => void;
   cancelTrip: (id: string) => void;
-  acceptTrip: (id: string) => void;
+  acceptTrip: (id: string, isDelivery?: boolean) => void;
   onViewRoute: (item: Trip) => void;
 };
 
@@ -43,7 +42,11 @@ const TripCard = React.memo(function TripCard({
   const isInTransit = item.stepStatus === 5;
 
   return (
-    <View style={[styles.requestCard, isAccepted && styles.acceptedCard]}>
+    <TouchableOpacity 
+      activeOpacity={0.9} 
+      onPress={() => onViewRoute(item)}
+      style={[styles.requestCard, isAccepted && styles.acceptedCard]}
+    >
       <View style={[styles.requestIcon, isAccepted && styles.acceptedIcon]}>
         <Ionicons
           name={isAccepted ? "checkmark-circle" : "car-outline"}
@@ -54,20 +57,26 @@ const TripCard = React.memo(function TripCard({
 
       <View style={styles.requestContent}>
         <Text style={styles.requestTitle}>{item.passenger}</Text>
+        
+        {isAccepted && item.passengerPhone && (
+          <Text style={[styles.requestInfo, { marginBottom: 8, color: '#666' }]}>
+            Tel: {item.passengerPhone}
+          </Text>
+        )}
 
         {isAccepted && item.passengerId && (
-          <View style={[styles.infoRow, { alignItems: 'center', justifyContent: 'space-between', paddingRight: 10 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="call-outline" size={16} color={COLORS.primary} />
-              <Text style={[styles.requestInfo, { color: COLORS.primary }]}>Ligar para o cliente</Text>
-            </View>
-            <ZegoSendCallInvitationButton
-              invitees={[{ userID: item.passengerId, userName: item.passenger }]}
-              isVideoCall={false}
-              resourceID={"zego_uikit_call"} // Must match console
-              backgroundColor={COLORS.primary}
-            />
-          </View>
+          <TouchableOpacity 
+            style={[styles.infoRow, { alignItems: 'center', justifyContent: 'center', paddingVertical: 8, backgroundColor: COLORS.primary + '10', borderRadius: 8, marginTop: 4, marginBottom: 8 }]}
+            onPress={() => {
+              const phoneStr = typeof item.passengerPhone === 'string' ? item.passengerPhone.replace(/\D/g, '') : '840000000';
+              Linking.openURL(`tel:${phoneStr}`).catch(() => {});
+            }}
+          >
+            <Ionicons name="call-outline" size={18} color={COLORS.primary} />
+            <Text style={[styles.requestInfo, { color: COLORS.primary, marginLeft: 8, fontWeight: 'bold' }]}>
+              Ligar para o cliente
+            </Text>
+          </TouchableOpacity>
         )}
 
         <View style={styles.infoRow}>
@@ -162,7 +171,7 @@ const TripCard = React.memo(function TripCard({
         ) : (
           <TouchableOpacity
             style={[styles.acceptButton, (isAccepting || hasAcceptedTrip || isInTransit) && styles.disabledButton]}
-            onPress={() => acceptTrip(item.id)}
+            onPress={() => acceptTrip(item.id, item.originalData?.goodType !== undefined)}
             disabled={isAccepting || hasAcceptedTrip || isInTransit}
           >
             {isAccepting ? (
@@ -182,36 +191,45 @@ const TripCard = React.memo(function TripCard({
           </TouchableOpacity>
         )}
       </View>
-    </View>
+      </TouchableOpacity>
   );
 });
 
 const styles = StyleSheet.create({
   requestCard: {
     flexDirection: "row",
-    backgroundColor: "#FFF",
+    backgroundColor: "#FFFFFF",
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    elevation: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(147, 51, 234, 0.1)',
   },
   acceptedCard: {
     borderWidth: 2,
     borderColor: COLORS.primary,
-    backgroundColor: "#F9F5FF",
+    backgroundColor: "#FDFBFF",
   },
   requestIcon: {
-    backgroundColor: "rgba(127, 0, 255, 0.1)",
-    borderRadius: 50,
-    padding: 12,
+    backgroundColor: "rgba(147, 51, 234, 0.08)",
+    borderRadius: 16,
+    padding: 14,
     marginRight: 16,
     alignSelf: 'flex-start',
   },
-  acceptedIcon: { backgroundColor: COLORS.primary },
+  acceptedIcon: { 
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   requestContent: { flex: 1, marginLeft: 12 },
   infoRow: {
     flexDirection: "row",
@@ -219,52 +237,73 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     marginBottom: 4,
   },
-  requestInfo: { fontSize: 14, color: "#555", marginLeft: 4 },
-  requestTitle: { fontSize: 16, fontWeight: "bold", color: "#222", marginBottom: 4 },
+  requestInfo: { fontSize: 14, color: "#4B5563", marginLeft: 6, fontWeight: "500" },
+  requestTitle: { fontSize: 17, fontWeight: "800", color: "#111827", marginBottom: 6, letterSpacing: -0.3 },
   acceptButtonContainer: {
     justifyContent: "center",
     marginLeft: 10,
-    minWidth: 100,
+    minWidth: 110,
   },
   acceptButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   startButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   cancelButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FF4E4E",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    justifyContent: "center",
+    backgroundColor: "#FEE2E2",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#FECACA",
   },
   viewRouteButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  disabledButton: { opacity: 0.6 },
+  disabledButton: { opacity: 0.5 },
   acceptText: {
     color: "#FFF",
-    fontWeight: "bold",
-    marginLeft: 4,
-    fontSize: 12,
+    fontWeight: "800",
+    marginLeft: 6,
+    fontSize: 13,
   },
   statusBadge: {
     paddingHorizontal: 8,

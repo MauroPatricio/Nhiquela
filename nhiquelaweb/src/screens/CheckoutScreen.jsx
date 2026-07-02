@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+﻿import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faMapMarkerAlt, faCreditCard, faMotorcycle, faSpinner } from '@fortawesome/free-solid-svg-icons';
@@ -126,7 +126,7 @@ export default function CheckoutScreen() {
                       <small className="text-muted">Chega em aproximadamente 45 mins</small>
                     </div>
                   </div>
-                  <span className="fw-bold">{deliveryFee} MZN</span>
+                  <span className="fw-bold">{deliveryFee} MT</span>
                 </div>
                 <div>
                   <button className="btn bg-primary-custom text-white px-4" onClick={() => setStep(3)}>Continuar para Pagamento</button>
@@ -175,7 +175,7 @@ export default function CheckoutScreen() {
                   {placingOrder ? (
                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                   ) : null}
-                  Confirmar e Pagar {totalPrice.toLocaleString()} MZN
+                  Confirmar e Pagar {totalPrice.toLocaleString()} MT
                 </button>
               </div>
             )}
@@ -189,17 +189,17 @@ export default function CheckoutScreen() {
               <h6 className="fw-bold border-bottom pb-3 mb-3">Resumo da Compra</h6>
               <div className="d-flex justify-content-between mb-2 small text-muted">
                 <span>Produtos ({cartItems.length})</span>
-                <span>{cartTotal.toLocaleString()} MZN</span>
+                <span>{cartTotal.toLocaleString()} MT</span>
               </div>
               <div className="d-flex justify-content-between mb-3 small text-muted">
                 <span>Entrega</span>
-                <span>{step >= 2 ? `${deliveryFee} MZN` : 'A calcular'}</span>
+                <span>{step >= 2 ? `${deliveryFee} MT` : 'A calcular'}</span>
               </div>
               <hr />
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-bold fs-5">Total</span>
                 <span className="fw-bold fs-4 text-primary-custom">
-                  {step >= 2 ? totalPrice.toLocaleString() : cartTotal.toLocaleString()} <small className="fs-6">MZN</small>
+                  {step >= 2 ? totalPrice.toLocaleString() : cartTotal.toLocaleString()} <small className="fs-6">MT</small>
                 </span>
               </div>
             </div>

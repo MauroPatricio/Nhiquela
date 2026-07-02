@@ -52,7 +52,7 @@ categoryRouter.get(
     if (category) {
       res.send(category);
     } else {
-      res.status(404).send({ message: 'Categoria nÃ£o encontrada' });
+      res.status(404).send({ message: 'Categoria não encontrada' });
     }
   })
 );
@@ -82,7 +82,7 @@ categoryRouter.put(
       await category.save();
       res.send({ message: `Categoria actualizada com sucesso` });
     } else {
-      res.status(404).send({ message: 'Categoria nÃ£o encontrada' });
+      res.status(404).send({ message: 'Categoria não encontrada' });
     }
   })
 );
@@ -104,7 +104,7 @@ categoryRouter.delete(
 
       res.send({ message: `Categoria removida com sucesso` });
     } else {
-      res.status(404).send({ message: 'Categoria nÃ£o encontrada' });
+      res.status(404).send({ message: 'Categoria não encontrada' });
     }
   })
 );

@@ -20,7 +20,7 @@ settingsRouter.post(
   expressAsyncHandler(async (req, res) => {
     const exist = await Settings.findOne({ key: req.body.key });
     if (exist) {
-      return res.status(400).send({ message: 'A chave de configuraÃ§Ã£o jÃ¡ existe' });
+      return res.status(400).send({ message: 'A chave de configuração já existe' });
     }
     const newSetting = new Settings({
       key: req.body.key,
@@ -29,7 +29,7 @@ settingsRouter.post(
       type: req.body.type || 'string'
     });
     const createdSetting = await newSetting.save();
-    res.status(201).send({ message: 'DefiniÃ§Ã£o criada', setting: createdSetting });
+    res.status(201).send({ message: 'Definição criada', setting: createdSetting });
   })
 );
 
@@ -43,9 +43,9 @@ settingsRouter.put(
       setting.value = req.body.value !== undefined ? req.body.value : setting.value;
       setting.description = req.body.description || setting.description;
       const updatedSetting = await setting.save();
-      res.send({ message: 'DefiniÃ§Ã£o atualizada', setting: updatedSetting });
+      res.send({ message: 'Definição atualizada', setting: updatedSetting });
     } else {
-      res.status(404).send({ message: 'DefiniÃ§Ã£o nÃ£o encontrada' });
+      res.status(404).send({ message: 'Definição não encontrada' });
     }
   })
 );
@@ -58,9 +58,9 @@ settingsRouter.delete(
     const setting = await Settings.findById(req.params.id);
     if (setting) {
       await setting.deleteOne();
-      res.send({ message: 'DefiniÃ§Ã£o apagada' });
+      res.send({ message: 'Definição apagada' });
     } else {
-      res.status(404).send({ message: 'DefiniÃ§Ã£o nÃ£o encontrada' });
+      res.status(404).send({ message: 'Definição não encontrada' });
     }
   })
 );

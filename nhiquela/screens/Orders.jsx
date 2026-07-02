@@ -30,8 +30,8 @@ const Orders = () => {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(blinkAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-        Animated.timing(blinkAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 0.3, duration: 800, useNativeDriver: false }),
+        Animated.timing(blinkAnim, { toValue: 1, duration: 800, useNativeDriver: false }),
       ])
     ).start();
   }, []);
@@ -307,7 +307,7 @@ const Orders = () => {
           </View>
           <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
           <Text style={styles.emptySubtitle}>
-            Os seus pedidos e entregas aparecerão aqui assim que realizar a sua primeira compra.
+            Os seus pedidos e entregas aparecerão aqui assim que realizar a sua primeira compra ou solicitação de serviço.
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('Início')}
@@ -320,7 +320,7 @@ const Orders = () => {
               end={{ x: 1, y: 0 }}
               style={styles.actionBtn}
             >
-              <Text style={styles.actionBtnText}>Começar a Comprar</Text>
+              <Text style={styles.actionBtnText}>Começar</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -355,17 +355,17 @@ const styles = StyleSheet.create({
   cardContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 16,
     alignItems: 'center',
     shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: 'rgba(147, 51, 234, 0.1)',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -374,13 +374,17 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 5,
+    width: 6,
   },
   supplierLogo: {
-    width: 58,
-    height: 58,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    marginRight: 16,
+    marginLeft: 10,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   orderInfo: {
     flex: 1,
@@ -388,24 +392,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   orderTitle: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 2,
+    color: '#111827',
+    marginBottom: 4,
+    letterSpacing: -0.3,
   },
   orderCode: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
     marginBottom: 2,
   },
   orderDate: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#9CA3AF',
-    marginBottom: 2,
+    marginBottom: 6,
   },
   orderPrice: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#9333EA',
     marginTop: 2,
   },

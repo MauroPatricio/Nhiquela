@@ -39,7 +39,7 @@ export default function DocumentOrdersValidationScreen() {
     try {
       const { data } = await api.get('/document-order');
       // Filter only those that need validation or are being validated by current operator
-      const pending = data.filter(o => o.status === 'Pendente de ValidaÃ§Ã£o' || o.status === 'Em ValidaÃ§Ã£o');
+      const pending = data.filter(o => o.status === 'Pendente de Validação' || o.status === 'Em Validação');
       setOrders(pending);
     } catch (error) {
       toast.error('Erro ao carregar pedidos');
@@ -81,18 +81,18 @@ export default function DocumentOrdersValidationScreen() {
   const handleSaveValidation = async () => {
     // Basic validation
     for (let i=0; i<validationItems.length; i++) {
-        if (!validationItems[i].productName) return toast.error(`O item ${i+1} precisa de um nome vÃ¡lido.`);
+        if (!validationItems[i].productName) return toast.error(`O item ${i+1} precisa de um nome válido.`);
     }
 
     try {
       await api.put(`/document-order/${selectedOrder._id}/validate`, {
         validationItems
       });
-      toast.success('Pedido validado com sucesso. O cliente serÃ¡ notificado para pagar.');
+      toast.success('Pedido validado com sucesso. O cliente será notificado para pagar.');
       fetchOrders();
       closeValidation();
     } catch (error) {
-      toast.error('Erro ao submeter validaÃ§Ã£o');
+      toast.error('Erro ao submeter validação');
     }
   };
 
@@ -100,8 +100,8 @@ export default function DocumentOrdersValidationScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">ValidaÃ§Ã£o de Documentos</h2>
-          <span className="text-muted small">Receitas e Listas de Compras a aguardar anÃ¡lise do Operador</span>
+          <h2 className="fw-bold m-0 text-dark">Validação de Documentos</h2>
+          <span className="text-muted small">Receitas e Listas de Compras a aguardar análise do Operador</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -122,8 +122,8 @@ export default function DocumentOrdersValidationScreen() {
       {pendingDriversCount > 0 && (
         <div className="alert bg-warning bg-opacity-10 border border-warning rounded-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
           <div>
-            <h6 className="fw-bold text-dark mb-1"><FontAwesomeIcon icon={faExclamationTriangle} className="text-warning me-2" /> ValidaÃ§Ã£o de Contas de Motoristas</h6>
-            <span className="text-muted small">Existem <strong>{pendingDriversCount}</strong> motoristas com documentos enviados atravÃ©s da aplicaÃ§Ã£o a aguardar a sua aprovaÃ§Ã£o.</span>
+            <h6 className="fw-bold text-dark mb-1"><FontAwesomeIcon icon={faExclamationTriangle} className="text-warning me-2" /> Validação de Contas de Motoristas</h6>
+            <span className="text-muted small">Existem <strong>{pendingDriversCount}</strong> motoristas com documentos enviados através da aplicação a aguardar a sua aprovação.</span>
           </div>
           <a href="/admin/drivers" className="btn btn-warning fw-bold text-dark rounded-pill px-4 shadow-sm">
             Validar Motoristas
@@ -142,7 +142,7 @@ export default function DocumentOrdersValidationScreen() {
                   <th className="border-0 text-muted py-3">Tipo</th>
                   <th className="border-0 text-muted py-3">Estabelecimento Desejado</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ã£o</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +152,7 @@ export default function DocumentOrdersValidationScreen() {
                   </tr>
                 ) : currentOrders.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-5 text-muted">Sem pedidos pendentes. Excelente trabalho! ðŸŽ‰</td>
+                    <td colSpan="6" className="text-center py-5 text-muted">Sem pedidos pendentes. Excelente trabalho! ??</td>
                   </tr>
                 ) : currentOrders.map(order => (
                   <tr key={order._id}>
@@ -165,12 +165,12 @@ export default function DocumentOrdersValidationScreen() {
                     </td>
                     <td>
                       <span className="badge bg-light text-dark border">
-                        {order.serviceType === 'prescription' ? 'Receita MÃ©dica' : order.serviceType === 'shopping_list' ? 'Lista de Compras' : 'Especial'}
+                        {order.serviceType === 'prescription' ? 'Receita Médica' : order.serviceType === 'shopping_list' ? 'Lista de Compras' : 'Especial'}
                       </span>
                     </td>
                     <td>
                       {order.autoAssignEstablishment ? (
-                        <span className="badge bg-primary-subtle text-primary-custom">AutomÃ¡tico</span>
+                        <span className="badge bg-primary-subtle text-primary-custom">Automático</span>
                       ) : (
                         <span className="fw-bold">{order.preferredEstablishment?.seller?.name || order.preferredEstablishment?.name || '-'}</span>
                       )}
@@ -204,7 +204,7 @@ export default function DocumentOrdersValidationScreen() {
           {/* Header */}
           <div className="bg-white shadow-sm p-3 d-flex justify-content-between align-items-center">
             <div>
-              <h5 className="fw-bold m-0 text-dark">ValidaÃ§Ã£o de Pedido #{selectedOrder._id.substring(selectedOrder._id.length - 6)}</h5>
+              <h5 className="fw-bold m-0 text-dark">Validação de Pedido #{selectedOrder._id.substring(selectedOrder._id.length - 6)}</h5>
               <span className="text-muted small">Cliente: {selectedOrder.user?.name} | Tipo: {selectedOrder.serviceType}</span>
             </div>
             <button className="btn btn-light rounded-circle text-muted" onClick={closeValidation} style={{ width: '40px', height: '40px' }}>
@@ -237,7 +237,7 @@ export default function DocumentOrdersValidationScreen() {
             <div className="col-md-6 h-100 bg-white" style={{ overflowY: 'auto', paddingBottom: '100px' }}>
               <div className="p-4">
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                  <h5 className="fw-bold text-dark m-0">ConstruÃ§Ã£o do Carrinho</h5>
+                  <h5 className="fw-bold text-dark m-0">Construção do Carrinho</h5>
                   <button className="btn btn-outline-primary btn-sm rounded-pill" onClick={handleAddItem}>
                     <FontAwesomeIcon icon={faPlus} className="me-2" />
                     Adicionar Item Manual
@@ -249,7 +249,7 @@ export default function DocumentOrdersValidationScreen() {
                   <div className="alert alert-info border-0 rounded-4 mb-4 d-flex align-items-start">
                     <FontAwesomeIcon icon={faRobot} className="me-3 mt-1 fs-5" />
                     <div>
-                      <strong>SugestÃ£o da IA (OCR):</strong> A inteligÃªncia artificial encontrou potenciais items neste documento.
+                      <strong>Sugestão da IA (OCR):</strong> A inteligência artificial encontrou potenciais items neste documento.
                       <button className="btn btn-sm btn-info text-white d-block mt-2 rounded-pill">Preencher Automaticamente</button>
                     </div>
                   </div>
@@ -282,13 +282,13 @@ export default function DocumentOrdersValidationScreen() {
                           <input type="number" min="1" className="form-control form-control-sm border-0" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)} />
                         </div>
                         <div className="col-md-4">
-                          <label className="form-label small text-muted mb-1">PreÃ§o Unit. (MT)</label>
+                          <label className="form-label small text-muted mb-1">Preço Unit. (MT)</label>
                           <input type="number" min="0" step="0.01" className="form-control form-control-sm border-0" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
                         </div>
                         <div className="col-md-5">
                           <label className="form-label small text-muted mb-1">Disponibilidade</label>
                           <select className="form-select form-select-sm border-0" value={item.availability} onChange={(e) => handleItemChange(index, 'availability', e.target.value)}>
-                            <option value="available">DisponÃ­vel</option>
+                            <option value="available">Disponível</option>
                             <option value="substituted">Substituto Sugerido</option>
                             <option value="unavailable">Em Falta</option>
                           </select>
@@ -311,7 +311,7 @@ export default function DocumentOrdersValidationScreen() {
 
                 {validationItems.length === 0 && (
                   <div className="text-center py-5 text-muted">
-                    <p>O carrinho estÃ¡ vazio. Adicione os itens lendo o documento ao lado.</p>
+                    <p>O carrinho está vazio. Adicione os itens lendo o documento ao lado.</p>
                   </div>
                 )}
                 
@@ -325,7 +325,7 @@ export default function DocumentOrdersValidationScreen() {
                     </div>
                     <button className="btn bg-primary-custom text-white px-4 rounded-pill shadow-sm" onClick={handleSaveValidation}>
                         <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                        Concluir ValidaÃ§Ã£o
+                        Concluir Validação
                     </button>
                 </div>
 

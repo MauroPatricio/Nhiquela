@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faStar, faMapMarkerAlt, faShoppingBag } from '@fortawesome/free-solid-svg-icons';
@@ -49,7 +49,7 @@ export default function ProductsScreen() {
                   <small className="text-muted">{product.vendor || 'Nhiquela Partner'}</small>
                   <h5 className="fw-bold text-black mb-auto mt-1">{product.name}</h5>
                   <div className="d-flex justify-content-between align-items-center my-3">
-                    <span className="fw-black text-black fs-5">{product.price} MZN</span>
+                    <span className="fw-black text-black fs-5">{product.price} MT</span>
                   </div>
                   <div className="d-flex align-items-center gap-3 text-muted small fw-bold mb-3">
                     <span className="text-primary-custom"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.5'}</span>

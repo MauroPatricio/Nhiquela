@@ -1,4 +1,4 @@
-// models/withdrawalModel.js
+﻿// models/withdrawalModel.js
 import mongoose from 'mongoose';
 
 const withdrawalSchema = new mongoose.Schema({

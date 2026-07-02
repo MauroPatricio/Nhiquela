@@ -38,9 +38,9 @@ export default function DeliveryTariffsScreen() {
   const saveSetting = async (key, value, description) => {
     try {
       // Tentar atualizar primeiro, se falhar, tenta criar (ou no backend lidar com upsert)
-      // Como o /settings é POST para criar, precisamos ver se já existe.
-      // Neste caso vamos enviar um POST /settings que idealmente deve fazer upsert, ou se devolver erro tentamos PUT.
-      // O código da API atual faz POST criar, PUT atualizar por ID. 
+      // Como o /settings é é POST para criar, precisamos ver se já existe.
+      // Neste caso vamos enviar um é POST /settings que idealmente deve fazer upsert, ou se devolver erro tentamos PUT.
+      // O código da API atual faz é POST criar, PUT atualizar por ID. 
       // Para ser seguro, criamos uma lógica de UpdateByKey:
       
       // Procurar se a setting já existe:
@@ -174,7 +174,7 @@ export default function DeliveryTariffsScreen() {
               
               {pricingModel === 'steps' ? (
                 <>
-                  <p className="text-light opacity-75 small mb-4">No modelo de escalões competitivo focado em Maputo, a tarifa é cobrada por zonas de quilometragem da seguinte forma:</p>
+                  <p className="text-light opacity-75 small mb-4">No modelo de escalões competitivo focado em Maputo, a tarifa é é cobrada por zonas de quilometragem da seguinte forma:</p>
                   
                   <div className="d-flex justify-content-between mb-2">
                     <span className="fw-bold">0 a 3 km:</span>

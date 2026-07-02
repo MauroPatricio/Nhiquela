@@ -66,10 +66,10 @@ const runAllRouteTests = async () => {
   for (const route of routesToTest) {
     const result = await testRoute(route);
     if (result.success) {
-      console.log(`✅ [200 OK] ${route}`);
+      console.log(`? [200 OK] ${route}`);
       successCount++;
     } else {
-      console.log(`❌ [FAILED: ${result.status || result.error}] ${route}`);
+      console.log(`? [FAILED: ${result.status || result.error}] ${route}`);
     }
   }
 

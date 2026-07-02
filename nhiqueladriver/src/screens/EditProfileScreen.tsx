@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { Picker } from '@react-native-picker/picker';
 import { showMessage } from "react-native-flash-message";
 // screens/EditProfileScreen.tsx - CÓDIGO COMPLETO COM FOTOS GRANDES
 import React, { useState, useEffect } from "react";
@@ -48,6 +49,18 @@ export default function EditProfileScreen({ navigation, route }: Props) {
   const { user, updateUser, updateDeliveryman } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  // --- Preço Personalizado ---
+  const [allowCustomPrice, setAllowCustomPrice] = useState<boolean>(user?.deliveryman?.allowCustomPrice || false);
+  const [customPriceInput, setCustomPriceInput] = useState<string>(
+    user?.deliveryman?.customPrice?.toString() ||
+    user?.deliveryman?.assigned_base_fee?.toString() || ''
+  );
+  const [submittingPrice, setSubmittingPrice] = useState(false);
+  const [submittingDocRequest, setSubmittingDocRequest] = useState(false);
+  const docUpdateStatus = user?.deliveryman?.docUpdateStatus || 'Nenhum';
+  const priceStatus = user?.deliveryman?.priceRequestStatus;
+  const pendingPrice = user?.deliveryman?.pendingCustomPrice;
+  const rejectionReason = user?.deliveryman?.priceRequestRejectionReason;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
 
@@ -274,8 +287,8 @@ const handleSave = async (values: any) => {
         // const userData = await updateDeliverymanRequestSimple(deliverymanData, user);
           
         Alert.alert(
-          "✅ Solicitação Enviada", 
-          `Suas alterações foram enviadas para aprovação administrativa. \nID da solicitação: ${userData.data.requestId}`
+          "✅ Sucesso", 
+          `O seu perfil e/ou documentos foram atualizados com sucesso.`
         );
   
         // ✅ ATUALIZAR CONTEXTO LOCALMENTE (opcional)
@@ -648,41 +661,134 @@ const handleSave = async (values: any) => {
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Informações do Veículo</Text>
                   
-                  <View style={styles.inputRow}>
-                    <View style={[styles.inputGroup, styles.flex1]}>
-                      <Text style={styles.label}>Tipo de Veículo</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Ex: Carro, Mota"
-                        value={values.transport_type}
-                        onChangeText={handleChange('transport_type')}
-                        onBlur={handleBlur('transport_type')}
-                      />
-                    </View>
-
-                    <View style={[styles.inputGroup, styles.flex1]}>
-                      <Text style={styles.label}>Preço Base (MT)</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Ex: 500"
-                        keyboardType="numeric"
-                        value={values.assigned_base_fee}
-                        onChangeText={handleChange('assigned_base_fee')}
-                        onBlur={handleBlur('assigned_base_fee')}
-                      />
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Tipo de Veículo</Text>
+                    <View style={[styles.input, { backgroundColor: '#f3f4f6', justifyContent: 'center' }]}>
+                      <Text style={{ color: '#6b7280' }}>{values.transport_type || 'N/A'}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.inputRow}>
-                    <View style={[styles.inputGroup, styles.flex1]}>
-                      <Text style={styles.label}>Cor</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Ex: Azul"
-                        value={values.transport_color}
-                        onChangeText={handleChange('transport_color')}
-                        onBlur={handleBlur('transport_color')}
+                  {/* Preço Personalizado */}
+                  <View style={styles.inputGroup}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingVertical: 10, paddingHorizontal: 15, backgroundColor: '#f9f9f9', borderRadius: 8 }}>
+                      <Text style={[styles.label, { marginBottom: 0 }]}>Definir o meu próprio preço</Text>
+                      <Switch
+                        value={allowCustomPrice}
+                        onValueChange={async (val) => {
+                          setAllowCustomPrice(val);
+                          try {
+                            const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('authToken');
+                            await fetch(`${API_BASE_URL}/drivers/price-request/toggle`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                              body: JSON.stringify({ allowCustomPrice: val }),
+                            });
+                            if (updateUser) updateUser({ ...user, deliveryman: { ...user.deliveryman, allowCustomPrice: val } });
+                          } catch (e) { /* ignore */ }
+                        }}
+                        trackColor={{ false: '#E5E7EB', true: COLORS.primary }}
+                        thumbColor="#fff"
                       />
+                    </View>
+
+                    {allowCustomPrice ? (
+                      <View>
+                        {/* Estado do pedido */}
+                        {priceStatus === 'Pendente' && (
+                          <View style={{ backgroundColor: '#FEF3C7', padding: 10, borderRadius: 8, marginBottom: 8 }}>
+                            <Text style={{ color: '#92400E', fontWeight: '600', fontSize: 13 }}>🕐 Aguardando aprovação: {pendingPrice} MT</Text>
+                          </View>
+                        )}
+                        {priceStatus === 'Aprovado' && (
+                          <View style={{ backgroundColor: '#D1FAE5', padding: 10, borderRadius: 8, marginBottom: 8 }}>
+                            <Text style={{ color: '#065F46', fontWeight: '600', fontSize: 13 }}>✅ Preço aprovado: {user?.deliveryman?.customPrice} MT</Text>
+                          </View>
+                        )}
+                        {priceStatus === 'Rejeitado' && (
+                          <View style={{ backgroundColor: '#FEE2E2', padding: 10, borderRadius: 8, marginBottom: 8 }}>
+                            <Text style={{ color: '#991B1B', fontWeight: '600', fontSize: 13 }}>❌ Rejeitado</Text>
+                            {rejectionReason ? <Text style={{ color: '#7F1D1D', fontSize: 12, marginTop: 2 }}>Motivo: {rejectionReason}</Text> : null}
+                          </View>
+                        )}
+
+                        {/* Input + botão de submissão */}
+                        <Text style={[styles.label, { marginBottom: 6 }]}>Novo Preço (MT)</Text>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TextInput
+                            style={[styles.input, { flex: 1 }]}
+                            placeholder="Ex: 500"
+                            keyboardType="numeric"
+                            value={customPriceInput}
+                            onChangeText={setCustomPriceInput}
+                            editable={priceStatus !== 'Pendente'}
+                          />
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: COLORS.primary,
+                              borderRadius: 8,
+                              paddingHorizontal: 16,
+                              justifyContent: 'center',
+                              opacity: submittingPrice || !customPriceInput || priceStatus === 'Pendente' ? 0.5 : 1,
+                            }}
+                            disabled={submittingPrice || !customPriceInput || priceStatus === 'Pendente'}
+                            onPress={async () => {
+                              const price = parseFloat(customPriceInput);
+                              if (!price || price <= 0) return;
+                              setSubmittingPrice(true);
+                              try {
+                                const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('authToken');
+                                const res = await fetch(`${API_BASE_URL}/drivers/price-request`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                  body: JSON.stringify({ requestedPrice: price }),
+                                });
+                                if (res.ok) {
+                                  if (updateUser) updateUser({ ...user, deliveryman: { ...user.deliveryman, priceRequestStatus: 'Pendente', pendingCustomPrice: price } });
+                                  showMessage({ message: '✅ Pedido enviado!', description: 'Aguardando aprovação do admin.', type: 'success', duration: 3500 });
+                                } else {
+                                  const d = await res.json();
+                                  showMessage({ message: 'Erro', description: d.message || 'Erro ao submeter pedido.', type: 'danger', duration: 3500 });
+                                }
+                              } catch (e) {
+                                showMessage({ message: 'Erro', description: 'Sem conexão.', type: 'danger', duration: 3000 });
+                              } finally {
+                                setSubmittingPrice(false);
+                              }
+                            }}
+                          >
+                            {submittingPrice
+                              ? <ActivityIndicator size="small" color="#fff" />
+                              : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Solicitar</Text>}
+                          </TouchableOpacity>
+                        </View>
+                        <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>O preço fica ativo após aprovação do administrador.</Text>
+                      </View>
+                    ) : (
+                      <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}>
+                        <Text style={{ color: '#6B7280', fontSize: 13 }}>💡 Preço calculado automaticamente pela plataforma com base na distância e tarifas vigentes.</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Cor</Text>
+                    <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, overflow: 'hidden' }}>
+                      <Picker
+                        selectedValue={values.transport_color}
+                        onValueChange={handleChange('transport_color')}
+                        style={{ height: 50, width: '100%' }}
+                      >
+                        <Picker.Item label="Selecione a cor" value="" />
+                        <Picker.Item label="Branco" value="Branco" />
+                        <Picker.Item label="Preto" value="Preto" />
+                        <Picker.Item label="Cinza" value="Cinza" />
+                        <Picker.Item label="Prata" value="Prata" />
+                        <Picker.Item label="Vermelho" value="Vermelho" />
+                        <Picker.Item label="Azul" value="Azul" />
+                        <Picker.Item label="Amarelo" value="Amarelo" />
+                        <Picker.Item label="Verde" value="Verde" />
+                        <Picker.Item label="Laranja" value="Laranja" />
+                      </Picker>
                     </View>
                   </View>
 
@@ -698,12 +804,18 @@ const handleSave = async (values: any) => {
                   </View>
 
                   {/* Foto do Veículo GRANDE */}
-                  <ImageUpload
-                    title="Foto do Veículo"
-                    image={vehicleImage}
-                    onPickImage={() => pickImage(setVehicleImage)}
-                    onTakePhoto={() => takePhoto(setVehicleImage)}
-                  />
+                  {docUpdateStatus !== 'Aprovado' ? (
+                     <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginTop: 10 }}>
+                       <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center' }}>Desbloqueie a edição de documentos abaixo para alterar a foto do veículo.</Text>
+                     </View>
+                  ) : (
+                    <ImageUpload
+                      title="Foto do Veículo"
+                      image={vehicleImage}
+                      onPickImage={() => pickImage(setVehicleImage)}
+                      onTakePhoto={() => takePhoto(setVehicleImage)}
+                    />
+                  )}
                 </View>
 
                 {/* Informações Adicionais */}
@@ -737,95 +849,163 @@ const handleSave = async (values: any) => {
 
                 {/* Documentação - LADO A LADO COM FOTOS GRANDES */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Documentação</Text>
-                  
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Tipo de Documento</Text>
-                    <View style={styles.radioGroup}>
-                      {['BI', 'Passaporte', 'Cédula Pessoal'].map((docType) => (
-                        <TouchableOpacity
-                          key={docType}
-                          style={styles.radioOption}
-                          onPress={() => handleChange('document_type')(docType)}
-                        >
-                          <View style={[
-                            styles.radioCircle,
-                            values.document_type === docType && styles.radioCircleSelected
-                          ]}>
-                            {values.document_type === docType && (
-                              <View style={styles.radioInnerCircle} />
-                            )}
-                          </View>
-                          <Text style={styles.radioText}>{docType}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Documentação</Text>
+                    {docUpdateStatus === 'Pendente' && (
+                      <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                        <Text style={{ color: '#92400E', fontSize: 11, fontWeight: 'bold' }}>Aguardando Aprovação</Text>
+                      </View>
+                    )}
+                    {docUpdateStatus === 'Aprovado' && (
+                      <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                        <Text style={{ color: '#065F46', fontSize: 11, fontWeight: 'bold' }}>Edição Liberada</Text>
+                      </View>
+                    )}
                   </View>
 
-                  {/* Carta de Condução - LADO A LADO COM FOTOS GRANDES */}
-                  <ImageUploadRow
-                    leftTitle="Carta Condução (Frente)"
-                    leftImage={licenseFrontImage}
-                    onLeftPickImage={() => pickImage(setLicenseFrontImage)}
-                    onLeftTakePhoto={() => takePhoto(setLicenseFrontImage)}
-                    rightTitle="Carta Condução (Verso)"
-                    rightImage={licenseBackImage}
-                    onRightPickImage={() => pickImage(setLicenseBackImage)}
-                    onRightTakePhoto={() => takePhoto(setLicenseBackImage)}
-                    required
-                  />
+                  {docUpdateStatus !== 'Aprovado' ? (
+                    <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8, alignItems: 'center' }}>
+                      <Ionicons name="lock-closed-outline" size={32} color="#6B7280" style={{ marginBottom: 8 }} />
+                      <Text style={{ color: '#4B5563', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
+                        Sua documentação já foi enviada. Para alterar os seus documentos de identificação ou da viatura, é necessário pedir permissão.
+                      </Text>
+                      <TouchableOpacity
+                        style={{ backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, opacity: submittingDocRequest || docUpdateStatus === 'Pendente' ? 0.6 : 1 }}
+                        disabled={submittingDocRequest || docUpdateStatus === 'Pendente'}
+                        onPress={async () => {
+                          setSubmittingDocRequest(true);
+                          try {
+                            const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('authToken');
+                            const res = await fetch(`${API_BASE_URL}/drivers/doc-update-request`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            });
+                            if (res.ok) {
+                              if (updateUser) updateUser({ ...user, deliveryman: { ...user.deliveryman, docUpdateStatus: 'Pendente' } });
+                              showMessage({ message: '✅ Pedido enviado!', description: 'Aguardando aprovação do admin para desbloquear os campos.', type: 'success', duration: 4000 });
+                            } else {
+                              const d = await res.json();
+                              showMessage({ message: 'Erro', description: d.message || 'Erro ao pedir.', type: 'danger' });
+                            }
+                          } catch (e) {
+                            showMessage({ message: 'Erro', description: 'Sem conexão.', type: 'danger' });
+                          } finally {
+                            setSubmittingDocRequest(false);
+                          }
+                        }}
+                      >
+                        {submittingDocRequest ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Solicitar Atualização</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={{ backgroundColor: '#E0F2FE', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                        <Text style={{ color: '#0284C7', fontSize: 13, textAlign: 'center' }}>Você tem permissão para anexar os seus novos documentos. Ao salvar as alterações, a permissão será consumida e seus novos documentos serão submetidos para revisão.</Text>
+                      </View>
+                      
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Tipo de Documento</Text>
+                        <View style={styles.radioGroup}>
+                          {['BI', 'Passaporte', 'Cédula Pessoal'].map((docType) => (
+                            <TouchableOpacity
+                              key={docType}
+                              style={styles.radioOption}
+                              onPress={() => handleChange('document_type')(docType)}
+                            >
+                              <View style={[
+                                styles.radioCircle,
+                                values.document_type === docType && styles.radioCircleSelected
+                              ]}>
+                                {values.document_type === docType && (
+                                  <View style={styles.radioInnerCircle} />
+                                )}
+                              </View>
+                              <Text style={styles.radioText}>{docType}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
 
-                  {/* Documento - LADO A LADO COM FOTOS GRANDES */}
-                  <ImageUploadRow
-                    leftTitle={`${values.document_type} (Frente)`}
-                    leftImage={documentFrontImage}
-                    onLeftPickImage={() => pickImage(setDocumentFrontImage)}
-                    onLeftTakePhoto={() => takePhoto(setDocumentFrontImage)}
-                    rightTitle={`${values.document_type} (Verso)`}
-                    rightImage={documentBackImage}
-                    onRightPickImage={() => pickImage(setDocumentBackImage)}
-                    onRightTakePhoto={() => takePhoto(setDocumentBackImage)}
-                    required
-                  />
+                      {/* Carta de Condução - LADO A LADO COM FOTOS GRANDES */}
+                      <ImageUploadRow
+                        leftTitle="Carta Condução (Frente)"
+                        leftImage={licenseFrontImage}
+                        onLeftPickImage={() => pickImage(setLicenseFrontImage)}
+                        onLeftTakePhoto={() => takePhoto(setLicenseFrontImage)}
+                        rightTitle="Carta Condução (Verso)"
+                        rightImage={licenseBackImage}
+                        onRightPickImage={() => pickImage(setLicenseBackImage)}
+                        onRightTakePhoto={() => takePhoto(setLicenseBackImage)}
+                        required
+                      />
+
+                      {/* Documento - LADO A LADO COM FOTOS GRANDES */}
+                      <ImageUploadRow
+                        leftTitle={`${values.document_type || 'BI'} (Frente)`}
+                        leftImage={documentFrontImage}
+                        onLeftPickImage={() => pickImage(setDocumentFrontImage)}
+                        onLeftTakePhoto={() => takePhoto(setDocumentFrontImage)}
+                        rightTitle={`${values.document_type || 'BI'} (Verso)`}
+                        rightImage={documentBackImage}
+                        onRightPickImage={() => pickImage(setDocumentBackImage)}
+                        onRightTakePhoto={() => takePhoto(setDocumentBackImage)}
+                        required
+                      />
+                    </>
+                  )}
                 </View>
 
                 {/* Seguros e Inspeções - LADO A LADO COM FOTOS GRANDES */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Seguros e Inspeções</Text>
                   
-                  <ImageUploadRow
-                    leftTitle="Inspeção do Veículo"
-                    leftImage={vehicleInspectionImage}
-                    onLeftPickImage={() => pickImage(setVehicleInspectionImage)}
-                    onLeftTakePhoto={() => takePhoto(setVehicleInspectionImage)}
-                    rightTitle="Seguro do Veículo"
-                    rightImage={vehicleInsuranceImage}
-                    onRightPickImage={() => pickImage(setVehicleInsuranceImage)}
-                    onRightTakePhoto={() => takePhoto(setVehicleInsuranceImage)}
-                  />
+                  {docUpdateStatus !== 'Aprovado' ? (
+                     <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}>
+                       <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center' }}>Desbloqueie a edição de documentos acima para alterar estes anexos.</Text>
+                     </View>
+                  ) : (
+                    <ImageUploadRow
+                      leftTitle="Inspeção do Veículo"
+                      leftImage={vehicleInspectionImage}
+                      onLeftPickImage={() => pickImage(setVehicleInspectionImage)}
+                      onLeftTakePhoto={() => takePhoto(setVehicleInspectionImage)}
+                      rightTitle="Seguro do Veículo"
+                      rightImage={vehicleInsuranceImage}
+                      onRightPickImage={() => pickImage(setVehicleInsuranceImage)}
+                      onRightTakePhoto={() => takePhoto(setVehicleInsuranceImage)}
+                    />
+                  )}
                 </View>
 
                 {/* Comprovativo de Morada */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Comprovativo de Morada</Text>
                   
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Tipo de Comprovativo</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Ex: Fatura de luz, água, etc."
-                      value={values.Proof_of_Addres_Reason}
-                      onChangeText={handleChange('Proof_of_Addres_Reason')}
-                      onBlur={handleBlur('Proof_of_Addres_Reason')}
-                    />
-                  </View>
+                  {docUpdateStatus !== 'Aprovado' ? (
+                     <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}>
+                       <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center' }}>Desbloqueie a edição de documentos acima para alterar o comprovativo de morada.</Text>
+                     </View>
+                  ) : (
+                    <>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Tipo de Comprovativo</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Ex: Fatura de luz, água, etc."
+                          value={values.Proof_of_Addres_Reason}
+                          onChangeText={handleChange('Proof_of_Addres_Reason')}
+                          onBlur={handleBlur('Proof_of_Addres_Reason')}
+                        />
+                      </View>
 
-                  <ImageUpload
-                    title="Comprovativo de Morada"
-                    image={proofOfAddressImage}
-                    onPickImage={() => pickImage(setProofOfAddressImage)}
-                    onTakePhoto={() => takePhoto(setProofOfAddressImage)}
-                  />
+                      <ImageUpload
+                        title="Comprovativo de Morada"
+                        image={proofOfAddressImage}
+                        onPickImage={() => pickImage(setProofOfAddressImage)}
+                        onTakePhoto={() => takePhoto(setProofOfAddressImage)}
+                      />
+                    </>
+                  )}
                 </View>
               </>
             )}
@@ -864,133 +1044,151 @@ const handleSave = async (values: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.gray50,
+    backgroundColor: '#F4F6F9',
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    padding: 20,
+    paddingTop: 40, // Assuming SafeArea context
     backgroundColor: "#FFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 5,
+    marginBottom: 8,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1A1A1A",
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1E293B",
+    letterSpacing: 0.5,
   },
   headerPlaceholder: {
-    width: 40,
+    width: 44,
   },
   form: {
     padding: 16,
   },
   section: {
     backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: "#1E293B",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#1A1A1A",
-    marginBottom: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 20,
+    letterSpacing: 0.3,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 16,
   },
   flex1: {
     flex: 1,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#1A1A1A",
-    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    padding: 12,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 14,
     fontSize: 16,
-    backgroundColor: "#FFF",
+    backgroundColor: "#F8FAFC",
+    color: "#0F172A",
   },
-  // Estilo para campo de nome (apenas leitura)
   readOnlyInput: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: "#F8F8F8",
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: "#F1F5F9",
   },
   readOnlyText: {
     fontSize: 16,
-    color: "#666",
+    color: "#64748B",
+    fontWeight: '500',
   },
   readOnlyNote: {
     fontSize: 12,
-    color: "#999",
+    color: "#94A3B8",
     fontStyle: "italic",
-    marginTop: 4,
+    marginTop: 6,
   },
   inputError: {
-    borderColor: "#FF3B30",
+    borderColor: "#EF4444",
+    backgroundColor: '#FEF2F2',
   },
   errorText: {
-    color: "#FF3B30",
+    color: "#EF4444",
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: '600',
+    marginTop: 6,
   },
   required: {
-    color: "#FF3B30",
+    color: "#EF4444",
   },
-  // Estilos para upload de imagens em linha COM FOTOS GRANDES
   imageRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 24,
   },
   imageColumn: {
     flex: 1,
   },
   imageUploadContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   imageUploadTitle: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#1A1A1A",
-    marginBottom: 8,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 10,
   },
-  // Container para imagens grandes
   largeImageContainer: {
-    marginBottom: 8,
-    borderRadius: 12,
+    marginBottom: 12,
+    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   largePreviewImage: {
     width: "100%",
-    height: 180,
-    borderRadius: 12,
+    height: 200,
+    borderRadius: 16,
   },
   imageWithActions: {
     position: "relative",
@@ -1001,109 +1199,129 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(15, 23, 42, 0.4)",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "flex-end",
-    padding: 8,
+    padding: 12,
     opacity: 0,
   },
   actionButton: {
-    padding: 8,
-    marginLeft: 8,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 20,
+    padding: 10,
+    marginLeft: 10,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   noImageLargeContainer: {
-    height: 180,
+    height: 200,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#E0E0E0",
+    borderColor: "#CBD5E1",
     borderStyle: "dashed",
-    borderRadius: 12,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
   },
   imagePlaceholder: {
-    color: "#999",
-    fontSize: 12,
-    fontStyle: "italic",
+    color: "#94A3B8",
+    fontSize: 13,
+    fontWeight: '500',
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 12,
   },
   imageActionButtons: {
     flexDirection: "row",
-    gap: 8,
+    gap: 12,
   },
   imageActionButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
-    borderWidth: 1,
+    padding: 12,
+    borderWidth: 1.5,
     borderColor: COLORS.primary,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: '#F3F0FF',
+    borderRadius: 12,
+    gap: 8,
   },
   imageActionButtonText: {
     color: COLORS.primary,
-    fontWeight: "500",
+    fontWeight: "700",
     fontSize: 14,
   },
-  // Estilos para radio buttons
   radioGroup: {
     flexDirection: "row",
-    gap: 16,
+    gap: 20,
   },
   radioOption: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#E0E0E0",
+    borderColor: "#CBD5E1",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: '#FFF',
   },
   radioCircleSelected: {
     borderColor: COLORS.primary,
   },
   radioInnerCircle: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: COLORS.primary,
   },
   radioText: {
     fontSize: 14,
-    color: "#1A1A1A",
+    fontWeight: '600',
+    color: "#334155",
   },
-  // Botões
   buttonsContainer: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 80,
+    gap: 16,
+    marginTop: 12,
+    marginBottom: 90,
   },
   button: {
     flex: 1,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   cancelButton: {
     backgroundColor: "#FFF",
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    elevation: 0,
+    shadowOpacity: 0,
   },
   cancelButtonText: {
-    color: COLORS.primary,
-    fontWeight: "600",
+    color: "#64748B",
+    fontWeight: "700",
     fontSize: 16,
   },
   saveButton: {
@@ -1111,40 +1329,8 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: "#FFF",
-    fontWeight: "600",
+    fontWeight: "800",
     fontSize: 16,
-  },
-  // Modal para imagem em tela cheia
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalCloseButton: {
-    position: "absolute",
-    top: 40,
-    right: 20,
-    zIndex: 1,
-    padding: 10,
-  },
-  fullScreenImage: {
-    width: screenWidth,
-    height: screenHeight * 0.8,
-  },
-  modalActions: {
-    position: "absolute",
-    bottom: 40,
-    flexDirection: "row",
-    gap: 20,
-  },
-  modalActionButton: {
-    alignItems: "center",
-    padding: 10,
-  },
-  modalActionText: {
-    color: "#FFF",
-    fontSize: 12,
-    marginTop: 4,
-  },
+    letterSpacing: 0.5,
+  }
 });

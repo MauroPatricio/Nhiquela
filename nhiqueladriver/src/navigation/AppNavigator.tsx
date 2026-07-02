@@ -1,4 +1,4 @@
-// navigation/AppNavigator.tsx
+﻿// navigation/AppNavigator.tsx
 import React, { useState, useEffect } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -65,10 +65,10 @@ function MainTabs() {
         let newTodayEarnings = currentUser?.deliveryman?.todayEarnings;
 
         if (balanceRes.status === 'fulfilled') {
-          newBalance = `MZN ${parseFloat(balanceRes.value.data.available_balance || 0).toFixed(2)}`;
+          newBalance = `MT ${parseFloat(balanceRes.value.data.available_balance || 0).toFixed(2)}`;
         }
         if (earningsRes.status === 'fulfilled') {
-          newTodayEarnings = `MZN ${parseFloat(earningsRes.value.data.today || 0).toFixed(2)}`;
+          newTodayEarnings = `MT ${parseFloat(earningsRes.value.data.today || 0).toFixed(2)}`;
           newTrips = earningsRes.value.data.tripsToday || 0;
         }
 
@@ -111,9 +111,9 @@ function MainTabs() {
               onMenuPress={() => {}}
               onNotificationPress={() => {}}
               onEarningsPress={() => navigation.navigate(ROUTES.EARNINGS)}
-              todayEarnings={user?.deliveryman?.todayEarnings || "MZN 0,00"}
+              todayEarnings={user?.deliveryman?.todayEarnings || "MT 0,00"}
               totalPassengers={user?.deliveryman?.totalTrips || 0}
-              credit={user?.deliveryman?.balance || "MZN 0,00"}
+              credit={user?.deliveryman?.balance || "MT 0,00"}
               userRating={user?.deliveryman?.rating || 5.0}
             />
           ),

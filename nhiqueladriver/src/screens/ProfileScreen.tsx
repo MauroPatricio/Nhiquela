@@ -251,7 +251,7 @@ export default function ProfileScreen({ navigation }: Props) {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4, backgroundColor: 'rgba(39, 174, 96, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' }}>
               <Ionicons name="wallet" size={16} color={COLORS.success} style={{ marginRight: 6 }} />
               <Text style={{ color: COLORS.success, fontSize: 16, fontWeight: 'bold' }}>
-                Saldo: {user?.deliveryman?.balance || 'MZN 0.00'}
+                Saldo: {user?.deliveryman?.balance || 'MT 0.00'}
               </Text>
             </View>
 
@@ -274,7 +274,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.sectionTitle}>Estatísticas</Text>
           <View style={styles.statsGrid}>
             {user?.isDeliveryMan && (
-              <View style={[styles.statCard, { backgroundColor: '#1E1E24', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
+              <View style={[styles.statCard, { backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
                 <View style={{ width: 100, height: 100, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
                   <PieChart
                     style={{ height: 100, width: 100 }}
@@ -292,10 +292,10 @@ export default function ProfileScreen({ navigation }: Props) {
                     padAngle={0.05}
                   />
                   <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FFF' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1E1E24' }}>
                       {userData.acceptanceRate || '0%'}
                     </Text>
-                    <Text style={{ fontSize: 10, color: '#AAA' }}>Aceitação</Text>
+                    <Text style={{ fontSize: 10, color: '#666' }}>Aceitação</Text>
                   </View>
                 </View>
               </View>
@@ -328,6 +328,12 @@ export default function ProfileScreen({ navigation }: Props) {
                 color="#27AE60"
               />
             )}
+            <StatCard
+              title="Membro Desde"
+              value={userData.memberSince}
+              icon="calendar-outline"
+              color="#34C759"
+            />
           </View>
         </View>
 
@@ -357,6 +363,15 @@ export default function ProfileScreen({ navigation }: Props) {
                     <Text style={styles.colorText}>{userData.vehicleColor}</Text>
                   </View>
                 )}
+
+                <View style={[styles.colorBadge, { backgroundColor: '#E0F2FE', marginTop: 6 }]}>
+                  <Ionicons name="cash-outline" size={14} color="#0284C7" style={{ marginRight: 4 }} />
+                  <Text style={[styles.colorText, { color: '#0284C7', fontWeight: 'bold' }]}>
+                    Preço cobrado: {user?.deliveryman?.allowCustomPrice && user?.deliveryman?.customPrice 
+                      ? `${user.deliveryman.customPrice} MT / km` 
+                      : 'Preço Padrão do Sistema'}
+                  </Text>
+                </View>
               </View>
 
               {/* ✅ BOTÃO VER DOCUMENTOS */}
@@ -425,7 +440,7 @@ export default function ProfileScreen({ navigation }: Props) {
               icon="wallet-outline"
               title="Carteira & Ganhos"
               subtitle="Ver histórico e saldo"
-              onPress={() => navigation.navigate('Earnings', { fromScreen: 'Profile' })}
+              onPress={() => navigation.navigate('Wallet')}
             />
             <MenuItem
               icon="shield-checkmark-outline"

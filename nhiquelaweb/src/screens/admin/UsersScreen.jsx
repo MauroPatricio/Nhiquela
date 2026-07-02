@@ -31,7 +31,7 @@ export default function UsersScreen() {
       const { data } = await api.get('/roles');
       setRoles(data || []);
     } catch (error) {
-      console.warn('Roles n√£o carregadas', error);
+      console.warn('Roles n„o carregadas', error);
     }
   };
 
@@ -40,7 +40,7 @@ export default function UsersScreen() {
       const { data } = await api.get('/services');
       setServicesList(data || []);
     } catch (error) {
-      console.warn('Servi√ßos n√£o carregados', error);
+      console.warn('ServiÁos n„o carregados', error);
     }
   };
 
@@ -49,7 +49,7 @@ export default function UsersScreen() {
       const { data } = await api.get('/plans');
       setPlans(data || []);
     } catch (error) {
-      console.warn('Planos n√£o carregados', error);
+      console.warn('Planos n„o carregados', error);
     }
   };
 
@@ -84,11 +84,11 @@ export default function UsersScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) return toast.error('Nome e Email s√£o obrigat√≥rios');
+    if (!formData.name || !formData.email) return toast.error('Nome e Email s„o obrigatÛrios');
     
     try {
       await api.put(`/users/${currentId}`, formData);
-      toast.success('Permiss√µes do utilizador atualizadas com sucesso!');
+      toast.success('Permissıes do utilizador atualizadas com sucesso!');
       fetchUsers();
       handleCloseModal();
     } catch (error) {
@@ -97,7 +97,7 @@ export default function UsersScreen() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('ATEN√á√ÉO: Tem a certeza que deseja eliminar PERMANENTEMENTE esta conta de utilizador do sistema?')) {
+    if (window.confirm('ATEN«√O: Tem a certeza que deseja eliminar PERMANENTEMENTE esta conta de utilizador do sistema?')) {
       try {
         await api.delete(`/users/${id}`);
         toast.success('Utilizador eliminado do sistema!');
@@ -127,8 +127,8 @@ export default function UsersScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Gest√£o Global de Utilizadores</h2>
-          <span className="text-muted small">Administre contas, promova vendedores e controle acessos √† plataforma</span>
+          <h2 className="fw-bold m-0 text-dark">Gest„o Global de Utilizadores</h2>
+          <span className="text-muted small">Administre contas, promova vendedores e controle acessos ‡ plataforma</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -156,7 +156,7 @@ export default function UsersScreen() {
                   <th className="border-0 text-muted py-3">Papel (Role)</th>
                   <th className="border-0 text-muted py-3">Data de Registo</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,7 +188,7 @@ export default function UsersScreen() {
                         <div>
                           <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill mb-1"><FontAwesomeIcon icon={faUserTie} className="me-1" /> Vendedor</span>
                           {user.planId && (
-                            <div className="small fw-bold text-warning mt-1">üëë {plans.find(p => p._id === user.planId || p.id === user.planId)?.name || 'Plano Desconhecido'}</div>
+                            <div className="small fw-bold text-warning mt-1">?? {plans.find(p => p._id === user.planId || p.id === user.planId)?.name || 'Plano Desconhecido'}</div>
                           )}
                         </div>
                       ) : user.isDeliveryMan ? (
@@ -245,7 +245,7 @@ export default function UsersScreen() {
                       <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => setSelectedUserView(user)} title="Ver Detalhes">
                         <FontAwesomeIcon icon={faEye} />
                       </button>
-                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(user)} title="Editar Permiss√µes">
+                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(user)} title="Editar Permissıes">
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
                       <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleDelete(user._id || user.id)} title="Eliminar Conta">
@@ -269,7 +269,7 @@ export default function UsersScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">Editar Permiss√µes da Conta</h5>
+              <h5 className="fw-bold m-0 text-dark">Editar Permissıes da Conta</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}>
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -301,14 +301,14 @@ export default function UsersScreen() {
                   <h6 className="fw-bold mb-3">Papel do Utilizador (Roles)</h6>
                   
                   <div className="mb-4">
-                    <label className="form-label fw-bold text-dark mb-1">Papel Din√¢mico (RBAC)</label>
+                    <label className="form-label fw-bold text-dark mb-1">Papel Din‚mico (RBAC)</label>
                     <select className="form-select bg-white border py-2 rounded-3" value={formData.roleId} onChange={(e) => setFormData({...formData, roleId: e.target.value})}>
-                      <option value="">-- Sem papel din√¢mico (Usa permiss√µes antigas) --</option>
+                      <option value="">-- Sem papel din‚mico (Usa permissıes antigas) --</option>
                       {roles.map(role => (
                         <option key={role._id} value={role._id}>{role.name} {role.isSystem ? '(Sistema)' : ''}</option>
                       ))}
                     </select>
-                    <small className="text-muted d-block mt-1">Substitui as op√ß√µes abaixo se selecionado.</small>
+                    <small className="text-muted d-block mt-1">Substitui as opÁıes abaixo se selecionado.</small>
                   </div>
 
                   <hr className="my-3 opacity-25" />
@@ -325,25 +325,25 @@ export default function UsersScreen() {
 
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" id="isDeliveryMan" checked={formData.isDeliveryMan} onChange={(e) => setFormData({...formData, isDeliveryMan: e.target.checked})} />
-                    <label className="form-check-label fw-bold text-primary" htmlFor="isDeliveryMan">Prestador (Pode realizar servi√ßos e entregas)</label>
+                    <label className="form-check-label fw-bold text-primary" htmlFor="isDeliveryMan">Prestador (Pode realizar serviÁos e entregas)</label>
                   </div>
 
                   {formData.isSeller && (
                     <div className="mt-3 pt-3 border-top">
-                      <label className="form-label fw-bold small text-muted mb-1">Plano de Subscri√ß√£o</label>
+                      <label className="form-label fw-bold small text-muted mb-1">Plano de SubscriÁ„o</label>
                       <select className="form-select bg-white border py-2 rounded-3" value={formData.planId} onChange={(e) => setFormData({...formData, planId: e.target.value})}>
                         <option value="">-- Sem plano associado --</option>
                         {plans.map(plan => (
                           <option key={plan._id || plan.id} value={plan._id || plan.id}>{plan.name} ({plan.price})</option>
                         ))}
                       </select>
-                      <small className="text-muted d-block mt-1">Configure os planos na aba Planos de Subscri√ß√£o.</small>
+                      <small className="text-muted d-block mt-1">Configure os planos na aba Planos de SubscriÁ„o.</small>
                     </div>
                   )}
 
                   {formData.isDeliveryMan && (
                     <div className="mt-3 pt-3 border-top">
-                      <label className="form-label fw-bold text-dark mb-2">Servi√ßos Prestados</label>
+                      <label className="form-label fw-bold text-dark mb-2">ServiÁos Prestados</label>
                       <div className="row g-2">
                         {servicesList.map(service => (
                           <div className="col-12" key={service._id}>
@@ -370,13 +370,13 @@ export default function UsersScreen() {
                           </div>
                         ))}
                       </div>
-                      {servicesList.length === 0 && <small className="text-muted d-block mt-1">Nenhum servi√ßo registado no sistema.</small>}
+                      {servicesList.length === 0 && <small className="text-muted d-block mt-1">Nenhum serviÁo registado no sistema.</small>}
                     </div>
                   )}
                 </div>
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  Salvar Altera√ß√µes
+                  Salvar AlteraÁıes
                 </button>
               </form>
             </div>
@@ -431,7 +431,7 @@ export default function UsersScreen() {
                     )}
                     {selectedUserView.roleId && (
                       <span className="badge bg-dark px-3 py-2 rounded-pill ms-2">
-                        <FontAwesomeIcon icon={faShieldAlt} className="me-1" /> {selectedUserView.roleId.name || 'Papel Din√¢mico'}
+                        <FontAwesomeIcon icon={faShieldAlt} className="me-1" /> {selectedUserView.roleId.name || 'Papel Din‚mico'}
                       </span>
                     )}
                   </div>
@@ -452,13 +452,13 @@ export default function UsersScreen() {
                   )}
                   {selectedUserView.location && (
                     <div className="d-flex mb-2">
-                      <div className="text-muted" style={{width: '30px'}}>üìç</div>
+                      <div className="text-muted" style={{width: '30px'}}>??</div>
                       <div className="fw-bold text-dark">{selectedUserView.location}</div>
                     </div>
                   )}
                   {selectedUserView.rating && (
                     <div className="d-flex mb-2">
-                      <div className="text-muted" style={{width: '30px'}}>‚≠ê</div>
+                      <div className="text-muted" style={{width: '30px'}}>?</div>
                       <div className="fw-bold text-dark">{selectedUserView.rating}</div>
                     </div>
                   )}
@@ -473,7 +473,7 @@ export default function UsersScreen() {
                   </div>
                   <div className="col-4">
                     <div className="border rounded-3 p-2 text-center bg-white h-100 shadow-sm">
-                      <div className="text-muted small fw-bold mb-1">Conclu√≠dos</div>
+                      <div className="text-muted small fw-bold mb-1">ConcluÌdos</div>
                       <div className="fw-bold m-0 text-success fs-5">{selectedUserView.completedOrders || 0}</div>
                     </div>
                   </div>

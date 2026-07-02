@@ -33,7 +33,7 @@ export default function StatsScreen() {
     <div className="container-fluid py-4" style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold mb-0" style={{ color: '#1A1A1A' }}>Dashboard Financeiro</h2>
-        <span className="text-muted">M√©tricas em tempo real</span>
+        <span className="text-muted">MÈtricas em tempo real</span>
       </div>
 
       <div className="row g-4 mb-4">
@@ -95,11 +95,11 @@ export default function StatsScreen() {
       </div>
 
       <div className="row g-4 mb-4">
-        {/* Gr√°fico de Receita por Servi√ßo */}
+        {/* Gr·fico de Receita por ServiÁo */}
         <div className="col-lg-8">
           <div className="card shadow-sm border-0 rounded-4 h-100 bg-white">
             <div className="card-body p-4">
-              <h5 className="fw-bold mb-4">Receita por Tipo de Servi√ßo</h5>
+              <h5 className="fw-bold mb-4">Receita por Tipo de ServiÁo</h5>
               <div style={{ height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.receitaPorServico}>
@@ -115,19 +115,19 @@ export default function StatsScreen() {
           </div>
         </div>
 
-        {/* M√©tricas Extra */}
+        {/* MÈtricas Extra */}
         <div className="col-lg-4">
           <div className="card shadow-sm border-0 rounded-4 mb-4 bg-white h-100">
             <div className="card-body p-4 d-flex flex-column justify-content-center">
               <h5 className="fw-bold mb-4">Desempenho Geral</h5>
               
               <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-                <span className="text-muted">Servi√ßos Conclu√≠dos</span>
+                <span className="text-muted">ServiÁos ConcluÌdos</span>
                 <span className="fw-bold fs-5">{data.numServicosConcluidos}</span>
               </div>
               
               <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-                <span className="text-muted">Ticket M√©dio</span>
+                <span className="text-muted">Ticket MÈdio</span>
                 <span className="fw-bold fs-5">{data.ticketMedio.toFixed(2)} MT</span>
               </div>
               
@@ -149,14 +149,14 @@ export default function StatsScreen() {
         <div className="col-12">
           <div className="card shadow-sm border-0 rounded-4 bg-white">
             <div className="card-body p-4">
-              <h5 className="fw-bold mb-4">Top Motoristas (Maior Fatura√ß√£o)</h5>
+              <h5 className="fw-bold mb-4">Top Motoristas (Maior FaturaÁ„o)</h5>
               <div className="table-responsive">
                 <table className="table table-borderless align-middle mb-0">
                   <thead className="text-muted" style={{ borderBottom: '1px solid #eee' }}>
                     <tr>
                       <th className="fw-normal ps-0">Motorista</th>
-                      <th className="fw-normal text-center">Viagens Conclu√≠das</th>
-                      <th className="fw-normal text-end pe-0">Fatura√ß√£o Total</th>
+                      <th className="fw-normal text-center">Viagens ConcluÌdas</th>
+                      <th className="fw-normal text-end pe-0">FaturaÁ„o Total</th>
                     </tr>
                   </thead>
                   <tbody>

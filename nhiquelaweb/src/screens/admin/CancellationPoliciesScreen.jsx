@@ -7,7 +7,7 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-// Glass‑morphism container
+// Glass-morphism container
 const GlassContainer = styled(Box)({
   backdropFilter: 'blur(16px)',
   background: 'rgba(255,255,255,0.12)',
@@ -20,7 +20,7 @@ const GlassContainer = styled(Box)({
 });
 
 /**
- * CancellationPoliciesScreen – admin UI to manage cancellation‑policy records.
+ * CancellationPoliciesScreen � admin UI to manage cancellation-policy records.
  * Shows stage, fee flag and custom message. Uses MUI DataGrid with premium styling.
  */
 const CancellationPoliciesScreen = () => {

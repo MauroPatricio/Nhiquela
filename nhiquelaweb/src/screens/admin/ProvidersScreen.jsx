@@ -89,7 +89,7 @@ export default function ProvidersScreen() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.provider_type_id) {
-      return toast.error('Nome e Tipo de Provedor sÃ£o obrigatÃ³rios.');
+      return toast.error('Nome e Tipo de Provedor são obrigatórios.');
     }
 
     try {
@@ -156,7 +156,7 @@ export default function ProvidersScreen() {
                   <th className="border-0 text-muted py-3">Categoria</th>
                   <th className="border-0 text-muted py-3">Representante / Dono</th>
                   <th className="border-0 text-muted py-3 text-center">Status</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,7 +175,7 @@ export default function ProvidersScreen() {
                           <span className="fw-bold text-dark d-block">{provider.name}</span>
                           <span className="text-muted small">
                             <FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>
-                            {provider.location?.province?.name || 'LocalizaÃ§Ã£o nÃ£o definida'}
+                            {provider.location?.province?.name || 'Localização não definida'}
                           </span>
                         </div>
                       </div>
@@ -195,7 +195,7 @@ export default function ProvidersScreen() {
                           <span className="text-muted" style={{fontSize: '11px'}}>{provider.userId.phoneNumber || provider.userId.email}</span>
                         </>
                       ) : (
-                        <span className="text-muted small">NÃ£o associado</span>
+                        <span className="text-muted small">Não associado</span>
                       )}
                     </td>
                     <td className="text-center">
@@ -288,7 +288,7 @@ export default function ProvidersScreen() {
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Registar Provedor'}
+                  {isEditing ? 'Guardar Alterações' : 'Registar Provedor'}
                 </button>
               </form>
             </div>

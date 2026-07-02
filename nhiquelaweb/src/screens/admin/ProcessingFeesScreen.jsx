@@ -30,7 +30,7 @@ export default function ProcessingFeesScreen() {
   } = usePagination(fees, 10, ['serviceType']);
 
   const serviceTypes = [
-    { value: 'prescription', label: 'Receita MÃ©dica' },
+    { value: 'prescription', label: 'Receita Médica' },
     { value: 'shopping_list', label: 'Lista de Compras' },
     { value: 'special_order', label: 'Pedido Especial' }
   ];
@@ -125,7 +125,7 @@ export default function ProcessingFeesScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Taxas de Processamento</h2>
-          <span className="text-muted small">ConfiguraÃ§Ã£o de taxas para pedidos baseados em documentos</span>
+          <span className="text-muted small">Configuração de taxas para pedidos baseados em documentos</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -153,12 +153,12 @@ export default function ProcessingFeesScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Tipo de ServiÃ§o</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Tipo de Serviço</th>
                   <th className="border-0 text-muted py-3">Valor Fixo</th>
                   <th className="border-0 text-muted py-3">Percentagem</th>
                   <th className="border-0 text-muted py-3">Estabelecimento Alvo</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,7 +184,7 @@ export default function ProcessingFeesScreen() {
                     <td>{fee.percentage > 0 ? `${fee.percentage}%` : '-'}</td>
                     <td>
                       {fee.establishment ? (
-                        <span className="badge bg-info text-dark">{fee.establishment.name || fee.establishment.seller?.name || 'Parceiro EspecÃ­fico'}</span>
+                        <span className="badge bg-info text-dark">{fee.establishment.name || fee.establishment.seller?.name || 'Parceiro Específico'}</span>
                       ) : (
                         <span className="badge bg-secondary">Global</span>
                       )}
@@ -227,7 +227,7 @@ export default function ProcessingFeesScreen() {
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Tipo de ServiÃ§o</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Tipo de Serviço</label>
                   <select 
                     className="form-select bg-light border-0 py-2 rounded-3"
                     value={formData.serviceType}
@@ -264,7 +264,7 @@ export default function ProcessingFeesScreen() {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Estabelecimento (Opcional - Regra EspecÃ­fica)</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Estabelecimento (Opcional - Regra Específica)</label>
                   <select 
                     className="form-select bg-light border-0 py-2 rounded-3"
                     value={formData.establishment}
@@ -310,7 +310,7 @@ export default function ProcessingFeesScreen() {
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Criar Taxa'}
+                  {isEditing ? 'Guardar Alterações' : 'Criar Taxa'}
                 </button>
               </form>
             </div>

@@ -34,16 +34,16 @@ export default function CustomersScreen() {
   };
 
   const handleToggleStatus = async (customer) => {
-    const newStatus = customer.status === 'Ativo' ? 'Bloqueado' : 'Ativo';
-    const confirmMessage = newStatus === 'Bloqueado' 
+    const isCurrentlyActive = !customer.isBanned;
+    const confirmMessage = isCurrentlyActive 
       ? `Tem a certeza que deseja BLOQUEAR o cliente ${customer.name}? Ele não poderá fazer mais compras.`
       : `Deseja DESBLOQUEAR o cliente ${customer.name}?`;
       
     if (window.confirm(confirmMessage)) {
       try {
-        await api.put(`/customers/${customer._id}`, { status: newStatus });
-        setCustomers(customers.map(c => c._id === customer._id ? { ...c, status: newStatus } : c));
-        toast.success(`Conta do cliente ${newStatus.toLowerCase()} com sucesso!`);
+        await api.put(`/users/${customer._id}`, { isBanned: isCurrentlyActive });
+        setCustomers(customers.map(c => c._id === customer._id ? { ...c, isBanned: isCurrentlyActive } : c));
+        toast.success(`Conta do cliente ${isCurrentlyActive ? 'bloqueada' : 'desbloqueada'} com sucesso!`);
       } catch (error) {
         toast.error('Erro ao alterar estado do cliente.');
       }
@@ -117,12 +117,16 @@ export default function CustomersScreen() {
                   <tr key={customer._id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">
-                        <div className="bg-primary-subtle text-primary-custom rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fw-bold fs-5" style={{ width: '45px', height: '45px' }}>
-                          {customer.name.charAt(0).toUpperCase()}
-                        </div>
+                        {customer.photo ? (
+                          <img src={customer.photo} alt={customer.name} className="rounded-circle me-3 shadow-sm" style={{ width: '45px', height: '45px', objectFit: 'cover' }} />
+                        ) : (
+                          <div className="bg-primary-subtle text-primary-custom rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fw-bold fs-5" style={{ width: '45px', height: '45px' }}>
+                            {customer.name ? customer.name.charAt(0).toUpperCase() : '?'}
+                          </div>
+                        )}
                         <div>
                           <div className="fw-bold text-dark">{customer.name}</div>
-                          <div className="text-muted small"><FontAwesomeIcon icon={faPhone} className="me-1" /> {customer.phone}</div>
+                          <div className="text-muted small"><FontAwesomeIcon icon={faPhone} className="me-1" /> {customer.phoneNumber || 'Sem número'}</div>
                           {customer.email && <div className="text-muted small"><FontAwesomeIcon icon={faEnvelope} className="me-1" /> {customer.email}</div>}
                         </div>
                       </div>
@@ -142,9 +146,9 @@ export default function CustomersScreen() {
                       </div>
                     </td>
                     <td>
-                      <span className={`badge rounded-pill px-3 py-2 ${customer.status === 'Ativo' ? 'bg-success-subtle text-success border border-success border-opacity-25' : 'bg-danger-subtle text-danger border border-danger border-opacity-25'}`}>
-                        <FontAwesomeIcon icon={customer.status === 'Ativo' ? faCheckCircle : faBan} className="me-1" />
-                        {customer.status}
+                      <span className={`badge rounded-pill px-3 py-2 ${!customer.isBanned ? 'bg-success-subtle text-success border border-success border-opacity-25' : 'bg-danger-subtle text-danger border border-danger border-opacity-25'}`}>
+                        <FontAwesomeIcon icon={!customer.isBanned ? faCheckCircle : faBan} className="me-1" />
+                        {!customer.isBanned ? 'Ativo' : 'Bloqueado'}
                       </span>
                     </td>
                     <td className="text-end px-4">
@@ -152,12 +156,12 @@ export default function CustomersScreen() {
                         <FontAwesomeIcon icon={faEye} />
                       </button>
                       <button 
-                        className={`btn btn-sm me-2 rounded-3 shadow-sm fw-bold ${customer.status === 'Ativo' ? 'btn-outline-danger' : 'btn-success'}`}
+                        className={`btn btn-sm me-2 rounded-3 shadow-sm fw-bold ${!customer.isBanned ? 'btn-outline-danger' : 'btn-success'}`}
                         onClick={() => handleToggleStatus(customer)}
-                        title={customer.status === 'Ativo' ? "Bloquear Conta" : "Desbloquear Conta"}
+                        title={!customer.isBanned ? "Bloquear Conta" : "Desbloquear Conta"}
                       >
-                        <FontAwesomeIcon icon={customer.status === 'Ativo' ? faBan : faUserShield} className="me-1" />
-                        {customer.status === 'Ativo' ? 'Bloquear' : 'Desbloquear'}
+                        <FontAwesomeIcon icon={!customer.isBanned ? faBan : faUserShield} className="me-1" />
+                        {!customer.isBanned ? 'Bloquear' : 'Desbloquear'}
                       </button>
                       <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(customer._id)} title="Eliminar Definitivamente">
                         <FontAwesomeIcon icon={faTrash} />
@@ -187,14 +191,18 @@ export default function CustomersScreen() {
               </div>
               <div className="modal-body p-4">
                 <div className="d-flex align-items-center mb-4">
-                  <div className="bg-primary-subtle text-primary-custom rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fw-bold fs-3" style={{ width: '80px', height: '80px' }}>
-                    {selectedCustomer.name.charAt(0).toUpperCase()}
-                  </div>
+                  {selectedCustomer.photo ? (
+                    <img src={selectedCustomer.photo} alt={selectedCustomer.name} className="rounded-circle me-3 shadow-sm border border-light" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                  ) : (
+                    <div className="bg-primary-subtle text-primary-custom rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fw-bold fs-3" style={{ width: '80px', height: '80px' }}>
+                      {selectedCustomer.name ? selectedCustomer.name.charAt(0).toUpperCase() : '?'}
+                    </div>
+                  )}
                   <div>
                     <h4 className="fw-bold mb-1">{selectedCustomer.name}</h4>
-                    <span className={`badge rounded-pill px-3 py-2 ${selectedCustomer.status === 'Ativo' ? 'bg-success-subtle text-success border border-success border-opacity-25' : 'bg-danger-subtle text-danger border border-danger border-opacity-25'}`}>
-                      <FontAwesomeIcon icon={selectedCustomer.status === 'Ativo' ? faCheckCircle : faBan} className="me-1" />
-                      {selectedCustomer.status}
+                    <span className={`badge rounded-pill px-3 py-2 ${!selectedCustomer.isBanned ? 'bg-success-subtle text-success border border-success border-opacity-25' : 'bg-danger-subtle text-danger border border-danger border-opacity-25'}`}>
+                      <FontAwesomeIcon icon={!selectedCustomer.isBanned ? faCheckCircle : faBan} className="me-1" />
+                      {!selectedCustomer.isBanned ? 'Ativo' : 'Bloqueado'}
                     </span>
                   </div>
                 </div>
@@ -202,7 +210,7 @@ export default function CustomersScreen() {
                 <div className="bg-light rounded-4 p-3 mb-3 border">
                   <div className="d-flex mb-2">
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faPhone} /></div>
-                    <div className="fw-bold text-dark">{selectedCustomer.phone}</div>
+                    <div className="fw-bold text-dark">{selectedCustomer.phoneNumber || 'Sem número registado'}</div>
                   </div>
                   {selectedCustomer.email && (
                     <div className="d-flex mb-2">
@@ -210,10 +218,16 @@ export default function CustomersScreen() {
                       <div className="fw-bold text-dark">{selectedCustomer.email}</div>
                     </div>
                   )}
-                  {selectedCustomer.address && (
-                    <div className="d-flex">
+                  {(selectedCustomer.address || selectedCustomer.location) && (
+                    <div className="d-flex mb-2">
                       <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
-                      <div className="fw-bold text-dark">{selectedCustomer.address}</div>
+                      <div className="fw-bold text-dark">{selectedCustomer.address || selectedCustomer.location}</div>
+                    </div>
+                  )}
+                  {selectedCustomer.rating && (
+                    <div className="d-flex">
+                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faCheckCircle} /></div>
+                      <div className="fw-bold text-dark">Classificação: <span className="text-success">{selectedCustomer.rating}</span></div>
                     </div>
                   )}
                 </div>

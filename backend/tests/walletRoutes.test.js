@@ -30,7 +30,7 @@ beforeAll(async () => {
   await Wallet.create({
     user: testUser._id,
     balance: 500,
-    currency: 'MZN',
+    currency: 'MT',
   });
 }, 25000);
 

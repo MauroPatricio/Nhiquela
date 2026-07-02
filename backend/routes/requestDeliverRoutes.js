@@ -65,6 +65,11 @@ requestDeliver.post(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {
+    // Check for cancellation penalty block
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser && currentUser.blockedUntil && currentUser.blockedUntil > new Date()) {
+      return res.status(403).send({ message: "Conta bloqueada por 30 dias devido a cancelamentos sucessivos sem justificação válida." });
+    }
 
 
     const newOrder = new RequestDeliv({
@@ -84,7 +89,10 @@ requestDeliver.post(
       status: 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
-      stepStatus: req.body.stepStatus
+      stepStatus: req.body.stepStatus,
+      targetDriverId: req.body.targetDriverId,
+      latitude: req.body.latitude,
+      longitude: req.body.longitude
     });
 
     let mailText = `Ola ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
@@ -227,7 +235,7 @@ requestDeliver.put(
           id: user_deliver._id,
           photo: user_deliver.deliveryman?.photo || '',
           name:  user_deliver.deliveryman?.name || '',
-          phoneNumber:  user_deliver.deliveryman?.phoneNumber || '',
+          phoneNumber:  user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
           transport_type:  user_deliver.deliveryman?.transport_type || '',
           transport_color:  user_deliver.deliveryman?.transport_color || '',
           transport_registration:  user_deliver.deliveryman?.transport_registration || '',
@@ -478,5 +486,29 @@ requestDeliver.put(
   })
 );
 
+
+
+// O motorista rejeita ou ocorre timeout
+requestDeliver.put(
+  '/:id/reject',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestDeliv.findById(req.params.id);
+    if (order) {
+      order.status = 'Cancelado';
+      order.targetDriverId = null;
+      order.stepStatus = 7; 
+      order.canceledReason = 'Motorista indisponivel ou tempo esgotado';
+      await order.save();
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', order);
+      }
+      res.send({ message: 'Pedido rejeitado/timeout', order: order });
+    } else {
+      res.status(404).send({ message: 'Pedido nao encontrado' });
+    }
+  })
+);
 
 export default requestDeliver;

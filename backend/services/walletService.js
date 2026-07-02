@@ -3,7 +3,8 @@ import Wallet from '../models/WalletModel.js';
 import User from '../models/UserModel.js';
 import Partner from '../models/PartnerModel.js';
 import PricingEngine from '../models/PricingEngineModel.js';
-import { getIo } from '../index.js'; // Assuming io can be fetched, or we pass io/emit elsewhere. 
+import VehicleType from '../models/VehicleTypeModel.js';
+// removed getIo // Assuming io can be fetched, or we pass io/emit elsewhere. 
 // Wait, we can't easily import io from index.js directly if it doesn't export it. Let's just use a callback or require it conditionally.
 // A better way is to avoid importing index.js to prevent circular dependencies. I will just rely on the driver routes for WebSocket or use a global if available. We can do it safely.
 
@@ -18,9 +19,9 @@ export const getFinancialConfig = async () => {
 
 /** Get or create a wallet for a user or partner */
 export const getWallet = async (userId) => {
-  let wallet = await Wallet.findOne({ userId });
+  let wallet = await Wallet.findOne({ $or: [{ ownerId: userId }, { userId: userId }] });
   if (!wallet) {
-    wallet = await Wallet.create({ userId, balance: 0 });
+    wallet = await Wallet.create({ ownerId: userId, ownerType: 'driver', userId: userId, balance: 0 });
   }
   return wallet;
 };
@@ -104,8 +105,16 @@ export const hasSufficientBalance = async (driverId) => {
   const wallet = await getWallet(driverId);
   const config = await getFinancialConfig();
   
-  const limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
-  return wallet.balance >= limit;
+  let limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
+  
+  const driver = await User.findById(driverId);
+  if (driver && driver.deliveryman && driver.deliveryman.transport_type) {
+    const vType = await VehicleType.findOne({ name: driver.deliveryman.transport_type });
+    if (vType && vType.minVisibilityFee > 0) {
+      limit = vType.minVisibilityFee;
+    }
+  }
+      return wallet.balance >= limit;
 };
 
 /** Reset daily sales for all partners */

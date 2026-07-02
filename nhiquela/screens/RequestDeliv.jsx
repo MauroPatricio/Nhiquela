@@ -58,6 +58,8 @@ export default function RequestDelivSimple() {
   // Radar Search State
   const [radius, setRadius] = useState(5);
   const [isSearching, setIsSearching] = useState(false);
+  const [waitingForDriver, setWaitingForDriver] = useState(false);
+  const [selectedDriverForRequest, setSelectedDriverForRequest] = useState(null);
   const [showBusyModal, setShowBusyModal] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState({ visible: false, message: '' });
   const [duration, setDuration] = useState(null);
@@ -299,7 +301,6 @@ export default function RequestDelivSimple() {
           }
         } catch (error) {
           console.log('Erro ao consultar motor de preços:', error);
-          Alert.alert("Aviso", "Falha ao calcular o preço. Verifique a sua internet.");
           setPrice(120); // Fallback
           setRouteCoords([]);
         }
@@ -361,13 +362,11 @@ export default function RequestDelivSimple() {
           clearTimeout(searchTimerRef.current);
           clearInterval(searchCounterRef.current);
           setIsSearching(false);
-          // Navegar para detalhes do pedido com o primeiro motorista disponivel
-          navigation.navigate('Pedidos');
+          sendRequestToDriver(drivers[0]);
           return;
         }
       } catch (err) {
         console.log('Erro ao procurar motoristas:', err);
-        Alert.alert("Erro de Rede", "Falha ao procurar motoristas disponíveis. Verifique a sua ligação.");
       }
     };
 
@@ -390,6 +389,89 @@ export default function RequestDelivSimple() {
     };
   }, [isSearching, radius]);
 
+  
+  const sendRequestToDriver = async (driver) => {
+    try {
+      setSelectedDriverForRequest(driver);
+      setWaitingForDriver(true);
+      
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const storedUserData = await AsyncStorage.getItem('userData');
+      let token = '';
+      let phoneNumber = '';
+      if (storedUserData) {
+        const parsed = JSON.parse(storedUserData);
+        token = parsed.token;
+        phoneNumber = parsed.phoneNumber;
+      }
+
+      let finalPrice = price;
+      if (driver.allowCustomPrice && driver.customPrice) {
+        finalPrice = driver.customPrice * (driver.distance || 1);
+      } else if (service?.basePrice) {
+        finalPrice = (service.basePrice || price) * (driver.distance || 1);
+      }
+
+      const payload = {
+        name: service.name,
+        phoneNumber: phoneNumber || '000000000',
+        goodType: reason,
+        transportType: driver.deliveryman?.transport_type || 'N/A',
+        deliverCity: originText || 'N/A',
+        origin: originText,
+        destination: destText,
+        paymentOption: 'Dinheiro',
+        description: reason,
+        paymentMethod: 'Dinheiro',
+        deliveryPrice: finalPrice,
+        isPaid: false,
+        stepStatus: 3,
+        latitude: originCoord.lat,
+        longitude: originCoord.lng,
+        targetDriverId: driver._id
+      };
+
+      await api.post('/request-deliver', payload, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      
+      // We don't navigate yet, we wait for driver to accept/reject via socket
+      // A proper implementation would listen to a socket event here for 'order_updated'
+      
+    } catch (postError) {
+      console.log('Erro ao criar pedido:', postError);
+      Alert.alert("Erro", "Falha ao criar o pedido.");
+      setWaitingForDriver(false);
+    }
+  };
+  
+  
+  useEffect(() => {
+    if (waitingForDriver && selectedDriverForRequest) {
+      // Check for WebSocket service or use an interval to poll
+      // If order is rejected or cancelled, show alert
+      const checkStatus = async () => {
+         try {
+           const { data } = await api.get('/request-deliver/userview');
+           const myOrder = data.deliverRequests && data.deliverRequests[0];
+           if (myOrder && myOrder.targetDriverId === selectedDriverForRequest._id) {
+             if (myOrder.status === 'Cancelado') {
+                Alert.alert("Motorista Indisponível", "O motorista não pôde aceitar a corrida.");
+                setWaitingForDriver(false);
+                setSelectedDriverForRequest(null);
+             } else if (myOrder.status === 'Aceite pelo entregador') {
+                setWaitingForDriver(false);
+                setShowDriverList(false);
+                navigation.navigate('Pedidos');
+             }
+           }
+         } catch(e){}
+      };
+      const interval = setInterval(checkStatus, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [waitingForDriver, selectedDriverForRequest]);
+  
   const startPulse = () => {
     pulseAnim.setValue(0);
     Animated.loop(
@@ -540,7 +622,7 @@ export default function RequestDelivSimple() {
               ref={scrollViewRef}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
-                paddingBottom: keyboardHeight > 0 ? keyboardHeight + 40 : 120,
+                paddingBottom: keyboardHeight > 0 ? keyboardHeight + 200 : 120,
                 paddingHorizontal: 20,
               }}
               showsVerticalScrollIndicator={false}
@@ -617,7 +699,7 @@ export default function RequestDelivSimple() {
                 onFocus={() => {
                   snapTo(SNAP_TOP);
                   setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 120, animated: true });
+                    scrollViewRef.current?.scrollTo({ y: 160, animated: true });
                   }, 350);
                 }}
                 onChangeText={(text) => {
@@ -662,7 +744,7 @@ export default function RequestDelivSimple() {
                 onFocus={() => {
                   snapTo(SNAP_TOP);
                   setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 260, animated: true });
+                    scrollViewRef.current?.scrollTo({ y: 350, animated: true });
                   }, 350);
                 }}
                 onChangeText={(text) => {
@@ -769,7 +851,7 @@ export default function RequestDelivSimple() {
           </View>
 
           <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-            Procurando motoristas...
+            Procurando serviço de {service?.name}...
           </Text>
           <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14 }}>
             Raio de busca: <Text style={{ color: '#A855F7', fontWeight: '700' }}>{radius} KM</Text>
@@ -805,6 +887,55 @@ export default function RequestDelivSimple() {
           >
             <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Busca</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+
+    <Modal visible={waitingForDriver} transparent animationType="fade">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <View style={{
+          backgroundColor: '#FFF',
+          borderRadius: 28,
+          padding: 32,
+          width: '88%',
+          alignItems: 'center',
+          elevation: 20,
+          shadowColor: '#7F00FF',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.2,
+          shadowRadius: 20,
+        }}>
+          {/* Radar pulse */}
+          <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+            <Animated.View style={[styles.radarCenter, {
+              position: 'absolute',
+              width: 110,
+              height: 110,
+              borderRadius: 55,
+              backgroundColor: 'rgba(168, 85, 247, 0.15)',
+              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
+            }]} />
+            <Animated.View style={[styles.radarCenter, {
+              position: 'absolute',
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: 'rgba(168, 85, 247, 0.2)',
+              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+            }]} />
+            <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
+              <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+            </View>
+          </View>
+
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+            A aguardar confirmação do motorista...
+          </Text>
+          <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+            Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
+          </Text>
         </View>
       </View>
     </Modal>

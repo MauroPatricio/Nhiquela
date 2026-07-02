@@ -16,18 +16,18 @@ export default function PushNotificationsScreen() {
 
     setLoading(true);
     try {
-      // Chama o endpoint de notifica√ß√µes do backend
+      // Chama o endpoint de notificaÁıes do backend
       await api.post('/notifications/send', {
         userId: formData.userId,
         title: formData.title,
         body: formData.body,
         data: { type: 'admin_broadcast' }
       });
-      toast.success('Notifica√ß√£o enviada com sucesso!');
+      toast.success('NotificaÁ„o enviada com sucesso!');
       setFormData({ userId: '', title: '', body: '' });
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao enviar notifica√ß√£o. Verifique se o utilizador tem token registado.');
+      toast.error('Erro ao enviar notificaÁ„o. Verifique se o utilizador tem token registado.');
     } finally {
       setLoading(false);
     }
@@ -37,8 +37,8 @@ export default function PushNotificationsScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Notifica√ß√µes Push</h2>
-          <span className="text-muted small">Envio de alertas diretamente para os telem√≥veis dos utilizadores</span>
+          <h2 className="fw-bold m-0 text-dark">NotificaÁıes Push</h2>
+          <span className="text-muted small">Envio de alertas diretamente para os telemÛveis dos utilizadores</span>
         </div>
       </div>
 
@@ -57,8 +57,8 @@ export default function PushNotificationsScreen() {
                   <small className="text-muted">Para o teste funcionar, o utilizador deve ter feito login na App Mobile para registar o seu Device Token.</small>
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">T√≠tulo da Notifica√ß√£o</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="Ex: Nova Encomenda Atribu√≠da!" required />
+                  <label className="form-label fw-bold small text-muted mb-1">TÌtulo da NotificaÁ„o</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="Ex: Nova Encomenda AtribuÌda!" required />
                 </div>
                 <div className="mb-4">
                   <label className="form-label fw-bold small text-muted mb-1">Corpo da Mensagem</label>
@@ -69,7 +69,7 @@ export default function PushNotificationsScreen() {
                   {loading ? (
                     <><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A Enviar...</>
                   ) : (
-                    <><FontAwesomeIcon icon={faBell} className="me-2" /> Disparar Notifica√ß√£o</>
+                    <><FontAwesomeIcon icon={faBell} className="me-2" /> Disparar NotificaÁ„o</>
                   )}
                 </button>
               </form>
@@ -83,8 +83,8 @@ export default function PushNotificationsScreen() {
               <div className="bg-white rounded-circle d-flex justify-content-center align-items-center mb-4 shadow-sm" style={{ width: '80px', height: '80px' }}>
                 <FontAwesomeIcon icon={faMobileAlt} size="2x" className="text-primary-custom" />
               </div>
-              <h4 className="fw-bold text-dark mb-2">Simulador de Ecr√£</h4>
-              <p className="text-muted mb-4">A mensagem ir√° aparecer no ecr√£ bloqueado do utilizador como um alerta nativo do sistema Android/iOS.</p>
+              <h4 className="fw-bold text-dark mb-2">Simulador de Ecr„</h4>
+              <p className="text-muted mb-4">A mensagem ir· aparecer no ecr„ bloqueado do utilizador como um alerta nativo do sistema Android/iOS.</p>
               
               {/* Mock do telemovel */}
               <div className="bg-dark rounded-4 p-3 shadow-lg" style={{ width: '100%', maxWidth: '300px', height: '150px', position: 'relative' }}>
@@ -94,7 +94,7 @@ export default function PushNotificationsScreen() {
                     <span className="small fw-bold text-dark">Nhiquela App</span>
                     <span className="small text-muted ms-auto">Agora</span>
                   </div>
-                  <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>{formData.title || 'T√≠tulo da Mensagem'}</div>
+                  <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>{formData.title || 'TÌtulo da Mensagem'}</div>
                   <div className="text-muted" style={{ fontSize: '12px' }}>{formData.body || 'O corpo da mensagem vai aparecer aqui...'}</div>
                 </div>
               </div>

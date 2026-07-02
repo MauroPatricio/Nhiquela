@@ -6,6 +6,7 @@ const modelSchema = new mongoose.Schema({
     email: {type: String, required: true, unique: true},
     password: {type: String, required: true},
     phoneNumber: {type: Number, required: true, unique: true},
+    profileImage: { type: String }, // Foto de perfil do cliente
     isAdmin: {type: Boolean, default: false},
     isDeliveryMan: {type: Boolean, default: false},
     isSeller: {type: Boolean, default: false},
@@ -14,6 +15,8 @@ const modelSchema = new mongoose.Schema({
     totalOrders: { type: Number, default: 0 },
     completedOrders: { type: Number, default: 0 },
     cancelledOrders: { type: Number, default: 0 },
+    consecutiveCancellations: { type: Number, default: 0 }, // New for 5 cancellations rule
+    blockedUntil: { type: Date }, // New for 30-day penalty
     rating: { type: String, default: 'Excelente' },
     isBanned: {type: Boolean, default: false},
     isApproved: {type: Boolean, default: false},
@@ -99,7 +102,15 @@ const modelSchema = new mongoose.Schema({
             }
         ],
         hasHelpers: { type: Boolean, default: false },
-        helperCount: { type: Number, default: 0 }
+        helperCount: { type: Number, default: 0 },
+        // Preço Personalizado
+        allowCustomPrice: { type: Boolean, default: false },     // Toggle: permite definir preço próprio
+        customPrice: { type: Number, default: null },             // Preço aprovado pelo admin
+        pendingCustomPrice: { type: Number, default: null },      // Preço aguardando aprovação
+        priceRequestStatus: { type: String, enum: ['Pendente', 'Aprovado', 'Rejeitado', null], default: null },
+        priceRequestRejectionReason: { type: String, default: '' },
+        // Permissão para atualizar documentos
+        docUpdateStatus: { type: String, enum: ['Nenhum', 'Pendente', 'Aprovado'], default: 'Nenhum' }
     }
 },{
     timestamps: true

@@ -24,7 +24,7 @@ const Profile = () => {
   const [userLogin, setUserLogin] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
 
-  const fetchWalletBalance = async (token) => {
+  const fetchWalletBalance = async (token, intervalId) => {
     try {
       const { default: api } = await import('../hooks/createConnectionApi');
       const res = await api.get('/wallet/balance', {
@@ -32,7 +32,11 @@ const Profile = () => {
       });
       setWalletBalance(res.data.available_balance || 0);
     } catch (err) {
-      console.log('Erro ao buscar saldo no perfil', err.message);
+      if (err.response?.status === 401) {
+        if (intervalId) clearInterval(intervalId);
+      } else {
+        console.log('⚠️ Erro ao buscar saldo no perfil', err.message);
+      }
     }
   };
 
@@ -46,7 +50,7 @@ const Profile = () => {
           if (parsedUser && parsedUser.token) {
             fetchWalletBalance(parsedUser.token);
             intervalId = setInterval(() => {
-              fetchWalletBalance(parsedUser.token);
+              fetchWalletBalance(parsedUser.token, intervalId);
             }, 5000);
           }
         }
@@ -199,6 +203,21 @@ const Profile = () => {
                 <View style={styles.infoTextWrap}>
                   <Text style={styles.infoLabel}>E-MAIL</Text>
                   <Text style={styles.infoValue} numberOfLines={1}>{userData?.email || 'Adicione um email'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.lineDivider} />
+
+              {/* Membro desde */}
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconWrap}>
+                  <Ionicons name="calendar" size={18} color="#9333EA" />
+                </View>
+                <View style={styles.infoTextWrap}>
+                  <Text style={styles.infoLabel}>MEMBRO DESDE</Text>
+                  <Text style={styles.infoValue}>
+                    {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('pt-BR') : 'Data não disponível'}
+                  </Text>
                 </View>
               </View>
 

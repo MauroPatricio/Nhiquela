@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMoneyBillWave, faShoppingBag, faStar, faArrowUp } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from 'react-redux';
@@ -45,7 +45,7 @@ export default function SupplierDashboardScreen() {
             <div className="card-body p-4 d-flex justify-content-between align-items-center">
               <div>
                 <h6 className="opacity-75 mb-1">Vendas (Mês)</h6>
-                <h3 className="fw-bold m-0">45,000 MZN</h3>
+                <h3 className="fw-bold m-0">45,000 MT</h3>
                 <small className="opacity-75 d-block mt-2"><FontAwesomeIcon icon={faArrowUp} /> 12% vs Mês Passado</small>
               </div>
               <FontAwesomeIcon icon={faMoneyBillWave} size="3x" className="opacity-50" />
@@ -89,7 +89,7 @@ export default function SupplierDashboardScreen() {
              orders.length > 0 ? (
                <ul className="list-group text-start">
                  {orders.slice(0, 5).map(o => (
-                   <li key={o._id} className="list-group-item">{o.code} - {o.totalPrice} MZN</li>
+                   <li key={o._id} className="list-group-item">{o.code} - {o.totalPrice} MT</li>
                  ))}
                </ul>
              ) : 'Você não possui pedidos recentes.'

@@ -8,7 +8,8 @@ import {
   Animated, 
   TouchableOpacity,
   Modal,
-  Alert 
+  Alert,
+  Linking
 } from "react-native";
 import { COLORS } from "../styles/colors";
 import * as Location from 'expo-location';
@@ -359,18 +360,41 @@ export default function TripMap({
         <Text style={styles.statusText}>{statusInfo.title}</Text>
       </View>
 
-      {/* 🔥 BOTÃO PARA INICIAR VIAGEM (APENAS NO ESTÁGIO 4) - AGORA MAIS VISÍVEL */}
-      {stepStatus === 4 && (
-        <View style={styles.startTripButtonContainer}>
+      {/* 🔥 INFO DO CLIENTE / PASSAGEIRO */}
+      {tripData && (tripData.user || tripData.clientName) && (
+        <View style={styles.clientInfoBox}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <Ionicons name="person-circle-outline" size={32} color="#333" style={{ marginRight: 8 }} />
+            <View>
+              <Text style={styles.clientName}>{tripData.user?.name || tripData.clientName || 'Cliente'}</Text>
+              <Text style={styles.clientPhone}>{tripData.user?.phoneNumber || tripData.clientPhone || 'N/A'}</Text>
+            </View>
+          </View>
           <TouchableOpacity 
-            style={[styles.startTripButton, { backgroundColor: COLORS.warning }]}
-            onPress={handleStartTripPress}
+            style={styles.callButton}
+            onPress={() => {
+              const phone = tripData.user?.phoneNumber || tripData.clientPhone;
+              if (phone) Linking.openURL(`tel:${phone}`);
+            }}
           >
-            <Ionicons name="play-circle" size={28} color="#FFF" />
-            <Text style={styles.startTripButtonText}>Iniciar Viagem</Text>
+            <Ionicons name="call" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
       )}
+
+        {/* BOTAO PARA INICIAR VIAGEM (APENAS NO ESTAGIO 4) */}
+        {stepStatus === 4 && (
+          <View style={styles.startTripButtonContainer}>
+            <TouchableOpacity 
+              style={[styles.startTripButton, { backgroundColor: COLORS.primary }]}
+              activeOpacity={0.8}
+              onPress={handleStartTripPress}
+            >
+              <Ionicons name="play-circle" size={28} color="#FFF" />
+              <Text style={styles.startTripButtonText}>Iniciar Viagem</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       {/* 🔥 DURAÇÃO (APENAS SE TEM ROTA) */}
       {duration && shouldDrawRoute && (
@@ -483,36 +507,73 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 14,
     fontWeight: "bold",
-    marginLeft: 6,
+    marginLeft: 8,
   },
-  // 🔥 Container do Botão Iniciar Viagem - AGORA MAIS VISÍVEL
-  startTripButtonContainer: {
+  clientInfoBox: {
     position: "absolute",
-    top: '40%', // Posicionado no meio verticalmente
+    top: 90,
     alignSelf: "center",
-    width: '80%', // Largura maior
-  },
-  startTripButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     flexDirection: 'row',
     alignItems: 'center',
+    width: '90%',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  clientName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  clientPhone: {
+    fontSize: 12,
+    color: '#666',
+  },
+  callButton: {
+    backgroundColor: '#27AE60',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  startTripButtonText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
+    // Container do Botao Iniciar Viagem - PREMIUM
+    startTripButtonContainer: {
+      position: "absolute",
+      bottom: 50, // Move down so it doesn't block the map
+      alignSelf: "center",
+      width: '85%',
+    },
+    startTripButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 18,
+      paddingHorizontal: 24,
+      borderRadius: 16,
+      elevation: 10,
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    startTripButtonText: {
+      color: "#FFF",
+      fontSize: 18,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      marginLeft: 12,
+    },
   arrowMarkerContainer: {
     width: 40,
     height: 40,
@@ -653,72 +714,80 @@ const styles = StyleSheet.create({
   // 🔥 Estilos do Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContainer: {
     backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxWidth: 320,
-    elevation: 8,
+    borderRadius: 24,
+    padding: 28,
+    width: '95%',
+    maxWidth: 340,
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
   },
   modalHeader: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 12,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginTop: 14,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   modalMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#555',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+    lineHeight: 22,
+    marginBottom: 32,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 14,
   },
   modalButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 14,
+    elevation: 3,
   },
   cancelButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#f8f9fa',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#e9ecef',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
   confirmButton: {
-    backgroundColor: COLORS.warning,
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#495057',
+    fontSize: 15,
+    fontWeight: '700',
   },
   confirmButtonText: {
     color: '#FFF',
-    fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
   },

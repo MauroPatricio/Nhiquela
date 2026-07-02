@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Dimensions, Image } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Dimensions, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
@@ -8,6 +8,43 @@ import { useNavigation } from '@react-navigation/native';
 import { useToast } from 'react-native-toast-notifications';
 
 const { width } = Dimensions.get('window');
+
+
+const carouselData = [
+  /* Oculto para a próxima versão
+  {
+    id: '1',
+    title: 'Tem uma lista de compras ou receita?',
+    subtitle: 'Faça upload e nós tratamos de tudo!',
+    icon: 'file-document-outline',
+    bgColor: '#9333EA',
+  },
+  */
+  {
+    id: '2',
+    title: 'Serviço de Reboque',
+    subtitle: 'Assistência rápida na estrada',
+    image: require('../assets/images/reboque.png'),
+  },
+  {
+    id: '3',
+    title: 'Mudanças',
+    subtitle: 'Transporte seguro e profissional',
+    image: require('../assets/images/mudancas.png'),
+  },
+  {
+    id: '4',
+    title: 'Entrega de Gás',
+    subtitle: 'O seu gás em casa em minutos',
+    image: require('../assets/images/gas.png'),
+  },
+  {
+    id: '5',
+    title: 'Entregas Rápidas',
+    subtitle: 'A sua encomenda, sempre a horas',
+    image: require('../assets/images/entregas.png'),
+  }
+];
 
 export default function ServicesTab() {
   const [catalog, setCatalog] = useState([]);
@@ -18,6 +55,89 @@ export default function ServicesTab() {
   useEffect(() => {
     fetchCatalog();
   }, []);
+
+
+  const scrollViewRef = useRef(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      let nextIndex = (currentIndex + 1) % carouselData.length;
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: nextIndex * (width - 40), animated: true });
+      }
+      setCurrentIndex(nextIndex);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [currentIndex]);
+
+  const scrollNext = () => {
+    let nextIndex = (currentIndex + 1) % carouselData.length;
+    if (scrollViewRef.current) scrollViewRef.current.scrollTo({ x: nextIndex * (width - 40), animated: true });
+    setCurrentIndex(nextIndex);
+  };
+
+  const scrollPrev = () => {
+    let prevIndex = currentIndex === 0 ? carouselData.length - 1 : currentIndex - 1;
+    if (scrollViewRef.current) scrollViewRef.current.scrollTo({ x: prevIndex * (width - 40), animated: true });
+    setCurrentIndex(prevIndex);
+  };
+
+  const renderCarouselItem = ({ item }) => {
+    return (
+      <View style={[styles.carouselCard, { backgroundColor: item.bgColor || '#FFF' }]}>
+        {item.image && (
+          <Image source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={styles.carouselImage} />
+        )}
+        {/* Overlay escuro para imagens */}
+        {item.image && <View style={styles.carouselOverlay} />}
+        
+        <View style={styles.carouselContent}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.carouselTitle}>{item.title}</Text>
+            <Text style={styles.carouselSubtitle}>{item.subtitle}</Text>
+          </View>
+          {item.icon && <MaterialCommunityIcons name={item.icon} size={40} color="#FFF" style={styles.carouselIcon} />}
+        </View>
+      </View>
+    );
+  };
+
+  const renderCarousel = () => (
+    <View style={styles.carouselContainer}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(event) => {
+          const index = Math.round(event.nativeEvent.contentOffset.x / (width - 40));
+          setCurrentIndex(index);
+        }}
+      >
+        {carouselData.map((item, index) => (
+          <React.Fragment key={item.id}>
+            {renderCarouselItem({ item })}
+          </React.Fragment>
+        ))}
+      </ScrollView>
+      {/* Setas de navegação */}
+      <View style={styles.carouselArrowsContainer} pointerEvents="box-none">
+        <TouchableOpacity style={styles.carouselArrowButton} onPress={scrollPrev}>
+          <MaterialCommunityIcons name="chevron-left" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.carouselArrowButton} onPress={scrollNext}>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+      {/* Indicadores do Slide */}
+      <View style={styles.carouselDotsContainer} pointerEvents="none">
+        {carouselData.map((_, idx) => (
+          <View key={idx} style={[styles.carouselDot, currentIndex === idx && styles.carouselDotActive]} />
+        ))}
+      </View>
+    </View>
+  );
 
   const fetchCatalog = async () => {
     try {
@@ -41,7 +161,7 @@ export default function ServicesTab() {
           // Mapear para o formato esperado pelo layout antigo
           grouped[typeId].services.push({
             ...sub,
-            description: sub.description || 'Contrate este serviço rapidamente.',
+            description: (sub.description && sub.description.trim()) || (sub.providerTypeId && sub.providerTypeId.description && sub.providerTypeId.description.trim()) || ' ',
             icon: sub.iconUrl || sub.icon || 'toolbox-outline'
           });
         }
@@ -102,7 +222,10 @@ export default function ServicesTab() {
             <MaterialCommunityIcons name={iconName} size={32} color={mapped.color} />
           )}
         </View>
-        <Text style={styles.gridCardTitle} numberOfLines={2}>{service.name}</Text>
+        <Text style={styles.gridCardTitle} numberOfLines={1}>{service.name}</Text>
+        {service.description && service.description.trim() !== '' && (
+          <Text style={styles.gridCardSubtitle} numberOfLines={2}>{service.description}</Text>
+        )}
       </TouchableOpacity>
     );
   };
@@ -149,6 +272,7 @@ export default function ServicesTab() {
           renderItem={renderCategoryBlock}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderCarousel()}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <MaterialCommunityIcons name="toolbox-outline" size={60} color="#ccc" />
@@ -174,7 +298,90 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#1A1A1A' },
   headerSubtitle: { fontSize: 16, color: '#666', marginTop: 4 },
   
+
   listContainer: { padding: 20, paddingBottom: 100 },
+  
+  carouselContainer: {
+    height: 120,
+    marginBottom: 25,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  carouselCard: {
+    width: width - 40,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  carouselImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    resizeMode: 'cover',
+  },
+  carouselOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  carouselContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  carouselTitle: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  carouselSubtitle: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+  },
+  carouselIcon: {
+    marginLeft: 15,
+  },
+
+  carouselArrowsContainer: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    zIndex: 3,
+  },
+  carouselArrowButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  carouselDotsContainer: {
+    position: 'absolute',
+    bottom: 10,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  carouselDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginHorizontal: 3,
+  },
+  carouselDotActive: {
+    backgroundColor: '#FFF',
+    width: 12,
+  },
+
   
   categoryBlock: {
     marginBottom: 25,
@@ -223,7 +430,8 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    height: 120,
+    height: 'auto',
+    minHeight: 130,
   },
   cardIconCircle: {
     width: 50,
@@ -238,6 +446,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     color: '#1A1A1A'
+  },
+  gridCardSubtitle: {
+    fontSize: 10,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 12,
   },
   columnWrapper: {
     justifyContent: 'space-between',

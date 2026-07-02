@@ -36,6 +36,7 @@ export default function WalletScreen({ navigation, route }: any) {
     total_comissoes: 0,
     permite_negativo: false,
     bloqueio_automatico: true,
+    taxa_base_veiculo: 0,
   });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
   const [dailyEarnings, setDailyEarnings] = useState<Array<{ date: string, amount: number }>>([]);
@@ -44,6 +45,7 @@ export default function WalletScreen({ navigation, route }: any) {
   const [topUpAmount, setTopUpAmount] = useState('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [invalidValueModalVisible, setInvalidValueModalVisible] = useState(false);
+  const [invalidValueMessage, setInvalidValueMessage] = useState("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [missingReceiptModalVisible, setMissingReceiptModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -169,7 +171,17 @@ export default function WalletScreen({ navigation, route }: any) {
   };
 
   const handleTopUpSubmit = async () => {
-    if (!topUpAmount || isNaN(Number(topUpAmount)) || Number(topUpAmount) <= 0) {
+    const amountNum = Number(topUpAmount);
+    const taxaBase = balanceSummary.taxa_base_veiculo || 0;
+
+    if (!topUpAmount || isNaN(amountNum) || amountNum <= 0) {
+      setInvalidValueMessage("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
+      setInvalidValueModalVisible(true);
+      return;
+    }
+
+    if (amountNum < taxaBase) {
+      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para o seu tipo de veículo (${user?.deliveryman?.transport_type || 'registado'}) é de ${taxaBase} MT (Taxa Base).`);
       setInvalidValueModalVisible(true);
       return;
     }
@@ -310,32 +322,12 @@ export default function WalletScreen({ navigation, route }: any) {
                 </View>
                 <Text style={styles.cardValue}>{formatCurrency(balanceSummary.saldo_atual)}</Text>
                 
-                <View style={{ marginTop: 15, backgroundColor: '#f0f0f0', padding: 10, borderRadius: 8 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <Text style={{ fontSize: 12, color: '#666' }}>Mín. Operacional: {balanceSummary.saldo_operacional_minimo} MT</Text>
-                    {balanceSummary.permite_negativo && (
-                       <Text style={{ fontSize: 12, color: '#666' }}>Limite: {balanceSummary.limite_credito} MT</Text>
-                    )}
-                  </View>
-                  <View style={{ height: 6, backgroundColor: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
-                    <View style={{ 
-                        height: '100%', 
-                        backgroundColor: getStatusColor(balanceSummary.estado_atual),
-                        width: `${Math.min(100, Math.max(0, ((balanceSummary.saldo_atual - balanceSummary.limite_credito) / (balanceSummary.saldo_operacional_minimo - balanceSummary.limite_credito + 100)) * 100))}%`
-                      }} 
-                    />
-                  </View>
-                </View>
+
 
                 <View style={styles.actionButtonsRow}>
                   <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpModalVisible(true); }}>
                     <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
                     <Text style={styles.topUpText}>Recarregar</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity style={styles.withdrawBtn} onPress={() => { /* Levantar fundos logic */ }}>
-                    <Ionicons name="cash-outline" size={20} color="#34C759" style={{ marginRight: 8 }} />
-                    <Text style={styles.withdrawText}>Levantar</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -455,8 +447,16 @@ export default function WalletScreen({ navigation, route }: any) {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.confirmTopUpBtn} onPress={handleTopUpSubmit}>
-              <Text style={styles.confirmTopUpText}>Solicitar recarga</Text>
+            <TouchableOpacity 
+              style={[styles.confirmTopUpBtn, loading && { opacity: 0.7 }]} 
+              onPress={handleTopUpSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.confirmTopUpText}>Solicitar recarga</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -471,7 +471,7 @@ export default function WalletScreen({ navigation, route }: any) {
             </View>
             <Text style={styles.premiumAlertTitle}>Valor Inválido</Text>
             <Text style={styles.premiumAlertMessage}>
-              Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.
+              {invalidValueMessage}
             </Text>
             <TouchableOpacity
               style={styles.premiumAlertBtn}
@@ -1122,5 +1122,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#999',
     marginTop: 6,
+  },
+  premiumAlertButton: {
+    backgroundColor: '#34C759',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#34C759',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+    marginTop: 10,
+  },
+  premiumAlertButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   }
 });

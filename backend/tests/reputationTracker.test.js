@@ -4,7 +4,7 @@
 
 import { jest, beforeEach, test, expect, describe } from '@jest/globals';
 
-// ── Mock models BEFORE importing the module under test ──
+// -- Mock models BEFORE importing the module under test --
 const mockFindByIdAndUpdate = jest.fn();
 const mockFindById = jest.fn();
 const mockCountDocuments = jest.fn();
@@ -97,7 +97,7 @@ describe('reputationTracker', () => {
       mockFindById.mockResolvedValue({ completedOrders: 1, cancelledOrders: 5, totalOrders: 6 });
       mockFindByIdAndUpdate.mockResolvedValue({});
       await reputationTracker.updateUserRating('user123');
-      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { rating: 'Alto índice de cancelamento' });
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { rating: 'Alto �ndice de cancelamento' });
     });
   });
 

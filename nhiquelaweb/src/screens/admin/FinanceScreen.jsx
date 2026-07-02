@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch, faDownload, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
@@ -15,7 +15,7 @@ export default function FinanceScreen() {
   const [filterType, setFilterType] = useState('all'); // 'all', 'credit', 'debit'
   
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawData, setWithdrawData] = useState({ amount: '', phone: '' });
+  const [withdrawData, setWithdrawData] = useState({ amount: '', reason: '' });
   const [withdrawing, setWithdrawing] = useState(false);
 
   // Settings Modal
@@ -100,18 +100,20 @@ export default function FinanceScreen() {
   const handleWithdraw = async (e) => {
     e.preventDefault();
     if (!withdrawData.amount) return toast.error('Preencha o valor.');
+    if (!withdrawData.reason) return toast.error('Preencha o motivo.');
     
     setWithdrawing(true);
     try {
       const { data } = await api.post('/wallet/withdraw', {
-        amount: withdrawData.amount
+        amount: withdrawData.amount,
+        reason: withdrawData.reason
       });
       toast.success(data.message);
       setShowWithdrawModal(false);
-      setWithdrawData({ amount: '', phone: '' });
+      setWithdrawData({ amount: '', reason: '' });
       fetchWalletData(); // Atualiza o saldo e extrato
     } catch (error) {
-      toast.error('Erro ao processar o levantamento. Verifique o saldo.');
+      toast.error(error.response?.data?.message || 'Erro ao processar o levantamento. Verifique o saldo.');
     } finally {
       setWithdrawing(false);
     }
@@ -195,7 +197,7 @@ export default function FinanceScreen() {
                 <span className="text-muted fw-bold text-uppercase">Saldo Disponível</span>
               </div>
               <h3 className="fw-bold text-dark m-0">
-                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${(balances.available || 0).toFixed(2)} ${balances.currency || 'MZN'}`}
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${(balances.available || 0).toFixed(2)} ${balances.currency || 'MT'}`}
               </h3>
             </div>
           </div>
@@ -208,7 +210,7 @@ export default function FinanceScreen() {
                 <span className="text-muted fw-bold text-uppercase">Saldo Pendente (Aguardando Libertação)</span>
               </div>
               <h3 className="fw-bold text-dark m-0">
-                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${(balances.pending || 0).toFixed(2)} ${balances.currency || 'MZN'}`}
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${(balances.pending || 0).toFixed(2)} ${balances.currency || 'MT'}`}
               </h3>
             </div>
           </div>
@@ -399,7 +401,10 @@ export default function FinanceScreen() {
               <form onSubmit={handleWithdraw}>
                 <div className="mb-4">
                   <label className="form-label fw-bold small text-muted mb-1">Valor a Levantar (MT)</label>
-                  <input type="number" className="form-control bg-light border-0 py-3 rounded-3 fw-bold" value={withdrawData.amount} onChange={(e) => setWithdrawData({...withdrawData, amount: e.target.value})} placeholder="0.00" required disabled={withdrawing} />
+                  <input type="number" className="form-control bg-light border-0 py-3 rounded-3 fw-bold mb-3" value={withdrawData.amount} onChange={(e) => setWithdrawData({...withdrawData, amount: e.target.value})} placeholder="0.00" required disabled={withdrawing} />
+
+                  <label className="form-label fw-bold small text-muted mb-1">Motivo do Levantamento</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={withdrawData.reason} onChange={(e) => setWithdrawData({...withdrawData, reason: e.target.value})} placeholder="Ex: Pagamento a parceiro" required disabled={withdrawing} />
                 </div>
                 
                 <button type="submit" className="btn bg-success text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm" disabled={withdrawing || balances.available <= 0}>
@@ -481,3 +486,4 @@ export default function FinanceScreen() {
     </div>
   );
 }
+

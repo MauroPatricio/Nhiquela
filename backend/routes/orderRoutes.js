@@ -279,6 +279,12 @@ orderRouter.get(
 
 
 orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
+    // Check for cancellation penalty block
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser && currentUser.blockedUntil && currentUser.blockedUntil > new Date()) {
+      return res.status(403).send({ message: "Conta bloqueada por 30 dias devido a cancelamentos sucessivos sem justificação válida." });
+    }
+
     const priceFromSeller = parseFloat(req.body.itemsPriceForSeller);
     let commissionRate = 0.15; // default 15%
     let priceComission = 0;
@@ -400,7 +406,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
       }
 
       // Create a notification after the order is saved
-      const mensagem = `Olá! Seu pedido com o código ${order.code} foi criado com sucesso! 🎉 Agora, aguarde a confirmação do fornecedor. Acompanhe o status do seu pedido diretamente no app. Obrigado por escolher a Nhiquela! ❤️`;
+      const mensagem = `Ol�! Seu pedido com o c�digo ${order.code} foi criado com sucesso! ?? Agora, aguarde a confirma��o do fornecedor. Acompanhe o status do seu pedido diretamente no app. Obrigado por escolher a Nhiquela! ??`;
 
 
       const sellerOfProduct = await User.findById(order.seller);
@@ -445,7 +451,7 @@ orderRouter.get(
   expressAsyncHandler(async (req, res) => {
     const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false, deleted: { $eq: false } }).populate('seller deliveryman').sort({ createdAt: -1 });
     
-    // 🔥 IMPORTANTE: Incluir também os serviços (RequestDeliver)
+    // ?? IMPORTANTE: Incluir tamb�m os servi�os (RequestDeliver)
     const trips = await RequestDeliver.find({ user: req.user._id, deleted: { $eq: false } }).populate('user deliveryman').sort({ createdAt: -1 });
     
     // Mesclar ambos e ordenar por data
@@ -575,7 +581,7 @@ orderRouter.delete(
 
       res.send({ message: `Pedido removido com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -595,7 +601,7 @@ orderRouter.delete(
 
       res.send({ message: `Pedido removido com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -613,7 +619,7 @@ orderRouter.delete(
 
       res.send({ message: `Pedido removido com sucesso (Soft Delete)` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -628,7 +634,7 @@ orderRouter.get(
     if (order) {
       res.send(order);
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -641,7 +647,7 @@ orderRouter.put(
     const order = await Order.findById(req.params.id);
 
     if (!order) {
-      return res.status(404).send({ message: 'Pedido não encontrado' });
+      return res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
 
     order.isPaid = true;
@@ -660,7 +666,7 @@ orderRouter.put(
     const clientOfProduct = await User.findById(updatedOrder.user);
 
     //  Para envio de mensagens
-    let message = `Olá! 👋 O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para você. Obrigado por confiar na Nhiquela!`;
+    let message = `Ol�! ?? O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para voc�. Obrigado por confiar na Nhiquela!`;
     // sendEmailOrderToSeller(req,message, sellerOfProduct, updatedOrder, res);
 
     if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
@@ -700,7 +706,7 @@ orderRouter.put(
     const order = await Order.findById(req.params.id);
 
     if (!order) {
-      return res.status(404).send({ message: 'Pedido não encontrado' });
+      return res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
 
     order.isAccepted = true;
@@ -753,7 +759,7 @@ orderRouter.put(
     const order = await Order.findById(req.params.id);
 
     if (!order) {
-      return res.status(404).send({ message: 'Pedido não encontrado' });
+      return res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
 
     order.isAvailableToDeliver = true;
@@ -798,7 +804,7 @@ orderRouter.put(
     sendEmailOrderStatus(req, message, order, res);
 
     // sendSMSToUSendItAdmin(message);
-    res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
+    res.send({ order: savedOrder, message: `Pedido dispon�vel para entrega` });
   })
 );
 
@@ -814,7 +820,7 @@ orderRouter.put(
 
     if (order) {
       order.isAvailableToDeliver = true;
-      order.status = 'Disponível para entrega';
+      order.status = 'Dispon�vel para entrega';
       order.stepStatus = 3;
       if (order.addressPrice === 0) {
         order.status = 'Finalizado';
@@ -856,13 +862,13 @@ orderRouter.put(
       sendEmailOrderStatus(req, message, order, res);
 
       // sendSMSToUSendItAdmin(message);
-      res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
+      res.send({ order: savedOrder, message: `Pedido dispon�vel para entrega` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
 
     order.isAvailableToDeliver = true;
-    order.status = 'Disponível para entrega';
+    order.status = 'Dispon�vel para entrega';
     order.stepStatus = 3;
 
     if (order.addressPrice === 0) {
@@ -874,16 +880,16 @@ orderRouter.put(
 
     await order.save();
 
-    // 👉 Recarrega o pedido com o campo `user` populado
+    // ?? Recarrega o pedido com o campo `user` populado
     const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
 
-    const message = `Olá, a Nhiquela lhe informa que o pedido nr ${order.code} está pronto e disponível para entrega.`;
+    const message = `Ol�, a Nhiquela lhe informa que o pedido nr ${order.code} est� pronto e dispon�vel para entrega.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
     if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
-      // Aqui você pode ativar o envio de notificação, se necessário
+      // Aqui voc� pode ativar o envio de notifica��o, se necess�rio
       /*
       await createNotification({
         message,
@@ -905,7 +911,7 @@ orderRouter.put(
 
     //  sendEmailOrderStatus(req, message, order, res);
 
-    res.send({ order: savedOrder, message: `Pedido disponível para entrega` });
+    res.send({ order: savedOrder, message: `Pedido dispon�vel para entrega` });
   })
 );
 
@@ -956,7 +962,7 @@ orderRouter.put(
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Fornecedor pago com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -1005,7 +1011,7 @@ orderRouter.put(
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Entregador pago com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -1019,7 +1025,7 @@ orderRouter.put(
     const user_deliver = await User.findById(req.user._id);
 
     if (!user_deliver) {
-      return res.status(404).send({ message: 'Motorista não encontrado na base de dados. Por favor, inicie sessão novamente.' });
+      return res.status(404).send({ message: 'Motorista n�o encontrado na base de dados. Por favor, inicie sess�o novamente.' });
     }
 
     if (order) {
@@ -1032,7 +1038,7 @@ orderRouter.put(
           id: user_deliver._id,
           photo: user_deliver.deliveryman?.photo || '',
           name: user_deliver.deliveryman?.name || '',
-          phoneNumber: user_deliver.deliveryman?.phoneNumber || '',
+          phoneNumber:  user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
           transport_type: user_deliver.deliveryman?.transport_type || '',
           transport_color: user_deliver.deliveryman?.transport_color || '',
           transport_registration: user_deliver.deliveryman?.transport_registration || '',
@@ -1074,7 +1080,7 @@ orderRouter.put(
 
       res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -1089,7 +1095,7 @@ orderRouter.put(
     if (order) {
       //     order.isPaid = true;
       //     order.paidAt= Date.now();
-      order.status = 'Em trânsito';
+      order.status = 'Em tr�nsito';
       order.isInTransit = true;
       order.stepStatus = 5;
 
@@ -1152,12 +1158,12 @@ orderRouter.put(
         }
       }
 
-      res.send({ order: savedOrder, message: `Pedido em trânsito` });
+      res.send({ order: savedOrder, message: `Pedido em tr�nsito` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
 
-    order.status = 'Em trânsito';
+    order.status = 'Em tr�nsito';
     order.isInTransit = true;
     order.stepStatus = 5;
 
@@ -1166,12 +1172,12 @@ orderRouter.put(
     // Recarrega o pedido com o campo user populado
     const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
 
-    const message = `A Nhiquela lhe informa que o pedido ${order.code} está a caminho do destino indicado.`;
+    const message = `A Nhiquela lhe informa que o pedido ${order.code} est� a caminho do destino indicado.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    // Aqui você pode reativar as notificações se desejar:
+    // Aqui voc� pode reativar as notifica��es se desejar:
     /*
     if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       await createNotification({
@@ -1192,10 +1198,10 @@ orderRouter.put(
     }
     */
 
-    // Exemplo de envio de e-mail (já comentado no seu código):
+    // Exemplo de envio de e-mail (j� comentado no seu c�digo):
     // sendEmailOrderToSeller(req, message, sellerOfProduct, order, res);
 
-    res.send({ order: savedOrder, message: `Pedido em trânsito` });
+    res.send({ order: savedOrder, message: `Pedido em tr�nsito` });
   })
 );
 
@@ -1255,7 +1261,7 @@ orderRouter.put(
 
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -1340,7 +1346,7 @@ orderRouter.put(
       
       res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
   })
 );
@@ -1415,7 +1421,7 @@ orderRouter.put(
 
       res.send({ message: `Pedido cancelado com sucesso`, order: savedOrder });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido n�o encontrado' });
     }
 
     // Repor o stock de cada produto do pedido
@@ -1443,12 +1449,12 @@ orderRouter.put(
     // Buscar novamente o pedido com o campo user populado
     const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
 
-    const message = `Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento poderá verificar pesquisando pelo código.`;
+    const message = `Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento poder� verificar pesquisando pelo c�digo.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    // Notificações (se quiser ativar):
+    // Notifica��es (se quiser ativar):
     /*
     if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       await createNotification({
@@ -1476,7 +1482,7 @@ orderRouter.put(
 );
 
 
-// Pedidos disponíveis para entrega (stepStatus = 3)
+// Pedidos dispon�veis para entrega (stepStatus = 3)
 orderRouter.get('/status/:status', isAuth, async (req, res) => {
   if (req.params.status === 'available') {
     try {
@@ -1498,11 +1504,11 @@ orderRouter.get('/status/:status', isAuth, async (req, res) => {
           : null
       }));
 
-      console.log("📄 Orders com seller simplificado:", JSON.stringify(simplifiedOrders, null, 2));
+      console.log("?? Orders com seller simplificado:", JSON.stringify(simplifiedOrders, null, 2));
       return res.json(simplifiedOrders);
 
     } catch (error) {
-      console.error("❌ Erro ao buscar orders:", error);
+      console.error("? Erro ao buscar orders:", error);
       return res.status(500).send({ message: "Erro interno" });
     }
   }
@@ -1536,7 +1542,7 @@ orderRouter.get(
 
     const driver = await User.findById(deliverymanId);
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista não encontrado' });
+      return res.status(404).send({ message: 'Motorista n�o encontrado' });
     }
 
     const isDriverActive = driver.availability === 'active';
@@ -1548,7 +1554,7 @@ orderRouter.get(
       { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
     ];
     if (isDriverActive) {
-      orderConditions.push({ stepStatus: 3 }); // Disponíveis para aceitar se ativo
+      orderConditions.push({ stepStatus: 3 }); // Dispon�veis para aceitar se ativo
     }
 
     const ordersPromise = Order.find({
@@ -1559,7 +1565,7 @@ orderRouter.get(
       .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestDelivers de serviços (reboque, etc)
+    // Buscar RequestDelivers de servi�os (reboque, etc)
     const requestDeliverConditions = [
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade
@@ -1567,7 +1573,7 @@ orderRouter.get(
     if (isDriverActive) {
       const availableCondition = { stepStatus: 3 };
       if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Match exato com o veículo do motorista
+        availableCondition.transportType = driverTransportType; // Match exato com o ve�culo do motorista
       }
       requestDeliverConditions.push(availableCondition);
     }
@@ -1626,7 +1632,7 @@ orderRouter.get(
     const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
     const formattedRequests = requestDeliversResult.map(r => ({ ...r, type: 'requestDeliver' }));
 
-    // Combinar, ordenar por data e fazer paginação em memória
+    // Combinar, ordenar por data e fazer pagina��o em mem�ria
     let combined = [...formattedOrders, ...formattedRequests];
     combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

@@ -33,7 +33,7 @@ router.delete(
       await customer.deleteOne();
       res.send({ message: 'Cliente removido com sucesso' });
     } else {
-      res.status(404).send({ message: 'Cliente nÃ£o encontrado' });
+      res.status(404).send({ message: 'Cliente não encontrado' });
     }
   })
 );

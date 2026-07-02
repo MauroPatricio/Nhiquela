@@ -167,14 +167,19 @@ const Home = () => {
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
 
-  const fetchWalletBalance = async (token) => {
+  const fetchWalletBalance = async (token, intervalId) => {
     try {
       const res = await api.get('/wallet/balance', {
         headers: { authorization: `Bearer ${token}` }
       });
       setWalletBalance(res.data.available_balance || 0);
     } catch (err) {
-      console.log('Erro ao buscar saldo', err.message);
+      if (err.response?.status === 401) {
+        // Token inválido/expirado, limpar interval para parar de spammar
+        if (intervalId) clearInterval(intervalId);
+      } else {
+        console.log('⚠️ Erro ao buscar saldo:', err.message);
+      }
     }
   };
 
@@ -249,7 +254,7 @@ const Home = () => {
               fetchWalletBalance(parsedUser.token);
               // Sincronização em tempo real (polling)
               intervalId = setInterval(() => {
-                fetchWalletBalance(parsedUser.token);
+                fetchWalletBalance(parsedUser.token, intervalId);
               }, 5000);
             }
           }
@@ -358,9 +363,9 @@ const Home = () => {
 
   const updatePushToken = async (userId, deviceToken) => {
     try {
-      await api.patch(`/users/updateDeviceToken/${userId}`, { deviceToken });
+      await api.patch(`/users/updatePushToken/${userId}`, { pushToken: deviceToken });
     } catch (error) {
-      console.error('Erro ao atualizar PushToken:', error.message);
+      console.log('⚠️ Erro ao atualizar PushToken:', error.message);
     }
   };
 
@@ -699,18 +704,20 @@ responseListener.remove();
                 windowSize={5}
               />
               
-              {/* Botão Upload Documento */}
-              <TouchableOpacity 
-                style={styles.documentUploadCard}
-                onPress={() => navigation.navigate('DocumentUploadScreen')}
-                activeOpacity={0.9}
-              >
-                <View style={styles.documentUploadContent}>
-                  <Text style={styles.documentUploadTitle}>Tem uma lista de compras ou receita?</Text>
-                  <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
-                </View>
-                <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />
-              </TouchableOpacity>
+              {/* Botão Upload Documento (Oculto para a próxima versão) */}
+              {false && (
+                <TouchableOpacity 
+                  style={styles.documentUploadCard}
+                  onPress={() => navigation.navigate('DocumentUploadScreen')}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.documentUploadContent}>
+                    <Text style={styles.documentUploadTitle}>Tem uma lista de compras ou receita?</Text>
+                    <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
+                  </View>
+                  <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />
+                </TouchableOpacity>
+              )}
 
               {/* Produtos em Destaque */}
               {renderFeaturedProducts()}

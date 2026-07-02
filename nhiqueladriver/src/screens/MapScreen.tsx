@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import TripMap from "../components/TripMap";
 import TripControls from "../components/TripControls";
@@ -199,7 +199,8 @@ export default function MapScreen({ route, navigation }: any) {
       }
 
       // Atualizar status da ordem no backend
-      await startOrderInTransit(trip.id);
+      const isRequestDeliver = trip.originalData?.goodType !== undefined;
+      await startOrderInTransit(trip.id, isRequestDeliver);
 
       // Atualizar destino para o cliente (agora stepStatus = 5)
       const clientLat = Number(trip.originalData?.deliveryAddress?.latitude);

@@ -68,7 +68,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                 });
                 const formatted = filtered.map((item: any) => ({
                     label: item.name,
-                    value: item.name,
+                    value: item._id, // Usar o ID do serviço
                     pricingMode: item.pricingMode
                 }));
                 setSubcategories(formatted);
@@ -244,7 +244,11 @@ export default function RegisterDriverScreen({ navigation }: any) {
         setErrors({});
         showLoading('A submeter candidatura...');
         try {
-            const finalData = { ...form, isDeliveryMan: true };
+            const finalData = { 
+                ...form, 
+                isDeliveryMan: true,
+                providedServices: form.transport_type ? [form.transport_type] : []
+            };
 
             showProcessing('Finalizando...');
             await registerDriver(finalData);

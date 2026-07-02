@@ -301,7 +301,7 @@ export default function SignupScreen() {
                 onChange={(e) => setCheckedTerms(e.target.checked)} 
               />
               <label className="form-check-label text-muted small cursor-pointer" htmlFor="terms">
-                Declaro que li e concordo com os <a href="#" className="text-primary-custom fw-bold">Termos e Condições</a> da plataforma.
+                Declaro que li e concordo com os <a href="/terms" target="_blank" className="text-primary-custom fw-bold">Termos e Condições</a> e com a <a href="/privacy-policy" target="_blank" className="text-primary-custom fw-bold">Política de Privacidade</a> da plataforma.
               </label>
             </div>
 

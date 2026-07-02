@@ -1,4 +1,4 @@
-import ProviderType from '../models/ProviderTypeModel.js';
+﻿import ProviderType from '../models/ProviderTypeModel.js';
 import expressAsyncHandler from 'express-async-handler';
 
 // @desc    Get all provider types

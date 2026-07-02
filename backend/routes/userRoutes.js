@@ -35,7 +35,7 @@ userRouter.get(
       res.send({ users, pages });
     } catch (e) {
       console.log(e);
-      res.status(500).send({ message: 'Erro ao buscar usuários' });
+      res.status(500).send({ message: 'Erro ao buscar usu�rios' });
     }
   })
 );
@@ -89,7 +89,7 @@ userRouter.get(
         ...seller,
         seller: {
           ...seller.seller,
-          tipoEstabelecimento: seller.seller.tipoEstabelecimento?.name || 'Não especificado'
+          tipoEstabelecimento: seller.seller.tipoEstabelecimento?.name || 'N�o especificado'
         }
       }));
 
@@ -102,7 +102,7 @@ userRouter.get(
       console.error('Erro ao buscar top sellers:', error);
       res.status(500).json({
         success: false,
-        message: 'Erro interno ao processar sua solicitação'
+        message: 'Erro interno ao processar sua solicita��o'
       });
     }
   })
@@ -143,7 +143,7 @@ userRouter.get(
       });
       const uniqueSellers = Array.from(uniqueSellersMap.values());
 
-      // Paginação
+      // Pagina��o
       const countSellers = uniqueSellers.length;
       const pages = Math.ceil(countSellers / pageSize);
       const paginatedSellers = uniqueSellers.slice(pageSize * (page - 1), pageSize * page);
@@ -168,7 +168,7 @@ userRouter.post(
 
 
 
-    // Buscar usuário vendedor
+    // Buscar usu�rio vendedor
     const isEmail = phoneNumber.includes('@');
     const query = isEmail
       ? { email: phoneNumber, isSeller: true }
@@ -176,22 +176,22 @@ userRouter.post(
 
     const user = await User.findOne(query);
 
-    // ❌ Usuário não existe
+    // ? Usu�rio n�o existe
     if (!user) {
-      return res.status(401).send({ message: 'Usuário não encontrado ou não é vendedor' });
+      return res.status(401).send({ message: 'Usu�rio n�o encontrado ou n�o � vendedor' });
     }
 
-    // ❌ Conta banida
+    // ? Conta banida
     if (user.isBanned) {
       return res.status(401).send({
         message: 'Esta conta foi BANIDA! Por favor, contacte o administrador.',
       });
     }
 
-    // ❌ Senha errada
+    // ? Senha errada
     const isPasswordCorrect = bcrypt.compareSync(password, user.password);
     if (!isPasswordCorrect) {
-      return res.status(401).send({ message: 'Senha inválida' });
+      return res.status(401).send({ message: 'Senha inv�lida' });
     }
 
     // Atualizar token do dispositivo, se fornecido
@@ -200,7 +200,7 @@ userRouter.post(
       await user.save();
     }
 
-    // Sucesso → devolve dados completos
+    // Sucesso ? devolve dados completos
     return res.status(200).send({
       _id: user._id,
       email: user.email,
@@ -231,15 +231,15 @@ userRouter.get(
           ...user.toObject(),
           seller: {
             ...user.seller.toObject(),
-            tipoEstabelecimento: user.seller.tipoEstabelecimento?.name || 'Não especificado'
+            tipoEstabelecimento: user.seller.tipoEstabelecimento?.name || 'N�o especificado'
           }
         });
       } else {
-        res.status(404).send({ message: 'Utilizador não encontrado' });
+        res.status(404).send({ message: 'Utilizador n�o encontrado' });
       }
     } catch (error) {
-      console.error('Erro ao buscar usuário:', error);
-      res.status(500).send({ message: 'Erro interno ao buscar usuário' });
+      console.error('Erro ao buscar usu�rio:', error);
+      res.status(500).send({ message: 'Erro interno ao buscar usu�rio' });
     }
   })
 );
@@ -303,7 +303,7 @@ userRouter.put(
             console.log('Erro ao sincronizar Provider: ', e);
           }
         } else {
-          // Limpa os dados do seller se não for mais um vendedor
+          // Limpa os dados do seller se n�o for mais um vendedor
           user.seller = {
             name: "",
             description: "",
@@ -353,7 +353,7 @@ userRouter.put(
           token: generateToken(updatedUser),
         });
       } else {
-        res.status(404).send({ message: 'Usuário não encontrado' });
+        res.status(404).send({ message: 'Usu�rio n�o encontrado' });
       }
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
@@ -409,7 +409,7 @@ userRouter.put(
       await user.save();
       res.send({ message: 'Utilizador Actualizado Com Sucesso' });
     } else {
-      res.status(404).send({ message: 'Utilizador não encontrado' });
+      res.status(404).send({ message: 'Utilizador n�o encontrado' });
     }
   })
 );
@@ -447,8 +447,8 @@ userRouter.get(
       const countUsers = await User.countDocuments(query);
       const pages = Math.ceil(countUsers / pageSize);
 
-      // REMOVA COMPLETAMENTE O FILTRO DE DUPLICATAS - não é necessário
-      // O MongoDB já garante que não retorna documentos duplicados
+      // REMOVA COMPLETAMENTE O FILTRO DE DUPLICATAS - n�o � necess�rio
+      // O MongoDB j� garante que n�o retorna documentos duplicados
 
       const formattedUsers = users.map(user => ({
         _id: user._id,
@@ -507,7 +507,7 @@ userRouter.get(
 //       await user.save();
 //       res.status(201).send({user,  message: 'Loja Actualizada com Sucesso' });
 //     } else {
-//       res.status(404).send({ message: 'Utilizador não encontrado' });
+//       res.status(404).send({ message: 'Utilizador n�o encontrado' });
 //     }
 //   })
 // );
@@ -542,7 +542,7 @@ userRouter.put(
         message: 'Loja e produtos atualizados com sucesso',
       });
     } else {
-      res.status(404).send({ message: 'Utilizador não encontrado' });
+      res.status(404).send({ message: 'Utilizador n�o encontrado' });
     }
   })
 );
@@ -581,7 +581,7 @@ const text = `<p>Por favor click no link abaixo para resetar a sua senha</p>
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',         
   to: user.email,       
-  subject: 'Recuperação de senha – Nhiquela Shop',                
+  subject: 'Recupera��o de senha � Nhiquela Shop',                
   text: text,
 };
 
@@ -589,7 +589,7 @@ const mailOptions = {
 transporter.sendMail(mailOptions, function (error, info) {
   if (error) {
     console.error('Error sending email:', error);
-    res.status(404).send({message: 'Email não enviado'})
+    res.status(404).send({message: 'Email n�o enviado'})
 
   } else {
     console.log('Email sent:', info.response);
@@ -601,7 +601,7 @@ transporter.sendMail(mailOptions, function (error, info) {
     
 
   }else{
-    res.status(404).send({message: 'Utilizador não encontrado'})
+    res.status(404).send({message: 'Utilizador n�o encontrado'})
   }
 }));
 
@@ -614,7 +614,7 @@ userRouter.patch(
     const user = await User.findById(req.params.id);
 
     if (!user) {
-      return res.status(404).json({ message: 'Utilizador não encontrado' });
+      return res.status(404).json({ message: 'Utilizador n�o encontrado' });
     }
 
     user.seller.openstore = Boolean(isOpenStore);
@@ -626,7 +626,7 @@ userRouter.patch(
       { isSellerOpen: Boolean(isOpenStore) }
     );
 
-    // Notificação via socket
+    // Notifica��o via socket
     const io = req.app.get('io');
     io.emit('storeStatusChanged', { sellerId: req.params.id, isOpen: Boolean(isOpenStore) });
 
@@ -667,11 +667,11 @@ userRouter.post(
     try {
       const user = await User.findById(req.user._id);
       if (!user || !user.isDeliveryMan) {
-        return res.status(404).send({ message: 'Motorista não encontrado' });
+        return res.status(404).send({ message: 'Motorista n�o encontrado' });
       }
 
       // Instead of an approval flow, let's just update the driver directly to simplify,
-      // or if DeliverymanUpdateRequest is required, save it there. The app says "enviadas para aprovação"
+      // or if DeliverymanUpdateRequest is required, save it there. The app says "enviadas para aprova��o"
       // Let's create the request model if needed, or directly update since it's just basic fields.
       // Actually, since we need to save the new fields:
       const updateData = req.body;
@@ -696,25 +696,27 @@ userRouter.post(
         Proof_of_Addres_Reason: updateData.Proof_of_Addres_Reason || user.deliveryman.Proof_of_Addres_Reason,
         hasHelpers: updateData.hasHelpers !== undefined ? updateData.hasHelpers : user.deliveryman.hasHelpers,
         helperCount: updateData.helperCount !== undefined ? updateData.helperCount : user.deliveryman.helperCount,
+        docUpdateStatus: 'Nenhum'
       };
 
       await user.save();
 
       // Create a record of the request
       const updateRequest = new DeliverymanUpdateRequest({
-        userId: user._id,
-        status: 'PENDING',
-        requestedData: updateData
+        deliverymanId: user._id,
+        type: 'profile_update',
+        status: 'APPROVED', // Já foi editado e guardado diretamente
+        updatedFields: updateData
       });
       await updateRequest.save();
 
       res.status(200).send({ 
-        message: 'Solicitação de atualização recebida com sucesso.',
+        message: 'Solicitao de atualizao recebida com sucesso.',
         requestId: updateRequest._id
       });
     } catch (error) {
       console.error('Erro no update request do motorista:', error);
-      res.status(500).send({ message: 'Erro ao processar solicitação' });
+      res.status(500).send({ message: 'Erro ao processar solicita��o' });
     }
   })
 );
@@ -730,7 +732,7 @@ userRouter.post('/send-otp', expressAsyncHandler(async (req, res) => {
   const { phoneNumber } = req.body;
   
   if (!phoneNumber) {
-    return res.status(400).send({ message: 'Número de telefone é obrigatório' });
+    return res.status(400).send({ message: 'N�mero de telefone � obrigat�rio' });
   }
 
   // Verifica se o utilizador existe
@@ -742,39 +744,39 @@ userRouter.post('/send-otp', expressAsyncHandler(async (req, res) => {
   }
   
   if (!user) {
-    return res.status(404).send({ message: 'Conta/Usuário não encontrado. Registe-se primeiro.' });
+    return res.status(404).send({ message: 'Conta/Usu�rio n�o encontrado. Registe-se primeiro.' });
   }
 
   if (user.isBanned) {
     return res.status(401).send({ message: 'Esta conta foi BANIDA. Por favor, contacte o Administrador.' });
   }
 
-  // Gerar um código OTP simples (ex: 1234 para testes ou random)
+  // Gerar um c�digo OTP simples (ex: 1234 para testes ou random)
   const otpCode = "1234"; // Fixo para facilidade de teste
   
   // Guardar no Map (telefone -> otp)
   otpStore.set(phoneNumber, otpCode);
 
-  // Em produção, aqui chamaria o Twilio, Firebase, InfoBip, etc.
+  // Em produ��o, aqui chamaria o Twilio, Firebase, InfoBip, etc.
   console.log(`[MOCK SMS] Enviando OTP ${otpCode} para ${phoneNumber}`);
 
-  res.send({ message: 'Código SMS enviado com sucesso', success: true });
+  res.send({ message: 'C�digo SMS enviado com sucesso', success: true });
 }));
 
 userRouter.post('/verify-otp', expressAsyncHandler(async (req, res) => {
   const { phoneNumber, otp, deviceToken } = req.body;
 
   if (!phoneNumber || !otp) {
-    return res.status(400).send({ message: 'Telefone e código são obrigatórios' });
+    return res.status(400).send({ message: 'Telefone e c�digo s�o obrigat�rios' });
   }
 
   const storedOtp = otpStore.get(phoneNumber);
 
   if (!storedOtp || storedOtp !== otp) {
-    return res.status(401).send({ message: 'Código inválido ou expirado' });
+    return res.status(401).send({ message: 'C�digo inv�lido ou expirado' });
   }
 
-  // Código correto, limpar da memória
+  // C�digo correto, limpar da mem�ria
   otpStore.delete(phoneNumber);
 
   // Fazer Login
@@ -786,7 +788,7 @@ userRouter.post('/verify-otp', expressAsyncHandler(async (req, res) => {
   }
 
   if (!user) {
-    return res.status(404).send({ message: 'Utilizador não encontrado' });
+    return res.status(404).send({ message: 'Utilizador n�o encontrado' });
   }
 
   // Atualiza o token do dispositivo
@@ -820,7 +822,7 @@ userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
   const { phoneNumber } = req.body;
   
   if (!phoneNumber) {
-    return res.status(400).send({ message: 'Número de telefone é obrigatório' });
+    return res.status(400).send({ message: 'N�mero de telefone � obrigat�rio' });
   }
 
   let user;
@@ -831,14 +833,14 @@ userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
   }
   
   if (!user) {
-    return res.status(404).send({ message: 'Conta/Usuário não encontrado.' });
+    return res.status(404).send({ message: 'Conta/Usu�rio n�o encontrado.' });
   }
 
   if (!user.email) {
-    return res.status(400).send({ message: 'Não existe nenhum email associado a esta conta.' });
+    return res.status(400).send({ message: 'N�o existe nenhum email associado a esta conta.' });
   }
 
-  // Gera uma nova senha aleatória de 6 dígitos
+  // Gera uma nova senha aleat�ria de 6 d�gitos
   const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
   
   // Hash da nova senha e atualiza no BD
@@ -848,8 +850,8 @@ userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
   // MOCK DE ENVIO DE EMAIL
   console.log('================================================');
   console.log(`[MOCK EMAIL] Para: ${user.email}`);
-  console.log(`Assunto: Recuperação de Palavra-passe - Nhiquela`);
-  console.log(`Mensagem: Olá ${user.name}, a sua nova senha de acesso é: ${newPassword}`);
+  console.log(`Assunto: Recupera��o de Palavra-passe - Nhiquela`);
+  console.log(`Mensagem: Ol� ${user.name}, a sua nova senha de acesso �: ${newPassword}`);
   console.log('================================================');
 
   res.send({ 
@@ -868,7 +870,7 @@ userRouter.post(
 
     let user = null;
 
-    // --- Buscar usuário por email ou telefone ---
+    // --- Buscar usu�rio por email ou telefone ---
     if (email) {
       user = await User.findOne({ email });
     } else if (phoneNumber) {
@@ -877,18 +879,18 @@ userRouter.post(
       } else if (!isNaN(phoneNumber)) {
         user = await User.findOne({ phoneNumber });
       } else {
-        return res.status(400).send({ message: 'Número de telefone inválido.' });
+        return res.status(400).send({ message: 'N�mero de telefone inv�lido.' });
       }
     } else {
-      return res.status(400).send({ message: 'E-mail ou Telefone são obrigatórios.' });
+      return res.status(400).send({ message: 'E-mail ou Telefone s�o obrigat�rios.' });
     }
 
-    // --- Verificar se usuário existe ---
+    // --- Verificar se usu�rio existe ---
     if (!user) {
-      return res.status(401).send({ message: 'Conta/Usuário não encontrado.' });
+      return res.status(401).send({ message: 'Conta/Usu�rio n�o encontrado.' });
     }
 
-    // --- Verificar se está banido ---
+    // --- Verificar se est� banido ---
     if (user.isBanned) {
       return res.status(401).send({
         message: 'Esta conta foi BANIDA. Por favor, contacte o Administrador.',
@@ -898,7 +900,7 @@ userRouter.post(
     // --- Verificar senha ---
     const passwordMatch = bcrypt.compareSync(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).send({ message: 'Senha inválida.' });
+      return res.status(401).send({ message: 'Senha inv�lida.' });
     }
 
     // --- Atualizar deviceToken se presente ---
@@ -907,7 +909,7 @@ userRouter.post(
       await user.save();
     }
 
-    // --- Responder com dados do usuário e token ---
+    // --- Responder com dados do usu�rio e token ---
     res.status(200).send({
       _id: user._id,
       email: user.email,
@@ -942,12 +944,12 @@ userRouter.post(
       const emailExist = await User.findOne({ email: req.body.email });
 
       if (emailExist) {
-        return res.status(409).send({ message: 'Já existe um email idêntico registrado' });
+        return res.status(409).send({ message: 'J� existe um email id�ntico registrado' });
       }
 
       if (!userExist) {
         if (!req.body.password) {
-          return res.status(400).send({ message: 'A palavra-passe é obrigatória' });
+          return res.status(400).send({ message: 'A palavra-passe � obrigat�ria' });
         }
         const newUser = new User({
           name: req.body.name,
@@ -957,6 +959,7 @@ userRouter.post(
           isSeller: req.body.isSeller,
           isDeliveryMan: req.body.isDeliveryMan,
           isShopper: req.body.isShopper,
+            profileImage: req.body.profileImage || null,
         });
 
 
@@ -1065,10 +1068,10 @@ userRouter.post(
         });
       }
 
-      res.status(409).send({ message: 'Número de registo existente' });
+      res.status(409).send({ message: 'N�mero de registo existente' });
     } catch (error) {
             console.log(error)
-      console.error('Erro no registro de usuário:', error);
+      console.error('Erro no registro de usu�rio:', error);
       res.status(500).send({ message: 'Erro interno no registro' });
     }
   })
@@ -1091,7 +1094,7 @@ userRouter.delete(
 
       res.send({ message: `Utilizador removido com sucesso (Soft Delete)` });
     } else {
-      res.status(404).send({ message: 'Utilizador não encontrado' });
+      res.status(404).send({ message: 'Utilizador n�o encontrado' });
     }
   })
 );
@@ -1109,7 +1112,7 @@ userRouter.put('/updateDeviceToken/:id', async (req, res) => {
       deviceToken: req.body.deviceToken,
     }, { new: true });
 
-    if (!user) return res.status(404).send({ message: 'Usuário não encontrado' });
+    if (!user) return res.status(404).send({ message: 'Usu�rio n�o encontrado' });
 
     res.send({ message: 'DeviceToken atualizado com sucesso', user });
   } catch (err) {
@@ -1126,7 +1129,7 @@ userRouter.patch('/updatePushToken/:id', async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(id, { pushToken }, { new: true });
     if (!user) {
-      return res.status(404).json({ message: 'Usuário não encontrado.' });
+      return res.status(404).json({ message: 'Usu�rio n�o encontrado.' });
     }
 
     res.status(200).json({ message: 'PushToken atualizado com sucesso.' });

@@ -58,7 +58,7 @@ appConfigRouter.put(
     if (req.body.enabledPaymentMethods !== undefined) config.enabledPaymentMethods = req.body.enabledPaymentMethods;
 
     await config.save();
-    res.send({ message: 'ConfiguraÃ§Ãµes Globais atualizadas', config });
+    res.send({ message: 'Configurações Globais atualizadas', config });
   })
 );
 

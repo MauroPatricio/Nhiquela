@@ -20,7 +20,7 @@ const sendNotificationToSeller = async ({ userId, title, body, data }) => {
       },
     });
   } catch (error) {
-    console.error('Erro ao enviar notificaÃ§Ã£o:', error?.message || error);
+    console.error('Erro ao enviar notificação:', error?.message || error);
   }
 };
 

@@ -7,7 +7,7 @@ export const list = asyncHandler(async (req, res) => {
     const subcategories = await ProviderSubcategory.find()
       .populate({
         path: 'providerTypeId',
-        select: 'name classificationId',
+        select: 'name classificationId description',
         populate: { path: 'classificationId', select: 'name' }
       })
       .populate('vehicleTypes');
@@ -24,7 +24,7 @@ export const getById = asyncHandler(async (req, res) => {
     const subcategory = await ProviderSubcategory.findById(req.params.id)
       .populate({
         path: 'providerTypeId',
-        select: 'name classificationId',
+        select: 'name classificationId description',
         populate: { path: 'classificationId', select: 'name' }
       })
       .populate('vehicleTypes');

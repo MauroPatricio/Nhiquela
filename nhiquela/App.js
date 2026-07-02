@@ -15,11 +15,6 @@ import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORR
 import { store } from './store';
 import api from './hooks/createConnectionApi';
 
-import { zegoConfig } from './src/api/zegoConfig';
-import ZegoUIKitPrebuiltCallService, { ZegoUIKitPrebuiltCallInvitationDialog } from '@zegocloud/zego-uikit-prebuilt-call-rn';
-import * as ZIM from 'zego-zim-react-native';
-import * as ZPNs from 'zego-zpns-react-native';
-
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // --- SCREENS ---
@@ -50,6 +45,7 @@ import RequestDelivScreen from './screens/RequestDeliv';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 // --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
@@ -104,6 +100,7 @@ export default function App() {
 
   const [appConfig, setAppConfig] = React.useState(null);
   const [configLoading, setConfigLoading] = React.useState(true);
+  const [isFirstLaunch, setIsFirstLaunch] = React.useState(null);
 
   // Buscar configuracoes globais (Forced Update & Maintenance)
   useEffect(() => {
@@ -116,6 +113,8 @@ export default function App() {
       } catch (err) {
         console.error('Erro ao buscar app config:', err);
       } finally {
+        const hasViewed = await AsyncStorage.getItem('@hasViewedOnboarding');
+        setIsFirstLaunch(hasViewed === null);
         setConfigLoading(false);
       }
     };
@@ -141,7 +140,7 @@ export default function App() {
                 zegoConfig.appSign,
                 userId,
                 userName,
-                [ZIM, ZPNs],
+                (ZIM && ZPNs) ? [ZIM, ZPNs] : [],
                 {
                   ringtoneConfig: {
                     incomingCallFileName: 'zego_incoming.mp3',
@@ -162,7 +161,7 @@ export default function App() {
             }
           }
         } catch (err) {
-          console.error('Erro ao salvar token do dispositivo:', err);
+          console.log('⚠️ Erro no Zego/Push token:', err.message);
         }
       }
     };
@@ -187,6 +186,9 @@ export default function App() {
 
   const forceUpdate = appConfig && isVersionObsolete(currentVersion, appConfig.minAppVersionClient);
   const inMaintenance = appConfig && appConfig.isMaintenanceModeClient;
+
+  // Wait for first launch check
+  if (isFirstLaunch === null) return null;
 
   // Ecrã de bloqueio
   if (!configLoading && (forceUpdate || inMaintenance)) {
@@ -219,7 +221,6 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <ZegoUIKitPrebuiltCallInvitationDialog />
       <StatusBar backgroundColor="white" style="dark" />
 
       <Provider store={store}>
@@ -237,7 +238,8 @@ export default function App() {
                 }
               }}
           >
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isFirstLaunch ? 'Onboarding' : 'BottomNavigation'}>
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
               <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
               <Stack.Screen name="ProductDetail" component={ProductDetail} />
               <Stack.Screen name="ProductList" component={NewProducts} />

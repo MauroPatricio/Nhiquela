@@ -7,7 +7,7 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-// Glass‑morphism container for the whole screen
+// Glass-morphism container for the whole screen
 const GlassContainer = styled(Box)({
   backdropFilter: 'blur(16px)',
   background: 'rgba(255,255,255,0.12)',
@@ -19,7 +19,7 @@ const GlassContainer = styled(Box)({
   '&:hover': { transform: 'scale(1.01)' },
 });
 
-// Dialog styling – also glassy
+// Dialog styling � also glassy
 const GlassDialog = styled(Dialog)({
   '& .MuiPaper-root': {
     backdropFilter: 'blur(12px)',
@@ -29,8 +29,8 @@ const GlassDialog = styled(Dialog)({
 });
 
 /**
- * EstablishmentsScreen – admin UI to view, create, edit and delete establishments.
- * Uses MUI DataGrid with a premium glass‑morphism look.
+ * EstablishmentsScreen � admin UI to view, create, edit and delete establishments.
+ * Uses MUI DataGrid with a premium glass-morphism look.
  */
 const EstablishmentsScreen = () => {
   const [establishments, setEstablishments] = useState([]);

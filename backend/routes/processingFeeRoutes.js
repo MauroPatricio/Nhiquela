@@ -31,7 +31,7 @@ router.get(
     if (genericFee) {
       res.json(genericFee);
     } else {
-      res.status(404).json({ message: 'Taxa de processamento n√£o encontrada para este servi√ßo' });
+      res.status(404).json({ message: 'Taxa de processamento n„o encontrada para este serviÁo' });
     }
   })
 );
@@ -48,7 +48,7 @@ router.post(
     const query = { serviceType, establishment: establishment || null };
     const existing = await ProcessingFee.findOne(query);
     if (existing) {
-      return res.status(400).json({ message: 'J√° existe uma taxa configurada para este servi√ßo e estabelecimento.' });
+      return res.status(400).json({ message: 'J· existe uma taxa configurada para este serviÁo e estabelecimento.' });
     }
 
     const fee = new ProcessingFee({
@@ -85,7 +85,7 @@ router.put(
       const updatedFee = await fee.save();
       res.json(updatedFee);
     } else {
-      res.status(404).json({ message: 'Taxa de processamento n√£o encontrada' });
+      res.status(404).json({ message: 'Taxa de processamento n„o encontrada' });
     }
   })
 );
@@ -101,7 +101,7 @@ router.delete(
       await fee.deleteOne();
       res.json({ message: 'Taxa de processamento removida' });
     } else {
-      res.status(404).json({ message: 'Taxa de processamento n√£o encontrada' });
+      res.status(404).json({ message: 'Taxa de processamento n„o encontrada' });
     }
   })
 );

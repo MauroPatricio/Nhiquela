@@ -42,7 +42,7 @@ qualityTypeRouter.get(
     if (qualityType) {
       res.send(qualityType);
     } else {
-      res.status(404).send({ message: 'Qualidade do produto n√£o encontrado' });
+      res.status(404).send({ message: 'Qualidade do produto n„o encontrado' });
     }
   })
 );
@@ -70,7 +70,7 @@ qualityTypeRouter.put(
       await qualityType.save();
       res.send({ message: `Qualidade do produto actualizado com sucesso` });
     } else {
-      res.status(404).send({ message: 'Qualidade n√£o encontrada' });
+      res.status(404).send({ message: 'Qualidade n„o encontrada' });
     }
   })
 );
@@ -92,7 +92,7 @@ qualityTypeRouter.delete(
 
       res.send({ message: `Qualidade Removida Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Qualidade n√£o encontrada' });
+      res.status(404).send({ message: 'Qualidade n„o encontrada' });
     }
   })
 );
