@@ -20,7 +20,7 @@
     "android": {
       "package": "com.mpatricio.nhiquelap",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 3,
+
       "icon": "./assets/nhiquela3.png",
 
       "adaptiveIcon": {

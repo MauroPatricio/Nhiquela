@@ -114,6 +114,15 @@ requestDeliver.post(
 
     const requestDeliv = await newOrder.save();
 
+    const io = req.app.get('io');
+    if (io) {
+      if (newOrder.targetDriverId) {
+        io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', requestDeliv);
+      } else {
+        io.emit('new_order', requestDeliv);
+      }
+    }
+
     res.status(201).send({ message: 'Novo pedido criado com sucesso', requestDeliv });
   })
 );

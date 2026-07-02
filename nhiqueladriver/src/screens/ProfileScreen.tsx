@@ -1,4 +1,4 @@
-import { showMessage } from 'react-native-flash-message';
+﻿import { showMessage } from 'react-native-flash-message';
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
@@ -37,7 +37,7 @@ export default function ProfileScreen({ navigation }: Props) {
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // ✅ HELPER PARA IMAGENS
+  // âœ… HELPER PARA IMAGENS
   const getImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http') || path.startsWith('data:image')) return path;
@@ -46,7 +46,7 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const getMemberSince = () => {
-    // Tenta usar a data de aprovação, se não houver usa a criação
+    // Tenta usar a data de aprovaÃ§Ã£o, se nÃ£o houver usa a criaÃ§Ã£o
     const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || (user as any)?.createdAt;
     if (dateSource) {
       const date = new Date(dateSource);
@@ -63,20 +63,20 @@ export default function ProfileScreen({ navigation }: Props) {
     email: user?.email || 'email@exemplo.com',
     phone: user?.phoneNumber ? `+258 ${user.phoneNumber}` : '+258 84 000 0000',
     level: user?.isDeliveryMan ? 'Motorista' : 'Passageiro',
-    memberSince: getMemberSince(), // Podes adicionar este campo no user se necessário
+    memberSince: getMemberSince(), // Podes adicionar este campo no user se necessÃ¡rio
     totalTrips: 0, // Zered per user request
     rating: '0.0', // Zered per user request
     acceptanceRate: '0%', // Zered per user request
     totalEarnings: '0 MT', // Zered per user request
-    vehicle: user?.deliveryman?.transport_type || 'Veículo não registado',
-    licensePlate: user?.deliveryman?.transport_registration || 'Não definida',
-    vehicleColor: user?.deliveryman?.transport_color || 'Não definida',
+    vehicle: user?.deliveryman?.transport_type || 'VeÃ­culo nÃ£o registado',
+    licensePlate: user?.deliveryman?.transport_registration || 'NÃ£o definida',
+    vehicleColor: user?.deliveryman?.transport_color || 'NÃ£o definida',
   };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 200, // Acelerado para remover sensação de carregamento lento
+      duration: 200, // Acelerado para remover sensaÃ§Ã£o de carregamento lento
       useNativeDriver: true,
     }).start();
 
@@ -93,7 +93,7 @@ export default function ProfileScreen({ navigation }: Props) {
         setAutoAccept(auto);
       }
     } catch (error) {
-      console.error('Erro ao carregar preferências:', error);
+      console.error('Erro ao carregar preferÃªncias:', error);
     }
   };
 
@@ -102,16 +102,16 @@ export default function ProfileScreen({ navigation }: Props) {
       const preferences = { notifications, darkMode, autoAccept };
       await AsyncStorage.setItem('userPreferences', JSON.stringify(preferences));
       showMessage({
-        message: '✅ Sucesso',
-        description: 'Preferências salvas com sucesso!',
+        message: 'âœ… Sucesso',
+        description: 'PreferÃªncias salvas com sucesso!',
         type: 'success',
         icon: 'auto',
         duration: 3000,
       });
     } catch (error) {
       showMessage({
-        message: '❌ Erro',
-        description: 'Não foi possível salvar as preferências.',
+        message: 'âŒ Erro',
+        description: 'NÃ£o foi possÃ­vel salvar as preferÃªncias.',
         type: 'danger',
         icon: 'auto',
         duration: 3000,
@@ -132,7 +132,7 @@ export default function ProfileScreen({ navigation }: Props) {
     });
   };
 
-  // ✅ FUNÇÃO PARA OBTER FOTO DO PERFIL
+  // âœ… FUNÃ‡ÃƒO PARA OBTER FOTO DO PERFIL
   const getProfileImageSource = (): { uri: string } => {
     const deliverymanPhoto = user?.deliveryman?.photo;
     const userPhoto = user?.photo;
@@ -143,7 +143,7 @@ export default function ProfileScreen({ navigation }: Props) {
       return { uri: 'https://via.placeholder.com/150/007bff/ffffff?text=DR' };
     }
 
-    // ✅ LIDAR COM BASE64 OU URL
+    // âœ… LIDAR COM BASE64 OU URL
     if (typeof imageUri === 'string' || imageUri instanceof String) {
       const uriStr = String(imageUri);
       if (uriStr.startsWith('data:image') || uriStr.startsWith('http')) {
@@ -155,6 +155,8 @@ export default function ProfileScreen({ navigation }: Props) {
       if (uriStr.length > 100 && !uriStr.startsWith('data:') && !uriStr.startsWith('http')) {
         return { uri: `data:image/jpeg;base64,${uriStr}` };
       }
+      // Se nÃ£o for nada do acima, assume-se que Ã© um caminho relativo
+      return { uri: getImageUrl(uriStr) };
     }
 
     return { uri: 'https://via.placeholder.com/150/007bff/ffffff?text=DR' };
@@ -209,7 +211,7 @@ export default function ProfileScreen({ navigation }: Props) {
             <Image
               source={imageSource}
               style={styles.avatar}
-              onError={(error) => console.log('❌ Erro ao carregar imagem:', error)}
+              onError={(error) => console.log('âŒ Erro ao carregar imagem:', error)}
             />
             <View style={styles.premiumBadge}>
               <Ionicons
@@ -247,7 +249,7 @@ export default function ProfileScreen({ navigation }: Props) {
               </Text>
             </View>
 
-            {/* 🔥 MOSTRAR SALDO (CARTEIRA) NO TOPO COM DADOS GLOBAIS */}
+            {/* ðŸ”¥ MOSTRAR SALDO (CARTEIRA) NO TOPO COM DADOS GLOBAIS */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4, backgroundColor: 'rgba(39, 174, 96, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' }}>
               <Ionicons name="wallet" size={16} color={COLORS.success} style={{ marginRight: 6 }} />
               <Text style={{ color: COLORS.success, fontSize: 16, fontWeight: 'bold' }}>
@@ -269,9 +271,9 @@ export default function ProfileScreen({ navigation }: Props) {
 
 
 
-        {/* Estatísticas */}
+        {/* EstatÃ­sticas */}
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Estatísticas</Text>
+          <Text style={styles.sectionTitle}>EstatÃ­sticas</Text>
           <View style={styles.statsGrid}>
             {user?.isDeliveryMan && (
               <View style={[styles.statCard, { backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
@@ -295,7 +297,7 @@ export default function ProfileScreen({ navigation }: Props) {
                     <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1E1E24' }}>
                       {userData.acceptanceRate || '0%'}
                     </Text>
-                    <Text style={{ fontSize: 10, color: '#666' }}>Aceitação</Text>
+                    <Text style={{ fontSize: 10, color: '#666' }}>AceitaÃ§Ã£o</Text>
                   </View>
                 </View>
               </View>
@@ -307,7 +309,7 @@ export default function ProfileScreen({ navigation }: Props) {
               color={COLORS.primary}
             />
             <StatCard
-              title="Avaliação"
+              title="AvaliaÃ§Ã£o"
               value={userData.rating}
               icon="star-outline"
               color="#FFB800"
@@ -322,7 +324,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
             {!user?.isDeliveryMan && (
               <StatCard
-                title="Nível"
+                title="NÃ­vel"
                 value={userData.level}
                 icon="trophy-outline"
                 color="#27AE60"
@@ -337,10 +339,10 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* ✅ INFORMACOES DO VEÍCULO - APENAS PARA MOTORISTAS */}
+        {/* âœ… INFORMACOES DO VEÃCULO - APENAS PARA MOTORISTAS */}
         {user?.isDeliveryMan && (
           <View style={styles.vehicleSection}>
-            <Text style={styles.sectionTitle}>O Seu Veículo</Text>
+            <Text style={styles.sectionTitle}>O Seu VeÃ­culo</Text>
             
             <View style={styles.modernVehicleCard}>
               <View style={styles.vehicleImagePlaceholder}>
@@ -357,7 +359,7 @@ export default function ProfileScreen({ navigation }: Props) {
                   <Text style={styles.licensePlateText}>{userData.licensePlate}</Text>
                 </View>
 
-                {userData.vehicleColor !== 'Não definida' && (
+                {userData.vehicleColor !== 'NÃ£o definida' && (
                   <View style={styles.colorBadge}>
                     <Ionicons name="color-palette" size={14} color="#666" style={{ marginRight: 4 }} />
                     <Text style={styles.colorText}>{userData.vehicleColor}</Text>
@@ -367,23 +369,23 @@ export default function ProfileScreen({ navigation }: Props) {
                 <View style={[styles.colorBadge, { backgroundColor: '#E0F2FE', marginTop: 6 }]}>
                   <Ionicons name="cash-outline" size={14} color="#0284C7" style={{ marginRight: 4 }} />
                   <Text style={[styles.colorText, { color: '#0284C7', fontWeight: 'bold' }]}>
-                    Preço cobrado: {user?.deliveryman?.allowCustomPrice && user?.deliveryman?.customPrice 
+                    PreÃ§o cobrado: {user?.deliveryman?.allowCustomPrice && user?.deliveryman?.customPrice 
                       ? `${user.deliveryman.customPrice} MT / km` 
-                      : 'Preço Padrão do Sistema'}
+                      : 'PreÃ§o PadrÃ£o do Sistema'}
                   </Text>
                 </View>
               </View>
 
-              {/* ✅ BOTÃO VER DOCUMENTOS */}
+              {/* âœ… BOTÃƒO VER DOCUMENTOS */}
               <TouchableOpacity
                 style={[styles.modernDocsButton, { width: '100%', marginBottom: 16 }]}
                 onPress={() => setShowDocsModal(true)}
               >
                 <Ionicons name="document-text-outline" size={20} color="#FFF" />
-                <Text style={styles.modernDocsText}>Ver Documentos do Veículo</Text>
+                <Text style={styles.modernDocsText}>Ver Documentos do VeÃ­culo</Text>
               </TouchableOpacity>
 
-              {/* ✅ STATUS DO REGISTO DO MOTORISTA */}
+              {/* âœ… STATUS DO REGISTO DO MOTORISTA */}
               {user?.deliveryman?.register_conformance && (
                 <View style={styles.modernRegistrationStatus}>
                   <Ionicons
@@ -417,10 +419,10 @@ export default function ProfileScreen({ navigation }: Props) {
                     ]}
                   >
                     {user.deliveryman.register_conformance === 'CONFORMANCE'
-                      ? 'Verificado'
+                      ? 'Disponível'
                       : user.deliveryman.register_conformance === 'INCONFORMANCE'
-                      ? 'Recusado'
-                      : 'Em Análise'}
+                      ? 'Rejeitado'
+                      : 'Em AnÃ¡lise'}
                   </Text>
                 </View>
               )}
@@ -433,22 +435,22 @@ export default function ProfileScreen({ navigation }: Props) {
             <MenuItem
               icon="person-outline"
               title="Editar Perfil"
-              subtitle="Alterar informações pessoais"
+              subtitle="Alterar informaÃ§Ãµes pessoais"
               onPress={() => navigation.navigate('EditProfile', { user })}
             />
             <MenuItem
               icon="wallet-outline"
               title="Carteira & Ganhos"
-              subtitle="Ver histórico e saldo"
+              subtitle="Ver histÃ³rico e saldo"
               onPress={() => navigation.navigate('Wallet')}
             />
             <MenuItem
               icon="shield-checkmark-outline"
-              title="Privacidade e Segurança"
+              title="Privacidade e SeguranÃ§a"
               onPress={() =>
                 showMessage({
                   message: 'Em Breve',
-                  description: 'Funcionalidade disponível na próxima atualização.',
+                  description: 'Funcionalidade disponÃ­vel na prÃ³xima atualizaÃ§Ã£o.',
                   type: 'info',
                   icon: 'auto',
                 })
@@ -460,7 +462,7 @@ export default function ProfileScreen({ navigation }: Props) {
               onPress={() =>
                 showMessage({
                   message: 'Em Breve',
-                  description: 'Funcionalidade disponível na próxima atualização.',
+                  description: 'Funcionalidade disponÃ­vel na prÃ³xima atualizaÃ§Ã£o.',
                   type: 'info',
                   icon: 'auto',
                 })
@@ -469,22 +471,22 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.menuGroup}>
-            <MenuItem icon="save-outline" title="Salvar Preferências" onPress={savePreferences} />
+            <MenuItem icon="save-outline" title="Salvar PreferÃªncias" onPress={savePreferences} />
           </View>
         </View>
 
-        {/* Botão de Logout */}
+        {/* BotÃ£o de Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
           <Text style={styles.logoutText}>Sair da Conta</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Versão 1.0.0</Text>
+          <Text style={styles.versionText}>VersÃ£o 1.0.0</Text>
         </View>
       </ScrollView>
 
-      {/* ✅ MODAL DE DOCUMENTOS */}
+      {/* âœ… MODAL DE DOCUMENTOS */}
       <Modal
         visible={showDocsModal}
         animationType="slide"
@@ -502,7 +504,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <ScrollView contentContainerStyle={styles.modalContent}>
             {user?.deliveryman?.license_front && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Carta de Condução (Frente)</Text>
+                <Text style={styles.docTitle}>Carta de ConduÃ§Ã£o (Frente)</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.license_front) }}
                   style={styles.docImage}
@@ -512,7 +514,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
             {user?.deliveryman?.license_back && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Carta de Condução (Verso)</Text>
+                <Text style={styles.docTitle}>Carta de ConduÃ§Ã£o (Verso)</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.license_back) }}
                   style={styles.docImage}
@@ -522,7 +524,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
             {user?.deliveryman?.vihicle_logbook && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Livrete do Veículo</Text>
+                <Text style={styles.docTitle}>Livrete do VeÃ­culo</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_logbook) }}
                   style={styles.docImage}
@@ -532,7 +534,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
             {user?.deliveryman?.vihicle_inspection && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Inspeção</Text>
+                <Text style={styles.docTitle}>InspeÃ§Ã£o</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_inspection) }}
                   style={styles.docImage}
@@ -571,7 +573,7 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      {/* 🔥 MODAL DE LOGOUT PREMIUM */}
+      {/* ðŸ”¥ MODAL DE LOGOUT PREMIUM */}
       <Modal visible={showLogoutModal} transparent animationType="fade">
         <View style={styles.logoutModalOverlay}>
           <View style={styles.logoutModalContainer}>
@@ -580,7 +582,7 @@ export default function ProfileScreen({ navigation }: Props) {
             </View>
             <Text style={styles.logoutModalTitle}>Sair da Conta</Text>
             <Text style={styles.logoutModalText}>
-              Tem certeza que deseja terminar a sessão atual? Deixará de receber pedidos de viagem até voltar a entrar.
+              Tem certeza que deseja terminar a sessÃ£o atual? DeixarÃ¡ de receber pedidos de viagem atÃ© voltar a entrar.
             </Text>
             
             <View style={styles.logoutModalButtons}>
@@ -769,7 +771,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  // 🔥 ESTILOS PARA O MODAL DE LOGOUT PREMIUM
+  // ðŸ”¥ ESTILOS PARA O MODAL DE LOGOUT PREMIUM
   logoutModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -1179,3 +1181,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

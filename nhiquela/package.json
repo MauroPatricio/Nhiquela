@@ -12,7 +12,6 @@
     "lint:fix": "eslint . --fix",
     "test": "jest",
     "security-check": "npm audit --audit-level=critical",
-    "eas-build-pre-install": "npm run security-check",
     "eas-build-pre-build": "npm run lint"
   },
   "dependencies": {

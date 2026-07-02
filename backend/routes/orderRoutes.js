@@ -1566,14 +1566,23 @@ orderRouter.get(
       .lean();
 
     // Buscar RequestDelivers de servi�os (reboque, etc)
+    // Buscar RequestDelivers de servios (reboque, etc)
     const requestDeliverConditions = [
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade
     ];
     if (isDriverActive) {
-      const availableCondition = { stepStatus: 3 };
+      const availableCondition = { 
+        stepStatus: 3,
+        $or: [
+          { targetDriverId: { $exists: false } },
+          { targetDriverId: null },
+          { targetDriverId: '' },
+          { targetDriverId: deliverymanId.toString() }
+        ]
+      };
       if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Match exato com o ve�culo do motorista
+        availableCondition.transportType = driverTransportType; // Match exato com o veiculo do motorista
       }
       requestDeliverConditions.push(availableCondition);
     }

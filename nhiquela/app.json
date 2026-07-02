@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "nhiquela.",
+    "name": "nhiquela",
     "slug": "nhiquelaa",
     "scheme": "nhiquela",
     "version": "1.0.0",
@@ -20,7 +20,6 @@
 
     "android": {
       "package": "com.mpatricio.nhiquelaa",
-      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "icon": "./assets/nhiquela2.png",
       "adaptiveIcon": {
