@@ -45,7 +45,7 @@
     "geolib": "3.3.4",
     "haversine": "1.1.1",
     "leaflet": "^1.9.4",
-    "react": "19.1.0",
+    "react": "^19.1.0",
     "react-delegate-component": "^1.0.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^5.0.0",
@@ -94,6 +94,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "~54.0.0",
     "jest-expo": "^56.0.5",
+    "prettier": "^3.4.2",
     "typescript": "~5.9.2"
   },
   "expo": {
