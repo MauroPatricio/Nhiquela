@@ -1,4 +1,4 @@
-﻿import { showMessage } from 'react-native-flash-message';
+import { showMessage } from 'react-native-flash-message';
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
@@ -46,14 +46,16 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const getMemberSince = () => {
-    // Tenta usar a data de aprovaÃ§Ã£o, se nÃ£o houver usa a criaÃ§Ã£o
-    const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || (user as any)?.createdAt;
+    // Tenta usar a data de aprovação, se não houver usa a criação
+    const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || user?.createdAt || user?.created_at || (user as any)?.date;
     if (dateSource) {
       const date = new Date(dateSource);
-      return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(
-        2,
-        '0',
-      )}/${date.getFullYear()}`;
+      if (!isNaN(date.getTime())) {
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(
+          2,
+          '0',
+        )}/${date.getFullYear()}`;
+      }
     }
     return '2024';
   };
@@ -63,20 +65,20 @@ export default function ProfileScreen({ navigation }: Props) {
     email: user?.email || 'email@exemplo.com',
     phone: user?.phoneNumber ? `+258 ${user.phoneNumber}` : '+258 84 000 0000',
     level: user?.isDeliveryMan ? 'Motorista' : 'Passageiro',
-    memberSince: getMemberSince(), // Podes adicionar este campo no user se necessÃ¡rio
-    totalTrips: 0, // Zered per user request
-    rating: '0.0', // Zered per user request
-    acceptanceRate: '0%', // Zered per user request
-    totalEarnings: '0 MT', // Zered per user request
-    vehicle: user?.deliveryman?.transport_type || 'VeÃ­culo nÃ£o registado',
-    licensePlate: user?.deliveryman?.transport_registration || 'NÃ£o definida',
-    vehicleColor: user?.deliveryman?.transport_color || 'NÃ£o definida',
+    memberSince: getMemberSince(),
+    totalTrips: 0,
+    rating: '0.0',
+    acceptanceRate: '0%',
+    totalEarnings: '0 MT',
+    vehicle: user?.deliveryman?.transport_type || 'Veículo não registado',
+    licensePlate: user?.deliveryman?.transport_registration || 'Não definida',
+    vehicleColor: user?.deliveryman?.transport_color || 'Não definida',
   };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 200, // Acelerado para remover sensaÃ§Ã£o de carregamento lento
+      duration: 200, // Acelerado para remover sensação de carregamento lento
       useNativeDriver: true,
     }).start();
 
@@ -93,7 +95,7 @@ export default function ProfileScreen({ navigation }: Props) {
         setAutoAccept(auto);
       }
     } catch (error) {
-      console.error('Erro ao carregar preferÃªncias:', error);
+      console.error('Erro ao carregar preferências:', error);
     }
   };
 
@@ -102,16 +104,16 @@ export default function ProfileScreen({ navigation }: Props) {
       const preferences = { notifications, darkMode, autoAccept };
       await AsyncStorage.setItem('userPreferences', JSON.stringify(preferences));
       showMessage({
-        message: 'âœ… Sucesso',
-        description: 'PreferÃªncias salvas com sucesso!',
+        message: '✅ Sucesso',
+        description: 'Preferências salvas com sucesso!',
         type: 'success',
         icon: 'auto',
         duration: 3000,
       });
     } catch (error) {
       showMessage({
-        message: 'âŒ Erro',
-        description: 'NÃ£o foi possÃ­vel salvar as preferÃªncias.',
+        message: '❌ Erro',
+        description: 'Não foi possível salvar as preferências.',
         type: 'danger',
         icon: 'auto',
         duration: 3000,
@@ -1181,4 +1183,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
 

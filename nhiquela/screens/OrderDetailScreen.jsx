@@ -1,16 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
   Modal,
   TextInput,
-  Animated,
   Dimensions,
-  PanResponder
+  ActivityIndicator
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +21,7 @@ import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 import { useToast } from "react-native-toast-notifications";
 import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
+import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,107 +34,18 @@ const OrderDetailsScreen = () => {
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
-  // Driver location now handled by useTrackingSocket hook
-  const [canFinishTrip, setCanFinishTrip] = useState(false);
-  const [routeDrawn, setRouteDrawn] = useState(false);
-  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const navigation = useNavigation();
-
   const toast = useToast();
 
-  // Animações para o bottom sheet
-  const sheetAnim = useRef(new Animated.Value(0)).current;
-  const sheetHeight = useRef(new Animated.Value(120)).current;
-  const mapScale = useRef(new Animated.Value(1)).current;
-
-  // Configurar PanResponder para o sheet
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          sheetHeight.setValue(Math.max(120, 500 - gestureState.dy));
-        } else {
-          sheetHeight.setValue(Math.min(600, 120 - gestureState.dy));
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 50) {
-          collapseSheet();
-        } else if (gestureState.dy < -50) {
-          expandSheet();
-        } else {
-          if (isSheetExpanded) {
-            expandSheet();
-          } else {
-            collapseSheet();
-          }
-        }
-      },
-    })
-  ).current;
-
-  const expandSheet = () => {
-    setIsSheetExpanded(true);
-    Animated.parallel([
-      Animated.timing(sheetHeight, {
-        toValue: 600,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(sheetAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(mapScale, {
-        toValue: 0.75,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-  const collapseSheet = () => {
-    setIsSheetExpanded(false);
-    Animated.parallel([
-      Animated.timing(sheetHeight, {
-        toValue: 120,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(sheetAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(mapScale, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-  const toggleSheet = () => {
-    if (isSheetExpanded) {
-      collapseSheet();
-    } else {
-      expandSheet();
-    }
-  };
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['15%', '50%', '90%'], []);
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
-  // Socket.io tracking is handled directly inside TrackingMap component.
-  // No need for a separate hook call here.
-
   const checkIfUserExist = async () => {
     try {
-
-
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permissão necessária', 'Permissão para acessar localização é necessária.');
@@ -146,8 +56,6 @@ const OrderDetailsScreen = () => {
       setCurrentLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
       });
 
       const storedUserData = await AsyncStorage.getItem('userData');
@@ -155,25 +63,14 @@ const OrderDetailsScreen = () => {
 
       if (storedUserData && storedUserId) {
         const parsedUserData = JSON.parse(storedUserData);
-
         if (parsedUserData._id === storedUserId) {
           setUserData(parsedUserData);
           setUserLogin(true);
-        } else {
-          console.warn('⚠️ ID inconsistente entre userData e id');
         }
-      } else {
-        console.log('⚠️ Usuário não está logado');
       }
     } catch (error) {
-      console.error('❌ Erro ao verificar se o usuário existe:', error);
+      console.error('Erro ao verificar usuário:', error);
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const cancelOrderPop = async (orderId) => {
@@ -253,658 +150,432 @@ const OrderDetailsScreen = () => {
     ]);
   };
 
-  const handleCancelTrip = () => {
-    Alert.alert('Cancelar Viagem', 'Deseja cancelar a viagem?', [
-      { text: 'Não', style: 'cancel' },
-      { text: 'Sim', onPress: () => console.log('Viagem cancelada') },
-    ]);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Pendente': return '#F59E0B';
+      case 'Em trânsito': return '#3B82F6';
+      case 'Entregue': return '#10B981';
+      case 'Cancelado': return '#EF4444';
+      default: return '#6B7280';
+    }
   };
 
-  const handleFinishTrip = () => {
-    Alert.alert('Finalizar Viagem', 'Deseja finalizar a viagem?', [
-      { text: 'Não', style: 'cancel' },
-      { text: 'Sim', onPress: () => console.log('Viagem finalizada') },
-    ]);
-  };
+  // Compute destination based on order type (store or service)
+  const destination = currentOrder.deliveryAddress 
+    ? { latitude: currentOrder.deliveryAddress.latitude, longitude: currentOrder.deliveryAddress.longitude }
+    : (currentOrder.latitude ? { latitude: currentOrder.latitude, longitude: currentOrder.longitude } : null);
 
-  // Renderizar informações compactas quando o sheet estiver recolhido
-  const renderCompactInfo = () => (
-    <View style={styles.compactInfo}>
-      <View style={styles.compactMain}>
-        <LinearGradient
-          colors={['#9333EA', '#7E22CE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.orderBadge}
-        >
-          <Text style={styles.orderBadgeText}>#{currentOrder.code}</Text>
-        </LinearGradient>
-        <View style={styles.compactTexts}>
-          <Text style={styles.compactStore}>{currentOrder.seller?.seller?.name || 'Loja'}</Text>
-          <Text style={styles.compactStatus}>{currentOrder.status}</Text>
+  const renderContent = () => (
+    <View style={styles.sheetContent}>
+      {/* Resumo Rápido para a aba inicial (15%) */}
+      <View style={styles.quickSummary}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.storeName}>
+            {currentOrder.seller?.seller?.name || currentOrder.name || currentOrder.goodType || 'Serviço'}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentOrder.status) + '20' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
+          </View>
+        </View>
+        <Text style={styles.totalPrice}>{currentOrder.totalPrice} Mt</Text>
+      </View>
+
+      <View style={styles.divider} />
+
+      {/* Informações do Pedido */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Detalhes do Pagamento</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Método:</Text>
+          <Text style={styles.infoValue}>{currentOrder.paymentMethod} ({currentOrder.isPaid ? 'Pago' : 'Pendente'})</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Taxa de Entrega:</Text>
+          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} Mt</Text>
         </View>
       </View>
-      <View style={styles.compactPrice}>
-        <Text style={styles.compactPriceText}>{currentOrder.totalPrice} Mt</Text>
-        <Text style={styles.compactItems}>{currentOrder.orderItems?.length || 0} itens</Text>
+
+      {/* Motorista e Veículo */}
+      {currentOrder.deliveryman && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Transporte</Text>
+          
+          <View style={styles.driverCard}>
+            <View style={styles.driverRow}>
+              <Image 
+                source={{ uri: currentOrder.deliveryman.photo || 'https://via.placeholder.com/60' }} 
+                style={styles.driverImage} 
+              />
+              <View style={styles.driverInfo}>
+                <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
+                <Text style={styles.driverSub}>
+                  {currentOrder.deliveryman.transport_type} • {currentOrder.deliveryman.transport_registration}
+                </Text>
+              </View>
+            </View>
+
+            {/* Foto da Viatura */}
+            {currentOrder.deliveryman.vihicle_picture && (
+              <View style={styles.vehicleImageContainer}>
+                <Text style={styles.vehicleLabel}>Foto da viatura:</Text>
+                <Image 
+                  source={{ uri: currentOrder.deliveryman.vihicle_picture }} 
+                  style={styles.vehicleImage} 
+                  contentFit="cover"
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Produtos */}
+      {currentOrder.orderItems && currentOrder.orderItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Produtos ({currentOrder.orderItems.length})</Text>
+          {currentOrder.orderItems.map((item, idx) => (
+            <View key={idx} style={styles.productItem}>
+              <Image source={{ uri: item.image }} style={styles.productImage} />
+              <View style={styles.productDetails}>
+                <Text style={styles.productName}>{item.nome}</Text>
+                <Text style={styles.productQty}>Qtd: {item.quantity}</Text>
+                <Text style={styles.productPriceItem}>{item.price} Mt</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Ações */}
+      <View style={styles.actionsContainer}>
+        {currentOrder.status === 'Em trânsito' && (
+          <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
+            <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
+              <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Confirmar Receção</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+        {currentOrder.status === 'Entregue' && (
+          <TouchableOpacity onPress={() => confirmDeleteOrder(currentOrder._id)} style={styles.actionBtn}>
+            <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.gradientBtn}>
+              <Ionicons name="trash" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Apagar do Histórico</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes do Pedido</Text>
-        <View style={{ width: 28 }} />
+    <View style={styles.container}>
+      {/* Full Map Background */}
+      <View style={styles.mapWrapper}>
+        <TrackingMap 
+          orderId={currentOrder._id}
+          destination={destination}
+          darkMode={false}
+        />
       </View>
 
-      {/* Mapa - Ocupa quase toda a tela */}
-      <Animated.View style={[styles.mapContainer, { transform: [{ scale: mapScale }] }]}>
-          {currentLocation && (
-            <TrackingMap
-              orderId={currentOrder._id}
-              initialCenter={currentLocation}
-              darkMode={true}
-            />
-          )}
-        </Animated.View>
+      {/* Back Button Overlay */}
+      <SafeAreaView style={styles.headerOverlay} edges={['top']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+      </SafeAreaView>
 
-      {/* Bottom Sheet Premium */}
-      <Animated.View
-        style={[
-          styles.sheetContainer,
-          {
-            height: sheetHeight,
-          }
-        ]}
-        {...panResponder.panHandlers}
+      {/* Bottom Sheet */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={1}
+        snapPoints={snapPoints}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
       >
-        {/* Handle do Sheet */}
-        <View style={styles.sheetHandle}>
-          <View style={styles.handleBar} />
-        </View>
-
-        {/* Conteúdo quando RECOLHIDO */}
-        <View style={styles.compactContent}>
-          {renderCompactInfo()}
-
-          <TouchableOpacity
-            onPress={toggleSheet}
-          >
-            <LinearGradient
-              colors={['#9333EA', '#7E22CE']}
-              style={styles.expandButton}
-            >
-              <Ionicons
-                name={isSheetExpanded ? "chevron-down" : "chevron-up"}
-                size={20}
-                color="#FFF"
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* Conteúdo quando EXPANDIDO */}
-        <Animated.View
-          style={[
-            styles.expandedContent,
-            {
-              opacity: sheetAnim,
-              display: isSheetExpanded ? 'flex' : 'none'
-            }
-          ]}
-        >
-          <ScrollView
-            style={styles.expandedScroll}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.expandedScrollContent}
-          >
-            {/* Informações do Pedido */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Informações do Pedido</Text>
-              <View style={styles.infoGrid}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Status</Text>
-                  <Text style={[styles.infoValue, styles[`status${currentOrder.status}`]]}>
-                    {currentOrder.status}
-                  </Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Pagamento</Text>
-                  <Text style={styles.infoValue}>
-                    {currentOrder.paymentMethod} - {currentOrder.isPaid ? 'Pago' : 'Pendente'}
-                  </Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Taxa de entrega</Text>
-                  <Text style={styles.infoValue}>{currentOrder.addressPrice} Mt</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Total</Text>
-                  <Text style={[styles.infoValue, styles.totalPrice]}>{currentOrder.totalPrice} Mt</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Informações do Motorista / Veículo */}
-            {currentOrder.deliveryman && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Detalhes do Transporte</Text>
-                <View style={styles.infoGrid}>
-                  {currentOrder.deliveryman.name && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Motorista</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        {currentOrder.deliveryman.photo && (
-                          <Image 
-                            source={{ uri: currentOrder.deliveryman.photo }} 
-                            style={{ width: 30, height: 30, borderRadius: 15, marginRight: 8 }} 
-                          />
-                        )}
-                        <Text style={styles.infoValue}>{currentOrder.deliveryman.name}</Text>
-                      </View>
-                    </View>
-                  )}
-                  {currentOrder.deliveryman.transport_type && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Veículo</Text>
-                      <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_type}</Text>
-                    </View>
-                  )}
-                  {currentOrder.deliveryman.transport_color && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Cor da Viatura</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ 
-                          width: 12, 
-                          height: 12, 
-                          borderRadius: 6, 
-                          backgroundColor: (() => {
-                            const c = String(currentOrder.deliveryman.transport_color).toLowerCase().trim();
-                            const map = {
-                              'branco': '#F8FAFC', 'preto': '#000000', 'cinzento': '#9CA3AF', 'cinza': '#9CA3AF', 'prata': '#D1D5DB', 
-                              'vermelho': '#EF4444', 'azul': '#3B82F6', 'verde': '#10B981', 'amarelo': '#F59E0B', 
-                              'laranja': '#F97316', 'castanho': '#78350F', 'marrom': '#78350F', 'rosa': '#EC4899', 'roxo': '#8B5CF6'
-                            };
-                            return map[c] || '#D1D5DB';
-                          })(),
-                          marginRight: 6, 
-                          borderWidth: 1, 
-                          borderColor: '#E5E7EB' 
-                        }} />
-                        <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_color}</Text>
-                      </View>
-                    </View>
-                  )}
-                  {currentOrder.deliveryman.transport_registration && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Matrícula</Text>
-                      <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_registration}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Produtos */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Produtos ({currentOrder.orderItems?.length || 0})</Text>
-              {currentOrder.orderItems?.map((item, idx) => (
-                <View style={styles.productCard} key={idx}>
-                  <Image source={{ uri: item.image }} style={styles.productImage} />
-                  <View style={styles.productInfo}>
-                    <View style={styles.productHeader}>
-                      <Text style={styles.productName}>{item.nome}</Text>
-                      {item.onSale && (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Promoção</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.productText}>Quantidade: {item.quantity}</Text>
-
-                    {item.onSale && item.discount > 0 ? (
-                      <View style={styles.priceContainer}>
-                        <Text style={styles.originalPrice}>{item.price} Mt</Text>
-                        <Text style={styles.discountPrice}>
-                          {item.price - item.discount} Mt
-                        </Text>
-                        <Text style={styles.discountText}>-{item.discount} Mt</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.productPrice}>{item.price} Mt</Text>
-                    )}
-
-                    <Text style={styles.productDescription} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Controles */}
-            <View style={styles.controlsSection}>
-              {currentOrder.status === 'Em trânsito' && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => confirmDeliveryOrder(currentOrder._id)}
-                >
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.actionButton}
-                  >
-                    <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-                    <Text style={styles.actionButtonText}>Confirmar Receção</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-
-              {currentOrder.status === 'Entregue' && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => confirmDeleteOrder(currentOrder._id)}
-                >
-                  <LinearGradient
-                    colors={['#EF4444', '#DC2626']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.actionButton}
-                  >
-                    <Ionicons name="trash" size={22} color="#FFF" />
-                    <Text style={styles.actionButtonText}>Apagar Pedido do Histórico</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </View>
-          </ScrollView>
-        </Animated.View>
-      </Animated.View>
+        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {renderContent()}
+        </BottomSheetScrollView>
+      </BottomSheet>
 
       {/* Modal de Cancelamento */}
       <Modal animationType="slide" transparent visible={modalVisible}>
-        <View style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Motivo do cancelamento</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Digite aqui..."
+              style={styles.modalInput}
+              placeholder="Descreva o motivo..."
               value={message}
               onChangeText={setMessage}
+              multiline
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.greenButton} onPress={() => cancelOrderPop(currentOrder._id)}>
-                <Text style={styles.buttonText}>Confirmar</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#EF4444' }]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.modalBtnText}>Fechar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.redButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.buttonText}>Cancelar</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#10B981' }]} onPress={() => cancelOrderPop(currentOrder._id)}>
+                <Text style={styles.modalBtnText}>Confirmar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: '#F2F4F8'
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 10,
     backgroundColor: '#fff',
-    borderBottomColor: '#ddd',
-    borderBottomWidth: 1,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333'
+  mapWrapper: {
+    ...StyleSheet.absoluteFillObject,
   },
-  mapContainer: {
-    flex: 1,
-  },
-  // Sheet Styles
-  sheetContainer: {
+  headerOverlay: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    zIndex: 10,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sheetBackground: {
+    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    overflow: 'hidden',
+    shadowRadius: 8,
+    elevation: 10,
   },
-  sheetHandle: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  handleBar: {
+  handleIndicator: {
+    backgroundColor: '#ccc',
     width: 40,
-    height: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: 2,
+    height: 5,
+    borderRadius: 3,
   },
-  compactContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  sheetContent: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    height: 60,
+    paddingTop: 5,
   },
-  compactInfo: {
+  quickSummary: {
+    marginBottom: 10,
+  },
+  summaryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    flex: 1,
-  },
-  compactMain: {
-    flexDirection: 'row',
     alignItems: 'center',
+  },
+  storeName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
     flex: 1,
   },
-  orderBadge: {
+  statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    marginRight: 12,
+    marginLeft: 10,
   },
-  orderBadgeText: {
-    color: '#FFF',
+  statusText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    fontSize: 12,
   },
-  compactTexts: {
-    flex: 1,
-  },
-  compactStore: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  compactStatus: {
-    fontSize: 12,
+  totalPrice: {
+    fontSize: 24,
+    fontWeight: '800',
     color: '#9333EA',
-    fontWeight: '500',
-    marginTop: 2,
+    marginTop: 4,
   },
-  compactPrice: {
-    alignItems: 'flex-end',
-    marginRight: 12,
-  },
-  compactPriceText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  compactItems: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
-  },
-  expandButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  expandedContent: {
-    flex: 1,
-  },
-  expandedScroll: {
-    flex: 1,
-  },
-  expandedScrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 15,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 10,
   },
-  infoGrid: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  infoItem: {
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  infoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    marginBottom: 8,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    color: '#6B7280',
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#111',
   },
-  totalPrice: {
-    color: '#9333EA',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  statusEntregue: {
-    color: '#32CD32',
-  },
-  statusPendente: {
-    color: '#FFD700',
-  },
-  statusCancelado: {
-    color: '#FF4500',
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+  driverCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
   },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-  },
-  productInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  productHeader: {
+  driverRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+  },
+  driverImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: '#ddd',
+  },
+  driverInfo: {
+    flex: 1,
+  },
+  driverName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111',
+  },
+  driverSub: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  vehicleImageContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  vehicleLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  vehicleImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+  },
+  productItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  productImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    marginRight: 12,
+  },
+  productDetails: {
+    flex: 1,
   },
   productName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    flex: 1,
   },
-  productText: {
+  productQty: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  productPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#9333EA',
-    marginBottom: 2,
-  },
-  productDescription: {
-    fontSize: 11,
-    color: '#888',
+    color: '#6B7280',
     marginTop: 2,
   },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: '#999',
-    textDecorationLine: 'line-through',
-    marginRight: 8,
-  },
-  discountPrice: {
+  productPriceItem: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#9333EA',
-    marginRight: 8,
+    marginTop: 2,
   },
-  discountText: {
-    fontSize: 11,
-    color: '#32CD32',
-    fontWeight: '600',
+  actionsContainer: {
+    marginTop: 10,
+    alignItems: 'center',
   },
-  badge: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  badgeText: {
-    color: '#EF4444',
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  controlsSection: {
+  actionBtn: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
     marginTop: 10,
   },
-  actionButton: {
+  gradientBtn: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  actionBtnText: {
+    color: '#FFF',
     fontSize: 16,
+    fontWeight: '700',
     marginLeft: 8,
   },
-  // Modal Styles
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)'
+    padding: 20,
   },
   modalContent: {
     backgroundColor: '#fff',
+    borderRadius: 16,
     padding: 20,
-    borderRadius: 10,
-    width: '80%'
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12
+    marginBottom: 15,
+    textAlign: 'center',
   },
-  input: {
-    borderColor: '#ccc',
+  modalInput: {
     borderWidth: 1,
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 12
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
   },
   modalActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
-  greenButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
+  modalBtn: {
     flex: 1,
-    marginRight: 8,
-  },
-  redButton: {
-    backgroundColor: '#F44336',
-    paddingVertical: 12,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    flex: 1,
-    marginLeft: 8,
+    marginHorizontal: 5,
   },
-  buttonText: {
-    color: '#fff',
+  modalBtnText: {
+    color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 16
-  },
+  }
 });
 
 export default OrderDetailsScreen;

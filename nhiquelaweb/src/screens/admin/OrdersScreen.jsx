@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch, faTrash, faTag, faTruck } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -126,13 +126,34 @@ export default function OrdersScreen() {
     }
   };
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  const handleStatusChange = async (orderId, newStatus, type) => {
     try {
-      await api.put(`/orders/${orderId}`, { status: newStatus });
+      if (type === 'Pedido') {
+        await api.put(`/orders/${orderId}`, { status: newStatus });
+      } else {
+        await api.put(`/request-deliver/${orderId}/status`, { status: newStatus });
+      }
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
-      toast.success(`Estado da encomenda atualizado para ${newStatus}`);
+      toast.success(`Estado atualizado para ${newStatus}`);
     } catch (error) {
-      toast.error('Erro ao atualizar estado da encomenda.');
+      toast.error('Erro ao atualizar estado.');
+    }
+  };
+
+  const handleDeleteOrder = async (orderId, type) => {
+    if (window.confirm("Tem a certeza que deseja apagar este pedido?")) {
+      try {
+        if (type === 'Pedido') {
+          await api.delete(`/orders/${orderId}`);
+        } else {
+          await api.delete(`/request-deliver/${orderId}`);
+        }
+        setOrders(orders.filter(o => o._id !== orderId));
+        toast.success("Pedido removido com sucesso!");
+      } catch (error) {
+        console.error("Erro ao apagar:", error);
+        toast.error("Erro ao apagar o pedido.");
+      }
     }
   };
 
@@ -296,6 +317,17 @@ export default function OrdersScreen() {
                       <span className={`badge ms-2 ${order.orderType === 'Pedido' ? 'bg-primary-custom' : 'bg-warning text-dark'}`}>
                         {order.orderType}
                       </span>
+                      {order.goodType && (
+                        <span className="badge ms-2 bg-info text-dark">
+                          {order.goodType}
+                        </span>
+                      )}
+                      {order.transportType && (
+                        <span className="badge ms-2 bg-secondary">
+                          <FontAwesomeIcon icon={faTruck} className="me-1" />
+                          {order.transportType}
+                        </span>
+                      )}
                       <OrderTiming order={order} />
                     </td>
                     <td>
@@ -325,17 +357,20 @@ export default function OrdersScreen() {
                         <button className="btn btn-sm btn-light text-primary-custom rounded-3 shadow-sm me-2 border" onClick={() => setSelectedOrder(order)} title="Ver Detalhes">
                           <FontAwesomeIcon icon={faEye} />
                         </button>
+                        <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm me-2 border" onClick={() => handleDeleteOrder(order._id, order.orderType)} title="Apagar Pedido">
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
                         <div className="dropdown">
                         <button className="btn btn-sm btn-outline-primary fw-bold rounded-pill dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                           <FontAwesomeIcon icon={faExchangeAlt} className="me-1" /> Mudar Estado
                         </button>
                         <ul className="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
-                          <li><button className="dropdown-item fw-bold text-warning" onClick={() => handleStatusChange(order._id, 'Pendente')}><FontAwesomeIcon icon={faClock} className="me-2" />Pendente</button></li>
-                          <li><button className="dropdown-item fw-bold text-info" onClick={() => handleStatusChange(order._id, 'Em Preparação')}><FontAwesomeIcon icon={faBoxOpen} className="me-2" />Em Preparação</button></li>
-                          <li><button className="dropdown-item fw-bold text-primary" onClick={() => handleStatusChange(order._id, 'A Caminho')}><FontAwesomeIcon icon={faMotorcycle} className="me-2" />A Caminho</button></li>
+                          <li><button className="dropdown-item fw-bold text-warning" onClick={() => handleStatusChange(order._id, 'Pendente', order.orderType)}><FontAwesomeIcon icon={faClock} className="me-2" />Pendente</button></li>
+                          <li><button className="dropdown-item fw-bold text-info" onClick={() => handleStatusChange(order._id, 'Em Preparação', order.orderType)}><FontAwesomeIcon icon={faBoxOpen} className="me-2" />Em Preparação</button></li>
+                          <li><button className="dropdown-item fw-bold text-primary" onClick={() => handleStatusChange(order._id, 'A Caminho', order.orderType)}><FontAwesomeIcon icon={faMotorcycle} className="me-2" />A Caminho</button></li>
                           <li><hr className="dropdown-divider" /></li>
-                          <li><button className="dropdown-item fw-bold text-success" onClick={() => handleStatusChange(order._id, 'Entregue')}><FontAwesomeIcon icon={faCheckCircle} className="me-2" />Entregue</button></li>
-                          <li><button className="dropdown-item fw-bold text-danger" onClick={() => handleStatusChange(order._id, 'Cancelada')}><FontAwesomeIcon icon={faTimes} className="me-2" />Cancelada</button></li>
+                          <li><button className="dropdown-item fw-bold text-success" onClick={() => handleStatusChange(order._id, 'Entregue', order.orderType)}><FontAwesomeIcon icon={faCheckCircle} className="me-2" />Entregue</button></li>
+                          <li><button className="dropdown-item fw-bold text-danger" onClick={() => handleStatusChange(order._id, 'Cancelada', order.orderType)}><FontAwesomeIcon icon={faTimes} className="me-2" />Cancelada</button></li>
                         </ul>
                       </div>
                       </div>
@@ -376,6 +411,18 @@ export default function OrdersScreen() {
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faUser} /></div>
                     <div className="fw-bold text-dark">{customersMap[selectedOrder.customerId] || 'Cliente Desconhecido'}</div>
                   </div>
+                  {selectedOrder.goodType && (
+                    <div className="d-flex mb-2">
+                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faTag} /></div>
+                      <div className="fw-bold text-dark">Tipo: <span className="text-primary-custom">{selectedOrder.goodType}</span></div>
+                    </div>
+                  )}
+                  {selectedOrder.transportType && (
+                    <div className="d-flex mb-2">
+                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faTruck} /></div>
+                      <div className="fw-bold text-dark">Transporte: <span className="text-primary-custom">{selectedOrder.transportType}</span></div>
+                    </div>
+                  )}
                   <div className="d-flex mb-2">
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMotorcycle} /></div>
                     <div className="fw-bold text-dark">{selectedOrder.driverId ? driversMap[selectedOrder.driverId] || 'Motorista Desconhecido' : 'Ainda sem Motorista'}</div>
@@ -386,7 +433,7 @@ export default function OrdersScreen() {
                   </div>
                   <div className="d-flex">
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
-                    <div className="fw-bold text-dark">Morada de Entrega</div>
+                    <div className="fw-bold text-dark">Morada de Entrega: <span className="text-muted fw-normal">{selectedOrder.deliveryAddress?.address || selectedOrder.destination || 'Morada de Entrega'}</span></div>
                   </div>
                 </div>
 

@@ -5,11 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import EstablishmentCard from './EstablishmentCard2';
+import { io } from 'socket.io-client';
 
-const EstablishmentsView = ({ title }) => {
+export default function EstablishmentsView1({ categoryId, title }) {
   const navigation = useNavigation();
-  const [isLoading, setLoading] = useState(false);
-  const [tipoestabelecimentos, setTipoestabelecimentos] = useState(null);
+  const [isLoading, setLoading] = useState(true);
+  const [tipoestabelecimentos, setTipoestabelecimentos] = useState([]);
   const [error, setError] = useState(null);
 
   const fetchData = async () => {
@@ -18,9 +19,9 @@ const EstablishmentsView = ({ title }) => {
       const response = await api.get('/provider-types');
 
       if (response.status === 200) {
-        // Filtrar apenas os que são do tipo 'Business' (Estabelecimentos)
+        // Filtrar apenas os que são do tipo 'Business' (Estabelecimentos) e que estão ativos
         const businessTypes = response.data.filter(
-          (tipo) => tipo.classificationId?.name === 'Business' || tipo.classificationId?.name?.toLowerCase() === 'business'
+          (tipo) => tipo.isActive !== false && (tipo.classificationId?.name === 'Business' || tipo.classificationId?.name?.toLowerCase() === 'business')
         );
         setTipoestabelecimentos(businessTypes);
       }
@@ -38,6 +39,24 @@ const EstablishmentsView = ({ title }) => {
       fetchData();
     }, [])
   );
+
+  useEffect(() => {
+    let socketUrl = process.env.EXPO_PUBLIC_SOCKET_URL || process.env.REACT_APP_SOCKET_URL;
+    if (!socketUrl) {
+      socketUrl = typeof api === 'string' ? api : api.defaults?.baseURL?.replace('/api', '') || 'https://api.nhiquelaservicos.com';
+    }
+    
+    const socket = io(socketUrl, { transports: ['websocket'] });
+    
+    socket.on('catalogUpdated', () => {
+      fetchData();
+    });
+
+    return () => {
+      socket.off('catalogUpdated');
+      socket.disconnect();
+    };
+  }, []);
 
   // Atualiza a cada 30 segundos
   useEffect(() => {
@@ -89,8 +108,6 @@ const EstablishmentsView = ({ title }) => {
     </View>
   );
 };
-
-export default EstablishmentsView;
 
 const styles = StyleSheet.create({
   sellerWrapper: {

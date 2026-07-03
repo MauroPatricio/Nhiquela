@@ -614,6 +614,11 @@ orderRouter.delete(
     if (order) {
       order.deleted = true;
       order.isActive = false;
+      order.status = 'Cancelado';
+      order.targetDriverId = null;
+      if (order.deliveryman && order.deliveryman.id) {
+        order.deliveryman.id = null;
+      }
 
       await order.save();
 

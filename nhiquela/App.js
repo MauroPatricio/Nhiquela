@@ -1,5 +1,7 @@
+import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
 import { Platform, View, Text } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -220,59 +222,61 @@ export default function App() {
   }
 
   return (
-    <ToastProvider>
-      <StatusBar backgroundColor="white" style="dark" />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider>
+        <StatusBar backgroundColor="white" style="dark" />
 
-      <Provider store={store}>
-        <SafeAreaProvider>
+        <Provider store={store}>
+          <SafeAreaProvider>
 
-          <NavigationContainer 
-              ref={navigationRef}
-              linking={{
-                prefixes: ['nhiquela://'],
-                config: {
-                  screens: {
-                    OrderDetailsScreen: 'order/:orderId',
-                    OrderList: 'orders'
+            <NavigationContainer 
+                ref={navigationRef}
+                linking={{
+                  prefixes: ['nhiquela://'],
+                  config: {
+                    screens: {
+                      OrderDetailsScreen: 'order/:orderId',
+                      OrderList: 'orders'
+                    }
                   }
-                }
-              }}
-          >
-            <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isFirstLaunch ? 'Onboarding' : 'BottomNavigation'}>
-              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-              <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
-              <Stack.Screen name="ProductDetail" component={ProductDetail} />
-              <Stack.Screen name="ProductList" component={NewProducts} />
-              <Stack.Screen name="ProductList2" component={ProductList} />
-              <Stack.Screen name="Login" component={LoginPage} />
-              <Stack.Screen name="SignUp" component={SignUp} />
-              <Stack.Screen name="SellerScreen" component={SellerScreen} />
-              <Stack.Screen name="SellerProduct" component={SellerProduct} />
-              <Stack.Screen name="SellersList" component={SellersList} />
-              <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
-              <Stack.Screen name="Cart" component={Cart} />
-              <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
-              <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
-              <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
-              <Stack.Screen name="FailedPayment" component={FailedPayment} />
-              <Stack.Screen name="MapScreen" component={MapScreen} />
-              <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
-              <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
-              <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
-              <Stack.Screen name="OrderList" component={OrderList} />
-              <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-              <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
-              <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
-              <Stack.Screen name="Favorite" component={Favorite} />
-              <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
+                }}
+            >
+              <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isFirstLaunch ? 'Onboarding' : 'BottomNavigation'}>
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
+                <Stack.Screen name="ProductDetail" component={ProductDetail} />
+                <Stack.Screen name="ProductList" component={NewProducts} />
+                <Stack.Screen name="ProductList2" component={ProductList} />
+                <Stack.Screen name="Login" component={LoginPage} />
+                <Stack.Screen name="SignUp" component={SignUp} />
+                <Stack.Screen name="SellerScreen" component={SellerScreen} />
+                <Stack.Screen name="SellerProduct" component={SellerProduct} />
+                <Stack.Screen name="SellersList" component={SellersList} />
+                <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+                <Stack.Screen name="Cart" component={Cart} />
+                <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
+                <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
+                <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
+                <Stack.Screen name="FailedPayment" component={FailedPayment} />
+                <Stack.Screen name="MapScreen" component={MapScreen} />
+                <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
+                <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
+                <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
+                <Stack.Screen name="OrderList" component={OrderList} />
+                <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+                <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
+                <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
+                <Stack.Screen name="Favorite" component={Favorite} />
+                <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
 
-        </SafeAreaProvider>
-      </Provider>
+          </SafeAreaProvider>
+        </Provider>
 
-    </ToastProvider>
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }
 

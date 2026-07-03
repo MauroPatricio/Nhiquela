@@ -6,7 +6,7 @@ import { Alert } from 'react-native';
 // 1️⃣ Configuração Automática de Ambiente (Auto QA / Gatekeeper)
 // ---------------------------------------------------------------------
 const isDev = process.env.NODE_ENV !== 'production';
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://10.203.15.176:5000/api' : 'https://api.nhiquelaservicos.com/api');
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.4:5000/api' : 'https://api.nhiquelaservicos.com/api');
 export const API_TIMEOUT = 10000;
 
 // ---------------------------------------------------------------------

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import TripMap from "../components/TripMap";
 import TripControls from "../components/TripControls";
@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from 'expo-location';
 import { startOrderInTransit } from "../services/orderService"; 
 import { io } from 'socket.io-client';
+import { showMessage } from "react-native-flash-message";
 
 // 🔥 LOCALIZAÇÃO FALLBACK (caso não consiga obter a real)
 const FALLBACK_LOCATION = {
@@ -123,7 +124,28 @@ export default function MapScreen({ route, navigation }: any) {
               };
               setDestination(vendorLocation);
             } else {
-              Alert.alert("Aviso", "Localização do vendedor não disponível.");
+              showMessage({
+                message: "Atenção",
+                description: "Localização do cliente indisponível.",
+                type: "danger",
+                icon: "warning",
+                duration: 4000,
+                style: {
+                  paddingTop: 40,
+                  borderRadius: 16,
+                  margin: 10,
+                  backgroundColor: '#FF3B30',
+                },
+                titleStyle: {
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  color: "#FFF"
+                },
+                textStyle: {
+                  fontSize: 14,
+                  color: "#FFF"
+                }
+              });
             }
   
           } else if (storedTrip.stepStatus === 5) {
@@ -143,7 +165,21 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else {
-            setDestination(null);
+            // STEP PENDENTE / ACEITE MAS NÃO INICIADO → destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
+            // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
+            const pickupLat = Number(storedTrip.destinationLocation?.latitude || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originLocation?.latitude);
+            const pickupLng = Number(storedTrip.destinationLocation?.longitude || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originLocation?.longitude);
+            
+            if (pickupLat && pickupLng) {
+              const pickupLocation = {
+                latitude: pickupLat,
+                longitude: pickupLng,
+                title: storedTrip.destination || "Local da Coleta",
+              };
+              setDestination(pickupLocation);
+            } else {
+              setDestination(null);
+            }
           }
         }
   

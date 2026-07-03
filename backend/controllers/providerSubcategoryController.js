@@ -42,6 +42,12 @@ export const create = asyncHandler(async (req, res) => {
     const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes } = req.body;
   const newSub = new ProviderSubcategory({ name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes });
   await newSub.save();
+  
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('catalogUpdated');
+  }
+
   res.status(201).json(newSub);
   } catch (error) {
     console.error('Error creating subcategory', error);
@@ -65,6 +71,12 @@ export const update = asyncHandler(async (req, res) => {
     })
     .populate('vehicleTypes');
     if (!updated) return res.status(404).json({ message: 'Subcategoria não encontrada' });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('catalogUpdated');
+    }
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating subcategory', error);
@@ -77,6 +89,12 @@ export const remove = asyncHandler(async (req, res) => {
   try {
     const deleted = await ProviderSubcategory.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: 'Subcategoria não encontrada' });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('catalogUpdated');
+    }
+    
     res.json({ message: 'Subcategoria removida' });
   } catch (error) {
     console.error('Error deleting subcategory', error);

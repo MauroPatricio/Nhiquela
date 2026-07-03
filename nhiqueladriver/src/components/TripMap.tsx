@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import MapView, { Marker, Camera, UrlTile, Polyline } from "react-native-maps";
+import { LinearGradient } from "expo-linear-gradient";
 import { 
   StyleSheet, 
   Dimensions, 
@@ -57,6 +58,7 @@ export default function TripMap({
   const lastPositionRef = useRef<any>(null);
   const animationRef = useRef<any>(null);
   const hasInitialZoomed = useRef(false);
+  const lastSpeedWarningTime = useRef<number>(0);
 
   // 🔥 OBTER LOCALIZAÇÃO EM TEMPO REAL
   useEffect(() => {
@@ -101,7 +103,25 @@ export default function TripMap({
           const currentSpeed = newLocation.coords.speed !== null && newLocation.coords.speed > 0 
             ? newLocation.coords.speed * 3.6 
             : 0;
-          setSpeed(Math.round(currentSpeed));
+          
+          const speedKmH = Math.round(currentSpeed);
+          setSpeed(speedKmH);
+
+          // 🔥 AVISO DE VELOCIDADE (100 KM/H)
+          if (speedKmH >= 100) {
+            const now = Date.now();
+            // Apenas emite o aviso a cada 1 minuto (60000ms) para não fazer spam
+            if (now - lastSpeedWarningTime.current > 60000) {
+              lastSpeedWarningTime.current = now;
+              showMessage({
+                message: "⚠️ Excesso de Velocidade",
+                description: "Atingiu 100 km/h! Por favor, reduza a velocidade para a sua segurança e do cliente.",
+                type: "danger",
+                icon: "warning",
+                duration: 5000,
+              });
+            }
+          }
 
           // Atualizar posição
           setOrigin(updatedLocation);
@@ -386,12 +406,20 @@ export default function TripMap({
         {stepStatus === 4 && (
           <View style={styles.startTripButtonContainer}>
             <TouchableOpacity 
-              style={[styles.startTripButton, { backgroundColor: COLORS.primary }]}
-              activeOpacity={0.8}
+              style={styles.startTripButtonOuter}
+              activeOpacity={0.85}
               onPress={handleStartTripPress}
             >
-              <Ionicons name="play-circle" size={28} color="#FFF" />
-              <Text style={styles.startTripButtonText}>Iniciar Viagem</Text>
+              <LinearGradient
+                colors={['#a855f7', '#9333ea', '#7e22ce']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startTripButtonGradient}
+              >
+                <View style={styles.startTripButtonGlow} />
+                <Ionicons name="play-circle" size={32} color="#FFF" style={styles.startTripButtonIcon} />
+                <Text style={styles.startTripButtonText}>Iniciar Viagem</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -548,31 +576,53 @@ const styles = StyleSheet.create({
     // Container do Botao Iniciar Viagem - PREMIUM
     startTripButtonContainer: {
       position: "absolute",
-      bottom: 50, // Move down so it doesn't block the map
+      bottom: 130, // Move down so it doesn't block the map but stays above TabMenu
       alignSelf: "center",
-      width: '85%',
+      width: '88%',
+      zIndex: 999,
     },
-    startTripButton: {
+    startTripButtonOuter: {
+      borderRadius: 24,
+      elevation: 12,
+      shadowColor: '#a855f7',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.6,
+      shadowRadius: 16,
+    },
+    startTripButtonGradient: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: 18,
-      paddingHorizontal: 24,
-      borderRadius: 16,
-      elevation: 10,
-      shadowColor: COLORS.primary,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.4,
-      shadowRadius: 10,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.15)',
+      paddingHorizontal: 28,
+      borderRadius: 24,
+      borderWidth: 1.5,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      overflow: 'hidden',
+    },
+    startTripButtonGlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '50%',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    startTripButtonIcon: {
+      marginRight: 12,
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
     },
     startTripButtonText: {
       color: "#FFF",
-      fontSize: 18,
-      fontWeight: "800",
-      letterSpacing: 0.5,
-      marginLeft: 12,
+      fontSize: 20,
+      fontWeight: "900",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
     },
   arrowMarkerContainer: {
     width: 40,

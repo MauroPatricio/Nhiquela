@@ -148,7 +148,7 @@ const Profile = () => {
       <View style={styles.profileContainer}>
         {/* User Avatar */}
         <Image
-          source={require('../assets/default1.jpg')}
+          source={userLogin && userData?.profileImage ? { uri: userData.profileImage } : require('../assets/default1.jpg')}
           style={styles.avatar}
         />
 

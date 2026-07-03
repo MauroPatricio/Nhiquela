@@ -212,6 +212,7 @@ userRouter.post(
       isSeller: user.isSeller,
       isDeliveryMan: user.isDeliveryMan,
       seller: user.seller,
+      createdAt: user.createdAt,
       token: generateToken(user),
     });
   })
@@ -350,6 +351,7 @@ userRouter.put(
           isSeller: updatedUser.isSeller,
           isBanned: updatedUser.isBanned,
           seller: updatedUser.seller,
+          createdAt: updatedUser.createdAt,
           token: generateToken(updatedUser),
         });
       } else {
@@ -810,6 +812,7 @@ userRouter.post('/verify-otp', expressAsyncHandler(async (req, res) => {
     phoneNumber: user.phoneNumber,
     isDeliveryMan: user.isDeliveryMan,
     deliveryman: user.deliveryman,
+    createdAt: user.createdAt,
     token: generateToken(user),
   });
 }));
@@ -926,6 +929,7 @@ userRouter.post(
       seller: user.seller || null,
       deliveryman: user.deliveryman || null,
       tipoEstabelecimento: user.tipoEstabelecimento || null,
+      createdAt: user.createdAt,
       token: generateToken(user),
     });
   })
@@ -1064,6 +1068,7 @@ userRouter.post(
           isDeliveryMan: user.isDeliveryMan,
           isSeller: user.isSeller,
           isBanned: user.isBanned,
+          createdAt: user.createdAt,
           token: generateToken(user),
         });
       }

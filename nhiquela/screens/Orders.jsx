@@ -181,7 +181,7 @@ const Orders = () => {
 
     let timeMinutes = etas[item._id] || null;
 
-    const sellerName = item?.seller?.seller?.name || item?.goodType || 'Serviço';
+    const sellerName = item?.seller?.seller?.name || item?.name || item?.goodType || 'Serviço';
     const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
     const code = item?.code || '---';
 
@@ -210,22 +210,38 @@ const Orders = () => {
           <Text style={styles.orderCode}>Código: {code}</Text>
           <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
           <Text style={styles.orderPrice}>{item.totalPrice ?? item.deliveryPrice ?? '---'} MT</Text>
-          {item.deliveryman && item.deliveryman.transport_color && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <Ionicons name="car-outline" size={14} color="#666" style={{ marginRight: 4 }} />
-              <View style={{ 
-                width: 10, height: 10, borderRadius: 5, marginRight: 4, borderWidth: 1, borderColor: '#ddd',
-                backgroundColor: (() => {
-                  const c = String(item.deliveryman.transport_color).toLowerCase().trim();
-                  const map = {
-                    'branco': '#F8FAFC', 'preto': '#000000', 'cinzento': '#9CA3AF', 'cinza': '#9CA3AF', 'prata': '#D1D5DB', 
-                    'vermelho': '#EF4444', 'azul': '#3B82F6', 'verde': '#10B981', 'amarelo': '#F59E0B', 
-                    'laranja': '#F97316', 'castanho': '#78350F', 'marrom': '#78350F', 'rosa': '#EC4899', 'roxo': '#8B5CF6'
-                  };
-                  return map[c] || '#D1D5DB';
-                })()
-              }} />
-              <Text style={{ fontSize: 11, color: '#666' }}>{item.deliveryman.transport_type || 'Viatura'}</Text>
+          {item.deliveryman && item.deliveryman.name && (
+            <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Image 
+                  source={{ uri: item.deliveryman.photo || 'https://via.placeholder.com/40' }} 
+                  style={{ width: 28, height: 28, borderRadius: 14, marginRight: 8, backgroundColor: '#eee' }} 
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>
+                    {item.deliveryman.name}
+                  </Text>
+                  {item.deliveryman.transport_type && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                      <Ionicons name="car-outline" size={12} color="#6B7280" style={{ marginRight: 2 }} />
+                      <Text style={{ fontSize: 11, color: '#6B7280' }} numberOfLines={1}>
+                        {item.deliveryman.transport_type}
+                        {item.deliveryman.transport_color ? ` • ${item.deliveryman.transport_color}` : ''}
+                        {item.deliveryman.transport_registration ? ` • ${item.deliveryman.transport_registration}` : ''}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              {item.deliveryman.vihicle_picture && (
+                <View style={{ marginTop: 6, marginLeft: 36 }}>
+                  <Image
+                    source={{ uri: item.deliveryman.vihicle_picture }}
+                    style={{ width: 60, height: 40, borderRadius: 6, backgroundColor: '#ddd' }}
+                    contentFit="cover"
+                  />
+                </View>
+              )}
             </View>
           )}
         </View>

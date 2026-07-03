@@ -5,7 +5,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 // Para emuladores Android use 'http://10.0.2.2:5000/api'
 // Para dispositivos físicos use o IP da máquina local (ex: 'http://10.94.223.176:5000/api')
-const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://10.203.15.176:5000/api' : 'https://api.nhiquelaservicos.com/api');
+const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.4:5000/api' : 'https://api.nhiquelaservicos.com/api');
 
 const api = axios.create({
   baseURL,

@@ -11,7 +11,7 @@ const images ={
     image1: require('../assets/vehicle/bycicle.png'),
     image2: require('../assets/vehicle/car.png'),
     image3: require('../assets/vehicle/truck.png'),
-    image4: require('../assets/vehicle/reboque.png')
+    image4: require('../assets/vehicle/reboque.jpg')
 
 }
 const data = [

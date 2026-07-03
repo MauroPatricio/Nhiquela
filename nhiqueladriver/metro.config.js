@@ -1,3 +1,4 @@
+if (!Array.prototype.toReversed) { Array.prototype.toReversed = function() { return this.slice().reverse(); }; }
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
@@ -47,3 +48,4 @@ if (config.watcher && config.watcher.unstable_workerThreads !== undefined) {
 }
 
 module.exports = config;
+

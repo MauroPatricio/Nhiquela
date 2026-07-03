@@ -212,6 +212,11 @@ requestDeliver.delete(
     if (requestDeliv) {
       requestDeliv.deleted = true;
       requestDeliv.isActive = false;
+      requestDeliv.status = 'Cancelado';
+      requestDeliv.targetDriverId = null;
+      if (requestDeliv.deliveryman && requestDeliv.deliveryman.id) {
+        requestDeliv.deliveryman.id = null;
+      }
 
       await requestDeliv.save();
 
@@ -514,6 +519,28 @@ requestDeliver.put(
         io.to(`order_${order._id}`).emit('order_updated', order);
       }
       res.send({ message: 'Pedido rejeitado/timeout', order: order });
+    } else {
+      res.status(404).send({ message: 'Pedido nao encontrado' });
+    }
+  })
+);
+
+// O admin muda o status na mesa de encomendas
+requestDeliver.put(
+  '/:id/status',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestDeliv.findById(req.params.id);
+    if (order) {
+      order.status = req.body.status;
+      await order.save();
+      
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${order._id}`).emit('order_updated', order);
+      }
+      
+      res.send({ message: 'Estado atualizado com sucesso', order: order });
     } else {
       res.status(404).send({ message: 'Pedido nao encontrado' });
     }

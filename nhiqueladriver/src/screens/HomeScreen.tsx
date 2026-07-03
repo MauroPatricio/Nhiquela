@@ -496,7 +496,14 @@ export default function HomeScreen({ navigation }: any) {
         console.warn('⚠️ Erro ao obter localização, continuando sem ela...');
       }
 
-      const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
+      const formattedOrders = ordersData
+        .map((order: any) => formatOrder(order, currentPosition))
+        .filter((order: any) => {
+          const tripStatus = order.status ? order.status.toLowerCase() : "";
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || order.stepStatus === 6;
+          // Keep if not completed OR if it's currently marked as accepted/in transit by THIS driver (sanity check)
+          return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
+        });
 
       // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
       setAllTrips(formattedOrders);
@@ -580,7 +587,13 @@ export default function HomeScreen({ navigation }: any) {
         console.warn('⚠️ Erro ao obter localização');
       }
   
-      const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
+      const formattedOrders = ordersData
+        .map((order: any) => formatOrder(order, currentPosition))
+        .filter((order: any) => {
+          const tripStatus = order.status ? order.status.toLowerCase() : "";
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || order.stepStatus === 6;
+          return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
+        });
   
       // 🔥 VERIFICAÇÃO CORRIGIDA DAS VIAGENS ACEITAS
       const acceptedTrips = formattedOrders.filter((order: Trip) => {

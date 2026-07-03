@@ -45,7 +45,7 @@
     "geolib": "3.3.4",
     "haversine": "1.1.1",
     "leaflet": "^1.9.4",
-    "react": "^19.1.0",
+    "react": "19.1.0",
     "react-delegate-component": "^1.0.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^5.0.0",
@@ -116,5 +116,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "react": "19.1.0"
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Dimensions, Image, ScrollView } from 'react-native';
+import { io } from 'socket.io-client';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
@@ -21,25 +22,25 @@ const carouselData = [
   },
   */
   {
-    id: '2',
-    title: 'Serviço de Reboque',
+    id: '1',
+    title: 'Reboque',
     subtitle: 'Assistência rápida na estrada',
     image: require('../assets/images/reboque.png'),
   },
   {
-    id: '3',
+    id: '2',
     title: 'Mudanças',
     subtitle: 'Transporte seguro e profissional',
     image: require('../assets/images/mudancas.png'),
   },
   {
-    id: '4',
-    title: 'Entrega de Gás',
+    id: '3',
+    title: 'Gás',
     subtitle: 'O seu gás em casa em minutos',
     image: require('../assets/images/gas.png'),
   },
   {
-    id: '5',
+    id: '4',
     title: 'Entregas Rápidas',
     subtitle: 'A sua encomenda, sempre a horas',
     image: require('../assets/images/entregas.png'),
@@ -87,7 +88,11 @@ export default function ServicesTab() {
     return (
       <View style={[styles.carouselCard, { backgroundColor: item.bgColor || '#FFF' }]}>
         {item.image && (
-          <Image source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={styles.carouselImage} />
+          <Image 
+            source={typeof item.image === 'string' ? { uri: item.image } : item.image} 
+            style={styles.carouselImage} 
+            resizeMode="cover" 
+          />
         )}
         {/* Overlay escuro para imagens */}
         {item.image && <View style={styles.carouselOverlay} />}
@@ -148,10 +153,16 @@ export default function ServicesTab() {
       const grouped = {};
       
       data.forEach((sub) => {
+        // Ignorar categorias inativas
+        if (sub.isActive === false) return;
+
         // Filtrar opcionalmente apenas as que pertencem a "Service"
         const classif = sub.providerTypeId?.classificationId?.name?.toLowerCase();
         if (classif === 'service' || classif === 'serviços' || classif === 'serviço') {
-          const typeName = sub.providerTypeId?.name || "Outros Serviços";
+          let typeName = sub.providerTypeId?.name || "Outros Serviços";
+          if (typeName.toLowerCase() === 'motoristas' || typeName.toLowerCase() === 'motorista') {
+            typeName = 'Serviços disponíveis';
+          }
           const typeId = sub.providerTypeId?._id || typeName;
           
           if (!grouped[typeId]) {
@@ -175,6 +186,24 @@ export default function ServicesTab() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let socketUrl = process.env.EXPO_PUBLIC_SOCKET_URL || process.env.REACT_APP_SOCKET_URL;
+    if (!socketUrl) {
+      socketUrl = typeof api === 'string' ? api : api.defaults?.baseURL?.replace('/api', '') || 'https://api.nhiquelaservicos.com';
+    }
+    
+    const socket = io(socketUrl, { transports: ['websocket'] });
+    
+    socket.on('catalogUpdated', () => {
+      fetchCatalog();
+    });
+
+    return () => {
+      socket.off('catalogUpdated');
+      socket.disconnect();
+    };
+  }, []);
 
   const handleServiceSelect = (service) => {
     navigation.navigate('RequestDeliv', { selectedService: service });
@@ -256,7 +285,7 @@ export default function ServicesTab() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Serviços</Text>
+        <Text style={styles.headerTitle}>Catálogo de Serviços</Text>
         <Text style={styles.headerSubtitle}>Encontre o profissional que precisa.</Text>
       </View>
 
@@ -312,20 +341,17 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 16,
     overflow: 'hidden',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     padding: 20,
   },
   carouselImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    resizeMode: 'cover',
+    ...StyleSheet.absoluteFillObject,
+    width: undefined,
+    height: undefined,
   },
   carouselOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
   carouselContent: {
     flexDirection: 'row',
