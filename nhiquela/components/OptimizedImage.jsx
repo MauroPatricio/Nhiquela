@@ -1,9 +1,10 @@
+import { Image } from 'expo-image';
 // components/OptimizedImage.js
 import React, { useState } from 'react';
-import { Image, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 
-const OptimizedImage = ({ source, style, resizeMode = 'cover', ...props }) => {
+const OptimizedImage = ({ source, style, contentFit = 'cover', ...props }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -35,7 +36,7 @@ const OptimizedImage = ({ source, style, resizeMode = 'cover', ...props }) => {
         {...props}
         source={source}
         style={[style, isLoading && { opacity: 0 }]}
-        resizeMode={resizeMode}
+        contentFit={contentFit}
         onLoad={handleLoad}
         onError={handleError}
       />

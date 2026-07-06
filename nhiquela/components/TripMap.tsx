@@ -1,18 +1,8 @@
+import { Image } from 'expo-image';
 import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from "react";
 import { SafeMapView, SafeMarker as Marker, SafeMapViewDirections as MapViewDirections, isMapAvailable } from './SafeMapView';
-import { 
-  StyleSheet, 
-  Dimensions, 
-  View, 
-  Text, 
-  Animated, 
-  TouchableOpacity,
-  PanResponder,
-  SafeAreaView,
-  Alert,
-  Image
-} from "react-native";
+import { StyleSheet, Dimensions, View, Text, Animated, TouchableOpacity, PanResponder, SafeAreaView, Alert } from 'react-native';
 import COLORS from "../styles/colors";
 import * as Location from 'expo-location';
 import { Ionicons } from "@expo/vector-icons";
@@ -76,10 +66,10 @@ const OptimizedDriverPhoto = React.memo(({ base64String }: { base64String: strin
     <Image 
       source={{ uri: imageUri }} 
       style={styles.driverPhoto}
-      resizeMode="cover"
+      contentFit="cover"
       defaultSource={require('../assets/icon.png')} // Adicione uma imagem placeholder
-      onError={(e) => {
-        console.log('Erro ao carregar imagem do motorista:', e.nativeEvent.error);
+      onError={() => {
+        console.log('Erro ao carregar imagem do motorista');
         setImageUri(null);
       }}
     />

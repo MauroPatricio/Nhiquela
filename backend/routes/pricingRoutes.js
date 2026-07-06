@@ -51,7 +51,7 @@ pricingRouter.post(
     const { serviceId, originLoc, destLoc, weightKg, vehicleTypeId, hasHelper, isRaining, trafficCondition, demandLevel, providerId } = req.body;
     
     if (!serviceId) {
-      return res.status(400).send({ message: 'serviceId Ã© obrigatÃ³rio' });
+      return res.status(400).send({ message: 'serviceId é obrigatório' });
     }
 
     const result = await PricingService.calculatePrice({

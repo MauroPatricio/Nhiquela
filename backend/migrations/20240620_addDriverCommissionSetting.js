@@ -1,4 +1,4 @@
-// Migration to add default driver commission rate (15%) in Settings
+﻿// Migration to add default driver commission rate (15%) in Settings
 import Settings from '../models/SettingsModel.js';
 
 module.exports = async function (db) {

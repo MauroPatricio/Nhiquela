@@ -49,7 +49,7 @@ marketingRouter.put(
       const updatedCampaign = await campaign.save();
       res.send({ message: 'Campanha atualizada', marketing: updatedCampaign });
     } else {
-      res.status(404).send({ message: 'Campanha nÃ£o encontrada' });
+      res.status(404).send({ message: 'Campanha não encontrada' });
     }
   })
 );
@@ -64,7 +64,7 @@ marketingRouter.delete(
       await campaign.deleteOne();
       res.send({ message: 'Campanha apagada' });
     } else {
-      res.status(404).send({ message: 'Campanha nÃ£o encontrada' });
+      res.status(404).send({ message: 'Campanha não encontrada' });
     }
   })
 );

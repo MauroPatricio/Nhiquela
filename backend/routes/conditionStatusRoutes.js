@@ -48,7 +48,7 @@ conditionStatusRouter.get(
     if (conditionStatus) {
       res.send(conditionStatus);
     } else {
-      res.status(404).send({ message: 'Estado do produto n√£o encontrado' });
+      res.status(404).send({ message: 'Estado do produto n„o encontrado' });
     }
   })
 );
@@ -76,7 +76,7 @@ conditionStatusRouter.put(
       await conditionStatus.save();
       res.send({ message: `Estado do produto actualizado com sucesso` });
     } else {
-      res.status(404).send({ message: 'Estado do produto n√£o encontrado' });
+      res.status(404).send({ message: 'Estado do produto n„o encontrado' });
     }
   })
 );
@@ -98,7 +98,7 @@ conditionStatusRouter.delete(
 
       res.send({ message: `Estado do produto Removido Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Estado do produto n√£o encontrado' });
+      res.status(404).send({ message: 'Estado do produto n„o encontrado' });
     }
   })
 );

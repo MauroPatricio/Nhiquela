@@ -24,7 +24,7 @@ roleRouter.post(
   expressAsyncHandler(async (req, res) => {
     const roleExists = await Role.findOne({ name: req.body.name });
     if (roleExists) {
-      return res.status(400).send({ message: 'J√° existe uma Role com este nome.' });
+      return res.status(400).send({ message: 'J· existe uma Role com este nome.' });
     }
 
     const newRole = new Role({
@@ -47,7 +47,7 @@ roleRouter.put(
     const role = await Role.findById(req.params.id);
     if (role) {
       if (role.isSystem && req.body.name !== role.name) {
-        return res.status(400).send({ message: 'N√£o pode alterar o nome de uma role protegida.' });
+        return res.status(400).send({ message: 'N„o pode alterar o nome de uma role protegida.' });
       }
       role.name = req.body.name || role.name;
       role.description = req.body.description || role.description;
@@ -56,7 +56,7 @@ roleRouter.put(
       const updatedRole = await role.save();
       res.send({ message: 'Role atualizada com sucesso', role: updatedRole });
     } else {
-      res.status(404).send({ message: 'Role n√£o encontrada' });
+      res.status(404).send({ message: 'Role n„o encontrada' });
     }
   })
 );
@@ -70,12 +70,12 @@ roleRouter.delete(
     const role = await Role.findById(req.params.id);
     if (role) {
       if (role.isSystem) {
-        return res.status(400).send({ message: 'N√£o pode eliminar uma role protegida pelo sistema.' });
+        return res.status(400).send({ message: 'N„o pode eliminar uma role protegida pelo sistema.' });
       }
       await role.deleteOne();
       res.send({ message: 'Role eliminada com sucesso' });
     } else {
-      res.status(404).send({ message: 'Role n√£o encontrada' });
+      res.status(404).send({ message: 'Role n„o encontrada' });
     }
   })
 );

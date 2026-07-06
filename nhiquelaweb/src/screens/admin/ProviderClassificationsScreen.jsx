@@ -30,7 +30,7 @@ export default function ProviderClassificationsScreen() {
       const { data } = await api.get('/provider-classifications');
       setClassifications(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar classificaÃ§Ãµes');
+      toast.error('Erro ao carregar classificações');
     } finally {
       setLoading(false);
     }
@@ -57,31 +57,31 @@ export default function ProviderClassificationsScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('O nome Ã© obrigatÃ³rio');
+    if (!formData.name) return toast.error('O nome é obrigatório');
     
     try {
       if (isEditing) {
         await api.put(`/provider-classifications/${currentId}`, formData);
-        toast.success('ClassificaÃ§Ã£o atualizada com sucesso!');
+        toast.success('Classificação atualizada com sucesso!');
       } else {
         await api.post('/provider-classifications', formData);
-        toast.success('ClassificaÃ§Ã£o criada com sucesso!');
+        toast.success('Classificação criada com sucesso!');
       }
       fetchClassifications();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar classificaÃ§Ã£o');
+      toast.error('Erro ao guardar classificação');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem a certeza que deseja eliminar esta classificaÃ§Ã£o? Se existirem tipos associados, poderÃ¡ haver erros.')) {
+    if (window.confirm('Tem a certeza que deseja eliminar esta classificação? Se existirem tipos associados, poderá haver erros.')) {
       try {
         await api.delete(`/provider-classifications/${id}`);
-        toast.success('ClassificaÃ§Ã£o eliminada com sucesso!');
+        toast.success('Classificação eliminada com sucesso!');
         fetchClassifications();
       } catch (error) {
-        toast.error('Erro ao eliminar classificaÃ§Ã£o');
+        toast.error('Erro ao eliminar classificação');
       }
     }
   };
@@ -90,8 +90,8 @@ export default function ProviderClassificationsScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">ClassificaÃ§Ãµes de Prestador</h2>
-          <span className="text-muted small">GestÃ£o das classificaÃ§Ãµes base (ex: BUSINESS, SERVICE, FREELANCER)</span>
+          <h2 className="fw-bold m-0 text-dark">Classificações de Prestador</h2>
+          <span className="text-muted small">Gestão das classificações base (ex: BUSINESS, SERVICE, FREELANCER)</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -108,7 +108,7 @@ export default function ProviderClassificationsScreen() {
           </div>
           <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
             <FontAwesomeIcon icon={faPlus} className="me-2" />
-            Nova ClassificaÃ§Ã£o
+            Nova Classificação
           </button>
         </div>
       </div>
@@ -120,9 +120,9 @@ export default function ProviderClassificationsScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome</th>
-                  <th className="border-0 text-muted py-3">DescriÃ§Ã£o</th>
+                  <th className="border-0 text-muted py-3">Descrição</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,7 +132,7 @@ export default function ProviderClassificationsScreen() {
                   </tr>
                 ) : currentData.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-5 text-muted">Nenhuma classificaÃ§Ã£o encontrada.</td>
+                    <td colSpan="4" className="text-center py-5 text-muted">Nenhuma classificação encontrada.</td>
                   </tr>
                 ) : currentData.map(item => (
                   <tr key={item._id || item.id}>
@@ -144,7 +144,7 @@ export default function ProviderClassificationsScreen() {
                         <span className="fw-bold text-dark fs-6">{item.name}</span>
                       </div>
                     </td>
-                    <td className="text-muted">{item.description || 'Sem descriÃ§Ã£o'}</td>
+                    <td className="text-muted">{item.description || 'Sem descrição'}</td>
                     <td>
                       <span className={`badge ${item.isActive ? 'bg-success' : 'bg-danger'}`}>
                         {item.isActive ? 'Ativo' : 'Inativo'}
@@ -175,7 +175,7 @@ export default function ProviderClassificationsScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar ClassificaÃ§Ã£o' : 'Nova ClassificaÃ§Ã£o'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Classificação' : 'Nova Classificação'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}>
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -194,13 +194,13 @@ export default function ProviderClassificationsScreen() {
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">DescriÃ§Ã£o</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Descrição</label>
                   <textarea 
                     className="form-control bg-light border-0 py-3 rounded-3" 
                     rows="2"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="DescriÃ§Ã£o da classificaÃ§Ã£o"
+                    placeholder="Descrição da classificação"
                   ></textarea>
                 </div>
                 <div className="form-check mb-4">
@@ -212,12 +212,12 @@ export default function ProviderClassificationsScreen() {
                     id="isActiveCheck"
                   />
                   <label className="form-check-label fw-bold small text-muted ms-2" htmlFor="isActiveCheck">
-                    ClassificaÃ§Ã£o Ativa
+                    Classificação Ativa
                   </label>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Criar ClassificaÃ§Ã£o'}
+                  {isEditing ? 'Guardar Alterações' : 'Criar Classificação'}
                 </button>
               </form>
             </div>

@@ -40,6 +40,7 @@ import TopUpScreen from './screens/TopUpScreen';
 import WalletScreen from './screens/WalletScreen';
 import WalletWithdrawScreen from './screens/WalletWithdrawScreen';
 import WithdrawalRequestsScreen from './components/WithdrawalRequests';
+import OnboardingScreen from './screens/OnboardingScreen';
 import { enableScreens } from 'react-native-screens';
 
 const Stack = createNativeStackNavigator();
@@ -58,8 +59,15 @@ function AppContent() {
   const notificationReceivedListener = useRef();
   const notificationResponseListener = useRef();
   const toast = useToast(); // ✔️ Hook para usar o toast
+  const [isFirstLaunch, setIsFirstLaunch] = React.useState(null);
 
   useEffect(() => {
+    const checkOnboarding = async () => {
+      const hasViewed = await AsyncStorage.getItem('@hasViewedOnboardingSeller');
+      setIsFirstLaunch(hasViewed === null);
+    };
+    checkOnboarding();
+
     const setupNotifications = async () => {
       const userId = await AsyncStorage.getItem('id');
       if (!userId) return;
@@ -107,7 +115,9 @@ function AppContent() {
 
     setupNotifications();
 
-    return () => {
+    if (isFirstLaunch === null) return null;
+
+  return () => {
       notificationReceivedListener.current?.remove?.();
       notificationResponseListener.current?.remove?.();
     };
@@ -123,7 +133,8 @@ function AppContent() {
               keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
               style={{ flex: 1 }}
             >
-              <Stack.Navigator>
+              <Stack.Navigator initialRouteName={isFirstLaunch ? 'Onboarding' : 'BottomNavigation'}>
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} options={{ headerShown: false }} />
                 <Stack.Screen name="ProductDetail" component={ProductDetail} options={{ headerShown: false }} />
                 <Stack.Screen name="NewProduct" component={NewProduct} options={{ headerShown: false }} />

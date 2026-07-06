@@ -1,4 +1,4 @@
-// src/navigation/routes.ts
+﻿// src/navigation/routes.ts
 export type RootStackParamList = {
   Login: undefined;
   Onboarding: undefined;

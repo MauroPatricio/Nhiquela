@@ -29,7 +29,7 @@ export default function PaymentMethodsScreen() {
   } = usePagination(methods, 10, ['name', 'description', 'type']);
 
   const paymentTypes = [
-    'Carteira Digital', 'Dinheiro', 'Cart√£o Visa', 'Cart√£o Mastercard', 'M-Pesa', 'E-Mola', 'Transfer√™ncia Banc√°ria', 'Outros'
+    'Carteira Digital', 'Dinheiro', 'Cart„o Visa', 'Cart„o Mastercard', 'M-Pesa', 'E-Mola', 'TransferÍncia Banc·ria', 'Outros'
   ];
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function PaymentMethodsScreen() {
       const { data } = await api.get('/payment-methods');
       setMethods(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar m√©todos de pagamento');
+      toast.error('Erro ao carregar mÈtodos de pagamento');
     } finally {
       setLoading(false);
     }
@@ -78,32 +78,32 @@ export default function PaymentMethodsScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('O nome √© obrigat√≥rio');
-    if (!formData.type) return toast.error('O tipo √© obrigat√≥rio');
+    if (!formData.name) return toast.error('O nome È obrigatÛrio');
+    if (!formData.type) return toast.error('O tipo È obrigatÛrio');
     
     try {
       if (isEditing) {
         await api.put(`/payment-methods/${currentId}`, formData);
-        toast.success('M√©todo atualizado com sucesso!');
+        toast.success('MÈtodo atualizado com sucesso!');
       } else {
         await api.post('/payment-methods', formData);
-        toast.success('M√©todo criado com sucesso!');
+        toast.success('MÈtodo criado com sucesso!');
       }
       fetchMethods();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar m√©todo de pagamento');
+      toast.error('Erro ao guardar mÈtodo de pagamento');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem a certeza que deseja eliminar este m√©todo de pagamento?')) {
+    if (window.confirm('Tem a certeza que deseja eliminar este mÈtodo de pagamento?')) {
       try {
         await api.delete(`/payment-methods/${id}`);
-        toast.success('M√©todo eliminado com sucesso!');
+        toast.success('MÈtodo eliminado com sucesso!');
         fetchMethods();
       } catch (error) {
-        toast.error('Erro ao eliminar m√©todo');
+        toast.error('Erro ao eliminar mÈtodo');
       }
     }
   };
@@ -113,7 +113,7 @@ export default function PaymentMethodsScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Formas de Pagamento</h2>
-          <span className="text-muted small">Gest√£o global de m√©todos de pagamento do sistema</span>
+          <span className="text-muted small">Gest„o global de mÈtodos de pagamento do sistema</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -123,14 +123,14 @@ export default function PaymentMethodsScreen() {
             <input 
               type="text" 
               className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
-              placeholder="Pesquisar m√©todo..."
+              placeholder="Pesquisar mÈtodo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
             <FontAwesomeIcon icon={faPlus} className="me-2" />
-            Novo M√©todo
+            Novo MÈtodo
           </button>
         </div>
       </div>
@@ -141,11 +141,11 @@ export default function PaymentMethodsScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">M√©todo</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">MÈtodo</th>
                   <th className="border-0 text-muted py-3">Tipo</th>
                   <th className="border-0 text-muted py-3">Ordem</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +155,7 @@ export default function PaymentMethodsScreen() {
                   </tr>
                 ) : currentMethods.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum m√©todo encontrado.</td>
+                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum mÈtodo encontrado.</td>
                   </tr>
                 ) : currentMethods.map(method => (
                   <tr key={method._id || method.id}>
@@ -212,7 +212,7 @@ export default function PaymentMethodsScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '600px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar M√©todo' : 'Novo M√©todo de Pagamento'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar MÈtodo' : 'Novo MÈtodo de Pagamento'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}>
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -232,7 +232,7 @@ export default function PaymentMethodsScreen() {
                     />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label fw-bold small text-muted mb-1">√çcone</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Õcone</label>
                     <input 
                       type="text" 
                       className="form-control bg-light border-0 py-2 rounded-3" 
@@ -244,13 +244,13 @@ export default function PaymentMethodsScreen() {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
+                  <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
                   <textarea 
                     className="form-control bg-light border-0 py-2 rounded-3" 
                     rows="2"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Breve descri√ß√£o do m√©todo"
+                    placeholder="Breve descriÁ„o do mÈtodo"
                   ></textarea>
                 </div>
 
@@ -292,7 +292,7 @@ export default function PaymentMethodsScreen() {
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar Altera√ß√µes' : 'Criar M√©todo'}
+                  {isEditing ? 'Guardar AlteraÁıes' : 'Criar MÈtodo'}
                 </button>
               </form>
             </div>

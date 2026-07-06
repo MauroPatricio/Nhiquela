@@ -122,8 +122,8 @@ export default function PublicLayout() {
             <div className="col-6 col-lg-2">
               <h6 className="fw-bold mb-4">Legal</h6>
               <ul className="list-unstyled small d-flex flex-column gap-3">
-                <li><a href="#" className="text-muted text-decoration-none">Privacidade</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Termos de Uso</a></li>
+                <li><Link to="/privacy-policy" className="text-muted text-decoration-none">Privacidade</Link></li>
+                <li><Link to="/terms" className="text-muted text-decoration-none">Termos de Uso</Link></li>
                 <li><a href="#" className="text-muted text-decoration-none">Cookies</a></li>
               </ul>
             </div>
@@ -141,7 +141,7 @@ export default function PublicLayout() {
           </div>
           
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center border-top pt-4">
-            <small className="text-muted mb-2 mb-md-0">&copy; {new Date().getFullYear()} Nhiquela Deliver. Todos os direitos reservados.</small>
+            <small className="text-muted mb-2 mb-md-0">&copy; {new Date().getFullYear()} Nhiquela. Todos os direitos reservados.</small>
             <small className="text-muted">Feito com cuidado em Maputo, Moçambique mz</small>
           </div>
         </div>

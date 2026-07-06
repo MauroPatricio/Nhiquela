@@ -69,7 +69,7 @@ export default function CategoriesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('Nome da categoria √© obrigat√≥rio.');
+    if (!formData.name) return toast.error('Nome da categoria È obrigatÛrio.');
 
     try {
       if (isEditing) {
@@ -93,7 +93,7 @@ export default function CategoriesScreen() {
       try {
         await api.delete(`/categories/${id}`);
         setCategories(categories.filter(c => c._id !== id));
-        // Remove associadas no frontend (no backend real dever√≠amos tratar on cascade ou na rota)
+        // Remove associadas no frontend (no backend real deverÌamos tratar on cascade ou na rota)
         setSubcategories(subcategories.filter(s => s.categoryId !== id));
         if (selectedCategory?._id === id) setSelectedCategory(null);
         toast.success('Categoria eliminada!');
@@ -119,7 +119,7 @@ export default function CategoriesScreen() {
 
   const handleSaveSub = async (e) => {
     e.preventDefault();
-    if (!subFormData.name) return toast.error('Nome da subcategoria √© obrigat√≥rio.');
+    if (!subFormData.name) return toast.error('Nome da subcategoria È obrigatÛrio.');
     if (!selectedCategory) return toast.error('Nenhuma categoria principal selecionada.');
 
     try {
@@ -160,7 +160,7 @@ export default function CategoriesScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Categorias e Subcategorias</h2>
-          <span className="text-muted small">Estrutura√ß√£o do cat√°logo de produtos e servi√ßos do servidor</span>
+          <span className="text-muted small">EstruturaÁ„o do cat·logo de produtos e serviÁos do servidor</span>
         </div>
         <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
           <FontAwesomeIcon icon={faPlus} className="me-2" /> Nova Categoria Principal
@@ -189,9 +189,9 @@ export default function CategoriesScreen() {
                 <table className="table table-hover align-middle m-0">
                   <thead className="bg-light">
                     <tr>
-                      <th className="border-0 text-muted py-3 px-4">√çcone</th>
+                      <th className="border-0 text-muted py-3 px-4">Õcone</th>
                       <th className="border-0 text-muted py-3">Nome da Categoria</th>
-                      <th className="border-0 text-muted py-3 text-end px-4">A√ß√µes</th>
+                      <th className="border-0 text-muted py-3 text-end px-4">AÁıes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -257,7 +257,7 @@ export default function CategoriesScreen() {
                   </div>
                   <div>
                     <h5 className="fw-bold text-dark m-0">{selectedCategory.name}</h5>
-                    <small className="text-muted">Subcategorias Atribu√≠das</small>
+                    <small className="text-muted">Subcategorias AtribuÌdas</small>
                   </div>
                 </div>
                 
@@ -267,7 +267,7 @@ export default function CategoriesScreen() {
                       <div className="bg-white p-4 rounded-circle shadow-sm mb-3 d-inline-block">
                         <FontAwesomeIcon icon={faTags} size="2x" className="text-muted opacity-50" />
                       </div>
-                      <p className="text-muted mb-4 px-3">N√£o existem subcategorias para <strong>{selectedCategory.name}</strong>.</p>
+                      <p className="text-muted mb-4 px-3">N„o existem subcategorias para <strong>{selectedCategory.name}</strong>.</p>
                     </div>
                   ) : (
                     <div className="list-group mb-4 shadow-sm rounded-4">
@@ -302,8 +302,8 @@ export default function CategoriesScreen() {
                 <div className="bg-white p-4 rounded-circle shadow-sm mb-3">
                   <FontAwesomeIcon icon={faTags} size="3x" className="text-muted opacity-50" />
                 </div>
-                <h5 className="fw-bold text-dark mb-2">Gest√£o de Subcategorias</h5>
-                <p className="text-muted small px-3">Selecione uma categoria na tabela √† esquerda para visualizar e gerir as suas subcategorias.</p>
+                <h5 className="fw-bold text-dark mb-2">Gest„o de Subcategorias</h5>
+                <p className="text-muted small px-3">Selecione uma categoria na tabela ‡ esquerda para visualizar e gerir as suas subcategorias.</p>
               </div>
             )}
           </div>
@@ -347,7 +347,7 @@ export default function CategoriesScreen() {
                   )}
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Altera√ß√µes' : 'Criar Categoria'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÁıes' : 'Criar Categoria'}
                 </button>
               </form>
             </div>
@@ -392,7 +392,7 @@ export default function CategoriesScreen() {
                   )}
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditingSub ? 'Guardar Altera√ß√µes' : 'Criar Subcategoria'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditingSub ? 'Guardar AlteraÁıes' : 'Criar Subcategoria'}
                 </button>
               </form>
             </div>

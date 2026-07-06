@@ -67,9 +67,9 @@ export default function VehicleColorsScreen() {
   };
 
   const validateForm = () => {
-    if (!formData.name.trim()) return 'O nome da cor √© obrigat√≥rio.';
-    if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(formData.hexCode)) return 'O c√≥digo HEX √© inv√°lido (Ex: #FF0000).';
-    if (!/^RGB\(\d{1,3},\d{1,3},\d{1,3}\)$/i.test(formData.rgbCode)) return 'O c√≥digo RGB √© inv√°lido (Ex: RGB(255,0,0)).';
+    if (!formData.name.trim()) return 'O nome da cor È obrigatÛrio.';
+    if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(formData.hexCode)) return 'O cÛdigo HEX È inv·lido (Ex: #FF0000).';
+    if (!/^RGB\(\d{1,3},\d{1,3},\d{1,3}\)$/i.test(formData.rgbCode)) return 'O cÛdigo RGB È inv·lido (Ex: RGB(255,0,0)).';
     return null;
   };
 
@@ -104,7 +104,7 @@ export default function VehicleColorsScreen() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem a certeza que deseja eliminar esta cor? Esta a√ß√£o √© irrevers√≠vel.')) {
+    if (window.confirm('Tem a certeza que deseja eliminar esta cor? Esta aÁ„o È irreversÌvel.')) {
       try {
         await api.delete(`/vehicle-colors/${id}`);
         toast.success('Cor eliminada com sucesso!');
@@ -127,13 +127,13 @@ export default function VehicleColorsScreen() {
     <div className="container-fluid py-4 animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold text-dark mb-1">Cores de Ve√≠culos</h2>
-          <p className="text-muted mb-0">Fa√ßa a gest√£o da paleta de cores global da plataforma Nhiquela.</p>
+          <h2 className="fw-bold text-dark mb-1">Cores de VeÌculos</h2>
+          <p className="text-muted mb-0">FaÁa a gest„o da paleta de cores global da plataforma Nhiquela.</p>
         </div>
         <div className="d-flex gap-2">
           {colors.length === 0 && !loading && (
             <button className="btn btn-outline-primary fw-bold" onClick={seedColors}>
-              Importar Cores Padr√£o
+              Importar Cores Padr„o
             </button>
           )}
           <button className="btn btn-primary shadow-sm fw-bold px-4 rounded-3" onClick={() => handleOpenModal()}>
@@ -149,7 +149,7 @@ export default function VehicleColorsScreen() {
               <input 
                 type="text" 
                 className="form-control bg-light border-0 py-2 rounded-3" 
-                placeholder="Pesquisar por nome ou c√≥digo HEX..." 
+                placeholder="Pesquisar por nome ou cÛdigo HEX..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -175,12 +175,12 @@ export default function VehicleColorsScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Visualiza√ß√£o</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">VisualizaÁ„o</th>
                   <th className="border-0 text-muted py-3">Cor</th>
-                  <th className="border-0 text-muted py-3">C√≥digo HEX</th>
-                  <th className="border-0 text-muted py-3">C√≥digo RGB</th>
+                  <th className="border-0 text-muted py-3">CÛdigo HEX</th>
+                  <th className="border-0 text-muted py-3">CÛdigo RGB</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,8 +250,8 @@ export default function VehicleColorsScreen() {
                       ></div>
                     </div>
                     <div>
-                      <h6 className="fw-bold mb-0">Pr√©-visualiza√ß√£o</h6>
-                      <small className="text-muted">Como a cor ir√° aparecer na plataforma</small>
+                      <h6 className="fw-bold mb-0">PrÈ-visualizaÁ„o</h6>
+                      <small className="text-muted">Como a cor ir· aparecer na plataforma</small>
                     </div>
                   </div>
 
@@ -269,7 +269,7 @@ export default function VehicleColorsScreen() {
                   
                   <div className="row g-3 mb-3">
                     <div className="col-md-6">
-                      <label className="form-label fw-bold small text-muted mb-1">C√≥digo HEX</label>
+                      <label className="form-label fw-bold small text-muted mb-1">CÛdigo HEX</label>
                       <input 
                         type="text" 
                         className="form-control bg-light border-0 py-2 rounded-3 font-monospace" 
@@ -280,7 +280,7 @@ export default function VehicleColorsScreen() {
                       />
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label fw-bold small text-muted mb-1">C√≥digo RGB</label>
+                      <label className="form-label fw-bold small text-muted mb-1">CÛdigo RGB</label>
                       <input 
                         type="text" 
                         className="form-control bg-light border-0 py-2 rounded-3 font-monospace" 
@@ -293,7 +293,7 @@ export default function VehicleColorsScreen() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="form-label fw-bold small text-muted mb-1">Ordem de Exibi√ß√£o (Opcional)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Ordem de ExibiÁ„o (Opcional)</label>
                     <input 
                       type="number" 
                       className="form-control bg-light border-0 py-2 rounded-3" 
@@ -310,11 +310,11 @@ export default function VehicleColorsScreen() {
                       checked={formData.isActive} 
                       onChange={(e) => setFormData({...formData, isActive: e.target.checked})} 
                     />
-                    <label className="form-check-label fw-bold text-success" htmlFor="isActive">Cor Ativa e Vis√≠vel</label>
+                    <label className="form-check-label fw-bold text-success" htmlFor="isActive">Cor Ativa e VisÌvel</label>
                   </div>
 
                   <button type="submit" className="btn btn-primary w-100 fw-bold rounded-3 py-3">
-                    {isEditing ? 'Guardar Altera√ß√µes' : 'Adicionar Cor'}
+                    {isEditing ? 'Guardar AlteraÁıes' : 'Adicionar Cor'}
                   </button>
                 </form>
               </div>

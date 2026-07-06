@@ -1,242 +1,324 @@
-import { StyleSheet, Text, TextInput, View , Image,TouchableOpacity, Alert} from 'react-native'
-import React, { useEffect, useState } from 'react'
-import {useNavigation} from '@react-navigation/native'
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, TextInput, View, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { selectBasketItems, selectBasketTotal, selectTotalToPay } from '../features/basketSlice'
+import { selectBasketItems, selectBasketTotal, selectTotalToPay } from '../features/basketSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
-import {MaterialCommunityIcons} from '@expo/vector-icons'
-import * as Yup from 'yup'
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import * as Yup from 'yup';
 import api from '../hooks/createConnectionApi';
-import {Ionicons } from '@expo/vector-icons'
-import Button from '../components/Button';
+import { showMessage } from "react-native-flash-message";
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
 
 const validationSchema = Yup.object().shape({
   customerNumber: Yup.string()
-    .min(9, 'O número de telefone não pode ser inferior a 9 dígitos')
-    .max(9, 'O número de telefone não pode ser superior a 9 dígitos')
-    .required('Obrigatório'),
-
-  // email: Yup.string().email('Email invalido').required('Obrigatório'),
+    .min(9, 'O número deve ter 9 dígitos')
+    .max(9, 'O número deve ter 9 dígitos')
+    .required('O número é obrigatório'),
 });
 
 const MpesaScreen = () => {
-
   const [userData, setUserData] = useState(null);
-  const [userLogin, setUserLogin] = useState(false);
-  const basketTotal = useSelector(selectBasketTotal);
-  const totalToPay = useSelector(selectTotalToPay);
-  const [loader, setLoader] = useState(false);
-
-  const [customerNumber, setCustomerNumber] = useState(null)
   const [loading, setLoading] = useState(false);
-  const [paymentInfo, setPaymentInfo] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
 
-  
-  const amount = parseInt(totalToPay)
-  
-  const navigation = useNavigation();
-  const items = useSelector(selectBasketItems);
+  const totalToPay = useSelector(selectTotalToPay);
   const itemsPrice = useSelector(selectBasketTotal);
+  const items = useSelector(selectBasketItems);
+  const amount = parseInt(totalToPay || 0);
 
-const checkIfUserExist = async () => {
-  try {
-    const storedUserData = await AsyncStorage.getItem('userData');
-    const storedUserId = await AsyncStorage.getItem('id');
+  const navigation = useNavigation();
 
-    if (storedUserData && storedUserId) {
-      const parsedUserData = JSON.parse(storedUserData);
+  const checkIfUserExist = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
 
-      if (parsedUserData._id === storedUserId) {
-        setUserData(parsedUserData); 
-        setUserLogin(true);
+      if (storedUserData && storedUserId) {
+        const parsedUserData = JSON.parse(storedUserData);
+        if (parsedUserData._id === storedUserId) {
+          setUserData(parsedUserData);
+        } else {
+          navigation.navigate('Login');
+        }
       } else {
-        setIsLoading(false); // ✅ Para o loading se inconsistente
         navigation.navigate('Login');
-
       }
-    } else {
-      setIsLoading(false); // ✅ Para o loading se não logado
+    } catch (error) {
       navigation.navigate('Login');
-
+    } finally {
+      setAuthChecking(false);
     }
-  } catch (error) {
-    setIsLoading(false); // ✅ Garante parada mesmo em erro
-    navigation.navigate('Login');
+  };
 
-  }
-};
-
-  useEffect(()=>{
+  useEffect(() => {
     checkIfUserExist();
-    },[])
- 
-  
+  }, []);
 
-  const makeThePayment = async () => {
-    
-    try{
+  const makeThePayment = async (values) => {
+    try {
       setLoading(true);
 
-      const { data } = await api.post(`/payments/mpesa`, {customerNumber, amount},  {
-        headers: {
-          authorization: `Bearer ${userData.token}`,
-        },
-              
+      const { data } = await api.post(`/payments/mpesa`, { 
+        customerNumber: values.customerNumber, 
+        amount 
+      }, {
+        headers: { authorization: `Bearer ${userData.token}` },
       });
-      setPaymentInfo(data)
-      if(data.paid){
-        setLoading(false);
 
-        const order = await api.post(
-          '/orders',
-          {
-            orderItems: items,
-            address: '',
-            paymentMethod: 'Mpesa',
-            itemsPrice: itemsPrice,
-            ivaTax: 0,
-            siteTax: 0,
-            taxPrice: 0,
-            totalPrice: amount,
-            addressPrice: 150,
-            // itemsPriceForSeller: cart.itemsPriceForSeller,
-            isPaid: data.paid,
-            paidAt: Date.now(),
-            stepStatus: 1
-          },
-          {
-            headers: {
-              authorization: `Bearer ${userData.token}`,
-            },
-          }
-        );
-
-
-        navigation.replace('SuccessPayment')
-
-      }else{
+      if (data.paid) {
+        await api.post('/orders', {
+          orderItems: items,
+          address: '',
+          paymentMethod: 'Mpesa',
+          itemsPrice: itemsPrice,
+          ivaTax: 0,
+          siteTax: 0,
+          taxPrice: 0,
+          totalPrice: amount,
+          addressPrice: 150,
+          isPaid: true,
+          paidAt: Date.now(),
+          stepStatus: 1
+        }, {
+          headers: { authorization: `Bearer ${userData.token}` },
+        });
 
         setLoading(false);
-  
-        const order = await api.post(
-          '/orders',
-          {
-            orderItems: items,
-            address: '',
-            paymentMethod: 'Mpesa',
-            itemsPrice: itemsPrice,
-            ivaTax: itemsPrice*0.16,
-            siteTax: 45,
-            taxPrice: 40,
-            totalPrice: amount,
-            addressPrice: 150,
-            // itemsPriceForSeller: cart.itemsPriceForSeller,
-            isPaid: false,
-            paidAt: Date.now(),
-            stepStatus: 1
-          },
-          {
-            headers: {
-              authorization: `Bearer ${userData.token}`,
-            },
-          }
-        );
+        navigation.replace('SuccessPayment');
+      } else {
+        await api.post('/orders', {
+          orderItems: items,
+          address: '',
+          paymentMethod: 'Mpesa',
+          itemsPrice: itemsPrice,
+          ivaTax: itemsPrice * 0.16,
+          siteTax: 45,
+          taxPrice: 40,
+          totalPrice: amount,
+          addressPrice: 150,
+          isPaid: false,
+          paidAt: Date.now(),
+          stepStatus: 1
+        }, {
+          headers: { authorization: `Bearer ${userData.token}` },
+        });
 
-        // navigation.replace('FailedPayment',{paymentInfo})
-
+        setLoading(false);
+        showMessage({
+          message: 'Falha no pagamento',
+          description: 'O pagamento não foi processado com sucesso.',
+          type: 'danger'
+        });
       }
-    }catch(error){
+    } catch (error) {
       setLoading(false);
-      const errorMessage = error.response.data
-      console.log(errorMessage)
-
+      const errorMessage = error.response?.data?.message || 'Erro ao processar o pagamento.';
+      showMessage({
+        message: 'Erro',
+        description: errorMessage,
+        type: 'danger'
+      });
     }
-}
+  };
 
+  if (authChecking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView >
-   <View style={styles.icons}>
-        <TouchableOpacity onPress={()=>navigation.goBack()}>
-        <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
-    </TouchableOpacity>
-    </View>
-                     <Formik
-                        initialValues={{customerNumber: ''}}
-                        validationSchema={validationSchema}
-                        onSubmit={(values)=>makeThePayment(values)}
-                        >
-                          {({ handleChange, handleBlur, touched,handleSubmit, values, errors, isValid, setFieldTouched  }) => (
-  <>
-  <View style={styles.container}>
-    <Image
-                    source={require('../assets/Mpesa.png')}
-                    style={styles.cover}
-                    
-                    />
-    <Text style={styles.label}> <MaterialCommunityIcons 
-                        name='cellphone'
-                        size={20}
-                        color={'grey'}
-                        style={styles.iconStyle}
-                        /> Número de telefone:</Text>
-    
-      <TextInput
-        style={styles.input}
-        value={customerNumber}
-        onChangeText={setCustomerNumber}
-        placeholder="Informe o número para o pagamento"
-                          name="customerNumber"
-                />
-  {touched.customerNumber && errors.customerNumber && (
-                        <Text style={styles.errorMessage}>{errors.customerNumber}</Text>
-
-                    )}
-      <Text style={styles.label}>Total a pagar:</Text>
-          <Text>{amount} MT</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pagamento M-Pesa</Text>
+        <View style={{ width: 38 }} />
       </View>
 
-      <Button  loader={loader} title={"Pagar"} onPress={isValid? handleSubmit: (values)=>makeThePayment(values)} isValid={isValid?'#7F00FF':'red'}/>
-        </>
-    )}
-    </Formik>
-           
-    </SafeAreaView>
-  )
-}
+      <Formik
+        initialValues={{ customerNumber: '' }}
+        validationSchema={validationSchema}
+        onSubmit={(values) => makeThePayment(values)}
+      >
+        {({ handleChange, handleBlur, touched, handleSubmit, values, errors, isValid }) => (
+          <View style={styles.content}>
+            <View style={styles.card}>
+              <Image source={require('../assets/Mpesa.png')} style={styles.cover} resizeMode="contain" />
+              
+              <Text style={styles.amountLabel}>Total a Pagar</Text>
+              <Text style={styles.amountValue}>{amount} MT</Text>
 
-export default MpesaScreen
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  <MaterialCommunityIcons name="cellphone" size={16} color={COLORS.textMuted} /> Número de telefone:
+                </Text>
+                <View style={[styles.inputWrapper, (touched.customerNumber && errors.customerNumber) && styles.inputError]}>
+                  <Text style={styles.prefix}>+258</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={values.customerNumber}
+                    onChangeText={handleChange('customerNumber')}
+                    onBlur={handleBlur('customerNumber')}
+                    placeholder="Ex: 841234567"
+                    placeholderTextColor={COLORS.textMuted}
+                    keyboardType="numeric"
+                    maxLength={9}
+                  />
+                </View>
+                {touched.customerNumber && errors.customerNumber && (
+                  <Text style={styles.errorText}>{errors.customerNumber}</Text>
+                )}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.payBtn, (!isValid || loading) && styles.payBtnDisabled]}
+              onPress={handleSubmit}
+              disabled={!isValid || loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="cellphone-nfc" size={24} color="#fff" style={{ marginRight: 10 }} />
+                  <Text style={styles.payBtnText}>Confirmar Pagamento</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+      </Formik>
+    </SafeAreaView>
+  );
+};
+
+export default MpesaScreen;
 
 const styles = StyleSheet.create({
-    container: {
-      // flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 40,
-      marginTop: 60
-    },
-    icons:{
-      position: 'absolute',
-      top: 50,
-      marginLeft: 25,
-      flexDirection: "row",
-      justifyContent: 'space-between', // Distributes space between the icons
-      alignItems: 'center',
-    },
-    cover:{
-    width: 350,
-    height: 250,
-    marginBottom: 20
-    // borderRadius: 100, // Example of rounding the image to make it circular
-    },
-    label:{
-
-    },
-    errorMessage:{
-      color: 'red'
-    }
-  
-})
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  card: {
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.lg,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.md,
+  },
+  cover: {
+    width: 200,
+    height: 120,
+    marginBottom: 20,
+  },
+  amountLabel: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  amountValue: {
+    fontSize: SIZES.xxl,
+    fontWeight: '800',
+    color: COLORS.primaryLight,
+    marginVertical: 10,
+  },
+  inputContainer: {
+    width: '100%',
+    marginTop: 20,
+  },
+  inputLabel: {
+    fontSize: SIZES.sm,
+    color: COLORS.text,
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    height: 56,
+    paddingHorizontal: 16,
+  },
+  prefix: {
+    fontSize: SIZES.base,
+    color: COLORS.text,
+    fontWeight: '700',
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: SIZES.base,
+    color: COLORS.text,
+    fontWeight: '600',
+    height: '100%',
+  },
+  inputError: {
+    borderColor: COLORS.error,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: SIZES.xs,
+    marginTop: 6,
+    marginLeft: 4,
+  },
+  payBtn: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: RADIUS.md,
+    marginBottom: 20,
+    ...SHADOWS.md,
+  },
+  payBtnDisabled: {
+    backgroundColor: COLORS.primaryGlow,
+    opacity: 0.8,
+  },
+  payBtnText: {
+    color: '#fff',
+    fontSize: SIZES.base,
+    fontWeight: '700',
+  }
+});

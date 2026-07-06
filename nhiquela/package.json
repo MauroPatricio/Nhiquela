@@ -6,14 +6,13 @@
   "scripts": {
     "start": "node --require ./polyfill.js ./node_modules/expo/bin/cli start",
     "start:clear": "node --require ./polyfill.js ./node_modules/expo/bin/cli start --clear",
+    "start:win": "node -e \"const{execSync}=require('child_process');try{execSync('rmdir /s /q \\\"%TEMP%\\\\metro-cache\"',{shell:'cmd.exe',stdio:'ignore'})}catch(e){}\" && node --require ./polyfill.js ./node_modules/expo/bin/cli start",
     "android": "node --require ./polyfill.js ./node_modules/expo/bin/cli run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "jest",
-    "security-check": "npm audit --audit-level=critical",
-    "eas-build-pre-install": "npm run security-check",
-    "eas-build-pre-build": "npm run lint"
+    "security-check": "npm audit --audit-level=critical"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -26,8 +25,7 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.12",
     "@reduxjs/toolkit": "2.9.0",
-    "@zegocloud/zego-uikit-prebuilt-call-rn": "^6.7.0",
-    "@zegocloud/zego-uikit-signaling-plugin-rn": "^1.3.8",
+    "@sayem314/react-native-keep-awake": "^1.4.0",
     "axios": "1.11.0",
     "expo": "~54.0.35",
     "expo-build-properties": "~1.0.10",
@@ -48,16 +46,17 @@
     "haversine": "1.1.1",
     "leaflet": "^1.9.4",
     "react": "19.1.0",
+    "react-delegate-component": "^1.0.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^5.0.0",
     "react-native": "0.81.5",
     "react-native-dotenv": "3.4.11",
     "react-native-elements": "3.4.3",
+    "react-native-encrypted-storage": "^4.0.3",
     "react-native-flash-message": "0.4.2",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-google-places-autocomplete": "^2.6.4",
     "react-native-heroicons": "4.0.0",
-    "react-native-keep-awake": "^4.0.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-maps": "1.20.1",
     "react-native-maps-directions": "^1.9.0",
@@ -76,10 +75,7 @@
     "react-redux": "9.2.0",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "4.1.13",
-    "yup": "1.7.0",
-    "zego-express-engine-reactnative": "^3.22.0",
-    "zego-zim-react-native": "^3.0.0",
-    "zego-zpns-react-native": "^2.8.3"
+    "yup": "1.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
@@ -98,6 +94,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "~54.0.0",
     "jest-expo": "^56.0.5",
+    "prettier": "^3.4.2",
     "typescript": "~5.9.2"
   },
   "expo": {
@@ -119,5 +116,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "react": "19.1.0"
   }
 }

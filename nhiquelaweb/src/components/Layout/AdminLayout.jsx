@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,7 +34,9 @@ export default function AdminLayout() {
     { name: 'Categorias', path: '/admin/categories', icon: faTags },
     { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },
     { name: 'Serviços', path: '/admin/services', icon: faTools },
-    { name: 'Motoristas', path: '/admin/drivers', icon: faCar },
+    { name: '🚚 Motoristas', path: '/admin/drivers', icon: faMotorcycle },
+    { name: '💰 Pedidos de Preço', path: '/admin/price-requests', icon: faMoneyBillWave },
+    { name: '📄 Pedidos de Docs', path: '/admin/doc-requests', icon: faFileAlt },
     { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },
     { name: 'Cores de Veículos', path: '/admin/vehicle-colors', icon: faPalette },
     { name: 'Incidentes', path: '/admin/incidents', icon: faExclamationTriangle },

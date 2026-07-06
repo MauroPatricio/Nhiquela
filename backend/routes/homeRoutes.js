@@ -10,7 +10,7 @@ const homeRouter = express.Router();
 homeRouter.get(
   '/',
   expressAsyncHandler(async (req, res) => {
-    // 1Ô∏è‚É£ Categories with product counts
+    // 1?? Categories with product counts
     const categories = await Category.aggregate([
       {
         $lookup: {
@@ -33,32 +33,32 @@ homeRouter.get(
       { $sort: { name: 1 } },
     ]);
 
-    // 2Ô∏è‚É£ Featured products (fallback to highest rated if no explicit flag)
+    // 2?? Featured products (fallback to highest rated if no explicit flag)
     const featuredProducts = await Product.find({ isActive: true })
       .sort({ featured: -1, rating: -1 })
       .limit(8)
       .lean();
 
-    // 3Ô∏è‚É£ Service count (only active services)
+    // 3?? Service count (only active services)
     const servicesCount = await Service.countDocuments({ status: 'Ativo' });
 
-    // 4Ô∏è‚É£ Driver count
+    // 4?? Driver count
     const driversCount = await User.countDocuments({ isDeliveryMan: true });
 
-    // 5Ô∏è‚É£ Static promotional content (hard‚Äëcoded for now)
+    // 5?? Static promotional content (hard-coded for now)
     const promos = {
-      tagline: 'Tudo o que precisa, entregue √† dist√¢ncia de um clique.',
-      searchPlaceholder: 'Pesquisar produtos, servi√ßos ou motoristas...',
+      tagline: 'Tudo o que precisa, entregue ‡ dist‚ncia de um clique.',
+      searchPlaceholder: 'Pesquisar produtos, serviÁos ou motoristas...',
       highlights: [
-        { title: 'Entrega < 30 min', icon: 'üöÄ' },
-        { title: 'Pagamento seguro', icon: 'üí≥' },
-        { title: 'Suporte 24/7', icon: 'üìû' },
+        { title: 'Entrega < 30 min', icon: '??' },
+        { title: 'Pagamento seguro', icon: '??' },
+        { title: 'Suporte 24/7', icon: '??' },
       ],
       howItWorks: [
-        { step: 1, title: 'Escolha', description: 'Selecione um produto ou servi√ßo entre milhares de op√ß√µes.' },
-        { step: 2, title: 'Confirme', description: 'Pagamento seguro e confirma√ß√£o instant√¢nea.' },
+        { step: 1, title: 'Escolha', description: 'Selecione um produto ou serviÁo entre milhares de opÁıes.' },
+        { step: 2, title: 'Confirme', description: 'Pagamento seguro e confirmaÁ„o instant‚nea.' },
         { step: 3, title: 'Acompanhe', description: 'Siga em tempo real no mapa interativo.' },
-        { step: 4, title: 'Receba', description: 'Entregue no local que indicar, sem complica√ß√£o.' },
+        { step: 4, title: 'Receba', description: 'Entregue no local que indicar, sem complicaÁ„o.' },
       ],
       forSuppliers: {
         title: 'Para Fornecedores',
@@ -66,16 +66,16 @@ homeRouter.get(
           'Venda mais sem abrir novas lojas.',
           'Maior visibilidade digital',
           'Mais clientes todos os dias',
-          'Gest√£o simplificada',
-          'Relat√≥rios avan√ßados de vendas',
+          'Gest„o simplificada',
+          'RelatÛrios avanÁados de vendas',
         ],
       },
       forDrivers: {
         title: 'Para Motoristas',
         points: [
           'Ganhe dinheiro com a sua viatura.',
-          'Hor√°rios 100% flex√≠veis',
-          'Pagamentos r√°pidos e seguros',
+          'Hor·rios 100% flexÌveis',
+          'Pagamentos r·pidos e seguros',
           'Mais oportunidades por semana',
           'Suporte dedicado ao motorista',
         ],

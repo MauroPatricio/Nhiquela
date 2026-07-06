@@ -1,4 +1,4 @@
-import ProviderClassification from '../models/ProviderClassificationModel.js';
+﻿import ProviderClassification from '../models/ProviderClassificationModel.js';
 import expressAsyncHandler from 'express-async-handler';
 
 // @desc    Get all provider classifications

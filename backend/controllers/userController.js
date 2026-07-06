@@ -1,4 +1,4 @@
-import User from '../models/UserModel.js';
+﻿import User from '../models/UserModel.js';
 
 export const updatePushToken = async (req, res) => {
     const { pushToken } = req.body;

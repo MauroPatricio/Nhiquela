@@ -65,10 +65,10 @@ function MainTabs() {
         let newTodayEarnings = currentUser?.deliveryman?.todayEarnings;
 
         if (balanceRes.status === 'fulfilled') {
-          newBalance = `MZN ${parseFloat(balanceRes.value.data.available_balance || 0).toFixed(2)}`;
+          newBalance = `MT ${parseFloat(balanceRes.value.data.available_balance || 0).toFixed(2)}`;
         }
         if (earningsRes.status === 'fulfilled') {
-          newTodayEarnings = `MZN ${parseFloat(earningsRes.value.data.today || 0).toFixed(2)}`;
+          newTodayEarnings = `MT ${parseFloat(earningsRes.value.data.today || 0).toFixed(2)}`;
           newTrips = earningsRes.value.data.tripsToday || 0;
         }
 
@@ -89,13 +89,15 @@ function MainTabs() {
     };
 
     fetchWalletGlobalData();
-    intervalId = setInterval(fetchWalletGlobalData, 5000);
+    // Alta Performance: Alterado de 5s para 60s para evitar DDOS no backend
+    intervalId = setInterval(fetchWalletGlobalData, 60000);
 
     return () => clearInterval(intervalId);
   }, []);
 
   return (
     <Tab.Navigator
+      id="RootTabNavigator"
       tabBar={(props) => <BottomMenu {...props} />}
       screenOptions={{
         headerShown: false,
@@ -111,9 +113,9 @@ function MainTabs() {
               onMenuPress={() => {}}
               onNotificationPress={() => {}}
               onEarningsPress={() => navigation.navigate(ROUTES.EARNINGS)}
-              todayEarnings={user?.deliveryman?.todayEarnings || "MZN 0,00"}
+              todayEarnings={user?.deliveryman?.todayEarnings || "MT 0,00"}
               totalPassengers={user?.deliveryman?.totalTrips || 0}
-              credit={user?.deliveryman?.balance || "MZN 0,00"}
+              credit={user?.deliveryman?.balance || "MT 0,00"}
               userRating={user?.deliveryman?.rating || 5.0}
             />
           ),
@@ -173,7 +175,7 @@ function LoadingScreen() {
 }
 
 export default function AppNavigator() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoadingSession } = useAuth();
   const [hasAcceptedPolicies, setHasAcceptedPolicies] = useState<boolean | null>(null);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
@@ -195,12 +197,13 @@ export default function AppNavigator() {
     setHasAcceptedPolicies(true);
   };
 
-  if (isCheckingOnboarding) {
+  if (isCheckingOnboarding || isLoadingSession) {
     return <LoadingScreen />;
   }
 
   return (
     <Stack.Navigator
+      id="RootStackNavigator"
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: '#F8F9FF' },

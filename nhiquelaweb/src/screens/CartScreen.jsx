@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faMinus, faPlus, faArrowLeft, faSpinner } from '@fortawesome/free-solid-svg-icons';
@@ -65,7 +65,7 @@ export default function CartScreen() {
                         )}
                         <div className="flex-grow-1">
                           <h6 className="fw-bold m-0">{item.name}</h6>
-                          <h6 className="text-primary-custom fw-bold m-0 mt-2">{item.price} MZN</h6>
+                          <h6 className="text-primary-custom fw-bold m-0 mt-2">{item.price} MT</h6>
                         </div>
                         
                         <div className="d-flex align-items-center gap-3">
@@ -94,7 +94,7 @@ export default function CartScreen() {
               
               <div className="d-flex justify-content-between mb-2">
                 <span className="text-muted">Subtotal ({cartItems.length} itens)</span>
-                <span className="fw-bold">{cartTotal.toLocaleString()} MZN</span>
+                <span className="fw-bold">{cartTotal.toLocaleString()} MT</span>
               </div>
               <div className="d-flex justify-content-between mb-3">
                 <span className="text-muted">Taxa de Entrega Estimada</span>
@@ -105,7 +105,7 @@ export default function CartScreen() {
               
               <div className="d-flex justify-content-between mb-4">
                 <span className="fw-bold fs-5">Total</span>
-                <span className="fw-bold fs-5 text-primary-custom">{cartTotal.toLocaleString()} MZN</span>
+                <span className="fw-bold fs-5 text-primary-custom">{cartTotal.toLocaleString()} MT</span>
               </div>
 
               <Link to="/checkout" className={`btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold fs-6 ${cartItems.length === 0 ? 'disabled' : ''}`}>

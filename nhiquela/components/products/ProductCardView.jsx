@@ -1,4 +1,5 @@
-import { TouchableOpacity, View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { TouchableOpacity, View, Text, StyleSheet, Dimensions } from 'react-native';
 import React from 'react';
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
     image: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
+        contentFit: 'cover',
     },
     badgesContainer: {
         position: 'absolute',

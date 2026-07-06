@@ -1,4 +1,4 @@
-// Migration script to create indexes for Partner and PartnerProduct collections
+﻿// Migration script to create indexes for Partner and PartnerProduct collections
 // Run with a MongoDB client to ensure proper indexing.
 
 module.exports = async function (db) {

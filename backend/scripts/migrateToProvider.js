@@ -9,7 +9,7 @@ dotenv.config();
 
 const migrate = async () => {
   try {
-    console.log('A ligar Ã  base de dados...');
+    console.log('A ligar à base de dados...');
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Ligado com sucesso!');
 
@@ -70,10 +70,10 @@ const migrate = async () => {
       }
     }
 
-    console.log('MigraÃ§Ã£o concluÃ­da com sucesso!');
+    console.log('Migração concluída com sucesso!');
     process.exit(0);
   } catch (error) {
-    console.error('Erro na migraÃ§Ã£o:', error);
+    console.error('Erro na migração:', error);
     process.exit(1);
   }
 };

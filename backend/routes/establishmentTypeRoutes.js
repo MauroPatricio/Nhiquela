@@ -23,7 +23,7 @@ router.get(
     if (establishmentType) {
       res.send(establishmentType);
     } else {
-      res.status(404).send({ message: 'Tipo nÃ£o encontrado' });
+      res.status(404).send({ message: 'Tipo não encontrado' });
     }
   })
 );
@@ -59,7 +59,7 @@ router.put(
       await type.save();
       res.send({ message: 'Tipo atualizado com sucesso', type });
     } else {
-      res.status(404).send({ message: 'Tipo nÃ£o encontrado' });
+      res.status(404).send({ message: 'Tipo não encontrado' });
     }
   })
 );
@@ -75,7 +75,7 @@ router.delete(
       await type.deleteOne();
       res.send({ message: 'Tipo removido' });
     } else {
-      res.status(404).send({ message: 'Tipo nÃ£o encontrado' });
+      res.status(404).send({ message: 'Tipo não encontrado' });
     }
   })
 );

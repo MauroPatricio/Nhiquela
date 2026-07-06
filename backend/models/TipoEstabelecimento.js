@@ -1,4 +1,4 @@
-// models/TipoEstabelecimento.js
+﻿// models/TipoEstabelecimento.js
 import mongoose from 'mongoose';
 
 const tipoEstabelecimentoSchema = new mongoose.Schema({

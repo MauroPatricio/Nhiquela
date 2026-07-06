@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
+import VehicleType from '../models/VehicleTypeModel.js';
 import { isAuth } from '../utils.js';
 import mpesa from 'mpesa-node-api';
 import config from '../config.js';
@@ -20,13 +21,13 @@ const walletRouter = express.Router();
 /**
  * Função genérica para atualizar saldo e registrar transação com segurança (MongoDB transaction)
  */
-async function updateWallet(userId, amount, type, method, description, status = 'confirmado') {
+async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver') {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    let wallet = await Wallet.findOne({ userId }).session(session);
+    let wallet = await Wallet.findOne({ ownerId }).session(session);
     if (!wallet) {
-      wallet = await Wallet.create([{ userId, balance: 0 }], { session });
+      wallet = await Wallet.create([{ ownerId, ownerType, balance: 0 }], { session });
       wallet = wallet[0]; // create retorna array no modo transacional
     }
 
@@ -34,9 +35,14 @@ async function updateWallet(userId, amount, type, method, description, status = 
       throw new Error('Saldo insuficiente');
     }
 
-    // Atualiza saldo
-    wallet.balance += (type === 'credit' ? amount : -amount);
-    await wallet.save({ session });
+    // Atualiza saldo apenas se não for um crédito pendente
+    // (créditos pendentes só entram no saldo quando o admin/sistema confirmar)
+    const shouldUpdateBalance = !(type === 'credit' && status === 'pendente');
+    
+    if (shouldUpdateBalance) {
+      wallet.balance += (type === 'credit' ? amount : -amount);
+      await wallet.save({ session });
+    }
 
     // Registra transação separada
     await Transaction.create([{
@@ -95,15 +101,24 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
       }
     }
 
+    const isManualDeposit = method && method.includes('Manual');
+    const txStatus = isManualDeposit ? 'pendente' : 'confirmado';
+
     const balance = await updateWallet(
       req.user._id,
       amount,
       'credit',
       method || 'Pagamento recebido',
-      description || 'Recepção de valor do cliente'
+      description || 'Recepção de valor do cliente',
+      txStatus,
+      req.user.isDriver ? 'driver' : 'User'
     );
 
-    return res.json({ message: 'Saldo recarregado com sucesso', balance });
+    const successMessage = isManualDeposit 
+      ? 'O seu pedido de recarga foi recebido e está pendente de validação pela nossa equipa.'
+      : 'Saldo recarregado com sucesso!';
+
+    return res.json({ message: successMessage, balance });
   } catch (error) {
     console.error('Erro ao recarregar saldo:', error?.response?.data || error.message);
     const mpesaError = error?.response?.data?.output?.ResponseDesc;
@@ -181,10 +196,44 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
       currentState = 'Aviso';
     }
 
+    // Obter Taxa Base do Veículo e Taxa Mínima de Visibilidade
+    let baseFare = 0;
+    let minVisibilityFee = 0;
+    let vehicleName = '';
+    let categoryName = '';
+    const fullUser = await mongoose.model('User').findById(req.user._id);
+    if (fullUser && fullUser.deliveryman && fullUser.deliveryman.transport_type) {
+      let vType = null;
+      const transportType = fullUser.deliveryman.transport_type;
+      
+      if (mongoose.Types.ObjectId.isValid(transportType)) {
+        const ProviderSubcategory = mongoose.model('ProviderSubcategory');
+        const subcategory = await ProviderSubcategory.findById(transportType);
+        if (subcategory) {
+          categoryName = subcategory.name;
+          if (subcategory.vehicleTypes && subcategory.vehicleTypes.length > 0) {
+            vType = await VehicleType.findById(subcategory.vehicleTypes[0]);
+          }
+        }
+      } else {
+        vType = await VehicleType.findOne({ name: transportType });
+      }
+
+      if (vType) {
+        baseFare = vType.basePrice || vType.baseFare || 0;
+        minVisibilityFee = vType.minVisibilityFee || 0;
+        vehicleName = vType.name;
+      }
+    }
+
     res.json({
       saldo_atual: balance,
       limite_credito: config.allowNegativeBalance ? config.creditLimit : 0,
       saldo_operacional_minimo: config.minOperationalBalance,
+      taxa_base_veículo: baseFare,
+      taxa_minima_recarga: minVisibilityFee > 0 ? minVisibilityFee : config.minOperationalBalance,
+      nome_veiculo: vehicleName,
+      nome_categoria: categoryName,
       saldo_disponivel: balance - limit,
       estado_atual: currentState,
       total_recarregado: totalRecharged,
@@ -371,7 +420,7 @@ walletRouter.post('/withdraw', isAuth, async (req, res) => {
           adminWallet = await Wallet.findOne({ userId: req.user._id }).session(session);
         }
         if (!adminWallet) {
-          adminWallet = await Wallet.create([{ ownerId: req.user._id, ownerType: 'admin', balance: 0 }], { session }).then(w => w[0]);
+          adminWallet = await Wallet.create([{ ownerId: req.user._id, ownerType: 'admin', userId: req.user._id, balance: 0 }], { session }).then(w => w[0]);
         }
 
         // Subtrai do saldo do admin (que reduzirá o saldo total do sistema)
@@ -512,6 +561,24 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Emit socket event to notify the driver to refresh wallet/status
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(wallet.user.toString()).emit('userStatusChanged', {
+          userId: wallet.user.toString(),
+          status: 'approved', // Trigger a refresh on frontend
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(wallet.user.toString()).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+      }
+    } catch (socketErr) {
+      console.log('Socket error emitting:', socketErr.message);
+    }
+
     res.status(200).json({ message: 'Recarga autorizada com sucesso!' });
   } catch (err) {
     await session.abortTransaction();

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+﻿import { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faMinus, faPlus, faShoppingCart, faSpinner, faStar } from '@fortawesome/free-solid-svg-icons';
@@ -95,7 +95,7 @@ export default function ProductDetailScreen() {
             <h2 className="fw-bold mb-2">{product.name}</h2>
             <p className="text-muted mb-4">Vendido por: <span className="fw-bold">{product.vendor || 'Nhiquela Partner'}</span></p>
             
-            <h3 className="text-primary-custom fw-bold mb-4">{product.price} MZN</h3>
+            <h3 className="text-primary-custom fw-bold mb-4">{product.price} MT</h3>
             
             <div className="mb-4">
               <h6 className="fw-bold mb-2">Descrição</h6>

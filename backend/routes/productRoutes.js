@@ -9,13 +9,13 @@ import { v2 as cloudinary } from 'cloudinary';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 
-// Inicializa√ß√£o
+// InicializaÁ„o
 const productRoutes = express.Router();
 const app = express();
 const httpServer = http.Server(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-// Configura√ß√£o Cloudinary
+// ConfiguraÁ„o Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -89,7 +89,7 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
 
 // ----------------------------- ROTAS -----------------------------
 
-// GET /products (lista com filtros + pagina√ß√£o)
+// GET /products (lista com filtros + paginaÁ„o)
 productRoutes.get('/', async (req, res) => {
   try {
     const seller = req.query.seller || '';
@@ -149,7 +149,7 @@ productRoutes.post('/:id/reviews', isAuth, expressAsyncHandler(async (req, res) 
     const product = await Product.findById(req.params.id);
     if (product) {
       if (product.reviews.find((x) => x.name === req.user.name)) {
-        return res.status(400).send({ message: 'J√° possui um coment√°rio adicionado' });
+        return res.status(400).send({ message: 'J· possui um coment·rio adicionado' });
       }
 
       const review = {
@@ -163,17 +163,17 @@ productRoutes.post('/:id/reviews', isAuth, expressAsyncHandler(async (req, res) 
 
       const updatedProduct = await product.save();
       res.status(201).send({
-        message: 'Coment√°rio adicionado com sucesso',
+        message: 'Coment·rio adicionado com sucesso',
         review: updatedProduct.reviews[updatedProduct.reviews.length - 1],
         numReviews: product.numReviews,
         rating: product.rating,
         product: updatedProduct,
       });
     } else {
-      res.status(404).send({ message: 'Produto n√£o encontrado' });
+      res.status(404).send({ message: 'Produto n„o encontrado' });
     }
   } catch (error) {
-    res.status(500).send({ message: 'Erro ao adicionar coment√°rio', error });
+    res.status(500).send({ message: 'Erro ao adicionar coment·rio', error });
   }
 }));
 
@@ -182,7 +182,7 @@ productRoutes.get('/bycategory/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).send({ message: 'ID de categoria inv√°lido' });
+      return res.status(400).send({ message: 'ID de categoria inv·lido' });
     }
 
     const page = parseInt(req.query.page) || 1;
@@ -218,7 +218,7 @@ productRoutes.get('/onsale', expressAsyncHandler(async (req, res) => {
     const { products, countProducts, page, pages } = await getFilteredProducts(req.query, { onSale: true });
     res.send({ products, countProducts, page, pages });
   } catch (error) {
-    res.status(500).send({ message: 'Erro ao buscar produtos em promo√ß√£o', error });
+    res.status(500).send({ message: 'Erro ao buscar produtos em promoÁ„o', error });
   }
 }));
 
@@ -231,7 +231,7 @@ productRoutes.put('/:id', isAuth, isSellerOrAdmin, expressAsyncHandler(async (re
     const price = parseFloat(priceComission + priceFromSeller);
 
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).send({ message: 'Produto n√£o encontrado' });
+    if (!product) return res.status(404).send({ message: 'Produto n„o encontrado' });
 
     if (req.body.onSale) {
       const discount = price * (req.body.onSalePercentage / 100);
@@ -280,7 +280,7 @@ productRoutes.delete(
   expressAsyncHandler(async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
-      if (!product) return res.status(404).send({ message: 'Produto n√£o encontrado' });
+      if (!product) return res.status(404).send({ message: 'Produto n„o encontrado' });
 
       await product.deleteOne();
       io.emit('productDeleted', { _id: req.params.id });
@@ -295,7 +295,7 @@ productRoutes.delete(
 productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req, res) => {
   try {
     if (!req.body.image) {
-      return res.status(400).send({ message: 'A imagem do produto √© obrigat√≥ria' });
+      return res.status(400).send({ message: 'A imagem do produto È obrigatÛria' });
     }
 
     const comission_price = parseFloat(process.env.COMISSION_PRICE);
@@ -342,7 +342,7 @@ productRoutes.get('/slug/:slug', async (req, res) => {
       .populate('seller category conditionStatus qualityType size color')
       .lean();
 
-    if (!product) return res.status(404).send({ message: 'Produto n√£o encontrado' });
+    if (!product) return res.status(404).send({ message: 'Produto n„o encontrado' });
     res.send(product);
   } catch (error) {
     res.status(500).send({ message: 'Erro ao buscar produto', error });
@@ -364,11 +364,11 @@ productRoutes.get('/categories', async (req, res) => {
 productRoutes.patch(
   '/:id/toggle-status',
   isAuth,
-  isSellerOrAdmin, // garante que s√≥ vendedor/admin pode alterar
+  isSellerOrAdmin, // garante que sÛ vendedor/admin pode alterar
   expressAsyncHandler(async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
-      if (!product) return res.status(404).send({ message: 'Produto n√£o encontrado' });
+      if (!product) return res.status(404).send({ message: 'Produto n„o encontrado' });
 
       // Alterna o status
       product.isActive = !product.isActive;
@@ -392,7 +392,7 @@ productRoutes.patch(
 
 
 
-// NEW: GET /products/categoriesWithCount  (r√°pido e leve ‚Äî s√≥ categorias com contagem)
+// NEW: GET /products/categoriesWithCount  (r·pido e leve ó sÛ categorias com contagem)
 productRoutes.get('/categoriesWithCount', async (req, res) => {
 
   try {
@@ -443,7 +443,7 @@ productRoutes.get('/:id', async (req, res) => {
       .populate('seller color size category province qualityType conditionStatus')
       .lean();
 
-    if (!product) return res.status(404).send({ message: 'Produto n√£o encontrado' });
+    if (!product) return res.status(404).send({ message: 'Produto n„o encontrado' });
     res.send(product);
   } catch (error) {
     res.status(500).send({ message: 'Erro ao buscar o produto', error });

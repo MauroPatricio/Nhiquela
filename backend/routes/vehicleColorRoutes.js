@@ -42,12 +42,12 @@ vehicleColorRouter.post(
       { name: 'Laranja', hexCode: '#FFA500', rgbCode: 'RGB(255,165,0)', sortOrder: 12 },
       { name: 'Roxo', hexCode: '#800080', rgbCode: 'RGB(128,0,128)', sortOrder: 13 },
       { name: 'Rosa', hexCode: '#FFC0CB', rgbCode: 'RGB(255,192,203)', sortOrder: 14 },
-      { name: 'Bord√¥', hexCode: '#800000', rgbCode: 'RGB(128,0,0)', sortOrder: 15 },
+      { name: 'BordÙ', hexCode: '#800000', rgbCode: 'RGB(128,0,0)', sortOrder: 15 },
       { name: 'Azul Escuro', hexCode: '#000080', rgbCode: 'RGB(0,0,128)', sortOrder: 16 },
       { name: 'Verde Escuro', hexCode: '#006400', rgbCode: 'RGB(0,100,0)', sortOrder: 17 },
       { name: 'Preto Fosco', hexCode: '#1C1C1C', rgbCode: 'RGB(28,28,28)', sortOrder: 18 },
-      { name: 'Prata Met√°lico', hexCode: '#BFC1C2', rgbCode: 'RGB(191,193,194)', sortOrder: 19 },
-      { name: 'Branco P√©rola', hexCode: '#F8F8FF', rgbCode: 'RGB(248,248,255)', sortOrder: 20 },
+      { name: 'Prata Met·lico', hexCode: '#BFC1C2', rgbCode: 'RGB(191,193,194)', sortOrder: 19 },
+      { name: 'Branco PÈrola', hexCode: '#F8F8FF', rgbCode: 'RGB(248,248,255)', sortOrder: 20 },
     ];
 
     const createdColors = await VehicleColor.insertMany(defaultColors);
@@ -73,7 +73,7 @@ vehicleColorRouter.post(
       res.status(201).send({ message: 'Cor Criada', color });
     } catch (error) {
       if (error.code === 11000) {
-        return res.status(400).send({ message: 'Nome, HEX ou RGB j√° existente.' });
+        return res.status(400).send({ message: 'Nome, HEX ou RGB j· existente.' });
       }
       res.status(400).send({ message: error.message });
     }
@@ -97,12 +97,12 @@ vehicleColorRouter.put(
         res.send({ message: 'Cor Atualizada', color: updatedColor });
       } catch (error) {
         if (error.code === 11000) {
-          return res.status(400).send({ message: 'Nome, HEX ou RGB j√° existente noutra cor.' });
+          return res.status(400).send({ message: 'Nome, HEX ou RGB j· existente noutra cor.' });
         }
         res.status(400).send({ message: error.message });
       }
     } else {
-      res.status(404).send({ message: 'Cor n√£o encontrada' });
+      res.status(404).send({ message: 'Cor n„o encontrada' });
     }
   })
 );
@@ -116,7 +116,7 @@ vehicleColorRouter.delete(
       await VehicleColor.deleteOne({ _id: req.params.id });
       res.send({ message: 'Cor Eliminada' });
     } else {
-      res.status(404).send({ message: 'Cor n√£o encontrada' });
+      res.status(404).send({ message: 'Cor n„o encontrada' });
     }
   })
 );
@@ -131,7 +131,7 @@ vehicleColorRouter.patch(
       const updatedColor = await color.save();
       res.send({ message: 'Estado da Cor Atualizado', color: updatedColor });
     } else {
-      res.status(404).send({ message: 'Cor n√£o encontrada' });
+      res.status(404).send({ message: 'Cor n„o encontrada' });
     }
   })
 );

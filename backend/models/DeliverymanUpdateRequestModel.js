@@ -6,10 +6,19 @@ const deliverymanUpdateRequestSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // Tipo de pedido: 'profile_update' (padrão) ou 'price_change'
+  type: {
+    type: String,
+    enum: ['profile_update', 'price_change'],
+    default: 'profile_update'
+  },
+  // Para pedidos de alteração de preço
+  previousPrice: { type: Number, default: null },
+  requestedPrice: { type: Number, default: null },
+  // Para pedidos de atualização de perfil
   updatedFields: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,
-    required: true
   },
   status: {
     type: String,

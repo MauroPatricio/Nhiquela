@@ -2,7 +2,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Cache em mem√≥ria: Map<routeKey, routeData>
+// Cache em memÛria: Map<routeKey, routeData>
 const routeCache = new Map();
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hora de cache
 
@@ -11,9 +11,9 @@ export const getRoute = async (originLat, originLng, destLat, destLng) => {
     const key = `${originLat},${originLng}|${destLat},${destLng}`;
     const cached = routeCache.get(key);
     
-    // Validar se est√° no cache e n√£o expirou
+    // Validar se est· no cache e n„o expirou
     if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-      console.log('‚úÖ Rota servida via CACHE');
+      console.log('? Rota servida via CACHE');
       return cached.data;
     }
 
@@ -22,13 +22,13 @@ export const getRoute = async (originLat, originLng, destLat, destLng) => {
     // OSRM recebe coordenadas no formato: longitude,latitude
     const url = `${OSRM_BASE_URL}/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`;
     
-    console.log(`üåç OSRM Call: ${url}`);
+    console.log(`?? OSRM Call: ${url}`);
     
     const response = await fetch(url);
     const data = await response.json();
     
     if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-      throw new Error('OSRM n√£o retornou rota v√°lida. C√≥digo: ' + data.code);
+      throw new Error('OSRM n„o retornou rota v·lida. CÛdigo: ' + data.code);
     }
     
     const route = data.routes[0];
@@ -51,7 +51,7 @@ export const getRoute = async (originLat, originLng, destLat, destLng) => {
 
     return result;
   } catch (error) {
-    console.error('‚ùå Erro no routingService:', error.message);
+    console.error('? Erro no routingService:', error.message);
     throw new Error('Falha ao obter rota: ' + error.message);
   }
 };

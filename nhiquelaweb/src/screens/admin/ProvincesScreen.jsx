@@ -19,7 +19,7 @@ export default function ProvincesScreen() {
       const { data } = await api.get('/provinces');
       setProvinces(data.provinces || []);
     } catch (error) {
-      toast.error('Erro ao carregar provÃ­ncias');
+      toast.error('Erro ao carregar províncias');
     } finally {
       setLoading(false);
     }
@@ -56,31 +56,31 @@ export default function ProvincesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('Nome da provÃ­ncia Ã© obrigatÃ³rio');
+    if (!formData.name) return toast.error('Nome da província é obrigatório');
     
     try {
       if (isEditing) {
         await api.put(`/provinces/${currentId}`, formData);
-        toast.success('ProvÃ­ncia atualizada!');
+        toast.success('Província atualizada!');
       } else {
         await api.post('/provinces', formData);
-        toast.success('ProvÃ­ncia criada!');
+        toast.success('Província criada!');
       }
       fetchProvinces();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar provÃ­ncia');
+      toast.error('Erro ao guardar província');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Eliminar esta provÃ­ncia permanentemente?')) {
+    if (window.confirm('Eliminar esta província permanentemente?')) {
       try {
         await api.delete(`/provinces/${id}`);
         toast.success('Eliminado com sucesso!');
         fetchProvinces();
       } catch (error) {
-        toast.error('Erro ao eliminar provÃ­ncia');
+        toast.error('Erro ao eliminar província');
       }
     }
   };
@@ -89,8 +89,8 @@ export default function ProvincesScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">ProvÃ­ncias e RegiÃµes</h2>
-          <span className="text-muted small">GestÃ£o de zonas de operaÃ§Ã£o e cobertura</span>
+          <h2 className="fw-bold m-0 text-dark">Províncias e Regiões</h2>
+          <span className="text-muted small">Gestão de zonas de operação e cobertura</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -100,13 +100,13 @@ export default function ProvincesScreen() {
             <input 
               type="text" 
               className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
-              placeholder="Pesquisar provÃ­ncia..."
+              placeholder="Pesquisar província..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
-            <FontAwesomeIcon icon={faPlus} className="me-2" /> Nova ProvÃ­ncia
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Nova Província
           </button>
         </div>
       </div>
@@ -117,17 +117,17 @@ export default function ProvincesScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome da ProvÃ­ncia</th>
-                  <th className="border-0 text-muted py-3">CÃ³digo/Sigla</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome da Província</th>
+                  <th className="border-0 text-muted py-3">Código/Sigla</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar provÃ­ncias...</td></tr>
+                  <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar províncias...</td></tr>
                 ) : currentProvinces.length === 0 ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhuma provÃ­ncia encontrada.</td></tr>
+                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhuma província encontrada.</td></tr>
                 ) : currentProvinces.map(province => (
                   <tr key={province._id || province.id}>
                     <td className="px-4">
@@ -165,18 +165,18 @@ export default function ProvincesScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar ProvÃ­ncia' : 'Nova ProvÃ­ncia'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Província' : 'Nova Província'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Nome da ProvÃ­ncia</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Nome da Província</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                 </div>
                 <div className="row g-3 mb-4">
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Sigla / CÃ³digo</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Sigla / Código</label>
                     <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value})} placeholder="Ex: MPM" />
                   </div>
                   <div className="col-6">
@@ -188,7 +188,7 @@ export default function ProvincesScreen() {
                   </div>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Criar ProvÃ­ncia'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Criar Província'}
                 </button>
               </form>
             </div>

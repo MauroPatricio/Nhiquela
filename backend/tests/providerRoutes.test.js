@@ -21,7 +21,7 @@ beforeAll(async () => {
     phoneNumber: 845888006,
     isProvider: true,
     isApproved: true,
-    category: 'ManutenÃ§Ã£o',
+    category: 'Manutenção',
     subCategory: 'Electricista',
   });
 

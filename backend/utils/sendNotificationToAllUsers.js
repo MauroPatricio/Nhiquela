@@ -20,7 +20,7 @@ const sendNotificationToAllUsers
       },
     });
   } catch (error) {
-    console.error('Erro ao enviar notificaÃ§Ã£o:', error?.message || error);
+    console.error('Erro ao enviar notificação:', error?.message || error);
   }
 };
 

@@ -65,6 +65,7 @@ export default function ProviderSubcategoriesScreen() {
     loadingHelpOptions: [],
     requiresPhotos: false,
     vehicleTypes: [],
+    pricingMode: 'AUTO',
   });
   const [iconFile, setIconFile] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
@@ -139,6 +140,7 @@ export default function ProviderSubcategoriesScreen() {
         loadingHelpOptions: item.loadingHelpOptions || [],
         requiresPhotos: item.requiresPhotos || false,
         vehicleTypes: item.vehicleTypes?.map(v => v._id || v) || [],
+        pricingMode: item.pricingMode || 'AUTO',
       });
       setIconFile(null);
       setIconPreview(null);
@@ -156,6 +158,7 @@ export default function ProviderSubcategoriesScreen() {
         loadingHelpOptions: [],
         requiresPhotos: false,
         vehicleTypes: [],
+        pricingMode: 'AUTO',
       });
       setIconFile(null);
       setIconPreview(null);
@@ -529,7 +532,41 @@ export default function ProviderSubcategoriesScreen() {
                   </button>
                 </div>
 
-                <div className="form-check mb-2">
+                  <div className="mb-4">
+                    <label className="form-label fw-bold small text-muted mb-2">Modo de Preço</label>
+                    <div className="d-flex gap-3">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="pricingMode"
+                          id="pricingModeAuto"
+                          value="AUTO"
+                          checked={formData.pricingMode === 'AUTO'}
+                          onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
+                        />
+                        <label className="form-check-label" htmlFor="pricingModeAuto">
+                          Calculado pela Plataforma
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="pricingMode"
+                          id="pricingModeProvider"
+                          value="PROVIDER_DEFINED"
+                          checked={formData.pricingMode === 'PROVIDER_DEFINED'}
+                          onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
+                        />
+                        <label className="form-check-label" htmlFor="pricingModeProvider">
+                          Definido pelo Prestador
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-check mb-2">
                   <input
                     className="form-check-input"
                     type="checkbox"

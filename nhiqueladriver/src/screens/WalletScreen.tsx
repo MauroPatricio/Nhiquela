@@ -2,12 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import api from '../api/apiConfig';
+import api, { API_BASE_URL } from '../api/apiConfig';
 import { COLORS } from '../styles/colors';
 import { useAuth } from '../context/AuthContext';
+import io from 'socket.io-client';
+import { getProviderSubcategories } from '../services/deliveryService';
 
 interface Transaction {
   id: string;
@@ -34,8 +37,11 @@ export default function WalletScreen({ navigation, route }: any) {
     estado_atual: 'Ativo',
     total_recarregado: 0,
     total_comissoes: 0,
-    permite_negativo: false,
     bloqueio_automatico: true,
+    taxa_base_veículo: 0,
+    taxa_minima_recarga: 0,
+    nome_veiculo: '',
+    nome_categoria: '',
   });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
   const [dailyEarnings, setDailyEarnings] = useState<Array<{ date: string, amount: number }>>([]);
@@ -44,10 +50,29 @@ export default function WalletScreen({ navigation, route }: any) {
   const [topUpAmount, setTopUpAmount] = useState('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [invalidValueModalVisible, setInvalidValueModalVisible] = useState(false);
+  const [invalidValueMessage, setInvalidValueMessage] = useState("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [missingReceiptModalVisible, setMissingReceiptModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTransportTypeName = async () => {
+      const typeId = user?.deliveryman?.transport_type;
+      if (!typeId) return;
+      try {
+        const subcategories = await getProviderSubcategories();
+        const found = subcategories.find((sub: any) => sub._id === typeId || sub.id === typeId);
+        if (found) {
+          setTransportTypeName(found.name);
+        }
+      } catch (err) {
+        // silently fallback
+      }
+    };
+    fetchTransportTypeName();
+  }, [user?.deliveryman?.transport_type]);
 
   const fetchWalletData = async (silent = false) => {
     if (!user || !user.token) {
@@ -99,16 +124,32 @@ export default function WalletScreen({ navigation, route }: any) {
     }
   };
 
-  useEffect(() => {
-    fetchWalletData();
-    
-    // Auto atualizar o saldo e estado das recargas em background a cada 5 segundos
-    const intervalId = setInterval(() => {
-      fetchWalletData(true);
-    }, 5000);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchWalletData();
+      return () => {};
+    }, [user?.token])
+  );
 
-    return () => clearInterval(intervalId);
-  }, [user?.token]);
+  // Global socket listener for Wallet updates
+  useEffect(() => {
+    let socket: any;
+    if (user && user._id) {
+      const socketUrl = API_BASE_URL.replace('/api', '');
+      socket = io(socketUrl);
+
+      socket.on('walletUpdated', (data: any) => {
+        // When a recharge is approved, refresh the wallet immediately
+        fetchWalletData(true); // silent refresh
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [user?._id]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -150,7 +191,7 @@ export default function WalletScreen({ navigation, route }: any) {
 
   const handlePickReceipt = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -169,7 +210,18 @@ export default function WalletScreen({ navigation, route }: any) {
   };
 
   const handleTopUpSubmit = async () => {
-    if (!topUpAmount || isNaN(Number(topUpAmount)) || Number(topUpAmount) <= 0) {
+    const amountNum = Number(topUpAmount);
+    const taxaMinima = balanceSummary.taxa_minima_recarga || 0;
+
+    if (!topUpAmount || isNaN(amountNum) || amountNum <= 0) {
+      setInvalidValueMessage("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
+      setInvalidValueModalVisible(true);
+      return;
+    }
+
+    if (amountNum < taxaMinima) {
+      const vName = balanceSummary.nome_categoria || balanceSummary.nome_veiculo || transportTypeName || user?.deliveryman?.transport_type || 'registado';
+      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para a sua categoria (${vName}) é de ${taxaMinima} MT (Taxa Mínima).`);
       setInvalidValueModalVisible(true);
       return;
     }
@@ -310,32 +362,12 @@ export default function WalletScreen({ navigation, route }: any) {
                 </View>
                 <Text style={styles.cardValue}>{formatCurrency(balanceSummary.saldo_atual)}</Text>
                 
-                <View style={{ marginTop: 15, backgroundColor: '#f0f0f0', padding: 10, borderRadius: 8 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <Text style={{ fontSize: 12, color: '#666' }}>Mín. Operacional: {balanceSummary.saldo_operacional_minimo} MT</Text>
-                    {balanceSummary.permite_negativo && (
-                       <Text style={{ fontSize: 12, color: '#666' }}>Limite: {balanceSummary.limite_credito} MT</Text>
-                    )}
-                  </View>
-                  <View style={{ height: 6, backgroundColor: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
-                    <View style={{ 
-                        height: '100%', 
-                        backgroundColor: getStatusColor(balanceSummary.estado_atual),
-                        width: `${Math.min(100, Math.max(0, ((balanceSummary.saldo_atual - balanceSummary.limite_credito) / (balanceSummary.saldo_operacional_minimo - balanceSummary.limite_credito + 100)) * 100))}%`
-                      }} 
-                    />
-                  </View>
-                </View>
+
 
                 <View style={styles.actionButtonsRow}>
                   <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpModalVisible(true); }}>
                     <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
                     <Text style={styles.topUpText}>Recarregar</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity style={styles.withdrawBtn} onPress={() => { /* Levantar fundos logic */ }}>
-                    <Ionicons name="cash-outline" size={20} color="#34C759" style={{ marginRight: 8 }} />
-                    <Text style={styles.withdrawText}>Levantar</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -455,8 +487,16 @@ export default function WalletScreen({ navigation, route }: any) {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.confirmTopUpBtn} onPress={handleTopUpSubmit}>
-              <Text style={styles.confirmTopUpText}>Solicitar recarga</Text>
+            <TouchableOpacity 
+              style={[styles.confirmTopUpBtn, loading && { opacity: 0.7 }]} 
+              onPress={handleTopUpSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.confirmTopUpText}>Solicitar recarga</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -471,7 +511,7 @@ export default function WalletScreen({ navigation, route }: any) {
             </View>
             <Text style={styles.premiumAlertTitle}>Valor Inválido</Text>
             <Text style={styles.premiumAlertMessage}>
-              Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.
+              {invalidValueMessage}
             </Text>
             <TouchableOpacity
               style={styles.premiumAlertBtn}
@@ -593,7 +633,7 @@ export default function WalletScreen({ navigation, route }: any) {
                       <Text style={{ fontSize: 12, color: '#888', marginBottom: 8, textTransform: 'uppercase', fontWeight: 'bold' }}>Comprovativo Anexado</Text>
                       <Image 
                         source={{ uri: extractedUrl }} 
-                        style={{ width: '100%', height: 200, borderRadius: 8, resizeMode: 'contain', backgroundColor: '#EFEFEF' }} 
+                        style={{ width: '100%', height: 200, borderRadius: 8, contentFit: 'contain', backgroundColor: '#EFEFEF' }} 
                       />
                     </>
                   );
@@ -943,7 +983,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderRadius: 12,
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   removeReceiptBtn: {
     position: 'absolute',
@@ -1122,5 +1162,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#999',
     marginTop: 6,
+  },
+  premiumAlertButton: {
+    backgroundColor: '#34C759',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#34C759',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+    marginTop: 10,
+  },
+  premiumAlertButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   }
 });
+

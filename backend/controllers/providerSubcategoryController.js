@@ -7,7 +7,7 @@ export const list = asyncHandler(async (req, res) => {
     const subcategories = await ProviderSubcategory.find()
       .populate({
         path: 'providerTypeId',
-        select: 'name classificationId',
+        select: 'name classificationId description',
         populate: { path: 'classificationId', select: 'name' }
       })
       .populate('vehicleTypes');
@@ -24,7 +24,7 @@ export const getById = asyncHandler(async (req, res) => {
     const subcategory = await ProviderSubcategory.findById(req.params.id)
       .populate({
         path: 'providerTypeId',
-        select: 'name classificationId',
+        select: 'name classificationId description',
         populate: { path: 'classificationId', select: 'name' }
       })
       .populate('vehicleTypes');
@@ -39,9 +39,15 @@ export const getById = asyncHandler(async (req, res) => {
 // POST /api/provider-subcategories
 export const create = asyncHandler(async (req, res) => {
   try {
-    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes } = req.body;
-  const newSub = new ProviderSubcategory({ name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes });
+    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
+  const newSub = new ProviderSubcategory({ name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode });
   await newSub.save();
+  
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('catalogUpdated');
+  }
+
   res.status(201).json(newSub);
   } catch (error) {
     console.error('Error creating subcategory', error);
@@ -52,10 +58,10 @@ export const create = asyncHandler(async (req, res) => {
 // PUT /api/provider-subcategories/:id
 export const update = asyncHandler(async (req, res) => {
   try {
-    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes } = req.body;
+    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
     const updated = await ProviderSubcategory.findByIdAndUpdate(
       req.params.id,
-      { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes },
+      { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode },
       { new: true }
     )
     .populate({
@@ -65,6 +71,12 @@ export const update = asyncHandler(async (req, res) => {
     })
     .populate('vehicleTypes');
     if (!updated) return res.status(404).json({ message: 'Subcategoria não encontrada' });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('catalogUpdated');
+    }
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating subcategory', error);
@@ -77,6 +89,12 @@ export const remove = asyncHandler(async (req, res) => {
   try {
     const deleted = await ProviderSubcategory.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: 'Subcategoria não encontrada' });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('catalogUpdated');
+    }
+    
     res.json({ message: 'Subcategoria removida' });
   } catch (error) {
     console.error('Error deleting subcategory', error);

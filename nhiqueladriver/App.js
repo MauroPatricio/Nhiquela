@@ -25,10 +25,7 @@ import Toast from "react-native-toast-message";
 import FlashMessage from "react-native-flash-message";
 import api from "./src/api/apiConfig";
 
-import { zegoConfig } from './src/api/zegoConfig';
-import ZegoUIKitPrebuiltCallService, { ZegoUIKitPrebuiltCallInvitationDialog } from '@zegocloud/zego-uikit-prebuilt-call-rn';
-import * as ZIM from 'zego-zim-react-native';
-import * as ZPNs from 'zego-zpns-react-native';
+
 
 // 🔗 Referência global de navegação
 export const navigationRef = createNavigationContainerRef();
@@ -103,24 +100,6 @@ function AppContent() {
         const userName = userData?.name || userData?.deliveryman?.name || "Driver";
         if (!userId) return;
 
-        // Init ZegoCloud Prebuilt Call Service
-        ZegoUIKitPrebuiltCallService.init(
-          zegoConfig.appID,
-          zegoConfig.appSign,
-          userId,
-          userName,
-          [ZIM, ZPNs],
-          {
-            ringtoneConfig: {
-              incomingCallFileName: 'zego_incoming.mp3',
-              outgoingCallFileName: 'zego_outgoing.mp3',
-            },
-            androidNotificationConfig: {
-              channelID: "ZegoUIKit",
-              channelName: "ZegoUIKit",
-            },
-          }
-        );
 
         await api.post("/notifications/savedevicetoken", {
           deviceToken,
@@ -128,7 +107,7 @@ function AppContent() {
           platform: Platform.OS,
         });
       } catch (err) {
-        console.error("❌ Erro ao salvar token do dispositivo:", err);
+        console.log("⚠️ Erro no Zego/Push token:", err.message);
       }
     };
 
@@ -257,9 +236,11 @@ function AppContent() {
     );
   }
 
+  const isExpoGo = Constants.appOwnership === 'expo';
+
   return (
     <>
-      <ZegoUIKitPrebuiltCallInvitationDialog />
+
       <AppNavigator />
       <Toast />
       <FlashMessage position="top" />
@@ -294,6 +275,12 @@ export default function App() {
 
 const styles = StyleSheet.create({
   loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",

@@ -19,7 +19,7 @@ export default function VehicleTypesScreen() {
       const { data } = await api.get('/vehicle-types');
       setVehicleTypes(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar tipos de veículo');
+      toast.error('Erro ao carregar tipos de veï¿½culo');
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export default function VehicleTypesScreen() {
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', iconName: 'faCar', category: 'ligeiro', basePrice: 0, maxWeight: '', status: 'Ativo' });
+      setFormData({ name: '', iconName: 'faCar', category: 'ligeiro', basePrice: 0, pricePerKm: 0, minVisibilityFee: 0, maxWeight: '', status: 'Ativo' });
     }
     setShowModal(true);
   };
@@ -60,31 +60,31 @@ export default function VehicleTypesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('Nome do tipo de veículo é obrigatório');
+    if (!formData.name) return toast.error('Nome do tipo de veï¿½culo ï¿½ obrigatï¿½rio');
     
     try {
       if (isEditing) {
         await api.put(`/vehicle-types/${currentId}`, formData);
-        toast.success('Tipo de veículo atualizado!');
+        toast.success('Tipo de veï¿½culo atualizado!');
       } else {
         await api.post('/vehicle-types', formData);
-        toast.success('Tipo de veículo criado!');
+        toast.success('Tipo de veï¿½culo criado!');
       }
       fetchVehicleTypes();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar tipo de veículo');
+      toast.error('Erro ao guardar tipo de veï¿½culo');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Eliminar este tipo de veículo permanentemente?')) {
+    if (window.confirm('Eliminar este tipo de veï¿½culo permanentemente?')) {
       try {
         await api.delete(`/vehicle-types/${id}`);
         toast.success('Eliminado com sucesso!');
         fetchVehicleTypes();
       } catch (error) {
-        toast.error('Erro ao eliminar tipo de veículo');
+        toast.error('Erro ao eliminar tipo de veï¿½culo');
       }
     }
   };
@@ -93,8 +93,8 @@ export default function VehicleTypesScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Tipos de Veículo</h2>
-          <span className="text-muted small">Gestão de categorias de transporte e capacidades</span>
+          <h2 className="fw-bold m-0 text-dark">Tipos de Veï¿½culo</h2>
+          <span className="text-muted small">Gestï¿½o de categorias de transporte e capacidades</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -120,20 +120,22 @@ export default function VehicleTypesScreen() {
           <div className="table-responsive">
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
-                <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Tipo</th>
-                  <th className="border-0 text-muted py-3">Categoria</th>
-                  <th className="border-0 text-muted py-3">Taxa Base (MZN)</th>
-                  <th className="border-0 text-muted py-3">Peso Máx. (Capacidade)</th>
-                  <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
-                </tr>
-              </thead>
+                  <tr>
+                    <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Tipo</th>
+                    <th className="border-0 text-muted py-3">Categoria</th>
+                    <th className="border-0 text-muted py-3">Taxa Base (MT)</th>
+                    <th className="border-0 text-muted py-3">Preço/Km (MT)</th>
+                    <th className="border-0 text-muted py-3">Capacidade</th>
+                    <th className="border-0 text-muted py-3">Taxa Mín. (Disp.)</th>
+                    <th className="border-0 text-muted py-3 text-center">Estado</th>
+                    <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+                  </tr>
+                </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar tipos de veículo...</td></tr>
+                  <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar tipos de veï¿½culo...</td></tr>
                 ) : currentVehicleTypes.length === 0 ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhum tipo de veículo encontrado.</td></tr>
+                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhum tipo de veï¿½culo encontrado.</td></tr>
                 ) : currentVehicleTypes.map(vehicle => (
                   <tr key={vehicle._id || vehicle.id}>
                     <td className="px-4">
@@ -145,9 +147,11 @@ export default function VehicleTypesScreen() {
                       </div>
                     </td>
                     <td><span className="text-muted fw-bold text-capitalize">{vehicle.category || 'ligeiro'}</span></td>
-                    <td><span className="text-dark fw-bold">{vehicle.basePrice || 0} MZN</span></td>
+                    <td><span className="text-dark fw-bold">{vehicle.basePrice || 0} MT</span></td>
+                    <td><span className="text-dark fw-bold">{vehicle.pricePerKm || 0} MT</span></td>
                     <td><span className="text-muted fw-bold">{vehicle.capacityKg || vehicle.maxWeight || 'N/A'}</span></td>
-                    <td>
+                    <td><span className="text-dark fw-bold">{vehicle.minVisibilityFee || 0} MT</span></td>
+                    <td className="text-center">
                       <span className={`badge rounded-pill ${vehicle.status === 'Ativo' || vehicle.isActive ? 'bg-success' : 'bg-secondary'}`}>
                         {vehicle.status || (vehicle.isActive ? 'Ativo' : 'Inativo')}
                       </span>
@@ -173,13 +177,13 @@ export default function VehicleTypesScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Tipo de Veículo' : 'Novo Tipo de Veículo'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Tipo de Veï¿½culo' : 'Novo Tipo de Veï¿½culo'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Nome (ex: Mota, Furgão)</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Nome (ex: Mota, Furgï¿½o)</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                 </div>
                 <div className="row g-3 mb-3">
@@ -188,27 +192,37 @@ export default function VehicleTypesScreen() {
                     <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
                       <option value="leve">Leve (Motocicletas, Bicicletas)</option>
                       <option value="ligeiro">Ligeiro (Carros Pequenos, Ligeiros)</option>
-                      <option value="pesado">Pesado (Camiões, Furgões grandes)</option>
+                      <option value="pesado">Pesado (Camiï¿½es, Furgï¿½es grandes)</option>
                     </select>
                   </div>
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Taxa Base (MZN)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Taxa Base (MT)</label>
                     <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.basePrice} onChange={(e) => setFormData({...formData, basePrice: Number(e.target.value)})} required />
                   </div>
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Capacidade de Carga / Peso Máx.</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Capacidade de Carga / Peso Mï¿½x.</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.maxWeight || formData.capacityKg || ''} onChange={(e) => setFormData({...formData, capacityKg: e.target.value, maxWeight: e.target.value})} placeholder="Ex: 50 kg" />
                 </div>
                 <div className="row g-3 mb-4">
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Ícone</label>
+                    <label className="form-label fw-bold small text-muted mb-1">ï¿½cone</label>
                     <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.iconName} onChange={(e) => setFormData({...formData, iconName: e.target.value})}>
                       <option value="faMotorcycle">Mota</option>
                       <option value="faCar">Carro</option>
-                      <option value="faTruck">Camião/Furgão</option>
+                      <option value="faTruck">Camiï¿½o/Furgï¿½o</option>
                     </select>
                   </div>
+                  
+                  <div className="col-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Taxa Mín. (Disp.)</label>
+                    <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.minVisibilityFee || 0} onChange={(e) => setFormData({...formData, minVisibilityFee: Number(e.target.value)})} placeholder="Ex: 50" required />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Preço por Km (MT)</label>
+                    <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.pricePerKm || 0} onChange={(e) => setFormData({...formData, pricePerKm: Number(e.target.value)})} placeholder="Ex: 40" required />
+                  </div>
+
                   <div className="col-6">
                     <label className="form-label fw-bold small text-muted mb-1">Status</label>
                     <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
@@ -218,7 +232,7 @@ export default function VehicleTypesScreen() {
                   </div>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Criar Tipo'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alteraï¿½ï¿½es' : 'Criar Tipo'}
                 </button>
               </form>
             </div>

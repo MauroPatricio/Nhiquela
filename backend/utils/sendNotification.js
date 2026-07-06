@@ -1,11 +1,11 @@
 import admin from '../firebase.js';
 
 /**
- * Envia notificaÃ§Ã£o nativa para um Ãºnico token Firebase (FCM)
+ * Envia notificação nativa para um único token Firebase (FCM)
  */
 export async function sendNotification(deviceToken, title, body, data = {}) {
   if (!deviceToken || deviceToken === 'null') {
-    return { success: false, error: 'Token invÃ¡lido' };
+    return { success: false, error: 'Token inválido' };
   }
 
   // O Firebase apenas aceita strings dentro do objeto "data"

@@ -48,7 +48,7 @@ colorRoutes.get(
     if (color) {
       res.send(color);
     } else {
-      res.status(404).send({ message: 'Cor n√£o encontrada' });
+      res.status(404).send({ message: 'Cor n„o encontrada' });
     }
   })
 );
@@ -76,7 +76,7 @@ colorRoutes.put(
       await color.save();
       res.send({ message: `Cor actualizada com sucesso` });
     } else {
-      res.status(404).send({ message: 'Cor n√£o encontrada' });
+      res.status(404).send({ message: 'Cor n„o encontrada' });
     }
   })
 );
@@ -98,7 +98,7 @@ colorRoutes.delete(
 
       res.send({ message: `Cor Removida Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Cor n√£o encontrada' });
+      res.status(404).send({ message: 'Cor n„o encontrada' });
     }
   })
 );

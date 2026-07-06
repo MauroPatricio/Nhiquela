@@ -2,6 +2,7 @@ export type Trip = {
   id: string;
   passengerId: string;
   passenger: string;
+  passengerImage?: string;
   passengerPhone?: string;
   pickup: string;
   destination: string;
@@ -17,6 +18,7 @@ export type Trip = {
   isAcceptedByDeliveryman: boolean;
   originalData: any;
   isProcessing?: boolean;
+  serviceName?: string;
 };
 
 export type WebSocketOrderData = {

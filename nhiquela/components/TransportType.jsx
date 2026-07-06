@@ -1,4 +1,5 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Image } from 'expo-image';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
@@ -11,7 +12,7 @@ const images ={
     image1: require('../assets/vehicle/bycicle.png'),
     image2: require('../assets/vehicle/car.png'),
     // image3: require('../assets/vehicle/truck.png'),
-    // image4: require('../assets/vehicle/reboque.png')
+    // image4: require('../assets/vehicle/reboque.jpg')
 
 }
 const data = [
@@ -84,7 +85,7 @@ const TransportType = () => {
               <Image
               source={images[item.image]}
               style={styles.image}
-              resizeMode="cover"
+              contentFit="cover"
               />
               <Text style={styles.title}>{item.title}</Text>
                            {/* <Text style={{fontWeight:'500'}}>{item.price} MT</Text> */}
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
       },
       image:{
           aspectRatio: 1,
-          resizeMode: 'cover',
+          contentFit: 'cover',
         //   width: 50,
           height: 150,
           marginRight: 10,
@@ -165,3 +166,4 @@ const styles = StyleSheet.create({
       color: '#7F00FF'
     },
 })
+

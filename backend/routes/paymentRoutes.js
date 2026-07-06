@@ -50,7 +50,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
   const { customerNumber, amount } = req.body;
 
   if (!customerNumber || typeof amount !== 'number' || amount <= 0) {
-    return res.status(400).send({ message: 'N√∫mero ou valor inv√°lido.' });
+    return res.status(400).send({ message: 'N˙mero ou valor inv·lido.' });
   }
 
   const referenceCode = randomString(5);
@@ -74,7 +74,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
       conversationId: mpesaRes.output_ConversationID,
       reference: mpesaRes.output_ThirdPartyReference,
       // INS-0 apenas significa que o pedido foi enviado para o telefone do cliente.
-      // A confirma√ß√£o real ser√° feita via Webhook.
+      // A confirmaÁ„o real ser· feita via Webhook.
       paid: false, 
       status: mpesaRes.output_ResponseCode === 'INS-0' ? 'Pendente' : 'Falha'
     };
@@ -93,7 +93,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
 
     return res.status(result.status === 'Pendente' ? 200 : 400).send({
       ...savedPayment._doc,
-      message: result.status === 'Pendente' ? 'Verifique o seu telem√≥vel para colocar o PIN.' : 'Falha ao iniciar pagamento.'
+      message: result.status === 'Pendente' ? 'Verifique o seu telemÛvel para colocar o PIN.' : 'Falha ao iniciar pagamento.'
     });
 
   } catch (err) {
@@ -129,28 +129,28 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
   }
 }));
 
-// Webhook para confirma√ß√£o ass√≠ncrona do M-Pesa
+// Webhook para confirmaÁ„o assÌncrona do M-Pesa
 paymentRouter.post('/mpesa/webhook', expressAsyncHandler(async (req, res) => {
-  console.log('üîî Webhook M-Pesa Recebido:', req.body);
+  console.log('?? Webhook M-Pesa Recebido:', req.body);
   
-  // O M-Pesa envia o estado da transa√ß√£o no body. Exemplo de estrutura comum:
+  // O M-Pesa envia o estado da transaÁ„o no body. Exemplo de estrutura comum:
   // { ThirdPartyReference, TransactionID, ResponseCode, ResponseDesc, ... }
   const { ThirdPartyReference, TransactionID, ResponseCode } = req.body;
 
   if (!ThirdPartyReference) {
-    return res.status(400).send({ message: 'ThirdPartyReference n√£o encontrado.' });
+    return res.status(400).send({ message: 'ThirdPartyReference n„o encontrado.' });
   }
 
-  // Verificar na base de dados o pagamento com a refer√™ncia
+  // Verificar na base de dados o pagamento com a referÍncia
   const payment = await Payment.findOne({ reference: ThirdPartyReference });
   
   if (!payment) {
-    console.error('‚ùå Pagamento n√£o encontrado para a refer√™ncia:', ThirdPartyReference);
-    return res.status(404).send({ message: 'Pagamento n√£o encontrado.' });
+    console.error('? Pagamento n„o encontrado para a referÍncia:', ThirdPartyReference);
+    return res.status(404).send({ message: 'Pagamento n„o encontrado.' });
   }
 
-  // Verifica se o pagamento foi conclu√≠do com sucesso
-  // O c√≥digo 'INS-0' na confirma√ß√£o significa sucesso na transfer√™ncia.
+  // Verifica se o pagamento foi concluÌdo com sucesso
+  // O cÛdigo 'INS-0' na confirmaÁ„o significa sucesso na transferÍncia.
   if (ResponseCode === 'INS-0' || ResponseCode === '0') {
     payment.paid = true;
     payment.status = 'Sucesso';
@@ -158,13 +158,13 @@ paymentRouter.post('/mpesa/webhook', expressAsyncHandler(async (req, res) => {
     await payment.save();
     
     // Atualizar Order ou Wallet consoante o sistema
-    // ... Aqui poder√° colocar a l√≥gica de recarga de saldo do utilizador (wallet) ...
-    console.log(`‚úÖ Pagamento M-Pesa ${ThirdPartyReference} confirmado com sucesso!`);
+    // ... Aqui poder· colocar a lÛgica de recarga de saldo do utilizador (wallet) ...
+    console.log(`? Pagamento M-Pesa ${ThirdPartyReference} confirmado com sucesso!`);
   } else {
     payment.paid = false;
     payment.status = 'Falha';
     await payment.save();
-    console.log(`‚ùå Pagamento M-Pesa ${ThirdPartyReference} falhou ou foi cancelado.`);
+    console.log(`? Pagamento M-Pesa ${ThirdPartyReference} falhou ou foi cancelado.`);
   }
 
   // O M-Pesa espera um 200 OK para saber que o webhook foi processado.

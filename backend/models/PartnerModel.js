@@ -1,4 +1,4 @@
-// models/PartnerModel.js
+﻿// models/PartnerModel.js
 import mongoose from 'mongoose';
 
 const partnerSchema = new mongoose.Schema(

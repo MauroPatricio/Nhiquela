@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserTie, faEdit, faTrash, faPlus, faSave, faTimes, faSearch, faUpload } from '@fortawesome/free-solid-svg-icons';
+import { faUserTie, faEdit, faTrash, faPlus, faSave, faTimes, faSearch, faUpload, faPowerOff, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -67,6 +67,18 @@ export default function ProviderTypesScreen() {
       toast.error('Erro ao carregar classificações');
     }
   };
+
+  const toggleActive = async (type) => {
+    try {
+      const updatedData = { ...type, isActive: !type.isActive };
+      await api.put(`/provider-types/${type._id || type.id}`, updatedData);
+      toast.success(`Estado do tipo "${type.name}" atualizado!`);
+      fetchTypes();
+    } catch (error) {
+      toast.error('Erro ao atualizar estado.');
+    }
+  };
+
 
   const fetchTypes = async () => {
     try {
@@ -229,11 +241,18 @@ export default function ProviderTypesScreen() {
                     </td>
                     <td className="text-muted">{type.description || 'Sem descrição'}</td>
                     <td>
-                      <span className={`badge ${type.isActive ? 'bg-success' : 'bg-danger'}`}>
+                      <span className={`badge ${type.isActive ? 'bg-success' : 'bg-danger'} px-3 py-2 rounded-pill`}>
                         {type.isActive ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="text-end px-4">
+                      <button 
+                        className={`btn btn-sm ${type.isActive ? 'btn-light text-warning' : 'btn-light text-success'} rounded-3 shadow-sm transition-all hover-transform me-2`} 
+                        onClick={() => toggleActive(type)} 
+                        title={type.isActive ? "Inativar" : "Ativar"}
+                      >
+                        <FontAwesomeIcon icon={type.isActive ? faPowerOff : faCheckCircle} />
+                      </button>
                       <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(type)} title="Editar">
                         <FontAwesomeIcon icon={faEdit} />
                       </button>

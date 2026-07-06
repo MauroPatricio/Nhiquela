@@ -1,6 +1,6 @@
 // utils/reputationTracker.js
 // Simple reputation tracking helpers. In a real system you might store aggregates on the User model.
-// Here we just compute on‑the‑fly from DocumentOrder collection.
+// Here we just compute on-the-fly from DocumentOrder collection.
 
 import DocumentOrder from '../models/DocumentOrder.js';
 import User from '../models/UserModel.js'; // Assuming existing User model
@@ -17,7 +17,10 @@ const recordOrderCreated = async (userId) => {
 // Increment completedOrders when an order reaches completed status
 const recordOrderCompleted = async (userId) => {
   try {
-    await User.findByIdAndUpdate(userId, { $inc: { completedOrders: 1 } });
+    await User.findByIdAndUpdate(userId, { 
+      $inc: { completedOrders: 1 },
+      $set: { consecutiveCancellations: 0 } // Reset penalty counter
+    });
     await updateUserRating(userId);
   } catch (err) {
     console.error('Failed to record order completion:', err);
@@ -25,9 +28,26 @@ const recordOrderCompleted = async (userId) => {
 };
 
 const recordOrderCancelled = async (userId) => {
-  // Increment cancelledOrders counter
   try {
-    await User.findByIdAndUpdate(userId, { $inc: { cancelledOrders: 1 } });
+    // We increment cancelledOrders and consecutiveCancellations
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      { $inc: { cancelledOrders: 1, consecutiveCancellations: 1 } },
+      { new: true }
+    );
+    
+    // Check if penalty applies (5 consecutive cancellations)
+    if (updatedUser && updatedUser.consecutiveCancellations >= 5) {
+      // 30 days penalty
+      const blockDate = new Date();
+      blockDate.setDate(blockDate.getDate() + 30);
+      
+      await User.findByIdAndUpdate(userId, {
+        $set: { blockedUntil: blockDate, consecutiveCancellations: 0 }
+      });
+      console.log(`User ${userId} blocked until ${blockDate} due to 5 consecutive cancellations.`);
+    }
+
     // Recalculate rating based on new counters
     await updateUserRating(userId);
   } catch (err) {

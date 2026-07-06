@@ -4,14 +4,14 @@ import { faShieldAlt, faEdit, faTrash, faPlus, faTimes } from '@fortawesome/free
 import { toast } from 'react-toastify';
 import api from '../../api';
 
-// Lista de permiss√µes dispon√≠veis no sistema
+// Lista de permissıes disponÌveis no sistema
 const AVAILABLE_PERMISSIONS = [
   { id: 'manage_users', label: 'Gerir Utilizadores' },
-  { id: 'manage_roles', label: 'Gerir Pap√©is (Roles)' },
+  { id: 'manage_roles', label: 'Gerir PapÈis (Roles)' },
   { id: 'manage_products', label: 'Gerir Produtos' },
   { id: 'manage_orders', label: 'Gerir Encomendas' },
-  { id: 'manage_settings', label: 'Gerir Configura√ß√µes' },
-  { id: 'view_finance', label: 'Ver Finan√ßas' },
+  { id: 'manage_settings', label: 'Gerir ConfiguraÁıes' },
+  { id: 'view_finance', label: 'Ver FinanÁas' },
 ];
 
 export default function RolesScreen() {
@@ -30,7 +30,7 @@ export default function RolesScreen() {
       const { data } = await api.get('/roles');
       setRoles(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar pap√©is (roles)');
+      toast.error('Erro ao carregar papÈis (roles)');
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ export default function RolesScreen() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('ATEN√á√ÉO: Tem a certeza que deseja eliminar este papel?')) {
+    if (window.confirm('ATEN«√O: Tem a certeza que deseja eliminar este papel?')) {
       try {
         await api.delete(`/roles/${id}`);
         toast.success('Papel eliminado com sucesso!');
@@ -97,8 +97,8 @@ export default function RolesScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Gest√£o de Pap√©is (Roles)</h2>
-          <span className="text-muted small">Crie e defina permiss√µes de acesso din√¢mico (RBAC)</span>
+          <h2 className="fw-bold m-0 text-dark">Gest„o de PapÈis (Roles)</h2>
+          <span className="text-muted small">Crie e defina permissıes de acesso din‚mico (RBAC)</span>
         </div>
         <button className="btn btn-primary bg-primary-custom border-0 rounded-pill px-4 shadow-sm" onClick={() => handleOpenModal()}>
           <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Papel
@@ -112,9 +112,9 @@ export default function RolesScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Papel</th>
-                  <th className="border-0 text-muted py-3">Descri√ß√£o</th>
-                  <th className="border-0 text-muted py-3">Permiss√µes</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
+                  <th className="border-0 text-muted py-3">DescriÁ„o</th>
+                  <th className="border-0 text-muted py-3">Permissıes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,12 +169,12 @@ export default function RolesScreen() {
                   <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required disabled={formData.isSystem} />
                 </div>
                 <div className="mb-4">
-                  <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
+                  <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
                   <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
                 </div>
                 
                 <div className="mb-4 p-3 bg-light rounded-3 border">
-                  <h6 className="fw-bold mb-3">Permiss√µes Associadas</h6>
+                  <h6 className="fw-bold mb-3">Permissıes Associadas</h6>
                   <div className="row g-2">
                     {AVAILABLE_PERMISSIONS.map(perm => (
                       <div className="col-12 col-md-6" key={perm.id}>
@@ -190,7 +190,7 @@ export default function RolesScreen() {
                 </div>
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold shadow-sm">
-                  Salvar Altera√ß√µes
+                  Salvar AlteraÁıes
                 </button>
               </form>
             </div>

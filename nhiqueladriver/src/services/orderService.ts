@@ -7,9 +7,12 @@ export const getOrdersByStatus = async (status: string) => {
 };
 
 // orderService.ts - Atualizar para aceitar localização
-export const acceptOrderByDeliveryman = async (orderId: string, initialLocation?: any) => {
+export const acceptOrderByDeliveryman = async (orderId: string, initialLocation?: any, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/acceptedByDeliveryman`
+    : ENDPOINTS.ACCEPT_ORDER_BY_DELIVERYMAN(orderId);
   const response = await apiClient.put(
-    ENDPOINTS.ACCEPT_ORDER_BY_DELIVERYMAN(orderId),
+    endpoint,
     initialLocation ? { initialLocation } : {}
   );
   return response.data;
@@ -28,8 +31,11 @@ export const updateDeliverymanLocation = async (orderId: string, locationData: a
   return response.data;
 };
 
-export const startOrderInTransit = async (orderId: string) => {
-  const response = await apiClient.put(ENDPOINTS.START_ORDER_IN_TRANSIT(orderId));
+export const startOrderInTransit = async (orderId: string, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/intransit`
+    : ENDPOINTS.START_ORDER_IN_TRANSIT(orderId);
+  const response = await apiClient.put(endpoint);
   return response.data;
 };
 
@@ -38,8 +44,11 @@ export const getAcceptedOrderByDeliveryman = async () => {
   return response.data;
 };
 
-export const cancelOrderByDeliveryman = async (orderId: string) => {
-  const response = await apiClient.put(ENDPOINTS.CANCEL_ORDER_BY_DELIVERYMAN(orderId));
+export const cancelOrderByDeliveryman = async (orderId: string, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/cancel`
+    : ENDPOINTS.CANCEL_ORDER_BY_DELIVERYMAN(orderId);
+  const response = await apiClient.put(endpoint);
   return response.data;
 };
 
@@ -48,7 +57,10 @@ export const getAllOrdersForDeliveryman = async () => {
   return response.data;
 };
 
-export const confirmOrderDelivered = async (orderId: string) => {
-  const response = await apiClient.put(ENDPOINTS.CONFIRM_ORDER_DELIVERED(orderId));
+export const confirmOrderDelivered = async (orderId: string, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/confirmDestination`
+    : ENDPOINTS.CONFIRM_ORDER_DELIVERED(orderId);
+  const response = await apiClient.put(endpoint);
   return response.data;
 };

@@ -40,7 +40,7 @@ incidentRouter.put(
       const updatedIncident = await incident.save();
       res.send({ message: 'Incidente atualizado', incident: updatedIncident });
     } else {
-      res.status(404).send({ message: 'Incidente nÃ£o encontrado' });
+      res.status(404).send({ message: 'Incidente não encontrado' });
     }
   })
 );
@@ -55,7 +55,7 @@ incidentRouter.delete(
       await incident.deleteOne();
       res.send({ message: 'Incidente apagado' });
     } else {
-      res.status(404).send({ message: 'Incidente nÃ£o encontrado' });
+      res.status(404).send({ message: 'Incidente não encontrado' });
     }
   })
 );

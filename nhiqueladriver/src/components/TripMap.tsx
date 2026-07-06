@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import MapView, { Marker, Camera, UrlTile, Polyline } from "react-native-maps";
+import { LinearGradient } from "expo-linear-gradient";
 import { 
   StyleSheet, 
   Dimensions, 
@@ -8,8 +9,10 @@ import {
   Animated, 
   TouchableOpacity,
   Modal,
-  Alert 
+  Alert,
+  Linking
 } from "react-native";
+import { showMessage } from "react-native-flash-message";
 import { COLORS } from "../styles/colors";
 import * as Location from 'expo-location';
 import { getRoute } from "../services/routingService";
@@ -56,6 +59,7 @@ export default function TripMap({
   const lastPositionRef = useRef<any>(null);
   const animationRef = useRef<any>(null);
   const hasInitialZoomed = useRef(false);
+  const lastSpeedWarningTime = useRef<number>(0);
 
   // 🔥 OBTER LOCALIZAÇÃO EM TEMPO REAL
   useEffect(() => {
@@ -100,7 +104,25 @@ export default function TripMap({
           const currentSpeed = newLocation.coords.speed !== null && newLocation.coords.speed > 0 
             ? newLocation.coords.speed * 3.6 
             : 0;
-          setSpeed(Math.round(currentSpeed));
+          
+          const speedKmH = Math.round(currentSpeed);
+          setSpeed(speedKmH);
+
+          // 🔥 AVISO DE VELOCIDADE (100 KM/H)
+          if (speedKmH >= 100) {
+            const now = Date.now();
+            // Apenas emite o aviso a cada 1 minuto (60000ms) para não fazer spam
+            if (now - lastSpeedWarningTime.current > 60000) {
+              lastSpeedWarningTime.current = now;
+              showMessage({
+                message: "⚠️ Excesso de Velocidade",
+                description: "Atingiu 100 km/h! Por favor, reduza a velocidade para a sua segurança e do cliente.",
+                type: "danger",
+                icon: "warning",
+                duration: 5000,
+              });
+            }
+          }
 
           // Atualizar posição
           setOrigin(updatedLocation);
@@ -359,18 +381,49 @@ export default function TripMap({
         <Text style={styles.statusText}>{statusInfo.title}</Text>
       </View>
 
-      {/* 🔥 BOTÃO PARA INICIAR VIAGEM (APENAS NO ESTÁGIO 4) - AGORA MAIS VISÍVEL */}
-      {stepStatus === 4 && (
-        <View style={styles.startTripButtonContainer}>
+      {/* 🔥 INFO DO CLIENTE / PASSAGEIRO */}
+      {tripData && (tripData.user || tripData.clientName) && (
+        <View style={styles.clientInfoBox}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <Ionicons name="person-circle-outline" size={32} color="#333" style={{ marginRight: 8 }} />
+            <View>
+              <Text style={styles.clientName}>{tripData.user?.name || tripData.clientName || 'Cliente'}</Text>
+              <Text style={styles.clientPhone}>{tripData.user?.phoneNumber || tripData.clientPhone || 'N/A'}</Text>
+            </View>
+          </View>
           <TouchableOpacity 
-            style={[styles.startTripButton, { backgroundColor: COLORS.warning }]}
-            onPress={handleStartTripPress}
+            style={styles.callButton}
+            onPress={() => {
+              const phone = tripData.user?.phoneNumber || tripData.clientPhone;
+              if (phone) Linking.openURL(`tel:${phone}`);
+            }}
           >
-            <Ionicons name="play-circle" size={28} color="#FFF" />
-            <Text style={styles.startTripButtonText}>Iniciar Viagem</Text>
+            <Ionicons name="call" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
       )}
+
+        {/* BOTAO PARA INICIAR VIAGEM (APENAS NO ESTAGIO 4) */}
+        {stepStatus === 4 && (
+          <View style={styles.startTripButtonContainer}>
+            <TouchableOpacity 
+              style={styles.startTripButtonOuter}
+              activeOpacity={0.85}
+              onPress={handleStartTripPress}
+            >
+              <LinearGradient
+                colors={['#a855f7', '#9333ea', '#7e22ce']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startTripButtonGradient}
+              >
+                <View style={styles.startTripButtonGlow} />
+                <Ionicons name="play-circle" size={32} color="#FFF" style={styles.startTripButtonIcon} />
+                <Text style={styles.startTripButtonText}>Iniciar Viagem</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
 
       {/* 🔥 DURAÇÃO (APENAS SE TEM ROTA) */}
       {duration && shouldDrawRoute && (
@@ -413,7 +466,7 @@ export default function TripMap({
       )}
 
 
-      {/* 🔥 MODAL DE CONFIRMAÇÃO */}
+      {/* 🔥 MODAL DE CONFIRMAÇÃO PREMIUM */}
       <Modal
         visible={showConfirmationModal}
         transparent={true}
@@ -421,30 +474,39 @@ export default function TripMap({
         onRequestClose={handleCancelTrip}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Ionicons name="checkmark-circle" size={48} color={COLORS.warning} />
-              <Text style={styles.modalTitle}>Confirmar Início da Viagem</Text>
+          <View style={styles.premiumModalContainer}>
+            <View style={styles.premiumIconContainer}>
+              <Ionicons name="cube-outline" size={40} color="#9333ea" />
             </View>
             
-            <Text style={styles.modalMessage}>
-              Você está prestes a iniciar a viagem para entrega. Confirme que recebeu a mercadoria e está pronto para partir.
+            <Text style={styles.premiumModalTitle}>Já está com a mercadoria?</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos início à viagem.
             </Text>
 
-            <View style={styles.modalButtons}>
+            <View style={styles.premiumModalButtons}>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
                 onPress={handleCancelTrip}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={styles.premiumCancelButtonText}>Não, Cancelar</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.confirmButton]}
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
                 onPress={handleConfirmTrip}
               >
-                <Ionicons name="checkmark" size={20} color="#FFF" />
-                <Text style={styles.confirmButtonText}>Confirmar</Text>
+                <LinearGradient
+                  colors={['#a855f7', '#9333ea']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Sim, Iniciar</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -483,36 +545,95 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 14,
     fontWeight: "bold",
-    marginLeft: 6,
+    marginLeft: 8,
   },
-  // 🔥 Container do Botão Iniciar Viagem - AGORA MAIS VISÍVEL
-  startTripButtonContainer: {
+  clientInfoBox: {
     position: "absolute",
-    top: '40%', // Posicionado no meio verticalmente
+    top: 90,
     alignSelf: "center",
-    width: '80%', // Largura maior
-  },
-  startTripButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     flexDirection: 'row',
     alignItems: 'center',
+    width: '90%',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  clientName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  clientPhone: {
+    fontSize: 12,
+    color: '#666',
+  },
+  callButton: {
+    backgroundColor: '#27AE60',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  startTripButtonText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
+    // Container do Botao Iniciar Viagem - PREMIUM
+    startTripButtonContainer: {
+      position: "absolute",
+      bottom: 130, // Move down so it doesn't block the map but stays above TabMenu
+      alignSelf: "center",
+      width: '88%',
+      zIndex: 999,
+    },
+    startTripButtonOuter: {
+      borderRadius: 24,
+      elevation: 12,
+      shadowColor: '#a855f7',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.6,
+      shadowRadius: 16,
+    },
+    startTripButtonGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 18,
+      paddingHorizontal: 28,
+      borderRadius: 24,
+      borderWidth: 1.5,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      overflow: 'hidden',
+    },
+    startTripButtonGlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '50%',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    startTripButtonIcon: {
+      marginRight: 12,
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
+    },
+    startTripButtonText: {
+      color: "#FFF",
+      fontSize: 20,
+      fontWeight: "900",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
+    },
   arrowMarkerContainer: {
     width: 40,
     height: 40,
@@ -653,73 +774,153 @@ const styles = StyleSheet.create({
   // 🔥 Estilos do Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContainer: {
     backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxWidth: 320,
-    elevation: 8,
+    borderRadius: 24,
+    padding: 28,
+    width: '95%',
+    maxWidth: 340,
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
   },
   modalHeader: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 12,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginTop: 14,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   modalMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#555',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+    lineHeight: 22,
+    marginBottom: 32,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 14,
   },
   modalButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 14,
+    elevation: 3,
   },
   cancelButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#f8f9fa',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#e9ecef',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
   confirmButton: {
-    backgroundColor: COLORS.warning,
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#495057',
+    fontSize: 15,
+    fontWeight: '700',
   },
   confirmButtonText: {
     color: '#FFF',
-    fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
   },
+  premiumModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 28,
+    width: '90%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 15,
+  },
+  premiumIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1e1b4b',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumModalMessage: {
+    fontSize: 14,
+    color: '#4b5563',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  premiumCancelButton: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  premiumConfirmButton: {
+    flex: 1.3,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumConfirmGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  }
 });

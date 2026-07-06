@@ -1,5 +1,7 @@
+import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
-import { Platform, View, Text } from 'react-native';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,17 +10,13 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORRETO
 // ❌ REMOVIDO: import Toast from 'react-native-toast-message';
 
 import { store } from './store';
 import api from './hooks/createConnectionApi';
-
-import { zegoConfig } from './src/api/zegoConfig';
-import ZegoUIKitPrebuiltCallService, { ZegoUIKitPrebuiltCallInvitationDialog } from '@zegocloud/zego-uikit-prebuilt-call-rn';
-import * as ZIM from 'zego-zim-react-native';
-import * as ZPNs from 'zego-zpns-react-native';
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -46,10 +44,11 @@ import SellersList from './components/SellersList';
 import ForgotPassword from './screens/ForgotPassword';
 import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
-import RequestDelivScreen from './screens/RequestDeliv';
+import RequestServiceScreen from './screens/RequestService';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 // --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
@@ -104,6 +103,7 @@ export default function App() {
 
   const [appConfig, setAppConfig] = React.useState(null);
   const [configLoading, setConfigLoading] = React.useState(true);
+  const [isFirstLaunch, setIsFirstLaunch] = React.useState(null);
 
   // Buscar configuracoes globais (Forced Update & Maintenance)
   useEffect(() => {
@@ -116,6 +116,8 @@ export default function App() {
       } catch (err) {
         console.error('Erro ao buscar app config:', err);
       } finally {
+        const hasViewed = await AsyncStorage.getItem('@hasViewedOnboarding');
+        setIsFirstLaunch(hasViewed === null);
         setConfigLoading(false);
       }
     };
@@ -141,7 +143,7 @@ export default function App() {
                 zegoConfig.appSign,
                 userId,
                 userName,
-                [ZIM, ZPNs],
+                (ZIM && ZPNs) ? [ZIM, ZPNs] : [],
                 {
                   ringtoneConfig: {
                     incomingCallFileName: 'zego_incoming.mp3',
@@ -162,7 +164,7 @@ export default function App() {
             }
           }
         } catch (err) {
-          console.error('Erro ao salvar token do dispositivo:', err);
+          console.log('⚠️ Erro no Zego/Push token:', err.message);
         }
       }
     };
@@ -187,6 +189,9 @@ export default function App() {
 
   const forceUpdate = appConfig && isVersionObsolete(currentVersion, appConfig.minAppVersionClient);
   const inMaintenance = appConfig && appConfig.isMaintenanceModeClient;
+
+  // Wait for first launch check
+  if (isFirstLaunch === null) return null;
 
   // Ecrã de bloqueio
   if (!configLoading && (forceUpdate || inMaintenance)) {
@@ -218,59 +223,113 @@ export default function App() {
   }
 
   return (
-    <ToastProvider>
-      <ZegoUIKitPrebuiltCallInvitationDialog />
-      <StatusBar backgroundColor="white" style="dark" />
-
-      <Provider store={store}>
-        <SafeAreaProvider>
-
-          <NavigationContainer 
-              ref={navigationRef}
-              linking={{
-                prefixes: ['nhiquela://'],
-                config: {
-                  screens: {
-                    OrderDetailsScreen: 'order/:orderId',
-                    OrderList: 'orders'
-                  }
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider
+        placement="top"
+        duration={4000}
+        animationType="slide-in"
+        animationDuration={250}
+        renderToast={(toastOptions) => {
+          const isError = toastOptions.type === 'danger' || toastOptions.type === 'error';
+          const isSuccess = toastOptions.type === 'success';
+          const bgColor = isError ? '#FEF2F2' : isSuccess ? '#F0FDF4' : '#F8FAFC';
+          const borderColor = isError ? '#FECACA' : isSuccess ? '#BBF7D0' : '#E2E8F0';
+          const iconColor = isError ? '#EF4444' : isSuccess ? '#22C55E' : '#3B82F6';
+          const iconName = isError ? 'alert-circle' : isSuccess ? 'checkmark-circle' : 'information-circle';
+          
+          return (
+            <TouchableOpacity 
+              activeOpacity={toastOptions.data?.onPress ? 0.8 : 1}
+              onPress={() => {
+                if (toastOptions.data?.onPress) {
+                  toastOptions.data.onPress();
                 }
               }}
-          >
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
-              <Stack.Screen name="ProductDetail" component={ProductDetail} />
-              <Stack.Screen name="ProductList" component={NewProducts} />
-              <Stack.Screen name="ProductList2" component={ProductList} />
-              <Stack.Screen name="Login" component={LoginPage} />
-              <Stack.Screen name="SignUp" component={SignUp} />
-              <Stack.Screen name="SellerScreen" component={SellerScreen} />
-              <Stack.Screen name="SellerProduct" component={SellerProduct} />
-              <Stack.Screen name="SellersList" component={SellersList} />
-              <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
-              <Stack.Screen name="Cart" component={Cart} />
-              <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
-              <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
-              <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
-              <Stack.Screen name="FailedPayment" component={FailedPayment} />
-              <Stack.Screen name="MapScreen" component={MapScreen} />
-              <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
-              <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
-              <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
-              <Stack.Screen name="OrderList" component={OrderList} />
-              <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-              <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
-              <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
-              <Stack.Screen name="Favorite" component={Favorite} />
-              <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: bgColor,
+                borderWidth: 1,
+                borderColor: borderColor,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 16,
+                marginHorizontal: 20,
+                marginTop: 50,
+                shadowColor: iconColor,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.2,
+                shadowRadius: 10,
+                elevation: 5,
+                width: '90%'
+            }}>
+              <Ionicons name={iconName} size={28} color={iconColor} style={{ marginRight: 12 }} />
+              <Text style={{
+                color: '#1E293B',
+                fontSize: 15,
+                fontWeight: '600',
+                flex: 1,
+                lineHeight: 22,
+              }}>
+                {toastOptions.message}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      >
+        <StatusBar backgroundColor="white" style="dark" />
 
-        </SafeAreaProvider>
-      </Provider>
+        <Provider store={store}>
+          <SafeAreaProvider>
 
-    </ToastProvider>
+            <NavigationContainer 
+                ref={navigationRef}
+                linking={{
+                  prefixes: ['nhiquela://'],
+                  config: {
+                    screens: {
+                      OrderDetailsScreen: 'order/:orderId',
+                      OrderList: 'orders'
+                    }
+                  }
+                }}
+            >
+              <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isFirstLaunch ? 'Onboarding' : 'BottomNavigation'}>
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
+                <Stack.Screen name="ProductDetail" component={ProductDetail} />
+                <Stack.Screen name="ProductList" component={NewProducts} />
+                <Stack.Screen name="ProductList2" component={ProductList} />
+                <Stack.Screen name="Login" component={LoginPage} />
+                <Stack.Screen name="SignUp" component={SignUp} />
+                <Stack.Screen name="SellerScreen" component={SellerScreen} />
+                <Stack.Screen name="SellerProduct" component={SellerProduct} />
+                <Stack.Screen name="SellersList" component={SellersList} />
+                <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+                <Stack.Screen name="Cart" component={Cart} />
+                <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
+                <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
+                <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
+                <Stack.Screen name="FailedPayment" component={FailedPayment} />
+                <Stack.Screen name="MapScreen" component={MapScreen} />
+                <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
+                <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
+                <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
+                <Stack.Screen name="OrderList" component={OrderList} />
+                <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+                <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
+                <Stack.Screen name="RequestService" component={RequestServiceScreen} />
+                <Stack.Screen name="Favorite" component={Favorite} />
+                <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+
+          </SafeAreaProvider>
+        </Provider>
+
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }
 

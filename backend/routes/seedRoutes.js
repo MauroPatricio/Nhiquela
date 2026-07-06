@@ -1,4 +1,4 @@
-// seedRoutes.js â€“ seeds initial data for development/testing
+// seedRoutes.js – seeds initial data for development/testing
 import express from 'express';
 import Product from '../models/ProductModel.js';
 import Service from '../models/ServiceModel.js';
@@ -26,10 +26,10 @@ seedRoutes.get('/', async (req, res) => {
 
     // Insert default categories
     const defaultCategories = await Category.insertMany([
-      { icon: 'ðŸ¥¦', name: 'Supermercado', nome: 'Supermercado', description: 'Supermercado', isActive: true },
-      { icon: 'ðŸ”', name: 'Restaurantes', nome: 'Restaurantes', description: 'Restaurantes', isActive: true },
-      { icon: 'ðŸ’Š', name: 'FarmÃ¡cia', nome: 'FarmÃ¡cia', description: 'FarmÃ¡cia', isActive: true },
-      { icon: 'ðŸ› ï¸', name: 'ServiÃ§os', nome: 'ServiÃ§os', description: 'ServiÃ§os', isActive: true },
+      { icon: '??', name: 'Supermercado', nome: 'Supermercado', description: 'Supermercado', isActive: true },
+      { icon: '??', name: 'Restaurantes', nome: 'Restaurantes', description: 'Restaurantes', isActive: true },
+      { icon: '??', name: 'Farmácia', nome: 'Farmácia', description: 'Farmácia', isActive: true },
+      { icon: '???', name: 'Serviços', nome: 'Serviços', description: 'Serviços', isActive: true },
     ]);
 
     // Seed sample users and products
@@ -39,18 +39,18 @@ seedRoutes.get('/', async (req, res) => {
     // Seed establishments (example entries)
     const establishments = await Establishment.insertMany([
       { name: 'Supermercado Central', type: 'supermarket', active: true },
-      { name: 'FarmÃ¡cia SaÃºde', type: 'pharmacy', active: true },
+      { name: 'Farmácia Saúde', type: 'pharmacy', active: true },
     ]);
 
     // Seed processing fees (example overrides)
     await ProcessingFee.insertMany([
       // Base fee for prescription service (fixed amount)
       { serviceType: 'prescription', amount: 5, exempt: false },
-      // Shopping list fee â€“ 2% of order total (no fixed amount)
+      // Shopping list fee – 2% of order total (no fixed amount)
       { serviceType: 'shopping_list', percentage: 2, exempt: false },
-      // Special order fee â€“ exempt (no charge)
+      // Special order fee – exempt (no charge)
       { serviceType: 'special_order', exempt: true },
-      // Perâ€‘establishment override example (supermarket incurs 3% instead of base 2%)
+      // Per-establishment override example (supermarket incurs 3% instead of base 2%)
       {
         serviceType: 'shopping_list',
         percentage: 3,

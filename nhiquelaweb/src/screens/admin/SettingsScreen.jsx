@@ -17,7 +17,7 @@ export default function SettingsScreen() {
       const { data } = await api.get('/settings');
       setSettings(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar configura√ß√µes globais');
+      toast.error('Erro ao carregar configuraÁıes globais');
     } finally {
       setLoading(false);
     }
@@ -45,31 +45,31 @@ export default function SettingsScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.key || !formData.value) return toast.error('Chave e Valor s√£o obrigat√≥rios');
+    if (!formData.key || !formData.value) return toast.error('Chave e Valor s„o obrigatÛrios');
     
     try {
       if (isEditing) {
         await api.put(`/settings/${currentId}`, formData);
-        toast.success('Configura√ß√£o atualizada!');
+        toast.success('ConfiguraÁ„o atualizada!');
       } else {
         await api.post('/settings', formData);
-        toast.success('Configura√ß√£o criada!');
+        toast.success('ConfiguraÁ„o criada!');
       }
       fetchSettings();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar configura√ß√£o');
+      toast.error('Erro ao guardar configuraÁ„o');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Eliminar esta configura√ß√£o do sistema permanentemente?')) {
+    if (window.confirm('Eliminar esta configuraÁ„o do sistema permanentemente?')) {
       try {
         await api.delete(`/settings/${id}`);
         toast.success('Eliminado com sucesso!');
         fetchSettings();
       } catch (error) {
-        toast.error('Erro ao eliminar configura√ß√£o');
+        toast.error('Erro ao eliminar configuraÁ„o');
       }
     }
   };
@@ -78,11 +78,11 @@ export default function SettingsScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Configura√ß√µes Globais</h2>
-          <span className="text-muted small">Vari√°veis do sistema, taxas e comiss√µes</span>
+          <h2 className="fw-bold m-0 text-dark">ConfiguraÁıes Globais</h2>
+          <span className="text-muted small">Vari·veis do sistema, taxas e comissıes</span>
         </div>
         <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Nova Vari√°vel
+          <FontAwesomeIcon icon={faPlus} className="me-2" /> Nova Vari·vel
         </button>
       </div>
 
@@ -92,17 +92,17 @@ export default function SettingsScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome da Vari√°vel</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome da Vari·vel</th>
                   <th className="border-0 text-muted py-3">Valor</th>
-                  <th className="border-0 text-muted py-3">Descri√ß√£o / Efeito</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
+                  <th className="border-0 text-muted py-3">DescriÁ„o / Efeito</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar configura√ß√µes...</td></tr>
+                  <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar configuraÁıes...</td></tr>
                 ) : settings.length === 0 ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhuma configura√ß√£o definida na base de dados.</td></tr>
+                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhuma configuraÁ„o definida na base de dados.</td></tr>
                 ) : settings.map(setting => (
                   <tr key={setting._id || setting.id}>
                     <td className="px-4">
@@ -135,25 +135,25 @@ export default function SettingsScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Configura√ß√£o' : 'Nova Configura√ß√£o'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar ConfiguraÁ„o' : 'Nova ConfiguraÁ„o'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Nome da Vari√°vel (Chave)</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.key} onChange={(e) => setFormData({...formData, key: e.target.value})} placeholder="Ex: Taxa de Servi√ßo" required />
+                  <label className="form-label fw-bold small text-muted mb-1">Nome da Vari·vel (Chave)</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.key} onChange={(e) => setFormData({...formData, key: e.target.value})} placeholder="Ex: Taxa de ServiÁo" required />
                 </div>
                 <div className="mb-3">
                   <label className="form-label fw-bold small text-muted mb-1">Valor</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.value} onChange={(e) => setFormData({...formData, value: e.target.value})} placeholder="Ex: 50 MT ou 5%" required />
                 </div>
                 <div className="mb-4">
-                  <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
-                  <textarea className="form-control bg-light border-0 py-3 rounded-3" rows="2" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Para que serve esta vari√°vel?"></textarea>
+                  <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
+                  <textarea className="form-control bg-light border-0 py-3 rounded-3" rows="2" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Para que serve esta vari·vel?"></textarea>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Altera√ß√µes' : 'Criar Vari√°vel'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÁıes' : 'Criar Vari·vel'}
                 </button>
               </form>
             </div>
