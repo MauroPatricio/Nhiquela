@@ -17,8 +17,8 @@ mongoose.connect(process.env.MONGODB_URI).then(async () => {
     console.log('deliveryman.transport_type:', d.deliveryman?.transport_type);
     
     // Check busy logic
-    const RequestDeliv = mongoose.connection.collection('requestdelivers');
-    const activeOrders = await RequestDeliv.find({
+    const RequestService = mongoose.connection.collection('requestdelivers');
+    const activeOrders = await RequestService.find({
        status: { $nin: ['Finalizado', 'Cancelado'] }
     }).toArray();
     

@@ -1,14 +1,14 @@
 const fs = require('fs');
 
-const filepath = 'routes/requestDeliverRoutes.js';
+const filepath = 'routes/requestServiceRoutes.js';
 let content = fs.readFileSync(filepath, 'utf8').replace(/\r\n/g, '\n');
 
-const target = `requestDeliver.post(
+const target = `requestService.post(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {`;
 
-const replacement = `requestDeliver.post(
+const replacement = `requestService.post(
   '/',
   isAuth,
   expressAsyncHandler(async (req, res) => {
@@ -21,7 +21,7 @@ const replacement = `requestDeliver.post(
 if (content.includes(target) && !content.includes('currentUser.blockedUntil')) {
     content = content.replace(target, replacement);
     fs.writeFileSync(filepath, content);
-    console.log('Patched requestDeliverRoutes.js successfully!');
+    console.log('Patched requestServiceRoutes.js successfully!');
 } else {
     console.log('Could not patch or already patched.');
 }

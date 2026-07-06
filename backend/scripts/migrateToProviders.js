@@ -4,7 +4,7 @@ import User from '../models/UserModel.js';
 import Provider from '../models/ProviderModel.js';
 import Product from '../models/ProductModel.js';
 import Order from '../models/OrderModel.js';
-import RequestDeliver from '../models/RequestDeliverModel.js';
+import RequestService from '../models/RequestServiceModel.js';
 import ServiceRequest from '../models/ServiceRequestModel.js';
 
 dotenv.config();
@@ -81,7 +81,7 @@ const migrateData = async () => {
     const deliverymen = await User.find({ isDeliveryMan: true });
     let serviceCount = 0;
     let ordersDeliverymanUpdatedCount = 0;
-    let requestDeliverUpdatedCount = 0;
+    let requestServiceUpdatedCount = 0;
     let serviceRequestUpdatedCount = 0;
 
     for (const user of deliverymen) {
@@ -133,12 +133,12 @@ const migrateData = async () => {
         );
         ordersDeliverymanUpdatedCount += ordRes.modifiedCount;
 
-        // Update RequestDeliver
-        const reqDelRes = await RequestDeliver.updateMany(
+        // Update RequestService
+        const reqDelRes = await RequestService.updateMany(
           { "deliveryman.id": user._id },
           { $set: { "deliveryman.id": providerId } }
         );
-        requestDeliverUpdatedCount += reqDelRes.modifiedCount;
+        requestServiceUpdatedCount += reqDelRes.modifiedCount;
 
         // Update ServiceRequests
         const srvReqRes = await ServiceRequest.updateMany(
@@ -149,7 +149,7 @@ const migrateData = async () => {
       }
     }
     console.log(`Migrated ${serviceCount} Deliverymen to SERVICE Providers.`);
-    console.log(`Updated ${ordersDeliverymanUpdatedCount} Orders, ${requestDeliverUpdatedCount} RequestDelivers, and ${serviceRequestUpdatedCount} ServiceRequests for SERVICE Providers.`);
+    console.log(`Updated ${ordersDeliverymanUpdatedCount} Orders, ${requestServiceUpdatedCount} RequestServices, and ${serviceRequestUpdatedCount} ServiceRequests for SERVICE Providers.`);
 
     console.log('Migration complete successfully!');
     process.exit(0);

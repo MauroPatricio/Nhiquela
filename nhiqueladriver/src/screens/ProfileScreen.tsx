@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../styles/colors';
 import { useAuth } from '../context/AuthContext';
 import api, { API_BASE_URL } from '../api/apiConfig';
+import { getProviderSubcategories } from '../services/deliveryService';
 
 type Props = {
   navigation: any;
@@ -36,8 +37,9 @@ export default function ProfileScreen({ navigation }: Props) {
   const [driverStats, setDriverStats] = useState({ totalTrips: 0, rating: 4.8 });
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
 
-  // âœ… HELPER PARA IMAGENS
+  // ✅ HELPER PARA IMAGENS
   const getImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http') || path.startsWith('data:image')) return path;
@@ -46,17 +48,25 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const getMemberSince = () => {
-    // Tenta usar a data de aprovação, se não houver usa a criação
-    const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || user?.createdAt || user?.created_at || (user as any)?.date;
+    // Tenta usar a data de Aprovação, se Não houver usa a criação
+    const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || (user as any)?.createdAt || (user as any)?.created_at || (user as any)?.date;
     if (dateSource) {
       const date = new Date(dateSource);
       if (!isNaN(date.getTime())) {
-        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(
-          2,
-          '0',
-        )}/${date.getFullYear()}`;
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
       }
     }
+    
+    // Extrai a data de registro a partir do _id (ObjectId do MongoDB)
+    const userId = user?._id || (user as any)?.id;
+    if (userId && typeof userId === 'string' && userId.length === 24) {
+      const timestamp = parseInt(userId.substring(0, 8), 16) * 1000;
+      if (!isNaN(timestamp)) {
+        const date = new Date(timestamp);
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      }
+    }
+
     return '2024';
   };
 
@@ -70,12 +80,27 @@ export default function ProfileScreen({ navigation }: Props) {
     rating: '0.0',
     acceptanceRate: '0%',
     totalEarnings: '0 MT',
-    vehicle: user?.deliveryman?.transport_type || 'Veículo não registado',
+    vehicle: transportTypeName || user?.deliveryman?.transport_type || 'Veículo Não registado',
     licensePlate: user?.deliveryman?.transport_registration || 'Não definida',
     vehicleColor: user?.deliveryman?.transport_color || 'Não definida',
   };
 
   useEffect(() => {
+    const fetchTransportTypeName = async () => {
+      const typeId = user?.deliveryman?.transport_type;
+      if (!typeId) return;
+      try {
+        const subcategories = await getProviderSubcategories();
+        const found = subcategories.find((sub: any) => sub._id === typeId || sub.id === typeId);
+        if (found) {
+          setTransportTypeName(found.name);
+        }
+      } catch (err) {
+        // silently fallback
+      }
+    };
+    fetchTransportTypeName();
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 200, // Acelerado para remover sensação de carregamento lento
@@ -134,7 +159,7 @@ export default function ProfileScreen({ navigation }: Props) {
     });
   };
 
-  // âœ… FUNÃ‡ÃƒO PARA OBTER FOTO DO PERFIL
+  // ✅ FUNÇÃO PARA OBTER FOTO DO PERFIL
   const getProfileImageSource = (): { uri: string } => {
     const deliverymanPhoto = user?.deliveryman?.photo;
     const userPhoto = user?.photo;
@@ -145,7 +170,7 @@ export default function ProfileScreen({ navigation }: Props) {
       return { uri: 'https://via.placeholder.com/150/007bff/ffffff?text=DR' };
     }
 
-    // âœ… LIDAR COM BASE64 OU URL
+    // ✅ LIDAR COM BASE64 OU URL
     if (typeof imageUri === 'string' || imageUri instanceof String) {
       const uriStr = String(imageUri);
       if (uriStr.startsWith('data:image') || uriStr.startsWith('http')) {
@@ -157,7 +182,7 @@ export default function ProfileScreen({ navigation }: Props) {
       if (uriStr.length > 100 && !uriStr.startsWith('data:') && !uriStr.startsWith('http')) {
         return { uri: `data:image/jpeg;base64,${uriStr}` };
       }
-      // Se nÃ£o for nada do acima, assume-se que Ã© um caminho relativo
+      // Se não for nada do acima, assume-se que é um caminho relativo
       return { uri: getImageUrl(uriStr) };
     }
 
@@ -213,7 +238,7 @@ export default function ProfileScreen({ navigation }: Props) {
             <Image
               source={imageSource}
               style={styles.avatar}
-              onError={(error) => console.log('âŒ Erro ao carregar imagem:', error)}
+              onError={(error) => console.log('❌ Erro ao carregar imagem:', error)}
             />
             <View style={styles.premiumBadge}>
               <Ionicons
@@ -251,7 +276,7 @@ export default function ProfileScreen({ navigation }: Props) {
               </Text>
             </View>
 
-            {/* ðŸ”¥ MOSTRAR SALDO (CARTEIRA) NO TOPO COM DADOS GLOBAIS */}
+            {/* 🔥 MOSTRAR SALDO (CARTEIRA) NO TOPO COM DADOS GLOBAIS */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4, backgroundColor: 'rgba(39, 174, 96, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' }}>
               <Ionicons name="wallet" size={16} color={COLORS.success} style={{ marginRight: 6 }} />
               <Text style={{ color: COLORS.success, fontSize: 16, fontWeight: 'bold' }}>
@@ -273,9 +298,9 @@ export default function ProfileScreen({ navigation }: Props) {
 
 
 
-        {/* EstatÃ­sticas */}
+        {/* Estatísticas */}
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>EstatÃ­sticas</Text>
+          <Text style={styles.sectionTitle}>Estatísticas</Text>
           <View style={styles.statsGrid}>
             {user?.isDeliveryMan && (
               <View style={[styles.statCard, { backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
@@ -299,7 +324,7 @@ export default function ProfileScreen({ navigation }: Props) {
                     <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1E1E24' }}>
                       {userData.acceptanceRate || '0%'}
                     </Text>
-                    <Text style={{ fontSize: 10, color: '#666' }}>AceitaÃ§Ã£o</Text>
+                    <Text style={{ fontSize: 10, color: '#666' }}>Aceitação</Text>
                   </View>
                 </View>
               </View>
@@ -311,7 +336,7 @@ export default function ProfileScreen({ navigation }: Props) {
               color={COLORS.primary}
             />
             <StatCard
-              title="AvaliaÃ§Ã£o"
+              title="Avaliação"
               value={userData.rating}
               icon="star-outline"
               color="#FFB800"
@@ -326,7 +351,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
             {!user?.isDeliveryMan && (
               <StatCard
-                title="NÃ­vel"
+                title="Nível"
                 value={userData.level}
                 icon="trophy-outline"
                 color="#27AE60"
@@ -341,10 +366,10 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* âœ… INFORMACOES DO VEÃCULO - APENAS PARA MOTORISTAS */}
+        {/* ✅ INFORMAÇÕES DO VEÍCULO - APENAS PARA MOTORISTAS */}
         {user?.isDeliveryMan && (
           <View style={styles.vehicleSection}>
-            <Text style={styles.sectionTitle}>O Seu VeÃ­culo</Text>
+            <Text style={styles.sectionTitle}>O Seu Veículo</Text>
             
             <View style={styles.modernVehicleCard}>
               <View style={styles.vehicleImagePlaceholder}>
@@ -361,7 +386,7 @@ export default function ProfileScreen({ navigation }: Props) {
                   <Text style={styles.licensePlateText}>{userData.licensePlate}</Text>
                 </View>
 
-                {userData.vehicleColor !== 'NÃ£o definida' && (
+                {userData.vehicleColor !== 'Não definida' && (
                   <View style={styles.colorBadge}>
                     <Ionicons name="color-palette" size={14} color="#666" style={{ marginRight: 4 }} />
                     <Text style={styles.colorText}>{userData.vehicleColor}</Text>
@@ -371,23 +396,25 @@ export default function ProfileScreen({ navigation }: Props) {
                 <View style={[styles.colorBadge, { backgroundColor: '#E0F2FE', marginTop: 6 }]}>
                   <Ionicons name="cash-outline" size={14} color="#0284C7" style={{ marginRight: 4 }} />
                   <Text style={[styles.colorText, { color: '#0284C7', fontWeight: 'bold' }]}>
-                    PreÃ§o cobrado: {user?.deliveryman?.allowCustomPrice && user?.deliveryman?.customPrice 
-                      ? `${user.deliveryman.customPrice} MT / km` 
-                      : 'PreÃ§o PadrÃ£o do Sistema'}
+                    Preço cobrado: {user?.deliveryman?.assigned_base_fee
+                      ? `${user.deliveryman.assigned_base_fee} MT (Taxa Base)`
+                      : (user?.deliveryman?.allowCustomPrice && user?.deliveryman?.customPrice)
+                        ? `${user.deliveryman.customPrice} MT / km` 
+                        : 'Calculado Automaticamente'}
                   </Text>
                 </View>
               </View>
 
-              {/* âœ… BOTÃƒO VER DOCUMENTOS */}
+              {/* ✅ BOTÃO VER DOCUMENTOS */}
               <TouchableOpacity
                 style={[styles.modernDocsButton, { width: '100%', marginBottom: 16 }]}
                 onPress={() => setShowDocsModal(true)}
               >
                 <Ionicons name="document-text-outline" size={20} color="#FFF" />
-                <Text style={styles.modernDocsText}>Ver Documentos do VeÃ­culo</Text>
+                <Text style={styles.modernDocsText}>Ver Documentos do Veículo</Text>
               </TouchableOpacity>
 
-              {/* âœ… STATUS DO REGISTO DO MOTORISTA */}
+              {/* ✅ STATUS DO REGISTO DO MOTORISTA */}
               {user?.deliveryman?.register_conformance && (
                 <View style={styles.modernRegistrationStatus}>
                   <Ionicons
@@ -424,7 +451,7 @@ export default function ProfileScreen({ navigation }: Props) {
                       ? 'Disponível'
                       : user.deliveryman.register_conformance === 'INCONFORMANCE'
                       ? 'Rejeitado'
-                      : 'Em AnÃ¡lise'}
+                      : 'Em Análise'}
                   </Text>
                 </View>
               )}
@@ -437,22 +464,22 @@ export default function ProfileScreen({ navigation }: Props) {
             <MenuItem
               icon="person-outline"
               title="Editar Perfil"
-              subtitle="Alterar informaÃ§Ãµes pessoais"
+              subtitle="Alterar informações pessoais"
               onPress={() => navigation.navigate('EditProfile', { user })}
             />
             <MenuItem
               icon="wallet-outline"
               title="Carteira & Ganhos"
-              subtitle="Ver histÃ³rico e saldo"
+              subtitle="Ver histórico e saldo"
               onPress={() => navigation.navigate('Wallet')}
             />
             <MenuItem
               icon="shield-checkmark-outline"
-              title="Privacidade e SeguranÃ§a"
+              title="Privacidade e Segurança"
               onPress={() =>
                 showMessage({
                   message: 'Em Breve',
-                  description: 'Funcionalidade disponÃ­vel na prÃ³xima atualizaÃ§Ã£o.',
+                  description: 'Funcionalidade disponível na próxima atualização.',
                   type: 'info',
                   icon: 'auto',
                 })
@@ -464,7 +491,7 @@ export default function ProfileScreen({ navigation }: Props) {
               onPress={() =>
                 showMessage({
                   message: 'Em Breve',
-                  description: 'Funcionalidade disponÃ­vel na prÃ³xima atualizaÃ§Ã£o.',
+                  description: 'Funcionalidade disponível na próxima atualização.',
                   type: 'info',
                   icon: 'auto',
                 })
@@ -473,22 +500,22 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.menuGroup}>
-            <MenuItem icon="save-outline" title="Salvar PreferÃªncias" onPress={savePreferences} />
+            <MenuItem icon="save-outline" title="Salvar Preferências" onPress={savePreferences} />
           </View>
         </View>
 
-        {/* BotÃ£o de Logout */}
+        {/* Botão de Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
           <Text style={styles.logoutText}>Sair da Conta</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>VersÃ£o 1.0.0</Text>
+          <Text style={styles.versionText}>Versão 1.0.0</Text>
         </View>
       </ScrollView>
 
-      {/* âœ… MODAL DE DOCUMENTOS */}
+      {/* ✅ MODAL DE DOCUMENTOS */}
       <Modal
         visible={showDocsModal}
         animationType="slide"
@@ -506,41 +533,41 @@ export default function ProfileScreen({ navigation }: Props) {
           <ScrollView contentContainerStyle={styles.modalContent}>
             {user?.deliveryman?.license_front && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Carta de ConduÃ§Ã£o (Frente)</Text>
+                <Text style={styles.docTitle}>Carta de Condução (Frente)</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.license_front) }}
                   style={styles.docImage}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               </View>
             )}
             {user?.deliveryman?.license_back && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Carta de ConduÃ§Ã£o (Verso)</Text>
+                <Text style={styles.docTitle}>Carta de Condução (Verso)</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.license_back) }}
                   style={styles.docImage}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               </View>
             )}
             {user?.deliveryman?.vihicle_logbook && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Livrete do VeÃ­culo</Text>
+                <Text style={styles.docTitle}>Livrete do Veículo</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_logbook) }}
                   style={styles.docImage}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               </View>
             )}
             {user?.deliveryman?.vihicle_inspection && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>InspeÃ§Ã£o</Text>
+                <Text style={styles.docTitle}>Inspeção</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_inspection) }}
                   style={styles.docImage}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               </View>
             )}
@@ -550,7 +577,37 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_Insurance) }}
                   style={styles.docImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.document_front && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Documento de Identificação (Frente)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.document_front) }}
+                  style={styles.docImage}
+                  contentFit="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.document_back && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Documento de Identificação (Verso)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.document_back) }}
+                  style={styles.docImage}
+                  contentFit="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.Proof_of_Address && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Comprovativo de Morada</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.Proof_of_Address) }}
+                  style={styles.docImage}
+                  contentFit="contain"
                 />
               </View>
             )}
@@ -560,7 +617,27 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_picture) }}
                   style={styles.docImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.vihicle_picture_front && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Foto da Viatura (Frente C/ Matrícula)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.vihicle_picture_front) }}
+                  style={styles.docImage}
+                  contentFit="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.vihicle_picture_back && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Foto da Viatura (Trás C/ Matrícula)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.vihicle_picture_back) }}
+                  style={styles.docImage}
+                  contentFit="contain"
                 />
               </View>
             )}
@@ -575,7 +652,7 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      {/* ðŸ”¥ MODAL DE LOGOUT PREMIUM */}
+      {/* 🔥 MODAL DE LOGOUT PREMIUM */}
       <Modal visible={showLogoutModal} transparent animationType="fade">
         <View style={styles.logoutModalOverlay}>
           <View style={styles.logoutModalContainer}>
@@ -584,7 +661,7 @@ export default function ProfileScreen({ navigation }: Props) {
             </View>
             <Text style={styles.logoutModalTitle}>Sair da Conta</Text>
             <Text style={styles.logoutModalText}>
-              Tem certeza que deseja terminar a sessÃ£o atual? DeixarÃ¡ de receber pedidos de viagem atÃ© voltar a entrar.
+              Tem certeza que deseja terminar a sessão atual? Deixará de receber pedidos de viagem até voltar a entrar.
             </Text>
             
             <View style={styles.logoutModalButtons}>
@@ -773,7 +850,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  // ðŸ”¥ ESTILOS PARA O MODAL DE LOGOUT PREMIUM
+  // 🔥 ESTILOS PARA O MODAL DE LOGOUT PREMIUM
   logoutModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -1027,22 +1104,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 16,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    backgroundColor: '#FFF0F0',
+    marginHorizontal: 24,
+    marginVertical: 16,
+    padding: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FFE0E0',
+    shadowColor: '#FF4757',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 2,
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FF6B6B',
-    marginLeft: 8,
+    fontWeight: '700',
+    color: '#E63946',
+    marginLeft: 10,
+    letterSpacing: 0.5,
   },
   footer: {
     alignItems: 'center',
@@ -1183,5 +1263,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+
 
 

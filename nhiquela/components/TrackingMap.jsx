@@ -3,16 +3,56 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import io from 'socket.io-client';
+import api from '../hooks/createConnectionApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 /**
  * TrackingMap – displays the driver location in real time for a given order.
  * Now uses react-native-maps and OSRM routing.
  */
-export default function TrackingMap({ orderId, destination, darkMode = false }) {
+export default function TrackingMap({ orderId, destination, vehicleType, vehicleColor, onUpdateTracking, darkMode = false }) {
   const [driverLocation, setDriverLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [connected, setConnected] = useState(false);
+  const [activeVehicleType, setActiveVehicleType] = useState(vehicleType || '');
+  const [activeVehicleColor, setActiveVehicleColor] = useState(vehicleColor || '');
   const mapRef = useRef(null);
+
+  // Fetch initial location of the driver on mount
+  useEffect(() => {
+    if (!orderId) return;
+
+    const fetchInitialLocation = async () => {
+      try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        if (!token) return;
+
+        const { data } = await api.get(`/tracking/${orderId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (data && data.latitude && data.longitude) {
+          setDriverLocation({ latitude: data.latitude, longitude: data.longitude });
+          if (data.vehicleType) setActiveVehicleType(data.vehicleType);
+          if (data.vehicleColor) setActiveVehicleColor(data.vehicleColor);
+          
+          if (onUpdateTracking) {
+            onUpdateTracking({
+              speed: data.speed || 0,
+              latitude: data.latitude,
+              longitude: data.longitude
+            });
+          }
+        }
+      } catch (error) {
+        console.log("Erro ao buscar localização inicial do motorista:", error.message);
+      }
+    };
+
+    fetchInitialLocation();
+  }, [orderId, onUpdateTracking]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -30,13 +70,21 @@ export default function TrackingMap({ orderId, destination, darkMode = false }) 
 
     socket.on('driverLocation', (data) => {
       setDriverLocation({ latitude: data.lat, longitude: data.lng });
+      if (onUpdateTracking) {
+        const speedKmH = data.speed ? data.speed * 3.6 : 0;
+        onUpdateTracking({
+          speed: speedKmH,
+          latitude: data.lat,
+          longitude: data.lng
+        });
+      }
     });
 
     return () => {
       socket.emit('leaveRoom', { orderId });
       socket.disconnect();
     };
-  }, [orderId]);
+  }, [orderId, onUpdateTracking]);
 
   // Fetch OSRM route when driver location and destination are available
   useEffect(() => {
@@ -55,6 +103,13 @@ export default function TrackingMap({ orderId, destination, darkMode = false }) 
           }));
           setRouteCoordinates(route);
 
+          if (onUpdateTracking) {
+            onUpdateTracking({
+              distance: json.routes[0].distance,
+              duration: json.routes[0].duration,
+            });
+          }
+
           // Fit map to show both driver and destination
           if (mapRef.current) {
             mapRef.current.fitToCoordinates(
@@ -71,13 +126,51 @@ export default function TrackingMap({ orderId, destination, darkMode = false }) 
       }
     };
 
-    // debounce um pouco para nao chatear a api do OSRM se o condutor se mover mt rapido
+    // debounce um pouco para não chatear a api do OSRM se o condutor se mover mt rapido
     const timeoutId = setTimeout(() => {
       fetchRoute();
     }, 2000);
 
     return () => clearTimeout(timeoutId);
-  }, [driverLocation, destination]);
+  }, [driverLocation, destination, onUpdateTracking]);
+
+  const getVehicleIcon = (type) => {
+    const t = (type || '').toLowerCase();
+    if (t.includes('moto') || t.includes('motocicleta') || t.includes('motorcycle') || t.includes('motorbike')) {
+      return 'motorbike';
+    }
+    if (t.includes('reboque') || t.includes('tow')) {
+      return 'tow-truck';
+    }
+    if (t.includes('camia') || t.includes('camião') || t.includes('truck') || t.includes('muda')) {
+      return 'truck';
+    }
+    if (t.includes('bicicleta') || t.includes('bicycle') || t.includes('bike')) {
+      return 'bicycle';
+    }
+    return 'car';
+  };
+
+  const getVehicleColor = (color) => {
+    const c = (color || '').toLowerCase();
+    const map = {
+      'vermelho': '#EF4444',
+      'azul': '#3B82F6',
+      'verde': '#10B981',
+      'preto': '#1E293B',
+      'branco': '#94A3B8',
+      'cinzento': '#64748B',
+      'cinza': '#64748B',
+      'amarelo': '#EAB308',
+      'laranja': '#F97316',
+      'castanho': '#78350F',
+      'prata': '#94A3B8',
+      'roxo': '#8B5CF6',
+      'rosa': '#EC4899',
+      'ouro': '#D97706',
+    };
+    return map[c] || '#9333EA';
+  };
 
   // Fallback initial region to Maputo or destination
   const initialRegion = {
@@ -86,6 +179,9 @@ export default function TrackingMap({ orderId, destination, darkMode = false }) 
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   };
+
+  const activeColor = getVehicleColor(vehicleColor || activeVehicleColor);
+  const activeIcon = getVehicleIcon(vehicleType || activeVehicleType);
 
   return (
     <View style={styles.container}>
@@ -112,9 +208,12 @@ export default function TrackingMap({ orderId, destination, darkMode = false }) 
             coordinate={driverLocation}
             anchor={{ x: 0.5, y: 0.5 }}
           >
-            <View style={styles.carMarker}>
-               {/* Simples representacao de carro se nao houver imagem, ou podemos por icon */}
-               <View style={styles.carInner} />
+            <View style={[styles.vehicleMarkerContainer, { borderColor: activeColor }]}>
+               <MaterialCommunityIcons 
+                 name={activeIcon} 
+                 size={22} 
+                 color={activeColor} 
+               />
             </View>
           </Marker>
         )}
@@ -186,20 +285,18 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#10B981',
   },
-  carMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(147, 51, 234, 0.2)',
+  vehicleMarkerContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#9333EA',
-  },
-  carInner: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#9333EA',
+    borderWidth: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 6,
   }
 });

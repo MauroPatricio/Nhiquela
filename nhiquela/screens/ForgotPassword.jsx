@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -103,14 +104,35 @@ const ForgotPassword = () => {
               </TouchableOpacity>
             </>
           ) : (
-            <View style={styles.successBox}>
-              <Ionicons name="checkmark-circle" size={48} color="#2ECC71" />
-              <Text style={styles.successText}>Email enviado com sucesso!</Text>
-              <Text style={styles.successSub}>
-                Verifique a sua caixa de email e siga as instruções para redefinir a sua senha.
-              </Text>
+            <View style={{ alignItems: 'center', marginTop: 20 }}>
+              <ActivityIndicator color="#9333EA" size="large" />
+              <Text style={{ marginTop: 10, color: '#6B7280' }}>A carregar instruções...</Text>
             </View>
           )}
+
+          <Modal visible={sent} transparent animationType="slide">
+            <View style={styles.premiumModalOverlay}>
+              <View style={styles.premiumModalContainer}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="mail-unread-outline" size={50} color="#9333EA" />
+                </View>
+                <Text style={styles.premiumModalTitle}>Email Enviado!</Text>
+                <Text style={styles.premiumModalText}>
+                  Um email com as instruções de recuperação foi enviado para <Text style={{fontWeight: 'bold'}}>{maskedEmail}</Text>. Verifique a sua caixa de entrada e siga os passos.
+                </Text>
+
+                <TouchableOpacity 
+                  style={styles.premiumModalBtn}
+                  onPress={() => {
+                    setSent(false);
+                    navigation.navigate('Login');
+                  }}
+                >
+                  <Text style={styles.premiumModalCloseBtnText}>Voltar ao Login</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
             <Text style={styles.loginLinkText}>
@@ -207,37 +229,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  successBox: {
-    alignItems: 'center',
-    backgroundColor: '#F0FFF4',
-    borderRadius: 16,
-    padding: 28,
-    borderWidth: 1,
-    borderColor: '#B2F5D3',
-  },
-  successText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2ECC71',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  successSub: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
   loginLink: {
     marginTop: 32,
     alignItems: 'center',
   },
   loginLinkText: {
-    fontSize: 14,
     color: '#666',
+    fontSize: 15,
   },
   loginLinkBold: {
     color: '#7F00FF',
     fontWeight: '700',
+  },
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFF',
+    width: '85%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(147, 51, 234, 0.15)',
+  },
+  iconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  premiumModalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumModalText: {
+    fontSize: 15,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  premiumModalBtn: {
+    backgroundColor: '#9333EA',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  premiumModalCloseBtnText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

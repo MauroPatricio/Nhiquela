@@ -15,27 +15,27 @@ import {
 
 const AVAILABLE_ICONS = [
   { id: 'store', component: FaStore, label: 'Loja' },
-  { id: 'wrench', component: FaWrench, label: 'Mec‚nica' },
+  { id: 'wrench', component: FaWrench, label: 'Mec√¢nica' },
   { id: 'broom', component: FaBroom, label: 'Limpeza' },
   { id: 'car', component: FaCar, label: 'Carro' },
   { id: 'truck', component: FaTruck, label: 'Transporte' },
   { id: 'paint-roller', component: FaPaintRoller, label: 'Pintura' },
-  { id: 'hammer', component: FaHammer, label: 'ConstruÁ„o' },
+  { id: 'hammer', component: FaHammer, label: 'Constru√ß√£o' },
   { id: 'plug', component: FaPlug, label: 'Eletricidade' },
-  { id: 'water', component: FaWater, label: 'CanalizaÁ„o' },
+  { id: 'water', component: FaWater, label: 'Canaliza√ß√£o' },
   { id: 'tree', component: FaTree, label: 'Jardinagem' },
   { id: 'cut', component: FaCut, label: 'Beleza' },
   { id: 'utensils', component: FaUtensils, label: 'Comida' },
   { id: 'tshirt', component: FaTshirt, label: 'Roupa' },
-  { id: 'laptop', component: FaLaptop, label: 'EletrÛnica' },
+  { id: 'laptop', component: FaLaptop, label: 'Eletr√≥nica' },
   { id: 'motorcycle', component: FaMotorcycle, label: 'Mota' },
   { id: 'shopping-cart', component: FaShoppingCart, label: 'Compras' },
   { id: 'box', component: FaBox, label: 'Encomenda' },
-  { id: 'truck-moving', component: FaTruckMoving, label: 'MudanÁa' },
+  { id: 'truck-moving', component: FaTruckMoving, label: 'Mudan√ßa' },
   { id: 'truck-pickup', component: FaTruckPickup, label: 'Reboque' },
   { id: 'ellipsis-h', component: FaEllipsisH, label: 'Outros' },
-  { id: 'pills', component: FaPills, label: 'Farm·cia' },
-  { id: 'clinic', component: FaClinicMedical, label: 'ClÌnica' },
+  { id: 'pills', component: FaPills, label: 'Farm√°cia' },
+  { id: 'clinic', component: FaClinicMedical, label: 'Cl√≠nica' },
 ];
 
 /**
@@ -65,6 +65,7 @@ export default function ProviderSubcategoriesScreen() {
     loadingHelpOptions: [],
     requiresPhotos: false,
     vehicleTypes: [],
+    pricingMode: 'AUTO',
   });
   const [iconFile, setIconFile] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
@@ -139,6 +140,7 @@ export default function ProviderSubcategoriesScreen() {
         loadingHelpOptions: item.loadingHelpOptions || [],
         requiresPhotos: item.requiresPhotos || false,
         vehicleTypes: item.vehicleTypes?.map(v => v._id || v) || [],
+        pricingMode: item.pricingMode || 'AUTO',
       });
       setIconFile(null);
       setIconPreview(null);
@@ -156,6 +158,7 @@ export default function ProviderSubcategoriesScreen() {
         loadingHelpOptions: [],
         requiresPhotos: false,
         vehicleTypes: [],
+        pricingMode: 'AUTO',
       });
       setIconFile(null);
       setIconPreview(null);
@@ -174,7 +177,7 @@ export default function ProviderSubcategoriesScreen() {
   // -------------------------------------------------
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('O nome È obrigatÛrio');
+    if (!formData.name) return toast.error('O nome √© obrigat√≥rio');
     if (!formData.providerTypeId) return toast.error('Selecione um tipo de prestador');
     try {
       if (isEditing) {
@@ -211,7 +214,7 @@ export default function ProviderSubcategoriesScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Subcategorias de Tipos de Prestador</h2>
-          <span className="text-muted small">Gest„o das subcategorias vinculadas a cada tipo de prestador</span>
+          <span className="text-muted small">Gest√£o das subcategorias vinculadas a cada tipo de prestador</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -244,10 +247,10 @@ export default function ProviderSubcategoriesScreen() {
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome</th>
                   <th className="border-0 text-muted py-3">Tipo de Prestador</th>
-                  <th className="border-0 text-muted py-3">ClassificaÁ„o Base</th>
+                  <th className="border-0 text-muted py-3">Classifica√ß√£o Base</th>
                   <th className="border-0 text-muted py-3">Tipos de Viatura</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
                 </tr>
               </thead>
               <tbody>
@@ -352,7 +355,7 @@ export default function ProviderSubcategoriesScreen() {
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-2">Õcone</label>
+                  <label className="form-label fw-bold small text-muted mb-2">√çcone</label>
                   <div className="d-flex flex-wrap gap-2">
                     {AVAILABLE_ICONS.map(iconObj => {
                       const IconComp = iconObj.component;
@@ -412,13 +415,13 @@ export default function ProviderSubcategoriesScreen() {
                   <small className="text-muted" style={{ fontSize: '0.75rem' }}>Selecione os tipos de viatura (ex: Ligeiro, Motocicleta) que pertencem a esta subcategoria.</small>
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
                   <textarea
                     className="form-control bg-light border-0 py-3 rounded-3"
                     rows="2"
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="DescriÁ„o da subcategoria"
+                    placeholder="Descri√ß√£o da subcategoria"
                   />
                 </div>
                 <div className="mb-3">
@@ -458,7 +461,7 @@ export default function ProviderSubcategoriesScreen() {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-2">Pisos de Origem (Ex: p/ MudanÁas)</label>
+                  <label className="form-label fw-bold small text-muted mb-2">Pisos de Origem (Ex: p/ Mudan√ßas)</label>
                   {formData.originFloors.map((floor, index) => (
                     <div key={index} className="d-flex align-items-center mb-2">
                       <input
@@ -470,7 +473,7 @@ export default function ProviderSubcategoriesScreen() {
                           newFloors[index] = e.target.value;
                           setFormData({ ...formData, originFloors: newFloors });
                         }}
-                        placeholder="Ex: RÈs-do-ch„o, 1.∫, etc."
+                        placeholder="Ex: R√©s-do-ch√£o, 1.¬∫, etc."
                       />
                       <button
                         type="button"
@@ -494,7 +497,7 @@ export default function ProviderSubcategoriesScreen() {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-2">OpÁıes de Ajuda (Ex: Transporte + Carregamento)</label>
+                  <label className="form-label fw-bold small text-muted mb-2">Op√ß√µes de Ajuda (Ex: Transporte + Carregamento)</label>
                   {formData.loadingHelpOptions.map((opt, index) => (
                     <div key={index} className="d-flex align-items-center mb-2">
                       <input
@@ -506,7 +509,7 @@ export default function ProviderSubcategoriesScreen() {
                           newOpts[index] = e.target.value;
                           setFormData({ ...formData, loadingHelpOptions: newOpts });
                         }}
-                        placeholder="Descreva a opÁ„o"
+                        placeholder="Descreva a op√ß√£o"
                       />
                       <button
                         type="button"
@@ -525,11 +528,45 @@ export default function ProviderSubcategoriesScreen() {
                     className="btn btn-sm btn-outline-primary rounded-pill fw-bold mt-1"
                     onClick={() => setFormData({ ...formData, loadingHelpOptions: [...formData.loadingHelpOptions, ''] })}
                   >
-                    <FontAwesomeIcon icon={faPlus} className="me-1" /> Adicionar OpÁ„o
+                    <FontAwesomeIcon icon={faPlus} className="me-1" /> Adicionar Op√ß√£o
                   </button>
                 </div>
 
-                <div className="form-check mb-2">
+                  <div className="mb-4">
+                    <label className="form-label fw-bold small text-muted mb-2">Modo de Pre√ßo</label>
+                    <div className="d-flex gap-3">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="pricingMode"
+                          id="pricingModeAuto"
+                          value="AUTO"
+                          checked={formData.pricingMode === 'AUTO'}
+                          onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
+                        />
+                        <label className="form-check-label" htmlFor="pricingModeAuto">
+                          Calculado pela Plataforma
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="pricingMode"
+                          id="pricingModeProvider"
+                          value="PROVIDER_DEFINED"
+                          checked={formData.pricingMode === 'PROVIDER_DEFINED'}
+                          onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
+                        />
+                        <label className="form-check-label" htmlFor="pricingModeProvider">
+                          Definido pelo Prestador
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-check mb-2">
                   <input
                     className="form-check-input"
                     type="checkbox"
@@ -556,7 +593,7 @@ export default function ProviderSubcategoriesScreen() {
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar AlteraÁıes' : 'Criar Subcategoria'}
+                  {isEditing ? 'Guardar Altera√ß√µes' : 'Criar Subcategoria'}
                 </button>
               </form>
             </div>

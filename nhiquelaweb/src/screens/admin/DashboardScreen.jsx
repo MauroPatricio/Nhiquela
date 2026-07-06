@@ -44,7 +44,7 @@ export default function DashboardScreen() {
   
   const totalRevenue = stats.orders.reduce((sum, order) => sum + Number(order.totalPrice || order.itemsPrice || 0), 0);
 
-  const completedTripsCount = stats.orders.filter(o => o.status === 'Entregue' || o.status === 'Concluido').length;
+  const completedTripsCount = stats.orders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').length;
   const inTransitDriversCount = stats.drivers.filter(d => d.status === 'Em Entrega').length;
   const cancelledTripsCount = stats.orders.filter(o => o.status === 'Cancelado').length;
   
@@ -233,7 +233,7 @@ export default function DashboardScreen() {
 
       {/* KPI Row 2 - Novas Metricas Cruciais */}
       <div className="row g-4 mb-4">
-        {/* KPI 5: Viagens Concluidas */}
+        {/* KPI 5: Viagens Concluídas */}
         <div className="col-md-6 col-xl-3">
           <div className="card shadow-sm-custom border-0 rounded-4 h-100 hover-lift">
             <div className="card-body p-4 d-flex flex-column justify-content-between">

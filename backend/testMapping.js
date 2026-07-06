@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import Order from './models/OrderModel.js';
-import RequestDeliver from './models/RequestDeliverModel.js';
+import RequestService from './models/RequestServiceModel.js';
 
 async function testDatabase() {
   try {
@@ -11,23 +11,23 @@ async function testDatabase() {
     console.log('Connected to DB');
 
     const orders = await Order.find().sort({ createdAt: -1 }).limit(1).lean();
-    const requests = await RequestDeliver.find().sort({ createdAt: -1 }).limit(1).lean();
+    const requests = await RequestService.find().sort({ createdAt: -1 }).limit(1).lean();
 
     console.log('Latest Order:', orders.length ? orders[0]._id : 'None');
-    console.log('Latest RequestDeliver:', requests.length ? requests[0]._id : 'None');
+    console.log('Latest RequestService:', requests.length ? requests[0]._id : 'None');
 
     // Simulate what /deliveryman/all does
     console.log('Testing unified mapping logic...');
     
     const normalizeOrder = (o) => ({
       ...o,
-      isRequestDeliver: false,
+      isRequestService: false,
     });
 
     const normalizeRequest = (r) => ({
       ...r,
       _id: r._id,
-      isRequestDeliver: true,
+      isRequestService: true,
       orderItems: r.deliveryItems,
       shippingAddress: {
         address: r.pickupAddress.address,
@@ -56,7 +56,7 @@ async function testDatabase() {
     if (unified.length > 0) {
       console.log('First item fields:', Object.keys(unified[0]).join(', '));
       console.log('Deliveryman field:', unified[0].deliveryman ? 'Exists' : 'Null');
-      console.log('isRequestDeliver:', unified[0].isRequestDeliver);
+      console.log('isRequestService:', unified[0].isRequestService);
     }
     
     mongoose.disconnect();

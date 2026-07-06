@@ -1,14 +1,7 @@
+import { Image } from 'expo-image';
 // components/ProductHomeView.js (atualizado)
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Image, 
-  FlatList, 
-  StyleSheet, 
-  ActivityIndicator 
-} from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getDistance } from 'geolib';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,7 +39,7 @@ const renderProductItem = ({ item }) => {
       <Image 
         source={{ uri: item.image }} 
         style={styles.productImage}
-        resizeMode="cover"
+        contentFit="cover"
       />
 
       {/* Badge de promoção */}
@@ -199,7 +192,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: 130,
-    resizeMode: 'cover',
+    contentFit: 'cover',
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
@@ -324,3 +317,4 @@ badgeTextQ: {
 
 
 export default ProductHomeView;
+

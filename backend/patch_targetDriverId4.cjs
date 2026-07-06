@@ -1,5 +1,5 @@
 const fs = require('fs');
-let c = fs.readFileSync('routes/requestDeliverRoutes.js', 'utf8');
+let c = fs.readFileSync('routes/requestServiceRoutes.js', 'utf8');
 
 c = c.replace(
   /stepStatus:\s*req\.body\.stepStatus/,
@@ -10,27 +10,27 @@ const emitCode = `
     const io = req.app.get('io');
     if (io) {
       if (newOrder.targetDriverId) {
-        io.to(\`driver_\${newOrder.targetDriverId}\`).emit('new_order', requestDeliv);
+        io.to(\`driver_\${newOrder.targetDriverId}\`).emit('new_order', requestService);
       } else {
-        io.emit('new_order', requestDeliv);
+        io.emit('new_order', requestService);
       }
     }
 `;
 
 if (!c.includes("io.to(`driver_")) {
   c = c.replace(
-    /const requestDeliv = await newOrder\.save\(\);/,
-    `const requestDeliv = await newOrder.save();\n${emitCode}`
+    /const requestService = await newOrder\.save\(\);/,
+    `const requestService = await newOrder.save();\n${emitCode}`
   );
 }
 
 const rejectRoute = `
 // O motorista rejeita ou ocorre timeout
-requestDeliver.put(
+requestService.put(
   '/:id/reject',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const order = await RequestDeliv.findById(req.params.id);
+    const order = await RequestService.findById(req.params.id);
     if (order) {
       order.status = 'Cancelado';
       order.targetDriverId = null;
@@ -50,8 +50,8 @@ requestDeliver.put(
 `;
 
 if (!c.includes('/:id/reject')) {
-  c = c.replace('export default requestDeliver;', rejectRoute + '\nexport default requestDeliver;');
+  c = c.replace('export default requestService;', rejectRoute + '\nexport default requestService;');
 }
 
-fs.writeFileSync('routes/requestDeliverRoutes.js', c);
+fs.writeFileSync('routes/requestServiceRoutes.js', c);
 console.log('Fixed properly using Regex!');

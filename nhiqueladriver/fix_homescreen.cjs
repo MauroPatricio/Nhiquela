@@ -5,7 +5,7 @@ const badPatch = '                  <TouchableOpacity \\n' +
 '                     style={{ flex: 1, backgroundColor: \\'#7F00FF\\', paddingVertical: 15, borderRadius: 12, alignItems: \\'center\\', marginLeft: 10 }}\\n' +
 '                     onPress={() => {\\n' +
 '                         stopRingtone();\\n' +
-'                         acceptTrip(incomingOrder.id, incomingOrder.isRequestDeliver);\\n' +
+'                         acceptTrip(incomingOrder.id, incomingOrder.isRequestService);\\n' +
 '                     }}\\n' +
 '                  >      <Ionicons name="car-outline" size={64} color={COLORS.gray} />';
 
@@ -14,7 +14,7 @@ content = content.replace(badPatch, '                <Ionicons name="car-outline
 // Now fix acceptOrder correctly
 content = content.replace(
   'acceptOrder(incomingOrder);',
-  'acceptTrip(incomingOrder.id, incomingOrder.isRequestDeliver);'
+  'acceptTrip(incomingOrder.id, incomingOrder.isRequestService);'
 );
 
 // Now fix api.defaults.baseURL

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -33,13 +33,14 @@ import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../hooks/createConnectionApi';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { EXPO_GOOGLE_MAPS_APIKEY } from '@env';
-
-export default function RequestDelivSimple() {
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import io from 'socket.io-client';
+export default function RequestServiceSimple() {
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -63,6 +64,8 @@ export default function RequestDelivSimple() {
   const [showBusyModal, setShowBusyModal] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState({ visible: false, message: '' });
   const [duration, setDuration] = useState(null);
+  const [activeTripData, setActiveTripData] = useState(null);
+  const [currentRequestServiceId, setCurrentRequestServiceId] = useState(null);
   const pulseAnim = React.useRef(new Animated.Value(0)).current;
   const originRef = React.useRef(null);
   const mapRef = React.useRef(null);
@@ -201,6 +204,36 @@ export default function RequestDelivSimple() {
       console.log('Error getting location: ', e);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkAuthAndActiveTrip = async () => {
+        try {
+          const storedUserData = await AsyncStorage.getItem('userData');
+          if (!storedUserData) return;
+
+          const parsed = JSON.parse(storedUserData);
+          if (!parsed.token) return;
+
+          const { data } = await api.get('/request-service/active', {
+            headers: { authorization: `Bearer ${parsed.token}` }
+          });
+
+          if (data) {
+            setActiveTripData(data);
+          }
+        } catch (error) {
+          // If 404, it means no active trip, which is fine
+        }
+      };
+
+      checkAuthAndActiveTrip();
+    }, [])
+  );
+
+  useEffect(() => {
+    handleGetCurrentLocation();
+  }, []);
 
   /* ---------------- PLACES AUTOCOMPLETE ---------------- */
   const fetchSuggestions = async (text, type) => {
@@ -349,13 +382,16 @@ export default function RequestDelivSimple() {
     // Chamar API para procurar motoristas
     const searchDrivers = async () => {
       try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
         const response = await api.get('/drivers/available', {
           params: {
             lat: originCoord?.lat,
             lng: originCoord?.lng,
             radius,
             serviceId: service?._id,
-          }
+          },
+          headers: { authorization: `Bearer ${token}` }
         });
         const drivers = response.data?.drivers || response.data || [];
         if (drivers.length > 0) {
@@ -395,7 +431,6 @@ export default function RequestDelivSimple() {
       setSelectedDriverForRequest(driver);
       setWaitingForDriver(true);
       
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const storedUserData = await AsyncStorage.getItem('userData');
       let token = '';
       let phoneNumber = '';
@@ -420,10 +455,21 @@ export default function RequestDelivSimple() {
         deliverCity: originText || 'N/A',
         origin: originText,
         destination: destText,
+        originDetails: {
+          address: originText,
+          lat: originCoord.lat,
+          lng: originCoord.lng
+        },
+        destinationDetails: {
+          address: destText,
+          lat: destCoord.lat,
+          lng: destCoord.lng
+        },
         paymentOption: 'Dinheiro',
         description: reason,
         paymentMethod: 'Dinheiro',
-        deliveryPrice: finalPrice,
+        deliveryPrice: finalPrice,  // Backend irá substituir pelo valor calculado server-side
+        serviceId: service._id,     // Obrigatório para o motor de preços recalcular server-side
         isPaid: false,
         stepStatus: 3,
         latitude: originCoord.lat,
@@ -431,46 +477,113 @@ export default function RequestDelivSimple() {
         targetDriverId: driver._id
       };
 
-      await api.post('/request-deliver', payload, {
+      const response = await api.post('/request-service', payload, {
         headers: { authorization: `Bearer ${token}` }
       });
+
+      if (response.data && response.data.requestService) {
+        setCurrentRequestServiceId(response.data.requestService._id);
+      }
       
       // We don't navigate yet, we wait for driver to accept/reject via socket
       // A proper implementation would listen to a socket event here for 'order_updated'
       
     } catch (postError) {
       console.log('Erro ao criar pedido:', postError);
-      Alert.alert("Erro", "Falha ao criar o pedido.");
+      if (postError?.response?.status === 409) {
+        try {
+          const { data } = await api.get('/request-service/active', {
+            headers: { authorization: `Bearer ${token}` }
+          });
+          if (data) setActiveTripData(data);
+          else Alert.alert("Atenção", "Você já tem uma viagem activa.");
+        } catch (e) {
+          Alert.alert("Atenção", "Você já tem uma viagem activa.");
+        }
+      } else {
+        Alert.alert("Erro", "Falha ao criar o pedido.");
+      }
       setWaitingForDriver(false);
+    }
+  };
+
+  const handleCancelPendingRequest = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      
+      if (currentRequestServiceId) {
+        await api.delete(`/request-service/${currentRequestServiceId}`, {
+          headers: { authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      console.log('Erro ao cancelar pedido pendente:', error);
+    } finally {
+      setWaitingForDriver(false);
+      setSelectedDriverForRequest(null);
+      setCurrentRequestServiceId(null);
+      snapTo(SNAP_TOP);
     }
   };
   
   
   useEffect(() => {
-    if (waitingForDriver && selectedDriverForRequest) {
-      // Check for WebSocket service or use an interval to poll
-      // If order is rejected or cancelled, show alert
+    if (waitingForDriver && selectedDriverForRequest && currentRequestServiceId) {
+      let isMounted = true;
+      const socketUrl = api.defaults.baseURL.replace(/\/api\/?$/, '');
+      const socket = io(socketUrl, { transports: ['websocket'] });
+
       const checkStatus = async () => {
          try {
-           const { data } = await api.get('/request-deliver/userview');
+           const storedUserData = await AsyncStorage.getItem('userData');
+           const token = storedUserData ? JSON.parse(storedUserData).token : '';
+           const { data } = await api.get('/request-service/userview', {
+             headers: { authorization: `Bearer ${token}` }
+           });
            const myOrder = data.deliverRequests && data.deliverRequests[0];
-           if (myOrder && myOrder.targetDriverId === selectedDriverForRequest._id) {
+           if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
              if (myOrder.status === 'Cancelado') {
                 Alert.alert("Motorista Indisponível", "O motorista não pôde aceitar a corrida.");
                 setWaitingForDriver(false);
                 setSelectedDriverForRequest(null);
+                setCurrentRequestServiceId(null);
              } else if (myOrder.status === 'Aceite pelo entregador') {
                 setWaitingForDriver(false);
-                setShowDriverList(false);
-                navigation.navigate('Pedidos');
+                setActiveTripData(myOrder);
+                setCurrentRequestServiceId(null);
              }
            }
          } catch(e){}
       };
-      const interval = setInterval(checkStatus, 3000);
-      return () => clearInterval(interval);
+      
+      checkStatus(); // Initial fetch check
+
+      socket.on('connect', () => {
+        console.log('Socket connected for waiting driver');
+      });
+
+      socket.on('order_updated', (updatedOrder) => {
+         if (isMounted && updatedOrder._id === currentRequestServiceId) {
+            if (updatedOrder.status === 'Cancelado') {
+                Alert.alert("Motorista Indisponível", "O motorista não pôde aceitar a corrida.");
+                setWaitingForDriver(false);
+                setSelectedDriverForRequest(null);
+                setCurrentRequestServiceId(null);
+            } else if (updatedOrder.status === 'Aceite pelo entregador') {
+                setWaitingForDriver(false);
+                setActiveTripData(updatedOrder);
+                setCurrentRequestServiceId(null);
+            }
+         }
+      });
+
+      return () => {
+        isMounted = false;
+        socket.disconnect();
+      };
     }
-  }, [waitingForDriver, selectedDriverForRequest]);
+  }, [waitingForDriver, selectedDriverForRequest, currentRequestServiceId]);
   
   const startPulse = () => {
     pulseAnim.setValue(0);
@@ -936,6 +1049,24 @@ export default function RequestDelivSimple() {
           <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
             Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
           </Text>
+
+          <TouchableOpacity
+            style={{
+              marginTop: 24,
+              paddingVertical: 12,
+              paddingHorizontal: 32,
+              backgroundColor: '#FEF2F2',
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: '#FECACA',
+              width: '100%',
+              alignItems: 'center',
+            }}
+            activeOpacity={0.8}
+            onPress={handleCancelPendingRequest}
+          >
+            <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -1003,6 +1134,71 @@ export default function RequestDelivSimple() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!activeTripData}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          navigation.goBack();
+        }}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[
+              styles.premiumIconContainer,
+              { backgroundColor: activeTripData?.status === 'Pendente' ? '#FEF3C7' : '#DCFCE7' }
+            ]}>
+              <MaterialCommunityIcons 
+                name={activeTripData?.status === 'Pendente' ? 'clock-outline' : 'car-speed-limiter'} 
+                size={40} 
+                color={activeTripData?.status === 'Pendente' ? '#D97706' : '#16A34A'} 
+              />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>
+              {activeTripData?.status === 'Pendente' ? 'Solicitação Pendente' : 'Viagem Aceite!'}
+            </Text>
+            
+            <Text style={styles.premiumModalBody}>
+              {activeTripData?.status === 'Pendente' 
+                ? 'Você já tem uma solicitação pendente em curso. Por favor, acompanhe-a antes de iniciar outro serviço.'
+                : `O motorista ${activeTripData?.deliveryman?.name || 'parceiro'} aceitou a sua viagem! Acompanhe a trajetória em tempo real.`}
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.premiumModalBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                const order = activeTripData;
+                setActiveTripData(null);
+                navigation.replace('OrderDetailsScreen', { orderId: order._id, item: order });
+              }}
+            >
+              <LinearGradient
+                colors={['#8B5CF6', '#6D28D9']}
+                style={styles.premiumModalGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.premiumModalBtnText}>
+                  Acompanhar Viagem
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.premiumModalBackBtn}
+              onPress={() => {
+                setActiveTripData(null);
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.premiumModalBackBtnText}>Voltar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1409,6 +1605,75 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '700',
     fontSize: 15
+  },
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 340,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 15,
+  },
+  premiumIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  premiumModalBody: {
+    fontSize: 15,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+    paddingHorizontal: 8,
+  },
+  premiumModalBtn: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumModalGradient: {
+    paddingVertical: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumModalBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  premiumModalBackBtn: {
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  premiumModalBackBtnText: {
+    color: '#64748B',
+    fontWeight: '600',
+    fontSize: 15,
   }
 });
 

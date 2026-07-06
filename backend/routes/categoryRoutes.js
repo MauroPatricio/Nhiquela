@@ -15,7 +15,7 @@ categoryRouter.get(
     const page = req.query.page || 1;
     const pageSize = 10
 
-    const categories = await Category.find({ isActive: true }).sort({nome: 'asc'});
+    const categories = await Category.find({ isActive: true }).limit(200).sort({nome: 'asc'});
 
     res.status(200)
     .send({categories});
@@ -52,7 +52,7 @@ categoryRouter.get(
     if (category) {
       res.send(category);
     } else {
-      res.status(404).send({ message: 'Categoria não encontrada' });
+      res.status(404).send({ message: 'Categoria nï¿½o encontrada' });
     }
   })
 );
@@ -82,7 +82,7 @@ categoryRouter.put(
       await category.save();
       res.send({ message: `Categoria actualizada com sucesso` });
     } else {
-      res.status(404).send({ message: 'Categoria não encontrada' });
+      res.status(404).send({ message: 'Categoria nï¿½o encontrada' });
     }
   })
 );
@@ -104,7 +104,7 @@ categoryRouter.delete(
 
       res.send({ message: `Categoria removida com sucesso` });
     } else {
-      res.status(404).send({ message: 'Categoria não encontrada' });
+      res.status(404).send({ message: 'Categoria nï¿½o encontrada' });
     }
   })
 );

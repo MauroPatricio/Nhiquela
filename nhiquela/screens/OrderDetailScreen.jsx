@@ -26,23 +26,85 @@ import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bot
 const { width, height } = Dimensions.get('window');
 
 const OrderDetailsScreen = () => {
-  const { params: { item, deliveryman } } = useRoute();
+  const route = useRoute();
+  const params = route.params || {};
+  const item = params.item;
+  const deliveryman = params.deliveryman;
+  
   const [currentOrder, setCurrentOrder] = useState(item);
   const [currentDeliveryMan, setDeliveryMan] = useState(deliveryman);
   const [modalVisible, setModalVisible] = useState(false);
   const [message, setMessage] = useState('');
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
+  const [showFinishConfirmationModal, setShowFinishConfirmationModal] = useState(false);
+  const [showFinishSuccessModal, setShowFinishSuccessModal] = useState(false);
+  const [isRequestService, setIsRequestService] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [loadingOrder, setLoadingOrder] = useState(!item);
   const navigation = useNavigation();
   const toast = useToast();
 
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['15%', '50%', '90%'], []);
 
+  const [driverSpeed, setDriverSpeed] = useState(null);
+  const [etaDistance, setEtaDistance] = useState(null);
+  const [etaDuration, setEtaDuration] = useState(null);
+
+  const handleUpdateTracking = useCallback(({ speed, distance, duration }) => {
+    if (speed !== undefined) setDriverSpeed(speed);
+    if (distance !== undefined) setEtaDistance(distance);
+    if (duration !== undefined) setEtaDuration(duration);
+  }, []);
+
   useEffect(() => {
     checkIfUserExist();
   }, []);
+
+  const orderIdParam = params?.orderId || params?.item?._id;
+
+  useEffect(() => {
+    if (!currentOrder && orderIdParam) {
+      fetchOrderDetails();
+    } else {
+      setLoadingOrder(false);
+    }
+  }, [orderIdParam]);
+
+  useEffect(() => {
+    if (currentOrder) {
+      const isReq = !currentOrder.deliveryAddress;
+      setIsRequestService(isReq);
+    }
+  }, [currentOrder]);
+
+  const fetchOrderDetails = async () => {
+    setLoadingOrder(true);
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      if (!token) return;
+
+      const { data } = await api.get(`/request-service/${orderIdParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCurrentOrder(data);
+    } catch (e) {
+      try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        const { data } = await api.get(`/orders/${orderIdParam}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCurrentOrder(data);
+      } catch (e2) {
+        console.error("Erro ao buscar pedido", e2);
+      }
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
 
   const checkIfUserExist = async () => {
     try {
@@ -59,14 +121,11 @@ const OrderDetailsScreen = () => {
       });
 
       const storedUserData = await AsyncStorage.getItem('userData');
-      const storedUserId = await AsyncStorage.getItem('id');
 
-      if (storedUserData && storedUserId) {
+      if (storedUserData) {
         const parsedUserData = JSON.parse(storedUserData);
-        if (parsedUserData._id === storedUserId) {
-          setUserData(parsedUserData);
-          setUserLogin(true);
-        }
+        setUserData(parsedUserData);
+        setUserLogin(true);
       }
     } catch (error) {
       console.error('Erro ao verificar usuário:', error);
@@ -109,27 +168,36 @@ const OrderDetailsScreen = () => {
     try {
       if (!userData) throw new Error('User is not logged in');
 
-      const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
+      const endpoint = isRequestService 
+        ? `/request-service/${orderId}/deliver` 
+        : `/orders/${orderId}/deliver`;
+
+      const { data } = await api.put(endpoint, {}, {
         headers: { Authorization: `Bearer ${userData.token}` },
       });
 
-      setCurrentOrder(data.order);
+      const finalOrder = data.order || {
+        ...currentOrder,
+        status: 'Finalizado',
+        stepStatus: 6,
+        isDelivered: true,
+        deliveredAt: Date.now()
+      };
 
-      await sendOrderNotificationToUser({
-        userId: data.order.seller._id,
-        orderId: data.order._id,
-        orderCode: data.order.code,
-        title: 'Pedido entregue com sucesso!',
-        body: `O cliente confirmou a recepção do pedido nº ${data.order.code}.`,
-        status: 'Confirmado',
-      });
+      setCurrentOrder(finalOrder);
 
-      toast.show('O fornecedor será notificado.', {
-        type: 'success',
-        placement: 'top',
-        duration: 4000,
-        animationType: 'slide-in',
-      });
+      if (finalOrder.seller?._id) {
+        await sendOrderNotificationToUser({
+          userId: finalOrder.seller._id,
+          orderId: finalOrder._id,
+          orderCode: finalOrder.code,
+          title: 'Pedido entregue com sucesso!',
+          body: `O cliente confirmou a recepção do pedido nº ${finalOrder.code}.`,
+          status: 'Confirmado',
+        });
+      }
+
+      setShowFinishSuccessModal(true);
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
       Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
@@ -144,10 +212,7 @@ const OrderDetailsScreen = () => {
   };
 
   const confirmDeliveryOrder = (orderId) => {
-    Alert.alert('Confirmar Entrega', 'Confirmar entrega deste pedido?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => confirmDelivery(orderId) },
-    ]);
+    setShowFinishConfirmationModal(true);
   };
 
   const getStatusColor = (status) => {
@@ -161,9 +226,18 @@ const OrderDetailsScreen = () => {
   };
 
   // Compute destination based on order type (store or service)
-  const destination = currentOrder.deliveryAddress 
+  const destination = currentOrder?.deliveryAddress 
     ? { latitude: currentOrder.deliveryAddress.latitude, longitude: currentOrder.deliveryAddress.longitude }
-    : (currentOrder.latitude ? { latitude: currentOrder.latitude, longitude: currentOrder.longitude } : null);
+    : (currentOrder?.latitude ? { latitude: currentOrder.latitude, longitude: currentOrder.longitude } : null);
+
+  if (loadingOrder || !currentOrder) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' }}>
+        <ActivityIndicator size="large" color="#9333EA" />
+        <Text style={{ marginTop: 12, color: '#6B7280' }}>Carregando viagem...</Text>
+      </View>
+    );
+  }
 
   const renderContent = () => (
     <View style={styles.sheetContent}>
@@ -177,23 +251,10 @@ const OrderDetailsScreen = () => {
             <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
           </View>
         </View>
-        <Text style={styles.totalPrice}>{currentOrder.totalPrice} Mt</Text>
+        {currentOrder.totalPrice ? <Text style={styles.totalPrice}>{currentOrder.totalPrice} Mt</Text> : null}
       </View>
 
       <View style={styles.divider} />
-
-      {/* Informações do Pedido */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Detalhes do Pagamento</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Método:</Text>
-          <Text style={styles.infoValue}>{currentOrder.paymentMethod} ({currentOrder.isPaid ? 'Pago' : 'Pendente'})</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Taxa de Entrega:</Text>
-          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} Mt</Text>
-        </View>
-      </View>
 
       {/* Motorista e Veículo */}
       {currentOrder.deliveryman && (
@@ -208,18 +269,31 @@ const OrderDetailsScreen = () => {
               />
               <View style={styles.driverInfo}>
                 <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
-                <Text style={styles.driverSub}>
-                  {currentOrder.deliveryman.transport_type} • {currentOrder.deliveryman.transport_registration}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                    {currentOrder.deliveryman.transport_type} • {currentOrder.deliveryman.transport_registration}
+                  </Text>
+                  {currentOrder.deliveryman.transport_color && (
+                    <View style={{
+                      width: 14, height: 14, borderRadius: 7, 
+                      backgroundColor: (() => {
+                        const c = currentOrder.deliveryman.transport_color.toLowerCase();
+                        const map = { 'vermelho': 'red', 'azul': 'blue', 'verde': 'green', 'preto': 'black', 'branco': 'white', 'cinzento': 'gray', 'cinza': 'gray', 'amarelo': 'yellow', 'laranja': 'orange', 'castanho': 'brown', 'prata': 'silver', 'roxo': 'purple', 'rosa': 'pink', 'ouro': 'gold' };
+                        return map[c] || c;
+                      })(),
+                      marginLeft: 8, borderWidth: 1, borderColor: '#D1D5DB'
+                    }} />
+                  )}
+                </View>
               </View>
             </View>
 
             {/* Foto da Viatura */}
-            {currentOrder.deliveryman.vihicle_picture && (
+            {(currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture) && (
               <View style={styles.vehicleImageContainer}>
                 <Text style={styles.vehicleLabel}>Foto da viatura:</Text>
                 <Image 
-                  source={{ uri: currentOrder.deliveryman.vihicle_picture }} 
+                  source={{ uri: currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture }} 
                   style={styles.vehicleImage} 
                   contentFit="cover"
                 />
@@ -228,6 +302,54 @@ const OrderDetailsScreen = () => {
           </View>
         </View>
       )}
+
+      {/* Live Stats Container (Velocidade, Distância, Tempo) */}
+      {(etaDistance !== null || driverSpeed !== null) && (
+        <View style={styles.liveStatsContainer}>
+          {etaDistance !== null && (
+            <View style={styles.liveStatBox}>
+              <Ionicons name="navigate-outline" size={22} color="#9333EA" />
+              <Text style={styles.liveStatValue}>
+                {etaDistance >= 1000 ? `${(etaDistance / 1000).toFixed(1)} km` : `${Math.round(etaDistance)} m`}
+              </Text>
+              <Text style={styles.liveStatLabel}>Distância</Text>
+            </View>
+          )}
+
+          {etaDuration !== null && (
+            <View style={styles.liveStatBox}>
+              <Ionicons name="time-outline" size={22} color="#9333EA" />
+              <Text style={styles.liveStatValue}>
+                {etaDuration >= 60 ? `${Math.round(etaDuration / 60)} min` : `${Math.round(etaDuration)} s`}
+              </Text>
+              <Text style={styles.liveStatLabel}>Tempo de Chegada</Text>
+            </View>
+          )}
+
+          {driverSpeed !== null && (
+            <View style={styles.liveStatBox}>
+              <Ionicons name="speedometer-outline" size={22} color="#9333EA" />
+              <Text style={styles.liveStatValue}>
+                {Math.round(driverSpeed)} km/h
+              </Text>
+              <Text style={styles.liveStatLabel}>Velocidade</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Informações do Pedido */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Detalhes do Pagamento</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Método:</Text>
+          <Text style={styles.infoValue}>{currentOrder.paymentMethod} ({currentOrder.isPaid ? 'Pago' : 'Pendente'})</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Taxa de Serviço:</Text>
+          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} Mt</Text>
+        </View>
+      </View>
 
       {/* Produtos */}
       {currentOrder.orderItems && currentOrder.orderItems.length > 0 && (
@@ -275,6 +397,9 @@ const OrderDetailsScreen = () => {
         <TrackingMap 
           orderId={currentOrder._id}
           destination={destination}
+          vehicleType={currentOrder.deliveryman?.transport_type}
+          vehicleColor={currentOrder.deliveryman?.transport_color}
+          onUpdateTracking={handleUpdateTracking}
           darkMode={false}
         />
       </View>
@@ -319,6 +444,99 @@ const OrderDetailsScreen = () => {
                 <Text style={styles.modalBtnText}>Confirmar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🏁 MODAL PREMIUM — CONFIRMAR ENTREGA (CLIENTE) */}
+      <Modal
+        visible={showFinishConfirmationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFinishConfirmationModal(false)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#D1FAE5' }]}>
+              <Ionicons name="checkmark-done-circle-outline" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Confirmar Receção?</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Confirma que recebeu o seu pedido em conformidade? Esta ação finalizará a entrega e notificará o fornecedor.
+            </Text>
+
+            <View style={styles.premiumModalButtons}>
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={() => setShowFinishConfirmationModal(false)}
+              >
+                <Text style={styles.premiumCancelButtonText}>Voltar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setShowFinishConfirmationModal(false);
+                  confirmDelivery(currentOrder._id);
+                }}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Confirmar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🎉 MODAL PREMIUM — ENTREGA CONCLUÍDA COM SUCESSO (CLIENTE) */}
+      <Modal
+        visible={showFinishSuccessModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="trophy" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Pedido Concluído! 🎉</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Obrigado por utilizar a Nhiquela
+            </Text>
+
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowFinishSuccessModal(false);
+                navigation.goBack();
+              }}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Voltar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -575,6 +793,111 @@ const styles = StyleSheet.create({
   modalBtnText: {
     color: '#FFF',
     fontWeight: 'bold',
+  },
+  liveStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  liveStatBox: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  liveStatValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginTop: 6,
+  },
+  liveStatLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 28,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 14,
+  },
+  premiumIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#065F46',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumModalMessage: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumConfirmButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumConfirmGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  premiumModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  premiumCancelButton: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
   }
 });
 

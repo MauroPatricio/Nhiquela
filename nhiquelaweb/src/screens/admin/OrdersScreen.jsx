@@ -83,6 +83,12 @@ export default function OrdersScreen() {
     totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
   } = usePagination(dateFilteredOrders, 10, ['_id', 'code', 'status', 'orderType']);
 
+  // KPIs Calculation
+  const totalPedidos = dateFilteredOrders.length;
+  const pedidosConcluídos = dateFilteredOrders.filter(o => ['Entregue', 'Finalizado'].includes(o.status)).length;
+  const pedidosEmAndamento = dateFilteredOrders.filter(o => !['Entregue', 'Finalizado', 'Cancelada', 'Cancelado'].includes(o.status)).length;
+  const receitaTotal = dateFilteredOrders.reduce((acc, order) => acc + Number(order.totalPrice || order.deliveryPrice || 0), 0);
+
   useEffect(() => {
     fetchOrdersAndRelatedData();
   }, []);
@@ -100,7 +106,7 @@ export default function OrdersScreen() {
       // Create maps for quick lookup O(1)
       const cMap = {};
       const customersArray = Array.isArray(custRes.data) ? custRes.data : (custRes.data.customers || custRes.data.users || []);
-      customersArray.forEach(c => cMap[c._id] = c.name);
+      customersArray.forEach(c => cMap[c._id] = c);
       setCustomersMap(cMap);
 
       const dMap = {};
@@ -193,7 +199,7 @@ export default function OrdersScreen() {
       const data = orders.map((order) => ({
         ID: order._id,
         Código: order.code || order._id.slice(-6),
-        Cliente: order.user?.name || order.name || customersMap[order.user] || 'Desconhecido',
+        Cliente: order.user?.name || order.name || customersMap[order.user]?.name || customersMap[order.customerId]?.name || 'Desconhecido',
         Valor: Number(order.totalPrice || order.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' }),
         Estado: order.status,
         Data: new Date(order.createdAt).toLocaleString('pt-PT'),
@@ -216,7 +222,7 @@ export default function OrdersScreen() {
       const tableRows = orders.map((order) => [
         order._id,
         order.code || order._id.slice(-6),
-        order.user?.name || order.name || customersMap[order.user] || 'Desconhecido',
+        order.user?.name || order.name || customersMap[order.user]?.name || customersMap[order.customerId]?.name || 'Desconhecido',
         Number(order.totalPrice || order.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' }),
         order.status,
         new Date(order.createdAt).toLocaleString('pt-PT'),
@@ -272,8 +278,36 @@ export default function OrdersScreen() {
             <option value="11">Novembro</option>
             <option value="12">Dezembro</option>
           </select>
-          <button className="btn btn-sm btn-outline-danger fw-bold shadow-sm" onClick={exportToPDF}>PDF</button>
-          <button className="btn btn-sm btn-outline-success fw-bold shadow-sm" onClick={exportToExcel}>Excel</button>
+          <button onClick={exportToPDF} className="btn btn-sm btn-outline-danger fw-bold shadow-sm">PDF</button>
+          <button onClick={exportToExcel} className="btn btn-sm btn-outline-success fw-bold shadow-sm">Excel</button>
+        </div>
+      </div>
+
+      {/* KPIs Display */}
+      <div className="row g-3 mb-4">
+        <div className="col-md-3 col-sm-6">
+          <div className="card border-0 shadow-sm rounded-4 text-center p-3">
+            <div className="text-muted small mb-1 fw-bold">Total de Pedidos</div>
+            <h3 className="fw-bold text-dark m-0">{totalPedidos}</h3>
+          </div>
+        </div>
+        <div className="col-md-3 col-sm-6">
+          <div className="card border-0 shadow-sm rounded-4 text-center p-3">
+            <div className="text-muted small mb-1 fw-bold">Pedidos Concluídos</div>
+            <h3 className="fw-bold text-success m-0">{pedidosConcluídos}</h3>
+          </div>
+        </div>
+        <div className="col-md-3 col-sm-6">
+          <div className="card border-0 shadow-sm rounded-4 text-center p-3">
+            <div className="text-muted small mb-1 fw-bold">Em Andamento</div>
+            <h3 className="fw-bold text-warning m-0">{pedidosEmAndamento}</h3>
+          </div>
+        </div>
+        <div className="col-md-3 col-sm-6">
+          <div className="card border-0 shadow-sm rounded-4 text-center p-3">
+            <div className="text-muted small mb-1 fw-bold">Receita Total</div>
+            <h3 className="fw-bold text-primary m-0">{receitaTotal.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
+          </div>
         </div>
       </div>
 
@@ -331,8 +365,13 @@ export default function OrdersScreen() {
                       <OrderTiming order={order} />
                     </td>
                     <td>
-                      <div className="fw-bold text-dark"><FontAwesomeIcon icon={faUser} className="text-muted me-2" />{order.user?.name || order.name || customersMap[order.user] || 'Cliente Desconhecido'}</div>
-                      <div className="text-muted small"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1" /> {order.deliveryAddress?.address || order.destination || 'Morada de Entrega'}</div>
+                      <div className="fw-bold text-dark mb-2"><FontAwesomeIcon icon={faUser} className="text-muted me-2" />{order.user?.name || order.name || customersMap[order.user]?.name || customersMap[order.customerId]?.name || 'Cliente Desconhecido'}</div>
+                      <div className="text-muted small mb-1">
+                        <span className="fw-bold text-dark">Origem:</span> {order.pickupAddress?.address || order.origin || 'Não definida'}
+                      </div>
+                      <div className="text-muted small">
+                        <span className="fw-bold text-dark">Destino:</span> {order.deliveryAddress?.address || order.destination || 'Não definida'}
+                      </div>
                     </td>
                     <td>
                       {order.deliveryman && order.deliveryman.name ? (
@@ -394,7 +433,7 @@ export default function OrdersScreen() {
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content rounded-4 border-0 shadow">
               <div className="modal-header border-bottom-0 pb-0">
-                <h5 className="modal-title fw-bold text-dark">Detalhes da Encomenda <span className="text-primary-custom">#{selectedOrder._id.slice(-6).toUpperCase()}</span></h5>
+                <h5 className="modal-title fw-bold text-dark">Detalhes da Encomenda <span className="text-primary-custom">#{selectedOrder.code || selectedOrder._id.slice(-6).toUpperCase()}</span></h5>
                 <button type="button" className="btn-close" onClick={() => setSelectedOrder(null)}></button>
               </div>
               <div className="modal-body p-4">
@@ -407,10 +446,19 @@ export default function OrdersScreen() {
                 </div>
 
                 <div className="bg-light rounded-4 p-3 mb-3 border">
-                  <div className="d-flex mb-2">
-                    <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faUser} /></div>
-                    <div className="fw-bold text-dark">{customersMap[selectedOrder.customerId] || 'Cliente Desconhecido'}</div>
+                  <div className="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <img 
+                      src={selectedOrder.user?.profileImage || customersMap[selectedOrder.user]?.profileImage || customersMap[selectedOrder.customerId]?.profileImage || 'https://via.placeholder.com/60'} 
+                      alt="User" 
+                      className="rounded-circle me-3 border" 
+                      style={{ width: '60px', height: '60px', objectFit: 'cover' }} 
+                    />
+                    <div>
+                      <div className="fw-bold text-dark fs-5">{selectedOrder.user?.name || selectedOrder.name || customersMap[selectedOrder.user]?.name || customersMap[selectedOrder.customerId]?.name || 'Cliente Desconhecido'}</div>
+                      <div className="text-muted small">{selectedOrder.user?.phoneNumber || selectedOrder.phoneNumber || customersMap[selectedOrder.user]?.phoneNumber || customersMap[selectedOrder.customerId]?.phoneNumber || 'Sem número de telefone'}</div>
+                    </div>
                   </div>
+                  
                   {selectedOrder.goodType && (
                     <div className="d-flex mb-2">
                       <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faTag} /></div>
@@ -425,21 +473,25 @@ export default function OrdersScreen() {
                   )}
                   <div className="d-flex mb-2">
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMotorcycle} /></div>
-                    <div className="fw-bold text-dark">{selectedOrder.driverId ? driversMap[selectedOrder.driverId] || 'Motorista Desconhecido' : 'Ainda sem Motorista'}</div>
+                    <div className="fw-bold text-dark">{selectedOrder.deliveryman?.name || (selectedOrder.driverId ? driversMap[selectedOrder.driverId] : null) || 'Ainda sem Motorista'}</div>
                   </div>
                   <div className="d-flex mb-2">
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMap} /></div>
                     <div className="fw-bold text-dark">Província: <span className="text-primary-custom">{selectedOrder.province || 'Maputo Cidade'}</span></div>
                   </div>
+                  <div className="d-flex mb-2">
+                    <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
+                    <div className="fw-bold text-dark">Origem: <span className="text-muted fw-normal">{selectedOrder.pickupAddress?.address || selectedOrder.origin || 'Não definida'}</span></div>
+                  </div>
                   <div className="d-flex">
                     <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
-                    <div className="fw-bold text-dark">Morada de Entrega: <span className="text-muted fw-normal">{selectedOrder.deliveryAddress?.address || selectedOrder.destination || 'Morada de Entrega'}</span></div>
+                    <div className="fw-bold text-dark">Destino: <span className="text-muted fw-normal">{selectedOrder.deliveryAddress?.address || selectedOrder.destination || 'Não definida'}</span></div>
                   </div>
                 </div>
 
                 <div className="border rounded-3 p-3 text-center bg-white mb-4">
                   <div className="text-muted small fw-bold mb-1">Valor Total a Pagar</div>
-                  <h3 className="fw-bold m-0 text-success"><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />{Number(selectedOrder.amount).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
+                  <h3 className="fw-bold m-0 text-success"><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />{Number(selectedOrder.totalPrice || selectedOrder.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
                 </div>
 
                 <button type="button" className="btn btn-light w-100 fw-bold border py-2" onClick={() => setSelectedOrder(null)}>

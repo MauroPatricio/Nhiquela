@@ -1,7 +1,7 @@
 import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import User from '../models/UserModel.js';
-import RequestDeliv from '../models/RequestDeliverModel.js';
+import RequestService from '../models/RequestServiceModel.js';
 import Order from '../models/OrderModel.js';
 import Service from '../models/ServiceModel.js';
 import ProviderSubcategory from '../models/ProviderSubcategoryModel.js';
@@ -19,7 +19,7 @@ router.get(
     const pageSize = parseInt(req.query.pageSize) || 10;
     const page = parseInt(req.query.page) || 1;
     const search = req.query.search || '';
-    const filter = { isDeliveryMan: true };
+    const filter = { isDeliveryMan: true, isDeleted: { $ne: true } };
     if (search && search !== 'all') {
       const regex = { $regex: search, $options: 'i' };
       filter.$or = [{ name: regex }, { email: regex }];
@@ -50,16 +50,31 @@ router.put(
       { _id: req.user._id },
       {
         $set: {
-          geoPosition: {
+          locationGeo: {
             type: 'Point',
             coordinates: [Number(lng), Number(lat)] // Padrão GeoJSON [longitude, latitude]
           },
+          latitude: String(lat),
+          longitude: String(lng),
           lastPingAt: new Date(),
         }
       }
     );
 
     res.send({ message: 'Ping recebido' });
+  })
+);
+
+// Obter perfil atualizado do motorista autenticado
+router.get(
+  '/me',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const driver = await User.findById(req.user._id).lean();
+    if (!driver) {
+      return res.status(404).send({ message: 'Motorista não encontrado.' });
+    }
+    res.send(driver);
   })
 );
 
@@ -199,6 +214,7 @@ router.get(
     const filter = {
       isDeliveryMan: true,
       availability: 'active',
+      isDeleted: { $ne: true },
     };
 
     if (serviceId) {
@@ -238,7 +254,7 @@ router.get(
     let drivers = await User.find(filter).lean();
     
     // EXCLUDE OCCUPIED DRIVERS (drivers with active orders or pending direct requests)
-    const activeOrders = await RequestDeliv.find({
+    const activeOrders = await RequestService.find({
        status: { $nin: ['Finalizado', 'Cancelado'] }
     }).select('deliveryman targetDriverId').lean();
     
@@ -482,6 +498,7 @@ router.put(
         driver.deliveryman.priceRequestRejectionReason = rejectionReason || '';
         driver.deliveryman.pendingCustomPrice = null;
       }
+      driver.markModified('deliveryman');
       await driver.save();
     }
 

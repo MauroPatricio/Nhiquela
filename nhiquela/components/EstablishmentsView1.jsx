@@ -58,16 +58,6 @@ export default function EstablishmentsView1({ categoryId, title }) {
     };
   }, []);
 
-  // Atualiza a cada 30 segundos
-  useEffect(() => {
-    fetchData(); // Chamada inicial
-
-    const interval = setInterval(() => {
-      fetchData();
-    }, 30000); // Atualiza a cada 30 segundos
-
-    return () => clearInterval(interval); // Limpa ao desmontar
-  }, []);
 
   return (
     <View>

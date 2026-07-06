@@ -24,7 +24,7 @@ import conditionStatusRouter from './routes/conditionStatusRoutes.js';
 import colorRoutes from './routes/colorRoutes.js';
 import sizeRoutes from './routes/sizeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
+import requestServiceRoutes from './routes/requestServiceRoutes.js';
 import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
 import { fileURLToPath } from 'url';
@@ -38,6 +38,7 @@ import serviceRouter from './routes/serviceRoutes.js';
 import homeRouter from './routes/homeRoutes.js';
 import statsRouter from './routes/statsRoutes.js';
 import providerRouter from './routes/providerRoutes.js';
+import User from './models/UserModel.js';
 import providerTypeRoutes from './routes/providerTypeRoutes.js';
 import providerClassificationRoutes from './routes/providerClassificationRoutes.js';
 import providerSubcategoryRoutes from './routes/providerSubcategoryRoutes.js';
@@ -58,6 +59,7 @@ import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
+import { runIntelligentDispatch } from './services/dispatchService.js';
 
 // Conectar ao MongoDB
 mongoose
@@ -91,14 +93,15 @@ app.use(express.json());
 app.use(cors());
 
 // Prote��es b�sicas de seguran�a (Helmet)
+// Protees bsicas de segurana (Helmet)
 app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros dom�nios
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domnios
 
-// Rate Limiting (Bloqueia DDoS e ataques de for�a bruta)
+// Rate Limiting (Bloqueia DDoS e ataques de fora bruta)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100000, // Aumentado para evitar bloqueios 429 no desenvolvimento (limite de 100000 reqs/IP)
-  message: { message: 'Muitas requisi��es deste IP, tente novamente mais tarde.' }
+  max: 800, // Proteção DDoS ativa em produção
+  message: { message: 'Muitas requisições deste IP, tente novamente mais tarde.' }
 });
 app.use('/api', limiter); // Aplica o limitador a todas as rotas de API
 
@@ -135,7 +138,7 @@ app.use('/api/categories', categoryRouter);
 app.use('/api/subcategories', subcategoryRouter);
 app.use('/api/tipoEstabelecimentos', tipoEstabelecimentoRoutes);
 app.use('/api/services', serviceRouter);
-app.use('/api/service-requests', requestDeliverRoutes);
+app.use('/api/service-requests', requestServiceRoutes);
 app.use('/api/providers', providerRouter);
 
 app.use('/api/provinces', provinceRoutes);
@@ -148,7 +151,7 @@ app.use('/api/provider-subcategories', providerSubcategoryRoutes);
 app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/request-deliver', requestDeliverRoutes);
+app.use('/api/request-service', requestServiceRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
 app.use('/api/establishment-types', establishmentTypeRoutes);
@@ -257,6 +260,42 @@ io.on('connection', (socket) => {
       const roomName = `order_${data.orderId}`;
       socket.leave(roomName);
       console.log(`Socket ${socket.id} left room ${roomName}`);
+    }
+  });
+
+  // Alta Performance: Receber localização do motorista via WebSocket
+  socket.on('update_location', async (data) => {
+    try {
+      const { driverId, orderId, latitude, longitude, heading, speed } = data;
+      if (driverId && latitude && longitude) {
+        await User.updateOne(
+          { _id: driverId },
+          {
+            $set: {
+              latitude,
+              longitude,
+              heading: heading || 0,
+              speed: speed || 0,
+              locationGeo: {
+                type: 'Point',
+                coordinates: [parseFloat(longitude), parseFloat(latitude)]
+              }
+            }
+          }
+        );
+        
+        // Broadcast location to the client if there's an active order
+        if (orderId) {
+          io.to(`order_${orderId}`).emit('driverLocation', {
+            latitude,
+            longitude,
+            heading: heading || 0,
+            speed: speed || 0
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Erro no update_location socket:', err.message);
     }
   });
 });
@@ -379,7 +418,16 @@ const port = process.env.PORT || 5002;
 console.log('Port configuration: process.env.PORT =', process.env.PORT);
 httpServer.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
+  
+  // Start the Intelligent Dispatch Job
+  setInterval(() => {
+    runIntelligentDispatch(io);
+  }, 5000); // Executa a cada 5 segundos
 });
 
 // Export the Express app for integration testing when in test mode
 export default app;
+
+// trigger restart
+
+// clean restart

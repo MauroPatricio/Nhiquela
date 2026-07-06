@@ -39,8 +39,8 @@ export const getById = asyncHandler(async (req, res) => {
 // POST /api/provider-subcategories
 export const create = asyncHandler(async (req, res) => {
   try {
-    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes } = req.body;
-  const newSub = new ProviderSubcategory({ name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes });
+    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
+  const newSub = new ProviderSubcategory({ name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode });
   await newSub.save();
   
   const io = req.app.get('io');
@@ -58,10 +58,10 @@ export const create = asyncHandler(async (req, res) => {
 // PUT /api/provider-subcategories/:id
 export const update = asyncHandler(async (req, res) => {
   try {
-    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes } = req.body;
+    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
     const updated = await ProviderSubcategory.findByIdAndUpdate(
       req.params.id,
-      { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes },
+      { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode },
       { new: true }
     )
     .populate({

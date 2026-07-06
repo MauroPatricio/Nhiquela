@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 try {
-  let content = fs.readFileSync('routes/requestDeliverRoutes.js', 'utf8');
+  let content = fs.readFileSync('routes/requestServiceRoutes.js', 'utf8');
 
   // Add targetDriverId to the newOrder creation
   if (!content.includes('targetDriverId: req.body.targetDriverId,')) {
@@ -16,16 +16,16 @@ try {
     const oldWsCode = `    // Emitir WebSocket para notificar motoristas (nhiqueladriver)
     const io = req.app.get('io');
     if (io) {
-      io.emit('new_order', requestDeliv);
+      io.emit('new_order', requestService);
     }`;
 
     const newWsCode = `    // Emitir WebSocket para notificar motoristas (nhiqueladriver)
     const io = req.app.get('io');
     if (io) {
       if (newOrder.targetDriverId) {
-        io.to(\`driver_\${newOrder.targetDriverId}\`).emit('new_order', requestDeliv);
+        io.to(\`driver_\${newOrder.targetDriverId}\`).emit('new_order', requestService);
       } else {
-        io.emit('new_order', requestDeliv);
+        io.emit('new_order', requestService);
       }
     }`;
 
@@ -35,11 +35,11 @@ try {
   // Also create a route for rejecting a request (timeout/reject)
   const rejectRoute = `
 // O motorista ou sistema rejeita/timeout do pedido
-requestDeliver.put(
+requestService.put(
   '/:id/reject',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const order = await RequestDeliv.findById(req.params.id);
+    const order = await RequestService.findById(req.params.id);
 
     if (order) {
       order.status = 'Cancelado'; // or maybe keep it Pendente but remove targetDriverId so the client can search again?
@@ -63,11 +63,11 @@ requestDeliver.put(
 `;
 
   if (!content.includes('/:id/reject')) {
-    content = content.replace('export default requestDeliver;', rejectRoute + '\nexport default requestDeliver;');
+    content = content.replace('export default requestService;', rejectRoute + '\nexport default requestService;');
   }
 
-  fs.writeFileSync('routes/requestDeliverRoutes.js', content, 'utf8');
-  console.log('Patched requestDeliverRoutes.js for targetDriverId and reject route.');
+  fs.writeFileSync('routes/requestServiceRoutes.js', content, 'utf8');
+  console.log('Patched requestServiceRoutes.js for targetDriverId and reject route.');
 } catch (e) {
   console.error('Error patching:', e);
 }

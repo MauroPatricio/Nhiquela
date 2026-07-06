@@ -16,7 +16,7 @@
     },
 
     "assetBundlePatterns": ["**/*"],
-    "platforms": ["ios", "android", "web"],
+    "platforms": ["ios", "android"],
 
     "android": {
       "package": "com.mpatricio.nhiquelaa",

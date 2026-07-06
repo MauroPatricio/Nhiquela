@@ -3,14 +3,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 mongoose.connect(process.env.MONGODB_URI).then(async () => {
-  const RequestDeliv = mongoose.connection.collection('requestdelivers');
-  const activeOrders = await RequestDeliv.find({
+  const RequestService = mongoose.connection.collection('requestdelivers');
+  const activeOrders = await RequestService.find({
        status: { $nin: ['Finalizado', 'Cancelado', 'Entregue'] }
   }).toArray();
   
   console.log('Orders to cancel:', activeOrders.length);
   for (let order of activeOrders) {
-     await RequestDeliv.updateOne({ _id: order._id }, { $set: { status: 'Cancelado', targetDriverId: null, 'deliveryman.id': null }});
+     await RequestService.updateOne({ _id: order._id }, { $set: { status: 'Cancelado', targetDriverId: null, 'deliveryman.id': null }});
      console.log('Canceled order:', order._id);
   }
   

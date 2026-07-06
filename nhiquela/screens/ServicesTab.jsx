@@ -91,7 +91,9 @@ export default function ServicesTab() {
           <Image 
             source={typeof item.image === 'string' ? { uri: item.image } : item.image} 
             style={styles.carouselImage} 
-            resizeMode="cover" 
+            contentFit="cover" 
+            transition={300}
+            cachePolicy="memory-disk"
           />
         )}
         {/* Overlay escuro para imagens */}
@@ -206,7 +208,7 @@ export default function ServicesTab() {
   }, []);
 
   const handleServiceSelect = (service) => {
-    navigation.navigate('RequestDeliv', { selectedService: service });
+    navigation.navigate('RequestService', { selectedService: service });
   };
 
   const renderServiceCard = ({ item: service }) => {
@@ -246,7 +248,7 @@ export default function ServicesTab() {
       >
         <View style={[styles.cardIconCircle, { backgroundColor: iconName.startsWith('http') ? 'transparent' : mapped.bg, overflow: 'hidden' }]}>
           {iconName.startsWith('http') ? (
-            <Image source={{ uri: iconName }} style={{ width: '100%', height: '100%', resizeMode: 'cover', borderRadius: 25 }} />
+            <Image source={{ uri: iconName }} style={{ width: '100%', height: '100%', contentFit: 'cover', borderRadius: 25 }} />
           ) : (
             <MaterialCommunityIcons name={iconName} size={32} color={mapped.color} />
           )}

@@ -1,9 +1,11 @@
 // backend/services/walletService.js
+import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import User from '../models/UserModel.js';
 import Partner from '../models/PartnerModel.js';
 import PricingEngine from '../models/PricingEngineModel.js';
 import VehicleType from '../models/VehicleTypeModel.js';
+import Transaction from '../models/TransactionModel.js';
 // removed getIo // Assuming io can be fetched, or we pass io/emit elsewhere. 
 // Wait, we can't easily import io from index.js directly if it doesn't export it. Let's just use a callback or require it conditionally.
 // A better way is to avoid importing index.js to prevent circular dependencies. I will just rely on the driver routes for WebSocket or use a global if available. We can do it safely.
@@ -103,18 +105,70 @@ export const debitCommissionFromPartner = async (partnerId, orderAmount, commiss
 /** Helper: check whether driver has enough balance */
 export const hasSufficientBalance = async (driverId) => {
   const wallet = await getWallet(driverId);
+  
+  // REGRA ESTRITA: Não pode ficar online se não possuir saldo (<= 0)
+  if (wallet.balance <= 0) return false;
+
   const config = await getFinancialConfig();
   
   let limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
   
   const driver = await User.findById(driverId);
-  if (driver && driver.deliveryman && driver.deliveryman.transport_type) {
-    const vType = await VehicleType.findOne({ name: driver.deliveryman.transport_type });
+  if (driver && driver.deliveryman) {
+    let vType = null;
+    const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
+    
+    // Consoante ao tipo associado (vehicle_type_id) ou transport_type
+    if (driver.deliveryman.vehicle_type_id) {
+      vType = await VehicleType.findById(driver.deliveryman.vehicle_type_id);
+    } else if (driver.deliveryman.transport_type) {
+      const transportType = driver.deliveryman.transport_type;
+      
+      // Se for um ObjectId, é um ProviderSubcategory
+      if (mongoose.Types.ObjectId.isValid(transportType)) {
+        const ProviderSubcategory = (await import('../models/ProviderSubcategoryModel.js')).default;
+        const subcategory = await ProviderSubcategory.findById(transportType);
+        if (subcategory && subcategory.vehicleTypes && subcategory.vehicleTypes.length > 0) {
+          vType = await VehicleType.findById(subcategory.vehicleTypes[0]);
+        }
+      } else {
+        vType = await VehicleType.findOne({ name: transportType });
+      }
+    }
+
     if (vType && vType.minVisibilityFee > 0) {
       limit = vType.minVisibilityFee;
     }
   }
-      return wallet.balance >= limit;
+  return wallet.balance >= limit;
+};
+
+/** Verify if driver has sufficient balance/credit to afford an upcoming trip commission */
+export const canAffordTripCommission = async (driverId, amount) => {
+  const wallet = await getWallet(driverId);
+  const config = await getFinancialConfig();
+  
+  let limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
+  
+  const driver = await User.findById(driverId);
+  if (driver && driver.deliveryman) {
+    let vType = null;
+    const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
+    
+    // Consoante ao tipo associado (vehicle_type_id) ou transport_type
+    if (driver.deliveryman.vehicle_type_id) {
+      vType = await VehicleType.findById(driver.deliveryman.vehicle_type_id);
+    } else if (driver.deliveryman.transport_type) {
+      vType = await VehicleType.findOne({ name: driver.deliveryman.transport_type });
+    }
+
+    if (vType && vType.minVisibilityFee > 0) {
+      limit = vType.minVisibilityFee;
+    }
+  }
+  
+  // They can afford it if their balance minus the commission is still >= their operational limit
+  return (wallet.balance - amount) >= limit;
 };
 
 /** Reset daily sales for all partners */
@@ -125,4 +179,34 @@ export const resetDailySales = async () => {
 /** Reset monthly sales for all partners */
 export const resetMonthlySales = async () => {
   await Partner.updateMany({}, { salesMonth: 0 });
+};
+
+/** Debit driver commission using MongoDB Sessions for atomicity */
+export const debitDriverCommissionWithSession = async (driverId, amount, description, method, session) => {
+  let wallet = await Wallet.findOne({ $or: [{ ownerId: driverId }, { userId: driverId }] }).session(session);
+  if (!wallet) {
+    wallet = await Wallet.create([{ ownerId: driverId, ownerType: 'driver', userId: driverId, balance: 0 }], { session });
+    wallet = wallet[0];
+  }
+
+  if (wallet.balance < amount) {
+    throw new Error('Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.');
+  }
+
+  // Deduct amount
+  wallet.balance -= amount;
+  await wallet.save({ session });
+
+  // Record transaction
+  await Transaction.create([{
+    walletId: wallet._id,
+    type: 'debit',
+    amount: amount,
+    method: method || 'wallet',
+    description: description,
+    status: 'confirmado'
+  }], { session });
+
+  // Note: we don't commit the session here, the route controller does it
+  return wallet;
 };

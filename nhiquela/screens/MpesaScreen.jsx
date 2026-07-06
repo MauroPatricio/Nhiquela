@@ -1,20 +1,5 @@
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  Image,
-  TouchableOpacity,
-  Modal,
-  ActivityIndicator,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Keyboard,
-  TouchableWithoutFeedback,
-  Alert,
-} from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, Modal, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, ScrollView, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';

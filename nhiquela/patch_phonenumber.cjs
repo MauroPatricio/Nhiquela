@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 const files = [
-    '../backend/routes/requestDeliverRoutes.js',
+    '../backend/routes/requestServiceRoutes.js',
     '../backend/routes/orderRoutes.js'
 ];
 

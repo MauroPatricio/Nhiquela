@@ -1,7 +1,7 @@
 import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
-import RequestDeliver from '../models/RequestDeliverModel.js';
+import RequestService from '../models/RequestServiceModel.js';
 import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
@@ -10,9 +10,8 @@ import createNotification from '../utils/createNotification.js';
 import Partner from '../models/PartnerModel.js';
 import partnerService from '../services/partnerService.js';
 import reputationTracker from '../utils/reputationTracker.js';
-
-
-
+import mongoose from 'mongoose';
+import { debitDriverCommissionWithSession, getFinancialConfig } from '../services/walletService.js';
 
 
 const orderRouter = express.Router();
@@ -129,7 +128,7 @@ orderRouter.get(
       deleted: { $eq: false },
       status: { $ne: 'Finalizado' }
 
-    }).populate('user', 'name phoneNumber').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
+    }).populate('user', 'name phoneNumber profileImage').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await Order.countDocuments({
       ...sellerFilter,
@@ -365,7 +364,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
             const product = await Product.findById(item._id);
             // Ensure product exists and quantity is valid
             if (!product) {
-              throw new Error(`Produto nao encontrado: ${item._id}`);
+              throw new Error(`Produto não encontrado: ${item._id}`);
             }
             if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
               throw new Error(`Quantidade Invalida para o produto: ${item.name}`);
@@ -451,8 +450,8 @@ orderRouter.get(
   expressAsyncHandler(async (req, res) => {
     const orders = await Order.find({ user: req.user._id, isDeletedByRequester: false, deleted: { $eq: false } }).populate('seller deliveryman').sort({ createdAt: -1 });
     
-    // ?? IMPORTANTE: Incluir tamb�m os servi�os (RequestDeliver)
-    const trips = await RequestDeliver.find({ user: req.user._id, deleted: { $eq: false } }).populate('user deliveryman').sort({ createdAt: -1 });
+    // ?? IMPORTANTE: Incluir tamb�m os servi�os (RequestService)
+    const trips = await RequestService.find({ user: req.user._id, deleted: { $eq: false } }).populate('user deliveryman').sort({ createdAt: -1 });
     
     // Mesclar ambos e ordenar por data
     const all = [...orders, ...trips].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -581,7 +580,15 @@ orderRouter.delete(
 
       res.send({ message: `Pedido removido com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+      const trip = await RequestService.findById(req.params.id);
+      if (trip) {
+        trip.deleted = true;
+        trip.isActive = false;
+        await trip.save();
+        res.send({ message: `Pedido removido com sucesso` });
+      } else {
+        res.status(404).send({ message: 'Pedido no encontrado' });
+      }
     }
   })
 );
@@ -695,7 +702,7 @@ orderRouter.put(
 
     if (sellerOfProduct) {
       //  Para envio de mensagens
-      let msgSeller = `Ola, a Nhiquela gostaria de lhe informar que possui um novo pedido com o codigo ${updatedOrder.code}.`;
+      let msgSeller = `Olá, a Nhiquela gostaria de lhe informar que possui um novo pedido com o código ${updatedOrder.code}.`;
       //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
     }
 
@@ -722,10 +729,10 @@ orderRouter.put(
     await order.save();
 
     // Buscar o pedido novamente com populate
-    const updatedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
+    const updatedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
     //  Para envio de mensagens
-    const message = `Ola, o seu pedido nr ${order.code} foi aceite com sucesso pelo fornecedor.`;
+    const message = `Olá, o seu pedido nº ${order.code} foi aceite com sucesso pelo fornecedor.`;
 
     //  sendSMSToUSendIt(req, message);
     const sellerOfProduct = await User.findById(order.seller);
@@ -752,7 +759,7 @@ orderRouter.put(
 
     // sendEmailOrderStatus(req,message, order, res);
 
-    res.send({ order: updatedOrder, message: `Pedido nr ${order.code} aceite com sucesso` });
+    res.send({ order: updatedOrder, message: `Pedido nº ${order.code} aceite com sucesso` });
   })
 );
 
@@ -780,9 +787,9 @@ orderRouter.put(
     await order.save();
 
     // Recarrega o pedido com o campo `user` populado
-    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
+    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
-    const message = `Ola, a Nhiquela lhe informa que o pedido nr ${order.code} esta pronto e disponivel para ser entregue.`;
+    const message = `Olá, a Nhiquela lhe informa que o pedido nº ${order.code} esta pronto e disponivel para ser entregue.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
@@ -836,7 +843,7 @@ orderRouter.put(
 
       const savedOrder = await order.save();
 
-      let message = `Ola, a Nhiquela lhe informa que o pedido nr ${order.code} esta pronto e disponivel para entrega.`;
+      let message = `Olá, a Nhiquela lhe informa que o pedido nº ${order.code} esta pronto e disponivel para entrega.`;
 
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
@@ -886,9 +893,9 @@ orderRouter.put(
     await order.save();
 
     // ?? Recarrega o pedido com o campo `user` populado
-    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
+    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
-    const message = `Ol�, a Nhiquela lhe informa que o pedido nr ${order.code} est� pronto e dispon�vel para entrega.`;
+    const message = `Ol�, a Nhiquela lhe informa que o pedido nº ${order.code} est� pronto e dispon�vel para entrega.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
@@ -934,7 +941,7 @@ orderRouter.put(
       order.isSupplierPaid = true;
       const savedOrder = await order.save();
 
-      let message = `Ola, a Nhiquela lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let message = `Olá, a Nhiquela lhe informa que o pagamento correspondente ao pedido nº ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,message, order, res);
 
@@ -983,7 +990,7 @@ orderRouter.put(
       order.isDeliverPaid = true;
       const savedOrder = await order.save();
 
-      let message = `Ola, a Nhiquela lhe informa que o pagamento correspondente ao pedido nr ${order.code} foi pago com sucesso.`;
+      let message = `Olá, a Nhiquela lhe informa que o pagamento correspondente ao pedido nº ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,message, order, res);
 
@@ -1016,7 +1023,7 @@ orderRouter.put(
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Entregador pago com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+      res.status(404).send({ message: 'Pedido não encontrado' });
     }
   })
 );
@@ -1026,20 +1033,49 @@ orderRouter.put(
   '/:id/acceptedByDeliveryman',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
     const user_deliver = await User.findById(req.user._id);
 
     if (!user_deliver) {
-      return res.status(404).send({ message: 'Motorista n�o encontrado na base de dados. Por favor, inicie sess�o novamente.' });
+      return res.status(404).send({ message: 'Motorista não encontrado na base de dados.' });
     }
 
-    if (order) {
-      order.status = 'Aceite pelo entregador';
-      order.stepStatus = 4;
+    // Usar uma transação para garantir que débito e aceite ocorrem de forma atómica
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
+      const order = await Order.findOne({ _id: req.params.id, status: 'Pendente' }).session(session);
+
+      if (!order) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
+      }
+
+      // Calcular comissão baseada nas configurações financeiras dinâmicas (default 15%)
+      const financialConfig = await getFinancialConfig();
+      const commissionRate = financialConfig?.driverCommissionRate || 0.15;
+      const serviceValue = order.deliveryPrice || order.totalPrice || 0;
+      const commissionAmount = serviceValue * commissionRate;
+
+      // Realizar o débito da carteira do motorista (lançará erro se não houver saldo)
+      try {
+        await debitDriverCommissionWithSession(
+          user_deliver._id, 
+          commissionAmount, 
+          `Comissão de serviço para o pedido ${order.code}`, 
+          'wallet', 
+          session
+        );
+      } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).send({ message: error.message });
+      }
+
+      let deliverymanData = {};
       if (user_deliver.isDeliveryMan) {
-
-        order.deliveryman = {
+        deliverymanData = {
           id: user_deliver._id,
           photo: user_deliver.deliveryman?.photo || '',
           name: user_deliver.deliveryman?.name || '',
@@ -1047,45 +1083,58 @@ orderRouter.put(
           transport_type: user_deliver.deliveryman?.transport_type || '',
           transport_color: user_deliver.deliveryman?.transport_color || '',
           transport_registration: user_deliver.deliveryman?.transport_registration || '',
-        }
+        };
       }
 
-      const updateOrder = await order.save();
+      order.status = 'Aceite pelo entregador';
+      order.stepStatus = 4;
+      order.isAccepted = true;
+      order.deliveryman = deliverymanData;
 
+      await order.save({ session });
 
+      await session.commitTransaction();
+      session.endSession();
+
+      const updateOrder = order;
       const sellerOfProduct = await User.findById(order.seller);
 
       //  Para envio de mensagens
-
-      let message = `Ola, a Nhiquela informa que o entregador aceitou o pedido nr ${updateOrder.code}`;
+      let message = `Olá, a Nhiquela informa que o entregador aceitou o pedido nº ${updateOrder.code}`;
 
       //  sendSMSToSellerUSendIt(sellerOfProduct,message);
-
-      //    sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
-
+      //  sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
 
       const clientOfProduct = await User.findById(order.user);
 
-      await createNotification({
-        message: message,
-        receiver_id: order.user,
-        sender_id: order.seller,
-        orderID: order._id,
-        pushToken: clientOfProduct.pushToken
-      });
+      if (clientOfProduct && clientOfProduct.pushToken) {
+        await createNotification({
+          message: message,
+          receiver_id: order.user,
+          sender_id: order.seller,
+          orderID: order._id,
+          pushToken: clientOfProduct.pushToken
+        });
+      }
 
       // WebSocket Optimization
       const io = req.app.get('io');
       if (io) {
-        // Emit to the specific driver's room
+        // Notificar o motorista que aceitou
         io.to(`driver_${user_deliver._id}`).emit('order_assigned', updateOrder);
-        // Also emit to the general order tracking room
+        // Notificar o cliente que o pedido foi aceite
         io.to(`order_${order._id}`).emit('order_updated', updateOrder);
+        // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
+        io.emit('order_taken', { orderId: order._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
       res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
-    } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error('Erro ao aceitar pedido:', error);
+      res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.' });
     }
   })
 );
@@ -1175,7 +1224,7 @@ orderRouter.put(
     await order.save();
 
     // Recarrega o pedido com o campo user populado
-    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
+    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
     const message = `A Nhiquela lhe informa que o pedido ${order.code} est� a caminho do destino indicado.`;
 
@@ -1228,7 +1277,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-      let message = `Ola, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nr ${updateOrder.code}`;
+      let message = `Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nº ${updateOrder.code}`;
 
       //  sendSMSToUSendIt(req,message);
 
@@ -1386,7 +1435,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-      let message = `Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento podera verificar pesquisando pelo codigo.`;
+      let message = `Olá, a Nhiquela lamenta lhe informar que o seu pedido nº ${order.code} foi cancelado. O motivo do cancelamento poderá verificar pesquisando pelo código.`;
 
       // sendSMSToUSendIt(req,message);    
 
@@ -1421,6 +1470,8 @@ orderRouter.put(
         io.to(`order_${order._id}`).emit('order_updated', savedOrder);
         if (order.deliveryman?.id) {
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+        } else {
+          io.emit('order_updated', savedOrder); // broadcast to all
         }
       }
 
@@ -1452,9 +1503,9 @@ orderRouter.put(
     await order.save();
 
     // Buscar novamente o pedido com o campo user populado
-    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber');
+    const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
-    const message = `Ola, a Nhiquela lamenta lhe informar que o seu pedido nr ${order.code} foi cancelado. O motivo do cancelamento poder� verificar pesquisando pelo c�digo.`;
+    const message = `Olá, a Nhiquela lamenta lhe informar que o seu pedido nº ${order.code} foi cancelado. O motivo do cancelamento poder� verificar pesquisando pelo c�digo.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
@@ -1566,13 +1617,13 @@ orderRouter.get(
       deleted: false,
       $or: orderConditions
     })
-      .populate('user', 'name phoneNumber')
+      .populate('user', 'name phoneNumber profileImage')
       .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestDelivers de servi�os (reboque, etc)
-    // Buscar RequestDelivers de servios (reboque, etc)
-    const requestDeliverConditions = [
+    // Buscar RequestServices de servi�os (reboque, etc)
+    // Buscar RequestServices de servios (reboque, etc)
+    const requestServiceConditions = [
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade
     ];
@@ -1587,23 +1638,23 @@ orderRouter.get(
         ]
       };
       if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Match exato com o veiculo do motorista
+        availableCondition.transportType = driverTransportType; // Match exato com o veículo do motorista
       }
-      requestDeliverConditions.push(availableCondition);
+      requestServiceConditions.push(availableCondition);
     }
 
-    const requestDeliversPromise = RequestDeliver.find({
+    const requestServicesPromise = RequestService.find({
       deleted: false,
-      $or: requestDeliverConditions
+      $or: requestServiceConditions
     })
-      .populate('user', 'name phoneNumber')
+      .populate('user', 'name phoneNumber profileImage')
       .lean();
 
-    const [ordersResult, requestDeliversResult] = await Promise.all([ordersPromise, requestDeliversPromise]);
+    const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
 
     // Format orders
     const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
-    const formattedRequests = requestDeliversResult.map(r => ({ ...r, type: 'requestDeliver' }));
+    const formattedRequests = requestServicesResult.map(r => ({ ...r, type: 'requestService' }));
 
     let combined = [...formattedOrders, ...formattedRequests];
     // Ordenar por data
@@ -1632,19 +1683,19 @@ orderRouter.get(
       .populate('sellers', 'name')
       .lean();
 
-    // Buscar RequestDelivers (Encomendas independentes)
-    const requestDeliversPromise = RequestDeliver.find({
+    // Buscar RequestServices (Encomendas independentes)
+    const requestServicesPromise = RequestService.find({
       'deliveryman.id': deliverymanId,
       deleted: false
     })
       .populate('user', 'name')
       .lean();
 
-    const [ordersResult, requestDeliversResult] = await Promise.all([ordersPromise, requestDeliversPromise]);
+    const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
 
     // Identificar de onde veio para o Frontend saber renderizar (caso precise)
     const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
-    const formattedRequests = requestDeliversResult.map(r => ({ ...r, type: 'requestDeliver' }));
+    const formattedRequests = requestServicesResult.map(r => ({ ...r, type: 'requestService' }));
 
     // Combinar, ordenar por data e fazer pagina��o em mem�ria
     let combined = [...formattedOrders, ...formattedRequests];

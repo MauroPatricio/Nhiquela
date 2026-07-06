@@ -1,6 +1,6 @@
 import { 
   View, Text, StyleSheet, FlatList, ActivityIndicator, 
-  TouchableOpacity, ScrollView, Animated, Dimensions
+  TouchableOpacity, ScrollView, Animated, Dimensions, Alert, Modal
 } from 'react-native';
 import { Image } from 'expo-image';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -23,6 +23,7 @@ const Orders = () => {
   const [userLogin, setUserLogin] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [deleteModalId, setDeleteModalId] = useState(null);
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
@@ -109,6 +110,24 @@ const Orders = () => {
     }
   };
 
+  const deleteOrder = (id) => {
+    setDeleteModalId(id);
+  };
+
+  const confirmDeleteOrder = async () => {
+    const id = deleteModalId;
+    setDeleteModalId(null);
+    try {
+      await api.delete(`/orders/${id}`, {
+        headers: { Authorization: `Bearer ${userData.token}` },
+      });
+      setOrders(prev => prev.filter(o => o._id !== id));
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Erro", "Não foi possível apagar o pedido.");
+    }
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchData(true);
@@ -176,6 +195,20 @@ const Orders = () => {
     fetchEtas();
   }, [orders, currentLocation]);
 
+  // Mapa de serviço -> ícone
+  const getServiceIcon = (name) => {
+    if (!name) return { icon: 'help-circle-outline', color: '#6B7280', bg: '#F3F4F6' };
+    const n = name.toLowerCase();
+    if (n.includes('reboque') || n.includes('tow'))      return { icon: 'tow-truck',                color: '#F59E0B', bg: '#FEF3C7' };
+    if (n.includes('delivery') || n.includes('entrega')) return { icon: 'moped-outline',            color: '#10B981', bg: '#D1FAE5' };
+    if (n.includes('mudança') || n.includes('mudanca'))  return { icon: 'truck-outline',            color: '#3B82F6', bg: '#DBEAFE' };
+    if (n.includes('taxi') || n.includes('viagem'))      return { icon: 'car-outline',              color: '#8B5CF6', bg: '#EDE9FE' };
+    if (n.includes('compras') || n.includes('shopping')) return { icon: 'shopping-outline',         color: '#EC4899', bg: '#FCE7F3' };
+    if (n.includes('médico') || n.includes('medico') || n.includes('saúde')) 
+      return { icon: 'medical-bag',                                                                  color: '#EF4444', bg: '#FEE2E2' };
+    return { icon: 'cube-send',                                                                       color: '#9333EA', bg: '#F3E8FF' };
+  };
+
   const renderItem = ({ item }) => {
     if (!item) return null;
 
@@ -184,6 +217,8 @@ const Orders = () => {
     const sellerName = item?.seller?.seller?.name || item?.name || item?.goodType || 'Serviço';
     const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
     const code = item?.code || '---';
+
+    const serviceInfo = getServiceIcon(item.name);
 
     return (
       <TouchableOpacity
@@ -196,69 +231,158 @@ const Orders = () => {
           })
         }
       >
-        {/* Indicador lateral de status */}
-        <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
-
-        {/* Logo do Fornecedor */}
-        <Image source={{ uri: sellerLogo }} style={styles.supplierLogo} />
-
-        {/* Informações do pedido */}
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderTitle} numberOfLines={1}>
-            {sellerName}
-          </Text>
-          <Text style={styles.orderCode}>Código: {code}</Text>
-          <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
-          <Text style={styles.orderPrice}>{item.totalPrice ?? item.deliveryPrice ?? '---'} MT</Text>
-          {item.deliveryman && item.deliveryman.name && (
-            <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image 
-                  source={{ uri: item.deliveryman.photo || 'https://via.placeholder.com/40' }} 
-                  style={{ width: 28, height: 28, borderRadius: 14, marginRight: 8, backgroundColor: '#eee' }} 
-                />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>
-                    {item.deliveryman.name}
-                  </Text>
-                  {item.deliveryman.transport_type && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                      <Ionicons name="car-outline" size={12} color="#6B7280" style={{ marginRight: 2 }} />
-                      <Text style={{ fontSize: 11, color: '#6B7280' }} numberOfLines={1}>
-                        {item.deliveryman.transport_type}
-                        {item.deliveryman.transport_color ? ` • ${item.deliveryman.transport_color}` : ''}
-                        {item.deliveryman.transport_registration ? ` • ${item.deliveryman.transport_registration}` : ''}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-              {item.deliveryman.vihicle_picture && (
-                <View style={{ marginTop: 6, marginLeft: 36 }}>
-                  <Image
-                    source={{ uri: item.deliveryman.vihicle_picture }}
-                    style={{ width: 60, height: 40, borderRadius: 6, backgroundColor: '#ddd' }}
-                    contentFit="cover"
-                  />
-                </View>
-              )}
+        <View style={styles.cardHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            {/* Service Icon Badge */}
+            <View style={{
+              width: 48, height: 48, borderRadius: 16,
+              backgroundColor: serviceInfo.bg,
+              justifyContent: 'center', alignItems: 'center',
+              marginRight: 12,
+              shadowColor: serviceInfo.color,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+              <MaterialCommunityIcons name={serviceInfo.icon} size={26} color={serviceInfo.color} />
             </View>
-          )}
-        </View>
-
-        {/* Status e tempo estimado na direita */}
-        <View style={styles.rightColumn}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.orderTitle} numberOfLines={1}>
+                {item.name || sellerName}
+              </Text>
+              <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
+            </View>
+          </View>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
             <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
               {item.status ?? 'Pendente'}
             </Text>
           </View>
-          
-          {timeMinutes !== null && item.status !== 'Entregue' && item.status !== 'Cancelado' && (
-            <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
-              <Ionicons name="time-outline" size={14} color="#EF4444" />
-              <Text style={styles.timeText}>{timeMinutes} min</Text>
-            </Animated.View>
+        </View>
+
+        <View style={styles.cardBody}>
+          <View style={styles.priceRow}>
+            <Text style={styles.orderCode}>Pedido: #{code}</Text>
+            <Text style={styles.orderPrice}>{item.totalPrice ?? item.deliveryPrice ?? '---'} MT</Text>
+          </View>
+
+          {/* Início Histórico Origem e Destino */}
+          {(item.originDetails || item.origin) && (
+            <View style={styles.routeContainer}>
+              <View style={styles.routePoint}>
+                <Ionicons name="location" size={16} color="#EF4444" />
+                <Text style={styles.routeText} numberOfLines={2}>
+                  {item.originDetails?.address || item.origin}
+                </Text>
+              </View>
+              <Ionicons name="arrow-down" size={16} color="#9CA3AF" style={{ marginLeft: 2, marginVertical: 4 }} />
+              <View style={styles.routePoint}>
+                <Ionicons name="location" size={16} color="#10B981" />
+                <Text style={styles.routeText} numberOfLines={2}>
+                  {item.destinationDetails?.address || item.destination || '---'}
+                </Text>
+              </View>
+            </View>
+          )}
+          {/* Fim Histórico Origem e Destino */}
+          {item.deliveryman && item.deliveryman.name && (() => {
+            const drv = item.deliveryman.deliveryman || item.deliveryman || {};
+            const picPath = drv.vihicle_picture_front
+              || drv.vihicle_picture
+              || drv.vehicle_picture
+              || drv.vihicle_picture_back
+              || item.deliveryman.vihicle_picture_front
+              || item.deliveryman.vihicle_picture
+              || item.deliveryman.vehicle_picture
+              || '';
+            const baseUrl = api.defaults.baseURL.replace('/api', '');
+            const vehicleUri = picPath
+              ? (picPath.startsWith('http') || picPath.startsWith('data:image') ? picPath : picPath.startsWith('/') ? `${baseUrl}${picPath}` : `${baseUrl}/${picPath}`)
+              : null;
+
+            const colorMap = {
+              branco: '#E5E7EB', preto: '#1F2937', vermelho: '#EF4444',
+              azul: '#3B82F6', verde: '#10B981', amarelo: '#F59E0B',
+              cinza: '#9CA3AF', cinzento: '#9CA3AF', laranja: '#F97316',
+              rosa: '#EC4899', violeta: '#8B5CF6', castanho: '#92400E',
+            };
+            const colorHex = colorMap[(drv.transport_color || item.deliveryman.transport_color || '').toLowerCase()] || '#6B7280';
+            const tColor = drv.transport_color || item.deliveryman.transport_color;
+            const tType = drv.transport_type || item.deliveryman.transport_type;
+            const tReg = drv.transport_registration || item.deliveryman.transport_registration;
+
+            return (
+              <View style={[styles.deliverymanContainer, { flexDirection: 'column', padding: 0, overflow: 'hidden' }]}>
+
+                {/* Imagem da viatura */}
+                {vehicleUri && (
+                  <View style={{ width: '100%', height: 120, backgroundColor: '#F3F4F6', borderRadius: 14, overflow: 'hidden', marginBottom: 12 }}>
+                    <Image source={{ uri: vehicleUri }} style={{ width: '100%', height: '100%', contentFit: 'cover' }} />
+                    {tReg && (
+                      <View style={{
+                        position: 'absolute', bottom: 8, right: 8,
+                        backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 8,
+                        paddingHorizontal: 10, paddingVertical: 5,
+                        flexDirection: 'row', alignItems: 'center'
+                      }}>
+                        <MaterialCommunityIcons name="card-text-outline" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12, letterSpacing: 1 }}>
+                          {tReg}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Linha do motorista */}
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Image
+                    source={{ uri: item.deliveryman.photo || 'https://via.placeholder.com/40' }}
+                    style={styles.deliverymanPhoto}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.deliverymanName}>{item.deliveryman.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
+                      {tType && (
+                        <Text style={[styles.deliverymanVehicle, { marginBottom: 0 }]} numberOfLines={1}>
+                          🚗 {tType}
+                        </Text>
+                      )}
+                      {tColor && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
+                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colorHex, marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB' }} />
+                          <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>{tColor}</Text>
+                        </View>
+                      )}
+                      {/* Matrícula inline se não houver imagem da viatura */}
+                      {!vehicleUri && tReg && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#111827', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
+                          <MaterialCommunityIcons name="card-text-outline" size={11} color="#FFF" style={{ marginRight: 4 }} />
+                          <Text style={{ fontSize: 11, color: '#FFF', fontWeight: '800', letterSpacing: 0.8 }}>{tReg}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  {timeMinutes !== null && item.status !== 'Entregue' && item.status !== 'Cancelado' && (
+                    <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
+                      <Ionicons name="time-outline" size={14} color="#EF4444" />
+                      <Text style={styles.timeText}>{timeMinutes} min</Text>
+                    </Animated.View>
+                  )}
+                </View>
+              </View>
+            );
+          })()}
+
+          {['Entregue', 'Cancelado', 'Finalizado', 'Concluído'].includes(item.status) && (
+            <TouchableOpacity 
+              onPress={() => deleteOrder(item._id)} 
+              style={styles.deleteButton}
+            >
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Text style={styles.deleteButtonText}>Remover Histórico</Text>
+            </TouchableOpacity>
           )}
         </View>
       </TouchableOpacity>
@@ -266,12 +390,17 @@ const Orders = () => {
   };
 
   return (
+    <>
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       {/* Top Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#9333EA', '#7E22CE']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
         <Text style={styles.headerTitle}>Meus Pedidos</Text>
-        <View style={styles.headerDivider} />
-      </View>
+      </LinearGradient>
 
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -342,6 +471,62 @@ const Orders = () => {
         </View>
       )}
     </SafeAreaView>
+
+      {/* PREMIUM DELETE ORDER MODAL */}
+      <Modal visible={deleteModalId !== null} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(17, 24, 39, 0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 24,
+            width: '100%',
+            maxWidth: 340,
+            padding: 28,
+            alignItems: 'center',
+            shadowColor: '#EF4444',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.15,
+            shadowRadius: 20,
+            elevation: 12,
+          }}>
+            {/* Icon */}
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 18 }}>
+              <Ionicons name="trash-outline" size={34} color="#EF4444" />
+            </View>
+
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 10, textAlign: 'center' }}>
+              Remover Pedido
+            </Text>
+
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 28, lineHeight: 21 }}>
+              Tem a certeza que deseja remover este pedido do seu histórico? Esta ação não pode ser desfeita.
+            </Text>
+
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center' }}
+                onPress={() => setDeleteModalId(null)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#4B5563' }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1, paddingVertical: 14, borderRadius: 14,
+                  backgroundColor: '#EF4444', alignItems: 'center',
+                  shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+                }}
+                onPress={confirmDeleteOrder}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Apagar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -349,114 +534,169 @@ export default Orders;
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 20,
+    paddingBottom: 25,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    marginBottom: 10,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#1F2937',
-  },
-  headerDivider: {
-    width: 32,
-    height: 3,
-    backgroundColor: '#9333EA',
-    borderRadius: 2,
-    marginTop: 6,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   cardContainer: {
-    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 6,
+    borderRadius: 24,
+    marginBottom: 20,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 5,
     borderWidth: 1,
-    borderColor: 'rgba(147, 51, 234, 0.1)',
-    position: 'relative',
+    borderColor: '#F1F5F9',
     overflow: 'hidden',
   },
-  statusIndicator: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 6,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    backgroundColor: '#FAFAFA',
   },
   supplierLogo: {
-    width: 64,
-    height: 64,
+    width: 48,
+    height: 48,
     borderRadius: 16,
-    marginRight: 16,
-    marginLeft: 10,
-    backgroundColor: '#F9FAFB',
+    marginRight: 12,
+    backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  orderInfo: {
-    flex: 1,
-    marginLeft: 14,
-    justifyContent: 'center',
+    borderColor: '#F1F5F9',
   },
   orderTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1E293B',
     marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  orderCode: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 2,
   },
   orderDate: {
     fontSize: 12,
-    color: '#9CA3AF',
-    marginBottom: 6,
-  },
-  orderPrice: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#9333EA',
-    marginTop: 2,
-  },
-  rightColumn: {
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 56,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
+  },
+  cardBody: {
+    padding: 16,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  orderCode: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  orderPrice: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  routeContainer: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E2E8F0',
+  },
+  routePoint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  routeText: {
+    fontSize: 13,
+    color: '#475569',
+    marginLeft: 6,
+    flex: 1,
+  },
+  deliverymanContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  deliverymanPhoto: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    backgroundColor: '#E2E8F0',
+  },
+  deliverymanName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 2,
+  },
+  deliverymanVehicle: {
+    fontSize: 11,
+    color: '#64748B',
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-    gap: 4,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginLeft: 8,
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#EF4444',
+    marginLeft: 4,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  deleteButtonText: {
+    color: '#EF4444',
+    fontWeight: '700',
+    fontSize: 14,
+    marginLeft: 8,
   },
   centerContainer: {
     flex: 1,
@@ -467,82 +707,83 @@ const styles = StyleSheet.create({
   },
   restrictedCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 30,
     width: '100%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#F1F5F9',
   },
   restrictedTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#1F2937',
-    marginTop: 14,
-    marginBottom: 6,
+    color: '#1E293B',
+    marginTop: 16,
+    marginBottom: 8,
   },
   restrictedSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
+    lineHeight: 22,
+    marginBottom: 24,
   },
   loginBtnContainer: {
     width: '100%',
   },
   loginBtn: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     width: '100%',
   },
   loginBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 15,
+    fontSize: 16,
   },
   emptyCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(147, 51, 234, 0.08)',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-    width: '80%',
+    lineHeight: 22,
+    marginBottom: 30,
+    width: '90%',
   },
   actionBtnContainer: {
-    width: '80%',
+    width: '100%',
   },
   actionBtn: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     width: '100%',
   },
   actionBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 15,
+    fontSize: 16,
   },
 });
+

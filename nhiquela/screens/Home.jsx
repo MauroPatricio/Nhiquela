@@ -1,11 +1,8 @@
+import { Image } from 'expo-image';
 // screens/Home.js (versão otimizada)
 import api from '../hooks/createConnectionApi';
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import {
-  View, Text, TouchableOpacity, Image, StyleSheet,
-  RefreshControl, ActivityIndicator, FlatList, Linking,
-  Dimensions
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, FlatList, Linking, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import SellersView from '../components/SellersView';
@@ -250,12 +247,13 @@ const Home = () => {
           const storedUserData = await AsyncStorage.getItem('userData');
           if (storedUserData) {
             const parsedUser = JSON.parse(storedUserData);
+            setUserData(parsedUser); // Update local state to instantly reflect photo changes
             if (parsedUser && parsedUser.token) {
               fetchWalletBalance(parsedUser.token);
-              // Sincronização em tempo real (polling)
+              // Sincronização em tempo real (polling otimizado)
               intervalId = setInterval(() => {
                 fetchWalletBalance(parsedUser.token, intervalId);
-              }, 5000);
+              }, 60000);
             }
           }
         } catch (error) {
@@ -652,7 +650,14 @@ responseListener.remove();
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
           <View style={style.userInfoContainer}>
-            <OptimizedImage source={require('../assets/nhiquela.png')} style={style.cover} resizeMode="contain" />
+            {userLogin && userData?.profileImage ? (
+              <Image 
+                source={{ uri: userData.profileImage.startsWith('/') ? `${require('../hooks/createConnectionApi').default.defaults.baseURL.replace('/api', '')}${userData.profileImage}` : userData.profileImage }} 
+                style={[style.cover, { borderRadius: 20 }]} 
+              />
+            ) : (
+              <OptimizedImage source={require('../assets/nhiquela.png')} style={style.cover} contentFit="contain" />
+            )}
             <View style={style.textContainer}>
               <Text style={style.greetingText}>Olá, bem-vindo</Text>
               <Text style={style.location}>{userData ? userData.name : 'Faça login'}</Text>

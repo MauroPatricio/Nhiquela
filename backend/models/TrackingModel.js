@@ -1,10 +1,12 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 const trackingSchema = new mongoose.Schema({
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
+  speed: { type: Number, default: 0 },
+  heading: { type: Number, default: 0 },
   timestamp: { type: Date, default: Date.now },
 });
 

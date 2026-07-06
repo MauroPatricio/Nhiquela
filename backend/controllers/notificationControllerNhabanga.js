@@ -70,7 +70,7 @@ export const createNotification = async ({ message, receiver_id, sender_id, orde
       newNotification.send_status = true;
       await newNotification.save();
     }else{
-      console.log("Ocorreu um erro e receptor nao recebeu mensagem!")
+      console.log("Ocorreu um erro e receptor não recebeu mensagem!")
     }
 
     console.log('Notificação criada e enviada com sucesso:', newNotification);

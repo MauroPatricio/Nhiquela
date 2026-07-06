@@ -213,7 +213,7 @@ export default function VehicleTypesScreen() {
                   </div>
                   
                   <div className="col-12">
-                    <label className="form-label fw-bold small text-muted mb-1">Taxa MÃ­n. p/ Disponibilidade (MT)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Taxa Mín. p/ Disponibilidade (MT)</label>
                     <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.minVisibilityFee || 0} onChange={(e) => setFormData({...formData, minVisibilityFee: Number(e.target.value)})} placeholder="Ex: 50" required />
                   </div>
 

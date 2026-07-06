@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 try {
-  let content = fs.readFileSync('routes/requestDeliverRoutes.js', 'utf8');
+  let content = fs.readFileSync('routes/requestServiceRoutes.js', 'utf8');
 
   // Check if we already patched it
   if (!content.includes('latitude: req.body.latitude,')) {
@@ -11,8 +11,8 @@ try {
 
     content = content.replace('      deliveryPrice:  req.body.deliveryPrice,', replacement);
     
-    fs.writeFileSync('routes/requestDeliverRoutes.js', content, 'utf8');
-    console.log('Patched requestDeliverRoutes.js successfully.');
+    fs.writeFileSync('routes/requestServiceRoutes.js', content, 'utf8');
+    console.log('Patched requestServiceRoutes.js successfully.');
   } else {
     console.log('Already patched.');
   }

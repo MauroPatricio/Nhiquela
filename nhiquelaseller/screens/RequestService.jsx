@@ -8,7 +8,7 @@ import NavFavourites from '../components/NavFavourites';
 import TransportType from '../components/TransportType';
 
 
-const RequestDeliv = () => {
+const RequestService = () => {
 
   return (
     <SafeAreaView style={styles.container}>
@@ -25,7 +25,7 @@ const RequestDeliv = () => {
   )
 }
 
-export default RequestDeliv
+export default RequestService
 
 const styles = StyleSheet.create({
   container: {

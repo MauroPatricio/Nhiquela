@@ -12,6 +12,7 @@ import {
   Alert,
   Linking
 } from "react-native";
+import { showMessage } from "react-native-flash-message";
 import { COLORS } from "../styles/colors";
 import * as Location from 'expo-location';
 import { getRoute } from "../services/routingService";
@@ -465,7 +466,7 @@ export default function TripMap({
       )}
 
 
-      {/* 🔥 MODAL DE CONFIRMAÇÃO */}
+      {/* 🔥 MODAL DE CONFIRMAÇÃO PREMIUM */}
       <Modal
         visible={showConfirmationModal}
         transparent={true}
@@ -473,30 +474,39 @@ export default function TripMap({
         onRequestClose={handleCancelTrip}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Ionicons name="checkmark-circle" size={48} color={COLORS.warning} />
-              <Text style={styles.modalTitle}>Confirmar Início da Viagem</Text>
+          <View style={styles.premiumModalContainer}>
+            <View style={styles.premiumIconContainer}>
+              <Ionicons name="cube-outline" size={40} color="#9333ea" />
             </View>
             
-            <Text style={styles.modalMessage}>
-              Você está prestes a iniciar a viagem para entrega. Confirme que recebeu a mercadoria e está pronto para partir.
+            <Text style={styles.premiumModalTitle}>Já está com a mercadoria?</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos início à viagem.
             </Text>
 
-            <View style={styles.modalButtons}>
+            <View style={styles.premiumModalButtons}>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
                 onPress={handleCancelTrip}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={styles.premiumCancelButtonText}>Não, Cancelar</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.confirmButton]}
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
                 onPress={handleConfirmTrip}
               >
-                <Ionicons name="checkmark" size={20} color="#FFF" />
-                <Text style={styles.confirmButtonText}>Confirmar</Text>
+                <LinearGradient
+                  colors={['#a855f7', '#9333ea']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Sim, Iniciar</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -841,4 +851,76 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
+  premiumModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 28,
+    width: '90%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 15,
+  },
+  premiumIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1e1b4b',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumModalMessage: {
+    fontSize: 14,
+    color: '#4b5563',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  premiumCancelButton: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  premiumConfirmButton: {
+    flex: 1.3,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumConfirmGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  }
 });

@@ -31,7 +31,7 @@ const slides = [
   {
     id: '3',
     title: 'Pagamentos simples e seguros.',
-    description: 'Pague com M-Pesa, e-Mola, cartão ou outros métodos disponíveis com total segurança.',
+    description: 'Pague com M-Pesa, e-Molá, cartão ou outros métodos disponíveis com total segurança.',
     icon: 'shield-check-outline'
   },
   {

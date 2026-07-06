@@ -1,4 +1,4 @@
-﻿// navigation/AppNavigator.tsx
+// navigation/AppNavigator.tsx
 import React, { useState, useEffect } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -89,13 +89,15 @@ function MainTabs() {
     };
 
     fetchWalletGlobalData();
-    intervalId = setInterval(fetchWalletGlobalData, 5000);
+    // Alta Performance: Alterado de 5s para 60s para evitar DDOS no backend
+    intervalId = setInterval(fetchWalletGlobalData, 60000);
 
     return () => clearInterval(intervalId);
   }, []);
 
   return (
     <Tab.Navigator
+      id="RootTabNavigator"
       tabBar={(props) => <BottomMenu {...props} />}
       screenOptions={{
         headerShown: false,
@@ -173,7 +175,7 @@ function LoadingScreen() {
 }
 
 export default function AppNavigator() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoadingSession } = useAuth();
   const [hasAcceptedPolicies, setHasAcceptedPolicies] = useState<boolean | null>(null);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
@@ -195,12 +197,13 @@ export default function AppNavigator() {
     setHasAcceptedPolicies(true);
   };
 
-  if (isCheckingOnboarding) {
+  if (isCheckingOnboarding || isLoadingSession) {
     return <LoadingScreen />;
   }
 
   return (
     <Stack.Navigator
+      id="RootStackNavigator"
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: '#F8F9FF' },

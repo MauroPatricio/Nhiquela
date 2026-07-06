@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
-import { Platform, View, Text } from 'react-native';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
@@ -10,6 +10,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORRETO
 // ❌ REMOVIDO: import Toast from 'react-native-toast-message';
@@ -43,7 +44,7 @@ import SellersList from './components/SellersList';
 import ForgotPassword from './screens/ForgotPassword';
 import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
-import RequestDelivScreen from './screens/RequestDeliv';
+import RequestServiceScreen from './screens/RequestService';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
@@ -223,7 +224,59 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ToastProvider>
+      <ToastProvider
+        placement="top"
+        duration={4000}
+        animationType="slide-in"
+        animationDuration={250}
+        renderToast={(toastOptions) => {
+          const isError = toastOptions.type === 'danger' || toastOptions.type === 'error';
+          const isSuccess = toastOptions.type === 'success';
+          const bgColor = isError ? '#FEF2F2' : isSuccess ? '#F0FDF4' : '#F8FAFC';
+          const borderColor = isError ? '#FECACA' : isSuccess ? '#BBF7D0' : '#E2E8F0';
+          const iconColor = isError ? '#EF4444' : isSuccess ? '#22C55E' : '#3B82F6';
+          const iconName = isError ? 'alert-circle' : isSuccess ? 'checkmark-circle' : 'information-circle';
+          
+          return (
+            <TouchableOpacity 
+              activeOpacity={toastOptions.data?.onPress ? 0.8 : 1}
+              onPress={() => {
+                if (toastOptions.data?.onPress) {
+                  toastOptions.data.onPress();
+                }
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: bgColor,
+                borderWidth: 1,
+                borderColor: borderColor,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 16,
+                marginHorizontal: 20,
+                marginTop: 50,
+                shadowColor: iconColor,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.2,
+                shadowRadius: 10,
+                elevation: 5,
+                width: '90%'
+            }}>
+              <Ionicons name={iconName} size={28} color={iconColor} style={{ marginRight: 12 }} />
+              <Text style={{
+                color: '#1E293B',
+                fontSize: 15,
+                fontWeight: '600',
+                flex: 1,
+                lineHeight: 22,
+              }}>
+                {toastOptions.message}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      >
         <StatusBar backgroundColor="white" style="dark" />
 
         <Provider store={store}>
@@ -266,7 +319,7 @@ export default function App() {
                 <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
                 <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
                 <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
-                <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
+                <Stack.Screen name="RequestService" component={RequestServiceScreen} />
                 <Stack.Screen name="Favorite" component={Favorite} />
                 <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
               </Stack.Navigator>

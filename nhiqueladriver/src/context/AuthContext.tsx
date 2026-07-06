@@ -1,6 +1,9 @@
 // contexts/AuthContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../api/apiConfig';
+import io from 'socket.io-client';
+import { Alert } from 'react-native';
 
 // Interfaces completas
 export interface Deliveryman {
@@ -43,7 +46,9 @@ interface AuthContextData {
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   updateDeliveryman: (deliverymanData: Partial<Deliveryman>) => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoadingSession: boolean;
 }
 
 const AuthContext = createContext<AuthContextData>({
@@ -52,7 +57,9 @@ const AuthContext = createContext<AuthContextData>({
   logout: () => {},
   updateUser: () => {},
   updateDeliveryman: () => {},
-  isAuthenticated: false
+  refreshUser: async () => {},
+  isAuthenticated: false,
+  isLoadingSession: true,
 });
 
 interface AuthProviderProps {
@@ -117,6 +124,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
   }, []);
 
+  // Vai buscar os dados mais recentes do motorista ao servidor
+  const refreshUser = useCallback(async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem('@app:user');
+      if (!storedUser) return;
+      const localUser = JSON.parse(storedUser);
+      const token = localUser?.token;
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE_URL}/drivers/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const freshData = await res.json();
+
+      // Mantém o token local (o backend não devolve token no /me)
+      const updatedUser = { ...freshData, token };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('@app:user', JSON.stringify(updatedUser));
+    } catch (e) {
+      console.warn('refreshUser falhou:', e);
+    }
+  }, []);
+
+  // Global Socket for real-time user status reload
+  useEffect(() => {
+    let socket: any;
+    if (user && user._id) {
+      const socketUrl = API_BASE_URL.replace('/api', '');
+      socket = io(socketUrl);
+
+      socket.on('userStatusChanged', async (data: any) => {
+        if (data.userId === user._id) {
+          await refreshUser();
+        }
+      });
+
+      socket.on('walletUpdated', async (data: any) => {
+        Alert.alert('Saldo Atualizado', data.message || 'O seu saldo foi atualizado.');
+        await refreshUser();
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [user?._id, refreshUser]);
+
   const isAuthenticated = !!user;
 
   const value = { 
@@ -125,13 +182,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout, 
     updateUser, 
     updateDeliveryman, 
-    isAuthenticated 
+    refreshUser,
+    isAuthenticated,
+    isLoadingSession: loading,
   };
 
-  if (loading) {
-    return null;
-  }
-
+  // Never block children — let AppNavigator handle the loading state
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

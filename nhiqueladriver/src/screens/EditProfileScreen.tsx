@@ -2,7 +2,8 @@
 import { Picker } from '@react-native-picker/picker';
 import { showMessage } from "react-native-flash-message";
 // screens/EditProfileScreen.tsx - CÓDIGO COMPLETO COM FOTOS GRANDES
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -23,7 +24,7 @@ import * as Yup from "yup";
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
-import { updateDeliverymanRequest } from "../services/deliveryService";
+import { updateDeliverymanRequest, getProviderSubcategories } from "../services/deliveryService";
 import { API_BASE_URL } from "../api/apiConfig";
 
 type Props = {
@@ -46,9 +47,16 @@ const validationSchema = Yup.object().shape({
 });
 
 export default function EditProfileScreen({ navigation, route }: Props) {
-  const { user, updateUser, updateDeliveryman } = useAuth();
+  const { user, updateUser, updateDeliveryman, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Atualiza os dados do motorista sempre que o ecrã fica em foco
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+    }, [refreshUser])
+  );
   // --- Preço Personalizado ---
   const [allowCustomPrice, setAllowCustomPrice] = useState<boolean>(user?.deliveryman?.allowCustomPrice || false);
   const [customPriceInput, setCustomPriceInput] = useState<string>(
@@ -95,6 +103,8 @@ export default function EditProfileScreen({ navigation, route }: Props) {
   // ✅ ESTADOS PARA IMAGENS - COM FORMATAÇÃO CORRETA
   const [profileImage, setProfileImage] = useState(formatBase64Image(user?.deliveryman?.photo) || "");
   const [vehicleImage, setVehicleImage] = useState(formatBase64Image(user?.deliveryman?.vihicle_picture) || "");
+  const [vehicleFrontImage, setVehicleFrontImage] = useState(formatBase64Image(user?.deliveryman?.vihicle_picture_front) || "");
+  const [vehicleBackImage, setVehicleBackImage] = useState(formatBase64Image(user?.deliveryman?.vihicle_picture_back) || "");
   const [licenseFrontImage, setLicenseFrontImage] = useState(formatBase64Image(user?.deliveryman?.license_front) || "");
   const [licenseBackImage, setLicenseBackImage] = useState(formatBase64Image(user?.deliveryman?.license_back) || "");
   const [documentFrontImage, setDocumentFrontImage] = useState(formatBase64Image(user?.deliveryman?.document_front) || "");
@@ -107,6 +117,8 @@ export default function EditProfileScreen({ navigation, route }: Props) {
   useEffect(() => {
     setProfileImage(formatBase64Image(user?.deliveryman?.photo) || "");
     setVehicleImage(formatBase64Image(user?.deliveryman?.vihicle_picture) || "");
+    setVehicleFrontImage(formatBase64Image(user?.deliveryman?.vihicle_picture_front) || "");
+    setVehicleBackImage(formatBase64Image(user?.deliveryman?.vihicle_picture_back) || "");
     setLicenseFrontImage(formatBase64Image(user?.deliveryman?.license_front) || "");
     setLicenseBackImage(formatBase64Image(user?.deliveryman?.license_back) || "");
     setDocumentFrontImage(formatBase64Image(user?.deliveryman?.document_front) || "");
@@ -115,6 +127,25 @@ export default function EditProfileScreen({ navigation, route }: Props) {
     setVehicleInsuranceImage(formatBase64Image(user?.deliveryman?.vihicle_Insurance) || "");
     setProofOfAddressImage(formatBase64Image(user?.deliveryman?.Proof_of_Address) || "");
   }, [user]);
+
+  const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string }[]>([]);
+
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      try {
+        const data = await getProviderSubcategories();
+        const formatted = data.map((item: any) => ({
+          label: item.name,
+          value: item._id,
+          pricingMode: item.pricingMode
+        }));
+        setSubcategories(formatted);
+      } catch (error) {
+        console.error("Erro ao carregar subcategorias", error);
+      }
+    };
+    fetchSubcategories();
+  }, []);
 
   // Valores iniciais do formulário
   const initialValues = {
@@ -157,7 +188,7 @@ export default function EditProfileScreen({ navigation, route }: Props) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.9,
@@ -265,6 +296,8 @@ const handleSave = async (values: any) => {
           // Imagens
           photo: profileImage,
           vihicle_picture: vehicleImage,
+          vihicle_picture_front: vehicleFrontImage,
+          vihicle_picture_back: vehicleBackImage,
           license_front: licenseFrontImage,
           license_back: licenseBackImage,
           document_front: documentFrontImage,
@@ -553,7 +586,7 @@ const handleSave = async (values: any) => {
           <Image 
             source={{ uri: selectedImage }} 
             style={styles.fullScreenImage}
-            resizeMode="contain"
+            contentFit="contain"
           />
         )}
         
@@ -664,9 +697,29 @@ const handleSave = async (values: any) => {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Tipo de Veículo</Text>
                     <View style={[styles.input, { backgroundColor: '#f3f4f6', justifyContent: 'center' }]}>
-                      <Text style={{ color: '#6b7280' }}>{values.transport_type || 'N/A'}</Text>
+                      <Text style={{ color: '#6b7280' }}>
+                        {subcategories.find(s => s.value === values.transport_type || s.label === values.transport_type)?.label || values.transport_type || 'N/A'}
+                      </Text>
                     </View>
                   </View>
+
+                  {/* Preço Base do Serviço (Se aplicável) */}
+                  {subcategories.find(s => s.label === values.transport_type || s.value === values.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Valor do serviço que presta (MZN)</Text>
+                      <View style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}>
+                        <MaterialCommunityIcons name="cash-multiple" size={20} color="#9ca3af" style={{ marginRight: 10 }} />
+                        <TextInput
+                          style={{ flex: 1, fontSize: 15 }}
+                          placeholder="Ex: 500"
+                          keyboardType="numeric"
+                          onChangeText={handleChange('assigned_base_fee')}
+                          onBlur={handleBlur('assigned_base_fee')}
+                          value={values.assigned_base_fee}
+                        />
+                      </View>
+                    </View>
+                  )}
 
                   {/* Preço Personalizado */}
                   <View style={styles.inputGroup}>
@@ -809,12 +862,26 @@ const handleSave = async (values: any) => {
                        <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center' }}>Desbloqueie a edição de documentos abaixo para alterar a foto do veículo.</Text>
                      </View>
                   ) : (
-                    <ImageUpload
-                      title="Foto do Veículo"
-                      image={vehicleImage}
-                      onPickImage={() => pickImage(setVehicleImage)}
-                      onTakePhoto={() => takePhoto(setVehicleImage)}
-                    />
+                    <View>
+                      <ImageUpload
+                        title="Foto do Veículo"
+                        image={vehicleImage}
+                        onPickImage={() => pickImage(setVehicleImage)}
+                        onTakePhoto={() => takePhoto(setVehicleImage)}
+                      />
+                      <ImageUpload
+                        title="Frente (C/ Matrícula)"
+                        image={vehicleFrontImage}
+                        onPickImage={() => pickImage(setVehicleFrontImage)}
+                        onTakePhoto={() => takePhoto(setVehicleFrontImage)}
+                      />
+                      <ImageUpload
+                        title="Trás (C/ Matrícula)"
+                        image={vehicleBackImage}
+                        onPickImage={() => pickImage(setVehicleBackImage)}
+                        onTakePhoto={() => takePhoto(setVehicleBackImage)}
+                      />
+                    </View>
                   )}
                 </View>
 

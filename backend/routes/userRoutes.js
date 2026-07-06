@@ -68,6 +68,7 @@ userRouter.get(
         isSeller: true, 
         isApproved: true, 
         isBanned: false,
+        isDeleted: { $ne: true },
         'seller.tipoEstabelecimento': { $exists: true } // Garante que tem tipoEstabelecimento
       })
       .select('-password -token')
@@ -206,12 +207,14 @@ userRouter.post(
       email: user.email,
       name: user.name,
       phoneNumber: user.phoneNumber,
+      profileImage: user.profileImage,
       isAdmin: user.isAdmin,
       isApproved: user.isApproved,
       isBanned: user.isBanned,
       isSeller: user.isSeller,
       isDeliveryMan: user.isDeliveryMan,
       seller: user.seller,
+      savedLocations: user.savedLocations || [],
       createdAt: user.createdAt,
       token: generateToken(user),
     });
@@ -244,6 +247,54 @@ userRouter.get(
     }
   })
 );
+
+userRouter.post(
+  '/profile/locations',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        const { name, address, latitude, longitude } = req.body;
+        
+        // Ensure savedLocations exists
+        if (!user.savedLocations) user.savedLocations = [];
+        
+        user.savedLocations.push({ name, address, latitude, longitude });
+        const updatedUser = await user.save();
+        
+        res.status(201).send({ message: 'Localização guardada', locations: updatedUser.savedLocations });
+      } else {
+        res.status(404).send({ message: 'Usuário não encontrado' });
+      }
+    } catch (error) {
+      console.error('Erro ao guardar localização:', error);
+      res.status(500).send({ message: 'Erro ao guardar localização' });
+    }
+  })
+);
+
+userRouter.delete(
+  '/profile/locations/:locationId',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.savedLocations = user.savedLocations.filter(
+          (loc) => loc._id.toString() !== req.params.locationId
+        );
+        const updatedUser = await user.save();
+        res.send({ message: 'Localização removida', locations: updatedUser.savedLocations });
+      } else {
+        res.status(404).send({ message: 'Usuário não encontrado' });
+      }
+    } catch (error) {
+      console.error('Erro ao remover localização:', error);
+      res.status(500).send({ message: 'Erro ao remover localização' });
+    }
+  })
+);
 userRouter.put(
   '/profile',
   isAuth,
@@ -254,6 +305,7 @@ userRouter.put(
       if (user) {
         user.name = req.body.name || user.name;
         user.email = req.body.email || user.email;
+        user.profileImage = req.body.profileImage || user.profileImage;
         user.isSeller = req.body.isSeller;
 
         if (req.body.isSeller) {
@@ -346,11 +398,13 @@ userRouter.put(
           _id: updatedUser._id,
           name: updatedUser.name,
           email: updatedUser.email,
+          profileImage: updatedUser.profileImage,
           isAdmin: updatedUser.isAdmin,
           isDeliveryMan: updatedUser.isDeliveryMan,
           isSeller: updatedUser.isSeller,
           isBanned: updatedUser.isBanned,
           seller: updatedUser.seller,
+          savedLocations: updatedUser.savedLocations || [],
           createdAt: updatedUser.createdAt,
           token: generateToken(updatedUser),
         });
@@ -409,6 +463,18 @@ userRouter.put(
       }
 
       await user.save();
+
+      // Emitir evento pelo socket para real-time reload na app (ex: aprovação de motorista)
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('userStatusChanged', {
+          userId: user._id,
+          isApproved: user.isApproved,
+          isBanned: user.isBanned,
+          status: user.status
+        });
+      }
+
       res.send({ message: 'Utilizador Actualizado Com Sucesso' });
     } else {
       res.status(404).send({ message: 'Utilizador n�o encontrado' });
@@ -435,6 +501,7 @@ userRouter.get(
       const query = {
         isSeller: true,
         isApproved: true,
+        isDeleted: { $ne: true },
         'seller.tipoEstabelecimento': establishmentTypeId
       };
 
@@ -651,7 +718,7 @@ userRouter.post('/reset-password', expressAsyncHandler(async (req, res)=>{
           res.send({message: 'Password Actualizada com successo'})
         }
       }else{
-        res.status(404).send({message: 'Utilizador nao encontrado'})
+        res.status(404).send({message: 'Utilizador não encontrado'})
       }
     }
   })
@@ -682,7 +749,9 @@ userRouter.post(
       user.deliveryman = {
         ...user.deliveryman,
         photo: updateData.photo || user.deliveryman.photo,
-        vihicle_picture: updateData.vihicle_picture || user.deliveryman.vihicle_picture,
+        vihicle_picture: updateData.vihicle_picture || user.deliveryman.vihicle_picture, // fallback
+        vihicle_picture_front: updateData.vihicle_picture_front || user.deliveryman.vihicle_picture_front,
+        vihicle_picture_back: updateData.vihicle_picture_back || user.deliveryman.vihicle_picture_back,
         license_front: updateData.license_front || user.deliveryman.license_front,
         license_back: updateData.license_back || user.deliveryman.license_back,
         document_front: updateData.document_front || user.deliveryman.document_front,
@@ -698,8 +767,16 @@ userRouter.post(
         Proof_of_Addres_Reason: updateData.Proof_of_Addres_Reason || user.deliveryman.Proof_of_Addres_Reason,
         hasHelpers: updateData.hasHelpers !== undefined ? updateData.hasHelpers : user.deliveryman.hasHelpers,
         helperCount: updateData.helperCount !== undefined ? updateData.helperCount : user.deliveryman.helperCount,
+        assigned_base_fee: updateData.assigned_base_fee !== undefined ? updateData.assigned_base_fee : user.deliveryman.assigned_base_fee,
         docUpdateStatus: 'Nenhum'
       };
+
+      if (updateData.assigned_base_fee !== undefined && updateData.transport_type) {
+        user.providedServices = [{
+          serviceId: updateData.transport_type,
+          customBasePrice: updateData.assigned_base_fee
+        }];
+      }
 
       await user.save();
 
@@ -812,6 +889,7 @@ userRouter.post('/verify-otp', expressAsyncHandler(async (req, res) => {
     phoneNumber: user.phoneNumber,
     isDeliveryMan: user.isDeliveryMan,
     deliveryman: user.deliveryman,
+    savedLocations: user.savedLocations || [],
     createdAt: user.createdAt,
     token: generateToken(user),
   });
@@ -865,6 +943,49 @@ userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
     })
   });
 }));
+
+// --- ROTA DE RESET DE PASSWORD (ADMIN) ---
+userRouter.put(
+  '/:id/reset-password',
+  isAuth,
+  isAdmin,
+  expressAsyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+    if (user) {
+      user.password = bcrypt.hashSync('password123', 8);
+      user.requirePasswordChange = true;
+      const updatedUser = await user.save();
+      res.send({ message: 'Palavra-passe redefinida para password123. O utilizador terá de a alterar no próximo login.', user: updatedUser });
+    } else {
+      res.status(404).send({ message: 'Utilizador não encontrado.' });
+    }
+  })
+);
+
+// --- ROTA DE FORÇAR UPDATE DE PASSWORD (USER) ---
+userRouter.put(
+  '/:id/force-update-password',
+  expressAsyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+    if (user) {
+      if (req.body.password) {
+        user.password = bcrypt.hashSync(req.body.password, 8);
+        user.requirePasswordChange = false;
+      }
+      const updatedUser = await user.save();
+      
+      res.send({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        requirePasswordChange: updatedUser.requirePasswordChange,
+        token: generateToken(updatedUser),
+      });
+    } else {
+      res.status(404).send({ message: 'Utilizador não encontrado.' });
+    }
+  })
+);
 
 userRouter.post(
   '/signin',
@@ -929,7 +1050,9 @@ userRouter.post(
       seller: user.seller || null,
       deliveryman: user.deliveryman || null,
       tipoEstabelecimento: user.tipoEstabelecimento || null,
+      savedLocations: user.savedLocations || [],
       createdAt: user.createdAt,
+      requirePasswordChange: user.requirePasswordChange || false,
       token: generateToken(user),
     });
   })
@@ -1017,9 +1140,12 @@ userRouter.post(
             name: req.body.name,
             phoneNumber: req.body.phoneNumber,
             transport_type: req.body.transport_type,
+            assigned_base_fee: req.body.providedServices && req.body.providedServices.length > 0 ? req.body.providedServices[0].customBasePrice : undefined,
             transport_color: req.body.transport_color,
             transport_registration: req.body.transport_registration,
             vihicle_picture: req.body.vihicle_picture,
+            vihicle_picture_front: req.body.vihicle_picture_front,
+            vihicle_picture_back: req.body.vihicle_picture_back,
             vihicle_inspection: req.body.vihicle_inspection,
             vihicle_Insurance: req.body.vihicle_Insurance,
             vihicle_logbook: req.body.vihicle_logbook,
@@ -1031,6 +1157,10 @@ userRouter.post(
             Proof_of_Address: req.body.Proof_of_Address,
             register_conformance: "PENDING_CONFORMANCE"
           };
+
+          if (req.body.providedServices) {
+            newUser.providedServices = req.body.providedServices;
+          }
         }
 
         const user = await newUser.save();
@@ -1059,24 +1189,26 @@ userRouter.post(
           });
           await provider.save();
         }
-        return res.send({
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-          isAdmin: user.isAdmin,
-          isDeliveryMan: user.isDeliveryMan,
-          isSeller: user.isSeller,
-          isBanned: user.isBanned,
-          createdAt: user.createdAt,
-          token: generateToken(user),
-        });
+          return res.send({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            profileImage: user.profileImage,
+            isAdmin: user.isAdmin,
+            isDeliveryMan: user.isDeliveryMan,
+            isSeller: user.isSeller,
+            isBanned: user.isBanned,
+            savedLocations: user.savedLocations || [],
+            createdAt: user.createdAt,
+            token: generateToken(user),
+          });
       }
 
-      res.status(409).send({ message: 'N�mero de registo existente' });
+      res.status(409).send({ message: 'Nmero de registo existente' });
     } catch (error) {
             console.log(error)
-      console.error('Erro no registro de usu�rio:', error);
+      console.error('Erro no registro de usurio:', error);
       res.status(500).send({ message: 'Erro interno no registro' });
     }
   })

@@ -196,13 +196,33 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
       currentState = 'Aviso';
     }
 
-    // Obter Taxa Base do Veiculo
+    // Obter Taxa Base do Veículo e Taxa Mínima de Visibilidade
     let baseFare = 0;
+    let minVisibilityFee = 0;
+    let vehicleName = '';
+    let categoryName = '';
     const fullUser = await mongoose.model('User').findById(req.user._id);
     if (fullUser && fullUser.deliveryman && fullUser.deliveryman.transport_type) {
-      const vType = await VehicleType.findOne({ name: fullUser.deliveryman.transport_type });
+      let vType = null;
+      const transportType = fullUser.deliveryman.transport_type;
+      
+      if (mongoose.Types.ObjectId.isValid(transportType)) {
+        const ProviderSubcategory = mongoose.model('ProviderSubcategory');
+        const subcategory = await ProviderSubcategory.findById(transportType);
+        if (subcategory) {
+          categoryName = subcategory.name;
+          if (subcategory.vehicleTypes && subcategory.vehicleTypes.length > 0) {
+            vType = await VehicleType.findById(subcategory.vehicleTypes[0]);
+          }
+        }
+      } else {
+        vType = await VehicleType.findOne({ name: transportType });
+      }
+
       if (vType) {
         baseFare = vType.basePrice || vType.baseFare || 0;
+        minVisibilityFee = vType.minVisibilityFee || 0;
+        vehicleName = vType.name;
       }
     }
 
@@ -210,7 +230,10 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
       saldo_atual: balance,
       limite_credito: config.allowNegativeBalance ? config.creditLimit : 0,
       saldo_operacional_minimo: config.minOperationalBalance,
-      taxa_base_veiculo: baseFare,
+      taxa_base_veículo: baseFare,
+      taxa_minima_recarga: minVisibilityFee > 0 ? minVisibilityFee : config.minOperationalBalance,
+      nome_veiculo: vehicleName,
+      nome_categoria: categoryName,
       saldo_disponivel: balance - limit,
       estado_atual: currentState,
       total_recarregado: totalRecharged,
@@ -538,6 +561,24 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Emit socket event to notify the driver to refresh wallet/status
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(wallet.user.toString()).emit('userStatusChanged', {
+          userId: wallet.user.toString(),
+          status: 'approved', // Trigger a refresh on frontend
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(wallet.user.toString()).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+      }
+    } catch (socketErr) {
+      console.log('Socket error emitting:', socketErr.message);
+    }
+
     res.status(200).json({ message: 'Recarga autorizada com sucesso!' });
   } catch (err) {
     await session.abortTransaction();

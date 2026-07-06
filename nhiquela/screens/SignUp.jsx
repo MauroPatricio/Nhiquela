@@ -1,17 +1,6 @@
+import { Image } from 'expo-image';
 import React, { useState, useReducer } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Linking,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackBtn from '../components/BackBtn';
 import Button from '../components/Button';
@@ -321,7 +310,7 @@ const styles = StyleSheet.create({
   cover: {
     height: 120,
     width: '100%',
-    resizeMode: 'contain',
+    contentFit: 'contain',
     marginBottom: 5,
     backgroundColor: 'white',
     marginTop: -20,
@@ -430,3 +419,4 @@ const styles = StyleSheet.create({
     padding: 5,
   },
 });
+

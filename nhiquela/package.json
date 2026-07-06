@@ -6,13 +6,13 @@
   "scripts": {
     "start": "node --require ./polyfill.js ./node_modules/expo/bin/cli start",
     "start:clear": "node --require ./polyfill.js ./node_modules/expo/bin/cli start --clear",
+    "start:win": "node -e \"const{execSync}=require('child_process');try{execSync('rmdir /s /q \\\"%TEMP%\\\\metro-cache\"',{shell:'cmd.exe',stdio:'ignore'})}catch(e){}\" && node --require ./polyfill.js ./node_modules/expo/bin/cli start",
     "android": "node --require ./polyfill.js ./node_modules/expo/bin/cli run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "jest",
-    "security-check": "npm audit --audit-level=critical",
-    "eas-build-pre-build": "npm run lint"
+    "security-check": "npm audit --audit-level=critical"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

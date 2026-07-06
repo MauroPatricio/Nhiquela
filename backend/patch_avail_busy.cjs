@@ -3,11 +3,11 @@ const fs = require('fs');
 try {
   let content = fs.readFileSync('routes/driverRoutes.js', 'utf8');
 
-  // Import RequestDeliv if not already imported
-  if (!content.includes("import RequestDeliv from '../models/RequestDeliverModel.js';")) {
+  // Import RequestService if not already imported
+  if (!content.includes("import RequestService from '../models/RequestServiceModel.js';")) {
     content = content.replace(
       "import User from '../models/UserModel.js';",
-      "import User from '../models/UserModel.js';\nimport RequestDeliv from '../models/RequestDeliverModel.js';"
+      "import User from '../models/UserModel.js';\nimport RequestService from '../models/RequestServiceModel.js';"
     );
   }
 
@@ -18,7 +18,7 @@ try {
     let drivers = await User.find(filter).lean();
     
     // EXCLUDE OCCUPIED DRIVERS (drivers with active orders or pending direct requests)
-    const activeOrders = await RequestDeliv.find({
+    const activeOrders = await RequestService.find({
        status: { $nin: ['Finalizado', 'Cancelado'] }
     }).select('deliveryman targetDriverId').lean();
     

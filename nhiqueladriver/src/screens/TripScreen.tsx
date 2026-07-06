@@ -70,9 +70,9 @@ export default function TripScreen({ navigation }: any) {
         return;
       }
 
-      // 🔹 FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestDelivers)
+      // 🔹 FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestServices)
       const formattedTrips = apiTrips.map((trip: any) => {
-        const isRequestDeliver = trip.type === 'requestDeliver';
+        const isRequestService = trip.type === 'requestService';
         
         const distance = trip.distance || 0;
         
@@ -105,7 +105,7 @@ export default function TripScreen({ navigation }: any) {
         let destLoc = "Destino";
         let rewardPrice = 0;
 
-        if (isRequestDeliver) {
+        if (isRequestService) {
           passengerName = trip.name || trip.user?.name || "Passageiro";
           pickupLoc = trip.origin || "Local de Partida";
           destLoc = trip.destination || "Destino";
@@ -120,7 +120,7 @@ export default function TripScreen({ navigation }: any) {
         return {
           id: trip.id || trip._id || Math.random().toString(),
           passengerId: trip.user?._id || trip.user?.id || trip.user || trip.userId || trip.client || "Não disponível",
-          type: isRequestDeliver ? "Entrega de Encomenda" : "Pedido de Loja",
+          type: isRequestService ? (trip.name && !trip.name.match(/^[0-9a-fA-F]{24}$/) ? trip.name : (trip.goodType || "Serviço")) : "Pedido de Loja",
           passenger: passengerName,
           pickup: pickupLoc,
           destination: destLoc,

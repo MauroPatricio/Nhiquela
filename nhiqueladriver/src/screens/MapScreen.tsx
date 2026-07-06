@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity, Modal } from "react-native";
 import TripMap from "../components/TripMap";
 import TripControls from "../components/TripControls";
 import { getCurrentLocation, updateDeliverymanLocation } from "../services/driverLocationService";
@@ -8,6 +8,8 @@ import * as Location from 'expo-location';
 import { startOrderInTransit } from "../services/orderService"; 
 import { io } from 'socket.io-client';
 import { showMessage } from "react-native-flash-message";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 // 🔥 LOCALIZAÇÃO FALLBACK (caso não consiga obter a real)
 const FALLBACK_LOCATION = {
@@ -24,6 +26,10 @@ export default function MapScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [startingTrip, setStartingTrip] = useState(false);
+  const [showTripStartedModal, setShowTripStartedModal] = useState(false);
+  const [showNoLocationModal, setShowNoLocationModal] = useState(false);
+  const [showFinishConfirmationModal, setShowFinishConfirmationModal] = useState(false);
+  const [showFinishSuccessModal, setShowFinishSuccessModal] = useState(false);
 
   useEffect(() => {
     let interval: any;
@@ -44,28 +50,26 @@ export default function MapScreen({ route, navigation }: any) {
   
         await updateDeliverymanLocation(orderId);
   
-        // Atualiza a localização a cada 5 segundos via socket
+        // Atualiza a localização a cada 10 segundos via socket (otimizado)
         interval = setInterval(async () => {
           try {
             const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             const locationData = {
+              driverId: storedTrip?.deliveryman?.id,
+              orderId,
               latitude: loc.coords.latitude,
               longitude: loc.coords.longitude,
-              heading: loc.coords.heading
+              heading: loc.coords.heading,
+              speed: loc.coords.speed
             };
             
-            // Emite a localização em tempo real para o cliente
-            socket.emit('updateDriverLocation', {
-              orderId,
-              location: locationData
-            });
-
-            // Fallback: Atualiza na API também, mas num intervalo maior se necessário
-            await updateDeliverymanLocation(orderId);
+            // Emite a localização em tempo real para o backend processar e transmitir ao cliente
+            socket.emit('update_location', locationData);
+            
           } catch (err) {
             console.log("Erro ao capturar GPS para socket", err);
           }
-        }, 5000);
+        }, 10000);
   
       } catch (error) {
         console.error("Erro ao iniciar atualização automática da localização:", error);
@@ -97,14 +101,21 @@ export default function MapScreen({ route, navigation }: any) {
           setLocationError(locationError.message);
         }
 
-        const storedTripString = await AsyncStorage.getItem("acceptedTrip");
+        let storedTripString = await AsyncStorage.getItem("acceptedTrip");
+        let storedTrip = null;
+
+        if (route.params?.tripData) {
+          storedTrip = route.params.tripData;
+          // Garantir que persistimos a viagem atual
+          await AsyncStorage.setItem("acceptedTrip", JSON.stringify(storedTrip));
+        } else if (storedTripString) {
+          storedTrip = JSON.parse(storedTripString);
+        }
   
-        if (!storedTripString) {
+        if (!storedTrip) {
           setLoading(false);
           return;
         }
-  
-        const storedTrip = JSON.parse(storedTripString);
   
         // 🔥 Guardar dados no estado
         setTripData(storedTrip);
@@ -112,69 +123,48 @@ export default function MapScreen({ route, navigation }: any) {
         // 🔥 Definir destino baseado no stepStatus
         if (storedTrip) {  
           if (storedTrip.stepStatus === 4) {
-            // STEP 4 → destino = local do VENDEDOR (destinationLocation)
-            const vendorLat = Number(storedTrip.destinationLocation?.latitude);
-            const vendorLng = Number(storedTrip.destinationLocation?.longitude);
+            // STEP 4 → destino = local do VENDEDOR/COLETA (originLocation ou seller)
+            const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude);
+            const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude);
   
             if (vendorLat && vendorLng) {
               const vendorLocation = {
                 latitude: vendorLat,
                 longitude: vendorLng,
-                title: storedTrip.destination || "Local de Coleta (Vendedor)",
+                title: storedTrip.pickup || "Local de Coleta",
               };
               setDestination(vendorLocation);
             } else {
-              showMessage({
-                message: "Atenção",
-                description: "Localização do cliente indisponível.",
-                type: "danger",
-                icon: "warning",
-                duration: 4000,
-                style: {
-                  paddingTop: 40,
-                  borderRadius: 16,
-                  margin: 10,
-                  backgroundColor: '#FF3B30',
-                },
-                titleStyle: {
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  color: "#FFF"
-                },
-                textStyle: {
-                  fontSize: 14,
-                  color: "#FFF"
-                }
-              });
+              setShowNoLocationModal(true);
             }
   
           } else if (storedTrip.stepStatus === 5) {
-            // STEP 5 → destino = local do CLIENTE (deliveryAddress)
-            const clientLat = Number(storedTrip.originalData?.deliveryAddress?.latitude);
-            const clientLng = Number(storedTrip.originalData?.deliveryAddress?.longitude);
+            // STEP 5 → destino = local do CLIENTE (destinationLocation ou deliveryAddress)
+            const clientLat = Number(storedTrip.originalData?.destinationLocation?.latitude || storedTrip.originalData?.deliveryAddress?.latitude || storedTrip.originalData?.latitude);
+            const clientLng = Number(storedTrip.originalData?.destinationLocation?.longitude || storedTrip.originalData?.deliveryAddress?.longitude || storedTrip.originalData?.longitude);
   
             if (clientLat && clientLng) {
               const clientLocation = {
                 latitude: clientLat,
                 longitude: clientLng,
-                title: storedTrip.originalData?.deliveryAddress?.address || "Destino do Cliente",
+                title: storedTrip.destination || storedTrip.originalData?.deliveryAddress?.address || "Destino do Cliente",
               };
               setDestination(clientLocation);
             } else {
-              Alert.alert("Aviso", "Localização do cliente não disponível.");
+              setShowNoLocationModal(true);
             }
   
           } else {
             // STEP PENDENTE / ACEITE MAS NÃO INICIADO → destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
             // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
-            const pickupLat = Number(storedTrip.destinationLocation?.latitude || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originLocation?.latitude);
-            const pickupLng = Number(storedTrip.destinationLocation?.longitude || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originLocation?.longitude);
+            const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude);
+            const pickupLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude);
             
             if (pickupLat && pickupLng) {
               const pickupLocation = {
                 latitude: pickupLat,
                 longitude: pickupLng,
-                title: storedTrip.destination || "Local da Coleta",
+                title: storedTrip.pickup || "Local da Coleta",
               };
               setDestination(pickupLocation);
             } else {
@@ -235,8 +225,8 @@ export default function MapScreen({ route, navigation }: any) {
       }
 
       // Atualizar status da ordem no backend
-      const isRequestDeliver = trip.originalData?.goodType !== undefined;
-      await startOrderInTransit(trip.id, isRequestDeliver);
+      const isRequestService = trip.originalData?.goodType !== undefined;
+      await startOrderInTransit(trip.id, isRequestService);
 
       // Atualizar destino para o cliente (agora stepStatus = 5)
       const clientLat = Number(trip.originalData?.deliveryAddress?.latitude);
@@ -251,7 +241,7 @@ export default function MapScreen({ route, navigation }: any) {
         setDestination(clientLocation);
       }
 
-      Alert.alert("✅ Viagem Iniciada", "Você iniciou a viagem para entrega!");
+      setShowTripStartedModal(true);
 
     } catch (error: any) {
       console.error("Erro ao iniciar viagem:", error.message);
@@ -294,9 +284,17 @@ export default function MapScreen({ route, navigation }: any) {
       );
       return;
     }
-    Alert.alert("✅ Viagem finalizada", "Entrega concluída com sucesso!");
-    AsyncStorage.removeItem("acceptedTrip");
-    navigation.navigate("Home");
+    setShowFinishConfirmationModal(true);
+  };
+
+  const proceedFinishTrip = async () => {
+    try {
+      setShowFinishConfirmationModal(false);
+      await AsyncStorage.removeItem("acceptedTrip");
+      setShowFinishSuccessModal(true);
+    } catch (error) {
+      console.warn("Erro ao finalizar viagem:", error);
+    }
   };
 
   const handleRetryLocation = async () => {
@@ -384,6 +382,179 @@ export default function MapScreen({ route, navigation }: any) {
         canFinishTrip={canFinishTrip}
         routeDrawn={routeDrawn}
       />
+
+      {/* 🔥 CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
+      {tripData?.stepStatus === 5 && (
+        <TripControls
+          onCancelTrip={handleCancelTrip}
+          onFinishTrip={handleFinishTrip}
+          canFinishTrip={canFinishTrip}
+          routeDrawn={routeDrawn}
+        />
+      )}
+
+      {/* 🔥 MODAL PREMIUM — VIAGEM INICIADA COM SUCESSO */}
+      <Modal
+        visible={showTripStartedModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={styles.premiumIconContainer}>
+              <Ionicons name="compass-outline" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.premiumConfirmButton}
+              activeOpacity={0.85}
+              onPress={() => setShowTripStartedModal(false)}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Entendido</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO INDISPONÍVEL */}
+      <Modal
+        visible={showNoLocationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowNoLocationModal(false)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumWarningModalContainer}>
+            <View style={styles.premiumWarningIconContainer}>
+              <Ionicons name="location-off-outline" size={44} color="#D97706" />
+            </View>
+            
+            <Text style={styles.premiumWarningModalTitle}>Localização Indisponível</Text>
+            
+            <Text style={styles.premiumWarningModalMessage}>
+              Infelizmente, não foi possível obter as coordenadas geográficas para o local de entrega.{'\n\n'}Por favor, contacte o cliente diretamente para combinar a rota ou obter direções.
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.premiumWarningConfirmButton}
+              activeOpacity={0.85}
+              onPress={() => setShowNoLocationModal(false)}
+            >
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Entendido</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🏁 MODAL PREMIUM — CONFIRMAR ENTREGA */}
+      <Modal
+        visible={showFinishConfirmationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFinishConfirmationModal(false)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="flag-outline" size={42} color="#EF4444" />
+            </View>
+            
+            <Text style={[styles.premiumModalTitle, { color: '#991B1B' }]}>Confirmar Entrega?</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Confirme que entregou a mercadoria ao cliente com sucesso para concluir esta viagem e atualizar o seu saldo.
+            </Text>
+
+            <View style={styles.premiumModalButtons}>
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={() => setShowFinishConfirmationModal(false)}
+              >
+                <Text style={styles.premiumCancelButtonText}>Voltar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
+                onPress={proceedFinishTrip}
+              >
+                <LinearGradient
+                  colors={['#EF4444', '#DC2626']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Confirmar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🎉 MODAL PREMIUM — ENTREGA CONCLUÍDA COM SUCESSO */}
+      <Modal
+        visible={showFinishSuccessModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="trophy-outline" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Entrega Concluída! 🎉</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Parabéns! Completou a sua entrega com sucesso. O seu saldo e estatísticas foram atualizados.
+            </Text>
+
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowFinishSuccessModal(false);
+                navigation.navigate("Home");
+              }}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Voltar ao Início</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -474,5 +645,125 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
     fontWeight: "bold"
+  },
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 28,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 14,
+  },
+  premiumIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#065F46',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumModalMessage: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumConfirmButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumConfirmGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  premiumWarningModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 28,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 14,
+  },
+  premiumWarningIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumWarningModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumWarningModalMessage: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumWarningConfirmButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  premiumCancelButton: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
   }
 });

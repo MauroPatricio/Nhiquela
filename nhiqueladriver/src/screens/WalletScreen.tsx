@@ -2,12 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import api from '../api/apiConfig';
+import api, { API_BASE_URL } from '../api/apiConfig';
 import { COLORS } from '../styles/colors';
 import { useAuth } from '../context/AuthContext';
+import io from 'socket.io-client';
+import { getProviderSubcategories } from '../services/deliveryService';
 
 interface Transaction {
   id: string;
@@ -34,9 +37,11 @@ export default function WalletScreen({ navigation, route }: any) {
     estado_atual: 'Ativo',
     total_recarregado: 0,
     total_comissoes: 0,
-    permite_negativo: false,
     bloqueio_automatico: true,
-    taxa_base_veiculo: 0,
+    taxa_base_veículo: 0,
+    taxa_minima_recarga: 0,
+    nome_veiculo: '',
+    nome_categoria: '',
   });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
   const [dailyEarnings, setDailyEarnings] = useState<Array<{ date: string, amount: number }>>([]);
@@ -50,6 +55,24 @@ export default function WalletScreen({ navigation, route }: any) {
   const [missingReceiptModalVisible, setMissingReceiptModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTransportTypeName = async () => {
+      const typeId = user?.deliveryman?.transport_type;
+      if (!typeId) return;
+      try {
+        const subcategories = await getProviderSubcategories();
+        const found = subcategories.find((sub: any) => sub._id === typeId || sub.id === typeId);
+        if (found) {
+          setTransportTypeName(found.name);
+        }
+      } catch (err) {
+        // silently fallback
+      }
+    };
+    fetchTransportTypeName();
+  }, [user?.deliveryman?.transport_type]);
 
   const fetchWalletData = async (silent = false) => {
     if (!user || !user.token) {
@@ -101,16 +124,32 @@ export default function WalletScreen({ navigation, route }: any) {
     }
   };
 
-  useEffect(() => {
-    fetchWalletData();
-    
-    // Auto atualizar o saldo e estado das recargas em background a cada 5 segundos
-    const intervalId = setInterval(() => {
-      fetchWalletData(true);
-    }, 5000);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchWalletData();
+      return () => {};
+    }, [user?.token])
+  );
 
-    return () => clearInterval(intervalId);
-  }, [user?.token]);
+  // Global socket listener for Wallet updates
+  useEffect(() => {
+    let socket: any;
+    if (user && user._id) {
+      const socketUrl = API_BASE_URL.replace('/api', '');
+      socket = io(socketUrl);
+
+      socket.on('walletUpdated', (data: any) => {
+        // When a recharge is approved, refresh the wallet immediately
+        fetchWalletData(true); // silent refresh
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [user?._id]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -152,7 +191,7 @@ export default function WalletScreen({ navigation, route }: any) {
 
   const handlePickReceipt = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -172,7 +211,7 @@ export default function WalletScreen({ navigation, route }: any) {
 
   const handleTopUpSubmit = async () => {
     const amountNum = Number(topUpAmount);
-    const taxaBase = balanceSummary.taxa_base_veiculo || 0;
+    const taxaMinima = balanceSummary.taxa_minima_recarga || 0;
 
     if (!topUpAmount || isNaN(amountNum) || amountNum <= 0) {
       setInvalidValueMessage("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
@@ -180,8 +219,9 @@ export default function WalletScreen({ navigation, route }: any) {
       return;
     }
 
-    if (amountNum < taxaBase) {
-      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para o seu tipo de veículo (${user?.deliveryman?.transport_type || 'registado'}) é de ${taxaBase} MT (Taxa Base).`);
+    if (amountNum < taxaMinima) {
+      const vName = balanceSummary.nome_categoria || balanceSummary.nome_veiculo || transportTypeName || user?.deliveryman?.transport_type || 'registado';
+      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para a sua categoria (${vName}) é de ${taxaMinima} MT (Taxa Mínima).`);
       setInvalidValueModalVisible(true);
       return;
     }
@@ -593,7 +633,7 @@ export default function WalletScreen({ navigation, route }: any) {
                       <Text style={{ fontSize: 12, color: '#888', marginBottom: 8, textTransform: 'uppercase', fontWeight: 'bold' }}>Comprovativo Anexado</Text>
                       <Image 
                         source={{ uri: extractedUrl }} 
-                        style={{ width: '100%', height: 200, borderRadius: 8, resizeMode: 'contain', backgroundColor: '#EFEFEF' }} 
+                        style={{ width: '100%', height: 200, borderRadius: 8, contentFit: 'contain', backgroundColor: '#EFEFEF' }} 
                       />
                     </>
                   );
@@ -943,7 +983,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderRadius: 12,
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   removeReceiptBtn: {
     position: 'absolute',
@@ -1143,3 +1183,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   }
 });
+

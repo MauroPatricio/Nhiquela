@@ -25,12 +25,12 @@ const orderReplacement = `orderRouter.post('/', isAuth, expressAsyncHandler(asyn
     const priceFromSeller = parseFloat(req.body.itemsPriceForSeller);`;
 patchFile(orderRoutesPath, orderTarget, orderReplacement);
 
-// Patch requestDeliverRoutes.js
-const reqDeliverPath = 'routes/requestDeliverRoutes.js';
-const reqTarget = `requestDeliverRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
+// Patch requestServiceRoutes.js
+const reqDeliverPath = 'routes/requestServiceRoutes.js';
+const reqTarget = `requestServiceRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
     
     // Configurar as opções para o cálculo de rotas`;
-const reqReplacement = `requestDeliverRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
+const reqReplacement = `requestServiceRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
     // Check for cancellation penalty block
     const currentUser = await User.findById(req.user._id);
     if (currentUser && currentUser.blockedUntil && currentUser.blockedUntil > new Date()) {
