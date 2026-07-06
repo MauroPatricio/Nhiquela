@@ -218,8 +218,11 @@ const OrderDetailsScreen = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pendente': return '#F59E0B';
+      case 'Aceite': return '#FCD34D';
       case 'Em trânsito': return '#3B82F6';
+      case 'No destino indicado': return '#8B5CF6';
       case 'Entregue': return '#10B981';
+      case 'Finalizado': return '#10B981';
       case 'Cancelado': return '#EF4444';
       default: return '#6B7280';
     }
@@ -370,7 +373,7 @@ const OrderDetailsScreen = () => {
 
       {/* Ações */}
       <View style={styles.actionsContainer}>
-        {currentOrder.status === 'Em trânsito' && (
+        {currentOrder.status === 'No destino indicado' && (
           <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
             <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
               <Ionicons name="checkmark-circle" size={20} color="#FFF" />

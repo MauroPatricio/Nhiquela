@@ -34,6 +34,15 @@ router.delete(
       customer.isDeleted = true;
       customer.isBanned = true;
       customer.isApproved = false;
+      
+      // Release credentials for future registration
+      const ts = Date.now();
+      customer.email = `deleted_${ts}_${customer.email}`;
+      if (customer.phoneNumber) {
+        // phoneNumber in UserModel is Number, so we use Date.now() 
+        // to free up the original number and prevent unique constraint errors
+        customer.phoneNumber = ts;
+      }
       await customer.save();
       res.send({ message: 'Cliente removido com sucesso' });
     } else {

@@ -210,3 +210,29 @@ export const debitDriverCommissionWithSession = async (driverId, amount, descrip
   // Note: we don't commit the session here, the route controller does it
   return wallet;
 };
+
+/** Refund driver commission using MongoDB Sessions for atomicity */
+export const refundDriverCommissionWithSession = async (driverId, amount, description, method, session) => {
+  let wallet = await Wallet.findOne({ $or: [{ ownerId: driverId }, { userId: driverId }] }).session(session);
+  if (!wallet) {
+    wallet = await Wallet.create([{ ownerId: driverId, ownerType: 'driver', userId: driverId, balance: 0 }], { session });
+    wallet = wallet[0];
+  }
+
+  // Add amount back to wallet
+  wallet.balance += amount;
+  await wallet.save({ session });
+
+  // Record transaction
+  await Transaction.create([{
+    walletId: wallet._id,
+    type: 'credit',
+    amount: amount,
+    method: method || 'wallet',
+    description: description,
+    status: 'confirmado'
+  }], { session });
+
+  // Note: we don't commit the session here, the route controller does it
+  return wallet;
+};

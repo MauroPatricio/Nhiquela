@@ -21,7 +21,7 @@ export default function DashboardScreen() {
   const fetchDashboardData = async () => {
     try {
       const [walletRes, ordersRes, driversRes, custRes, financialRes] = await Promise.all([
-        api.get('/wallet/balance').catch(() => ({ data: { available_balance: 24500, pending_balance: 1200 } })),
+        api.get('/wallet/balance').catch(() => ({ data: { available_balance: 0, pending_balance: 0 } })),
         api.get('/orders').catch(() => ({ data: [] })),
         api.get('/drivers').catch(() => ({ data: [] })),
         api.get('/customers').catch(() => ({ data: [] })),
@@ -29,7 +29,7 @@ export default function DashboardScreen() {
       ]);
 
       setStats({
-        wallet: { available: walletRes.data.available_balance || 24500, pending: walletRes.data.pending_balance || 1200 },
+        wallet: { available: walletRes.data.available_balance || 0, pending: walletRes.data.pending_balance || 0 },
         orders: ordersRes.data.orders || ordersRes.data || [],
         drivers: driversRes.data.drivers || (Array.isArray(driversRes.data) ? driversRes.data : []),
         customers: custRes.data.customers || (Array.isArray(custRes.data) ? custRes.data : []),
@@ -51,8 +51,8 @@ export default function DashboardScreen() {
   const inTransitDriversCount = stats.drivers.filter(d => d.status === 'Em Entrega').length;
   const cancelledTripsCount = stats.orders.filter(o => o.status === 'Cancelado').length;
   
-  // Calculate driver earnings roughly as 80% if not explicitly set
-  const driverEarnings = stats.orders.reduce((sum, order) => sum + Number(order.totalPrice || order.itemsPrice || 0) * 0.8, 0);
+  // Calculate driver earnings roughly as 85% based on 15% platform commission
+  const driverEarnings = stats.orders.reduce((sum, order) => sum + Number(order.totalPrice || order.itemsPrice || 0) * 0.85, 0);
 
   
   // Real dynamic data from orders
