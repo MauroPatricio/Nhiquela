@@ -66,8 +66,8 @@ mongoose
   .connect(process.env.MONGODB_URI, {
     serverSelectionTimeoutMS: 30000, // ? 30 segundos timeout
     socketTimeoutMS: 45000, // ? 45 segundos socket
-    maxPoolSize: 10, // ? Limite de conex�es
-    minPoolSize: 5, // ? M�nimo de conex�es
+    maxPoolSize: 100, // Elevado para 100 para produção
+    minPoolSize: 5, // ? Mnimo de conexes
     retryWrites: true, // ? Re-tentar escritas
     w: 'majority' // ? Write concern
   })
@@ -263,34 +263,46 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Alta Performance: Receber localização do motorista via WebSocket
+  // Memória cache para evitar sobrecarga na DB
+  const locationUpdateCache = new Map();
+
+  // Alta Performance: Receber localizacao do motorista via WebSocket
   socket.on('update_location', async (data) => {
     try {
       const { driverId, orderId, latitude, longitude, heading, speed } = data;
       if (driverId && latitude && longitude) {
-        await User.updateOne(
-          { _id: driverId },
-          {
-            $set: {
-              latitude,
-              longitude,
-              heading: heading || 0,
-              speed: speed || 0,
+        const now = Date.now();
+        const lastUpdate = locationUpdateCache.get(driverId) || 0;
+        
+        // Debounce: Apenas escreve na Base de Dados a cada 15 segundos
+        if (now - lastUpdate > 15000) {
+          await User.updateOne(
+            { _id: driverId },
+            {
+              latitude: latitude.toString(),
+              longitude: longitude.toString(),
               locationGeo: {
                 type: 'Point',
-                coordinates: [parseFloat(longitude), parseFloat(latitude)]
-              }
+                coordinates: [longitude, latitude],
+              },
+              heading: heading || 0,
+              speed: speed || 0,
             }
-          }
-        );
-        
-        // Broadcast location to the client if there's an active order
+          );
+          locationUpdateCache.set(driverId, now);
+        }
+
+        // Limpeza de cache a cada 24 horas omitida para simplicidade (GC gere maps estáticos razoavelmente se limitados a drivers ativos)
+
+        // Enviar a localização via WebSockets imediatamente (sem debounce para o UI ser fluído)
         if (orderId) {
-          io.to(`order_${orderId}`).emit('driverLocation', {
+          const roomName = `order_${orderId}`;
+          io.to(roomName).emit('driver_location_update', {
+            driverId,
             latitude,
             longitude,
-            heading: heading || 0,
-            speed: speed || 0
+            heading,
+            speed,
           });
         }
       }

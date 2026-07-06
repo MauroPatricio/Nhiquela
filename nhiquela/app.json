@@ -14,7 +14,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
+    "updates": {
+      "url": "https://u.expo.dev/7467ac64-89c0-432d-ae88-f427f7c65da9"
+    },
     "assetBundlePatterns": ["**/*"],
     "platforms": ["ios", "android"],
 

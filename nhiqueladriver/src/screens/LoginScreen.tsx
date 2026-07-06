@@ -93,7 +93,7 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
     try {
       const userData = await loginUser(phoneNumber, password);
-      
+      //@ts-ignore
       if (userData.requirePasswordChange) {
         setTempUserData(userData);
         setShowPasswordChangeModal(true);
@@ -189,7 +189,7 @@ export default function LoginScreen({ navigation }: any) {
             <Image 
               source={require("../../assets/nhiquela2.png")} 
               style={styles.logo} 
-              contentFit="contain"
+              resizeMode="contain"
             />
             <Text style={styles.welcomeTitle}>Bem-vindo, Motorista</Text>
             <Text style={styles.welcomeSubtitle}>Entre para receber entregas e serviços próximos de si.</Text>
@@ -493,7 +493,6 @@ const styles = StyleSheet.create({
     shadowColor: '#FF3B30',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
     shadowRadius: 6,
     elevation: 3,
   },
