@@ -14,8 +14,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: 'mauro.patricio1@gmail.com',      // Your email address
-    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+    user: process.env.SMTP_USER || 'mauro.patricio1@gmail.com',      // Your email address
+    pass: process.env.SMTP_PASS,         // Your email password
   },
   tls:{
     rejectUnauthorized: false
@@ -124,7 +124,7 @@ export const sendEmailOrderStatus = async (req, msg, order, res)=>{
     const mailOptions = {
       from: 'Nhiquela Shop <nhiquelaservicosconsultoria@gmail.com>',
       to: [ test, email],       
-      subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+      subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido NÂº ${order.code}`,                
       text: msg,
     };
 
@@ -155,7 +155,7 @@ const test ='nhiquelaservicosconsultoria@gmail.com'
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ test, email],       
-  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido NÂº ${order.code}`,                
   text: msg,
 };
 
@@ -186,7 +186,7 @@ export const sendEmailOrderToSeller = async (req, msg,seller, order, res)=>{
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ sellerEmail, userOrderEmail],       
-  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido NÂº ${order.code}`,                
   text: msg,
 };
 
@@ -216,7 +216,7 @@ export const sendEmailOrderStatusToSellerAndDeliver = async (req, msg, seller, o
 const mailOptions = {
   from: 'mauro.patricio1@gmail.com',      // Your email address
   to: [ sellerEmail, userOrderEmail],       
-  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido NÂº ${order.code}`,                
   text: msg,
 };
 
@@ -241,18 +241,18 @@ export const sendEmailTopUpRequestAdmin = async (driverName, amount, description
       html: `<h2>Novo Pedido de Recarga Pendente</h2>
              <p>O motorista <b>${driverName}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.</p>
              <p>Detalhes: ${description}</p>
-             <p>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.</p>`,
+             <p>Por favor, aceda Ã  aba Financeiro no painel de administraÃ§Ã£o para analisar o comprovativo e aprovar/rejeitar o pedido.</p>`,
     };
 
     transporter.sendMail(mailOptions, function (error, info) {
       if (error) {
-        console.error('Erro ao enviar email de notificação de recarga:', error);
+        console.error('Erro ao enviar email de notificaÃ§Ã£o de recarga:', error);
       } else {
-        console.log('Email de notificação enviado:', info.response);
+        console.log('Email de notificaÃ§Ã£o enviado:', info.response);
       }
     });
   } else {
-    console.log('Nenhum email configurado para notificações financeiras.');
+    console.log('Nenhum email configurado para notificaÃ§Ãµes financeiras.');
   }
 };
 
