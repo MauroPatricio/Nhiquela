@@ -57,7 +57,10 @@ export const getAllOrdersForDeliveryman = async () => {
   return response.data;
 };
 
-export const confirmOrderDelivered = async (orderId: string) => {
-  const response = await apiClient.put(ENDPOINTS.CONFIRM_ORDER_DELIVERED(orderId));
+export const confirmOrderDelivered = async (orderId: string, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/confirmDestination`
+    : ENDPOINTS.CONFIRM_ORDER_DELIVERED(orderId);
+  const response = await apiClient.put(endpoint);
   return response.data;
 };

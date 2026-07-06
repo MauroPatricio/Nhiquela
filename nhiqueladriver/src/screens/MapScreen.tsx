@@ -5,7 +5,7 @@ import TripControls from "../components/TripControls";
 import { getCurrentLocation, updateDeliverymanLocation } from "../services/driverLocationService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from 'expo-location';
-import { startOrderInTransit } from "../services/orderService"; 
+import { startOrderInTransit, confirmOrderDelivered } from "../services/orderService"; 
 import { io } from 'socket.io-client';
 import { showMessage } from "react-native-flash-message";
 import { Ionicons } from "@expo/vector-icons";
@@ -290,6 +290,13 @@ export default function MapScreen({ route, navigation }: any) {
   const proceedFinishTrip = async () => {
     try {
       setShowFinishConfirmationModal(false);
+      
+      // 🔥 AVISAR O BACKEND QUE O MOTORISTA CHEGOU AO DESTINO
+      if (tripData?.id) {
+        const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
+        await confirmOrderDelivered(tripData.id, isRequestService);
+      }
+      
       await AsyncStorage.removeItem("acceptedTrip");
       setShowFinishSuccessModal(true);
     } catch (error) {
