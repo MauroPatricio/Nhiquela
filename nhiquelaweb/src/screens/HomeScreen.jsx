@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faBolt, faShieldAlt, faHeadset, faMapMarkerAlt, faStar, faClock, faArrowRight, faShoppingBag, faWrench, faTruck, faCarSide, faBroom, faHome, faHamburger, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
@@ -161,7 +161,7 @@ export default function HomeScreen() {
                     <h5 className="fw-bold text-black mb-auto mt-1">{product.name}</h5>
                     
                     <div className="d-flex justify-content-between align-items-center my-3">
-                      <span className="fw-black text-black fs-5">{product.price} MZN</span>
+                      <span className="fw-black text-black fs-5">{product.price} MT</span>
                     </div>
                     
                     <div className="d-flex align-items-center gap-3 text-muted small fw-bold mb-3">

@@ -1,6 +1,11 @@
 import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, RefreshControl, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator } from 'react-native';
+import { 
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, 
+  RefreshControl, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, 
+  Keyboard, ActivityIndicator, StatusBar
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import api from '../hooks/createConnectionApi';
 import { Picker } from '@react-native-picker/picker';
@@ -9,42 +14,47 @@ import * as Yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-// import io from 'socket.io-client';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
 
 const validationSchema = Yup.object().shape({
-  nome: Yup.string().required('Nome do produto (PT) é obrigatório'),
-  name: Yup.string().required('Nome do produto (EN) é obrigatório'),
-  image: Yup.string().required('A imagem do produto é obrigatória'),
-  price: Yup.number().required('Preço é obrigatório'),
-  category: Yup.string().required('Categoria é obrigatória'),
-  province: Yup.string().required('Localização do produto é obrigatória'),
-  brand: Yup.string().required('Marca/Sabor é obrigatória'),
-  countInStock: Yup.number().required('Quantidade disponível é obrigatória'),
+  nome: Yup.string().required('Nome (PT) é obrigatório'),
+  name: Yup.string().required('Nome (EN) é obrigatório'),
+  image: Yup.string().required('A imagem é obrigatória'),
+  price: Yup.number().required('O preço é obrigatório'),
+  category: Yup.string().required('A categoria é obrigatória'),
+  province: Yup.string().required('A província é obrigatória'),
+  brand: Yup.string().required('A marca/sabor é obrigatória'),
+  countInStock: Yup.number().required('Quantidade é obrigatória'),
 });
 
 const NewProduct = () => {
-
   const navigation = useNavigation();
   const route = useRoute();
+  
   const [editingProduct, setEditingProduct] = useState(null);
-  const [provinces, setProvinces] = useState(null);
-  const [categories, setCategories] = useState(null);
-  const [image, setImage] = useState(null);
-  const [errorColor, setErrorColor] = useState(null);
-  const [errorSize, setErrorSize] = useState(null);
+  const [provinces, setProvinces] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
   const [sizes, setSizes] = useState([]);
-  const [selectedColors, setSelectedColors] = useState([]);
-  const [selectedSizes, setSelectedSizes] = useState([]);
+  
   const [userData, setUserData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [socket, setSocket] = useState(null);
-  const [imageUploading, setImageUploading] = useState(false); // novo estado
+  
+  // Imagem
+  const [image, setImage] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
-  // Estados locais para os campos do formulário
+  // Arrays de cor/tamanho selecionados
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState([]);
+  
+  // Erros customizados para arrays
+  const [errorColor, setErrorColor] = useState(null);
+  const [errorSize, setErrorSize] = useState(null);
+
+  // Estados locais dos campos do formulário
   const [name, setName] = useState('');
   const [nome, setNome] = useState('');
   const [price, setPrice] = useState('');
@@ -54,56 +64,52 @@ const NewProduct = () => {
   const [description, setDescription] = useState('');
   const [countInStock, setCountInStock] = useState('');
 
-  // Configuração do Socket.io
-  // useEffect(() => {
-  //   const newSocket = io(process.env.API_URL); // Substitua pela sua URL do backend
-  //   setSocket(newSocket);
-
-  //   return () => {
-  //     newSocket.disconnect();
-  //   };
-  // }, []);
-
-  // Listener para atualizações de produtos via Socket.io
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleProductUpdate = (updatedProduct) => {
-      if (editingProduct && updatedProduct._id === editingProduct._id) {
-        setEditingProduct(updatedProduct);
-        Toast.show({
-          type: 'success',
-          text1: 'Produto atualizado em tempo real',
-          position: 'top',
-          visibilityTime: 2000
-        });
-      }
-    };
-
-    socket.on('newProduct', handleProductUpdate);
-
-    return () => {
-      socket.off('newProduct', handleProductUpdate);
-    };
-  }, [socket, editingProduct]);
-
-  // Carrega o userData do AsyncStorage
+  // 1. Carregar Sessão
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const storedUser = await AsyncStorage.getItem('userData');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUserData(parsedUser);
-        }
+        if (storedUser) setUserData(JSON.parse(storedUser));
       } catch (error) {
-        console.error('Erro ao carregar dados do usuário:', error);
+        console.error('Erro ao carregar sessão:', error);
       }
     };
     loadUserData();
   }, []);
 
-  // Atualiza estados locais quando editingProduct muda
+  // 2. Carregar Dados de Dropdowns
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      const [catRes, provRes, colRes, sizRes] = await Promise.all([
+        api.get('/categories'),
+        api.get('/provinces'),
+        api.get('/colors'),
+        api.get('/sizes')
+      ]);
+      setCategories(catRes.data?.categories || []);
+      setProvinces(provRes.data?.provinces || []);
+      setColors(colRes.data?.colors || []);
+      setSizes(sizRes.data?.sizes || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
+    }
+  };
+
+  // 3. Verifica se é edição (via params)
+  useEffect(() => {
+    const productToEdit = route.params?.productToEdit;
+    if (productToEdit) {
+      setEditingProduct(productToEdit);
+    } else {
+      resetLocalState();
+    }
+  }, [route.params]);
+
+  // 4. Preencher formulário se for edição
   useEffect(() => {
     if (editingProduct) {
       setNome(editingProduct.nome || '');
@@ -120,92 +126,25 @@ const NewProduct = () => {
     }
   }, [editingProduct]);
 
-  // Carrega o produto para edição quando recebido via rota
-  useEffect(() => {
-    const productToEdit = route.params?.productToEdit;
-    if (productToEdit) {
-      setEditingProduct(productToEdit);
-    } else {
-      // Modo criação: limpar tudo
-      setEditingProduct(null);
-      setSelectedColors([]);
-      setSelectedSizes([]);
-      setImage(null);
-      setNome('');
-      setName('');
-      setPrice('');
-      setCategory('');
-      setProvince('');
-      setBrand('');
-      setDescription('');
-      setCountInStock('');
-    }
-  }, [route.params]);
-
-  // Carrega os dados iniciais
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  const loadInitialData = async () => {
-    try {
-      await Promise.all([
-        loadCategories(),
-        loadProvinces(),
-        loadColors(),
-        loadSizes(),
-      ]);
-    } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const { data } = await api.get('/categories');
-      setCategories(data.categories);
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
-    }
-  };
-
-  const loadProvinces = async () => {
-    try {
-      const { data } = await api.get('/provinces');
-      setProvinces(data.provinces);
-    } catch (error) {
-      console.error('Erro ao carregar províncias:', error);
-    }
-  };
-
-  const loadColors = async () => {
-    try {
-      const { data } = await api.get('/colors');
-      setColors(data.colors);
-    } catch (error) {
-      console.error('Erro ao carregar cores:', error);
-    }
-  };
-
-  const loadSizes = async () => {
-    try {
-      const { data } = await api.get('/sizes');
-      setSizes(data.sizes);
-    } catch (error) {
-      console.error('Erro ao carregar tamanhos:', error);
-    }
+  const resetLocalState = () => {
+    setEditingProduct(null);
+    setSelectedColors([]);
+    setSelectedSizes([]);
+    setImage(null);
+    setNome('');
+    setName('');
+    setPrice('');
+    setCategory('');
+    setProvince('');
+    setBrand('');
+    setDescription('');
+    setCountInStock('');
   };
 
   const handleImagePicker = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      showMessage({
-        message: 'Erro',
-        description: 'Permissão para acessar a galeria é necessária!',
-        type: "danger",
-        icon: "auto",
-        duration: 3000,
-      });
+      showMessage({ message: 'Permissão negada', description: 'É necessário aceder à galeria.', type: "danger", icon: "auto" });
       return;
     }
 
@@ -213,41 +152,38 @@ const NewProduct = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.8,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.length > 0) {
+      setImageUploading(true);
       const uri = result.assets[0].uri;
-      setImage(uri);
-      const uploadedImage = await uploadImage(uri);
-      setFieldValue('image', uploadedImage);
-    }
-  };
+      setImage(uri); // preview otimista
 
-  const uploadImage = async (uri) => {
-    const bodyFormData = new FormData();
-    bodyFormData.append('file', {
-      uri,
-      name: 'image.jpg',
-      type: 'image/jpeg',
-    });
+      try {
+        const formData = new FormData();
+        const fileName = uri.split('/').pop();
+        const fileType = fileName.split('.').pop();
+        
+        formData.append('file', {
+          uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+          name: fileName,
+          type: `image/${fileType}`,
+        });
 
-    try {
-      const { data } = await api.post('upload', bodyFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setImage(data.secure_url);
-      return data.secure_url;
-    } catch (error) {
-      showMessage({
-        message: 'Erro',
-        description: 'Falha ao enviar a imagem.',
-        type: "danger",
-        icon: "auto",
-        duration: 3000,
-      });
+        const { data } = await api.post('upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const finalUrl = data.secure_url || data.url;
+        setImage(finalUrl);
+        setFieldValue('image', finalUrl);
+      } catch (error) {
+        showMessage({ message: 'Erro', description: 'Falha no upload da imagem.', type: "danger", icon: "auto" });
+        setImage(null);
+      } finally {
+        setImageUploading(false);
+      }
     }
   };
 
@@ -258,6 +194,10 @@ const NewProduct = () => {
     }
   };
 
+  const removeColor = (id) => {
+    setSelectedColors(prev => prev.filter(c => c._id !== id));
+  };
+
   const handleSizeSelect = (item) => {
     if (item && !selectedSizes.find(s => s._id === item._id)) {
       setSelectedSizes(prev => [...prev, item]);
@@ -265,680 +205,679 @@ const NewProduct = () => {
     }
   };
 
+  const removeSize = (id) => {
+    setSelectedSizes(prev => prev.filter(s => s._id !== id));
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    try {
-      await loadInitialData();
-    } catch (error) {
-      console.error('Erro ao atualizar:', error);
-    } finally {
-      setRefreshing(false);
-    }
+    await loadInitialData();
+    setRefreshing(false);
   };
 
   const handleSubmit = async (values, { resetForm }) => {
     if (!userData) return;
 
+    if (selectedColors.length === 0) {
+      setErrorColor('Adicione as cores disponíveis');
+      Toast.show({ type: 'error', text1: 'Faltam Cores', text2: 'Adicione pelo menos uma cor.' });
+      return;
+    }
+    if (selectedSizes.length === 0) {
+      setErrorSize('Adicione os tamanhos disponíveis');
+      Toast.show({ type: 'error', text1: 'Faltam Tamanhos', text2: 'Adicione pelo menos um tamanho.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      if (selectedColors.length === 0) {
-        setErrorColor('Adicione as cores disponíveis do produto.');
-        Toast.show({ type: 'error', text1: 'Adicione as cores disponíveis do produto.', position: 'top' });
-        return;
-      }
+      const payload = {
+        ...values,
+        color: selectedColors,
+        size: selectedSizes,
+        isSellerOpen: userData?.seller?.openstore || false
+      };
 
-      if (selectedSizes.length === 0) {
-        setErrorSize('Adicione os tamanhos disponíveis do produto.');
-        Toast.show({ type: 'error', text1: 'Adicione os tamanhos disponíveis do produto', position: 'top' });
-        return;
-      }
+      const headers = { Authorization: `Bearer ${userData.token}` };
 
-      values.color = selectedColors;
-      values.size = selectedSizes;
-      values.isSellerOpen = userData?.seller?.openstore
-
-      let response;
       if (editingProduct) {
-        response = await api.put(`products/${editingProduct._id}`, values, {
-          headers: { Authorization: `Bearer ${userData.token}` },
-        });
-
-        // Atualiza o estado com os dados retornados
+        const response = await api.put(`products/${editingProduct._id}`, payload, { headers });
         setEditingProduct(response.data.product);
 
-        const body = `O produto ${response.data.product.nome} foi actualizado. Confira já!`;
-        const data = response.data.product;
-        const title = 'Produto actualizado na Nhiquela'
+        // Notificação de Atualização
+        await api.post('notifications/broadcast', { 
+          title: 'Produto actualizado', 
+          body: `O produto ${response.data.product.nome} foi actualizado. Confira!`, 
+          data: response.data.product 
+        }, { headers }).catch(e => console.log('Erro broadcast:', e.message));
 
-        // Envia para os utilizadores registrados
-        response = await api.post('notifications/broadcast', { title, body, data }, {
-          headers: { Authorization: `Bearer ${userData.token}` },
-        });
-
-
+        Toast.show({ type: 'success', text1: 'Sucesso', text2: 'Produto atualizado!' });
         navigation.navigate('ProductListSeller');
-
-        Toast.show({
-          type: 'success',
-          text1: 'SUCESSO',
-          text2: 'Produto actualizado com sucesso!',
-          position: 'top',
-          visibilityTime: 2000
-        });
       } else {
-        response = await api.post('products/', values, {
-          headers: { Authorization: `Bearer ${userData.token}` },
-        });
+        const response = await api.post('products/', payload, { headers });
 
-        const body = `O produto ${response.data.product.nome} agora está disponível. Confira na Nhiquela!`;
-        const data = response.data.product;
-        const title = 'Novo produto disponível na Nhiquela'
+        // Notificação de Criação
+        await api.post('notifications/broadcast', { 
+          title: 'Novo produto!', 
+          body: `O produto ${response.data.product.nome} já está disponível.`, 
+          data: response.data.product 
+        }, { headers }).catch(e => console.log('Erro broadcast:', e.message));
 
-        // Envia para os utilizadores registrados
-        response = await api.post('notifications/broadcast', { title, body, data }, {
-          headers: { Authorization: `Bearer ${userData.token}` },
-        });
-        Toast.show({
-          type: 'success',
-          text1: 'SUCESSO',
-          text2: 'Produto criado com sucesso!',
-          position: 'top',
-          visibilityTime: 2000
-        });
+        Toast.show({ type: 'success', text1: 'Sucesso', text2: 'Produto criado!' });
+        
         resetForm();
-        setSelectedColors([]);
-        setSelectedSizes([]);
-        setImage(null);
+        resetLocalState();
         navigation.navigate('ProductListSeller');
       }
     } catch (error) {
-      console.log(error)
-      const errorMessage = error.response?.data.error || 'Erro ao salvar o produto.';
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: errorMessage,
-        position: 'top',
-        visibilityTime: 3000
-      });
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Erro ao guardar o produto.';
+      Toast.show({ type: 'error', text1: 'Erro', text2: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const renderInput = (icon, placeholder, value, onChangeText, onBlur, error, keyboardType = 'default') => (
+    <View style={styles.inputGroup}>
+      <View style={[styles.inputWrapper, error && { borderColor: COLORS.error }]}>
+        <Ionicons name={icon} size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textMuted}
+          value={value}
+          onChangeText={onChangeText}
+          onBlur={onBlur}
+          keyboardType={keyboardType}
+        />
+      </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  );
+
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</Text>
+        <View style={{ width: 38 }} />
+      </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: 'white' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined} // evita "jump" no Android
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+          >
 
-        <ScrollView style={styles.container}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#7F00FF']}
-              tintColor="#7F00FF"
-            />
-          }>
-          <Text style={styles.title}>
-            {editingProduct ? 'Editar Produto' : 'Criar novo produto'}
-          </Text>
+            {userData && userData?.isApproved ? (
+              <Formik
+                enableReinitialize
+                initialValues={{
+                  nome: nome,
+                  name: name,
+                  image: image || '',
+                  price: price,
+                  category: category,
+                  province: province,
+                  brand: brand,
+                  countInStock: countInStock,
+                  description: description,
+                  onSale: editingProduct?.onSale || false,
+                  onSalePercentage: editingProduct?.onSalePercentage || 0,
+                  orderPeriod: editingProduct?.orderPeriod || 0,
+                  isGuaranteed: editingProduct?.isGuaranteed || false,
+                  guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
+                  isOrdered: editingProduct?.isOrdered || false,
+                }}
+                validationSchema={validationSchema}
+                onSubmit={handleSubmit}
+              >
+                {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
+                  <View style={styles.formContainer}>
+                    
+                    {/* Imagem do Produto */}
+                    <View style={styles.imageSection}>
+                      <TouchableOpacity 
+                        style={[styles.imageUploadBox, (touched.image && errors.image) && { borderColor: COLORS.error }]} 
+                        onPress={() => handleImagePicker(setFieldValue)}
+                        disabled={imageUploading}
+                      >
+                        {imageUploading ? (
+                          <ActivityIndicator color={COLORS.primaryLight} size="large" />
+                        ) : image ? (
+                          <Image source={{ uri: image }} style={styles.previewImage} />
+                        ) : (
+                          <>
+                            <MaterialCommunityIcons name="camera-plus-outline" size={40} color={COLORS.textMuted} />
+                            <Text style={styles.imageUploadText}>Adicionar Foto do Produto *</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                      {touched.image && errors.image && <Text style={styles.errorTextCenter}>{errors.image}</Text>}
+                    </View>
 
-          {userData && userData?.isApproved ? (
-            <Formik
-              enableReinitialize
-              initialValues={{
-                nome: nome,
-                name: name,
-                image: image || '',
-                price: price,
-                category: category,
-                province: province,
-                brand: brand,
-                countInStock: countInStock,
-                description: description,
-                onSale: editingProduct?.onSale || false,
-                onSalePercentage: editingProduct?.onSalePercentage || 0,
-                color: selectedColors,
-                size: selectedSizes,
-                orderPeriod: editingProduct?.orderPeriod || 0,
-                isGuaranteed: editingProduct?.isGuaranteed || false,
-                guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
-                isOrdered: editingProduct?.isOrdered || false,
-                isSellerOpen: userData?.seller?.openstore || false
-              }}
-              validationSchema={validationSchema}
-              onSubmit={handleSubmit}
-            >
-              {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
-                <>
-                  <Picker
-                    selectedValue={values.category || ''}
-                    onValueChange={(itemValue) => {
-                      setFieldValue('category', itemValue);
-                      setCategory(itemValue);
-                    }}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Categoria" value="" />
-                    {categories &&
-                      categories.map((categorie) => (
-                        <Picker.Item key={categorie._id} label={categorie.nome} value={categorie._id} />
-                      ))}
-                  </Picker>
-                  {touched.category && errors.category && <Text style={styles.error}>{errors.category}</Text>}
+                    <Text style={styles.sectionTitle}>Informações Básicas</Text>
 
-                  <Picker
-                    selectedValue={values.province || ''}
-                    onValueChange={(itemValue) => {
-                      setFieldValue('province', itemValue);
-                      setProvince(itemValue);
-                    }}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Localização do produto" value="" />
-                    {provinces &&
-                      provinces.map((province) => (
-                        <Picker.Item key={province._id} label={province.name} value={province._id} />
-                      ))}
-                  </Picker>
-                  {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
+                    {renderInput("text-outline", "Nome do produto (PT) *", values.nome, (t) => { handleChange('nome')(t); setNome(t); }, handleBlur('nome'), touched.nome && errors.nome)}
+                    {renderInput("text-outline", "Nome do produto (Inglês) *", values.name, (t) => { handleChange('name')(t); setName(t); }, handleBlur('name'), touched.name && errors.name)}
+                    {renderInput("information-circle-outline", "Descrição detalhada", values.description, (t) => { handleChange('description')(t); setDescription(t); }, handleBlur('description'), touched.description && errors.description)}
+                    
+                    <View style={styles.rowGrid}>
+                      <View style={{ flex: 1 }}>
+                        {renderInput("cash-outline", "Preço (MT) *", values.price, (t) => { const f = t.replace(/[^0-9]/g, ''); handleChange('price')(f); setPrice(f); }, handleBlur('price'), touched.price && errors.price, "numeric")}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        {renderInput("layers-outline", "Stock *", values.countInStock, (t) => { const f = t.replace(/[^0-9]/g, ''); handleChange('countInStock')(f); setCountInStock(f); }, handleBlur('countInStock'), touched.countInStock && errors.countInStock, "numeric")}
+                      </View>
+                    </View>
 
-                  <Picker
-                    selectedValue={null}
-                    onValueChange={(itemValue) => handleColorSelect(itemValue)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Selecione a cor" value="" />
-                    {colors &&
-                      colors.map((color) => (
-                        <Picker.Item key={color._id} label={color.nome} value={color} />
-                      ))}
-                  </Picker>
-                  <Text>Cores selecionadas: {selectedColors.map((color) => color.nome).join(', ')}</Text>
-                  {errorColor && <Text style={styles.error}>{errorColor}</Text>}
+                    {renderInput("star-outline", "Marca / Sabor *", values.brand, (t) => { handleChange('brand')(t); setBrand(t); }, handleBlur('brand'), touched.brand && errors.brand)}
 
-                  <Picker
-                    selectedValue={null}
-                    onValueChange={(itemValue) => handleSizeSelect(itemValue)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Selecione o tamanho" value="" />
-                    {sizes &&
-                      sizes.map((size) => (
-                        <Picker.Item key={size._id} label={size.nome} value={size} />
-                      ))}
-                  </Picker>
-                  <Text>Tamanhos selecionados: {selectedSizes.map((size) => size.nome).join(', ')}</Text>
-                  {errorSize && <Text style={styles.error}>{errorSize}</Text>}
+                    <Text style={styles.sectionTitle}>Classificação e Filtros</Text>
 
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nome do produto (PT)"
-                    onChangeText={(text) => {
-                      handleChange('nome')(text);
-                      setNome(text);
-                    }}
-                    onBlur={handleBlur('nome')}
-                    value={values.nome}
-                  />
-                  {touched.nome && errors.nome && <Text style={styles.error}>{errors.nome}</Text>}
+                    {/* Categoria */}
+                    <View style={styles.inputGroup}>
+                      <View style={[styles.pickerContainer, touched.category && errors.category && { borderColor: COLORS.error }]}>
+                        <Picker
+                          selectedValue={values.category}
+                          onValueChange={(val) => { setFieldValue('category', val); setCategory(val); }}
+                          style={styles.picker}
+                          dropdownIconColor={COLORS.text}
+                        >
+                          <Picker.Item label="Selecione a Categoria *" value="" color={COLORS.textMuted} />
+                          {categories.map(c => <Picker.Item key={c._id} label={c.nome} value={c._id} color="#000" />)}
+                        </Picker>
+                      </View>
+                      {touched.category && errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
+                    </View>
 
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nome do produto (En)"
-                    onChangeText={(text) => {
-                      handleChange('name')(text);
-                      setName(text);
-                    }}
-                    onBlur={handleBlur('name')}
-                    value={values.name}
-                  />
-                  {touched.name && errors.name && <Text style={styles.error}>{errors.name}</Text>}
+                    {/* Provincia */}
+                    <View style={styles.inputGroup}>
+                      <View style={[styles.pickerContainer, touched.province && errors.province && { borderColor: COLORS.error }]}>
+                        <Picker
+                          selectedValue={values.province}
+                          onValueChange={(val) => { setFieldValue('province', val); setProvince(val); }}
+                          style={styles.picker}
+                          dropdownIconColor={COLORS.text}
+                        >
+                          <Picker.Item label="Localização do Produto *" value="" color={COLORS.textMuted} />
+                          {provinces.map(p => <Picker.Item key={p._id} label={p.name} value={p._id} color="#000" />)}
+                        </Picker>
+                      </View>
+                      {touched.province && errors.province && <Text style={styles.errorText}>{errors.province}</Text>}
+                    </View>
 
+                    {/* Cores */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Cores Disponíveis *</Text>
+                      <View style={[styles.pickerContainer, errorColor && { borderColor: COLORS.error }]}>
+                        <Picker
+                          selectedValue=""
+                          onValueChange={(val) => handleColorSelect(val)}
+                          style={styles.picker}
+                          dropdownIconColor={COLORS.text}
+                        >
+                          <Picker.Item label="Adicionar uma cor" value="" color={COLORS.textMuted} />
+                          {colors.map(c => <Picker.Item key={c._id} label={c.nome} value={c} color="#000" />)}
+                        </Picker>
+                      </View>
+                      <View style={styles.chipRow}>
+                        {selectedColors.map(c => (
+                          <TouchableOpacity key={c._id} style={styles.chip} onPress={() => removeColor(c._id)}>
+                            <Text style={styles.chipText}>{c.nome}</Text>
+                            <Ionicons name="close-circle" size={16} color={COLORS.textSecondary} />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      {errorColor && <Text style={styles.errorText}>{errorColor}</Text>}
+                    </View>
 
+                    {/* Tamanhos */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Tamanhos Disponíveis *</Text>
+                      <View style={[styles.pickerContainer, errorSize && { borderColor: COLORS.error }]}>
+                        <Picker
+                          selectedValue=""
+                          onValueChange={(val) => handleSizeSelect(val)}
+                          style={styles.picker}
+                          dropdownIconColor={COLORS.text}
+                        >
+                          <Picker.Item label="Adicionar um tamanho" value="" color={COLORS.textMuted} />
+                          {sizes.map(s => <Picker.Item key={s._id} label={s.nome} value={s} color="#000" />)}
+                        </Picker>
+                      </View>
+                      <View style={styles.chipRow}>
+                        {selectedSizes.map(s => (
+                          <TouchableOpacity key={s._id} style={styles.chip} onPress={() => removeSize(s._id)}>
+                            <Text style={styles.chipText}>{s.nome}</Text>
+                            <Ionicons name="close-circle" size={16} color={COLORS.textSecondary} />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      {errorSize && <Text style={styles.errorText}>{errorSize}</Text>}
+                    </View>
 
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Descrição do produto"
-                    onChangeText={(text) => {
-                      handleChange('description')(text);
-                      setDescription(text);
-                    }}
-                    onBlur={handleBlur('description')}
-                    value={values.description}
-                  />
-                  {touched.description && errors.description && <Text style={styles.error}>{errors.description}</Text>}
+                    <Text style={styles.sectionTitle}>Configurações de Venda</Text>
 
-                  {/* ---------- Espaço reservado fixo para evitar 'jump' ---------- */}
-                  {/* ---------- Espaço reservado fixo para evitar 'jump' ---------- */}
-                  <View style={styles.logoContainer}>
-                    <View style={styles.logoWrapper}>
-                      {image ? (
-                        <Image
-                          source={{ uri: image }}
-                          style={styles.logo}
-                        />
+                    {/* Promoção */}
+                    <View style={styles.switchRow}>
+                      <View>
+                        <Text style={styles.switchLabel}>Produto em Promoção?</Text>
+                        <Text style={styles.switchSubLabel}>Ativar para mostrar preço riscado</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setFieldValue('onSale', !values.onSale)}
+                        style={[styles.toggleBtn, values.onSale && styles.toggleBtnActive]}
+                      >
+                        <Text style={[styles.toggleText, values.onSale && styles.toggleTextActive]}>
+                          {values.onSale ? 'SIM' : 'NÃO'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {values.onSale && (
+                      <View style={styles.inputGroup}>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={values.onSalePercentage}
+                            onValueChange={(val) => setFieldValue('onSalePercentage', val)}
+                            style={styles.picker}
+                            dropdownIconColor={COLORS.text}
+                          >
+                            <Picker.Item label="Desconto (%)" value={0} color={COLORS.textMuted} />
+                            {[10, 15, 20, 25, 30, 40, 50, 60, 70, 80].map(p => (
+                              <Picker.Item key={p} label={`${p}% OFF`} value={p} color="#000" />
+                            ))}
+                          </Picker>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Sob Encomenda */}
+                    <View style={styles.switchRow}>
+                      <View>
+                        <Text style={styles.switchLabel}>Sob Encomenda?</Text>
+                        <Text style={styles.switchSubLabel}>Produto não tem entrega imediata</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setFieldValue('isOrdered', !values.isOrdered)}
+                        style={[styles.toggleBtn, values.isOrdered && styles.toggleBtnActive]}
+                      >
+                        <Text style={[styles.toggleText, values.isOrdered && styles.toggleTextActive]}>
+                          {values.isOrdered ? 'SIM' : 'NÃO'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {values.isOrdered && (
+                      <View style={styles.inputGroup}>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={values.orderPeriod}
+                            onValueChange={(val) => setFieldValue('orderPeriod', val)}
+                            style={styles.picker}
+                            dropdownIconColor={COLORS.text}
+                          >
+                            <Picker.Item label="Prazo de entrega" value="" color={COLORS.textMuted} />
+                            {['1 dia', '2 dias', '5 dias', '7 dias', '15 dias', '30 dias'].map(d => (
+                              <Picker.Item key={d} label={d} value={d} color="#000" />
+                            ))}
+                          </Picker>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Garantia */}
+                    <View style={styles.switchRow}>
+                      <View>
+                        <Text style={styles.switchLabel}>Possui Garantia?</Text>
+                        <Text style={styles.switchSubLabel}>O cliente tem período de devolução/troca</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setFieldValue('isGuaranteed', !values.isGuaranteed)}
+                        style={[styles.toggleBtn, values.isGuaranteed && styles.toggleBtnActive]}
+                      >
+                        <Text style={[styles.toggleText, values.isGuaranteed && styles.toggleTextActive]}>
+                          {values.isGuaranteed ? 'SIM' : 'NÃO'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {values.isGuaranteed && (
+                      <View style={styles.inputGroup}>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={values.guaranteedPeriod}
+                            onValueChange={(val) => setFieldValue('guaranteedPeriod', val)}
+                            style={styles.picker}
+                            dropdownIconColor={COLORS.text}
+                          >
+                            <Picker.Item label="Período de garantia" value="" color={COLORS.textMuted} />
+                            {['1 mês', '3 meses', '6 meses', '12 meses'].map(m => (
+                              <Picker.Item key={m} label={m} value={m} color="#000" />
+                            ))}
+                          </Picker>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                      style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
+                      onPress={handleSubmit}
+                      disabled={isSubmitting}
+                      activeOpacity={0.8}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator color="#fff" />
                       ) : (
-                        <View style={styles.logoPlaceholder}>
-                          <MaterialCommunityIcons name="image-outline" size={50} color="#bbb" />
-                          <Text style={{ color: '#999' }}>Sem imagem</Text>
-                        </View>
+                        <>
+                          <Ionicons name="checkmark-done" size={22} color="#fff" style={{ marginRight: 8 }} />
+                          <Text style={styles.submitBtnText}>
+                            {editingProduct ? 'Salvar Alterações' : 'Publicar Produto'}
+                          </Text>
+                        </>
                       )}
-
-                      {imageUploading && (
-                        <View style={styles.logoOverlay}>
-                          <ActivityIndicator size="large" color="#fff" />
-                        </View>
-                      )}
-                    </View>
-
-                    <TouchableOpacity
-                      style={[styles.button, imageUploading && styles.buttonDisabled]}
-                      onPress={async () => {
-                        // evita re-render desnecessário durante upload
-                        setImageUploading(true);
-                        await handleImagePicker((field, value) => { }); // ignora Formik setFieldValue
-                        setImageUploading(false);
-                      }}
-                      disabled={imageUploading}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.buttonText}>
-                        {imageUploading ? 'Enviando imagem...' : 'Adicionar imagem'}
-                      </Text>
                     </TouchableOpacity>
+
                   </View>
-
-                  {/* <TouchableOpacity
-               style={[styles.button, imageUploading && styles.buttonDisabled]}
-               onPress={() => handleImagePicker(setFieldValue)}
-               disabled={imageUploading}
-             >
-               <Text style={styles.buttonText}>
-                 {imageUploading ? 'Enviando imagem...' : 'Adicionar imagem'}
-               </Text>
-             </TouchableOpacity> */}
-
-                  {touched.seller?.logo && errors.seller?.logo && (
-                    <Text style={styles.error}>{errors.seller.logo}</Text>
-                  )}
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Preço"
-                    onChangeText={(text) => {
-                      const filteredText = text.replace(/[^0-9]/g, '');
-                      handleChange('price')(filteredText);
-                      setPrice(filteredText);
-                    }}
-                    onBlur={handleBlur('price')}
-                    value={values.price}
-                    keyboardType="numeric"
-                  />
-                  {touched.price && errors.price && <Text style={styles.error}>{errors.price}</Text>}
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Marca/Sabor"
-                    onChangeText={(text) => {
-                      handleChange('brand')(text);
-                      setBrand(text);
-                    }}
-                    onBlur={handleBlur('brand')}
-                    value={values.brand}
-                  />
-                  {touched.brand && errors.brand && <Text style={styles.error}>{errors.brand}</Text>}
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Quantidade disponível"
-                    onChangeText={(text) => {
-                      const filteredText = text.replace(/[^0-9]/g, '');
-                      handleChange('countInStock')(filteredText);
-                      setCountInStock(filteredText);
-                    }}
-                    onBlur={handleBlur('countInStock')}
-                    value={values.countInStock}
-                    keyboardType="numeric"
-                  />
-                  {touched.countInStock && errors.countInStock && <Text style={styles.error}>{errors.countInStock}</Text>}
-
-                  <View style={styles.switchRow}>
-                    <Text>Está em promoção?</Text>
-                    <TouchableOpacity
-                      onPress={() => setFieldValue('onSale', !values.onSale)}
-                      style={[styles.switchButton, values.onSale ? styles.active : styles.inactive]}
-                    >
-                      <Text style={styles.switchText}>{values.onSale ? 'Sim' : 'Não'}</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {values.onSale && (
-                    <View>
-                      <Picker
-                        selectedValue={values.onSalePercentage}
-                        onValueChange={(itemValue) => setFieldValue('onSalePercentage', itemValue)}
-                        style={styles.input}
-                      >
-                        <Picker.Item label="Selecione a percentagem de desconto" value="" />
-                        {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((percent) => (
-                          <Picker.Item key={percent} label={`${percent}%`} value={percent} />
-                        ))}
-                      </Picker>
-                    </View>
-                  )}
-                  {touched.onSalePercentage && errors.onSalePercentage && (
-                    <Text style={styles.error}>{errors.onSalePercentage}</Text>
-                  )}
-
-                  <View style={styles.switchRow}>
-                    <Text>Produto solicitado por encomenda?</Text>
-                    <TouchableOpacity
-                      onPress={() => setFieldValue('isOrdered', !values.isOrdered)}
-                      style={[styles.switchButton, values.isOrdered ? styles.active : styles.inactive]}
-                    >
-                      <Text style={styles.switchText}>{values.isOrdered ? 'Sim' : 'Não'}</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {values.isOrdered && (
-                    <View>
-                      <Picker
-                        selectedValue={values.orderPeriod}
-                        onValueChange={(itemValue) => setFieldValue('orderPeriod', itemValue)}
-                        style={styles.input}
-                      >
-                        <Picker.Item label="Em quantos dias a encomenda será entregue?" value="" />
-                        {['1 dia', '2 dias', '5 dias', '7 dias', '10 dias', '15 dias', '20 dias', '30 dias', '45 dias'].map((days) => (
-                          <Picker.Item key={days} label={`${days}`} value={days} />
-                        ))}
-                      </Picker>
-                    </View>
-                  )}
-                  {touched.orderPeriod && errors.orderPeriod && (
-                    <Text style={styles.error}>{errors.orderPeriod}</Text>
-                  )}
-
-                  <View style={styles.switchRow}>
-                    <Text>Tem garantia?</Text>
-                    <TouchableOpacity
-                      onPress={() => setFieldValue('isGuaranteed', !values.isGuaranteed)}
-                      style={[styles.switchButton, values.isGuaranteed ? styles.active : styles.inactive]}
-                    >
-                      <Text style={styles.switchText}>{values.isGuaranteed ? 'Sim' : 'Não'}</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {values.isGuaranteed && (
-                    <View>
-                      <Text style={styles.label}>Período de garantia (meses)</Text>
-                      <Picker
-                        selectedValue={values.guaranteedPeriod}
-                        onValueChange={(itemValue) => setFieldValue('guaranteedPeriod', itemValue)}
-                        style={styles.input}
-                      >
-                        <Picker.Item label="1 mês" value="1 mês" />
-                        <Picker.Item label="3 meses" value="3 meses" />
-                        <Picker.Item label="6 meses" value="6 meses" />
-                        <Picker.Item label="9 meses" value="9 meses" />
-                        <Picker.Item label="12 meses" value="12 meses" />
-                      </Picker>
-                    </View>
-                  )}
-                  {touched.guaranteedPeriod && errors.guaranteedPeriod && (
-                    <Text style={styles.error}>{errors.guaranteedPeriod}</Text>
-                  )}
-
-                  <TouchableOpacity
-                    style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting}
-                  >
-                    <Text style={styles.submitButtonText}>
-                      {isSubmitting ? 'Processando...' : editingProduct ? 'Atualizar Produto' : 'Criar Produto'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View style={{ marginBottom: 250 }} />
-                </>
-              )}
-            </Formik>
-          ) : (
-            <View style={styles.notAccepted}>
-              <Text style={styles.notAcceptedTitle}>Sua conta está em análise!</Text>
-
-              <Text style={styles.notAcceptedText}>
-                Para começar a publicar seus produtos e vender na NHIQUELA, precisamos finalizar a ativação da sua conta.
-              </Text>
-
-              <Text style={styles.notAcceptedContact}>
-                Entre em contato conosco pelo <Text style={styles.notAcceptedHighlight}>WhatsApp: 85 3600036</Text>
-              </Text>
-
-              <Text style={styles.notAcceptedContact}> ou pelo email:
-                <Text style={styles.notAcceptedHighlight}>nhiquelaservicosconsultoria@gmail.com</Text>
-              </Text>
-
-              <Text style={styles.notAcceptedText}>
-                Nossa equipe está pronta para ajudar você a começar suas vendas o mais rápido possível!
-              </Text>
-
-              <Text style={styles.notAcceptedFooter}>
-                Agradecemos sua paciência e interesse em fazer parte da nossa plataforma.
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
-
+                )}
+              </Formik>
+            ) : (
+              <View style={styles.notApprovedCard}>
+                <View style={styles.notApprovedIconBox}>
+                  <Ionicons name="time-outline" size={40} color={COLORS.warning} />
+                </View>
+                <Text style={styles.notApprovedTitle}>Conta em Análise</Text>
+                <Text style={styles.notApprovedText}>
+                  Para começar a publicar os seus produtos, precisamos de finalizar a ativação da sua conta de parceiro.
+                </Text>
+                <View style={styles.contactBox}>
+                  <Text style={styles.contactLabel}>Precisa de ajuda urgente?</Text>
+                  <Text style={styles.contactValue}>WhatsApp: 85 360 0036</Text>
+                  <Text style={styles.contactValue}>nhiquelaservicosconsultoria@gmail.com</Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 };
 
+export default NewProduct;
+
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 40,
-    backgroundColor: '#fff',
-    padding: 20,
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  notAccepted: {
-    color: 'blue',
-    textAlign: 'center',
-    marginTop: 200,
-    fontSize: 16,
-    fontWeight: '500'
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  error: {
-    color: 'red',
-    marginBottom: 10,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logo: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
-    borderRadius: 15,
-    alignSelf: 'center',
-    marginVertical: 15,
-    borderWidth: 1,
-    borderColor: '#DDD',
+  headerTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#7F00FF',
-  },
-  input: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
-  },
-  picker: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    marginBottom: 10,
-    borderRadius: 5,
-  },
-  imagePicker: {
-    backgroundColor: '#7F00FF',
+  scrollContent: {
     padding: 16,
-    borderRadius: 8,
+    paddingBottom: 60,
+  },
+  formContainer: {
+    paddingBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: SIZES.base,
+    fontWeight: '700',
+    color: COLORS.primaryLight,
+    marginTop: 24,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  // Upload Imagem
+  imageSection: {
     alignItems: 'center',
     marginBottom: 10,
   },
-  imagePickerText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  imageUploadBox: {
+    width: 140,
+    height: 140,
+    backgroundColor: COLORS.surface2,
+    borderRadius: RADIUS.md,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  imageUploadText: {
+    fontSize: SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 10,
+  },
+  // Inputs
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    height: 54,
+    paddingHorizontal: 14,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: SIZES.base,
+    color: COLORS.text,
+    fontWeight: '500',
+    height: '100%',
+  },
+  rowGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  // Erros
+  errorText: {
+    color: COLORS.error,
+    fontSize: SIZES.xs,
+    fontWeight: '600',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  errorTextCenter: {
+    color: COLORS.error,
+    fontSize: SIZES.xs,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  // Pickers e Chips
+  label: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  pickerContainer: {
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 54,
+    color: COLORS.text,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceCard,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.full,
+    gap: 6,
+  },
+  chipText: {
+    color: COLORS.text,
+    fontSize: SIZES.sm,
+    fontWeight: '500',
+  },
+  // Switches Modernos
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  switchButton: {
-    padding: 8,
-    borderRadius: 4,
-  },
-  active: {
-    backgroundColor: '#7F00FF',
-  },
-  inactive: {
-    backgroundColor: '#ccc',
-  },
-  switchText: {
-    color: '#fff',
-  },
-  submitButton: {
-    backgroundColor: '#7F00FF',
+    backgroundColor: COLORS.surfaceCard,
     padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#CC99FF',
-  },
-  submitButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  notAccepted: {
-    backgroundColor: '#F8F9FA',
-    padding: 20,
-    borderRadius: 12,
-    margin: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#7F00FF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  notAcceptedTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2D3748',
+    borderRadius: RADIUS.md,
     marginBottom: 12,
-    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  notAcceptedText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#4A5568',
+  switchLabel: {
+    fontSize: SIZES.base,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  switchSubLabel: {
+    fontSize: SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  toggleBtn: {
+    backgroundColor: COLORS.surface2,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  toggleBtnActive: {
+    backgroundColor: COLORS.primaryGlow,
+    borderColor: COLORS.primary,
+  },
+  toggleText: {
+    fontSize: SIZES.xs,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  toggleTextActive: {
+    color: COLORS.primaryLight,
+  },
+  // Botão Submeter
+  submitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    height: 56,
+    borderRadius: RADIUS.sm,
+    marginTop: 20,
+    ...SHADOWS.md,
+  },
+  submitBtnText: {
+    color: '#fff',
+    fontSize: SIZES.base,
+    fontWeight: '700',
+  },
+  // Conta não aprovada
+  notApprovedCard: {
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.lg,
+    padding: 24,
+    alignItems: 'center',
+    marginTop: 40,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '40',
+    ...SHADOWS.md,
+  },
+  notApprovedIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.warningBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  notApprovedTitle: {
+    fontSize: SIZES.xl,
+    fontWeight: '800',
+    color: COLORS.text,
     marginBottom: 8,
   },
-  notAcceptedContact: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#2D3748',
-    marginTop: 12,
+  notApprovedText: {
+    fontSize: SIZES.base,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  contactBox: {
+    backgroundColor: COLORS.surface2,
+    padding: 16,
+    borderRadius: RADIUS.md,
+    width: '100%',
+    alignItems: 'center',
+  },
+  contactLabel: {
+    fontSize: SIZES.sm,
+    color: COLORS.textMuted,
+    marginBottom: 8,
+  },
+  contactValue: {
+    fontSize: SIZES.base,
+    color: COLORS.primaryLight,
+    fontWeight: '700',
     marginBottom: 4,
   },
-  notAcceptedHighlight: {
-    color: '#7F00FF',
-    fontWeight: '600',
-  },
-  notAcceptedFooter: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#718096',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  label: {
-    marginBottom: 8,
-    fontWeight: '600',
-    color: '#4A5568',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 15,
-  },
-  logoWrapper: {
-    position: 'relative',
-    width: 140,
-    height: 140,
-    borderRadius: 15,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#F8F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F1F1F1',
-    width: '100%',
-    height: '100%',
-    borderRadius: 15,
-  },
-  logoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  button: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 10,
-    shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonDisabled: {
-    backgroundColor: '#BFA3FF',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
 });
-
-export default NewProduct;

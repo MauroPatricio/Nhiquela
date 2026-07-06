@@ -22,7 +22,7 @@ router.get(
     if (pm) {
       res.json(pm);
     } else {
-      res.status(404).json({ message: 'M√©todo de pagamento n√£o encontrado' });
+      res.status(404).json({ message: 'MÈtodo de pagamento n„o encontrado' });
     }
   })
 );
@@ -65,7 +65,7 @@ router.put(
       const updatedPm = await pm.save();
       res.json(updatedPm);
     } else {
-      res.status(404).json({ message: 'M√©todo de pagamento n√£o encontrado' });
+      res.status(404).json({ message: 'MÈtodo de pagamento n„o encontrado' });
     }
   })
 );
@@ -79,9 +79,9 @@ router.delete(
     const pm = await PaymentMethod.findById(req.params.id);
     if (pm) {
       await pm.deleteOne();
-      res.json({ message: 'M√©todo de pagamento removido' });
+      res.json({ message: 'MÈtodo de pagamento removido' });
     } else {
-      res.status(404).json({ message: 'M√©todo de pagamento n√£o encontrado' });
+      res.status(404).json({ message: 'MÈtodo de pagamento n„o encontrado' });
     }
   })
 );

@@ -14,8 +14,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: 'mauro.patricio1@gmail.com',      // Your email address
-    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+    user: process.env.SMTP_USER || 'mauro.patricio1@gmail.com',      // Your email address
+    pass: process.env.SMTP_PASS,         // Your email password
   },
   tls:{
     rejectUnauthorized: false
@@ -109,252 +109,35 @@ export const isDeliveryMan = (req,  next) => {
   }
 };
 
-export const sendSMSToSellerUSendIt = async (seller, msgText) =>{
-  const username = "mpatricio";
-  const password = "Patrick2019#"
-  const timezone = "Africa/Maputo";
-  const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
-  const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
-
-
-
-
-  const clientPhoneNumber = seller.phoneNumber;
-  const concatNumber = '258'+clientPhoneNumber;
-
-  // Definição dos parametros do sendMessage para o pedido the SOAP
-  // paramentros de envio para apenas um contacto
-  const sendMessageOneContact = {
-    username: username,
-    password: password,
-    timezone: timezone,
-    sender: 'Sales Info',
-    msisdn: concatNumber,
-    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
-    priority: 1,
-    messageText: msgText,
-    workingDays: false,
-    isFlash: false,
-  };
-
-    // criar coneccao com o client
-    const client = await soap.createClientAsync(wsdlUrl);
-
-    // Chamar a função sendMessage
-    client.SendMessage(sendMessageOneContact, (err, result) => {
-      if (err) {
-        console.error('Error calling sendmessage:', err);
-      } else {
-        console.log('sendmessage Result:', result);
-      }
-    });
-
-}
-export  const sendSMSToUSendIt= async (req,msgText) =>{
-
-  const username = "mpatricio";
-  const password = "Patrick2019#"
-  const timezone = "Africa/Maputo";
-  const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
-  const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
-
-
-  const clientPhoneNumber = req.user.phoneNumber;
-
-  const concatNumber = '258'+clientPhoneNumber;
-
-  // Definição dos parametros do sendMessage para o pedido the SOAP
-  // paramentros de envio para apenas um contacto
-  const sendMessageOneContact = {
-    username: username,
-    password: password,
-    timezone: timezone,
-    sender: 'Sales Info',
-    msisdn: concatNumber,
-    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
-    priority: 1,
-    messageText: msgText,
-    workingDays: false,
-    isFlash: false,
-  };
-
-    // criar coneccao com o client
-    const client = await soap.createClientAsync(wsdlUrl);
-
-    // Chamar a função sendMessage
-    client.SendMessage(sendMessageOneContact, (err, result) => {
-      if (err) {
-        console.error('Error calling sendmessage:', err);
-      } else {
-        console.log('sendmessage Result:', result);
-      }
-    });
-  }
-
-
-  export  const sendSMSToUSendItDeliverman= async (msgText) =>{
-
-    const username = "mpatricio";
-    const password = "Patrick2019#"
-    const timezone = "Africa/Maputo";
-    const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
-    const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
-  
-  
-     const clientPhoneNumber = 871480518; // Valgy
-     //const clientPhoneNumber = 840387051; // Valter 
-     
-
-   // const clientPhoneNumber = 840575992;
-  
-    const concatNumber = '258'+clientPhoneNumber;
-  
-    // Definição dos parametros do sendMessage para o pedido the SOAP
-    // paramentros de envio para apenas um contacto
-    const sendMessageOneContact = {
-      username: username,
-      password: password,
-      timezone: timezone,
-      sender: 'Sales Info',
-      msisdn: concatNumber,
-      mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
-      priority: 1,
-      messageText: msgText,
-      workingDays: false,
-      isFlash: false,
-    };
-  
-      // criar coneccao com o client
-      const client = await soap.createClientAsync(wsdlUrl);
-  
-      // Chamar a função sendMessage
-      client.SendMessage(sendMessageOneContact, (err, result) => {
-        if (err) {
-          console.error('Error calling sendmessage:', err);
-        } else {
-          console.log('sendmessage Result:', result);
-        }
-      });
-  }
-
-
-
-export  const sendSMSToUSendItAdmin= async (msgText) =>{
-
-  const username = "mpatricio";
-  const password = "Patrick2019#"
-  const timezone = "Africa/Maputo";
-  const partnerEventId = "https://api.usendit.co.mz/v2/remoteusendit.asmx";
-  const wsdlUrl = 'https://api.usendit.co.mz/v2/remoteusendit.asmx?WSDL';
-
-
-   const clientPhoneNumber = 853600036;
- // const clientPhoneNumber = 840575992;
-
-  const concatNumber = '258'+clientPhoneNumber;
-
-  // Definição dos parametros do sendMessage para o pedido the SOAP
-  // paramentros de envio para apenas um contacto
-  const sendMessageOneContact = {
-    username: username,
-    password: password,
-    timezone: timezone,
-    sender: 'Sales Info',
-    msisdn: concatNumber,
-    mobileOperator: -1, // O valor -1 deixa o sistema inferir o operador automaticamente
-    priority: 1,
-    messageText: msgText,
-    workingDays: false,
-    isFlash: false,
-  };
-
-    // criar coneccao com o client
-    const client = await soap.createClientAsync(wsdlUrl);
-
-    // Chamar a função sendMessage
-    client.SendMessage(sendMessageOneContact, (err, result) => {
-      if (err) {
-        console.error('Error calling sendmessage:', err);
-      } else {
-        console.log('sendmessage Result:', result);
-      }
-    });
-
-  
-
-
-  
-  // // Paramentros de envio para varios contactos
-  // const sendMessageMultipleContacts = {
-  //   username: username,
-  //   password: password,
-  //   timezone: timezone,
-  //   smsList: 
-  //       {
-  //         Sms: [{
-  //     		  Sender: 'Sales Info',
-  //           Msisdn: '258840575992',
-  //           Priority: 99,
-  //           MessageText: msgText,
-  //           WorkingDays: false,
-  //           IsFlash: false
-  //       },
-  //       {
-  //         	Sender: 'Sales Info',
-  //           Msisdn: '258879300036',
-  //           Priority: 99,
-  //           MessageText: msgText,
-  //           WorkingDays: false,
-  //           IsFlash: false
-  //           }
-  //       ],
-  //     }
-  //   }
-
-
-  // // criar coneccao com o client
-  // const client = await soap.createClientAsync(wsdlUrl);
-
-  // // Chamar a função sendMessage
-  // client.SendMessages(sendMessageMultipleContacts, (err, result) => {
-  //   if (err) {
-  //     console.error('Error calling sendmessage:', err);
-  //   } else {
-  //     console.log('sendmessage Result:', result);
-  //   }
-  // });
-}
+export const sendSMSToSellerUSendIt = async (seller, msgText) => { console.log('USendIt disabled'); }
+export const sendSMSToUSendIt = async (req, msgText) => { console.log('USendIt disabled'); }
+export const sendSMSToUSendItDeliverman = async (msgText) => { console.log('USendIt disabled'); }
+export const sendSMSToUSendItAdmin = async (msgText) => { console.log('USendIt disabled'); }
 
 export const sendEmailOrderStatus = async (req, msg, order, res)=>{
 
   const email = req.user.email
 
-
-
   if(email){
-const test ='mauro.patricio1@gmail.com'
-// Email message configuration
-const mailOptions = {
-  from: 'Nhiquela Shop <nhiquelaservicosconsultoria@gmail.com>',      // Your email address
-  to: [ test, email],       
-  subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
-  text: msg,
-};
+    const test ='mauro.patricio1@gmail.com'
+    // Email message configuration
+    const mailOptions = {
+      from: 'Nhiquela Shop <nhiquelaservicosconsultoria@gmail.com>',
+      to: [ test, email],       
+      subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
+      text: msg,
+    };
 
-// Enviar email
-transporter.sendMail(mailOptions, function (error, info) {
-  if (error) {
-    console.error('Error sending email:', error);
-    res.status(404).send({message: 'Email não enviado'})
-
+    // Enviar email
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
   } else {
-    console.log('Email sent:', info.response);
-    res.send({ message: 'Email enviado com Sucesso' });
-  }
-});
-   
-  }else{
-    res.status(404).send({message: 'Utilizador não encontrado'})
+    console.warn('Utilizador sem email configurado');
   }
 }
 
@@ -376,20 +159,15 @@ const mailOptions = {
   text: msg,
 };
 
-// Enviar email
-transporter.sendMail(mailOptions, function (error, info) {
-  if (error) {
-    console.error('Error sending email:', error);
-    res.status(404).send({message: 'Email não enviado'})
-
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
   } else {
-    console.log('Email sent:', info.response);
-    res.send({ message: 'Email enviado com Sucesso' });
-  }
-});
-   
-  }else{
-    res.status(404).send({message: 'Utilizador não encontrado'})
+    console.warn('Utilizador sem email configurado');
   }
 }
 
@@ -412,20 +190,15 @@ const mailOptions = {
   text: msg,
 };
 
-// Enviar email
-transporter.sendMail(mailOptions, function (error, info) {
-  if (error) {
-    console.error('Error sending email:', error);
-    res.status(404).send({message: 'Email não enviado'})
-
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
   } else {
-    console.log('Email sent:', info.response);
-    res.send({ message: 'Email enviado com Sucesso' });
-  }
-});
-   
-  }else{
-    res.status(404).send({message: 'Utilizador não encontrado'})
+    console.warn('Utilizador sem email configurado');
   }
 }
 
@@ -447,20 +220,15 @@ const mailOptions = {
   text: msg,
 };
 
-// Enviar email
-transporter.sendMail(mailOptions, function (error, info) {
-  if (error) {
-    console.error('Error sending email:', error);
-    res.status(404).send({message: 'Email não enviado'})
-
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
   } else {
-    console.log('Email sent:', info.response);
-    res.send({ message: 'Email enviado com Sucesso' });
-  }
-});
-   
-  }else{
-    res.status(404).send({message: 'Utilizador não encontrado'})
+    console.warn('Utilizador sem email configurado');
   }
 }
 
@@ -487,3 +255,4 @@ export const sendEmailTopUpRequestAdmin = async (driverName, amount, description
     console.log('Nenhum email configurado para notificações financeiras.');
   }
 };
+

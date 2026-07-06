@@ -22,7 +22,7 @@ promotionRouter.get(
     if (promotion) {
       res.send(promotion);
     } else {
-      res.status(404).send({ message: 'Promo√ß√£o n√£o encontrada' });
+      res.status(404).send({ message: 'PromoÁ„o n„o encontrada' });
     }
   })
 );
@@ -43,7 +43,7 @@ promotionRouter.post(
       createdBy: req.user._id,
     });
     const createdPromotion = await promotion.save();
-    res.status(201).send({ message: 'Promo√ß√£o criada com sucesso', promotion: createdPromotion });
+    res.status(201).send({ message: 'PromoÁ„o criada com sucesso', promotion: createdPromotion });
   })
 );
 
@@ -64,9 +64,9 @@ promotionRouter.put(
       promotion.isActive = req.body.isActive !== undefined ? req.body.isActive : promotion.isActive;
 
       const updatedPromotion = await promotion.save();
-      res.send({ message: 'Promo√ß√£o atualizada com sucesso', promotion: updatedPromotion });
+      res.send({ message: 'PromoÁ„o atualizada com sucesso', promotion: updatedPromotion });
     } else {
-      res.status(404).send({ message: 'Promo√ß√£o n√£o encontrada' });
+      res.status(404).send({ message: 'PromoÁ„o n„o encontrada' });
     }
   })
 );
@@ -81,9 +81,9 @@ promotionRouter.delete(
     if (promotion) {
       promotion.isActive = false;
       await promotion.save();
-      res.send({ message: 'Promo√ß√£o removida com sucesso' });
+      res.send({ message: 'PromoÁ„o removida com sucesso' });
     } else {
-      res.status(404).send({ message: 'Promo√ß√£o n√£o encontrada' });
+      res.status(404).send({ message: 'PromoÁ„o n„o encontrada' });
     }
   })
 );

@@ -1,18 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Image,
-  ScrollView,
   TouchableOpacity,
   Alert,
   Modal,
   TextInput,
-  Animated,
   Dimensions,
-  PanResponder
+  ActivityIndicator
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -23,119 +21,93 @@ import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 import { useToast } from "react-native-toast-notifications";
 import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
+import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 
 const { width, height } = Dimensions.get('window');
 
 const OrderDetailsScreen = () => {
-  const { params: { item, deliveryman } } = useRoute();
+  const route = useRoute();
+  const params = route.params || {};
+  const item = params.item;
+  const deliveryman = params.deliveryman;
+  
   const [currentOrder, setCurrentOrder] = useState(item);
   const [currentDeliveryMan, setDeliveryMan] = useState(deliveryman);
   const [modalVisible, setModalVisible] = useState(false);
   const [message, setMessage] = useState('');
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
+  const [showFinishConfirmationModal, setShowFinishConfirmationModal] = useState(false);
+  const [showFinishSuccessModal, setShowFinishSuccessModal] = useState(false);
+  const [isRequestService, setIsRequestService] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
-  // Driver location now handled by useTrackingSocket hook
-  const [canFinishTrip, setCanFinishTrip] = useState(false);
-  const [routeDrawn, setRouteDrawn] = useState(false);
-  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(!item);
   const navigation = useNavigation();
-
   const toast = useToast();
 
-  // Animações para o bottom sheet
-  const sheetAnim = useRef(new Animated.Value(0)).current;
-  const sheetHeight = useRef(new Animated.Value(120)).current;
-  const mapScale = useRef(new Animated.Value(1)).current;
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['15%', '50%', '90%'], []);
 
-  // Configurar PanResponder para o sheet
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          sheetHeight.setValue(Math.max(120, 500 - gestureState.dy));
-        } else {
-          sheetHeight.setValue(Math.min(600, 120 - gestureState.dy));
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 50) {
-          collapseSheet();
-        } else if (gestureState.dy < -50) {
-          expandSheet();
-        } else {
-          if (isSheetExpanded) {
-            expandSheet();
-          } else {
-            collapseSheet();
-          }
-        }
-      },
-    })
-  ).current;
+  const [driverSpeed, setDriverSpeed] = useState(null);
+  const [etaDistance, setEtaDistance] = useState(null);
+  const [etaDuration, setEtaDuration] = useState(null);
 
-  const expandSheet = () => {
-    setIsSheetExpanded(true);
-    Animated.parallel([
-      Animated.timing(sheetHeight, {
-        toValue: 600,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(sheetAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(mapScale, {
-        toValue: 0.75,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-  const collapseSheet = () => {
-    setIsSheetExpanded(false);
-    Animated.parallel([
-      Animated.timing(sheetHeight, {
-        toValue: 120,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(sheetAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(mapScale, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-  const toggleSheet = () => {
-    if (isSheetExpanded) {
-      collapseSheet();
-    } else {
-      expandSheet();
-    }
-  };
+  const handleUpdateTracking = useCallback(({ speed, distance, duration }) => {
+    if (speed !== undefined) setDriverSpeed(speed);
+    if (distance !== undefined) setEtaDistance(distance);
+    if (duration !== undefined) setEtaDuration(duration);
+  }, []);
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
-  // Socket.io tracking is handled directly inside TrackingMap component.
-  // No need for a separate hook call here.
+  const orderIdParam = params?.orderId || params?.item?._id;
+
+  useEffect(() => {
+    if (!currentOrder && orderIdParam) {
+      fetchOrderDetails();
+    } else {
+      setLoadingOrder(false);
+    }
+  }, [orderIdParam]);
+
+  useEffect(() => {
+    if (currentOrder) {
+      const isReq = !currentOrder.deliveryAddress;
+      setIsRequestService(isReq);
+    }
+  }, [currentOrder]);
+
+  const fetchOrderDetails = async () => {
+    setLoadingOrder(true);
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      if (!token) return;
+
+      const { data } = await api.get(`/request-service/${orderIdParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCurrentOrder(data);
+    } catch (e) {
+      try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        const { data } = await api.get(`/orders/${orderIdParam}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCurrentOrder(data);
+      } catch (e2) {
+        console.error("Erro ao buscar pedido", e2);
+      }
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
 
   const checkIfUserExist = async () => {
     try {
-
-
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permissão necessária', 'Permissão para acessar localização é necessária.');
@@ -146,34 +118,18 @@ const OrderDetailsScreen = () => {
       setCurrentLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
       });
 
       const storedUserData = await AsyncStorage.getItem('userData');
-      const storedUserId = await AsyncStorage.getItem('id');
 
-      if (storedUserData && storedUserId) {
+      if (storedUserData) {
         const parsedUserData = JSON.parse(storedUserData);
-
-        if (parsedUserData._id === storedUserId) {
-          setUserData(parsedUserData);
-          setUserLogin(true);
-        } else {
-          console.warn('⚠️ ID inconsistente entre userData e id');
-        }
-      } else {
-        console.log('⚠️ Usuário não está logado');
+        setUserData(parsedUserData);
+        setUserLogin(true);
       }
     } catch (error) {
-      console.error('❌ Erro ao verificar se o usuário existe:', error);
+      console.error('Erro ao verificar usuário:', error);
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const cancelOrderPop = async (orderId) => {
@@ -212,27 +168,36 @@ const OrderDetailsScreen = () => {
     try {
       if (!userData) throw new Error('User is not logged in');
 
-      const { data } = await api.put(`/orders/${orderId}/deliver`, {}, {
+      const endpoint = isRequestService 
+        ? `/request-service/${orderId}/deliver` 
+        : `/orders/${orderId}/deliver`;
+
+      const { data } = await api.put(endpoint, {}, {
         headers: { Authorization: `Bearer ${userData.token}` },
       });
 
-      setCurrentOrder(data.order);
+      const finalOrder = data.order || {
+        ...currentOrder,
+        status: 'Finalizado',
+        stepStatus: 6,
+        isDelivered: true,
+        deliveredAt: Date.now()
+      };
 
-      await sendOrderNotificationToUser({
-        userId: data.order.seller._id,
-        orderId: data.order._id,
-        orderCode: data.order.code,
-        title: 'Pedido entregue com sucesso!',
-        body: `O cliente confirmou a recepção do pedido nº ${data.order.code}.`,
-        status: 'Confirmado',
-      });
+      setCurrentOrder(finalOrder);
 
-      toast.show('O fornecedor será notificado.', {
-        type: 'success',
-        placement: 'top',
-        duration: 4000,
-        animationType: 'slide-in',
-      });
+      if (finalOrder.seller?._id) {
+        await sendOrderNotificationToUser({
+          userId: finalOrder.seller._id,
+          orderId: finalOrder._id,
+          orderCode: finalOrder.code,
+          title: 'Pedido entregue com sucesso!',
+          body: `O cliente confirmou a recepção do pedido nº ${finalOrder.code}.`,
+          status: 'Confirmado',
+        });
+      }
+
+      setShowFinishSuccessModal(true);
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
       Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
@@ -247,656 +212,696 @@ const OrderDetailsScreen = () => {
   };
 
   const confirmDeliveryOrder = (orderId) => {
-    Alert.alert('Confirmar Entrega', 'Confirmar entrega deste pedido?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => confirmDelivery(orderId) },
-    ]);
+    setShowFinishConfirmationModal(true);
   };
 
-  const handleCancelTrip = () => {
-    Alert.alert('Cancelar Viagem', 'Deseja cancelar a viagem?', [
-      { text: 'Não', style: 'cancel' },
-      { text: 'Sim', onPress: () => console.log('Viagem cancelada') },
-    ]);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Pendente': return '#F59E0B';
+      case 'Aceite': return '#FCD34D';
+      case 'Em trânsito': return '#3B82F6';
+      case 'No destino indicado': return '#8B5CF6';
+      case 'Entregue': return '#10B981';
+      case 'Finalizado': return '#10B981';
+      case 'Cancelado': return '#EF4444';
+      default: return '#6B7280';
+    }
   };
 
-  const handleFinishTrip = () => {
-    Alert.alert('Finalizar Viagem', 'Deseja finalizar a viagem?', [
-      { text: 'Não', style: 'cancel' },
-      { text: 'Sim', onPress: () => console.log('Viagem finalizada') },
-    ]);
-  };
+  // Compute destination based on order type (store or service)
+  const destination = currentOrder?.deliveryAddress 
+    ? { latitude: currentOrder.deliveryAddress.latitude, longitude: currentOrder.deliveryAddress.longitude }
+    : (currentOrder?.latitude ? { latitude: currentOrder.latitude, longitude: currentOrder.longitude } : null);
 
-  // Renderizar informações compactas quando o sheet estiver recolhido
-  const renderCompactInfo = () => (
-    <View style={styles.compactInfo}>
-      <View style={styles.compactMain}>
-        <LinearGradient
-          colors={['#9333EA', '#7E22CE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.orderBadge}
-        >
-          <Text style={styles.orderBadgeText}>#{currentOrder.code}</Text>
-        </LinearGradient>
-        <View style={styles.compactTexts}>
-          <Text style={styles.compactStore}>{currentOrder.seller?.seller?.name || 'Loja'}</Text>
-          <Text style={styles.compactStatus}>{currentOrder.status}</Text>
+  if (loadingOrder || !currentOrder) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' }}>
+        <ActivityIndicator size="large" color="#9333EA" />
+        <Text style={{ marginTop: 12, color: '#6B7280' }}>Carregando viagem...</Text>
+      </View>
+    );
+  }
+
+  const renderContent = () => (
+    <View style={styles.sheetContent}>
+      {/* Resumo Rápido para a aba inicial (15%) */}
+      <View style={styles.quickSummary}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.storeName}>
+            {currentOrder.seller?.seller?.name || currentOrder.name || currentOrder.goodType || 'Serviço'}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentOrder.status) + '20' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
+          </View>
+        </View>
+        {currentOrder.totalPrice ? <Text style={styles.totalPrice}>{currentOrder.totalPrice} Mt</Text> : null}
+      </View>
+
+      <View style={styles.divider} />
+
+      {/* Motorista e Veículo */}
+      {currentOrder.deliveryman && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Transporte</Text>
+          
+          <View style={styles.driverCard}>
+            <View style={styles.driverRow}>
+              <Image 
+                source={{ uri: currentOrder.deliveryman.photo || 'https://via.placeholder.com/60' }} 
+                style={styles.driverImage} 
+              />
+              <View style={styles.driverInfo}>
+                <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                    {currentOrder.deliveryman.transport_type} • {currentOrder.deliveryman.transport_registration}
+                  </Text>
+                  {currentOrder.deliveryman.transport_color && (
+                    <View style={{
+                      width: 14, height: 14, borderRadius: 7, 
+                      backgroundColor: (() => {
+                        const c = currentOrder.deliveryman.transport_color.toLowerCase();
+                        const map = { 'vermelho': 'red', 'azul': 'blue', 'verde': 'green', 'preto': 'black', 'branco': 'white', 'cinzento': 'gray', 'cinza': 'gray', 'amarelo': 'yellow', 'laranja': 'orange', 'castanho': 'brown', 'prata': 'silver', 'roxo': 'purple', 'rosa': 'pink', 'ouro': 'gold' };
+                        return map[c] || c;
+                      })(),
+                      marginLeft: 8, borderWidth: 1, borderColor: '#D1D5DB'
+                    }} />
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Foto da Viatura */}
+            {(currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture) && (
+              <View style={styles.vehicleImageContainer}>
+                <Text style={styles.vehicleLabel}>Foto da viatura:</Text>
+                <Image 
+                  source={{ uri: currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture }} 
+                  style={styles.vehicleImage} 
+                  contentFit="cover"
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Live Stats Container (Velocidade, Distância, Tempo) */}
+      {(etaDistance !== null || driverSpeed !== null) && (
+        <View style={styles.liveStatsContainer}>
+          {etaDistance !== null && (
+            <View style={styles.liveStatBox}>
+              <Ionicons name="navigate-outline" size={22} color="#9333EA" />
+              <Text style={styles.liveStatValue}>
+                {etaDistance >= 1000 ? `${(etaDistance / 1000).toFixed(1)} km` : `${Math.round(etaDistance)} m`}
+              </Text>
+              <Text style={styles.liveStatLabel}>Distância</Text>
+            </View>
+          )}
+
+          {etaDuration !== null && (
+            <View style={styles.liveStatBox}>
+              <Ionicons name="time-outline" size={22} color="#9333EA" />
+              <Text style={styles.liveStatValue}>
+                {etaDuration >= 60 ? `${Math.round(etaDuration / 60)} min` : `${Math.round(etaDuration)} s`}
+              </Text>
+              <Text style={styles.liveStatLabel}>Tempo de Chegada</Text>
+            </View>
+          )}
+
+          {driverSpeed !== null && (
+            <View style={styles.liveStatBox}>
+              <Ionicons name="speedometer-outline" size={22} color="#9333EA" />
+              <Text style={styles.liveStatValue}>
+                {Math.round(driverSpeed)} km/h
+              </Text>
+              <Text style={styles.liveStatLabel}>Velocidade</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Informações do Pedido */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Detalhes do Pagamento</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Método:</Text>
+          <Text style={styles.infoValue}>{currentOrder.paymentMethod} ({currentOrder.isPaid ? 'Pago' : 'Pendente'})</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Taxa de Serviço:</Text>
+          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} Mt</Text>
         </View>
       </View>
-      <View style={styles.compactPrice}>
-        <Text style={styles.compactPriceText}>{currentOrder.totalPrice} Mt</Text>
-        <Text style={styles.compactItems}>{currentOrder.orderItems?.length || 0} itens</Text>
+
+      {/* Produtos */}
+      {currentOrder.orderItems && currentOrder.orderItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Produtos ({currentOrder.orderItems.length})</Text>
+          {currentOrder.orderItems.map((item, idx) => (
+            <View key={idx} style={styles.productItem}>
+              <Image source={{ uri: item.image }} style={styles.productImage} />
+              <View style={styles.productDetails}>
+                <Text style={styles.productName}>{item.nome}</Text>
+                <Text style={styles.productQty}>Qtd: {item.quantity}</Text>
+                <Text style={styles.productPriceItem}>{item.price} Mt</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Ações */}
+      <View style={styles.actionsContainer}>
+        {currentOrder.status === 'No destino indicado' && (
+          <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
+            <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
+              <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Confirmar Receção</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+        {currentOrder.status === 'Entregue' && (
+          <TouchableOpacity onPress={() => confirmDeleteOrder(currentOrder._id)} style={styles.actionBtn}>
+            <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.gradientBtn}>
+              <Ionicons name="trash" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Apagar do Histórico</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes do Pedido</Text>
-        <View style={{ width: 28 }} />
+    <View style={styles.container}>
+      {/* Full Map Background */}
+      <View style={styles.mapWrapper}>
+        <TrackingMap 
+          orderId={currentOrder._id}
+          destination={destination}
+          vehicleType={currentOrder.deliveryman?.transport_type}
+          vehicleColor={currentOrder.deliveryman?.transport_color}
+          onUpdateTracking={handleUpdateTracking}
+          darkMode={false}
+        />
       </View>
 
-      {/* Mapa - Ocupa quase toda a tela */}
-      <Animated.View style={[styles.mapContainer, { transform: [{ scale: mapScale }] }]}>
-          {currentLocation && (
-            <TrackingMap
-              orderId={currentOrder._id}
-              initialCenter={currentLocation}
-              darkMode={true}
-            />
-          )}
-        </Animated.View>
+      {/* Back Button Overlay */}
+      <SafeAreaView style={styles.headerOverlay} edges={['top']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+      </SafeAreaView>
 
-      {/* Bottom Sheet Premium */}
-      <Animated.View
-        style={[
-          styles.sheetContainer,
-          {
-            height: sheetHeight,
-          }
-        ]}
-        {...panResponder.panHandlers}
+      {/* Bottom Sheet */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={1}
+        snapPoints={snapPoints}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
       >
-        {/* Handle do Sheet */}
-        <View style={styles.sheetHandle}>
-          <View style={styles.handleBar} />
-        </View>
-
-        {/* Conteúdo quando RECOLHIDO */}
-        <View style={styles.compactContent}>
-          {renderCompactInfo()}
-
-          <TouchableOpacity
-            onPress={toggleSheet}
-          >
-            <LinearGradient
-              colors={['#9333EA', '#7E22CE']}
-              style={styles.expandButton}
-            >
-              <Ionicons
-                name={isSheetExpanded ? "chevron-down" : "chevron-up"}
-                size={20}
-                color="#FFF"
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* Conteúdo quando EXPANDIDO */}
-        <Animated.View
-          style={[
-            styles.expandedContent,
-            {
-              opacity: sheetAnim,
-              display: isSheetExpanded ? 'flex' : 'none'
-            }
-          ]}
-        >
-          <ScrollView
-            style={styles.expandedScroll}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.expandedScrollContent}
-          >
-            {/* Informações do Pedido */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Informações do Pedido</Text>
-              <View style={styles.infoGrid}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Status</Text>
-                  <Text style={[styles.infoValue, styles[`status${currentOrder.status}`]]}>
-                    {currentOrder.status}
-                  </Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Pagamento</Text>
-                  <Text style={styles.infoValue}>
-                    {currentOrder.paymentMethod} - {currentOrder.isPaid ? 'Pago' : 'Pendente'}
-                  </Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Taxa de entrega</Text>
-                  <Text style={styles.infoValue}>{currentOrder.addressPrice} Mt</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Total</Text>
-                  <Text style={[styles.infoValue, styles.totalPrice]}>{currentOrder.totalPrice} Mt</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Informações do Motorista / Veículo */}
-            {currentOrder.deliveryman && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Detalhes do Transporte</Text>
-                <View style={styles.infoGrid}>
-                  {currentOrder.deliveryman.name && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Motorista</Text>
-                      <Text style={styles.infoValue}>{currentOrder.deliveryman.name}</Text>
-                    </View>
-                  )}
-                  {currentOrder.deliveryman.transport_type && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Veículo</Text>
-                      <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_type}</Text>
-                    </View>
-                  )}
-                  {currentOrder.deliveryman.transport_color && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Cor da Viatura</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ 
-                          width: 12, 
-                          height: 12, 
-                          borderRadius: 6, 
-                          backgroundColor: (() => {
-                            const c = String(currentOrder.deliveryman.transport_color).toLowerCase().trim();
-                            const map = {
-                              'branco': '#F8FAFC', 'preto': '#000000', 'cinzento': '#9CA3AF', 'cinza': '#9CA3AF', 'prata': '#D1D5DB', 
-                              'vermelho': '#EF4444', 'azul': '#3B82F6', 'verde': '#10B981', 'amarelo': '#F59E0B', 
-                              'laranja': '#F97316', 'castanho': '#78350F', 'marrom': '#78350F', 'rosa': '#EC4899', 'roxo': '#8B5CF6'
-                            };
-                            return map[c] || '#D1D5DB';
-                          })(),
-                          marginRight: 6, 
-                          borderWidth: 1, 
-                          borderColor: '#E5E7EB' 
-                        }} />
-                        <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_color}</Text>
-                      </View>
-                    </View>
-                  )}
-                  {currentOrder.deliveryman.transport_registration && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>Matrícula</Text>
-                      <Text style={styles.infoValue}>{currentOrder.deliveryman.transport_registration}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Produtos */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Produtos ({currentOrder.orderItems?.length || 0})</Text>
-              {currentOrder.orderItems?.map((item, idx) => (
-                <View style={styles.productCard} key={idx}>
-                  <Image source={{ uri: item.image }} style={styles.productImage} />
-                  <View style={styles.productInfo}>
-                    <View style={styles.productHeader}>
-                      <Text style={styles.productName}>{item.nome}</Text>
-                      {item.onSale && (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Promoção</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.productText}>Quantidade: {item.quantity}</Text>
-
-                    {item.onSale && item.discount > 0 ? (
-                      <View style={styles.priceContainer}>
-                        <Text style={styles.originalPrice}>{item.price} Mt</Text>
-                        <Text style={styles.discountPrice}>
-                          {item.price - item.discount} Mt
-                        </Text>
-                        <Text style={styles.discountText}>-{item.discount} Mt</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.productPrice}>{item.price} Mt</Text>
-                    )}
-
-                    <Text style={styles.productDescription} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Controles */}
-            <View style={styles.controlsSection}>
-              {currentOrder.status === 'Em trânsito' && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => confirmDeliveryOrder(currentOrder._id)}
-                >
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.actionButton}
-                  >
-                    <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-                    <Text style={styles.actionButtonText}>Confirmar Receção</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-
-              {currentOrder.status === 'Entregue' && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => confirmDeleteOrder(currentOrder._id)}
-                >
-                  <LinearGradient
-                    colors={['#EF4444', '#DC2626']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.actionButton}
-                  >
-                    <Ionicons name="trash" size={22} color="#FFF" />
-                    <Text style={styles.actionButtonText}>Apagar Pedido do Histórico</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </View>
-          </ScrollView>
-        </Animated.View>
-      </Animated.View>
+        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {renderContent()}
+        </BottomSheetScrollView>
+      </BottomSheet>
 
       {/* Modal de Cancelamento */}
       <Modal animationType="slide" transparent visible={modalVisible}>
-        <View style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Motivo do cancelamento</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Digite aqui..."
+              style={styles.modalInput}
+              placeholder="Descreva o motivo..."
               value={message}
               onChangeText={setMessage}
+              multiline
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.greenButton} onPress={() => cancelOrderPop(currentOrder._id)}>
-                <Text style={styles.buttonText}>Confirmar</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#EF4444' }]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.modalBtnText}>Fechar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.redButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.buttonText}>Cancelar</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#10B981' }]} onPress={() => cancelOrderPop(currentOrder._id)}>
+                <Text style={styles.modalBtnText}>Confirmar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      {/* 🏁 MODAL PREMIUM — CONFIRMAR ENTREGA (CLIENTE) */}
+      <Modal
+        visible={showFinishConfirmationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFinishConfirmationModal(false)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#D1FAE5' }]}>
+              <Ionicons name="checkmark-done-circle-outline" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Confirmar Receção?</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Confirma que recebeu o seu pedido em conformidade? Esta ação finalizará a entrega e notificará o fornecedor.
+            </Text>
+
+            <View style={styles.premiumModalButtons}>
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={() => setShowFinishConfirmationModal(false)}
+              >
+                <Text style={styles.premiumCancelButtonText}>Voltar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setShowFinishConfirmationModal(false);
+                  confirmDelivery(currentOrder._id);
+                }}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Confirmar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🎉 MODAL PREMIUM — ENTREGA CONCLUÍDA COM SUCESSO (CLIENTE) */}
+      <Modal
+        visible={showFinishSuccessModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="trophy" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Pedido Concluído! 🎉</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Obrigado por utilizar a Nhiquela
+            </Text>
+
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowFinishSuccessModal(false);
+                navigation.goBack();
+              }}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Voltar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: '#F2F4F8'
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 10,
     backgroundColor: '#fff',
-    borderBottomColor: '#ddd',
-    borderBottomWidth: 1,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333'
+  mapWrapper: {
+    ...StyleSheet.absoluteFillObject,
   },
-  mapContainer: {
-    flex: 1,
-  },
-  // Sheet Styles
-  sheetContainer: {
+  headerOverlay: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    zIndex: 10,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sheetBackground: {
+    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    overflow: 'hidden',
+    shadowRadius: 8,
+    elevation: 10,
   },
-  sheetHandle: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  handleBar: {
+  handleIndicator: {
+    backgroundColor: '#ccc',
     width: 40,
-    height: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: 2,
+    height: 5,
+    borderRadius: 3,
   },
-  compactContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  sheetContent: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    height: 60,
+    paddingTop: 5,
   },
-  compactInfo: {
+  quickSummary: {
+    marginBottom: 10,
+  },
+  summaryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    flex: 1,
-  },
-  compactMain: {
-    flexDirection: 'row',
     alignItems: 'center',
+  },
+  storeName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
     flex: 1,
   },
-  orderBadge: {
+  statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    marginRight: 12,
+    marginLeft: 10,
   },
-  orderBadgeText: {
-    color: '#FFF',
+  statusText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    fontSize: 12,
   },
-  compactTexts: {
-    flex: 1,
-  },
-  compactStore: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  compactStatus: {
-    fontSize: 12,
+  totalPrice: {
+    fontSize: 24,
+    fontWeight: '800',
     color: '#9333EA',
-    fontWeight: '500',
-    marginTop: 2,
+    marginTop: 4,
   },
-  compactPrice: {
-    alignItems: 'flex-end',
-    marginRight: 12,
-  },
-  compactPriceText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  compactItems: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
-  },
-  expandButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  expandedContent: {
-    flex: 1,
-  },
-  expandedScroll: {
-    flex: 1,
-  },
-  expandedScrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 15,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 10,
   },
-  infoGrid: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  infoItem: {
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  infoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    marginBottom: 8,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    color: '#6B7280',
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#111',
   },
-  totalPrice: {
-    color: '#9333EA',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  statusEntregue: {
-    color: '#32CD32',
-  },
-  statusPendente: {
-    color: '#FFD700',
-  },
-  statusCancelado: {
-    color: '#FF4500',
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+  driverCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
   },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-  },
-  productInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  productHeader: {
+  driverRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+  },
+  driverImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: '#ddd',
+  },
+  driverInfo: {
+    flex: 1,
+  },
+  driverName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111',
+  },
+  driverSub: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  vehicleImageContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  vehicleLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  vehicleImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+  },
+  productItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  productImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    marginRight: 12,
+  },
+  productDetails: {
+    flex: 1,
   },
   productName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    flex: 1,
   },
-  productText: {
+  productQty: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  productPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#9333EA',
-    marginBottom: 2,
-  },
-  productDescription: {
-    fontSize: 11,
-    color: '#888',
+    color: '#6B7280',
     marginTop: 2,
   },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: '#999',
-    textDecorationLine: 'line-through',
-    marginRight: 8,
-  },
-  discountPrice: {
+  productPriceItem: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#9333EA',
-    marginRight: 8,
+    marginTop: 2,
   },
-  discountText: {
-    fontSize: 11,
-    color: '#32CD32',
-    fontWeight: '600',
+  actionsContainer: {
+    marginTop: 10,
+    alignItems: 'center',
   },
-  badge: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  badgeText: {
-    color: '#EF4444',
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  controlsSection: {
+  actionBtn: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
     marginTop: 10,
   },
-  actionButton: {
+  gradientBtn: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  actionBtnText: {
+    color: '#FFF',
     fontSize: 16,
+    fontWeight: '700',
     marginLeft: 8,
   },
-  // Modal Styles
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)'
+    padding: 20,
   },
   modalContent: {
     backgroundColor: '#fff',
+    borderRadius: 16,
     padding: 20,
-    borderRadius: 10,
-    width: '80%'
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12
+    marginBottom: 15,
+    textAlign: 'center',
   },
-  input: {
-    borderColor: '#ccc',
+  modalInput: {
     borderWidth: 1,
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 12
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
   },
   modalActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
-  greenButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
+  modalBtn: {
     flex: 1,
-    marginRight: 8,
-  },
-  redButton: {
-    backgroundColor: '#F44336',
-    paddingVertical: 12,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    flex: 1,
-    marginLeft: 8,
+    marginHorizontal: 5,
   },
-  buttonText: {
-    color: '#fff',
+  modalBtnText: {
+    color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 16
   },
+  liveStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  liveStatBox: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  liveStatValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginTop: 6,
+  },
+  liveStatLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  premiumModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  premiumModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 28,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 14,
+  },
+  premiumIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#065F46',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  premiumModalMessage: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumConfirmButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumConfirmGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  premiumModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  premiumCancelButton: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
+  }
 });
 
 export default OrderDetailsScreen;

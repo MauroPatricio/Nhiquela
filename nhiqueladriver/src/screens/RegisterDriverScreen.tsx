@@ -36,6 +36,8 @@ interface DriverForm {
     transport_color: string;
     transport_registration: string;
     vihicle_picture: string;
+    vihicle_picture_front: string;
+    vihicle_picture_back: string;
     vihicle_inspection: string;
     vihicle_Insurance: string;
     vihicle_logbook: string;
@@ -45,12 +47,14 @@ interface DriverForm {
     document_front: string;
     document_back: string;
     Proof_of_Address: string;
+    assigned_base_fee?: string;
 }
+
 
 export default function RegisterDriverScreen({ navigation }: any) {
     const [step, setStep] = useState(0);
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    const [subcategories, setSubcategories] = useState<{ label: string, value: string }[]>([]);
+    const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string }[]>([]);
     const [colorOptions, setColorOptions] = useState<{ label: string, value: string }[]>([]);
 
     useEffect(() => {
@@ -66,7 +70,8 @@ export default function RegisterDriverScreen({ navigation }: any) {
                 });
                 const formatted = filtered.map((item: any) => ({
                     label: item.name,
-                    value: item.name
+                    value: item._id, // Usar o ID do serviço
+                    pricingMode: item.pricingMode
                 }));
                 setSubcategories(formatted);
                 
@@ -86,7 +91,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
 
     const [form, setForm] = useState<DriverForm>({
         photo: "", name: "", phoneNumber: "", email: "", password: "",
-        transport_type: "", transport_color: "", transport_registration: "", vihicle_picture: "",
+        transport_type: "", transport_color: "", transport_registration: "", vihicle_picture: "", vihicle_picture_front: "", vihicle_picture_back: "",
         vihicle_inspection: "", vihicle_Insurance: "", vihicle_logbook: "", license_front: "", license_back: "",
         document_type: "bi", document_front: "", document_back: "", Proof_of_Address: "",
     });
@@ -123,7 +128,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
         }
 
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             quality: 0.8,
             allowsEditing: true,
         });
@@ -207,6 +212,8 @@ export default function RegisterDriverScreen({ navigation }: any) {
         if (!form.transport_color) newErrors.transport_color = 'Obrigatório';
         if (!form.transport_registration) newErrors.transport_registration = 'Obrigatório';
         if (!form.vihicle_picture) newErrors.vihicle_picture = 'Obrigatório';
+        if (!form.vihicle_picture_front) newErrors.vihicle_picture_front = 'Obrigatório';
+        if (!form.vihicle_picture_back) newErrors.vihicle_picture_back = 'Obrigatório';
         if (!form.vihicle_logbook) newErrors.vihicle_logbook = 'Obrigatório';
         if (!form.vihicle_inspection) newErrors.vihicle_inspection = 'Obrigatório';
         if (!form.vihicle_Insurance) newErrors.vihicle_Insurance = 'Obrigatório';
@@ -241,7 +248,14 @@ export default function RegisterDriverScreen({ navigation }: any) {
         setErrors({});
         showLoading('A submeter candidatura...');
         try {
-            const finalData = { ...form, isDeliveryMan: true };
+            const finalData = { 
+                ...form, 
+                isDeliveryMan: true,
+                providedServices: form.transport_type ? [{
+                    serviceId: form.transport_type,
+                    customBasePrice: form.assigned_base_fee ? parseFloat(form.assigned_base_fee) : 0
+                }] : []
+            };
 
             showProcessing('Finalizando...');
             await registerDriver(finalData);
@@ -299,7 +313,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                 {uploadingField === field ? (
                     <ActivityIndicator color="#7F00FF" />
                 ) : form[field] ? (
-                    <Image source={{ uri: getImageUrl(form[field]) }} style={styles.previewImage} />
+                    <Image source={{ uri: getImageUrl(form[field]) }} style={styles.previewImage} resizeMode="cover" />
                 ) : (
                     <>
                         <MaterialCommunityIcons name={icon as any} size={32} color="#9CA3AF" />
@@ -321,7 +335,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                 {uploadingField === field ? (
                     <ActivityIndicator color="#7F00FF" />
                 ) : form[field] ? (
-                    <Image source={{ uri: getImageUrl(form[field]) }} style={styles.previewImage} />
+                    <Image source={{ uri: getImageUrl(form[field]) }} style={styles.previewImage} resizeMode="cover" />
                 ) : (
                     <>
                         <MaterialCommunityIcons name={icon as any} size={28} color="#9CA3AF" />
@@ -449,6 +463,9 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                     { label: "Caminhão", value: "caminhao" },
                                 ]}
                             />
+                                {subcategories.find(s => s.value === form.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (
+                                renderInput("Valor do serviço que presta (MT) *", "assigned_base_fee", "cash-outline", { keyboardType: "numeric", placeholder: "Ex: 500" })
+                            )}
                             <SelectField
                                 label="Cor do Veículo *"
                                 field="transport_color"
@@ -458,8 +475,13 @@ export default function RegisterDriverScreen({ navigation }: any) {
                             />
                             {renderInput("Matrícula/Placa *", "transport_registration", "car-outline", { placeholder: "AAA-111-MC", autoCapitalize: "characters" })}
                             
-                            <Text style={styles.sectionTitle}>Fotografia da Viatura</Text>
-                            {renderImageUpload("Foto do Veículo *", "vihicle_picture", "car-hatchback")}
+                            <Text style={styles.sectionTitle}>Fotografias da Viatura</Text>
+                            <Text style={{fontSize: 12, color: '#6B7280', marginBottom: 10}}>Atenção: A matrícula deve estar visível em ambas as fotos.</Text>
+                            <View style={styles.gridContainer}>
+                                {renderGridImageUpload("Foto da Viatura *", "vihicle_picture", "car")}
+                                {renderGridImageUpload("Frente (C/ Matrícula) *", "vihicle_picture_front", "car-arrow-right")}
+                                {renderGridImageUpload("Trás (C/ Matrícula) *", "vihicle_picture_back", "car-arrow-left")}
+                            </View>
 
                             <Text style={styles.sectionTitle}>Documentos da Viatura</Text>
                             <View style={styles.gridContainer}>
@@ -563,7 +585,7 @@ const styles = StyleSheet.create({
     uploadBoxSquare: { width: '100%', aspectRatio: 1, backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
     uploadTextSmall: { marginTop: 8, fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
     uploadText: { marginTop: 8, fontSize: 14, color: '#9CA3AF' },
-    previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    previewImage: { width: '100%', height: '100%' },
     footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#F3F4F6', backgroundColor: '#FFF' },
     primaryButton: { backgroundColor: '#7F00FF', borderRadius: 16, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#7F00FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     primaryButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
@@ -578,3 +600,4 @@ const styles = StyleSheet.create({
     modalButton: { width: '100%', backgroundColor: '#7F00FF', borderRadius: 16, height: 56, justifyContent: 'center', alignItems: 'center' },
     modalButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });
+

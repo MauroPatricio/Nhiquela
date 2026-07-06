@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,13 @@ import {
   ActivityIndicator,
   Modal,
   Switch,
+  Vibration,
 } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { Audio } from "expo-av";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS } from "../styles/colors";
 import {
@@ -25,59 +29,29 @@ import {
 } from "../services/orderService";
 import websocketService from "../services/websocketService";
 import * as Location from "expo-location";
+import { startBackgroundLocationUpdates, stopBackgroundLocationUpdates } from '../services/LocationService';
 import { useAuth } from "../context/AuthContext";
+import TripCard from "../components/TripCard";
 import { API_BASE_URL } from "../api/apiConfig";
 import { showMessage } from "react-native-flash-message";
+import { Trip, WebSocketOrderData, LocationData } from "../types";
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
 };
 
-type Trip = {
-  id: string;
-  passenger: string;
-  pickup: string;
-  destination: string;
-  reward: string;
-  distance: string;
-  time: string;
-  destinationLocation: {
-    latitude: number;
-    longitude: number;
-  };
-  stepStatus: number;
-  status: string;
-  isAcceptedByDeliveryman: boolean;
-  originalData: any;
-  isProcessing?: boolean;
-};
-
 // 🔥 TIPOS PARA WEBSOCKET
-type WebSocketOrderData = {
-  order: any;
-  action: string;
-  timestamp: string;
-  deliverymanId?: string;
-};
-
 type WebSocketError = {
   message: string;
   code?: string;
-};
-
-type LocationData = {
-  latitude: number;
-  longitude: number;
-  accuracy?: number;
-  speed?: number;
-  heading?: number;
-  timestamp: number;
 };
 
 export default function HomeScreen({ navigation }: any) {
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [acceptedTrip, setAcceptedTrip] = useState<Trip | null>(null);
   const [routeSummary, setRouteSummary] = useState<Trip | null>(null);
+  const [alertSound, setAlertSound] = useState<Audio.Sound | null>(null);
+
   const [blinkAnim] = useState(new Animated.Value(0));
   const [isTripStarted, setIsTripStarted] = useState(false);
   const [isDriverApproved, setIsDriverApproved] = useState<boolean | null>(null);
@@ -93,88 +67,67 @@ export default function HomeScreen({ navigation }: any) {
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const [isSharingLocation, setIsSharingLocation] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
   
   const [isToggling, setIsToggling] = useState(false);
+  const [showTripAcceptedModal, setShowTripAcceptedModal] = useState(false);
+  const [showOrderTakenModal, setShowOrderTakenModal] = useState(false);
+  const [tripToStart, setTripToStart] = useState<Trip | null>(null);
+  const [showTripStartedModal, setShowTripStartedModal] = useState(false);
+  const [startedTripData, setStartedTripData] = useState<Trip | null>(null);
   const { user, updateUser, updateDeliveryman } = useAuth();
+
+  // Load alert sound
+  useEffect(() => {
+    let soundObj: Audio.Sound | null = null;
+    async function loadSound() {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          require('../assets/sounds/alert.ogg')
+        );
+        await sound.setIsLoopingAsync(true);
+        soundObj = sound;
+        setAlertSound(sound);
+      } catch (e) {
+        console.log("Erro ao carregar som de alerta:", e);
+      }
+    }
+    loadSound();
+    return () => {
+      soundObj?.unloadAsync();
+    };
+  }, []);
+
+  // Play/Stop sound depending on pending trips
+  useEffect(() => {
+    if (alertSound) {
+      const hasPending = allTrips.some(t => t.status === 'Pendente');
+      if (hasPending && user?.availability === 'active') {
+        alertSound.playAsync();
+        // Vibrate repeatedly (Wait 500ms, Vibrate 1000ms, Wait 500ms)
+        const PATTERN = [500, 1000, 500];
+        Vibration.vibrate(PATTERN, true); // true for looping
+      } else {
+        alertSound.stopAsync();
+        Vibration.cancel();
+      }
+    }
+    
+    return () => {
+      Vibration.cancel();
+    };
+  }, [allTrips, alertSound, user?.availability]);
 
   const isMounted = useRef(true);
 
   // 🔥 OBTER E COMPARTILHAR LOCALIZAÇÃO EM TEMPO REAL
   const startLocationSharing = async () => {
     try {
-      
-      // Solicitar permissões
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permissão Negada', 'Permissão de localização é necessária para compartilhar sua localização em tempo real.');
-        return;
+      if (acceptedTrip) {
+         await AsyncStorage.setItem('currentOrderId', JSON.stringify(acceptedTrip.id));
       }
-
-      // Configurar precisão para melhor performance
-      await Location.enableNetworkProviderAsync();
-
-      // Obter localização atual
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const locationData: LocationData = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy ?? undefined,
-        speed: location.coords.speed || 0,
-        heading: location.coords.heading || 0,
-        timestamp: Date.now(),
-      };
-
-      setCurrentLocation(locationData);
+      await startBackgroundLocationUpdates();
       setIsSharingLocation(true);
-
-      // 🔥 COMPARTILHAR LOCALIZAÇÃO VIA WEBSOCKET
-      if (websocketService && isConnected && acceptedTrip) {
-        websocketService.emit('deliveryman_location_update', {
-          deliverymanId: user?._id,
-          orderId: acceptedTrip.id,
-          location: locationData,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // Iniciar watch de localização
-      const subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Balanced,
-          distanceInterval: 10, // Atualizar a cada 10 metros
-          timeInterval: 5000,   // Atualizar a cada 5 segundos
-        },
-        (newLocation) => {
-          if (isMounted.current && isSharingLocation) {
-            const updatedLocation: LocationData = {
-              latitude: newLocation.coords.latitude,
-              longitude: newLocation.coords.longitude,
-              accuracy: newLocation.coords.accuracy ?? undefined,
-              speed: newLocation.coords.speed || 0,
-              heading: newLocation.coords.heading || 0,
-              timestamp: Date.now(),
-            };
-
-            setCurrentLocation(updatedLocation);
-
-            // 🔥 COMPARTILHAR ATUALIZAÇÃO DE LOCALIZAÇÃO EM TEMPO REAL
-            if (websocketService && isConnected && acceptedTrip) {
-              websocketService.emit('deliveryman_location_update', {
-                deliverymanId: user?._id,
-                orderId: acceptedTrip.id,
-                location: updatedLocation,
-                timestamp: new Date().toISOString()
-              });
-            }
-          }
-        }
-      );
-
-      setLocationSubscription(subscription);
-
     } catch (error: any) {
       console.error("❌ Erro ao iniciar compartilhamento de localização:", error.message);
       Alert.alert("Erro", "Não foi possível iniciar o compartilhamento de localização.");
@@ -184,10 +137,8 @@ export default function HomeScreen({ navigation }: any) {
   // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
   const stopLocationSharing = async () => {
     try {
-      if (locationSubscription) {
-        locationSubscription.remove();
-        setLocationSubscription(null);
-      }
+      await stopBackgroundLocationUpdates();
+      await AsyncStorage.removeItem('currentOrderId');
       setIsSharingLocation(false);
     } catch (error: any) {
       console.error("Erro ao parar compartilhamento de localização:", error.message);
@@ -240,25 +191,95 @@ export default function HomeScreen({ navigation }: any) {
 
         websocketService.connect(token);
 
+        // 🔥 OTIMIZAÇÃO DE WEBSOCKET: Processa payload direto sem refetch
+        const handleOrderWebSocketUpdate = async (data: any) => {
+          if (!isMounted.current || !data || (!data._id && !data.id)) return;
+          
+          let currentPosition = { latitude: 0, longitude: 0 };
+          try {
+            const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            currentPosition = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            };
+          } catch (e) {}
+
+          const newFormattedOrder = formatOrder(data, currentPosition);
+          
+          const isCancelled = data.status === 'Cancelado' || data.isCanceled || data.deleted;
+          
+          setAllTrips((prevTrips: any[]) => {
+            let newTrips = [];
+            if (isCancelled) {
+              newTrips = prevTrips.filter(t => t.id !== newFormattedOrder.id);
+            } else {
+              const exists = prevTrips.some(t => t.id === newFormattedOrder.id);
+              if (exists) {
+                newTrips = prevTrips.map(t => t.id === newFormattedOrder.id ? newFormattedOrder : t);
+              } else {
+                newTrips = [newFormattedOrder, ...prevTrips];
+              }
+            }
+            
+            // Re-evaluate acceptedTrip
+            const accepted = newTrips.find((order: any) => {
+              const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
+              const isInTransit = order.stepStatus === 5;
+              return isAcceptedByCurrentUser || isInTransit;
+            });
+            
+            setAcceptedTrip(accepted || null);
+            if (accepted) {
+              const tripStarted = accepted.stepStatus === 5;
+              setIsTripStarted(tripStarted);
+              if (tripStarted) {
+                setRouteSummary(accepted);
+                AsyncStorage.setItem("acceptedTrip", JSON.stringify(accepted));
+              } else {
+                setRouteSummary(null);
+              }
+            } else {
+              setRouteSummary(null);
+              setIsTripStarted(false);
+              AsyncStorage.removeItem("acceptedTrip");
+            }
+            return newTrips;
+          });
+          setLastUpdate(new Date());
+        };
+
         // 🔥 LISTENER PARA ATUALIZAÇÕES DE PEDIDOS
-        websocketService.on('order_updated', (data: WebSocketOrderData) => {
-          if (isMounted.current) {
-            loadAllOrdersSilent();
-          }
-        });
+        websocketService.on('order_updated', handleOrderWebSocketUpdate);
 
         // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
-        websocketService.on('order_assigned', (data: WebSocketOrderData) => {
-          if (isMounted.current) {
-            loadAllOrdersSilent();
-          }
+        websocketService.on('order_assigned', handleOrderWebSocketUpdate);
+
+        // 🔥 LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
+        websocketService.on('new_order', (data: any) => {
+          if (!isMounted.current) return;
+          // Adicionar novo pedido à lista se ainda não estiver lá
+          setAllTrips(prev => {
+            const exists = prev.some(t => t.id === data._id);
+            if (exists) return prev;
+            const newTrip = formatOrder(data);
+            return newTrip ? [newTrip, ...prev] : prev;
+          });
         });
 
-        // 🔥 LISTENER PARA NOVOS PEDIDOS
-        websocketService.on('new_order', (data: WebSocketOrderData) => {
-          if (isMounted.current) {
-            loadAllOrdersSilent();
-          }
+        // 🔥 LISTENER PARA PEDIDO ACEITE POR OUTRO MOTORISTA
+        websocketService.on('order_taken', (data: any) => {
+          if (!isMounted.current) return;
+          const { orderId, acceptedBy } = data;
+          // Verificar se este motorista não é o que aceitou
+          setAllTrips(prev => {
+            const exists = prev.some(t => t.id === orderId);
+            if (exists && acceptedBy !== user?._id) {
+              setShowOrderTakenModal(true);
+            }
+            // Remover o pedido da lista apenas se não foi este motorista que o aceitou
+            if (acceptedBy === user?._id) return prev;
+            return prev.filter(t => t.id !== orderId);
+          });
         });
 
         // 🔥 LISTENER PARA REQUISIÇÕES DE LOCALIZAÇÃO
@@ -353,6 +374,7 @@ export default function HomeScreen({ navigation }: any) {
       websocketService.off('order_updated');
       websocketService.off('order_assigned');
       websocketService.off('new_order');
+      websocketService.off('order_taken');
       websocketService.off('request_location_update');
       websocketService.off('connect');
       websocketService.off('disconnect');
@@ -414,7 +436,34 @@ export default function HomeScreen({ navigation }: any) {
            loadAllOrdersSilent();
         }
       } else {
-        throw new Error("Falha ao atualizar");
+        const data = await response.json().catch(() => ({}));
+        showMessage({
+          message: "Atenção",
+          description: data.message || "Erro ao alterar disponibilidade.",
+          type: "danger",
+          icon: "auto",
+          style: {
+            paddingTop: 40,
+            borderRadius: 16,
+            margin: 10,
+            backgroundColor: COLORS.error || '#FF3B30',
+          },
+          titleStyle: {
+            fontSize: 16,
+            fontWeight: "bold",
+            color: "#FFF"
+          },
+          textStyle: {
+            fontSize: 14,
+            color: "#FFF"
+          },
+          duration: 5000,
+        });
+        
+        // Forçar UI voltar para o estado anterior (rollback visual do toggle)
+        if (updateUser) {
+          updateUser({ ...user }); 
+        }
       }
     } catch (error) {
       showMessage({
@@ -495,7 +544,14 @@ export default function HomeScreen({ navigation }: any) {
         console.warn('⚠️ Erro ao obter localização, continuando sem ela...');
       }
 
-      const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
+      const formattedOrders = ordersData
+        .map((order: any) => formatOrder(order, currentPosition))
+        .filter((order: any) => {
+          const tripStatus = order.status ? order.status.toLowerCase() : "";
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || order.stepStatus === 6;
+          // Keep if not completed OR if it's currently marked as accepted/in transit by THIS driver (sanity check)
+          return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
+        });
 
       // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
       setAllTrips(formattedOrders);
@@ -579,7 +635,13 @@ export default function HomeScreen({ navigation }: any) {
         console.warn('⚠️ Erro ao obter localização');
       }
   
-      const formattedOrders = ordersData.map((order: any) => formatOrder(order, currentPosition));
+      const formattedOrders = ordersData
+        .map((order: any) => formatOrder(order, currentPosition))
+        .filter((order: any) => {
+          const tripStatus = order.status ? order.status.toLowerCase() : "";
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || order.stepStatus === 6;
+          return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
+        });
   
       // 🔥 VERIFICAÇÃO CORRIGIDA DAS VIAGENS ACEITAS
       const acceptedTrips = formattedOrders.filter((order: Trip) => {
@@ -643,12 +705,16 @@ export default function HomeScreen({ navigation }: any) {
   
   const formatOrder = (order: any, currentPosition?: any): Trip => {
     const destinationLat = order.deliveryAddress?.latitude ||
+      order.destinationLocation?.latitude ||
       order.seller?.latitude ||
-      order.sellerInfo?.latitude || 0;
+      order.sellerInfo?.latitude || 
+      order.latitude || 0;
   
     const destinationLon = order.deliveryAddress?.longitude ||
+      order.destinationLocation?.longitude ||
       order.seller?.longitude ||
-      order.sellerInfo?.longitude || 0;
+      order.sellerInfo?.longitude || 
+      order.longitude || 0;
   
     let distance = 0;
     if (currentPosition && destinationLat && destinationLon &&
@@ -674,12 +740,21 @@ export default function HomeScreen({ navigation }: any) {
       order.status === 'Aceite pelo entregador' &&
       order.stepStatus === 4  
     );
-  
+    const isReq = order.goodType !== undefined || order.type === 'requestService';
+    let serviceNameStr;
+    if (isReq) {
+      serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "Serviço");
+    }
+
     return {
       id: order._id,
+      passengerId: order.user?._id || order.user?.id || order.userId || "0",
+      serviceName: serviceNameStr,
       passenger: order.user?.name || order.clientName || "Cliente",
-      pickup: order.seller?.name || order.seller?.address || "Local de origem",
-      destination: order.deliveryAddress?.address || "Destino",
+      passengerImage: order.user?.profileImage,
+      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Não disponível",
+      pickup: order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
+      destination: order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.totalPrice || order.reward || Math.round(distance * 25)}`,
       distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distância não disponível",
       time: distance > 0 ? `${Math.round(distance / 40 * 60)} min` : "Tempo não disponível",
@@ -704,63 +779,72 @@ export default function HomeScreen({ navigation }: any) {
   };
 
 // 🔥 AÇÃO COM FEEDBACK VISUAL INSTANTÂNEO E COMPARTILHAMENTO DE LOCALIZAÇÃO
-const acceptTrip = async (tripId: string) => {
-  try {
-    setAcceptingTripId(tripId);
 
-    // 🔥 BLOQUEAR TODOS OS BOTÕES ENQUANTO PROCESSANDO
-    setAllTrips(prev => prev.map(trip => ({
-      ...trip,
-      isProcessing: trip.id === tripId ? true : trip.isProcessing
-    })));
 
-    // 🔥 TENTAR OBTER LOCALIZAÇÃO
-    let currentLocation = null;
-    
+  const acceptTrip = useCallback(async (tripId: string) => {
     try {
-      
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-        // timeout removed
-      });
-      
-      currentLocation = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy ?? undefined,
-        timestamp: new Date().toISOString()
-      };
+      setAcceptingTripId(tripId);
 
+      // 🔥 BLOQUEAR TODOS OS BOTÕES ENQUANTO PROCESSANDO
+      setAllTrips(prev => prev.map(trip => ({
+        ...trip,
+        isProcessing: trip.id === tripId ? true : trip.isProcessing
+      })));
+
+      // 🔥 TENTAR OBTER LOCALIZAÇÃO
+      let currentLocation = null;
+      
+      try {
+        
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        
+        currentLocation = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          accuracy: location.coords.accuracy ?? undefined,
+          timestamp: new Date().toISOString()
+        };
+
+      } catch (error: any) {
+        Alert.alert(
+          "Localização Necessária", 
+          "Não foi possível obter sua localização. Ative a localização do dispositivo e tente novamente.",
+          [{ text: "OK" }]
+        );
+        throw new Error('Localização não disponível');
+      }
+
+      // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
+      // Usar o ID do servidor e detetar o tipo pelo originalData
+      const trip = allTrips.find(t => t.id === tripId);
+      const isReq = trip?.originalData?.type === 'requestService';
+      await acceptOrderByDeliveryman(tripId, currentLocation, isReq);
+
+      if (trip) {
+        const updatedTrip = { ...trip, status: 'Aceite pelo entregador', stepStatus: 4 };
+        await AsyncStorage.setItem("acceptedTrip", JSON.stringify(updatedTrip));
+        setAcceptedTrip(updatedTrip);
+      }
+
+      // 🔥 ATUALIZAR LISTA COMPLETA APÓS ACEITAR
+      await loadAllOrdersSilent();
+
+      setShowTripAcceptedModal(true);
+      
     } catch (error: any) {
-      Alert.alert(
-        "Localização Necessária", 
-        "Não foi possível obter sua localização. Ative a localização do dispositivo e tente novamente.",
-        [{ text: "OK" }]
-      );
-      throw new Error('Localização não disponível');
+      // 🔥 REVERTER MUDANÇAS EM CASO DE ERRO
+      await loadAllOrdersSilent();
+      
+      if (error.message !== 'Localização não disponível') {
+        const errMsg = error?.response?.data?.message || error?.message || 'Tente novamente.';
+        setErrorModal({ visible: true, message: errMsg });
+      }
+    } finally {
+      setAcceptingTripId(null);
     }
-
-
-    // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
-    await acceptOrderByDeliveryman(tripId, currentLocation);
-
-    // 🔥 ATUALIZAR LISTA COMPLETA APÓS ACEITAR
-    await loadAllOrdersSilent();
-
-    Alert.alert("✅ Viagem aceite", "Clique em iniciar viagem quando estiver com a mercadoria.");
-    
-  } catch (error: any) {
-    
-    // 🔥 REVERTER MUDANÇAS EM CASO DE ERRO
-    await loadAllOrdersSilent();
-    
-    if (error.message !== 'Localização não disponível') {
-      Alert.alert("Erro", "Não foi possível aceitar a viagem. Tente novamente.");
-    }
-  } finally {
-    setAcceptingTripId(null);
-  }
-};
+  }, [allTrips]);
 
 // 🔥 ADICIONAR ESTA FUNÇÃO PARA RESETAR ESTADO INCORRETO
 const resetIncorrectAcceptedTrips = async () => {
@@ -820,7 +904,7 @@ const clearAllCacheAndReset = async () => {
   }
 };
 
-// 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND A CADA 5 SEGUNDOS
+// 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND VIA WEBSOCKET A CADA 10 SEGUNDOS (Otimizado)
 const startLocationSharingToBackend = (orderId: string) => {
   let updateInterval: any = null;
   
@@ -829,7 +913,6 @@ const startLocationSharingToBackend = (orderId: string) => {
       // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        // timeout removed
       });
 
       // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
@@ -838,24 +921,27 @@ const startLocationSharingToBackend = (orderId: string) => {
         return;
       }
 
-      await updateDeliverymanLocation(orderId, {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy ?? undefined,
-        speed: location.coords.speed || 0,
-        heading: location.coords.heading || 0,
-        timestamp: new Date().toISOString()
-      });
+      // Envia via WebSocket em vez de HTTP request
+      if (user?._id) {
+        websocketService.sendLocation({
+          driverId: user._id,
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          speed: location.coords.speed || 0,
+          heading: location.coords.heading || 0,
+          timestamp: new Date().toISOString()
+        });
+      }
 
     } catch (error) {
-      console.error('Erro ao atualizar localização no backend:');
+      console.error('Erro ao atualizar localização via socket:');
     }
   };
 
-  // 🔥 ATUALIZAR IMEDIATAMENTE E DEPOIS A CADA 5 SEGUNDOS
+  // 🔥 ATUALIZAR IMEDIATAMENTE E DEPOIS A CADA 10 SEGUNDOS
   updateLocationToBackend(); // Primeira atualização
   
-  updateInterval = setInterval(updateLocationToBackend, 5000); // 5 segundos
+  updateInterval = setInterval(updateLocationToBackend, 10000); // 10 segundos para poupar servidor
 
   // Retornar função para parar
   return () => {
@@ -868,8 +954,7 @@ const startLocationSharingToBackend = (orderId: string) => {
 // 🔥 ADICIONAR useRef PARA CONTROLAR O SHARING
 const locationSharingRef = useRef<(() => void) | null>(null);
 
-// 🔥 ATUALIZAR FUNÇÃO cancelTrip PARA PARAR O SHARING
-const cancelTrip = async (tripId: string) => {
+const cancelTrip = useCallback(async (tripId: string) => {
   Alert.alert(
     "Cancelar Viagem",
     "Deseja realmente cancelar a viagem?",
@@ -890,7 +975,9 @@ const cancelTrip = async (tripId: string) => {
             // Feedback visual instantâneo
             setAllTrips(prev => prev.filter(t => t.id !== tripId));
 
-            await cancelOrderByDeliveryman(tripId);
+            const trip = allTrips.find(t => t.id === tripId);
+            const isReq = trip?.originalData?.type === 'requestService';
+            await cancelOrderByDeliveryman(tripId, isReq);
 
             setAcceptedTrip(null);
             setIsTripStarted(false);
@@ -907,81 +994,67 @@ const cancelTrip = async (tripId: string) => {
       },
     ]
   );
-};
+}, []);
 
-// 🔥 ATUALIZAR FUNÇÃO startTrip TAMBÉM
-const startTrip = async (trip: Trip) => {
-  Alert.alert(
-    "Iniciar Viagem",
-    "Você já está com a mercadoria? Confirme para iniciar a viagem.",
-    [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Confirmar",
-        onPress: async () => {
-          try {
-            setStartingTripId(trip.id);
+const startTrip = useCallback((trip: Trip) => {
+  setTripToStart(trip);
+}, []);
 
-            // Feedback visual instantâneo
-            setAllTrips(prev => prev.map(t =>
-              t.id === trip.id
-                ? { ...t, status: 'Em trânsito', stepStatus: 5 }
-                : t
-            ));
+const proceedStartTrip = async (trip: Trip) => {
+  try {
+    setStartingTripId(trip.id);
 
-            // 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND AO INICIAR VIAGEM
-            try {
-              const location = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High
-              });
+    // Feedback visual instantâneo
+    setAllTrips(prev => prev.map(t =>
+      t.id === trip.id
+        ? { ...t, status: 'Em trânsito', stepStatus: 5 }
+        : t
+    ));
 
-              await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${trip.id}/deliveryman-location`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`
-                },
-                body: JSON.stringify({
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                  accuracy: location.coords.accuracy ?? undefined,
-                  speed: location.coords.speed,
-                  heading: location.coords.heading,
-                  timestamp: new Date().toISOString(),
-                  action: 'trip_started'
-                })
-              });
-            } catch (locationError) {
-              console.warn('Erro ao atualizar localização de início:');
-            }
-
-            await startOrderInTransit(trip.id);
-
-            setIsTripStarted(true);
-            setRouteSummary(trip);
-            await AsyncStorage.setItem("acceptedTrip", JSON.stringify(trip));
-            startBlinkAnimation();
-
-            navigation.navigate("Map", {
-              tripData: trip,
-              isActiveTrip: true
-            });
-          } catch (error: any) {
-            console.error("Erro ao iniciar viagem:", error.message);
-            // Reverter mudança visual
-            setAllTrips(prev => prev.map(t =>
-              t.id === trip.id
-                ? { ...t, status: 'Aceite pelo entregador', stepStatus: 4 }
-                : t
-            ));
-            Alert.alert("Erro", "Não foi possível iniciar a viagem.");
-          } finally {
-            setStartingTripId(null);
-          }
+    // 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND AO INICIAR VIAGEM
+    try {
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${trip.id}/deliveryman-location`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`
         },
-      },
-    ]
-  );
+        body: JSON.stringify({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          accuracy: location.coords.accuracy ?? undefined,
+          timestamp: new Date().toISOString(),
+          action: 'trip_started'
+        })
+      });
+    } catch (locationError) {
+      console.warn('Erro ao atualizar localização de início:');
+    }
+
+    const isReq = trip?.originalData?.type === 'requestService';
+    await startOrderInTransit(trip.id, isReq);
+
+    setIsTripStarted(true);
+    setRouteSummary(trip);
+    await AsyncStorage.setItem("acceptedTrip", JSON.stringify(trip));
+    startBlinkAnimation();
+
+    // Mostrar modal premium de sucesso
+    setStartedTripData(trip);
+    setShowTripStartedModal(true);
+  } catch (error: any) {
+    console.error("Erro ao iniciar viagem:", error.message);
+    // Reverter mudança visual
+    setAllTrips(prev => prev.map(t =>
+      t.id === trip.id
+        ? { ...t, status: 'Aceite pelo entregador', stepStatus: 4 }
+        : t
+    ));
+    Alert.alert("Erro", "Não foi possível iniciar a viagem.");
+  } finally {
+    setStartingTripId(null);
+  }
 };
 
   const formatLastUpdate = () => {
@@ -1034,7 +1107,7 @@ const startTrip = async (trip: Trip) => {
             {
               backgroundColor: blinkAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: ['#2E86DE', '#1a5ca8']
+                outputRange: ['#A855F7', '#7E22CE'] // Premium Purple glow
               })
             }
           ]}
@@ -1076,149 +1149,35 @@ const startTrip = async (trip: Trip) => {
     );
   };
 
-  const renderTripCard = ({ item }: { item: Trip }) => {
-    const isAccepted = item.isAcceptedByDeliveryman;
-    const isAccepting = acceptingTripId === item.id;
-    const isStarting = startingTripId === item.id;
-    const isCanceling = cancelingTripId === item.id;
-    const hasAcceptedTrip = acceptedTrip !== null;
-    const isCurrentAcceptedTrip = acceptedTrip?.id === item.id;
-    
-    // 🔥 VERIFICAR SE É UM PEDIDO EM TRÂNSITO (STATUS 5)
-    const isInTransit = item.stepStatus === 5;
+  const onViewRoute = useCallback((item: Trip) => {
+    navigation.navigate("Map", { 
+      tripData: item, 
+      isActiveTrip: true 
+    });
+  }, [navigation]);
 
+  const handleTripExpire = useCallback((id: string) => {
+    setAllTrips(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const renderTripCard = useCallback(({ item }: { item: Trip }) => {
     return (
-      <View style={[styles.requestCard, isAccepted && styles.acceptedCard]}>
-        <View style={[styles.requestIcon, isAccepted && styles.acceptedIcon]}>
-          <Ionicons
-            name={isAccepted ? "checkmark-circle" : "car-outline"}
-            size={28}
-            color="#FFF"
-          />
-        </View>
-
-        <View style={styles.requestContent}>
-          <Text style={styles.requestTitle}>{item.passenger}</Text>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.requestInfo}>{item.pickup}</Text>
-            <Ionicons name="arrow-forward-outline" size={16} color={COLORS.primary} style={{ marginHorizontal: 4 }} />
-            <Text style={styles.requestInfo}>{item.destination}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="speedometer-outline" size={16} color="#2980B9" />
-            <Text style={styles.requestInfo}>{item.distance}</Text>
-
-            <Ionicons name="time-outline" size={16} color="#F39C12" style={{ marginLeft: 10 }} />
-            <Text style={styles.requestInfo}>{item.time}</Text>
-          </View>
-
-          {/* 🔥 INDICADOR DE STATUS ESPECIAL PARA PEDIDOS EM TRÂNSITO */}
-          {isInTransit && (
-            <View style={styles.transitStatusBadge}>
-              <Ionicons name="flash" size={12} color="#FFF" />
-              <Text style={styles.transitStatusText}>EM TRÂNSITO</Text>
-            </View>
-          )}
-
-          {/* 🔥 INDICADOR DE LOCALIZAÇÃO COMPARTILHADA */}
-          {isAccepted && isSharingLocation && (
-            <View style={styles.locationSharingBadge}>
-              <Ionicons name="location" size={12} color="#FFF" />
-              <Text style={styles.locationSharingText}>Localização compartilhada</Text>
-            </View>
-          )}
-
-          {isAccepted && !isInTransit && (
-            <View style={[
-              styles.statusBadge,
-              isTripStarted && isCurrentAcceptedTrip ? styles.startedBadge : styles.acceptedBadge
-            ]}>
-              <Text style={styles.statusBadgeText}>
-                {isTripStarted && isCurrentAcceptedTrip ? "Viagem Iniciada" : "Viagem Aceite"}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.acceptButtonContainer}>
-          {isAccepted ? (
-            <>
-              {!isTripStarted || !isCurrentAcceptedTrip ? (
-                <>
-                  <TouchableOpacity
-                    style={[styles.startButton, (isStarting || isCanceling) && styles.disabledButton]}
-                    onPress={() => startTrip(item)}
-                    disabled={isStarting || isCanceling || isInTransit} // 🔥 BLOQUEAR SE JÁ ESTIVER EM TRÂNSITO
-                  >
-                    {isStarting ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="play-circle-outline" size={20} color="#FFF" />
-                        <Text style={styles.acceptText}>
-                          {isInTransit ? "Em Andamento" : "Iniciar"}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.cancelButton, (isStarting || isCanceling) && styles.disabledButton]}
-                    onPress={() => cancelTrip(item.id)}
-                    disabled={isStarting || isCanceling || isInTransit} // 🔥 BLOQUEAR SE JÁ ESTIVER EM TRÂNSITO
-                  >
-                    {isCanceling ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="close-circle-outline" size={20} color="#FFF" />
-                        <Text style={styles.acceptText}>Cancelar</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity
-                  style={styles.viewRouteButton}
-                  onPress={() => navigation.navigate("Map", { 
-                    tripData: item, 
-                    isActiveTrip: true,
-                    currentLocation: currentLocation 
-                  })}
-                >
-                  <Ionicons name="map-outline" size={20} color="#FFF" />
-                  <Text style={styles.acceptText}>Ver Rota</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          ) : (
-            <TouchableOpacity
-              style={[styles.acceptButton, (isAccepting || hasAcceptedTrip || isInTransit) && styles.disabledButton]}
-              onPress={() => acceptTrip(item.id)}
-              disabled={isAccepting || hasAcceptedTrip || isInTransit} // 🔥 BLOQUEAR SE JÁ ESTIVER EM TRÂNSITO
-            >
-              {isAccepting ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <>
-                  <Ionicons
-                    name={hasAcceptedTrip || isInTransit ? "time-outline" : "checkmark-circle-outline"}
-                    size={20}
-                    color="#FFF"
-                  />
-                  <Text style={styles.acceptText}>
-                    {hasAcceptedTrip || isInTransit ? "Indisponível" : "Aceitar"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <TripCard
+        item={item}
+        acceptingTripId={acceptingTripId}
+        startingTripId={startingTripId}
+        cancelingTripId={cancelingTripId}
+        acceptedTrip={acceptedTrip}
+        isSharingLocation={isSharingLocation}
+        isTripStarted={isTripStarted}
+        startTrip={startTrip}
+        cancelTrip={cancelTrip}
+        acceptTrip={acceptTrip}
+        onViewRoute={onViewRoute}
+        onExpire={handleTripExpire}
+      />
     );
-  };
+  }, [acceptingTripId, startingTripId, cancelingTripId, acceptedTrip, isSharingLocation, isTripStarted, startTrip, cancelTrip, acceptTrip, onViewRoute, handleTripExpire]);
 
   if (loading) {
     return (
@@ -1231,9 +1190,13 @@ const startTrip = async (trip: Trip) => {
 
   return (
     <View style={styles.mainContainer}>
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 🔥 STATUS DA CONEXÃO WEBSOCKET - SÓ MOSTRAR SE APROVADO */}
-        {isDriverApproved && (
+        {false && isDriverApproved && connectionStatus !== "Conectado" && (
           <View style={[styles.connectionStatus, { backgroundColor: getConnectionStatusColor() }]}>
             <View style={styles.connectionInfo}>
               <Ionicons
@@ -1297,7 +1260,7 @@ const startTrip = async (trip: Trip) => {
         {renderCurrentRouteCard()}
 
         {/* 🔥 CORREÇÃO: O modal de aprovação substituiu a mensagem estática de bloqueio */}
-        <View style={{ flex: 1 }}>
+        <View>
           <>
             <View style={styles.sectionHeader}>
               <View>
@@ -1378,6 +1341,209 @@ const startTrip = async (trip: Trip) => {
               onPress={() => setShowApprovalModal(false)}
             >
               <Text style={styles.premiumModalCloseBtnText}>Compreendi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🔥 MODAL DE NOVA VIAGEM (INCOMING TRIP) */}
+      <Modal 
+        visible={allTrips.some(t => t.status === 'Pendente')} 
+        transparent 
+        animationType="slide"
+      >
+        <View style={styles.newTripModalOverlay}>
+          <View style={styles.newTripModalContainer}>
+            <Text style={styles.newTripModalTitle}>Nova Solicitação de Viagem</Text>
+            {allTrips.filter(t => t.status === 'Pendente').map(trip => (
+              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
+                {renderTripCard({ item: trip })}
+              </View>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ MODAL PREMIUM — VIAGEM ACEITE */}
+      <Modal visible={showTripAcceptedModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF', borderRadius: 28, width: '100%', maxWidth: 340,
+            padding: 28, alignItems: 'center',
+            shadowColor: '#10B981', shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2, shadowRadius: 24, elevation: 14,
+          }}>
+            {/* Green checkmark icon */}
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 18 }}>
+              <Ionicons name="checkmark-circle" size={46} color="#059669" />
+            </View>
+
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#065F46', marginBottom: 10, textAlign: 'center' }}>
+              Viagem Aceite! 🎉
+            </Text>
+
+            <Text style={{ fontSize: 14, color: '#374151', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
+              Parabéns! A viagem foi aceite com sucesso.
+            </Text>
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 21, marginBottom: 28 }}>
+              Dirija-se ao local de recolha e clique em{' '}
+              <Text style={{ fontWeight: '700', color: '#059669' }}>"Iniciar Viagem"</Text>{' '}
+              quando estiver com a mercadoria.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                width: '100%', paddingVertical: 15, borderRadius: 14,
+                backgroundColor: '#059669', alignItems: 'center',
+                shadowColor: '#059669', shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+              }}
+              onPress={() => {
+                setShowTripAcceptedModal(false);
+                if (acceptedTrip) {
+                  navigation.navigate("Map", { tripData: acceptedTrip, isActiveTrip: true });
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🚫 MODAL PREMIUM — PEDIDO ACEITE POR OUTRO MOTORISTA */}
+      <Modal visible={showOrderTakenModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF', borderRadius: 28, width: '100%', maxWidth: 340,
+            padding: 28, alignItems: 'center',
+            shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2, shadowRadius: 24, elevation: 14,
+          }}>
+            {/* Warning icon */}
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center', marginBottom: 18 }}>
+              <MaterialCommunityIcons name="car-multiple" size={42} color="#D97706" />
+            </View>
+
+            <Text style={{ fontSize: 21, fontWeight: '900', color: '#92400E', marginBottom: 10, textAlign: 'center' }}>
+              Pedido já foi aceite
+            </Text>
+
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
+              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitações!{' '}🚀
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                width: '100%', paddingVertical: 15, borderRadius: 14,
+                backgroundColor: '#D97706', alignItems: 'center',
+                shadowColor: '#D97706', shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+              }}
+              onPress={() => setShowOrderTakenModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>Continuar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🔥 MODAL DE CONFIRMAÇÃO PREMIUM - INICIAR VIAGEM */}
+      <Modal
+        visible={tripToStart !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setTripToStart(null)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={styles.premiumIconContainer}>
+              <Ionicons name="cube-outline" size={40} color="#9333ea" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Já está com a mercadoria?</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos início à viagem.
+            </Text>
+
+            <View style={styles.premiumModalButtons}>
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={() => setTripToStart(null)}
+              >
+                <Text style={styles.premiumCancelButtonText}>Não, Cancelar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
+                onPress={async () => {
+                  const trip = tripToStart;
+                  setTripToStart(null);
+                  if (trip) {
+                    await proceedStartTrip(trip);
+                  }
+                }}
+              >
+                <LinearGradient
+                  colors={['#a855f7', '#9333ea']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Sim, Iniciar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🔥 MODAL PREMIUM — VIAGEM INICIADA COM SUCESSO */}
+      <Modal
+        visible={showTripStartedModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="compass-outline" size={44} color="#059669" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
+            </Text>
+
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowTripStartedModal(false);
+                navigation.navigate("Map", {
+                  tripData: startedTripData,
+                  isActiveTrip: true
+                });
+              }}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Ir para o Mapa</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -1480,16 +1646,18 @@ const styles = StyleSheet.create({
   },
   // 🔥 ESTILOS PARA CARD DE ROTA ATUAL (EM TRÂNSITO)
   routeSummaryContainer: {
-    borderRadius: 16,
-    marginBottom: 20,
+    borderRadius: 24,
+    marginBottom: 24,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: COLORS.primary,
-    elevation: 8,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: '#9333EA',
+    elevation: 12,
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(216,180,254,0.3)',
   },
   animatedBackground: {
     position: 'absolute',
@@ -1811,8 +1979,87 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   premiumModalCloseBtnText: {
-    color: '#FFF',
+    color: "#FFF",
+    fontWeight: "bold",
     fontSize: 16,
-    fontWeight: 'bold',
   },
+  newTripModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  newTripModalContainer: {
+    width: "100%",
+    backgroundColor: "#F9FAFB",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 20,
+    paddingBottom: 40,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
+  },
+  newTripModalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1E293B",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  premiumIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  premiumModalMessage: {
+    fontSize: 14,
+    color: '#4b5563',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  premiumModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  premiumCancelButton: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelButtonText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  premiumConfirmButton: {
+    flex: 1.3,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  premiumConfirmGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  }
 });

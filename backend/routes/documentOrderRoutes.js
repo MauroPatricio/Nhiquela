@@ -13,7 +13,10 @@ const router = express.Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const upload = multer({ dest: path.join(__dirname, '../../uploads/document-orders') });
+const upload = multer({ 
+  dest: path.join(__dirname, '../../uploads/document-orders'),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit para documentos
+});
 
 // 1. Submit new Document Order (Customer)
 router.post('/submit', isAuth, upload.single('file'), expressAsyncHandler(async (req, res) => {
@@ -33,7 +36,7 @@ router.post('/submit', isAuth, upload.single('file'), expressAsyncHandler(async 
     autoAssignEstablishment: autoAssignEstablishment === 'true',
     serviceType,
     documentPath: req.file.path,
-    status: 'Pendente de ValidaÃ§Ã£o',
+    status: 'Pendente de Validação',
     processingFee: feeAmount,
     totalAmount: feeAmount // initially just the fee
   });
@@ -60,7 +63,7 @@ router.put('/:id/validate', isAuth, isSellerOrAdmin, expressAsyncHandler(async (
   order.deliveryFee = 150; // Dummy delivery fee
   order.totalAmount = itemsTotal + order.serviceFee + order.deliveryFee + order.processingFee;
   
-  order.status = 'Aguardando AprovaÃ§Ã£o do Cliente';
+  order.status = 'Aguardando Aprovação do Cliente';
   order.operator = req.user._id;
 
   const updatedOrder = await order.save();
@@ -72,7 +75,7 @@ router.post('/:id/approve-and-pay', isAuth, expressAsyncHandler(async (req, res)
   const order = await DocumentOrder.findById(req.params.id);
   if (!order) return res.status(404).json({ message: 'Order not found' });
   
-  if (order.status !== 'Aguardando AprovaÃ§Ã£o do Cliente') {
+  if (order.status !== 'Aguardando Aprovação do Cliente') {
       return res.status(400).json({ message: 'Order is not waiting for approval' });
   }
 
@@ -126,7 +129,7 @@ router.put('/:id/status', isAuth, expressAsyncHandler(async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     order.status = status;
-    if (status === 'ConcluÃ­do') await reputationTracker.recordOrderCompleted(order.user);
+    if (status === 'Concluído') await reputationTracker.recordOrderCompleted(order.user);
     if (status === 'Cancelado') await reputationTracker.recordOrderCancelled(order.user);
 
     const updatedOrder = await order.save();

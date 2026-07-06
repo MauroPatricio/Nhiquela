@@ -2,6 +2,8 @@
   "expo": {
     "name": "nhiqueladriver",
     "slug": "nhiqueladriver",
+    "scheme": "nhiqueladriver",
+    "platforms": ["ios", "android"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/nhiquela2-square.png",
@@ -10,6 +12,9 @@
       "image": "./assets/nhiquela2-square.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5c146d00-4349-41b9-8b42-a41e24f11743"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -25,6 +30,7 @@
         "NOTIFICATIONS",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
@@ -35,11 +41,18 @@
       "supportsTablet": true,
       "usesAppleSignIn": false,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
-        "NSUserTrackingUsageDescription": "O Nhiquela Driver usa notificações para atualizações de pedidos e entregas."
+        "UIBackgroundModes": ["location", "remote-notification"],
+        "NSUserTrackingUsageDescription": "O Nhiquela Driver usa notificações para atualizações de pedidos e entregas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Precisamos da sua localização em segundo plano para que os clientes saibam onde está."
       }
     },
     "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas."
+        }
+      ],
       "expo-notifications",
       [
         "expo-build-properties",

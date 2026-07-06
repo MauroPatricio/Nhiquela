@@ -1,55 +1,94 @@
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import feeCalculator from '../utils/feeCalculator.js';
-import ProcessingFee from '../models/ProcessingFee.js';
+// tests/feeCalculator.test.js
+// Pure UNIT tests for the fee calculator - no DB connection needed.
+// MongoDB models are fully mocked via Jest.
 
-/**
- * Unit tests for the processing fee calculator.
- * Uses an in‑memory MongoDB instance to avoid touching the real DB.
- */
-let mongoServer;
+import { jest, beforeEach, afterEach, test, expect, describe } from '@jest/globals';
 
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+// -- Mock the ProcessingFee model BEFORE importing the module under test --
+const mockFindOne = jest.fn();
+jest.unstable_mockModule('../models/ProcessingFee.js', () => ({
+  default: { findOne: mockFindOne },
+}));
+
+// Dynamic import AFTER mock is registered
+const { default: feeCalculator } = await import('../utils/feeCalculator.js');
+
+beforeEach(() => {
+  mockFindOne.mockReset();
 });
 
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
+describe('feeCalculator.calculateProcessingFee()', () => {
+  test('returns base fee when no establishment override exists', async () => {
+    mockFindOne
+      .mockResolvedValueOnce({ amount: 5, exempt: false })  // base fee
+      .mockResolvedValueOnce(null);                          // no est. override
 
-afterEach(async () => {
-  await ProcessingFee.deleteMany({});
-});
+    const fee = await feeCalculator.calculateProcessingFee({
+      serviceType: 'document',
+      establishment: null,
+    });
 
-test('returns base fee when no establishment override', async () => {
-  await ProcessingFee.create({ serviceType: 'document', establishment: null, amount: 5 });
-  const order = { serviceType: 'document', establishment: null };
-  const fee = await feeCalculator.calculateProcessingFee(order);
-  expect(fee).toBe(5);
-});
+    expect(fee).toBe(5);
+  });
 
-test('uses establishment‑specific fee over base fee', async () => {
-  const estId = new mongoose.Types.ObjectId();
-  await ProcessingFee.create({ serviceType: 'document', establishment: null, amount: 5 });
-  await ProcessingFee.create({ serviceType: 'document', establishment: estId, amount: 8 });
-  const order = { serviceType: 'document', establishment: estId };
-  const fee = await feeCalculator.calculateProcessingFee(order);
-  expect(fee).toBe(8);
-});
+  test('uses establishment-specific fee over base fee when both exist', async () => {
+    mockFindOne
+      .mockResolvedValueOnce({ amount: 5, exempt: false })  // base fee
+      .mockResolvedValueOnce({ amount: 8, exempt: false }); // est. override
 
-test('calculates percentage fee when amount not set', async () => {
-  await ProcessingFee.create({ serviceType: 'document', establishment: null, percentage: 10 });
-  const order = { serviceType: 'document', cartTotal: 100 };
-  const fee = await feeCalculator.calculateProcessingFee(order);
-  expect(fee).toBe(10);
-});
+    const fee = await feeCalculator.calculateProcessingFee({
+      serviceType: 'document',
+      establishment: 'est123',
+    });
 
-test('returns 0 for exempt fee', async () => {
-  await ProcessingFee.create({ serviceType: 'document', establishment: null, exempt: true, amount: 20 });
-  const order = { serviceType: 'document' };
-  const fee = await feeCalculator.calculateProcessingFee(order);
-  expect(fee).toBe(0);
+    expect(fee).toBe(8);
+  });
+
+  test('calculates percentage fee correctly when amount is not set', async () => {
+    mockFindOne
+      .mockResolvedValueOnce({ percentage: 10, exempt: false }) // base fee
+      .mockResolvedValueOnce(null);                              // no est. override
+
+    const fee = await feeCalculator.calculateProcessingFee({
+      serviceType: 'document',
+      cartTotal: 100,
+    });
+
+    expect(fee).toBe(10); // 10% of 100
+  });
+
+  test('returns 0 for exempt fee regardless of amount', async () => {
+    mockFindOne
+      .mockResolvedValueOnce({ amount: 20, exempt: true }) // exempt base fee
+      .mockResolvedValueOnce(null);
+
+    const fee = await feeCalculator.calculateProcessingFee({
+      serviceType: 'document',
+    });
+
+    expect(fee).toBe(0);
+  });
+
+  test('returns 0 when no fee configuration exists for the service type', async () => {
+    mockFindOne.mockResolvedValue(null); // no fee in DB at all
+
+    const fee = await feeCalculator.calculateProcessingFee({
+      serviceType: 'nonexistent_type',
+    });
+
+    expect(fee).toBe(0);
+  });
+
+  test('returns 0 when fee has percentage but no cartTotal provided', async () => {
+    mockFindOne
+      .mockResolvedValueOnce({ percentage: 15, exempt: false })
+      .mockResolvedValueOnce(null);
+
+    const fee = await feeCalculator.calculateProcessingFee({
+      serviceType: 'delivery',
+      // cartTotal intentionally omitted
+    });
+
+    expect(fee).toBe(0);
+  });
 });

@@ -1,14 +1,15 @@
 // 📁 src/services/websocketService.js
 import { io } from 'socket.io-client';
 
+import { API_BASE_URL } from '../api/apiConfig';
+
 class WebSocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
-    const isDev = process.env.NODE_ENV !== 'production';
-    // Pega o mesmo URL do apiConfig, mas tira o /api no final se existir
-    let API_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://deliveryshop.herokuapp.com/api');
+    // Pega o mesmo URL do apiConfig e tira o /api no final
+    let API_URL = API_BASE_URL;
     API_URL = API_URL.replace('/api', '');
     this.baseURL = API_URL;
   }
@@ -53,6 +54,22 @@ class WebSocketService {
       this.emit('driver_status_updated', data);
     });
 
+    // 🔥 Notificação quando outro motorista aceita um pedido que estava disponível para mim
+    this.socket.on('order_taken', (data) => {
+      console.log('🚫 Pedido aceite por outro motorista:', data);
+      this.emit('order_taken', data);
+    });
+
+    this.socket.on('new_order', (data) => {
+      console.log('🆕 Novo pedido disponível (Despacho Inteligente):', data);
+      this.emit('new_order', data);
+    });
+
+    this.socket.on('no_driver_found', (data) => {
+      console.log('❌ Nenhum motorista encontrado para o pedido:', data);
+      this.emit('no_driver_found', data);
+    });
+
     this.socket.on('error', (error) => {
       console.error('❌ Erro WebSocket:', error);
       this.emit('error', error);
@@ -64,6 +81,12 @@ class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;
+    }
+  }
+
+  sendLocation(data) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('update_location', data);
     }
   }
 

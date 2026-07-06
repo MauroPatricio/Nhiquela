@@ -9,7 +9,7 @@ router.get('/route', async (req, res) => {
     const { originLat, originLng, destLat, destLng } = req.query;
 
     if (!originLat || !originLng || !destLat || !destLng) {
-      return res.status(400).json({ message: 'Par√¢metros de origem e destino s√£o obrigat√≥rios' });
+      return res.status(400).json({ message: 'Par‚metros de origem e destino s„o obrigatÛrios' });
     }
 
     const routeData = await getRoute(

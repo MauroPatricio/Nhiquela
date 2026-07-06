@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 300,
     borderRadius: 12,
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   pdfPreview: {
     padding: 40,
@@ -423,3 +424,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+

@@ -39,7 +39,7 @@ export const updatePartner = async (partnerId, updates, user) => {
   return null;
 };
 
-/** Deactivate (soft‑delete) a partner */
+/** Deactivate (soft-delete) a partner */
 export const deletePartner = async (partnerId) => {
   return await Partner.findByIdAndUpdate(partnerId, { isActive: false }, { new: true });
 };

@@ -1,5 +1,5 @@
 // services/ocrService.js
-// Placeholder OCR service â€“ in production replace with actual OCR/AI integration.
+// Placeholder OCR service – in production replace with actual OCR/AI integration.
 
 export default {
   async extractText(filePath) {

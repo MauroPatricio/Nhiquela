@@ -11,6 +11,9 @@ import HomeScreen from './screens/HomeScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
+import TermsScreen from './screens/TermsScreen';
+import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
+import ReturnPolicyScreen from './screens/ReturnPolicyScreen';
 import DashboardScreen from './screens/admin/DashboardScreen';
 import SuppliersScreen from './screens/admin/SuppliersScreen';
 import ProductsScreen from './screens/ProductsScreen';
@@ -35,6 +38,8 @@ import PaymentMethodsScreen from './screens/admin/PaymentMethodsScreen';
 import CancellationPoliciesScreen from './screens/admin/CancellationPoliciesScreen';
 import ProcessingFeesScreen from './screens/admin/ProcessingFeesScreen';
 import ProvincesScreen from './screens/admin/ProvincesScreen';
+import PriceRequestsPanel from './screens/admin/PriceRequestsPanel';
+import DocRequestsPanel from './screens/admin/DocRequestsPanel';
 import VehicleTypesScreen from './screens/admin/VehicleTypesScreen';
 import VehicleColorsScreen from './screens/admin/VehicleColorsScreen';
 import PushNotificationsScreen from './screens/admin/PushNotificationsScreen';
@@ -54,6 +59,9 @@ function App() {
         {/* Telas Autônomas */}
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/signup" element={<SignupScreen />} />
+        <Route path="/terms" element={<TermsScreen />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
+        <Route path="/return-policy" element={<ReturnPolicyScreen />} />
 
         <Route path="/" element={<LandingPage />} />
 
@@ -82,6 +90,8 @@ function App() {
           <Route path="products" element={<ProductsScreen />} />
           <Route path="categories" element={<CategoriesScreen />} />
           <Route path="drivers" element={<DriversScreen />} />
+            <Route path="price-requests" element={<PriceRequestsPanel />} />
+            <Route path="doc-requests" element={<DocRequestsPanel />} />
           <Route path="services" element={<ServicesScreen />} />
           <Route path="incidents" element={<IncidentsScreen />} />
           <Route path="subscriptions" element={<SubscriptionsScreen />} />

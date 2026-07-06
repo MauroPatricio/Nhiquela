@@ -14,23 +14,38 @@ requestRouter.post(
     const { serviceId, origin, destination, vehicleTypeId, details, recipientName, recipientPhone } = req.body;
     
     const service = await Service.findById(serviceId);
-    if (!service) return res.status(404).send({ message: 'Servi√ßo n√£o encontrado' });
+    if (!service) return res.status(404).send({ message: 'ServiÁo n„o encontrado' });
 
     let estimatedPrice = service.basePrice || 0;
 
     // Calculate price dynamically if it's distance based
     if (service.pricingModel === 'distance' && origin && destination) {
       const eta = await calculateETA(`${origin.lng},${origin.lat}`, `${destination.lng},${destination.lat}`);
-      
-      // Basic distance pricing logic (should ideally pull from settings, using hardcoded maputo logic for now)
       const distanceKm = parseFloat(eta.distanceKm);
-      const pricePerKm = 15;
       
-      if (distanceKm <= 3) estimatedPrice += 80;
-      else if (distanceKm <= 7) estimatedPrice += 120;
-      else if (distanceKm <= 12) estimatedPrice += 180;
-      else if (distanceKm <= 20) estimatedPrice += 250;
-      else estimatedPrice += 250 + ((distanceKm - 20) * pricePerKm);
+      // Pull dynamic settings
+      const Settings = (await import('../models/SettingsModel.js')).default;
+      const settingsRecords = await Settings.find({
+        key: { $in: ['delivery_pricing_model', 'delivery_base_fee', 'delivery_price_per_km', 'delivery_service_fee'] }
+      });
+      
+      let pricePerKm = 15;
+      let model = 'steps';
+      settingsRecords.forEach(setting => {
+        if (setting.key === 'delivery_pricing_model') model = setting.value;
+        if (setting.key === 'delivery_price_per_km') pricePerKm = Number(setting.value);
+      });
+
+      if (model === 'steps') {
+        if (distanceKm <= 3) estimatedPrice += 80;
+        else if (distanceKm <= 7) estimatedPrice += 120;
+        else if (distanceKm <= 12) estimatedPrice += 180;
+        else if (distanceKm <= 20) estimatedPrice += 250;
+        else estimatedPrice += 250 + ((distanceKm - 20) * pricePerKm);
+      } else {
+        // Formula
+        estimatedPrice += distanceKm * pricePerKm;
+      }
     }
 
     const newRequest = new ServiceRequest({

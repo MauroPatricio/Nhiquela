@@ -6,7 +6,7 @@ import Order from '../models/OrderModel.js';
 import Product from '../models/ProductModel.js';
 
 /**
- * Get the top‑selling products for a given seller.
+ * Get the top-selling products for a given seller.
  * @param {string} sellerId - MongoDB ObjectId string of the seller.
  * @param {number} limit - Number of top products to return (default 10).
  * @returns {Promise<Array>} Array of product KPI objects:

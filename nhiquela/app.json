@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "nhiquela.",
+    "name": "nhiquela",
     "slug": "nhiquelaa",
+    "scheme": "nhiquela",
     "version": "1.0.0",
     "owner": "mpatricio",
     "orientation": "portrait",
@@ -13,13 +14,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
+    "updates": {
+      "url": "https://u.expo.dev/7467ac64-89c0-432d-ae88-f427f7c65da9"
+    },
     "assetBundlePatterns": ["**/*"],
-    "platforms": ["ios", "android", "web"],
+    "platforms": ["ios", "android"],
 
     "android": {
       "package": "com.mpatricio.nhiquelaa",
-      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "icon": "./assets/nhiquela2.png",
       "adaptiveIcon": {

@@ -1,11 +1,6 @@
+import { Image } from 'expo-image';
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Image,
-} from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { MinusCircleIcon, PlusCircleIcon } from 'react-native-heroicons/solid';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -245,7 +240,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     backgroundColor: '#F3F4F6',
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   favoriteButton: {
     position: 'absolute',
@@ -390,3 +385,4 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
 });
+

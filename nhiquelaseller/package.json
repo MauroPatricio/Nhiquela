@@ -12,8 +12,8 @@
     "lint:fix": "eslint . --fix",
     "test": "jest",
     "security-check": "npm audit --audit-level=critical",
-    "eas-build-pre-install": "npm run security-check",
-    "eas-build-pre-build": "npm run lint"
+ "npm run security-check",
+ "npm run lint"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

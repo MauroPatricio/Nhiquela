@@ -1,7 +1,7 @@
 // utils/feeCalculator.js
 // Calculates the processing fee for a document order.
 // It checks for a fee configuration for the specific service type and, if present,
-// also looks for an establishment‑specific override.
+// also looks for an establishment-specific override.
 
 import ProcessingFee from '../models/ProcessingFee.js';
 

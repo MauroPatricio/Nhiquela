@@ -46,7 +46,7 @@ export async function createNotification({
 
     return notification;
   } catch (error) {
-    console.error('Erro ao criar notificaÃ§Ã£o:', error.message);
+    console.error('Erro ao criar notificação:', error.message);
     // Don't throw error to prevent order processing from failing
     return null;
   }

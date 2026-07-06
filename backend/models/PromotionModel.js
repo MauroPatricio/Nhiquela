@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
 
 const promotionSchema = new mongoose.Schema(
   {
@@ -10,10 +10,10 @@ const promotionSchema = new mongoose.Schema(
       enum: ['percentage', 'fixed'], // Tipo de desconto
       required: true,
     },
-    discountValue: { type: Number, required: true }, // Ex: 10% ou 100 MZN
+    discountValue: { type: Number, required: true }, // Ex: 10% ou 100 MT
 
     minPurchase: { type: Number, default: 0 }, // Valor mínimo para aplicar
-    maxDiscount: { type: Number }, // Ex: máximo de 500 MZN de desconto
+    maxDiscount: { type: Number }, // Ex: máximo de 500 MT de desconto
 
     applicableCategories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
     applicableProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],

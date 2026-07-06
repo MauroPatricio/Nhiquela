@@ -2,12 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import api from '../api/apiConfig';
+import api, { API_BASE_URL } from '../api/apiConfig';
 import { COLORS } from '../styles/colors';
 import { useAuth } from '../context/AuthContext';
+import io from 'socket.io-client';
+import { getProviderSubcategories } from '../services/deliveryService';
 
 interface Transaction {
   id: string;
@@ -26,6 +29,20 @@ export default function WalletScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
+  const [balanceSummary, setBalanceSummary] = useState({
+    saldo_atual: 0,
+    limite_credito: 0,
+    saldo_operacional_minimo: 0,
+    saldo_disponivel: 0,
+    estado_atual: 'Ativo',
+    total_recarregado: 0,
+    total_comissoes: 0,
+    bloqueio_automatico: true,
+    taxa_base_veículo: 0,
+    taxa_minima_recarga: 0,
+    nome_veiculo: '',
+    nome_categoria: '',
+  });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
   const [dailyEarnings, setDailyEarnings] = useState<Array<{ date: string, amount: number }>>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -33,10 +50,29 @@ export default function WalletScreen({ navigation, route }: any) {
   const [topUpAmount, setTopUpAmount] = useState('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [invalidValueModalVisible, setInvalidValueModalVisible] = useState(false);
+  const [invalidValueMessage, setInvalidValueMessage] = useState("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [missingReceiptModalVisible, setMissingReceiptModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTransportTypeName = async () => {
+      const typeId = user?.deliveryman?.transport_type;
+      if (!typeId) return;
+      try {
+        const subcategories = await getProviderSubcategories();
+        const found = subcategories.find((sub: any) => sub._id === typeId || sub.id === typeId);
+        if (found) {
+          setTransportTypeName(found.name);
+        }
+      } catch (err) {
+        // silently fallback
+      }
+    };
+    fetchTransportTypeName();
+  }, [user?.deliveryman?.transport_type]);
 
   const fetchWalletData = async (silent = false) => {
     if (!user || !user.token) {
@@ -50,11 +86,16 @@ export default function WalletScreen({ navigation, route }: any) {
     try {
       const headers = { authorization: `Bearer ${user.token}` };
 
-      const [balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
+      const [summaryRes, balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
+        api.get('/wallet/driver-summary', { headers }),
         api.get('/wallet/balance', { headers }),
         api.get('/wallet/transactions', { headers }),
         api.get('/wallet/driver-earnings', { headers })
       ]);
+
+      if (summaryRes.status === 'fulfilled') {
+        setBalanceSummary(summaryRes.value.data);
+      }
 
       if (balanceRes.status === 'fulfilled') {
         setBalance({
@@ -83,16 +124,32 @@ export default function WalletScreen({ navigation, route }: any) {
     }
   };
 
-  useEffect(() => {
-    fetchWalletData();
-    
-    // Auto atualizar o saldo e estado das recargas em background a cada 5 segundos
-    const intervalId = setInterval(() => {
-      fetchWalletData(true);
-    }, 5000);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchWalletData();
+      return () => {};
+    }, [user?.token])
+  );
 
-    return () => clearInterval(intervalId);
-  }, [user?.token]);
+  // Global socket listener for Wallet updates
+  useEffect(() => {
+    let socket: any;
+    if (user && user._id) {
+      const socketUrl = API_BASE_URL.replace('/api', '');
+      socket = io(socketUrl);
+
+      socket.on('walletUpdated', (data: any) => {
+        // When a recharge is approved, refresh the wallet immediately
+        fetchWalletData(true); // silent refresh
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [user?._id]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -134,7 +191,7 @@ export default function WalletScreen({ navigation, route }: any) {
 
   const handlePickReceipt = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -153,7 +210,18 @@ export default function WalletScreen({ navigation, route }: any) {
   };
 
   const handleTopUpSubmit = async () => {
-    if (!topUpAmount || isNaN(Number(topUpAmount)) || Number(topUpAmount) <= 0) {
+    const amountNum = Number(topUpAmount);
+    const taxaMinima = balanceSummary.taxa_minima_recarga || 0;
+
+    if (!topUpAmount || isNaN(amountNum) || amountNum <= 0) {
+      setInvalidValueMessage("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
+      setInvalidValueModalVisible(true);
+      return;
+    }
+
+    if (amountNum < taxaMinima) {
+      const vName = balanceSummary.nome_categoria || balanceSummary.nome_veiculo || transportTypeName || user?.deliveryman?.transport_type || 'registado';
+      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para a sua categoria (${vName}) é de ${taxaMinima} MT (Taxa Mínima).`);
       setInvalidValueModalVisible(true);
       return;
     }
@@ -197,6 +265,16 @@ export default function WalletScreen({ navigation, route }: any) {
     } catch (err: any) {
       Alert.alert('Erro', err.response?.data?.message || 'Falha ao solicitar recarga.');
       setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Ativo': return '#34C759'; // Verde
+      case 'Aviso': return '#FFCC00'; // Amarelo
+      case 'Crédito Controlado': return '#FF9500'; // Laranja
+      case 'Suspenso': return '#FF3B30'; // Vermelho
+      default: return '#34C759';
     }
   };
 
@@ -271,11 +349,20 @@ export default function WalletScreen({ navigation, route }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={
           <>
-            {/* Cards de Saldo Principal */}
+            {/* Cards de Saldo Principal (Motor Financeiro) */}
             <View style={styles.balanceContainer}>
-              <View style={styles.mainCard}>
-                <Text style={styles.cardLabel}>Saldo Disponível</Text>
-                <Text style={styles.cardValue}>{formatCurrency(balance.available)}</Text>
+              <View style={[styles.mainCard, { borderTopWidth: 4, borderTopColor: getStatusColor(balanceSummary.estado_atual) }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={styles.cardLabel}>Saldo da Conta</Text>
+                  <View style={{ backgroundColor: getStatusColor(balanceSummary.estado_atual) + '20', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ color: getStatusColor(balanceSummary.estado_atual), fontWeight: 'bold', fontSize: 12 }}>
+                      {balanceSummary.estado_atual}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.cardValue}>{formatCurrency(balanceSummary.saldo_atual)}</Text>
+                
+
 
                 <View style={styles.actionButtonsRow}>
                   <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpModalVisible(true); }}>
@@ -366,13 +453,14 @@ export default function WalletScreen({ navigation, route }: any) {
 
             <View style={styles.bankInfoBox}>
               <Text style={styles.bankInfoTitle}>Paga aqui com M-Pesa</Text>
-              <Text style={styles.bankInfoText}>1) Digita <Text style={{fontWeight: 'bold'}}>*150#</Text></Text>
-              <Text style={styles.bankInfoText}>2) Escolhe a opção <Text style={{fontWeight: 'bold'}}>6-Pagamentos</Text></Text>
-              <Text style={styles.bankInfoText}>3) Selecciona <Text style={{fontWeight: 'bold'}}>7-Digitar o código de serviço</Text></Text>
-              <Text style={styles.bankInfoText}>4) Digita o código de serviço <Text style={{fontWeight: 'bold'}}>(A informar)</Text></Text>
-              <Text style={styles.bankInfoText}>5) Digita a referência <Text style={{fontWeight: 'bold'}}>(A informar)</Text></Text>
-              <Text style={styles.bankInfoText}>6) Digita o valor a pagar</Text>
-              <Text style={styles.bankInfoText}>7) Digita o teu PIN e Confirma</Text>
+              <Text style={styles.bankInfoText}>1) Digita <Text style={{fontWeight: 'bold'}}>*150#;</Text></Text>
+              <Text style={styles.bankInfoText}>2) Escolha a opção <Text style={{fontWeight: 'bold'}}>6. Pagamentos;</Text></Text>
+              <Text style={styles.bankInfoText}>3) Escolha a opção <Text style={{fontWeight: 'bold'}}>7. Digita o código do serviço;</Text></Text>
+              <Text style={styles.bankInfoText}>4) Digita <Text style={{fontWeight: 'bold'}}>901811</Text> (código de serviço);</Text>
+              <Text style={styles.bankInfoText}>5) Digita a referência <Text style={{fontWeight: 'bold'}}>(Opcional);</Text></Text>
+              <Text style={styles.bankInfoText}>6) Digita o valor a pagar (Ex: 100);</Text>
+              <Text style={styles.bankInfoText}>7) Digita o teu PIN;</Text>
+              <Text style={styles.bankInfoText}>8) Confirma a transação.</Text>
             </View>
 
             <Text style={styles.inputLabel}>Valor Depositado (MT)</Text>
@@ -399,8 +487,16 @@ export default function WalletScreen({ navigation, route }: any) {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.confirmTopUpBtn} onPress={handleTopUpSubmit}>
-              <Text style={styles.confirmTopUpText}>Solicitar recarga</Text>
+            <TouchableOpacity 
+              style={[styles.confirmTopUpBtn, loading && { opacity: 0.7 }]} 
+              onPress={handleTopUpSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.confirmTopUpText}>Solicitar recarga</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -415,7 +511,7 @@ export default function WalletScreen({ navigation, route }: any) {
             </View>
             <Text style={styles.premiumAlertTitle}>Valor Inválido</Text>
             <Text style={styles.premiumAlertMessage}>
-              Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.
+              {invalidValueMessage}
             </Text>
             <TouchableOpacity
               style={styles.premiumAlertBtn}
@@ -537,7 +633,7 @@ export default function WalletScreen({ navigation, route }: any) {
                       <Text style={{ fontSize: 12, color: '#888', marginBottom: 8, textTransform: 'uppercase', fontWeight: 'bold' }}>Comprovativo Anexado</Text>
                       <Image 
                         source={{ uri: extractedUrl }} 
-                        style={{ width: '100%', height: 200, borderRadius: 8, resizeMode: 'contain', backgroundColor: '#EFEFEF' }} 
+                        style={{ width: '100%', height: 200, borderRadius: 8, contentFit: 'contain', backgroundColor: '#EFEFEF' }} 
                       />
                     </>
                   );
@@ -887,7 +983,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderRadius: 12,
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   removeReceiptBtn: {
     position: 'absolute',
@@ -1066,5 +1162,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#999',
     marginTop: 6,
+  },
+  premiumAlertButton: {
+    backgroundColor: '#34C759',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#34C759',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+    marginTop: 10,
+  },
+  premiumAlertButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   }
 });
+

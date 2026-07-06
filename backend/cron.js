@@ -3,10 +3,10 @@ import Wallet from './models/WalletModel.js';
 import Transaction from './models/TransactionModel.js';
 import User from './models/UserModel.js';
 
-// Executar todas as Quintas-feiras √† meia-noite (00:00)
+// Executar todas as Quintas-feiras ‡ meia-noite (00:00)
 // '0 0 * * 4'
 cron.schedule('0 0 * * 4', async () => {
-  console.log('‚è≥ A iniciar o Batch Payment (Liquida√ß√£o Semanal)...');
+  console.log('? A iniciar o Batch Payment (LiquidaÁ„o Semanal)...');
 
   try {
     // 1. Procurar todas as carteiras de Motoristas e Prestadores com saldo positivo
@@ -16,7 +16,7 @@ cron.schedule('0 0 * * 4', async () => {
     });
 
     if (walletsToPay.length === 0) {
-      console.log('‚úÖ Nenhum saldo pendente para liquidar nesta semana.');
+      console.log('? Nenhum saldo pendente para liquidar nesta semana.');
       return;
     }
 
@@ -33,24 +33,24 @@ cron.schedule('0 0 * * 4', async () => {
         wallet.balance = 0;
         await wallet.save();
 
-        // Regista a transa√ß√£o de liquida√ß√£o (Withdrawal)
+        // Regista a transaÁ„o de liquidaÁ„o (Withdrawal)
         const tx = new Transaction({
           walletId: wallet._id,
           type: 'Debit',
           amount: amountToPay,
-          description: `Liquida√ß√£o Semanal M-Pesa B2C - Lote #${Date.now()}`,
+          description: `LiquidaÁ„o Semanal M-Pesa B2C - Lote #${Date.now()}`,
           referenceType: 'Withdrawal',
           status: 'Completed'
         });
         await tx.save();
 
-        console.log(`üí∞ Pago ${amountToPay} MZN para a Wallet ID: ${wallet._id}`);
+        console.log(`?? Pago ${amountToPay} MT para a Wallet ID: ${wallet._id}`);
       }
     }
 
-    console.log('üéâ Liquida√ß√£o Semanal conclu√≠da com sucesso!');
+    console.log('?? LiquidaÁ„o Semanal concluÌda com sucesso!');
   } catch (error) {
-    console.error('‚ùå Erro durante o Batch Payment:', error);
+    console.error('? Erro durante o Batch Payment:', error);
   }
 });
 

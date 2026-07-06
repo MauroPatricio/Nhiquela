@@ -1,11 +1,8 @@
+import { Image } from 'expo-image';
 // screens/Home.js (versão otimizada)
 import api from '../hooks/createConnectionApi';
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import {
-  View, Text, TouchableOpacity, Image, StyleSheet,
-  RefreshControl, ActivityIndicator, FlatList, Linking,
-  Dimensions
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, FlatList, Linking, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import SellersView from '../components/SellersView';
@@ -31,7 +28,7 @@ import useThrottle from '../hooks/useThrottle';
 
 const { width } = Dimensions.get('window');
 const isDev = process.env.NODE_ENV !== 'production';
-const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://deliveryshop.herokuapp.com'));
+const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://api.nhiquelaservicos.com'));
 const socket = io(`${SOCKET_URL}/products`, { transports: ['websocket'] });
 
 Notifications.setNotificationHandler({
@@ -167,14 +164,19 @@ const Home = () => {
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
 
-  const fetchWalletBalance = async (token) => {
+  const fetchWalletBalance = async (token, intervalId) => {
     try {
       const res = await api.get('/wallet/balance', {
         headers: { authorization: `Bearer ${token}` }
       });
       setWalletBalance(res.data.available_balance || 0);
     } catch (err) {
-      console.log('Erro ao buscar saldo', err.message);
+      if (err.response?.status === 401) {
+        // Token inválido/expirado, limpar interval para parar de spammar
+        if (intervalId) clearInterval(intervalId);
+      } else {
+        console.log('⚠️ Erro ao buscar saldo:', err.message);
+      }
     }
   };
 
@@ -245,12 +247,13 @@ const Home = () => {
           const storedUserData = await AsyncStorage.getItem('userData');
           if (storedUserData) {
             const parsedUser = JSON.parse(storedUserData);
+            setUserData(parsedUser); // Update local state to instantly reflect photo changes
             if (parsedUser && parsedUser.token) {
               fetchWalletBalance(parsedUser.token);
-              // Sincronização em tempo real (polling)
+              // Sincronização em tempo real (polling otimizado)
               intervalId = setInterval(() => {
-                fetchWalletBalance(parsedUser.token);
-              }, 5000);
+                fetchWalletBalance(parsedUser.token, intervalId);
+              }, 60000);
             }
           }
         } catch (error) {
@@ -358,9 +361,9 @@ const Home = () => {
 
   const updatePushToken = async (userId, deviceToken) => {
     try {
-      await api.patch(`/users/updateDeviceToken/${userId}`, { deviceToken });
+      await api.patch(`/users/updatePushToken/${userId}`, { pushToken: deviceToken });
     } catch (error) {
-      console.error('Erro ao atualizar PushToken:', error.message);
+      console.log('⚠️ Erro ao atualizar PushToken:', error.message);
     }
   };
 
@@ -647,7 +650,14 @@ responseListener.remove();
       <View style={style.appBarWrapper}>
         <View style={style.appBar}>
           <View style={style.userInfoContainer}>
-            <OptimizedImage source={require('../assets/nhiquela.png')} style={style.cover} resizeMode="contain" />
+            {userLogin && userData?.profileImage ? (
+              <Image 
+                source={{ uri: userData.profileImage.startsWith('/') ? `${require('../hooks/createConnectionApi').default.defaults.baseURL.replace('/api', '')}${userData.profileImage}` : userData.profileImage }} 
+                style={[style.cover, { borderRadius: 20 }]} 
+              />
+            ) : (
+              <OptimizedImage source={require('../assets/nhiquela.png')} style={style.cover} contentFit="contain" />
+            )}
             <View style={style.textContainer}>
               <Text style={style.greetingText}>Olá, bem-vindo</Text>
               <Text style={style.location}>{userData ? userData.name : 'Faça login'}</Text>
@@ -699,18 +709,20 @@ responseListener.remove();
                 windowSize={5}
               />
               
-              {/* Botão Upload Documento */}
-              <TouchableOpacity 
-                style={styles.documentUploadCard}
-                onPress={() => navigation.navigate('DocumentUploadScreen')}
-                activeOpacity={0.9}
-              >
-                <View style={styles.documentUploadContent}>
-                  <Text style={styles.documentUploadTitle}>Tem uma lista de compras ou receita?</Text>
-                  <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
-                </View>
-                <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />
-              </TouchableOpacity>
+              {/* Botão Upload Documento (Oculto para a próxima versão) */}
+              {false && (
+                <TouchableOpacity 
+                  style={styles.documentUploadCard}
+                  onPress={() => navigation.navigate('DocumentUploadScreen')}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.documentUploadContent}>
+                    <Text style={styles.documentUploadTitle}>Tem uma lista de compras ou receita?</Text>
+                    <Text style={styles.documentUploadDesc}>Faça upload e nós tratamos de tudo!</Text>
+                  </View>
+                  <Ionicons name="document-text" size={40} color="#FFF" style={{ opacity: 0.8 }} />
+                </TouchableOpacity>
+              )}
 
               {/* Produtos em Destaque */}
               {renderFeaturedProducts()}

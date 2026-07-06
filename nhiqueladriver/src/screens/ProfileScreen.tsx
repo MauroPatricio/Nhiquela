@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../styles/colors';
 import { useAuth } from '../context/AuthContext';
 import api, { API_BASE_URL } from '../api/apiConfig';
+import { getProviderSubcategories } from '../services/deliveryService';
 
 type Props = {
   navigation: any;
@@ -36,6 +37,7 @@ export default function ProfileScreen({ navigation }: Props) {
   const [driverStats, setDriverStats] = useState({ totalTrips: 0, rating: 4.8 });
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
 
   // ✅ HELPER PARA IMAGENS
   const getImageUrl = (path: string) => {
@@ -46,15 +48,25 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const getMemberSince = () => {
-    // Tenta usar a data de aprovação, se não houver usa a criação
-    const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || (user as any)?.createdAt;
+    // Tenta usar a data de Aprovação, se Não houver usa a criação
+    const dateSource = user?.deliveryman?.approvedAt || user?.deliveryman?.updatedAt || (user as any)?.createdAt || (user as any)?.created_at || (user as any)?.date;
     if (dateSource) {
       const date = new Date(dateSource);
-      return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(
-        2,
-        '0',
-      )}/${date.getFullYear()}`;
+      if (!isNaN(date.getTime())) {
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      }
     }
+    
+    // Extrai a data de registro a partir do _id (ObjectId do MongoDB)
+    const userId = user?._id || (user as any)?.id;
+    if (userId && typeof userId === 'string' && userId.length === 24) {
+      const timestamp = parseInt(userId.substring(0, 8), 16) * 1000;
+      if (!isNaN(timestamp)) {
+        const date = new Date(timestamp);
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      }
+    }
+
     return '2024';
   };
 
@@ -63,17 +75,32 @@ export default function ProfileScreen({ navigation }: Props) {
     email: user?.email || 'email@exemplo.com',
     phone: user?.phoneNumber ? `+258 ${user.phoneNumber}` : '+258 84 000 0000',
     level: user?.isDeliveryMan ? 'Motorista' : 'Passageiro',
-    memberSince: getMemberSince(), // Podes adicionar este campo no user se necessário
-    totalTrips: 0, // Zered per user request
-    rating: '0.0', // Zered per user request
-    acceptanceRate: '0%', // Zered per user request
-    totalEarnings: '0 MT', // Zered per user request
-    vehicle: user?.deliveryman?.transport_type || 'Veículo não registado',
+    memberSince: getMemberSince(),
+    totalTrips: 0,
+    rating: '0.0',
+    acceptanceRate: '0%',
+    totalEarnings: '0 MT',
+    vehicle: transportTypeName || user?.deliveryman?.transport_type || 'Veículo Não registado',
     licensePlate: user?.deliveryman?.transport_registration || 'Não definida',
     vehicleColor: user?.deliveryman?.transport_color || 'Não definida',
   };
 
   useEffect(() => {
+    const fetchTransportTypeName = async () => {
+      const typeId = user?.deliveryman?.transport_type;
+      if (!typeId) return;
+      try {
+        const subcategories = await getProviderSubcategories();
+        const found = subcategories.find((sub: any) => sub._id === typeId || sub.id === typeId);
+        if (found) {
+          setTransportTypeName(found.name);
+        }
+      } catch (err) {
+        // silently fallback
+      }
+    };
+    fetchTransportTypeName();
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 200, // Acelerado para remover sensação de carregamento lento
@@ -155,6 +182,8 @@ export default function ProfileScreen({ navigation }: Props) {
       if (uriStr.length > 100 && !uriStr.startsWith('data:') && !uriStr.startsWith('http')) {
         return { uri: `data:image/jpeg;base64,${uriStr}` };
       }
+      // Se não for nada do acima, assume-se que é um caminho relativo
+      return { uri: getImageUrl(uriStr) };
     }
 
     return { uri: 'https://via.placeholder.com/150/007bff/ffffff?text=DR' };
@@ -251,7 +280,7 @@ export default function ProfileScreen({ navigation }: Props) {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4, backgroundColor: 'rgba(39, 174, 96, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' }}>
               <Ionicons name="wallet" size={16} color={COLORS.success} style={{ marginRight: 6 }} />
               <Text style={{ color: COLORS.success, fontSize: 16, fontWeight: 'bold' }}>
-                Saldo: {user?.deliveryman?.balance || 'MZN 0.00'}
+                Saldo: {user?.deliveryman?.balance || 'MT 0.00'}
               </Text>
             </View>
 
@@ -274,7 +303,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.sectionTitle}>Estatísticas</Text>
           <View style={styles.statsGrid}>
             {user?.isDeliveryMan && (
-              <View style={[styles.statCard, { backgroundColor: '#1E1E24', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
+              <View style={[styles.statCard, { backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
                 <View style={{ width: 100, height: 100, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
                   <PieChart
                     style={{ height: 100, width: 100 }}
@@ -292,10 +321,10 @@ export default function ProfileScreen({ navigation }: Props) {
                     padAngle={0.05}
                   />
                   <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FFF' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1E1E24' }}>
                       {userData.acceptanceRate || '0%'}
                     </Text>
-                    <Text style={{ fontSize: 10, color: '#AAA' }}>Aceitação</Text>
+                    <Text style={{ fontSize: 10, color: '#666' }}>Aceitação</Text>
                   </View>
                 </View>
               </View>
@@ -328,10 +357,16 @@ export default function ProfileScreen({ navigation }: Props) {
                 color="#27AE60"
               />
             )}
+            <StatCard
+              title="Membro Desde"
+              value={userData.memberSince}
+              icon="calendar-outline"
+              color="#34C759"
+            />
           </View>
         </View>
 
-        {/* ✅ INFORMACOES DO VEÍCULO - APENAS PARA MOTORISTAS */}
+        {/* ✅ INFORMAÇÕES DO VEÍCULO - APENAS PARA MOTORISTAS */}
         {user?.isDeliveryMan && (
           <View style={styles.vehicleSection}>
             <Text style={styles.sectionTitle}>O Seu Veículo</Text>
@@ -357,6 +392,17 @@ export default function ProfileScreen({ navigation }: Props) {
                     <Text style={styles.colorText}>{userData.vehicleColor}</Text>
                   </View>
                 )}
+
+                <View style={[styles.colorBadge, { backgroundColor: '#E0F2FE', marginTop: 6 }]}>
+                  <Ionicons name="cash-outline" size={14} color="#0284C7" style={{ marginRight: 4 }} />
+                  <Text style={[styles.colorText, { color: '#0284C7', fontWeight: 'bold' }]}>
+                    Preço cobrado: {user?.deliveryman?.assigned_base_fee
+                      ? `${user.deliveryman.assigned_base_fee} MT (Taxa Base)`
+                      : (user?.deliveryman?.allowCustomPrice && user?.deliveryman?.customPrice)
+                        ? `${user.deliveryman.customPrice} MT / km` 
+                        : 'Calculado Automaticamente'}
+                  </Text>
+                </View>
               </View>
 
               {/* ✅ BOTÃO VER DOCUMENTOS */}
@@ -402,9 +448,9 @@ export default function ProfileScreen({ navigation }: Props) {
                     ]}
                   >
                     {user.deliveryman.register_conformance === 'CONFORMANCE'
-                      ? 'Verificado'
+                      ? 'Disponível'
                       : user.deliveryman.register_conformance === 'INCONFORMANCE'
-                      ? 'Recusado'
+                      ? 'Rejeitado'
                       : 'Em Análise'}
                   </Text>
                 </View>
@@ -425,7 +471,7 @@ export default function ProfileScreen({ navigation }: Props) {
               icon="wallet-outline"
               title="Carteira & Ganhos"
               subtitle="Ver histórico e saldo"
-              onPress={() => navigation.navigate('Earnings', { fromScreen: 'Profile' })}
+              onPress={() => navigation.navigate('Wallet')}
             />
             <MenuItem
               icon="shield-checkmark-outline"
@@ -535,11 +581,61 @@ export default function ProfileScreen({ navigation }: Props) {
                 />
               </View>
             )}
+            {user?.deliveryman?.document_front && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Documento de Identificação (Frente)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.document_front) }}
+                  style={styles.docImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.document_back && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Documento de Identificação (Verso)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.document_back) }}
+                  style={styles.docImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.Proof_of_Address && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Comprovativo de Morada</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.Proof_of_Address) }}
+                  style={styles.docImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
             {user?.deliveryman?.vihicle_picture && (
               <View style={styles.docItem}>
                 <Text style={styles.docTitle}>Foto da Viatura</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_picture) }}
+                  style={styles.docImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.vihicle_picture_front && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Foto da Viatura (Frente C/ Matrícula)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.vihicle_picture_front) }}
+                  style={styles.docImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            {user?.deliveryman?.vihicle_picture_back && (
+              <View style={styles.docItem}>
+                <Text style={styles.docTitle}>Foto da Viatura (Trás C/ Matrícula)</Text>
+                <Image
+                  source={{ uri: getImageUrl(user.deliveryman.vihicle_picture_back) }}
                   style={styles.docImage}
                   resizeMode="contain"
                 />
@@ -1008,22 +1104,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 16,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    backgroundColor: '#FFF0F0',
+    marginHorizontal: 24,
+    marginVertical: 16,
+    padding: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FFE0E0',
+    shadowColor: '#FF4757',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 2,
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FF6B6B',
-    marginLeft: 8,
+    fontWeight: '700',
+    color: '#E63946',
+    marginLeft: 10,
+    letterSpacing: 0.5,
   },
   footer: {
     alignItems: 'center',
@@ -1164,3 +1263,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+
+
+

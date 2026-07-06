@@ -11,12 +11,14 @@ const vehicleTypeSchema = new mongoose.Schema(
     // ==========================================
     // PRICING ENGINE CONFIGURATION
     // ==========================================
+    basePrice: { type: Number, default: 0 },
     baseFare: { type: Number, default: 0 },
     pricePerKm: { type: Number, default: 0 },
     pricePerMinute: { type: Number, default: 0 },
     minFare: { type: Number, default: 0 },
     maxDistanceKm: { type: Number, default: 0 },
     maxWeightKg: { type: Number, default: 0 },
+    minVisibilityFee: { type: Number, default: 0 },
     freeWaitMinutes: { type: Number, default: 0 },
     waitingPricePerMinute: { type: Number, default: 0 },
     includesLoading: { type: Boolean, default: false },

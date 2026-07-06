@@ -156,14 +156,18 @@ const orderSchema = new mongoose.Schema(
     isDeliverPaid: { type: Boolean, default: false },
     isUserWantDelivery: { type: Boolean, default: false },
 
-    // customerId: {type: String, required: true}
-    //
+    // Intelligent Dispatch Fields
+    isSearching: { type: Boolean, default: false },
+    searchRadius: { type: Number, default: 3000 },
+    contactedDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    lastDispatchTime: { type: Date },
+    priorityLevel: { type: String, enum: ['normal', 'alta'], default: 'normal' },
   },
   {
     timestamps: true,
   }
 );
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
 
 export default Order;

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { showMessage } from "react-native-flash-message";
 // components/DriverHeader.tsx - COM SUPORTE PARA BASE64 E API_BASE_URL
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
+import { getProviderSubcategories } from "../services/deliveryService";
 import { API_BASE_URL } from "../api/apiConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -41,9 +42,9 @@ export default function DriverHeader({
   batteryLevel = 85,
   isConnected = true,
   profileImage,
-  todayEarnings = "MZN 0,00",
+  todayEarnings = "MT 0,00",
   totalPassengers = 12,
-  credit = "MZN 0,00",
+  credit = "MT 0,00",
   userRating = 4.9,
 }: Props) {
   // ✅ USAR DADOS DO CONTEXTO
@@ -157,10 +158,32 @@ export default function DriverHeader({
   // ✅ DADOS DO MOTORISTA DO CONTEXTO
   const userName = user?.name || '';
   const isDeliveryMan = user?.isDeliveryMan || false;
-  const transportType = user?.deliveryman?.transport_type;
+  const transportTypeId = user?.deliveryman?.transport_type;
   const vehicleColor = user?.deliveryman?.transport_color;
   const vehiclePlate = user?.deliveryman?.transport_registration;
   const registrationStatus = getRegistrationStatus();
+
+  const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTransportTypeName = async () => {
+      if (!transportTypeId) return;
+      try {
+        const subcategories = await getProviderSubcategories();
+        const found = subcategories.find((sub: any) => sub._id === transportTypeId || sub.id === transportTypeId);
+        if (found) {
+          setTransportTypeName(found.name);
+        } else {
+          setTransportTypeName(transportTypeId);
+        }
+      } catch (err) {
+        setTransportTypeName(transportTypeId);
+      }
+    };
+    fetchTransportTypeName();
+  }, [transportTypeId]);
+
+  const transportType = transportTypeName || transportTypeId;
 
   // ✅ OBTER A FONTE DA IMAGEM
   const imageSource = getProfileImageSource();

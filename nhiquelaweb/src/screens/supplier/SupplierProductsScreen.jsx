@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSpinner, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
@@ -154,7 +154,7 @@ export default function SupplierProductsScreen() {
                         </div>
                       </div>
                     </td>
-                    <td className="fw-bold">{prod.priceFromSeller || prod.price} MZN</td>
+                    <td className="fw-bold">{prod.priceFromSeller || prod.price} MT</td>
                     <td>
                       <span className={`badge rounded-pill ${prod.countInStock > 0 ? 'bg-light text-dark' : 'bg-danger'}`}>
                         {prod.countInStock} un
@@ -202,7 +202,7 @@ export default function SupplierProductsScreen() {
                     
                     <div className="row g-3 mb-3">
                       <div className="col-6">
-                        <label className="form-label small text-muted fw-bold">Preço (MZN)</label>
+                        <label className="form-label small text-muted fw-bold">Preço (MT)</label>
                         <input type="number" className="form-control bg-light border-0" required value={currentProduct.price} onChange={(e) => setCurrentProduct({...currentProduct, price: e.target.value})} />
                       </div>
                       <div className="col-6">

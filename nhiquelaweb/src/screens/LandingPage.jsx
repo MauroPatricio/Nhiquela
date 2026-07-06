@@ -50,7 +50,7 @@ export default function LandingPage() {
               Tudo em suas mãos, entregue em <span className="text-primary-custom">minutos.</span>
             </h1>
             <p className="lead text-muted mb-4">
-              Nhiquela Deliver é o maior marketplace multi-serviços de Moçambique. Peça comida, faça compras ou contrate profissionais num só lugar.
+              Nhiquela é o maior marketplace multi-serviços de Moçambique. Peça comida, faça compras ou contrate profissionais num só lugar.
             </p>
             <div className="d-flex gap-3">
               <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-3 fw-bold fs-5 shadow-sm">
@@ -62,11 +62,9 @@ export default function LandingPage() {
               Baixe também o nosso App na PlayStore
             </div>
           </div>
-          <div className="col-lg-6 text-center">
+          <div className="col-lg-6 text-center d-flex justify-content-center align-items-center">
             {/* Imagem Placeholder Hero */}
-            <div className="bg-primary-custom rounded-circle mx-auto d-flex justify-content-center align-items-center text-white shadow-lg" style={{ width: '400px', height: '400px', opacity: 0.9 }}>
-               <h2>Mockup do App Nhiquela</h2>
-            </div>
+            <img src="/nhiquela-app-mockup.png" alt="Mockup do App Nhiquela" className="img-fluid" style={{ maxHeight: '500px', objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} />
           </div>
         </div>
       </div>
@@ -145,10 +143,10 @@ export default function LandingPage() {
                     {[...Array(5)].map((_, i) => <FontAwesomeIcon key={i} icon={faStar} className="me-1" />)}
                   </div>
                   <p className="text-dark fs-6 mb-5 flex-grow-1" style={{ lineHeight: '1.6' }}>
-                    "Encontrei um eletricista em menos de 10 minutos. Profissional, pontual e com preço justo. A Nhiquela mudou a minha forma de resolver problemas em casa."
+                    "Fiquei sem gás a meio de um jantar importante. Em menos de 20 minutos, um motorista da Nhiquela entregou uma botija nova na minha porta. Foi super rápido e salvou-me a noite!"
                   </p>
                   <div className="d-flex align-items-center">
-                    <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Aida Macuácua" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    <img src="https://randomuser.me/api/portraits/women/46.jpg" alt="Aida Macuácua" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                     <div>
                       <h6 className="fw-bold m-0 text-dark">Aida Macuácua</h6>
                       <small className="text-muted">Cliente em Maputo</small>
@@ -166,10 +164,10 @@ export default function LandingPage() {
                     {[...Array(5)].map((_, i) => <FontAwesomeIcon key={i} icon={faStar} className="me-1" />)}
                   </div>
                   <p className="text-dark fs-6 mb-5 flex-grow-1" style={{ lineHeight: '1.6' }}>
-                    "Trabalho quando quero. Os pagamentos saem na hora certa e os pedidos não param de chegar. É a melhor decisão que tomei este ano."
+                    "Com o meu serviço de reboque na Nhiquela, o trabalho nunca para. O aplicativo encaminha clientes que precisam de ajuda urgente e os pagamentos caem na hora."
                   </p>
                   <div className="d-flex align-items-center">
-                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Carlos Mondlane" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    <img src="https://randomuser.me/api/portraits/men/33.jpg" alt="Carlos Mondlane" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                     <div>
                       <h6 className="fw-bold m-0 text-dark">Carlos Mondlane</h6>
                       <small className="text-muted">Motorista</small>
@@ -187,10 +185,10 @@ export default function LandingPage() {
                     {[...Array(5)].map((_, i) => <FontAwesomeIcon key={i} icon={faStar} className="me-1" />)}
                   </div>
                   <p className="text-dark fs-6 mb-5 flex-grow-1" style={{ lineHeight: '1.6' }}>
-                    "As minhas vendas triplicaram em 3 meses. O painel de gestão é simples e os relatórios ajudam-me a decidir melhor."
+                    "A nossa empresa de mudanças cresceu imenso. Os clientes agora encontram e solicitam os nossos serviços com um clique, e o nosso volume de negócios duplicou."
                   </p>
                   <div className="d-flex align-items-center">
-                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Lúcia Tembe" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    <img src="https://randomuser.me/api/portraits/women/27.jpg" alt="Lúcia Tembe" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                     <div>
                       <h6 className="fw-bold m-0 text-dark">Lúcia Tembe</h6>
                       <small className="text-muted">Fornecedora</small>
@@ -264,7 +262,12 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="text-white py-4 text-center" style={{ backgroundColor: '#1E0F0A' }}>
         <div className="container">
-          <p className="m-0">&copy; {new Date().getFullYear()} Nhiquela Deliver. Todos os direitos reservados.</p>
+          <p className="m-0 mb-2">&copy; {new Date().getFullYear()} Nhiquela. Todos os direitos reservados.</p>
+          <div className="d-flex justify-content-center gap-3 small">
+            <Link to="/terms" className="text-white text-decoration-none opacity-75 custom-hover-opacity">Termos e Condições</Link>
+            <span className="text-white opacity-50">|</span>
+            <Link to="/privacy-policy" className="text-white text-decoration-none opacity-75 custom-hover-opacity">Políticas de Privacidade</Link>
+          </div>
         </div>
       </footer>
     </div>

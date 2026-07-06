@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { getDistance } from 'geolib';
 import { StarIcon } from 'react-native-heroicons/solid';
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 120, 
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   statusOverlay: {
     position: 'absolute',
@@ -270,3 +271,4 @@ const styles = StyleSheet.create({
     color: '#9333EA',
   }
 });
+

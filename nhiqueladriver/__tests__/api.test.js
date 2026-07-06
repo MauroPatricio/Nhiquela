@@ -12,7 +12,7 @@ describe('API Configuration', () => {
     if (isDev) {
       expect(api.defaults.baseURL).toContain('192.168');
     } else {
-      expect(api.defaults.baseURL).toContain('deliveryshop.herokuapp.com');
+      expect(api.defaults.baseURL).toContain('api.nhiquelaservicos.com');
     }
   });
 });

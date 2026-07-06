@@ -1,140 +1,179 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import Map from '../components/Map'
-import { createStackNavigator } from '@react-navigation/stack';
-import NavigateCard from '../components/NavigateCard';
-import RideOptionsCard from '../components/RideOptionsCard';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, TextInput, View, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView from 'react-native-maps';
-import TransportType from '../components/TransportType';
-import {Ionicons } from '@expo/vector-icons'
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectOrigin, setOrigin } from '../features/navSlice';
-import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";
-import axios from 'axios';
-
-const Stack = createStackNavigator();
-
+import Map from '../components/Map';
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
+import { useNavigation } from '@react-navigation/native';
 
 const MapScreen = () => {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [address, setAddress] = useState(null);
-
-    const origin = useSelector(selectOrigin);
-    const dispatch = useDispatch();
-
-
+  
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
 
   useEffect(() => {
     (async () => {
-      // Request permission to access location
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Permissão de acesso à localização negada.');
         return;
       }
 
       try {
-        // Get current position
-        let location = await Location.getCurrentPositionAsync({
+        let currentLocation = await Location.getCurrentPositionAsync({
           enableHighAccuracy: false,
           timeout: 5000,
           maximumAge: 1000
         });
 
-        const { latitude, longitude } = location.coords;
-
-      //   if (latitude && longitude) {
-
-      //   const response = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
-        
-      //   if (response.data.results.length > 0) {
-      //     setAddress(response.data.results[0].formatted_address);
-      //   } else {
-      //     setErrorMsg('No address found for the current location.');
-      //   }
-      // }
-
         dispatch(setOrigin({
           location: {
-            lat: location.coords.latitude,
-            lng: location.coords.longitude
+            lat: currentLocation.coords.latitude,
+            lng: currentLocation.coords.longitude
           },
-          description: location.description
+          description: currentLocation.description || 'Sua localização atual'
         }));
         
-        setLocation(location);
-
+        setLocation(currentLocation);
       } catch (error) {
-        // Handle any errors that occur during the request
         setErrorMsg(error.message);
       }
     })();
   }, []);
 
   return (
-      
     <View style={styles.container}>
-      <View style={styles.map}>
-          <Map/>
+      <View style={styles.mapContainer}>
+        <Map />
       </View>
-      <View style={{position: 'absolute', 
-        right: 20, 
-        top: 35, 
-        left:20, 
-        flexDirection: 'row'
-        // backgroundColor: 'red'
-         }}>
-          
-          <View style={{left: 0,height: 40, width: 40, borderRadius: 130, backgroundColor: 'white', alignContent:'center', alignItems: 'center'}}>
 
-          <Ionicons name='menu' size={35} color='black'/>
+      <SafeAreaView style={styles.overlayUI}>
+        <View style={styles.topRow}>
+          <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name='arrow-back' size={24} color={COLORS.text} />
+          </TouchableOpacity>
+          <View style={styles.searchBar}>
+            <Ionicons name='location-outline' size={20} color={COLORS.primaryLight} style={{ marginRight: 8 }} />
+            <TextInput 
+              style={styles.searchInput}
+              placeholder='Posição actual'
+              placeholderTextColor={COLORS.textMuted}
+              editable={false}
+              value={location ? 'Localização atual' : 'A procurar...'}
+            />
           </View>
-      <View style={{backgroundColor: 'white', flex:1, flexDirection:'row', alignItems:'center', paddingHorizontal: 12,borderRadius: 22}}>
-        <Ionicons name='location-outline' size={22} color={'green'}/> 
-        <TextInput value='' placeholder='Posicao actual'/>
-      </View>
-      </View>
-      <View style={styles.details}>
-      {/* <TransportType/> */}
-      <View style={{
-            flex:1,
-            backgroundColor: 'red', 
-            borderRadius: 20
-      }}>
-        <View style={{
-          backgroundColor: 'green',
-          margin: 15,
-          borderRadius: 12,
-          flexDirection: 'row',
-          alignItems: 'center',}}>
-            <Ionicons name='search' size={25}/>
-          <TextInput value='' placeholder='Local de destino'/>
         </View>
+      </SafeAreaView>
 
-      </View>
+      <View style={styles.bottomCard}>
+        <View style={styles.dragHandle} />
+        <Text style={styles.cardTitle}>Onde quer entregar?</Text>
+        
+        <TouchableOpacity style={styles.destBar} activeOpacity={0.8}>
+          <Ionicons name='search' size={20} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder='Pesquisar local de destino...'
+            placeholderTextColor={COLORS.textMuted}
+            editable={false}
+          />
+        </TouchableOpacity>
       </View>
     </View>
-  
-  )
+  );
 }
 
-export default MapScreen
+export default MapScreen;
 
 const styles = StyleSheet.create({
-  container:{
-    flex:1,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  map:{
-    flex:2,
+  mapContainer: {
+    flex: 1,
   },
-  details:{
-    flex:1,
-    backgroundColor: 'white', 
-    borderRadius: 20,
-    padding: 20
+  overlayUI: {
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surfaceCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.md,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceCard,
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.md,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: SIZES.sm,
+    color: COLORS.text,
+  },
+  bottomCard: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    backgroundColor: COLORS.surfaceCard,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: 24,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    ...SHADOWS.lg,
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: COLORS.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  destBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface2,
+    height: 50,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   }
-
-})
+});

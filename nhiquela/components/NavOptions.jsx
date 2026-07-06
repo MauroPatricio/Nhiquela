@@ -1,4 +1,5 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Image } from 'expo-image';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import {useNavigation} from '@react-navigation/native'
 import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";

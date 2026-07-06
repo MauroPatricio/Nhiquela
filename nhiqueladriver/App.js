@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   Vibration,
+  Text,
 } from "react-native";
 import {
   NavigationContainer,
@@ -23,6 +24,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import FlashMessage from "react-native-flash-message";
 import api from "./src/api/apiConfig";
+
+
 
 // 🔗 Referência global de navegação
 export const navigationRef = createNavigationContainerRef();
@@ -88,12 +91,15 @@ function AppContent() {
       if (!deviceToken) return;
 
       try {
-        const userDataString = await AsyncStorage.getItem("userData");
+        // AuthContext saves user to '@app:user', not 'userData'
+        const userDataString = await AsyncStorage.getItem("@app:user");
         if (!userDataString) return;
 
         const userData = JSON.parse(userDataString);
         const userId = userData?._id || userData?.id;
+        const userName = userData?.name || userData?.deliveryman?.name || "Driver";
         if (!userId) return;
+
 
         await api.post("/notifications/savedevicetoken", {
           deviceToken,
@@ -101,7 +107,7 @@ function AppContent() {
           platform: Platform.OS,
         });
       } catch (err) {
-        console.error("❌ Erro ao salvar token do dispositivo:", err);
+        console.log("⚠️ Erro no Zego/Push token:", err.message);
       }
     };
 
@@ -153,6 +159,75 @@ function AppContent() {
     };
   }, []);
 
+  const [appConfig, setAppConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await api.get('/system/app-config');
+        setAppConfig(response.data);
+        await AsyncStorage.setItem('appConfig', JSON.stringify(response.data));
+      } catch (err) {
+        console.log('Erro ao buscar config global:', err);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const currentVersion = Constants.expoConfig?.version || '1.0.0';
+  const isVersionObsolete = (current, min) => {
+    if (!min) return false;
+    const currParts = current.split('.').map(Number);
+    const minParts = min.split('.').map(Number);
+    for (let i = 0; i < Math.max(currParts.length, minParts.length); i++) {
+      const c = currParts[i] || 0;
+      const m = minParts[i] || 0;
+      if (c < m) return true;
+      if (c > m) return false;
+    }
+    return false;
+  };
+
+  const forceUpdate = appConfig && isVersionObsolete(currentVersion, appConfig.minAppVersionDriver);
+  const inMaintenance = appConfig && appConfig.isMaintenanceModeDriver;
+
+  if (loading || configLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7F00FF" />
+      </View>
+    );
+  }
+
+  if (forceUpdate || inMaintenance) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' }}>
+        <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: forceUpdate ? '#E3F2FD' : '#FFF3E0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+           <Text style={{ fontSize: 40 }}>{forceUpdate ? '🚀' : '🔧'}</Text>
+        </View>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#333' }}>
+          {forceUpdate ? 'Atualização Necessária' : 'Em Manutenção'}
+        </Text>
+        <Text style={{ fontSize: 16, textAlign: 'center', color: '#666', marginBottom: 30, lineHeight: 24 }}>
+          {forceUpdate 
+            ? 'Uma nova versão da Nhiquela Driver está disponível. Por favor, atualize a sua aplicação.' 
+            : (appConfig?.maintenanceMessage || 'Estamos a realizar melhorias na plataforma. Voltaremos muito em breve!')}
+        </Text>
+        
+        {forceUpdate && (
+          <View style={{ width: '100%', marginTop: 10 }}>
+            <View style={{ backgroundColor: '#7F00FF', padding: 15, borderRadius: 10, alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Atualizar Agora</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.loader}>
@@ -161,8 +236,11 @@ function AppContent() {
     );
   }
 
+  const isExpoGo = Constants.appOwnership === 'expo';
+
   return (
     <>
+
       <AppNavigator />
       <Toast />
       <FlashMessage position="top" />
@@ -174,7 +252,17 @@ function AppContent() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer ref={navigationRef}>
+      <NavigationContainer 
+        ref={navigationRef}
+        linking={{
+          prefixes: ['nhiqueladriver://'],
+          config: {
+            screens: {
+              OrderDetailsScreen: 'order/:orderId'
+            }
+          }
+        }}
+      >
         <LoadingProvider>
           <AuthProvider>
             <AppContent />
@@ -187,6 +275,12 @@ export default function App() {
 
 const styles = StyleSheet.create({
   loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",

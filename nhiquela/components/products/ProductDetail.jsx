@@ -1,4 +1,5 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native';
+import { Image } from 'expo-image';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native';
 import React, { useState } from 'react';
 import { Ionicons, SimpleLineIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   headerActions: {
     position: 'absolute',
@@ -724,3 +725,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
   }
 });
+

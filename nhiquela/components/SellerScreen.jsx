@@ -1,15 +1,5 @@
-import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  TouchableOpacity,
-  RefreshControl,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View, TouchableOpacity, RefreshControl, FlatList, ActivityIndicator } from 'react-native';
 import React, { useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -251,7 +241,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: 280,
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   icons: {
     position: 'absolute',
@@ -416,3 +406,4 @@ const styles = StyleSheet.create({
     paddingBottom:100
   }
 });
+
