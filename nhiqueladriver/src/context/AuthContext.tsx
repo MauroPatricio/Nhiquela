@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../api/apiConfig';
 import io from 'socket.io-client';
 import { Alert } from 'react-native';
+import websocketService from '../websocketService/websocketService';
 
 // Interfaces completas
 export interface Deliveryman {
@@ -165,13 +166,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         Alert.alert('Saldo Atualizado', data.message || 'O seu saldo foi atualizado.');
         await refreshUser();
       });
+      
+      const handleDriverStatus = async () => {
+        await refreshUser();
+      };
+      
+      websocketService.on('driver_status_updated', handleDriverStatus);
+
+      return () => {
+        if (socket) {
+          socket.disconnect();
+        }
+        websocketService.off('driver_status_updated', handleDriverStatus);
+      };
     }
 
-    return () => {
-      if (socket) {
-        socket.disconnect();
-      }
-    };
+    return () => {};
   }, [user?._id, refreshUser]);
 
   const isAuthenticated = !!user;

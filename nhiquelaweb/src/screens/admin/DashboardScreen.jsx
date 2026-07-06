@@ -9,7 +9,8 @@ export default function DashboardScreen() {
     wallet: { available: 0, pending: 0 },
     orders: [],
     drivers: [],
-    customers: []
+    customers: [],
+    financial: { lucroEstimado: 0 }
   });
   const [loading, setLoading] = useState(true);
 
@@ -19,18 +20,20 @@ export default function DashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
-      const [walletRes, ordersRes, driversRes, custRes] = await Promise.all([
+      const [walletRes, ordersRes, driversRes, custRes, financialRes] = await Promise.all([
         api.get('/wallet/balance').catch(() => ({ data: { available_balance: 24500, pending_balance: 1200 } })),
         api.get('/orders').catch(() => ({ data: [] })),
         api.get('/drivers').catch(() => ({ data: [] })),
-        api.get('/customers').catch(() => ({ data: [] }))
+        api.get('/customers').catch(() => ({ data: [] })),
+        api.get('/stats/financial').catch(() => ({ data: { lucroEstimado: 0 } }))
       ]);
 
       setStats({
         wallet: { available: walletRes.data.available_balance || 24500, pending: walletRes.data.pending_balance || 1200 },
         orders: ordersRes.data.orders || ordersRes.data || [],
         drivers: driversRes.data.drivers || (Array.isArray(driversRes.data) ? driversRes.data : []),
-        customers: custRes.data.customers || (Array.isArray(custRes.data) ? custRes.data : [])
+        customers: custRes.data.customers || (Array.isArray(custRes.data) ? custRes.data : []),
+        financial: financialRes.data || { lucroEstimado: 0 }
       });
     } catch (error) {
       console.error('Erro ao carregar dashboard', error);
@@ -268,7 +271,7 @@ export default function DashboardScreen() {
           </div>
         </div>
 
-        {/* KPI 7: Ganhos dos Motoristas */}
+        {/* KPI 7: Lucro da Nhiquela (Comissão) */}
         <div className="col-md-6 col-xl-3">
           <div className="card shadow-sm-custom border-0 rounded-4 h-100 hover-lift">
             <div className="card-body p-4 d-flex flex-column justify-content-between">
@@ -276,10 +279,11 @@ export default function DashboardScreen() {
                 <div className="bg-info-subtle text-info rounded-circle d-flex justify-content-center align-items-center" style={{ width: '55px', height: '55px' }}>
                   <FontAwesomeIcon icon={faWallet} size="xl" />
                 </div>
+                <span className="badge bg-info-subtle text-info rounded-pill fw-bold">Plataforma</span>
               </div>
               <div>
-                <h6 className="text-muted fw-bold mb-1">Ganhos de Motoristas</h6>
-                <h3 className="fw-bold text-dark m-0">{driverEarnings.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
+                <h6 className="text-muted fw-bold mb-1">Comissão Arrecadada</h6>
+                <h3 className="fw-bold text-dark m-0">{(stats.financial?.lucroEstimado || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
               </div>
             </div>
           </div>

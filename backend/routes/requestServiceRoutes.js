@@ -342,15 +342,18 @@ requestServiceer.put(
       // Calcular comissão baseada nas configurações financeiras dinâmicas (default 15%)
       const financialConfig = await getFinancialConfig();
       const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-      const serviceValue = order.deliveryPrice || order.totalPrice || 0;
+      const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
       const commissionAmount = serviceValue * commissionRate;
 
-      // Apenas verificar o saldo (o débito será feito no momento da entrega)
+      // Realizar o débito da carteira imediatamente na aceitação (confirmação do serviço)
       try {
-        const canAfford = await canAffordTripCommission(user_deliver._id, commissionAmount);
-        if (!canAfford) {
-          throw new Error('Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.');
-        }
+        await debitDriverCommissionWithSession(
+          user_deliver._id, 
+          commissionAmount, 
+          `Comissão de serviço para o pedido direto ${order.code} confirmado`, 
+          'wallet', 
+          session
+        );
       } catch (error) {
         await session.abortTransaction();
         session.endSession();
@@ -385,11 +388,12 @@ requestServiceer.put(
       const updateOrder = order;
 
       //  Para envio de mensagens
-      let msg =`Olá, a Nhiquela Shop informa que o entregador aceitou o pedido nº ${updateOrder.code}`;
+      const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
+      let msg =`Olá, a Nhiquela Shop informa que o entregador aceitou o pedido nº ${orderCode}`;
 
       sendSMSToUSendIt(req, msg);
 
-      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador aceitou o pedido nº ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
+      let mailText = `Ola ${req.user.name},\n \n a Nhiquela Shop informa que o entregador aceitou o pedido nº ${orderCode}. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
@@ -525,22 +529,8 @@ requestServiceer.put(
           email_address: req.body.email_address,
         };
 
-        // Calcular comissão
-        const financialConfig = await getFinancialConfig();
-        const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-        const serviceValue = order.deliveryPrice || order.totalPrice || 0;
-        const commissionAmount = serviceValue * commissionRate;
-
-        // Se houver comissão e motorista associado, realizar o débito da carteira agora
-        if (commissionAmount > 0 && order.deliveryman && order.deliveryman.id) {
-          await debitDriverCommissionWithSession(
-            order.deliveryman.id, 
-            commissionAmount, 
-            `Comissão de serviço para o pedido direto ${order.code} finalizado`, 
-            'wallet', 
-            session
-          );
-        }
+        // A comissão já foi debitada no momento da aceitação (acceptedByDeliveryman), 
+        // portanto não é necessário realizar novo débito aqui.
 
         await order.save({ session });
         await session.commitTransaction();

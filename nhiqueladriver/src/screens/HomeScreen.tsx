@@ -276,7 +276,8 @@ export default function HomeScreen({ navigation }: any) {
             if (exists && acceptedBy !== user?._id) {
               setShowOrderTakenModal(true);
             }
-            // Remover o pedido da lista de todos os motoristas
+            // Remover o pedido da lista apenas se não foi este motorista que o aceitou
+            if (acceptedBy === user?._id) return prev;
             return prev.filter(t => t.id !== orderId);
           });
         });

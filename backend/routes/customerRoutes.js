@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import User from '../models/UserModel.js';
 
@@ -15,7 +15,8 @@ router.get(
     const customers = await User.find({ 
       isAdmin: { $ne: true }, 
       isSeller: { $ne: true }, 
-      isDeliveryMan: { $ne: true } 
+      isDeliveryMan: { $ne: true },
+      isDeleted: { $ne: true }
     });
     // Return array directly to avoid frontend .map issues
     res.send(customers);
@@ -30,7 +31,10 @@ router.delete(
   expressAsyncHandler(async (req, res) => {
     const customer = await User.findById(req.params.id);
     if (customer) {
-      await customer.deleteOne();
+      customer.isDeleted = true;
+      customer.isBanned = true;
+      customer.isApproved = false;
+      await customer.save();
       res.send({ message: 'Cliente removido com sucesso' });
     } else {
       res.status(404).send({ message: 'Cliente não encontrado' });

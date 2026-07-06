@@ -44,7 +44,7 @@ afterAll(async () => {
   await User.deleteMany({ email: { $regex: /@deliver-test\.com$/ } });
 }, 15000);
 
-describe('POST /api/request-deliver', () => {
+describe('POST /api/request-service', () => {
   it('should create a delivery request when authenticated as client', async () => {
     const deliveryData = {
       name: 'Test Deliver',
@@ -62,7 +62,7 @@ describe('POST /api/request-deliver', () => {
     };
 
     const res = await request(app)
-      .post('/api/request-deliver')
+      .post('/api/request-service')
       .set('Authorization', `Bearer ${clientToken}`)
       .send(deliveryData);
 
@@ -71,17 +71,17 @@ describe('POST /api/request-deliver', () => {
 
   it('should reject delivery request without auth (401)', async () => {
     const res = await request(app)
-      .post('/api/request-deliver')
+      .post('/api/request-service')
       .send({ origin: { lat: -25.96, lng: 32.57 } });
 
     expect(res.status).toBe(401);
   }, 15000);
 });
 
-describe('GET /api/request-deliver/client/:clientId', () => {
+describe('GET /api/request-service/client/:clientId', () => {
   it('should return client delivery history', async () => {
     const res = await request(app)
-      .get(`/api/request-deliver/client/${testClient._id}`)
+      .get(`/api/request-service/client/${testClient._id}`)
       .set('Authorization', `Bearer ${clientToken}`);
 
     expect(res.status).toBeLessThan(500);
@@ -91,10 +91,10 @@ describe('GET /api/request-deliver/client/:clientId', () => {
   }, 15000);
 });
 
-describe('GET /api/request-deliver/driver/:driverId', () => {
+describe('GET /api/request-service/driver/:driverId', () => {
   it('should return driver order history', async () => {
     const res = await request(app)
-      .get(`/api/request-deliver/driver/${testDriver._id}`)
+      .get(`/api/request-service/driver/${testDriver._id}`)
       .set('Authorization', `Bearer ${driverToken}`);
 
     expect(res.status).toBeLessThan(500);

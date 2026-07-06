@@ -41,16 +41,31 @@ export const runIntelligentDispatch = async (io) => {
           continue;
         }
 
+        // Validar coordenadas para evitar erro do MongoDB (coordinates: [null, null])
+        const requestLng = request.longitude || request.originDetails?.lng || request.originDetails?.longitude;
+        const requestLat = request.latitude || request.originDetails?.lat || request.originDetails?.latitude;
+
+        if (!requestLng || !requestLat) {
+          console.warn(`[Intelligent Dispatch] Pedido ${request._id} não tem coordenadas válidas. Cancelando busca.`);
+          request.isSearching = false;
+          request.status = 'Cancelado';
+          request.canceledReason = 'Coordenadas de origem inválidas no pedido';
+          await request.save();
+          continue;
+        }
+
         // 2. Procurar motoristas próximos
         const nearestDrivers = await User.find({
-          role: 'Prestador',
-          isDriverAvailable: true,
+          isDeliveryMan: true,
+          isApproved: true,
+          status: { $ne: 'Inativo' },
+          availability: 'active',
           _id: { $nin: request.contactedDrivers }, // Excluir motoristas já contactados
           locationGeo: {
             $near: {
               $geometry: {
                 type: 'Point',
-                coordinates: [request.longitude, request.latitude]
+                coordinates: [requestLng, requestLat]
               },
               $maxDistance: request.searchRadius // Distância em metros
             }

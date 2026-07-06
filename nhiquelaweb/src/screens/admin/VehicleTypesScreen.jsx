@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMotorcycle, faCar, faTruck, faEdit, faTrash, faPlus, faSave, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
@@ -51,7 +51,7 @@ export default function VehicleTypesScreen() {
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', iconName: 'faCar', category: 'ligeiro', basePrice: 0, minVisibilityFee: 0, maxWeight: '', status: 'Ativo' });
+      setFormData({ name: '', iconName: 'faCar', category: 'ligeiro', basePrice: 0, pricePerKm: 0, minVisibilityFee: 0, maxWeight: '', status: 'Ativo' });
     }
     setShowModal(true);
   };
@@ -124,6 +124,7 @@ export default function VehicleTypesScreen() {
                     <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Tipo</th>
                     <th className="border-0 text-muted py-3">Categoria</th>
                     <th className="border-0 text-muted py-3">Taxa Base (MT)</th>
+                    <th className="border-0 text-muted py-3">Preço/Km (MT)</th>
                     <th className="border-0 text-muted py-3">Capacidade</th>
                     <th className="border-0 text-muted py-3">Taxa Mín. (Disp.)</th>
                     <th className="border-0 text-muted py-3 text-center">Estado</th>
@@ -147,6 +148,7 @@ export default function VehicleTypesScreen() {
                     </td>
                     <td><span className="text-muted fw-bold text-capitalize">{vehicle.category || 'ligeiro'}</span></td>
                     <td><span className="text-dark fw-bold">{vehicle.basePrice || 0} MT</span></td>
+                    <td><span className="text-dark fw-bold">{vehicle.pricePerKm || 0} MT</span></td>
                     <td><span className="text-muted fw-bold">{vehicle.capacityKg || vehicle.maxWeight || 'N/A'}</span></td>
                     <td><span className="text-dark fw-bold">{vehicle.minVisibilityFee || 0} MT</span></td>
                     <td className="text-center">
@@ -212,9 +214,13 @@ export default function VehicleTypesScreen() {
                     </select>
                   </div>
                   
-                  <div className="col-12">
-                    <label className="form-label fw-bold small text-muted mb-1">Taxa Mín. p/ Disponibilidade (MT)</label>
+                  <div className="col-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Taxa Mín. (Disp.)</label>
                     <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.minVisibilityFee || 0} onChange={(e) => setFormData({...formData, minVisibilityFee: Number(e.target.value)})} placeholder="Ex: 50" required />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Preço por Km (MT)</label>
+                    <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.pricePerKm || 0} onChange={(e) => setFormData({...formData, pricePerKm: Number(e.target.value)})} placeholder="Ex: 40" required />
                   </div>
 
                   <div className="col-6">

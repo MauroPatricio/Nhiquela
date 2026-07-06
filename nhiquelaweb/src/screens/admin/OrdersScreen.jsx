@@ -98,7 +98,7 @@ export default function OrdersScreen() {
     try {
       const [ordersRes, requestsRes, custRes, driversRes] = await Promise.all([
         api.get('/orders'),
-        api.get('/request-deliver/admin'),
+        api.get('/request-service/admin'),
         api.get('/customers'),
         api.get('/drivers')
       ]);
@@ -137,7 +137,7 @@ export default function OrdersScreen() {
       if (type === 'Pedido') {
         await api.put(`/orders/${orderId}`, { status: newStatus });
       } else {
-        await api.put(`/request-deliver/${orderId}/status`, { status: newStatus });
+        await api.put(`/request-service/${orderId}/status`, { status: newStatus });
       }
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
       toast.success(`Estado atualizado para ${newStatus}`);
@@ -152,7 +152,7 @@ export default function OrdersScreen() {
         if (type === 'Pedido') {
           await api.delete(`/orders/${orderId}`);
         } else {
-          await api.delete(`/request-deliver/${orderId}`);
+          await api.delete(`/request-service/${orderId}`);
         }
         setOrders(orders.filter(o => o._id !== orderId));
         toast.success("Pedido removido com sucesso!");

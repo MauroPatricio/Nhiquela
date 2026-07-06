@@ -291,10 +291,10 @@ router.get(
     const nearbyDrivers = [];
     drivers.forEach(driver => {
       let dLat, dLng;
-      if (driver.geoPosition && driver.geoPosition.coordinates) {
-        dLng = driver.geoPosition.coordinates[0];
-        dLat = driver.geoPosition.coordinates[1];
-      } else if (driver.latitude && driver.longitude) {
+      if (driver.locationGeo && driver.locationGeo.coordinates && driver.locationGeo.coordinates[0] !== 0) {
+        dLng = driver.locationGeo.coordinates[0];
+        dLat = driver.locationGeo.coordinates[1];
+      } else if (driver.latitude && driver.longitude && parseFloat(driver.latitude) !== 0) {
         dLat = parseFloat(driver.latitude);
         dLng = parseFloat(driver.longitude);
       }

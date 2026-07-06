@@ -88,12 +88,20 @@ statsRouter.get(
     orders.forEach(o => processRecord(o, 'paidAt', 'totalPrice', o.siteTax || 0, false));
     deliveries.forEach(d => {
       let profit = 0;
-      if (d.deliveryPrice && d.deliveryman && d.deliveryman.pricetopay) {
+      // 1. Usar a comissao real oficial gravada no aceite do servico (Nova Regra)
+      if (d.platformCommission !== undefined && d.platformCommission !== null) {
+        profit = d.platformCommission;
+      } 
+      // 2. Legacy fallback
+      else if (d.deliveryPrice && d.deliveryman && d.deliveryman.pricetopay) {
         profit = d.deliveryPrice - d.deliveryman.pricetopay;
         if (profit < 0) profit = 0;
-      } else {
-        profit = (d.deliveryPrice || 0) * 0.1; // fallback 10%
+      } 
+      // 3. Fallback genérico (15% por omissao)
+      else {
+        profit = (d.deliveryPrice || 0) * 0.15; 
       }
+      
       processRecord(d, 'paidAt', 'deliveryPrice', profit, true);
     });
 

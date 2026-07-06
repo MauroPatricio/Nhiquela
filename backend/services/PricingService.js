@@ -6,7 +6,7 @@ import User from '../models/UserModel.js';
 
 class PricingService {
   /**
-   * Obtém as definições globais armazenadas na base de dados (SettingsModel)
+   * Obtï¿½m as definiï¿½ï¿½es globais armazenadas na base de dados (SettingsModel)
    */
   async getGlobalSettings() {
     const Settings = (await import('../models/SettingsModel.js')).default;
@@ -23,35 +23,35 @@ class PricingService {
     };
 
     const engineConfig = {
-      minFareDelivery: await getSetting('min_fare_delivery', 80, 'Tarifa mínima (MT): Entregas e Táxi'),
-      minFareService: await getSetting('min_fare_service', 100, 'Tarifa mínima (MT): Serviços (ex: Eletricista)'),
+      minFareDelivery: await getSetting('min_fare_delivery', 80, 'Tarifa mï¿½nima (MT): Entregas e Tï¿½xi'),
+      minFareService: await getSetting('min_fare_service', 100, 'Tarifa mï¿½nima (MT): Serviï¿½os (ex: Eletricista)'),
       
       weatherMultipliers: {
         clear: 1.0,
-        rain: await getSetting('mult_weather_rain', 1.20, 'Multiplicador Preço: Quando chove (ex: 1.20 = +20%)'),
+        rain: await getSetting('mult_weather_rain', 1.20, 'Multiplicador Preï¿½o: Quando chove (ex: 1.20 = +20%)'),
       },
       
       timeMultipliers: {
         day: 1.0,
-        night: await getSetting('mult_time_night', 1.15, 'Multiplicador Preço: Noite (20h às 02h)'),
-        latenight: await getSetting('mult_time_latenight', 1.25, 'Multiplicador Preço: Madrugada (02h às 06h)'),
+        night: await getSetting('mult_time_night', 1.15, 'Multiplicador Preï¿½o: Noite (20h ï¿½s 02h)'),
+        latenight: await getSetting('mult_time_latenight', 1.25, 'Multiplicador Preï¿½o: Madrugada (02h ï¿½s 06h)'),
       },
       
       dayMultipliers: {
         weekday: 1.0,
-        saturday: await getSetting('mult_day_saturday', 1.10, 'Multiplicador Preço: Sábados'),
-        sunday: await getSetting('mult_day_sunday', 1.15, 'Multiplicador Preço: Domingos'),
+        saturday: await getSetting('mult_day_saturday', 1.10, 'Multiplicador Preï¿½o: Sï¿½bados'),
+        sunday: await getSetting('mult_day_sunday', 1.15, 'Multiplicador Preï¿½o: Domingos'),
       },
       
       demandMultipliers: {
         normal: 1.0,
-        high: await getSetting('mult_demand_high', 1.20, 'Multiplicador Preço: Alta Procura (Surge)'),
+        high: await getSetting('mult_demand_high', 1.20, 'Multiplicador Preï¿½o: Alta Procura (Surge)'),
       },
       
       trafficMultipliers: {
         normal: 1.0,
         moderate: 1.15,
-        heavy: await getSetting('mult_traffic_heavy', 1.35, 'Multiplicador Preço: Trânsito Intenso'),
+        heavy: await getSetting('mult_traffic_heavy', 1.35, 'Multiplicador Preï¿½o: Trï¿½nsito Intenso'),
         severe: 1.60
       },
 
@@ -68,16 +68,16 @@ class PricingService {
   }
 
   /**
-   * Consulta a API do OSRM para obter distância (em km) e tempo (em min)
-   * Agora utiliza o serviço centralizado routingService.js (com cache!)
+   * Consulta a API do OSRM para obter distï¿½ncia (em km) e tempo (em min)
+   * Agora utiliza o serviï¿½o centralizado routingService.js (com cache!)
    */
   async getRouteInfo(originLoc, destLoc) {
     if (!originLoc || !destLoc) return { distanceKm: 0, durationMin: 0, routeCoordinates: [] };
     try {
-      // Importa dinamicamente para evitar dependências circulares (se houver) ou usa o import no topo
+      // Importa dinamicamente para evitar dependï¿½ncias circulares (se houver) ou usa o import no topo
       const { getRoute } = await import('./routingService.js');
       
-      // O getRoute centralizado já converte coordenadas e aplica caching
+      // O getRoute centralizado jï¿½ converte coordenadas e aplica caching
       const routeData = await getRoute(
         originLoc.lat, 
         originLoc.lng, 
@@ -97,19 +97,19 @@ class PricingService {
       console.error('Erro ao consultar OSRM no PricingService:', error.message);
     }
     
-    // Fallback básico
+    // Fallback bï¿½sico
     return { distanceKm: 5, durationMin: 15, routeCoordinates: [] };
   }
 
   /**
-   * Seleção automática do veículo baseada no peso ou noutros critérios
+   * Seleï¿½ï¿½o automï¿½tica do veï¿½culo baseada no peso ou noutros critï¿½rios
    */
   async autoSelectVehicle(weightKg, requestedVehicleTypeId = null) {
     if (requestedVehicleTypeId) {
       return await VehicleType.findById(requestedVehicleTypeId);
     }
 
-    // Lógica inteligente simples
+    // Lï¿½gica inteligente simples
     let query = {};
     if (weightKg <= 10) query = { name: { $regex: /mota/i } };
     else if (weightKg <= 300) query = { category: 'ligeiro' };
@@ -139,19 +139,19 @@ class PricingService {
     let dayMult = engineConfig.dayMultipliers.weekday;
     if (day === 6) dayMult = engineConfig.dayMultipliers.saturday;
     else if (day === 0) dayMult = engineConfig.dayMultipliers.sunday;
-    // Feriados não implementados nativamente (precisaria de API externa)
+    // Feriados nï¿½o implementados nativamente (precisaria de API externa)
 
     return timeMult * dayMult;
   }
 
   /**
-   * Cálculo Final
+   * Cï¿½lculo Final
    */
   async calculatePrice({ serviceId, originLoc, destLoc, weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false, trafficCondition = 'normal', demandLevel = 'normal', providerId = null }) {
     const engineConfig = await this.getGlobalSettings();
     const service = await ProviderSubcategory.findById(serviceId);
     
-    if (!service) throw new Error("Serviço não encontrado");
+    if (!service) throw new Error("Serviï¿½o nï¿½o encontrado");
 
     let providerRatingMult = engineConfig.ratingMultipliers.threeStar;
     let customBasePrice = null;
@@ -172,19 +172,27 @@ class PricingService {
     // 1. Rota (OSRM)
     const { distanceKm, durationMin, routeCoordinates } = await this.getRouteInfo(originLoc, destLoc);
 
-    // 2. Veículo
+    // 2. Veï¿½culo
     let vehicle = null;
     if (service.requiresVehicleType || distanceKm > 0) {
       vehicle = await this.autoSelectVehicle(weightKg, vehicleTypeId);
     }
 
-    // 3. Somatório Base
+    // 3. Somatï¿½rio Base
     let actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
     if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
       actualBaseFare = customBasePrice;
     }
 
-    let distanceCost = vehicle ? (distanceKm * (vehicle.pricePerKm || 0)) : (distanceKm * (service.pricePerKm || 0));
+    const FALLBACK_PRICE_PER_KM = 40; 
+    let pKm = vehicle ? (vehicle.pricePerKm || service.pricePerKm || FALLBACK_PRICE_PER_KM) : (service.pricePerKm || FALLBACK_PRICE_PER_KM); 
+    
+    // Desconto para viagens longas (ex: acima de 20 km, reduz 15% o valor por km)
+    if (distanceKm > 20) {
+      pKm = pKm * 0.85; 
+    }
+    
+    let distanceCost = distanceKm * pKm;
     let timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
     
     let extras = 0;
@@ -207,7 +215,7 @@ class PricingService {
     if (totalPostMultipliers < minSystemFare) totalPostMultipliers = minSystemFare;
 
     // Arredondamento (multiplos de 10)
-    totalPostMultipliers = Math.ceil(totalPostMultipliers / 10) * 10;
+    totalPostMultipliers = Math.round(totalPostMultipliers * 100) / 100; // Nao arredondar para a dezena, apenas usar duas casas decimais
 
     return {
       price: totalPostMultipliers,

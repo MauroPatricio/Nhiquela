@@ -226,6 +226,10 @@ userRouter.get(
   '/:id',
   expressAsyncHandler(async (req, res) => {
     try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).send({ message: 'ID de utilizador inválido' });
+      }
+
       const user = await User.findById(req.params.id)
         .populate('seller.province')
         .populate('seller.tipoEstabelecimento'); // Adicionado populate para tipoEstabelecimento
@@ -1135,6 +1139,19 @@ userRouter.post(
         }
 
         if (newUser.isDeliveryMan) {
+          const requiredFields = [
+            'photo', 'transport_type', 'transport_color', 
+            'transport_registration', 'vihicle_picture', 'vihicle_picture_front', 
+            'vihicle_picture_back', 'vihicle_inspection', 'vihicle_Insurance', 
+            'vihicle_logbook', 'license_front', 'license_back', 
+            'document_front', 'document_back'
+          ];
+          for (let field of requiredFields) {
+            if (!req.body[field]) {
+              return res.status(400).send({ message: `O campo ${field} é obrigatório para motoristas` });
+            }
+          }
+
           newUser.deliveryman = {
             photo: req.body.photo,
             name: req.body.name,
@@ -1159,7 +1176,7 @@ userRouter.post(
           };
 
           if (req.body.providedServices) {
-            newUser.providedServices = req.body.providedServices;
+            newUser.deliveryman.providedServices = req.body.providedServices;
           }
         }
 
@@ -1224,14 +1241,26 @@ userRouter.delete(
     if (user) {
       await Product.updateMany({ seller: user._id }, { $set: { isActive: false } });
 
+      // Anular o e-mail e telefone para libertar (permitir novo registo futuro com os mesmos dados)
+      const timestamp = Date.now();
+      
+      // Apenas modificar se não estiver já apagado
+      if (!user.isDeleted) {
+          user.email = `deleted_${timestamp}_${user.email}`;
+          
+          // Se phoneNumber for Numérico no Mongoose, usamos timestamp negativo
+          // Se for string, podemos colocar `deleted_...`
+          user.phoneNumber = -timestamp; 
+      }
+
       user.isDeleted = true;
       user.isBanned = true;
       user.isApproved = false;
       await user.save();
 
-      res.send({ message: `Utilizador removido com sucesso (Soft Delete)` });
+      res.send({ message: `Utilizador removido com sucesso (Soft Delete com libertação de dados)` });
     } else {
-      res.status(404).send({ message: 'Utilizador n�o encontrado' });
+      res.status(404).send({ message: 'Utilizador não encontrado' });
     }
   })
 );

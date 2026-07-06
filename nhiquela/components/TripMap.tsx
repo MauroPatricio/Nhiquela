@@ -68,8 +68,8 @@ const OptimizedDriverPhoto = React.memo(({ base64String }: { base64String: strin
       style={styles.driverPhoto}
       contentFit="cover"
       defaultSource={require('../assets/icon.png')} // Adicione uma imagem placeholder
-      onError={(e) => {
-        console.log('Erro ao carregar imagem do motorista:', e.nativeEvent.error);
+      onError={() => {
+        console.log('Erro ao carregar imagem do motorista');
         setImageUri(null);
       }}
     />

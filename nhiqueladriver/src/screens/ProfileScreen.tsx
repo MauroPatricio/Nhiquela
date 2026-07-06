@@ -537,7 +537,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.license_front) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -547,7 +547,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.license_back) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -557,7 +557,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_logbook) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -567,7 +567,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_inspection) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -577,7 +577,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_Insurance) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -587,7 +587,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.document_front) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -597,7 +597,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.document_back) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -607,7 +607,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.Proof_of_Address) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -617,7 +617,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_picture) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -627,7 +627,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_picture_front) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
@@ -637,7 +637,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_picture_back) }}
                   style={styles.docImage}
-                  contentFit="contain"
+                  resizeMode="contain"
                 />
               </View>
             )}
