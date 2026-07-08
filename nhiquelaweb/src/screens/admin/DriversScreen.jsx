@@ -514,7 +514,7 @@ export default function DriversScreen() {
 
                       <div className="d-flex flex-column">
 
-                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.deliveryman?.transport_type)} className="me-2 text-muted" />{getVehicleName(driver.deliveryman?.transport_type)}</div>
+                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.deliveryman?.transport_type || driver.deliveryman?.providedServices?.[0]?.serviceId)} className="me-2 text-muted" />{getVehicleName(driver.deliveryman?.transport_type || driver.deliveryman?.providedServices?.[0]?.serviceId)}</div>
 
                         <small className="text-muted"><FontAwesomeIcon icon={faPalette} className="me-1" /> {driver.deliveryman?.transport_color || 'N/A'}</small>
 
@@ -982,7 +982,7 @@ export default function DriversScreen() {
 
               <div className="bg-primary-subtle p-3 rounded-4 mb-4 border border-primary-custom shadow-sm">
 
-                <h6 className="fw-bold text-primary-custom mb-3"><FontAwesomeIcon icon={getVehicleIcon(selectedDriver.deliveryman?.transport_type)} className="me-2" />Dados do Veículo</h6>
+                <h6 className="fw-bold text-primary-custom mb-3"><FontAwesomeIcon icon={getVehicleIcon(selectedDriver.deliveryman?.transport_type || selectedDriver.deliveryman?.providedServices?.[0]?.serviceId)} className="me-2" />Dados do Veículo</h6>
 
                 <div className="row g-3">
 
@@ -990,7 +990,7 @@ export default function DriversScreen() {
 
                     <div className="text-primary-custom small fw-bold text-uppercase">Tipo</div>
 
-                    <div className="fw-bold text-dark text-capitalize">{getVehicleName(selectedDriver.deliveryman?.transport_type)}</div>
+                    <div className="fw-bold text-dark text-capitalize">{getVehicleName(selectedDriver.deliveryman?.transport_type || selectedDriver.deliveryman?.providedServices?.[0]?.serviceId)}</div>
 
                   </div>
 

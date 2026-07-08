@@ -11,8 +11,9 @@ class WebsocketService {
       : (isDev ? 'http://localhost:3000' : 'https://api.nhiquelaservicos.com');
   }
 
-  connect(token) {
+  connect(token, user = null) {
     try {
+      this.currentUser = user;
       this.socket = io(this.SOCKET_URL, {
         auth: {
           token: token
@@ -32,6 +33,9 @@ class WebsocketService {
     this.socket.on('connect', () => {
       console.log('✅ Conectado ao servidor WebSocket');
       this.isConnected = true;
+      if (this.currentUser) {
+        this.socket.emit('onLogin', this.currentUser);
+      }
       this.emit('connect');
     });
 

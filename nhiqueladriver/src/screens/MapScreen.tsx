@@ -124,8 +124,8 @@ export default function MapScreen({ route, navigation }: any) {
         if (storedTrip) {  
           if (storedTrip.stepStatus === 4) {
             // STEP 4 → destino = local do VENDEDOR/COLETA (originLocation ou seller)
-            const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude);
-            const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude);
+            const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat);
+            const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng);
   
             if (vendorLat && vendorLng) {
               const vendorLocation = {
@@ -140,8 +140,8 @@ export default function MapScreen({ route, navigation }: any) {
   
           } else if (storedTrip.stepStatus === 5) {
             // STEP 5 → destino = local do CLIENTE (destinationLocation ou deliveryAddress)
-            const clientLat = Number(storedTrip.originalData?.destinationLocation?.latitude || storedTrip.originalData?.deliveryAddress?.latitude || storedTrip.originalData?.latitude);
-            const clientLng = Number(storedTrip.originalData?.destinationLocation?.longitude || storedTrip.originalData?.deliveryAddress?.longitude || storedTrip.originalData?.longitude);
+            const clientLat = Number(storedTrip.originalData?.destinationLocation?.latitude || storedTrip.originalData?.deliveryAddress?.latitude || storedTrip.originalData?.latitude || storedTrip.originalData?.destinationDetails?.lat);
+            const clientLng = Number(storedTrip.originalData?.destinationLocation?.longitude || storedTrip.originalData?.deliveryAddress?.longitude || storedTrip.originalData?.longitude || storedTrip.originalData?.destinationDetails?.lng);
   
             if (clientLat && clientLng) {
               const clientLocation = {
@@ -157,8 +157,9 @@ export default function MapScreen({ route, navigation }: any) {
           } else {
             // STEP PENDENTE / ACEITE MAS NÃO INICIADO → destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
             // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
-            const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude);
-            const pickupLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude);
+            const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat);
+            const pickupLatLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng);
+            const pickupLng = pickupLatLng; // Aliasing since previous name was pickupLng
             
             if (pickupLat && pickupLng) {
               const pickupLocation = {
@@ -229,8 +230,8 @@ export default function MapScreen({ route, navigation }: any) {
       await startOrderInTransit(trip.id, isRequestService);
 
       // Atualizar destino para o cliente (agora stepStatus = 5)
-      const clientLat = Number(trip.originalData?.deliveryAddress?.latitude);
-      const clientLng = Number(trip.originalData?.deliveryAddress?.longitude);
+      const clientLat = Number(trip.originalData?.deliveryAddress?.latitude || trip.originalData?.destinationLocation?.latitude || trip.originalData?.latitude || trip.originalData?.destinationDetails?.lat);
+      const clientLng = Number(trip.originalData?.deliveryAddress?.longitude || trip.originalData?.destinationLocation?.longitude || trip.originalData?.longitude || trip.originalData?.destinationDetails?.lng);
 
       if (clientLat && clientLng) {
         const clientLocation = {

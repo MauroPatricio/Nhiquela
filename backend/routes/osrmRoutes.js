@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import axios from 'axios';
 import Settings from '../models/SettingsModel.js';
@@ -41,7 +41,7 @@ export const calculateETA = async (origin, destination) => {
 };
 
 /**
- * @desc    Obter distância, tempo estimado de chegada (ETA) e PREÇO através do OSRM
+ * @desc    Obter distï¿½ncia, tempo estimado de chegada (ETA) e PREï¿½O atravï¿½s do OSRM
  * @route   GET /api/osrm/route?origin=lng,lat&destination=lng,lat
  * @access  Public
  */
@@ -51,7 +51,7 @@ osrmRouter.get(
     const { origin, destination } = req.query;
 
     if (!origin || !destination) {
-      return res.status(400).send({ message: 'Origem e destino são obrigatórios' });
+      return res.status(400).send({ message: 'Origem e destino sï¿½o obrigatï¿½rios' });
     }
 
     let distanceKm;
@@ -69,18 +69,18 @@ osrmRouter.get(
         distanceKm = parseFloat((route.distance / 1000).toFixed(2));
         durationMin = parseFloat((route.duration / 60).toFixed(0));
       } else {
-        throw new Error('Rota não encontrada pelo OSRM');
+        throw new Error('Rota nï¿½o encontrada pelo OSRM');
       }
     } catch (error) {
       console.error('Erro ao acessar OSRM local:', error.message);
-      // Fallback em caso do container OSRM estar em baixo (Calculo Matemático Simples Haversine)
+      // Fallback em caso do container OSRM estar em baixo (Calculo Matemï¿½tico Simples Haversine)
       const fallback = await calculateETA(origin, destination);
       distanceKm = parseFloat(fallback.distanceKm);
       durationMin = parseFloat(fallback.durationMin);
       isFallback = true;
     }
 
-    // Buscar configurações de Preços do Administrador
+    // Buscar configuraï¿½ï¿½es de Preï¿½os do Administrador
     const settingsRecords = await Settings.find({
       key: { $in: ['delivery_pricing_model', 'delivery_base_fee', 'delivery_price_per_km', 'delivery_service_fee'] }
     });
@@ -100,14 +100,14 @@ osrmRouter.get(
       if (setting.key === 'delivery_service_fee') config.serviceFee = Number(setting.value);
     });
 
-    // Calcular o preço
+    // Calcular o preï¿½o
     let price = 0;
 
     if (config.model === 'formula') {
-      // Fórmula Simples: Taxa Base + (Km × Valor/Km) + Taxa Serviço
+      // Fï¿½rmula Simples: Taxa Base + (Km ï¿½ Valor/Km) + Taxa Serviï¿½o
       price = config.baseFee + (distanceKm * config.pricePerKm) + config.serviceFee;
     } else {
-      // Estratégia Maputo (Escalões baseados nos KM)
+      // Estratï¿½gia Maputo (Escalï¿½es baseados nos KM)
       if (distanceKm <= 3) {
         price = 80;
       } else if (distanceKm > 3 && distanceKm <= 7) {
@@ -119,12 +119,12 @@ osrmRouter.get(
       } else {
         price = 250 + ((distanceKm - 20) * config.pricePerKm);
       }
-      // Se tiver Taxa de Serviço, podemos somar adicionalmente
-      // Mas o modelo steps do utilizador não fala em somar a taxa de serviço na tarifa "step", 
-      // embora no modelo mais rentável sim. Por omissão, no step model as tranches absorvem o serviço.
+      // Se tiver Taxa de Serviï¿½o, podemos somar adicionalmente
+      // Mas o modelo steps do utilizador nï¿½o fala em somar a taxa de serviï¿½o na tarifa "step", 
+      // embora no modelo mais rentï¿½vel sim. Por omissï¿½o, no step model as tranches absorvem o serviï¿½o.
     }
 
-    // Arredondar preço (opcional) para ficar bonito
+    // Arredondar preï¿½o (opcional) para ficar bonito
     price = Math.ceil(price);
 
     res.send({

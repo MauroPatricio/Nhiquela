@@ -2,9 +2,8 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../api/apiConfig';
-import io from 'socket.io-client';
 import { Alert } from 'react-native';
-import websocketService from '../websocketService/websocketService';
+import websocketService from '../services/websocketService';
 
 // Interfaces completas
 export interface Deliveryman {
@@ -29,6 +28,7 @@ export interface User {
   _id?: string;
   name?: string;
   photo?: string;
+  profileImage?: string;  // Campo real na BD MongoDB
   email?: string;
   phoneNumber?: string;
   isDeliveryMan?: boolean;
@@ -149,39 +149,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Global Socket for real-time user status reload
+  // 🔥 TEMPO REAL: Ouve eventos do websocketService centralizado
+  // Atualiza o estado do utilizador directamente a partir do payload do socket
+  // SEM chamadas de rede adicionais
   useEffect(() => {
-    let socket: any;
-    if (user && user._id) {
-      const socketUrl = API_BASE_URL.replace('/api', '');
-      socket = io(socketUrl);
+    if (!user?._id) return;
 
-      socket.on('userStatusChanged', async (data: any) => {
-        if (data.userId === user._id) {
-          await refreshUser();
-        }
+    // 🔔 Admin aprovou / rejeitou / suspendeu a conta do motorista
+    const handleDriverStatusUpdated = async (data: any) => {
+      console.log('🔔 [AuthContext] driver_status_updated recebido:', data);
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        const updatedUser = {
+          ...prevUser,
+          status: data.status,
+          isApproved: data.isApproved ?? prevUser.isApproved,
+          deliveryman: {
+            ...prevUser.deliveryman,
+            register_conformance: data.register_conformance ?? prevUser.deliveryman?.register_conformance
+          }
+        };
+        AsyncStorage.setItem('@app:user', JSON.stringify(updatedUser));
+        return updatedUser;
       });
+    };
 
-      socket.on('walletUpdated', async (data: any) => {
-        Alert.alert('Saldo Atualizado', data.message || 'O seu saldo foi atualizado.');
-        await refreshUser();
-      });
-      
-      const handleDriverStatus = async () => {
-        await refreshUser();
-      };
-      
-      websocketService.on('driver_status_updated', handleDriverStatus);
+    // 💰 Saldo actualizado
+    const handleWalletUpdated = async (data: any) => {
+      Alert.alert('Saldo Atualizado', data.message || 'O seu saldo foi atualizado.');
+      await refreshUser();
+    };
 
-      return () => {
-        if (socket) {
-          socket.disconnect();
-        }
-        websocketService.off('driver_status_updated', handleDriverStatus);
-      };
-    }
+    websocketService.on('driver_status_updated', handleDriverStatusUpdated);
+    websocketService.on('walletUpdated', handleWalletUpdated);
 
-    return () => {};
+    return () => {
+      websocketService.off('driver_status_updated', handleDriverStatusUpdated);
+      websocketService.off('walletUpdated', handleWalletUpdated);
+    };
   }, [user?._id, refreshUser]);
 
   const isAuthenticated = !!user;

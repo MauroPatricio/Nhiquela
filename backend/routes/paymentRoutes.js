@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import mpesa from 'mpesa-node-api';
 
@@ -50,7 +50,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
   const { customerNumber, amount } = req.body;
 
   if (!customerNumber || typeof amount !== 'number' || amount <= 0) {
-    return res.status(400).send({ message: 'Número ou valor inválido.' });
+    return res.status(400).send({ message: 'Nï¿½mero ou valor invï¿½lido.' });
   }
 
   const referenceCode = randomString(5);
@@ -74,7 +74,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
       conversationId: mpesaRes.output_ConversationID,
       reference: mpesaRes.output_ThirdPartyReference,
       // INS-0 apenas significa que o pedido foi enviado para o telefone do cliente.
-      // A confirmação real será feita via Webhook.
+      // A confirmaï¿½ï¿½o real serï¿½ feita via Webhook.
       paid: false, 
       status: mpesaRes.output_ResponseCode === 'INS-0' ? 'Pendente' : 'Falha'
     };
@@ -93,7 +93,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
 
     return res.status(result.status === 'Pendente' ? 200 : 400).send({
       ...savedPayment._doc,
-      message: result.status === 'Pendente' ? 'Verifique o seu telemóvel para colocar o PIN.' : 'Falha ao iniciar pagamento.'
+      message: result.status === 'Pendente' ? 'Verifique o seu telemï¿½vel para colocar o PIN.' : 'Falha ao iniciar pagamento.'
     });
 
   } catch (err) {
@@ -129,28 +129,28 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
   }
 }));
 
-// Webhook para confirmação assíncrona do M-Pesa
+// Webhook para confirmaï¿½ï¿½o assï¿½ncrona do M-Pesa
 paymentRouter.post('/mpesa/webhook', expressAsyncHandler(async (req, res) => {
   console.log('?? Webhook M-Pesa Recebido:', req.body);
   
-  // O M-Pesa envia o estado da transação no body. Exemplo de estrutura comum:
+  // O M-Pesa envia o estado da transaï¿½ï¿½o no body. Exemplo de estrutura comum:
   // { ThirdPartyReference, TransactionID, ResponseCode, ResponseDesc, ... }
   const { ThirdPartyReference, TransactionID, ResponseCode } = req.body;
 
   if (!ThirdPartyReference) {
-    return res.status(400).send({ message: 'ThirdPartyReference não encontrado.' });
+    return res.status(400).send({ message: 'ThirdPartyReference nï¿½o encontrado.' });
   }
 
-  // Verificar na base de dados o pagamento com a referência
+  // Verificar na base de dados o pagamento com a referï¿½ncia
   const payment = await Payment.findOne({ reference: ThirdPartyReference });
   
   if (!payment) {
-    console.error('? Pagamento não encontrado para a referência:', ThirdPartyReference);
-    return res.status(404).send({ message: 'Pagamento não encontrado.' });
+    console.error('? Pagamento nï¿½o encontrado para a referï¿½ncia:', ThirdPartyReference);
+    return res.status(404).send({ message: 'Pagamento nï¿½o encontrado.' });
   }
 
-  // Verifica se o pagamento foi concluído com sucesso
-  // O código 'INS-0' na confirmação significa sucesso na transferência.
+  // Verifica se o pagamento foi concluï¿½do com sucesso
+  // O cï¿½digo 'INS-0' na confirmaï¿½ï¿½o significa sucesso na transferï¿½ncia.
   if (ResponseCode === 'INS-0' || ResponseCode === '0') {
     payment.paid = true;
     payment.status = 'Sucesso';
@@ -158,7 +158,7 @@ paymentRouter.post('/mpesa/webhook', expressAsyncHandler(async (req, res) => {
     await payment.save();
     
     // Atualizar Order ou Wallet consoante o sistema
-    // ... Aqui poderá colocar a lógica de recarga de saldo do utilizador (wallet) ...
+    // ... Aqui poderï¿½ colocar a lï¿½gica de recarga de saldo do utilizador (wallet) ...
     console.log(`? Pagamento M-Pesa ${ThirdPartyReference} confirmado com sucesso!`);
   } else {
     payment.paid = false;

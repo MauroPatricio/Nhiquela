@@ -270,6 +270,7 @@ export default function TripScreen({ navigation }: any) {
     <View style={styles.mainContainer}>
       <ScrollView 
         style={styles.container}
+        contentContainerStyle={{ paddingBottom: 150, flexGrow: 1 }}
         refreshControl={
           <RefreshControl
             refreshing={loading}

@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Promotion from '../models/PromotionModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -22,7 +22,7 @@ promotionRouter.get(
     if (promotion) {
       res.send(promotion);
     } else {
-      res.status(404).send({ message: 'Promoção não encontrada' });
+      res.status(404).send({ message: 'Promoï¿½ï¿½o nï¿½o encontrada' });
     }
   })
 );
@@ -43,7 +43,7 @@ promotionRouter.post(
       createdBy: req.user._id,
     });
     const createdPromotion = await promotion.save();
-    res.status(201).send({ message: 'Promoção criada com sucesso', promotion: createdPromotion });
+    res.status(201).send({ message: 'Promoï¿½ï¿½o criada com sucesso', promotion: createdPromotion });
   })
 );
 
@@ -64,9 +64,9 @@ promotionRouter.put(
       promotion.isActive = req.body.isActive !== undefined ? req.body.isActive : promotion.isActive;
 
       const updatedPromotion = await promotion.save();
-      res.send({ message: 'Promoção atualizada com sucesso', promotion: updatedPromotion });
+      res.send({ message: 'Promoï¿½ï¿½o atualizada com sucesso', promotion: updatedPromotion });
     } else {
-      res.status(404).send({ message: 'Promoção não encontrada' });
+      res.status(404).send({ message: 'Promoï¿½ï¿½o nï¿½o encontrada' });
     }
   })
 );
@@ -81,9 +81,9 @@ promotionRouter.delete(
     if (promotion) {
       promotion.isActive = false;
       await promotion.save();
-      res.send({ message: 'Promoção removida com sucesso' });
+      res.send({ message: 'Promoï¿½ï¿½o removida com sucesso' });
     } else {
-      res.status(404).send({ message: 'Promoção não encontrada' });
+      res.status(404).send({ message: 'Promoï¿½ï¿½o nï¿½o encontrada' });
     }
   })
 );

@@ -28,6 +28,8 @@ beforeAll(async () => {
   authToken = generateToken(testUser);
 
   await Wallet.create({
+    ownerType: 'driver',
+    ownerId: testUser._id,
     user: testUser._id,
     balance: 500,
     currency: 'MT',
@@ -42,19 +44,19 @@ afterAll(async () => {
 describe('GET /api/wallet/balance/:userId', () => {
   it('should return the wallet balance for authenticated driver', async () => {
     const res = await request(app)
-      .get(`/api/wallet/balance/${testUser._id}`)
+      .get(`/api/wallet/balance`)
       .set('Authorization', `Bearer ${authToken}`);
 
     // 200 = found, 404 = route name mismatch (both ok, 500 is NOT)
     expect(res.status).toBeLessThan(500);
     if (res.status === 200) {
-      expect(res.body).toHaveProperty('balance');
+      expect(res.body).toHaveProperty('available_balance');
     }
   }, 15000);
 
   it('should return 401 without auth token', async () => {
     const res = await request(app)
-      .get(`/api/wallet/balance/${testUser._id}`);
+      .get(`/api/wallet/balance`);
     expect(res.status).toBe(401);
   }, 15000);
 });

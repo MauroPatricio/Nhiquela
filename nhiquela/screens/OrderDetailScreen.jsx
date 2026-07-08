@@ -135,8 +135,12 @@ const OrderDetailsScreen = () => {
   const cancelOrderPop = async (orderId) => {
     try {
       if (!userData) throw new Error('User is not logged in');
+      const endpoint = isRequestService 
+        ? `/request-service/${orderId}/cancel` 
+        : `/orders/${orderId}/cancel`;
+
       const { data } = await api.put(
-        `/orders/${orderId}/cancel`,
+        endpoint,
         { message },
         { headers: { Authorization: `Bearer ${userData.token}` } }
       );
@@ -229,9 +233,24 @@ const OrderDetailsScreen = () => {
   };
 
   // Compute destination based on order type (store or service)
-  const destination = currentOrder?.deliveryAddress 
-    ? { latitude: currentOrder.deliveryAddress.latitude, longitude: currentOrder.deliveryAddress.longitude }
-    : (currentOrder?.latitude ? { latitude: currentOrder.latitude, longitude: currentOrder.longitude } : null);
+  let destination = null;
+  if (currentOrder) {
+    if (currentOrder.stepStatus === 4) {
+      // Motorista a caminho do local de recolha
+      const lat = currentOrder.originDetails?.lat || currentOrder.seller?.latitude || currentOrder.originLocation?.latitude;
+      const lng = currentOrder.originDetails?.lng || currentOrder.seller?.longitude || currentOrder.originLocation?.longitude;
+      if (lat && lng) {
+        destination = { latitude: Number(lat), longitude: Number(lng) };
+      }
+    } else {
+      // Em transito (stepStatus 5)
+      const lat = currentOrder.destinationDetails?.lat || currentOrder.deliveryAddress?.latitude || currentOrder.destinationLocation?.latitude || currentOrder.latitude;
+      const lng = currentOrder.destinationDetails?.lng || currentOrder.deliveryAddress?.longitude || currentOrder.destinationLocation?.longitude || currentOrder.longitude;
+      if (lat && lng) {
+        destination = { latitude: Number(lat), longitude: Number(lng) };
+      }
+    }
+  }
 
   if (loadingOrder || !currentOrder) {
     return (

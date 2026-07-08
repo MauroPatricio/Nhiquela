@@ -1,4 +1,4 @@
-// seedRoutes.js – seeds initial data for development/testing
+ï»¿// seedRoutes.js ï¿½ seeds initial data for development/testing
 import express from 'express';
 import Product from '../models/ProductModel.js';
 import Service from '../models/ServiceModel.js';
@@ -28,8 +28,8 @@ seedRoutes.get('/', async (req, res) => {
     const defaultCategories = await Category.insertMany([
       { icon: '??', name: 'Supermercado', nome: 'Supermercado', description: 'Supermercado', isActive: true },
       { icon: '??', name: 'Restaurantes', nome: 'Restaurantes', description: 'Restaurantes', isActive: true },
-      { icon: '??', name: 'Farmácia', nome: 'Farmácia', description: 'Farmácia', isActive: true },
-      { icon: '???', name: 'Serviços', nome: 'Serviços', description: 'Serviços', isActive: true },
+      { icon: '??', name: 'Farmï¿½cia', nome: 'Farmï¿½cia', description: 'Farmï¿½cia', isActive: true },
+      { icon: '???', name: 'Serviï¿½os', nome: 'Serviï¿½os', description: 'Serviï¿½os', isActive: true },
     ]);
 
     // Seed sample users and products
@@ -39,16 +39,16 @@ seedRoutes.get('/', async (req, res) => {
     // Seed establishments (example entries)
     const establishments = await Establishment.insertMany([
       { name: 'Supermercado Central', type: 'supermarket', active: true },
-      { name: 'Farmácia Saúde', type: 'pharmacy', active: true },
+      { name: 'Farmï¿½cia Saï¿½de', type: 'pharmacy', active: true },
     ]);
 
     // Seed processing fees (example overrides)
     await ProcessingFee.insertMany([
       // Base fee for prescription service (fixed amount)
       { serviceType: 'prescription', amount: 5, exempt: false },
-      // Shopping list fee – 2% of order total (no fixed amount)
+      // Shopping list fee ï¿½ 2% of order total (no fixed amount)
       { serviceType: 'shopping_list', percentage: 2, exempt: false },
-      // Special order fee – exempt (no charge)
+      // Special order fee ï¿½ exempt (no charge)
       { serviceType: 'special_order', exempt: true },
       // Per-establishment override example (supermarket incurs 3% instead of base 2%)
       {

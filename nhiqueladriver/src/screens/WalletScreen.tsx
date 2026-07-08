@@ -52,6 +52,7 @@ export default function WalletScreen({ navigation, route }: any) {
   const [invalidValueModalVisible, setInvalidValueModalVisible] = useState(false);
   const [invalidValueMessage, setInvalidValueMessage] = useState("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [rechargeApprovedModalVisible, setRechargeApprovedModalVisible] = useState(false);
   const [missingReceiptModalVisible, setMissingReceiptModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -138,8 +139,12 @@ export default function WalletScreen({ navigation, route }: any) {
       const socketUrl = API_BASE_URL.replace('/api', '');
       socket = io(socketUrl);
 
+      // Join the driver room by emitting onLogin
+      socket.emit('onLogin', user);
+
       socket.on('walletUpdated', (data: any) => {
-        // When a recharge is approved, refresh the wallet immediately
+        // When a recharge is approved, refresh the wallet immediately and show premium modal
+        setRechargeApprovedModalVisible(true);
         fetchWalletData(true); // silent refresh
       });
     }
@@ -437,7 +442,7 @@ export default function WalletScreen({ navigation, route }: any) {
             <Text style={styles.emptyText}>Nenhum movimento registado.</Text>
           </View>
         }
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
       />
 
       {/* Modal de Recarga */}
@@ -540,6 +545,51 @@ export default function WalletScreen({ navigation, route }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* ✅ Modal Premium de Recarga Aprovada pelo Admin */}
+      <Modal visible={rechargeApprovedModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF', borderRadius: 32, width: '100%', maxWidth: 350,
+            padding: 32, alignItems: 'center',
+            shadowColor: '#10B981', shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.3, shadowRadius: 30, elevation: 18,
+          }}>
+            <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="wallet" size={50} color="#059669" />
+              <View style={{ position: 'absolute', bottom: 5, right: 5, backgroundColor: '#FFF', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="checkmark-circle" size={24} color="#059669" />
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#064E3B', marginBottom: 12, textAlign: 'center' }}>
+              Recarga Aprovada! 💸
+            </Text>
+
+            <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 24, marginBottom: 8, fontWeight: '600' }}>
+              O seu saldo foi atualizado.
+            </Text>
+            
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+              A equipa validou o seu comprovativo e o valor já está disponível na sua carteira Nhiquela.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                width: '100%', paddingVertical: 16, borderRadius: 16,
+                backgroundColor: '#059669', alignItems: 'center',
+                shadowColor: '#059669', shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+              }}
+              onPress={() => setRechargeApprovedModalVisible(false)}
+              activeOpacity={0.9}
+            >
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>Ver Saldo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
 
       {/* Modal Premium de Falta de Comprovativo */}
       <Modal visible={missingReceiptModalVisible} transparent animationType="fade">

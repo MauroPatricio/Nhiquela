@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Support from '../models/SupportModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -40,7 +40,7 @@ supportRouter.get(
     if (ticket) {
       res.send(ticket);
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );
@@ -59,7 +59,7 @@ supportRouter.post(
       const updatedTicket = await ticket.save();
       res.send({ message: 'Resposta adicionada', ticket: updatedTicket });
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );
@@ -76,7 +76,7 @@ supportRouter.put(
       const updatedTicket = await ticket.save();
       res.send({ message: 'Status atualizado', ticket: updatedTicket });
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );
@@ -92,7 +92,7 @@ supportRouter.delete(
       await ticket.deleteOne();
       res.send({ message: 'Ticket removido com sucesso' });
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );

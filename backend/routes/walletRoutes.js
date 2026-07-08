@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
@@ -566,12 +566,22 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(wallet.user.toString()).emit('userStatusChanged', {
-          userId: wallet.user.toString(),
+        const userId = wallet.user.toString();
+        io.to(userId).emit('userStatusChanged', {
+          userId: userId,
           status: 'approved', // Trigger a refresh on frontend
           message: 'A sua recarga foi aprovada!'
         });
-        io.to(wallet.user.toString()).emit('walletUpdated', {
+        io.to(`driver_${userId}`).emit('userStatusChanged', {
+          userId: userId,
+          status: 'approved', // Trigger a refresh on frontend
+          message: 'A sua recarga foi aprovada!'
+        });
+        
+        io.to(userId).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(`driver_${userId}`).emit('walletUpdated', {
           message: 'A sua recarga foi aprovada!'
         });
       }

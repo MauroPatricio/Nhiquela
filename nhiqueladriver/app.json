@@ -22,6 +22,11 @@
     "android": {
       "package": "com.nhiquela.driver",
       "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDlHUEIp6YENtHnKoizx9s1pH-FX08O5Gw"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela2-square.png",
         "backgroundColor": "#ffffff"

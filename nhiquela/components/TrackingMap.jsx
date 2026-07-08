@@ -68,14 +68,14 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
 
     socket.emit('joinRoom', { orderId });
 
-    socket.on('driverLocation', (data) => {
-      setDriverLocation({ latitude: data.lat, longitude: data.lng });
+    socket.on('driver_location_update', (data) => {
+      setDriverLocation({ latitude: data.latitude, longitude: data.longitude });
       if (onUpdateTracking) {
         const speedKmH = data.speed ? data.speed * 3.6 : 0;
         onUpdateTracking({
           speed: speedKmH,
-          latitude: data.lat,
-          longitude: data.lng
+          latitude: data.latitude,
+          longitude: data.longitude
         });
       }
     });
@@ -92,12 +92,21 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
       if (!driverLocation || !destination || !destination.latitude || !destination.longitude) return;
 
       try {
-        const osrmUrl = `http://router.project-osrm.org/route/v1/driving/${driverLocation.longitude},${driverLocation.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`;
-        const response = await fetch(osrmUrl);
-        const json = await response.json();
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        
+        const { data: result } = await api.get('/routing/route', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { 
+            originLat: driverLocation.latitude, 
+            originLng: driverLocation.longitude, 
+            destLat: destination.latitude, 
+            destLng: destination.longitude 
+          }
+        });
 
-        if (json.routes && json.routes.length > 0) {
-          const route = json.routes[0].geometry.coordinates.map((coord) => ({
+        if (result && result.coordinates) {
+          const route = result.coordinates.map((coord) => ({
             latitude: coord[1],
             longitude: coord[0],
           }));
@@ -105,8 +114,8 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
 
           if (onUpdateTracking) {
             onUpdateTracking({
-              distance: json.routes[0].distance,
-              duration: json.routes[0].duration,
+              distance: result.distanceKm * 1000,
+              duration: result.durationMinutes * 60,
             });
           }
 

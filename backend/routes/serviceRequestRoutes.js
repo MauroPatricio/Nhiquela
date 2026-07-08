@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import ServiceRequest from '../models/ServiceRequestModel.js';
 import Service from '../models/ServiceModel.js';
@@ -14,7 +14,7 @@ requestRouter.post(
     const { serviceId, origin, destination, vehicleTypeId, details, recipientName, recipientPhone } = req.body;
     
     const service = await Service.findById(serviceId);
-    if (!service) return res.status(404).send({ message: 'Serviço não encontrado' });
+    if (!service) return res.status(404).send({ message: 'Serviï¿½o nï¿½o encontrado' });
 
     let estimatedPrice = service.basePrice || 0;
 

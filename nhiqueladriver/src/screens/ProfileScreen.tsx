@@ -293,7 +293,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 150, flexGrow: 1 }}
       >
 
 

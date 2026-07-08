@@ -177,6 +177,32 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/roles', roleRouter);
 app.use('/api/routing', routingRoutes);
 app.use('/api/system/app-config', appConfigRouter);
+
+// 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
+app.get('/api/debug/socket-status', (req, res) => {
+  const io = req.app.get('io');
+  const users = req.app.get('users') || [];
+  const rooms = io ? [...io.sockets.adapter.rooms.keys()].filter(r => r.startsWith('driver_')) : [];
+  res.json({
+    connectedUsers: users.map(u => ({ _id: u._id, name: u.name, socketId: u.socketId, online: u.online, isDeliveryMan: u.isDeliveryMan })),
+    driverRooms: rooms,
+  });
+});
+
+app.get('/api/debug/emit-test/:driverId', (req, res) => {
+  const io = req.app.get('io');
+  const users = req.app.get('users') || [];
+  const { driverId } = req.params;
+  const { status = 'Disponível' } = req.query;
+  const payload = { status, isApproved: status === 'Disponível', message: 'Teste de socket' };
+  const room = `driver_${driverId}`;
+  io.to(room).emit('driver_status_updated', payload);
+  const driverUser = users.find(u => u._id && u._id.toString() === driverId);
+  if (driverUser?.socketId) {
+    io.to(driverUser.socketId).emit('driver_status_updated', payload);
+  }
+  res.json({ sent: true, room, driverSocketId: driverUser?.socketId || null, payload });
+});
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.log(err);
@@ -189,7 +215,7 @@ const users = [];
 
 const io = new Server(httpServer, { cors: { origin: '*' } });
 app.set('io', io);
-
+app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
 
 io.on('connection', (socket) => {
@@ -234,7 +260,9 @@ io.on('connection', (socket) => {
     if (user._id && user.isDeliveryMan) {
       const driverRoom = `driver_${user._id}`;
       socket.join(driverRoom);
-      console.log(`?? Motorista ${user.name} entrou na sala ${driverRoom}`);
+      console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
+    } else {
+      console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
     }
 
     const admin = users.find((x) => x.isAdmin && x.online);
@@ -269,6 +297,7 @@ io.on('connection', (socket) => {
   // Alta Performance: Receber localizacao do motorista via WebSocket
   socket.on('update_location', async (data) => {
     try {
+      console.log('update_location recebido:', data);
       const { driverId, orderId, latitude, longitude, heading, speed } = data;
       if (driverId && latitude && longitude) {
         const now = Date.now();
@@ -428,14 +457,16 @@ function randomString(codeLength){
 }
 const port = process.env.PORT || 5002;
 console.log('Port configuration: process.env.PORT =', process.env.PORT);
-httpServer.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-  
-  // Start the Intelligent Dispatch Job
-  setInterval(() => {
-    runIntelligentDispatch(io);
-  }, 5000); // Executa a cada 5 segundos
-});
+if (process.env.NODE_ENV !== 'test') {
+  httpServer.listen(port, () => {
+    console.log(`Servidor rodando em http://localhost:${port}`);
+    
+    // Start the Intelligent Dispatch Job
+    setInterval(() => {
+      runIntelligentDispatch(io);
+    }, 5000); // Executa a cada 5 segundos
+  });
+}
 
 // Export the Express app for integration testing when in test mode
 export default app;

@@ -1,4 +1,4 @@
-// shopperRoutes.js – management and order endpoints for personal shoppers
+ï»¿// shopperRoutes.js ï¿½ management and order endpoints for personal shoppers
 import express from 'express';
 import User from '../models/UserModel.js';
 import DocumentOrder from '../models/DocumentOrder.js';

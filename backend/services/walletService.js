@@ -103,7 +103,7 @@ export const debitCommissionFromPartner = async (partnerId, orderAmount, commiss
 };
 
 /** Helper: check whether driver has enough balance */
-export const hasSufficientBalance = async (driverId) => {
+export const hasSufficientBalance = async (driverId, driverDoc = null) => {
   const wallet = await getWallet(driverId);
   
   // REGRA ESTRITA: Não pode ficar online se não possuir saldo (<= 0)
@@ -113,7 +113,7 @@ export const hasSufficientBalance = async (driverId) => {
   
   let limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
   
-  const driver = await User.findById(driverId);
+  const driver = driverDoc || await User.findById(driverId);
   if (driver && driver.deliveryman) {
     let vType = null;
     const VehicleType = (await import('../models/VehicleTypeModel.js')).default;

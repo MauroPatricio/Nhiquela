@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import User from '../models/UserModel.js';
 import { baseUrl, generateToken, isAdmin, isAuth, isDeliveryMan } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
@@ -782,6 +782,11 @@ userRouter.post(
         }];
       }
 
+      // Também guardar a foto no campo profileImage do utilizador (raiz)
+      if (updateData.photo) {
+        user.profileImage = updateData.photo;
+      }
+
       await user.save();
 
       // Create a record of the request
@@ -1028,7 +1033,7 @@ userRouter.post(
     // --- Verificar senha ---
     const passwordMatch = bcrypt.compareSync(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).send({ message: 'Senha inv�lida.' });
+      return res.status(401).send({ message: 'Senha invlida.' });
     }
 
     // --- Atualizar deviceToken se presente ---
@@ -1037,11 +1042,12 @@ userRouter.post(
       await user.save();
     }
 
-    // --- Responder com dados do usu�rio e token ---
-    res.status(200).send({
+    // --- Responder com dados do usurio e token ---
+    const userObj = {
       _id: user._id,
       email: user.email,
-      photo: user.photo || null,
+      photo: user.profileImage || user.photo || null,       // compatibilidade com apps antigas
+      profileImage: user.profileImage || user.photo || null, // campo real da BD
       isAdmin: user.isAdmin,
       isApproved: user.isApproved,
       isBanned: user.isBanned,
@@ -1051,14 +1057,30 @@ userRouter.post(
       assignedEstablishments: user.assignedEstablishments || [],
       name: user.name,
       phoneNumber: user.phoneNumber,
+      status: user.status,              // ⬅️ campo chave para aprovação do motorista
+      availability: user.availability,  // ⬅️ estado online/offline
       seller: user.seller || null,
-      deliveryman: user.deliveryman || null,
+      deliveryman: user.deliveryman ? { ...JSON.parse(JSON.stringify(user.deliveryman)) } : null,
       tipoEstabelecimento: user.tipoEstabelecimento || null,
       savedLocations: user.savedLocations || [],
       createdAt: user.createdAt,
       requirePasswordChange: user.requirePasswordChange || false,
       token: generateToken(user),
-    });
+    };
+
+    if (user.isDeliveryMan && userObj.deliveryman) {
+      try {
+        const { getWallet } = await import('../services/walletService.js');
+        const wallet = await getWallet(user._id);
+        if (wallet) {
+          userObj.deliveryman.balance = `MT ${Number(wallet.balance || 0).toFixed(2)}`;
+        }
+      } catch (err) {
+        console.error('Error fetching driver balance on signin', err);
+      }
+    }
+
+    res.status(200).send(userObj);
   })
 );
 

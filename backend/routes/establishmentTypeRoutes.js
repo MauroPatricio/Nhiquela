@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import EstablishmentType from '../models/EstablishmentType.js';
 import { isAuth, isSellerOrAdmin } from '../utils.js';
@@ -23,7 +23,7 @@ router.get(
     if (establishmentType) {
       res.send(establishmentType);
     } else {
-      res.status(404).send({ message: 'Tipo não encontrado' });
+      res.status(404).send({ message: 'Tipo nï¿½o encontrado' });
     }
   })
 );
@@ -59,7 +59,7 @@ router.put(
       await type.save();
       res.send({ message: 'Tipo atualizado com sucesso', type });
     } else {
-      res.status(404).send({ message: 'Tipo não encontrado' });
+      res.status(404).send({ message: 'Tipo nï¿½o encontrado' });
     }
   })
 );
@@ -75,7 +75,7 @@ router.delete(
       await type.deleteOne();
       res.send({ message: 'Tipo removido' });
     } else {
-      res.status(404).send({ message: 'Tipo não encontrado' });
+      res.status(404).send({ message: 'Tipo nï¿½o encontrado' });
     }
   })
 );

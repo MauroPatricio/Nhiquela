@@ -14,22 +14,48 @@ class WebSocketService {
     this.baseURL = API_URL;
   }
 
-  connect(token) {
+  connect(token, user = null) {
+    this.currentUser = user;
+
+    // 🔥 Se já ligado: apenas actualiza o utilizador e emite onLogin de novo
+    // para garantir que o motorista entra na sala correcta
+    if (this.socket && this.isConnected) {
+      if (user) {
+        this.socket.emit('onLogin', user);
+      }
+      return;
+    }
+
     if (this.socket) {
       this.disconnect();
     }
     
     this.socket = io(this.baseURL, {
-      auth: {
-        token: token
-      },
-      transports: ['websocket', 'polling']
+      auth: { token: token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
 
     this.socket.on('connect', () => {
       console.log('🔌 WebSocket conectado');
       this.isConnected = true;
+      // 🔥 Entrar na sala do motorista imediatamente
+      if (this.currentUser) {
+        this.socket.emit('onLogin', this.currentUser);
+        console.log('📡 onLogin emitido para:', this.currentUser._id);
+      }
       this.emit('connect');
+    });
+
+    this.socket.on('reconnect', () => {
+      console.log('🔌 WebSocket reconectado');
+      this.isConnected = true;
+      // 🔥 Re-entrar na sala após reconexão
+      if (this.currentUser) {
+        this.socket.emit('onLogin', this.currentUser);
+      }
     });
 
     this.socket.on('disconnect', () => {

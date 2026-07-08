@@ -109,7 +109,7 @@ requestServiceer.post(
       name: req.body.name,
       phoneNumber: req.body.phoneNumber,
       goodType: req.body.goodType,
-      tranósportType:  req.body.tranósportType,
+      transportType:  req.body.transportType,
       deliverCity:  req.body.deliverCity,
       origin:  req.body.origin,
       destination:  req.body.destination,
@@ -175,17 +175,17 @@ requestServiceer.post(
       console.log(`[PricingService] ℹ️ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
     }
 
-    let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de inóstantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
+    let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
     
     //  Para envio de mensagens
     // const sellerOfProduct = await User.findById(newOrder.seller);
 
       if (newOrder.isPaid){
         // Enviar sms para o fornecedor
-      let msg = `Olá, a Nhiquela Shop informa que possui um novo pedido com o código n ${newOrder.code}`; 
+      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`; 
       sendSMSToUSendItDeliverman( msg);
     }else{
-       let msg = `Olá, a Nhiquela Shop informa que possui um novo pedido com o código n ${newOrder.code}`; 
+       let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`; 
         sendSMSToUSendItAdmin(msg);
     }
 
@@ -198,7 +198,34 @@ requestServiceer.post(
     const io = req.app.get('io');
     if (io) {
       if (newOrder.targetDriverId) {
-        io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', requestService);
+        const orderPayload = { ...requestService.toObject(), type: 'requestService' };
+        io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
+        
+        // 45s timeout logic
+        setTimeout(async () => {
+          try {
+            const checkOrder = await RequestService.findById(requestService._id);
+            if (checkOrder && checkOrder.status === 'Pendente') {
+              checkOrder.status = 'Motorista indisponível';
+              checkOrder.targetDriverId = null;
+              checkOrder.canceledReason = 'Tempo esgotado (45s)';
+              await checkOrder.save();
+              
+              // Notify driver to remove order from their screen
+              io.to(`driver_${newOrder.targetDriverId}`).emit('order_updated', checkOrder);
+              
+              // Notify client
+              io.to(`order_${checkOrder._id}`).emit('order_updated', checkOrder);
+              const users = req.app.get('users') || [];
+              const orderUser = users.find((x) => x._id === checkOrder.user._id.toString());
+              if (orderUser) {
+                io.to(orderUser.socketId).emit('order_updated', checkOrder);
+              }
+            }
+          } catch (e) {
+            console.error('[RequestService Timeout Error]', e);
+          }
+        }, 45000);
       } else {
         // Intelligent Dispatch engine will handle emitting to nearest drivers
       }
@@ -221,14 +248,14 @@ requestServiceer.get(
     const pageSize = 10    
     
     const deliverRequests = await RequestService.find({
-      user,
+      ...userFilter,
       deleted: { $eq: false},
 
     }).populate('user', 'name phoneNumber profileImage').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
 
     const countRequests = await RequestService.countDocuments({
-     user,
+     ...userFilter,
      deleted: { $eq: false},
 
     });
@@ -328,13 +355,13 @@ requestServiceer.put(
 
     // Usar uma tranósação para garantir que débito e aceite ocorrem de forma atómica
     const session = await mongoose.startSession();
-    session.startTranósaction();
+    session.startTransaction();
 
     try {
       const order = await RequestService.findOne({ _id: req.params.id, status: 'Pendente' }).session(session);
 
       if (!order) {
-        await session.abortTranósaction();
+        await session.abortTransaction();
         session.endSession();
         return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
       }
@@ -345,19 +372,12 @@ requestServiceer.put(
       const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
       const commissionmount = serviceValue * commissionRate;
 
-      // Realizar o débito da carteira imediatamente na aceitação (confirmação do serviço)
-      try {
-        await debitDriverCommissionWithSession(
-          user_deliver._id, 
-          commissionmount, 
-          `Comissão de serviço para o pedido direto ${order.code} confirmado`, 
-          'wallet', 
-          session
-        );
-      } catch (error) {
-        await session.abortTranósaction();
+      // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
+      const canAfford = await canAffordTripCommission(user_deliver._id, commissionmount);
+      if (!canAfford) {
+        await session.abortTransaction();
         session.endSession();
-        return res.status(400).send({ message: error.message });
+        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
       }
 
       let deliverymanData = {};
@@ -367,9 +387,9 @@ requestServiceer.put(
           photo: user_deliver.deliveryman?.photo || '',
           name:  user_deliver.deliveryman?.name || '',
           phoneNumber:  user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
-          tranósport_type:  user_deliver.deliveryman?.tranósport_type || '',
-          tranósport_color:  user_deliver.deliveryman?.tranósport_color || '',
-          tranósport_registration:  user_deliver.deliveryman?.tranósport_registration || '',
+          transport_type:  user_deliver.deliveryman?.transport_type || '',
+          transport_color:  user_deliver.deliveryman?.transport_color || '',
+          transport_registration:  user_deliver.deliveryman?.transport_registration || '',
         };
       }
 
@@ -382,18 +402,25 @@ requestServiceer.put(
 
       await order.save({ session });
 
-      await session.commitTranósaction();
+      // Marcar motorista como ocupado — não deve receber novos pedidos até o cliente confirmar
+      await User.updateOne(
+        { _id: user_deliver._id },
+        { $set: { 'deliveryman.hasActiveService': true } },
+        { session }
+      );
+
+      await session.commitTransaction();
       session.endSession();
 
       const updateOrder = order;
 
       //  Para envio de mensagens
       const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
-      let msg =`Olá, a Nhiquela Shop informa que o entregador aceitou o pedido n ${orderCode}`;
+      let msg =`Olá, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
 
       sendSMSToUSendIt(req, msg);
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela Shop informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n Nhiquela Shop`; 
+      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
       sendEmailOrderStatus(req,mailText, updateOrder, res);
 
@@ -412,7 +439,7 @@ requestServiceer.put(
       res.send({ message: `Aceite pelo entregador`, order: updateOrder });
 
     } catch (error) {
-      await session.abortTranósaction();
+      await session.abortTransaction();
       session.endSession();
       console.error('Erro ao aceitar pedido direto:', error);
       res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.' });
@@ -422,14 +449,14 @@ requestServiceer.put(
 
 // O pedido esta a caminho
 requestServiceer.put(
-  '/:id/intranósit',
+  '/:id/intransit',
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const order = await RequestService.findById(req.params.id);
 
     if (order) {
-      order.status = 'Em trânósito';
-      order.isInTranósit = true;
+      order.status = 'Em trânsito';
+      order.isintransit = true;
       order.stepStatus=5;
 
       await order.save();
@@ -455,7 +482,7 @@ requestServiceer.put(
         }
       }
         
-      res.send({ message: `Pedido em trânósito` });
+      res.send({ message: `Pedido em trânsito` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -477,13 +504,13 @@ requestServiceer.put(
 
       //  Para envio de mensagens
 
-       let msg =`Olá, a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}`;
+       let msg =`Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}`;
  
  
        sendSMSToUSendIt(req, msg)
       
 
-       let mailText = `Olá ${req.user.name},\n \n a Nhiquela Shop informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
+       let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
        sendEmailOrderStatus(req,mailText, updateOrder, res);
 
@@ -511,7 +538,7 @@ requestServiceer.put(
   expressAsyncHandler(async (req, res) => {
     // Iniciar sessão Mongoose para garantir débito e finalização de forma atómica
     const session = await mongoose.startSession();
-    session.startTranósaction();
+    session.startTransaction();
 
     try {
       const order = await RequestService.findById(req.params.id).session(session);
@@ -529,11 +556,39 @@ requestServiceer.put(
           email_address: req.body.email_address,
         };
 
-        // A comissão já foi debitada no momento da aceitação (acceptedByDeliveryman), 
-        // portanto não é necessário realizar novo débito aqui.
+        if (order.deliveryman && order.deliveryman.id) {
+          const financialConfig = await getFinancialConfig();
+          const commissionRate = financialConfig?.driverCommissionRate || 0.15;
+          const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
+          const commissionAmount = serviceValue * commissionRate;
+
+          try {
+            await debitDriverCommissionWithSession(
+              order.deliveryman.id,
+              commissionAmount,
+              `Comissão de serviço para o pedido direto ${order.code} finalizado`,
+              'wallet',
+              session
+            );
+          } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).send({ message: error.message });
+          }
+        }
 
         await order.save({ session });
-        await session.commitTranósaction();
+
+        // Libertar motorista — pode agora receber novos pedidos
+        if (order.deliveryman && order.deliveryman.id) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } },
+            { session }
+          );
+        }
+
+        await session.commitTransaction();
         session.endSession();
 
        //  Para envio de mensagens
@@ -542,28 +597,29 @@ requestServiceer.put(
  
       sendSMSToUSendIt(req,msg);
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela Shop informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
+      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
-      // Note: updateOrder variable is missing here in the original code, should use order
       // sendEmailOrderStatus(req,mailText, order, res);
 
-      // WebSocket Optimization
+      // WebSocket Optimization — notificar cliente e motorista
       const io = req.app.get('io');
       if (io) {
         io.to(`order_${order._id}`).emit('order_updated', order);
         if (order.deliveryman?.id) {
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+          // Notificar motorista que pode aceitar novos pedidos
+          io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
         }
       }
 
       res.send({ message: `Pedido entregue com sucesso` });
     } else {
-      await session.abortTranósaction();
+      await session.abortTransaction();
       session.endSession();
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
   } catch (error) {
-    await session.abortTranósaction();
+    await session.abortTransaction();
     session.endSession();
     console.error('Erro na finalização do pedido:', error);
     res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido. Tente novamente.' });
@@ -577,49 +633,48 @@ requestServiceer.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
-    session.startTranósaction();
+    session.startTransaction();
 
     try {
       const order = await RequestService.findById(req.params.id).session(session);
 
       if (order) {
-        
-        // Se a viagem já foi aceite, reembolsar o motorista
-        if (order.isAccepted && order.deliveryman && order.deliveryman.id) {
-          const financialConfig = await getFinancialConfig();
-          const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-          const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
-          const commissionmount = serviceValue * commissionRate;
-
-          if (commissionmount > 0) {
-            await refundDriverCommissionWithSession(
-              order.deliveryman.id,
-              commissionmount,
-              `Reembolso de comissão por cancelamento do pedido direto ${order.code}`,
-              'wallet',
-              session
-            );
-          }
+        // Validar que o motivo de cancelamento foi enviado
+        if (!req.body.message || req.body.message.trim() === '') {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).send({ message: 'Por favor indique o motivo do cancelamento antes de prosseguir.' });
         }
-    
+
+        const wasAccepted = order.isAccepted && order.deliveryman && order.deliveryman.id;
+
         order.isCanceled = true;
         order.isAccepted = false;
         order.status = 'Cancelado';
         order.stepStatus = 7;
         order.canceledReason = req.body.message;
 
-
         await order.save({ session });
-        await session.commitTranósaction();
+
+        // Se o pedido já tinha sido aceite, libertar o motorista
+        if (wasAccepted) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } },
+            { session }
+          );
+        }
+
+        await session.commitTransaction();
         session.endSession();
       
       //  Para envio de mensagens
 
-      let msg =`Olá, a Nhiquela Shop lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
+      let msg =`Olá, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
  
       sendSMSToUSendIt(req,msg);
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela Shop informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
+      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
       sendEmailOrderStatus(req,mailText, order, res);
 
@@ -629,6 +684,8 @@ requestServiceer.put(
         io.to(`order_${order._id}`).emit('order_updated', order);
         if (order.deliveryman?.id) {
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+          // Notificar motorista que está livre
+          io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Serviço cancelado. Pode agora receber novos pedidos.' });
         } else {
           io.emit('order_updated', order); // broadcast to all
         }
@@ -636,12 +693,12 @@ requestServiceer.put(
 
       res.send({ message: `Pedido Cancelado`, order: order });
     } else {
-      await session.abortTranósaction();
+      await session.abortTransaction();
       session.endSession();
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
   } catch (error) {
-    await session.abortTranósaction();
+    await session.abortTransaction();
     session.endSession();
     console.error('Erro no cancelamento do pedido:', error);
     res.status(500).send({ message: error.message || 'Erro ao cancelar o pedido. Tente novamente.' });
@@ -669,7 +726,7 @@ requestServiceer.put(
        
 
       //  Para envio de mensagens
-      let msg =`Olá, a Nhiquela Shop gostaria de lhe informar que o pagamento referente ao pedido n ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
+      let msg =`Olá, a Nhiquela gostaria de lhe informar que o pagamento referente ao pedido n ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
 
       // Em falta metodo para envio de mensagem e email
       sendSMSToUSendItDeliverman( msg);
@@ -691,7 +748,7 @@ requestServiceer.put(
   expressAsyncHandler(async (req, res) => {
     const order = await RequestService.findById(req.params.id);
     if (order) {
-      order.status = 'Cancelado';
+      order.status = 'Motorista indisponível';
       order.targetDriverId = null;
       order.stepStatus = 7; 
       order.canceledReason = 'Motorista indisponível ou tempo esgotado';

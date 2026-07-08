@@ -19,8 +19,8 @@ export const runIntelligentDispatch = async (io) => {
       const lastDispatch = request.lastDispatchTime || request.createdAt;
       const diffInSeconds = (now - lastDispatch) / 1000;
 
-      // Definir um tempo limite para aceitação (ex: 30 segundos)
-      const TIMEOUT_SECONDS = 30;
+      // Definir um tempo limite para aceitação — 45 segundos conforme especificado no fluxo
+      const TIMEOUT_SECONDS = 45;
 
       // Se é o primeiro ciclo de dispatch ou passou o tempo limite para os motoristas atuais
       if (!request.lastDispatchTime || diffInSeconds >= TIMEOUT_SECONDS) {
@@ -54,12 +54,13 @@ export const runIntelligentDispatch = async (io) => {
           continue;
         }
 
-        // 2. Procurar motoristas próximos
+        // 2. Procurar motoristas próximos que estejam disponíveis e sem serviço ativo
         const nearestDrivers = await User.find({
           isDeliveryMan: true,
           isApproved: true,
           status: { $ne: 'Inativo' },
           availability: 'active',
+          'deliveryman.hasActiveService': { $ne: true }, // Excluir motoristas com serviço em curso
           _id: { $nin: request.contactedDrivers }, // Excluir motoristas já contactados
           locationGeo: {
             $near: {

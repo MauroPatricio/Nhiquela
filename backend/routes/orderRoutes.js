@@ -11,7 +11,7 @@ import Partner from '../models/PartnerModel.js';
 import partnerService from '../services/partnerService.js';
 import reputationTracker from '../utils/reputationTracker.js';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, getFinancialConfig } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
 
 
 const orderRouter = express.Router();
@@ -1058,19 +1058,12 @@ orderRouter.put(
       const serviceValue = order.deliveryPrice || order.totalPrice || 0;
       const commissionAmount = serviceValue * commissionRate;
 
-      // Realizar o débito da carteira do motorista (lançará erro se não houver saldo)
-      try {
-        await debitDriverCommissionWithSession(
-          user_deliver._id, 
-          commissionAmount, 
-          `Comissão de serviço para o pedido ${order.code}`, 
-          'wallet', 
-          session
-        );
-      } catch (error) {
+      // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
+      const canAfford = await canAffordTripCommission(user_deliver._id, commissionAmount);
+      if (!canAfford) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).send({ message: error.message });
+        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
       }
 
       let deliverymanData = {};
@@ -1326,85 +1319,92 @@ orderRouter.put(
   '/:id/deliver',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    // const user_deliver = await User.findById(req.user._id);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (order) {
-      //     order.isPaid = true;
-      //     order.paidAt= Date.now();
-      order.status = 'Entregue';
-      order.isDelivered = true
-      order.deliveredAt = Date.now();
-      order.stepStatus = 6;
+    try {
+      const order = await Order.findById(req.params.id).session(session);
 
-      // Track reputation for completed order
-      await reputationTracker.recordOrderCompleted(order.user);
+      if (order) {
+        order.status = 'Entregue';
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
+        order.stepStatus = 6;
 
-      // if(user_deliver.isDeliveryMan){
+        await reputationTracker.recordOrderCompleted(order.user);
 
-      //   order.deliveryman = {
-      //     photo: user_deliver.deliveryman.photo,
-      //     name:  user_deliver.deliveryman.name,
-      //     phoneNumber:  user_deliver.deliveryman.phoneNumber,
-      //     transport_type:  user_deliver.deliveryman.transport_type,
-      //     transport_color:  user_deliver.deliveryman.transport_color,
-      //     transport_registration:  user_deliver.deliveryman.transport_registration,
-      //   }
-      // }
+        // Calculate and debit commission if a deliveryman exists
+        if (order.deliveryman && order.deliveryman.id) {
+          const financialConfig = await getFinancialConfig();
+          const commissionRate = financialConfig?.driverCommissionRate || 0.15;
+          const serviceValue = order.deliveryPrice || order.totalPrice || 0;
+          const commissionAmount = serviceValue * commissionRate;
 
-
-      // order.paymentResult = {
-      //   id: req.body.id,
-      //   status: req.body.status,
-      //   update_time: req.body.update_time,
-      //   email_address: req.body.email_address,
-      // };
-      const savedOrder = await order.save();
-
-      //  Para envio de mensagens
-
-      let message = `A Nhiquela informa que o pedido ${order.code} foi entregue com sucesso.`;
-
-      //  sendSMSToUSendIt(req,message);
-
-      const sellerOfProduct = await User.findById(order.seller);
-      const clientOfProduct = await User.findById(order.user);
-
-      //toSeller
-      await createNotification({
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
-
-      });
-      //toOrderClient
-      await createNotification({
-        message: message,
-        receiver_id: order.user,
-        sender_id: order.seller,
-        orderID: order._id,
-        pushToken: clientOfProduct.pushToken
-      });
-      // sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);       
-      
-      // WebSocket Optimization
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`order_${order._id}`).emit('order_updated', savedOrder);
-        if (order.deliveryman?.id) {
-          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+          try {
+            await debitDriverCommissionWithSession(
+              order.deliveryman.id,
+              commissionAmount,
+              `Comissão de serviço para o pedido ${order.code}`,
+              'wallet',
+              session
+            );
+          } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).send({ message: error.message });
+          }
         }
+
+        const savedOrder = await order.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+
+        let message = `A Nhiquela informa que o pedido ${order.code} foi entregue com sucesso.`;
+
+        const sellerOfProduct = await User.findById(order.seller);
+        const clientOfProduct = await User.findById(order.user);
+
+        if (sellerOfProduct && sellerOfProduct.pushToken) {
+          await createNotification({
+            message: message,
+            receiver_id: order.seller,
+            sender_id: order.user,
+            orderID: order._id,
+            pushToken: sellerOfProduct.pushToken,
+          });
+        }
+
+        if (clientOfProduct && clientOfProduct.pushToken) {
+          await createNotification({
+            message: message,
+            receiver_id: order.user,
+            sender_id: order.seller,
+            orderID: order._id,
+            pushToken: clientOfProduct.pushToken
+          });
+        }
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`order_${order._id}`).emit('order_updated', savedOrder);
+          if (order.deliveryman?.id) {
+            io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+          }
+        }
+
+        res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(404).send({ message: 'Pedido não encontrado' });
       }
-      
-      res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
-    } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido.' });
     }
   })
 );
-
 
 // Em caso de cancelamento do pedido
 orderRouter.put(

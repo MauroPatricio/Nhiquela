@@ -63,17 +63,17 @@ describe('GET /api/drivers/available', () => {
 describe('PUT /api/drivers/location/:id', () => {
   it('should update driver location when authenticated', async () => {
     const res = await request(app)
-      .put(`/api/drivers/location/${testDriver._id}`)
+      .put(`/api/drivers/ping`)
       .set('Authorization', `Bearer ${authToken}`)
-      .send({ latitude: '-25.9700', longitude: '32.5800' });
+      .send({ lat: '-25.9700', lng: '32.5800' });
 
     expect([200, 404]).toContain(res.status);
   }, 15000);
 
   it('should reject location update without auth (401)', async () => {
     const res = await request(app)
-      .put(`/api/drivers/location/${testDriver._id}`)
-      .send({ latitude: '-25.9700', longitude: '32.5800' });
+      .put(`/api/drivers/ping`)
+      .send({ lat: '-25.9700', lng: '32.5800' });
 
     expect(res.status).toBe(401);
   }, 15000);
@@ -82,7 +82,7 @@ describe('PUT /api/drivers/location/:id', () => {
 describe('PUT /api/drivers/availability/:id', () => {
   it('should toggle driver availability when authenticated', async () => {
     const res = await request(app)
-      .put(`/api/drivers/availability/${testDriver._id}`)
+      .put(`/api/drivers/availability`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({ availability: 'paused' });
 
@@ -91,7 +91,7 @@ describe('PUT /api/drivers/availability/:id', () => {
 
   it('should reject availability change without auth (401)', async () => {
     const res = await request(app)
-      .put(`/api/drivers/availability/${testDriver._id}`)
+      .put(`/api/drivers/availability`)
       .send({ availability: 'paused' });
 
     expect(res.status).toBe(401);

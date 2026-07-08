@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import expressAsyncHandler from 'express-async-handler';
 import User from '../models/UserModel.js';
 import RequestService from '../models/RequestServiceModel.js';
@@ -74,6 +75,14 @@ router.get(
     if (!driver) {
       return res.status(404).send({ message: 'Motorista não encontrado.' });
     }
+
+    // Inject actual balance from Wallet
+    const { getWallet } = await import('../services/walletService.js');
+    const wallet = await getWallet(driver._id);
+    if (wallet && driver.deliveryman) {
+      driver.deliveryman.balance = `MT ${Number(wallet.balance || 0).toFixed(2)}`;
+    }
+
     res.send(driver);
   })
 );
@@ -89,28 +98,34 @@ router.put(
       return res.status(400).send({ message: 'Status de disponibilidade inválido.' });
     }
 
+    const driver = await User.findById(req.user._id);
+    if (!driver) {
+      return res.status(404).send({ message: 'Motorista não encontrado' });
+    }
+
     // Integrar Motor Financeiro (verificação de saldo antes de ficar online)
     if (availability === 'active') {
       const { hasSufficientBalance } = await import('../services/walletService.js');
-      const canGoOnline = await hasSufficientBalance(req.user._id);
+      const canGoOnline = await hasSufficientBalance(req.user._id, driver);
       if (!canGoOnline) {
         return res.status(402).send({ message: 'Saldo insuficiente. Faça um recarregamento para voltar a receber pedidos.' });
       }
-    }
 
-    const driver = await User.findById(req.user._id);
-    if (driver) {
-      // Se estava suspenso (Inativo por administração ou saldo), não deixa ficar ativo
-      if (availability === 'active' && driver.status === 'Inativo') {
-         return res.status(403).send({ message: 'A sua conta encontra-se suspensa. Contacte o suporte ou recarregue o seu saldo.' });
+      // Bloquear se o motorista tem um serviço ativo aguardando confirmação do cliente
+      if (driver.deliveryman && driver.deliveryman.hasActiveService) {
+        return res.status(403).send({ message: 'Tem um serviço em curso. Aguarde que o cliente confirme a conclusão do serviço antes de aceitar novos pedidos.' });
       }
-
-      driver.availability = availability;
-      await driver.save();
-      res.send({ message: 'Disponibilidade atualizada com sucesso', availability: driver.availability });
-    } else {
-      res.status(404).send({ message: 'Motorista não encontrado' });
     }
+
+    // Se estava suspenso (Inativo por administração ou saldo), não deixa ficar ativo
+    if (availability === 'active' && driver.status === 'Inativo') {
+      return res.status(403).send({ message: 'A sua conta encontra-se suspensa. Contacte o suporte ou recarregue o seu saldo.' });
+    }
+
+    // Otimização: usar updateOne em vez de driver.save() para evitar carregar e validar documentos grandes
+    await User.updateOne({ _id: driver._id }, { $set: { availability: availability } });
+    
+    res.send({ message: 'Disponibilidade atualizada com sucesso', availability: availability });
   })
 );
 
@@ -228,7 +243,7 @@ router.get(
             {
               'deliveryman.providedServices': {
                 $elemMatch: {
-                  serviceId: serviceId,
+                  serviceId: new mongoose.Types.ObjectId(serviceId),
                   isAvailable: true
                 }
               }
@@ -238,7 +253,7 @@ router.get(
             }
           ];
         } else {
-          filter['deliveryman.providedServices.serviceId'] = serviceId;
+          filter['deliveryman.providedServices.serviceId'] = new mongoose.Types.ObjectId(serviceId);
           filter['deliveryman.providedServices.isAvailable'] = true;
         }
       } catch (error) {
@@ -253,7 +268,11 @@ router.get(
     // Try to find drivers
     let drivers = await User.find(filter).lean();
     
-    // EXCLUDE OCCUPIED DRIVERS (drivers with active orders or pending direct requests)
+    // EXCLUIR MOTORISTAS OCUPADOS (com serviço ativo aguardando confirmação do cliente)
+    // Método 1: campo hasActiveService no modelo do motorista (mais rápido)
+    drivers = drivers.filter(d => !(d.deliveryman && d.deliveryman.hasActiveService));
+
+    // Método 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
     const activeOrders = await RequestService.find({
        status: { $nin: ['Finalizado', 'Cancelado'] }
     }).select('deliveryman targetDriverId').lean();
@@ -607,22 +626,36 @@ router.put(
 
     await driver.save();
 
-    // 🔔 Notifica o motorista em tempo real via Socket.io
+    // 🔔 Notifica o motorista em tempo real via Socket.io (dupla estratégia)
     try {
       const io = req.app.get('io');
+      const users = req.app.get('users') || [];
+
+      const payload = {
+        status: driver.status,
+        register_conformance: driver.deliveryman?.register_conformance,
+        isApproved: driver.status === 'Disponível',
+        message: driver.status === 'Disponível'
+          ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
+          : driver.status === 'Inativo'
+          ? '❌ A sua conta foi suspensa. Contacte o suporte.'
+          : '⏳ A sua conta está em análise.',
+      };
+
       if (io && status) {
-        // Emite para a sala pessoal do motorista (driver_<id>)
-        io.to(`driver_${driver._id}`).emit('driver_status_updated', {
-          status: driver.status,
-          register_conformance: driver.deliveryman?.register_conformance,
-          isApproved: driver.status === 'Disponível',
-          message: driver.status === 'Disponível'
-            ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
-            : driver.status === 'Inativo'
-            ? '❌ A sua conta foi suspensa. Contacte o suporte.'
-            : '⏳ A sua conta está em análise.',
-        });
-        console.log(`📡 Evento driver_status_updated enviado para driver_${driver._id}: ${driver.status}`);
+        // Estratégia 1: Emitir para a sala (room) do motorista
+        const room = `driver_${driver._id}`;
+        io.to(room).emit('driver_status_updated', payload);
+        console.log(`📡 [ROOM] driver_status_updated → ${room}: ${driver.status}`);
+
+        // Estratégia 2: Emitir directamente para o socketId do motorista (mais fiável)
+        const driverUser = users.find(u => u._id && u._id.toString() === driver._id.toString());
+        if (driverUser?.socketId) {
+          io.to(driverUser.socketId).emit('driver_status_updated', payload);
+          console.log(`📡 [DIRECT] driver_status_updated → socketId ${driverUser.socketId}: ${driver.status}`);
+        } else {
+          console.warn(`⚠️  Motorista ${driver._id} não encontrado nos sockets ligados. Sockets activos: ${users.map(u => u._id).join(', ')}`);
+        }
       }
     } catch (socketError) {
       console.error('Erro ao emitir evento socket:', socketError);

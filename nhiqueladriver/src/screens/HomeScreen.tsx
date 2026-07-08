@@ -67,6 +67,7 @@ export default function HomeScreen({ navigation }: any) {
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const [isSharingLocation, setIsSharingLocation] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showApprovedSuccessModal, setShowApprovedSuccessModal] = useState(false);
   const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
   
   const [isToggling, setIsToggling] = useState(false);
@@ -82,9 +83,19 @@ export default function HomeScreen({ navigation }: any) {
     let soundObj: Audio.Sound | null = null;
     async function loadSound() {
       try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: true,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+
         const { sound } = await Audio.Sound.createAsync(
-          require('../assets/sounds/alert.ogg')
+          require('../assets/sounds/alert.ogg'),
+          { volume: 1.0 }
         );
+        await sound.setVolumeAsync(1.0);
         await sound.setIsLoopingAsync(true);
         soundObj = sound;
         setAlertSound(sound);
@@ -189,9 +200,15 @@ export default function HomeScreen({ navigation }: any) {
       if (token) {
         setConnectionStatus("Conectando...");
 
-        websocketService.connect(token);
+        websocketService.connect(token, user);
 
-        // 🔥 OTIMIZAÇÃO DE WEBSOCKET: Processa payload direto sem refetch
+        // 🔥 Se o socket já estava ligado antes do connect event disparar,
+        // emitir onLogin directamente para garantir entrada na sala driver_<id>
+        if (websocketService.isConnected && user) {
+          websocketService.socket?.emit('onLogin', user);
+        }
+
+
         const handleOrderWebSocketUpdate = async (data: any) => {
           if (!isMounted.current || !data || (!data._id && !data.id)) return;
           
@@ -254,6 +271,27 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
         websocketService.on('order_assigned', handleOrderWebSocketUpdate);
 
+        // 🔥 LISTENER PARA LIBERTAÇÃO DO MOTORISTA
+        websocketService.on('service_released', (data: any) => {
+          if (!isMounted.current) return;
+          console.log('✅ Serviço libertado:', data);
+          
+          Alert.alert(
+            "Serviço Terminado",
+            data.message || "Pode agora receber novos pedidos.",
+            [{ text: "OK" }]
+          );
+          
+          // Limpar a viagem atual
+          AsyncStorage.removeItem("acceptedTrip");
+          setAcceptedTrip(null);
+          setIsTripStarted(false);
+          setRouteSummary(null);
+          
+          // Recarregar viagens disponíveis
+          loadAllOrdersSilent();
+        });
+
         // 🔥 LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
         websocketService.on('new_order', (data: any) => {
           if (!isMounted.current) return;
@@ -302,11 +340,7 @@ export default function HomeScreen({ navigation }: any) {
             // ✅ Conta aprovada: fecha o modal e carrega as ordens
             setIsDriverApproved(true);
             setShowApprovalModal(false);
-            Alert.alert(
-              '✅ Conta Aprovada!',
-              'A sua conta foi aprovada. Já pode receber pedidos de entrega!',
-              [{ text: 'Começar!', style: 'default' }]
-            );
+            setShowApprovedSuccessModal(true);
             loadAllOrders();
           } else if (data.status === 'Inativo') {
             // ❌ Conta suspensa
@@ -373,6 +407,7 @@ export default function HomeScreen({ navigation }: any) {
       // Limpar listeners do WebSocket e localização
       websocketService.off('order_updated');
       websocketService.off('order_assigned');
+      websocketService.off('service_released');
       websocketService.off('new_order');
       websocketService.off('order_taken');
       websocketService.off('request_location_update');
@@ -434,6 +469,22 @@ export default function HomeScreen({ navigation }: any) {
         } else {
            // Se ficou online, carrega imediatamente
            loadAllOrdersSilent();
+           // ?? ATUALIZAR LOCALIZACAO INSTANTANEAMENTE
+           try {
+             const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+             if (loc && user) {
+               websocketService.sendLocation({
+                 driverId: user._id || (user as any).id,
+                 latitude: loc.coords.latitude,
+                 longitude: loc.coords.longitude,
+                 heading: loc.coords.heading || 0,
+                 speed: loc.coords.speed || 0,
+                 timestamp: new Date().toISOString()
+               });
+             }
+           } catch (e) {
+             console.log("Erro ao atualizar localizacao:", e);
+           }
         }
       } else {
         const data = await response.json().catch(() => ({}));
@@ -478,16 +529,52 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   useEffect(() => {
-    // Manter tracking ativo para o modal
-    const checkStatus = () => {
-      if (user?.status === 'Pendente') {
+    // Modal de aprovação: só reage a user.status quando temos certeza do estado
+    if (user?.status === 'Disponível' || user?.status === 'Em Entrega') {
+      setIsDriverApproved(true);
+      setShowApprovalModal(false);
+    } else if (user?.status === 'Pendente' || user?.status === 'Inativo') {
+      // Só mostra modal se realmente Pendente/Inativo — não quando status é undefined
+      if (!isDriverApproved) {
         setShowApprovalModal(true);
-      } else {
-        setShowApprovalModal(false);
+      }
+    }
+  }, [user?.status]);
+
+  // 🔄 POLLING DE SEGURANÇA: a cada 8s enquanto Pendente, verifica o estado no servidor
+  useEffect(() => {
+    // Só faz polling se o motorista ainda não foi aprovado E está autenticado
+    if (isDriverApproved === true || !user?._id) return;
+
+    const poll = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        if (!token) return;
+        const res = await fetch(`${API_BASE_URL}/drivers/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const fresh = await res.json();
+        console.log('[POLL] Status actual no servidor:', fresh.status);
+        const nowApproved = fresh.status === 'Disponível' || fresh.status === 'Em Entrega';
+        if (nowApproved) {
+          console.log('✅ [POLL] Motorista aprovado detectado!');
+          // Actualizar o user no AuthContext completo (incluindo deliveryman.register_conformance)
+          updateUser({ ...fresh, isApproved: true });
+          setIsDriverApproved(true);
+          setShowApprovalModal(false);
+          loadAllOrders();
+        }
+      } catch (e) {
+        console.log('[POLL] Erro:', e);
       }
     };
-    checkStatus();
-  }, [user?.status]);
+
+    // Primeira verificação imediata ao montar
+    poll();
+    const interval = setInterval(poll, 8000);
+    return () => clearInterval(interval);
+  }, [isDriverApproved, user?._id]);
 
   // 🔥 ATUALIZAR COMPARTILHAMENTO DE LOCALIZAÇÃO QUANDO A VIAGEM MUDAR
   useEffect(() => {
@@ -548,7 +635,7 @@ export default function HomeScreen({ navigation }: any) {
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || order.stepStatus === 6;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || order.stepStatus === 6 || order.stepStatus === 7;
           // Keep if not completed OR if it's currently marked as accepted/in transit by THIS driver (sanity check)
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
@@ -639,7 +726,7 @@ export default function HomeScreen({ navigation }: any) {
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || order.stepStatus === 6;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || order.stepStatus === 6 || order.stepStatus === 7;
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
   
@@ -704,20 +791,41 @@ export default function HomeScreen({ navigation }: any) {
   const deg2rad = (deg: number) => deg * (Math.PI / 180);
   
   const formatOrder = (order: any, currentPosition?: any): Trip => {
-    const destinationLat = order.deliveryAddress?.latitude ||
+    // Para requestService, usar destinationDetails. Se nao, os outros.
+    const destinationLat = order.destinationDetails?.lat ||
+      order.deliveryAddress?.latitude ||
       order.destinationLocation?.latitude ||
       order.seller?.latitude ||
       order.sellerInfo?.latitude || 
       order.latitude || 0;
   
-    const destinationLon = order.deliveryAddress?.longitude ||
+    const destinationLon = order.destinationDetails?.lng ||
+      order.deliveryAddress?.longitude ||
       order.destinationLocation?.longitude ||
       order.seller?.longitude ||
       order.sellerInfo?.longitude || 
       order.longitude || 0;
+
+    // A origem do pedido (onde o motorista vai buscar o cliente/produto)
+    const originLat = order.originDetails?.lat || order.seller?.latitude || order.latitude || 0;
+    const originLon = order.originDetails?.lng || order.seller?.longitude || order.longitude || 0;
   
     let distance = 0;
-    if (currentPosition && destinationLat && destinationLon &&
+    let timeStr = "Tempo nao disponvel";
+
+    // 1. Tentar usar o distanceKm do pricing (calculado pelo backend via OSRM)
+    if (order.pricing && order.pricing.distanceKm) {
+      distance = order.pricing.distanceKm;
+      if (order.pricing.breakdown && order.pricing.breakdown.durationMin) {
+        timeStr = `${Math.round(order.pricing.breakdown.durationMin)} min`;
+      }
+    } 
+    // 2. Fallback: Calcular distncia em linha reta (origem para destino)
+    else if (originLat !== 0 && originLon !== 0 && destinationLat !== 0 && destinationLon !== 0) {
+      distance = getDistanceFromLatLonInKm(originLat, originLon, destinationLat, destinationLon);
+    }
+    // 3. Fallback final: Calcular da posiao atual para o destino (caso antigo)
+    else if (currentPosition && destinationLat && destinationLon &&
       currentPosition.latitude !== 0 && currentPosition.longitude !== 0) {
       distance = getDistanceFromLatLonInKm(
         currentPosition.latitude,
@@ -726,14 +834,18 @@ export default function HomeScreen({ navigation }: any) {
         destinationLon
       );
     }
+
+    if (distance > 0 && timeStr === "Tempo nao disponvel") {
+      timeStr = `${Math.round(distance / 40 * 60)} min`;
+    }
   
-    // 🔥 CORREÇÃO DEFINITIVA: Lógica EXATA para verificar aceitação
+    // ?? CORREAO DEFINITIVA: Lgica EXATA para verificar aceitaao
     const currentUserId = user?._id;
     const orderDeliverymanId = order.deliveryman?._id || order.deliveryman?.id || order.deliverymanId;
     
-    // 🔥 LÓGICA CORRIGIDA: 
-    // - Se stepStatus é 5 (em trânsito), considerar como "aceito" independente do deliveryman
-    // - Caso contrário, verificar se foi aceito pelo entregador atual
+    // ?? LOGICA CORRIGIDA: 
+    // - Se stepStatus  5 (em trnsito), considerar como "aceito" independente do deliveryman
+    // - Caso contrrio, verificar se foi aceito pelo entregador atual
     const isInTransit = order.stepStatus === 5;
     const isAcceptedByDeliveryman = isInTransit || (
       orderDeliverymanId === currentUserId &&
@@ -743,7 +855,7 @@ export default function HomeScreen({ navigation }: any) {
     const isReq = order.goodType !== undefined || order.type === 'requestService';
     let serviceNameStr;
     if (isReq) {
-      serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "Serviço");
+      serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "Servio");
     }
 
     return {
@@ -752,12 +864,12 @@ export default function HomeScreen({ navigation }: any) {
       serviceName: serviceNameStr,
       passenger: order.user?.name || order.clientName || "Cliente",
       passengerImage: order.user?.profileImage,
-      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Não disponível",
-      pickup: order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
-      destination: order.deliveryAddress?.address || order.destination || "Destino",
-      reward: `MZN ${order.totalPrice || order.reward || Math.round(distance * 25)}`,
-      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distância não disponível",
-      time: distance > 0 ? `${Math.round(distance / 40 * 60)} min` : "Tempo não disponível",
+      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Nao disponvel",
+      pickup: order.originDetails?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
+      destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
+      reward: `MZN ${order.pricing?.totalPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
+      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia nao disponvel",
+      time: timeStr,
       destinationLocation: {
         latitude: destinationLat,
         longitude: destinationLon,
@@ -1341,6 +1453,47 @@ const proceedStartTrip = async (trip: Trip) => {
               onPress={() => setShowApprovalModal(false)}
             >
               <Text style={styles.premiumModalCloseBtnText}>Compreendi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ MODAL PREMIUM "CONTA APROVADA SUCESSO" */}
+      <Modal visible={showApprovedSuccessModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF', borderRadius: 32, width: '100%', maxWidth: 350,
+            padding: 32, alignItems: 'center',
+            shadowColor: '#10B981', shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.3, shadowRadius: 30, elevation: 18,
+          }}>
+            <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="checkmark-done-circle" size={54} color="#059669" />
+            </View>
+
+            <Text style={{ fontSize: 26, fontWeight: '900', color: '#064E3B', marginBottom: 12, textAlign: 'center' }}>
+              Conta Aprovada! 🎉
+            </Text>
+
+            <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 24, marginBottom: 8, fontWeight: '600' }}>
+              Parabéns! A sua documentação foi validada.
+            </Text>
+            
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+              A sua conta está ativa. Já pode receber pedidos de entrega e começar a faturar.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                width: '100%', paddingVertical: 16, borderRadius: 16,
+                backgroundColor: '#059669', alignItems: 'center',
+                shadowColor: '#059669', shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+              }}
+              onPress={() => setShowApprovedSuccessModal(false)}
+              activeOpacity={0.9}
+            >
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>Começar Agora!</Text>
             </TouchableOpacity>
           </View>
         </View>
