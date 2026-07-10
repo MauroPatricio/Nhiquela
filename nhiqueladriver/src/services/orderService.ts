@@ -57,10 +57,26 @@ export const getAllOrdersForDeliveryman = async () => {
   return response.data;
 };
 
-export const confirmOrderDelivered = async (orderId: string, isRequestService: boolean = false) => {
+export const confirmOrderDelivered = async (orderId: string, isRequestService: boolean = false, latitude?: number, longitude?: number) => {
   const endpoint = isRequestService
     ? `/request-service/${orderId}/confirmDestination`
     : ENDPOINTS.CONFIRM_ORDER_DELIVERED(orderId);
+  const response = await apiClient.put(endpoint, { latitude, longitude });
+  return response.data;
+};
+
+export const finalizeOrder = async (orderId: string, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/deliver`
+    : `/orders/${orderId}/deliver`;
+  const response = await apiClient.put(endpoint, {});
+  return response.data;
+};
+
+export const cancelNoShowOrder = async (orderId: string, isRequestService: boolean = false) => {
+  const endpoint = isRequestService
+    ? `/request-service/${orderId}/driver-no-show`
+    : `/orders/${orderId}/driver-no-show`; // you can add standard order no-show later if needed
   const response = await apiClient.put(endpoint);
   return response.data;
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch, faTrash, faTag, faTruck } from '@fortawesome/free-solid-svg-icons';
+import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch, faTrash, faTag, faTruck, faSync } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -11,7 +11,7 @@ import * as XLSX from '@e965/xlsx';
 
 const OrderTiming = ({ order }) => {
   const [elapsed, setElapsed] = useState('--');
-  const isCompleted = order.status === 'Entregue' || order.status === 'Cancelada';
+  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluido'].includes(order.status);
 
   useEffect(() => {
     const calculateStaticDiff = () => {
@@ -62,6 +62,7 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [customersMap, setCustomersMap] = useState({});
   const [driversMap, setDriversMap] = useState({});
+  const [subcategoriesMap, setSubcategoriesMap] = useState({});
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const [filterMonth, setFilterMonth] = useState('');
@@ -96,11 +97,12 @@ export default function OrdersScreen() {
   const fetchOrdersAndRelatedData = async () => {
     setLoading(true);
     try {
-      const [ordersRes, requestsRes, custRes, driversRes] = await Promise.all([
+      const [ordersRes, requestsRes, custRes, driversRes, subcatRes] = await Promise.all([
         api.get('/orders'),
         api.get('/request-service/admin'),
         api.get('/customers'),
-        api.get('/drivers')
+        api.get('/drivers'),
+        api.get('/provider-subcategories')
       ]);
 
       // Create maps for quick lookup O(1)
@@ -113,6 +115,11 @@ export default function OrdersScreen() {
       const driversArray = Array.isArray(driversRes.data) ? driversRes.data : (driversRes.data.drivers || driversRes.data.users || []);
       driversArray.forEach(d => dMap[d._id] = d.name);
       setDriversMap(dMap);
+
+      const sMap = {};
+      const subcatArray = Array.isArray(subcatRes.data) ? subcatRes.data : [];
+      subcatArray.forEach(s => sMap[s._id] = s.name);
+      setSubcategoriesMap(sMap);
 
       // Sort by newest first
       const ordersArray = ordersRes.data.orders || [];
@@ -278,6 +285,9 @@ export default function OrdersScreen() {
             <option value="11">Novembro</option>
             <option value="12">Dezembro</option>
           </select>
+          <button onClick={fetchOrdersAndRelatedData} className="btn btn-sm btn-outline-primary fw-bold shadow-sm">
+            <FontAwesomeIcon icon={faSync} className="me-1" /> Atualizar
+          </button>
           <button onClick={exportToPDF} className="btn btn-sm btn-outline-danger fw-bold shadow-sm">PDF</button>
           <button onClick={exportToExcel} className="btn btn-sm btn-outline-success fw-bold shadow-sm">Excel</button>
         </div>
@@ -359,7 +369,7 @@ export default function OrdersScreen() {
                       {order.transportType && (
                         <span className="badge ms-2 bg-secondary">
                           <FontAwesomeIcon icon={faTruck} className="me-1" />
-                          {order.transportType}
+                          {subcategoriesMap[order.transportType] || order.transportType}
                         </span>
                       )}
                       <OrderTiming order={order} />
@@ -468,7 +478,7 @@ export default function OrdersScreen() {
                   {selectedOrder.transportType && (
                     <div className="d-flex mb-2">
                       <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faTruck} /></div>
-                      <div className="fw-bold text-dark">Transporte: <span className="text-primary-custom">{selectedOrder.transportType}</span></div>
+                      <div className="fw-bold text-dark">Transporte: <span className="text-primary-custom">{subcategoriesMap[selectedOrder.transportType] || selectedOrder.transportType}</span></div>
                     </div>
                   )}
                   <div className="d-flex mb-2">

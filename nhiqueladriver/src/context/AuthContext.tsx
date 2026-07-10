@@ -78,6 +78,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const storedUser = await AsyncStorage.getItem('@app:user');
         if (storedUser) {
           setUser(JSON.parse(storedUser));
+          // Refresh background session
+          const token = JSON.parse(storedUser)?.token;
+          if (token) {
+            fetch(`${API_BASE_URL}/drivers/me`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            })
+            .then(res => res.ok ? res.json() : null)
+            .then(freshData => {
+              if (freshData) {
+                const updatedUser = { ...freshData, token };
+                setUser(updatedUser);
+                AsyncStorage.setItem('@app:user', JSON.stringify(updatedUser));
+              }
+            })
+            .catch(err => console.error("Refresh auth on startup failed", err));
+          }
         }
       } catch (error) {
         console.error("Erro ao carregar sessão:", error);

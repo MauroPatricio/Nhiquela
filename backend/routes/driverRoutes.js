@@ -83,6 +83,37 @@ router.get(
       driver.deliveryman.balance = `MT ${Number(wallet.balance || 0).toFixed(2)}`;
     }
 
+    if (driver.deliveryman) {
+      const Order = (await import('../models/OrderModel.js')).default;
+      const RequestService = (await import('../models/RequestServiceModel.js')).default;
+      
+      const orders = await Order.find({ 'deliveryman.id': driver._id, isDelivered: true });
+      const requests = await RequestService.find({ 'deliveryman.id': driver._id, isDelivered: true });
+      
+      const allTrips = [...orders, ...requests];
+      driver.deliveryman.totalTrips = allTrips.length;
+      
+      let todayEarnings = 0;
+      let totalEarnings = 0;
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      allTrips.forEach(trip => {
+        let price = Number(trip.pricing?.totalPrice || trip.deliveryPrice || trip.deliveryman?.pricetopay || 0);
+        if (isNaN(price)) {
+          price = 0;
+        }
+        totalEarnings += price;
+        const tripDate = new Date(trip.deliveredAt || trip.updatedAt || trip.createdAt);
+        if (tripDate >= startOfToday) {
+          todayEarnings += price;
+        }
+      });
+      
+      driver.deliveryman.todayEarnings = todayEarnings;
+      driver.deliveryman.totalEarnings = totalEarnings;
+    }
+
     res.send(driver);
   })
 );
@@ -293,7 +324,7 @@ router.get(
 
     // Método 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
     const activeOrders = await RequestService.find({
-       status: { $nin: ['Finalizado', 'Cancelado'] }
+       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Concluido', 'Motorista indisponível', 'Rejeitado'] }
     }).select('deliveryman targetDriverId').lean();
     
     const busyDriverIds = new Set();
@@ -347,9 +378,12 @@ router.get(
       
       if (dLat && dLng) {
         const dist = calcDistance(lat, lng, dLat, dLng);
+        driver.calculatedDistance = dist;
         if (dist <= radius) {
           driver.distance = dist;
           nearbyDrivers.push(driver);
+        } else {
+          nearbyDrivers.push({ _id: driver._id, name: driver.name, excludedByRadius: true, distance: dist, radius: radius, dLat, dLng, lat, lng });
         }
       }
     });

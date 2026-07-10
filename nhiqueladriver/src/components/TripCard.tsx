@@ -183,6 +183,14 @@ const TripCard = React.memo(function TripCard({
               <Ionicons name="time-outline" size={14} color="#D35400" />
               <Text style={styles.statText} numberOfLines={1}>{item.time}</Text>
             </View>
+            {!!item.reward && (
+              <View style={[styles.statChip, { backgroundColor: '#DCFCE7' }]}>
+                <Ionicons name="cash" size={14} color="#059669" />
+                <Text style={[styles.statText, { color: '#059669' }]} numberOfLines={1}>
+                  {item.reward.replace('MZN ', 'MT ')}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>

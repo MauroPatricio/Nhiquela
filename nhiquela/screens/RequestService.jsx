@@ -459,15 +459,19 @@ export default function RequestServiceSimple() {
         phoneNumber = parsed.phoneNumber;
       }
 
-      let finalPrice = price;
-      const providerPrice = driver.deliveryman?.customPrice || driver.deliveryman?.assigned_base_fee;
+      const serviceBase = service?.baseFare || 0;
+      let deslocacao = price > serviceBase ? price - serviceBase : 0;
+      
+      let baseFare = price;
       if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
-        finalPrice = driver.deliveryman.customPrice;
-      } else if (providerPrice) {
-        finalPrice = providerPrice || price;
-      } else if (service?.baseFare) {
-        finalPrice = service.baseFare || price;
+        baseFare = driver.deliveryman.customPrice;
+      } else if (driver.deliveryman?.assigned_base_fee) {
+        baseFare = driver.deliveryman.assigned_base_fee;
+      } else if (serviceBase > 0) {
+        baseFare = serviceBase;
       }
+      
+      let finalPrice = baseFare + deslocacao;
 
       const payload = {
         name: service.name,
@@ -569,7 +573,7 @@ export default function RequestServiceSimple() {
   
   
   useEffect(() => {
-    if (waitingForDriver && selectedDriverForRequest && currentRequestServiceId) {
+    if (currentRequestServiceId && (waitingForDriver || isSearching)) {
       let isMounted = true;
       const socketUrl = api.defaults.baseURL.replace(/\/api\/?$/, '');
       const socket = io(socketUrl, { transports: ['websocket'] });
@@ -583,13 +587,15 @@ export default function RequestServiceSimple() {
            });
            const myOrder = data.deliverRequests && data.deliverRequests[0];
            if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
-             if (myOrder.status === 'Cancelado') {
-                Alert.alert("Motorista Indisponível", "O motorista não pôde aceitar a corrida.");
+             if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') {
+                Alert.alert("Cancelado", "O pedido foi cancelado ou nenhum motorista aceitou.");
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
              } else if (myOrder.status === 'Aceite pelo entregador') {
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setActiveTripData(myOrder);
                 setCurrentRequestServiceId(null);
              }
@@ -601,24 +607,30 @@ export default function RequestServiceSimple() {
 
       socket.on('connect', () => {
         console.log('Socket connected for waiting driver');
+        if (currentRequestServiceId) {
+          socket.emit('joinRoom', { orderId: currentRequestServiceId });
+        }
       });
 
       socket.on('order_updated', (updatedOrder) => {
          if (isMounted && updatedOrder._id === currentRequestServiceId) {
             if (updatedOrder.status === 'Motorista indisponível') {
-                setRejectedDriverIds(prev => [...prev, selectedDriverForRequest?._id]);
+                setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
-                Alert.alert('Indisponível', 'O motorista selecionado não está disponível neste momento. Escolha outro motorista ou realize uma nova pesquisa.');
+                Alert.alert('Indisponível', 'Nenhum motorista está disponível neste momento. Tente novamente mais tarde.');
             } else if (updatedOrder.status === 'Cancelado') {
-                setRejectedDriverIds(prev => [...prev, selectedDriverForRequest?._id]);
+                setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
                 // Sem alert, pois foi o próprio cliente que cancelou ou admin
             } else if (updatedOrder.status === 'Aceite pelo entregador') {
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setActiveTripData(updatedOrder);
                 setCurrentRequestServiceId(null);
             }
@@ -630,8 +642,47 @@ export default function RequestServiceSimple() {
         socket.disconnect();
       };
     }
-  }, [waitingForDriver, selectedDriverForRequest, currentRequestServiceId]);
+  }, [waitingForDriver, selectedDriverForRequest, currentRequestServiceId, isSearching]);
   
+  // Socket listener para a viagem activa (quando o motorista aceitou)
+  useEffect(() => {
+    if (activeTripData && activeTripData._id) {
+      let isMounted = true;
+      const socketUrl = api.defaults.baseURL.replace(/\/api\/?$/, '');
+      const socket = io(socketUrl, { transports: ['websocket'] });
+      
+      socket.on('connect', () => {
+        console.log('Socket conectado para a viagem activa');
+        socket.emit('joinRoom', { orderId: activeTripData._id });
+      });
+
+      socket.on('order_updated', (updatedOrder) => {
+         if (isMounted && updatedOrder._id === activeTripData._id) {
+            setActiveTripData(updatedOrder);
+            
+            // Notificações Baseadas no Estado
+            if (updatedOrder.status === 'No destino indicado') {
+               Alert.alert(
+                 "O motorista chegou!", 
+                 `O motorista ${updatedOrder.deliveryman?.name || ''} acaba de chegar ao local indicado.`
+               );
+            } else if (updatedOrder.status === 'Cancelado') {
+               Alert.alert(
+                 "Viagem Cancelada", 
+                 "O motorista cancelou a viagem."
+               );
+               setActiveTripData(null);
+            }
+         }
+      });
+
+      return () => {
+        isMounted = false;
+        socket.disconnect();
+      };
+    }
+  }, [activeTripData?._id]);
+
   const startPulse = () => {
     pulseAnim.setValue(0);
     Animated.loop(
@@ -1087,11 +1138,29 @@ export default function RequestServiceSimple() {
             
             <ScrollView showsVerticalScrollIndicator={false}>
               {availableDriversList.map((driver, index) => {
-                let baseFare = driver.deliveryman?.customPrice || driver.deliveryman?.assigned_base_fee || service?.baseFare || price;
-                let deslocacao = price - (service?.baseFare || price);
-                if (deslocacao < 0) deslocacao = 0;
+                const serviceBase = service?.baseFare || 0;
+                let deslocacao = price > serviceBase ? price - serviceBase : 0;
+                
+                let baseFare = price;
+                if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
+                  baseFare = driver.deliveryman.customPrice;
+                } else if (driver.deliveryman?.assigned_base_fee) {
+                  baseFare = driver.deliveryman.assigned_base_fee;
+                } else if (serviceBase > 0) {
+                  baseFare = serviceBase;
+                }
+                
                 let finalPrice = baseFare + deslocacao;
                 
+                const colorMap = {
+                  branco: '#E5E7EB', preto: '#1F2937', vermelho: '#EF4444',
+                  azul: '#3B82F6', verde: '#10B981', amarelo: '#F59E0B',
+                  cinza: '#9CA3AF', cinzento: '#9CA3AF', laranja: '#F97316',
+                  rosa: '#EC4899', violeta: '#8B5CF6', castanho: '#92400E',
+                };
+                const tColor = driver.deliveryman?.transport_color || '';
+                const colorHex = colorMap[tColor.toLowerCase()] || '#6B7280';
+
                 return (
                   <TouchableOpacity
                     key={driver._id || index}
@@ -1129,15 +1198,12 @@ export default function RequestServiceSimple() {
                           {service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
                         </Text>
 
-                        {!!(driver.deliveryman?.transport_color || driver.deliveryman?.transport_registration) && (
-                          <>
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginHorizontal: 6 }}>•</Text>
-                            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>
-                              {driver.deliveryman?.transport_color || 'Cor não definida'}
-                            </Text>
-                          </>
+                        {!!driver.deliveryman?.transport_color && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 6 }}>
+                            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colorHex, marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB' }} />
+                            <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>{tColor}</Text>
+                          </View>
                         )}
-
                         {!!driver.deliveryman?.transport_registration && (
                           <>
                             <Text style={{ fontSize: 12, color: '#9CA3AF', marginHorizontal: 6 }}>|</Text>
@@ -1179,7 +1245,7 @@ export default function RequestServiceSimple() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
                         <MaterialCommunityIcons name="flag-checkered" size={12} color="#6B7280" />
                         <Text style={{ fontSize: 10, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
-                           Tempo de chegada ao destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
+                           Chegada ao destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
                         </Text>
                       </View>
                     </View>

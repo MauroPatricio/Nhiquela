@@ -120,9 +120,6 @@ export const debitCommissionFromPartner = async (partnerId, orderAmount, commiss
 /** Helper: check whether driver has enough balance */
 export const hasSufficientBalance = async (driverId, driverDoc = null) => {
   const wallet = await getWallet(driverId);
-  
-  // REGRA ESTRITA: Não pode ficar online se não possuir saldo (<= 0)
-  if (wallet.balance <= 0) return false;
 
   const config = await getFinancialConfig();
   
@@ -204,11 +201,7 @@ export const debitDriverCommissionWithSession = async (driverId, amount, descrip
     wallet = wallet[0];
   }
 
-  if (wallet.balance < amount) {
-    throw new Error('Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.');
-  }
-
-  // Deduct amount
+  // Deduct amount (allow negative balance)
   wallet.balance -= amount;
   await wallet.save({ session });
 

@@ -30,6 +30,8 @@ type Props = {
   onStartTrip?: (trip: any) => void;
   onCancelTrip?: () => void;
   onFinishTrip?: () => void;
+  onCompleteService?: () => void;
+  onNoShow?: () => void;
   canFinishTrip?: boolean;
   routeDrawn?: boolean;
 };
@@ -47,8 +49,10 @@ export default function TripMap({
   onStartTrip,
   onCancelTrip,
   onFinishTrip,
-  canFinishTrip,
-  routeDrawn
+  onCompleteService,
+  onNoShow,
+  canFinishTrip = false,
+  routeDrawn = false
 }: Props) {
   const mapRef = useRef<any>(null);
   const [duration, setDuration] = useState<number | null>(null);
@@ -57,6 +61,8 @@ export default function TripMap({
   const [heading, setHeading] = useState<number>(0);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const pulseScaleAnim = useRef(new Animated.Value(1)).current;
+  const pulseOpacityAnim = useRef(new Animated.Value(0.5)).current;
   const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
   const [speed, setSpeed] = useState<number>(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -200,6 +206,21 @@ export default function TripMap({
         }),
       ])
     ).start();
+
+    Animated.loop(
+      Animated.parallel([
+        Animated.timing(pulseScaleAnim, {
+          toValue: 2,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseOpacityAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
   };
 
   const [snappedLocation, setSnappedLocation] = useState<any>(null);
@@ -257,12 +278,14 @@ export default function TripMap({
   // 🔥 Cronómetro da Viagem
   useEffect(() => {
     let interval: any;
-    if (stepStatus === 4 || stepStatus === 5) {
+    if (stepStatus === 4 || stepStatus === 5 || stepStatus === 6) {
       let startTime = 0;
       if (stepStatus === 4) {
         startTime = tripData?.acceptedAt ? new Date(tripData.acceptedAt).getTime() : (tripData?.updatedAt ? new Date(tripData.updatedAt).getTime() : Date.now());
       } else if (stepStatus === 5) {
         startTime = tripData?.pickupStartedAt ? new Date(tripData.pickupStartedAt).getTime() : (tripData?.updatedAt ? new Date(tripData.updatedAt).getTime() : Date.now());
+      } else if (stepStatus === 6) {
+        startTime = tripData?.arrivedAtDestination ? new Date(tripData.arrivedAtDestination).getTime() : (tripData?.updatedAt ? new Date(tripData.updatedAt).getTime() : Date.now());
       }
 
       interval = setInterval(() => {
@@ -276,7 +299,7 @@ export default function TripMap({
       setElapsedSeconds(0);
     }
     return () => clearInterval(interval);
-  }, [stepStatus, tripData?.acceptedAt, tripData?.pickupStartedAt, tripData?.updatedAt]);
+  }, [stepStatus, tripData?.acceptedAt, tripData?.pickupStartedAt, tripData?.updatedAt, tripData?.arrivedAtDestination]);
 
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -340,7 +363,7 @@ export default function TripMap({
         return { 
           title: "📍 A caminho da coleta", 
           color: COLORS.warning,
-          icon: "business"
+          icon: "cube"
         };
       case 5:
         return { 
@@ -400,10 +423,19 @@ export default function TripMap({
         {destination && shouldDrawRoute && (
           <Marker coordinate={destination} title={destination.title || (stepStatus === 4 ? "Local de Recolha" : "Destino do Cliente")} flat={true}>
             <View style={styles.destinationMarkerContainer}>
-              <View style={[styles.destinationMarkerPulse, { backgroundColor: stepStatus === 4 ? '#FF9500' : '#FF3B30' }]} />
+              <Animated.View 
+                style={[
+                  styles.destinationMarkerPulse, 
+                  { 
+                    backgroundColor: stepStatus === 4 ? '#FF9500' : '#FF3B30',
+                    opacity: pulseOpacityAnim,
+                    transform: [{ scale: pulseScaleAnim }]
+                  }
+                ]} 
+              />
               <View style={[styles.destinationMarkerInner, { backgroundColor: stepStatus === 4 ? '#FF9500' : '#FF3B30' }]}>
                 <Ionicons 
-                  name={stepStatus === 4 ? "business" : "location"} 
+                  name={stepStatus === 4 ? "cube" : "location"} 
                   size={20} 
                   color="#FFF" 
                 />
@@ -497,6 +529,37 @@ export default function TripMap({
           </View>
         )}
 
+        {/* BOTAO PARA CONCLUIR VIAGEM (ESTAGIO 6 - A AGUARDAR CONFIRMACAO) */}
+        {stepStatus === 6 && (
+          <View style={[styles.startTripButtonContainer, { bottom: elapsedSeconds >= 300 ? 50 : 30 }]}>
+            <TouchableOpacity 
+              style={styles.startTripButtonOuter}
+              activeOpacity={0.85}
+              onPress={() => onCompleteService && onCompleteService()}
+            >
+              <LinearGradient
+                colors={['#3B82F6', '#2563EB', '#1D4ED8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startTripButtonGradient}
+              >
+                <View style={styles.startTripButtonGlow} />
+                <Ionicons name="shield-checkmark" size={32} color="#FFF" style={styles.startTripButtonIcon} />
+                <Text style={styles.startTripButtonText}>Concluir Serviço</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            {elapsedSeconds >= 300 && (
+              <TouchableOpacity
+                style={{ marginTop: 16, backgroundColor: '#EF4444', paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                onPress={() => onNoShow && onNoShow()}
+              >
+                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Cliente não compareceu</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
       {/* 🔥 DURAÇÃO (APENAS SE TEM ROTA) */}
       {(duration !== null && duration > 0) && shouldDrawRoute && (
         <Animated.View style={[styles.timeBox, { opacity: fadeAnim }]}>
@@ -506,12 +569,12 @@ export default function TripMap({
       )}
 
       {/* 🔥 CRONÓMETRO (TEMPO DECORRIDO) */}
-      {(stepStatus === 4 || stepStatus === 5) && (
+      {(stepStatus === 4 || stepStatus === 5 || stepStatus === 6) && (
         <View style={styles.stopwatchBox}>
           <Ionicons name="stopwatch" size={18} color="#FFF" style={styles.stopwatchIcon} />
           <Text style={styles.stopwatchText}>{formatTime(elapsedSeconds)}</Text>
           <Text style={styles.stopwatchLabel}>
-            {stepStatus === 4 ? "Até Recolha" : "Em Viagem"}
+            {stepStatus === 4 ? "Até Recolha" : stepStatus === 5 ? "Em Viagem" : "A Aguardar Cliente"}
           </Text>
         </View>
       )}
@@ -569,7 +632,13 @@ export default function TripMap({
             </Text>
 
             <View style={styles.premiumModalButtons}>
-
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={handleCancelTrip}
+              >
+                <Text style={styles.premiumCancelButtonText}>Não, Cancelar</Text>
+              </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.premiumConfirmButton}

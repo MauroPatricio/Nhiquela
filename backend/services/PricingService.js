@@ -181,9 +181,11 @@ class PricingService {
     // 3. Somatrio Base
     let actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
     
-    // Se o cliente definiu um preço sugerido, esse preço torna-se a taxa base
+    // Se o cliente definiu um preço sugerido, assumimos que esse é o total e não adicionamos distância/tempo novamente
+    let overrideDistance = false;
     if (clientSuggestedPrice !== null && clientSuggestedPrice !== undefined && clientSuggestedPrice > 0) {
       actualBaseFare = Number(clientSuggestedPrice);
+      overrideDistance = true;
     } 
     // Caso contrário, se o provedor tem um preço base definido
     else if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
@@ -198,8 +200,8 @@ class PricingService {
       pKm = pKm * 0.85; 
     }
     
-    let distanceCost = distanceKm * pKm;
-    let timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
+    let distanceCost = overrideDistance ? 0 : (distanceKm * pKm);
+    let timeCost = overrideDistance ? 0 : (vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0);
     
     let extras = 0;
     if (hasHelper && service.supportsHelpers) extras += 200; // Helper price could be moved to config

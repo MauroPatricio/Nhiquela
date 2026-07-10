@@ -11,10 +11,12 @@ import {
   Modal,
   RefreshControl,
   Image,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
+
 import { COLORS } from "../styles/colors";
 import { getTripsHistory } from "../services/tripService";
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +25,8 @@ export default function TripScreen({ navigation }: any) {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
+  const [tripToDelete, setTripToDelete] = useState<any>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isDriverApproved, setIsDriverApproved] = useState<boolean | null>(null);
   const { user } = useAuth();
 
@@ -91,10 +95,14 @@ export default function TripScreen({ navigation }: any) {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted") {
+        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "aceite pelo entregador") {
           status = "Em Andamento";
           statusColor = "#F39C12";
           statusIcon = "time";
+        } else if (trip.isDelivered || tripStatus === "concluído" || tripStatus === "concluido" || tripStatus === "delivered" || tripStatus === "concluida") {
+          status = "Concluída";
+          statusColor = "#27AE60";
+          statusIcon = "checkmark-circle";
         }
 
         let tripDate = "Data não disponível";
@@ -106,18 +114,16 @@ export default function TripScreen({ navigation }: any) {
           });
         }
 
-        let passengerName = "Passageiro";
+        let passengerName = trip.user?.name || trip.clientName || "Cliente";
         let pickupLoc = "Origem";
         let destLoc = "Destino";
         let rewardPrice = 0;
 
         if (isRequestService) {
-          passengerName = trip.name || trip.user?.name || "Passageiro";
           pickupLoc = trip.origin || "Local de Partida";
           destLoc = trip.destination || "Destino";
           rewardPrice = trip.deliveryPrice || trip.pricetopay || 0;
         } else {
-          passengerName = trip.user?.name || "Cliente";
           pickupLoc = trip.sellers?.[0]?.name || trip.orderItems?.[0]?.seller || "Loja/Fornecedor";
           destLoc = trip.deliveryAddress?.address || trip.deliveryAddress?.city || "Endereço do Cliente";
           rewardPrice = trip.deliveryPrice || trip.totalPrice || 0;
@@ -132,20 +138,49 @@ export default function TripScreen({ navigation }: any) {
           }
         }
 
+        // Handle profile image relative URLs
+        let passengerPhoto = trip.user?.profileImage || trip.user?.photo || null;
+        if (passengerPhoto && !passengerPhoto.startsWith('http') && !passengerPhoto.startsWith('data:image')) {
+          passengerPhoto = `https://api.nhiquelaservicos.com/${passengerPhoto.startsWith('/') ? passengerPhoto.substring(1) : passengerPhoto}`;
+        }
+
+        // Extract coordinates if available
+        let originLat, originLng, destLat, destLng;
+        if (trip.originDetails?.lat && trip.originDetails?.lng) {
+          originLat = trip.originDetails.lat;
+          originLng = trip.originDetails.lng;
+        } else if (trip.latitude && trip.longitude) {
+          originLat = trip.latitude;
+          originLng = trip.longitude;
+        }
+
+        if (trip.destinationDetails?.lat && trip.destinationDetails?.lng) {
+          destLat = trip.destinationDetails.lat;
+          destLng = trip.destinationDetails.lng;
+        } else if (trip.deliveryAddress?.lat && trip.deliveryAddress?.lng) {
+          destLat = trip.deliveryAddress.lat;
+          destLng = trip.deliveryAddress.lng;
+        }
+
         return {
           id: trip.id || trip._id || Math.random().toString(),
           passengerId: trip.user?._id || trip.user?.id || trip.user || trip.userId || trip.client || "Não disponível",
-          passengerPhoto: trip.user?.profileImage || trip.user?.photo || null,
+          passengerPhoto: passengerPhoto,
           type: serviceNameStr,
+          motive: trip.reason || trip.description || trip.goodType || null,
           passenger: passengerName,
           pickup: pickupLoc,
           destination: destLoc,
-          reward: rewardPrice > 0 ? `MT ${rewardPrice}` : `MT ${Math.round(distance * 25)}`,
+          reward: rewardPrice > 0 ? `MT ${rewardPrice.toFixed(2)}` : `MT ${Math.round(distance * 25).toFixed(2)}`,
           distance: distance ? `${distance.toFixed(2)} km` : "Distância não disponível",
           time: tripDate,
           status: status,
           statusColor: statusColor,
           statusIcon: statusIcon,
+          originLat,
+          originLng,
+          destLat,
+          destLng
         };
       });
 
@@ -174,32 +209,31 @@ export default function TripScreen({ navigation }: any) {
 
   // 🔹 APAGAR REGISTO DA VIAGEM LOCALMENTE
   const confirmDeleteTrip = (trip: any) => {
-    Alert.alert(
-      "Apagar Registo",
-      "Tem a certeza que deseja remover esta viagem do seu histórico? Esta acção não pode ser desfeita.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Apagar", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const hiddenTripsString = await AsyncStorage.getItem("hiddenTrips");
-              const hiddenTrips = hiddenTripsString ? JSON.parse(hiddenTripsString) : [];
-              hiddenTrips.push(trip.id);
-              await AsyncStorage.setItem("hiddenTrips", JSON.stringify(hiddenTrips));
-              
-              // Remove do estado local
-              setTrips(prev => prev.filter(t => t.id !== trip.id));
-              
-              Alert.alert("Sucesso", "O registo da viagem foi removido do seu histórico.");
-            } catch (err) {
-              Alert.alert("Erro", "Não foi possível apagar o registo.");
-            }
-          }
-        }
-      ]
-    );
+    setTripToDelete(trip);
+  };
+
+  const deleteTripConfirmed = async (trip: any) => {
+    try {
+      const hiddenTripsString = await AsyncStorage.getItem("hiddenTrips");
+      const hiddenTrips = hiddenTripsString ? JSON.parse(hiddenTripsString) : [];
+      hiddenTrips.push(trip.id);
+      await AsyncStorage.setItem("hiddenTrips", JSON.stringify(hiddenTrips));
+      
+      // Remove do estado local
+      setTrips(prev => prev.filter(t => t.id !== trip.id));
+      
+      setTripToDelete(null);
+      
+      // Mostrar mensagem de sucesso premium
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2500);
+      
+    } catch (err) {
+      Alert.alert("Erro", "Não foi possível apagar o registo.");
+      setTripToDelete(null);
+    }
   };
 
   useEffect(() => {
@@ -245,10 +279,17 @@ export default function TripScreen({ navigation }: any) {
       >
         <View style={styles.tripHeader}>
           <View style={styles.passengerInfo}>
-            <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
-            <View>
-              <Text style={styles.passengerName}>{item.passenger}</Text>
-              <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{item.type}</Text>
+            {item.passengerPhoto ? (
+              <Image 
+                source={{ uri: item.passengerPhoto }} 
+                style={{ width: 44, height: 44, borderRadius: 22, marginRight: 10, backgroundColor: '#E5E7EB' }} 
+              />
+            ) : (
+              <Ionicons name="person-circle-outline" size={44} color={COLORS.primary} style={{ marginRight: 10 }} />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.passengerName} numberOfLines={1}>{item.passenger}</Text>
+              <Text style={{ fontSize: 13, color: '#666', marginTop: 2, marginLeft: 8 }} numberOfLines={1}>{item.type}</Text>
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: item.statusColor }]}>
@@ -257,32 +298,23 @@ export default function TripScreen({ navigation }: any) {
           </View>
         </View>
 
-        <View style={styles.routeInfo}>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={16} color="#27AE60" />
-            <Text style={styles.locationText}>{item.pickup}</Text>
+        {item.motive && (
+          <View style={styles.motiveContainer}>
+            <Ionicons name="document-text-outline" size={16} color="#D97706" />
+            <Text style={styles.motiveText}>
+              Motivo: {item.motive}
+            </Text>
           </View>
-          <View style={styles.arrowRow}>
-            <Ionicons name="arrow-down-outline" size={16} color="#666" />
-          </View>
-          <View style={styles.locationRow}>
-            <Ionicons name="flag-outline" size={16} color="#FF4E4E" />
-            <Text style={styles.locationText}>{item.destination}</Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.tripFooter}>
-          <View style={styles.infoItem}>
-            <Ionicons name="cash-outline" size={14} color="#27AE60" />
-            <Text style={styles.infoText}>{item.reward}</Text>
+          <View style={styles.statChip}>
+            <Ionicons name="cash-outline" size={16} color="#27AE60" />
+            <Text style={styles.statText}>{item.reward}</Text>
           </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="speedometer-outline" size={14} color="#2980B9" />
-            <Text style={styles.infoText}>{item.distance}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={14} color="#F39C12" />
-            <Text style={styles.infoText}>{item.time}</Text>
+          <View style={styles.statChip}>
+            <Ionicons name="calendar-outline" size={16} color="#F39C12" />
+            <Text style={styles.statText}>{item.time}</Text>
           </View>
         </View>
 
@@ -296,22 +328,12 @@ export default function TripScreen({ navigation }: any) {
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.shareButton}
-            onPress={() => shareTripDetails(item)}
+            style={styles.deleteButton}
+            onPress={() => confirmDeleteTrip(item)}
           >
-            <Ionicons name="share-outline" size={16} color="#666" />
-            <Text style={styles.shareButtonText}>Compartilhar</Text>
+            <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
+            <Text style={styles.deleteButtonText}>Apagar</Text>
           </TouchableOpacity>
-
-          {item.status === "Concluída" && (
-            <TouchableOpacity 
-              style={styles.deleteButton}
-              onPress={() => confirmDeleteTrip(item)}
-            >
-              <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
-              <Text style={styles.deleteButtonText}>Apagar</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -405,9 +427,9 @@ export default function TripScreen({ navigation }: any) {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
                       {selectedTrip.passengerPhoto ? (
-                        <Image source={{ uri: selectedTrip.passengerPhoto.startsWith('http') ? selectedTrip.passengerPhoto : `https://api.nhiquelaservicos.com/${selectedTrip.passengerPhoto}` }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12, backgroundColor: '#E5E7EB' }} />
+                        <Image source={{ uri: selectedTrip.passengerPhoto }} style={{ width: 48, height: 48, borderRadius: 24, marginRight: 12, backgroundColor: '#E5E7EB' }} />
                       ) : (
-                        <Ionicons name="person-circle-outline" size={40} color={COLORS.primary} style={{ marginRight: 12 }} />
+                        <Ionicons name="person-circle-outline" size={48} color={COLORS.primary} style={{ marginRight: 12 }} />
                       )}
                       <View>
                         <Text style={styles.modalTextValue}>{selectedTrip.passenger}</Text>
@@ -433,6 +455,21 @@ export default function TripScreen({ navigation }: any) {
                         <Text style={styles.modalLocationLabel}>Destino</Text>
                         <Text style={styles.modalLocationText}>{selectedTrip.destination}</Text>
                       </View>
+                      
+                      <TouchableOpacity 
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}
+                        onPress={() => {
+                          if (selectedTrip.originLat && selectedTrip.destLat) {
+                            const url = `https://www.google.com/maps/dir/?api=1&origin=${selectedTrip.originLat},${selectedTrip.originLng}&destination=${selectedTrip.destLat},${selectedTrip.destLng}`;
+                            Linking.openURL(url);
+                          } else {
+                            Alert.alert("Mapa Indisponível", "As coordenadas exatas desta viagem não estão disponíveis no histórico.");
+                          }
+                        }}
+                      >
+                        <Ionicons name="map-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                        <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Ver Pontos no Mapa</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
 
@@ -458,6 +495,50 @@ export default function TripScreen({ navigation }: any) {
                 </ScrollView>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🔥 PREMIUM ALERT MODAL PARA APAGAR VIAGEM */}
+      <Modal visible={tripToDelete !== null} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertContainer}>
+            <View style={styles.alertIconContainer}>
+              <Ionicons name="trash-outline" size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.alertTitle}>Apagar Registo</Text>
+            <Text style={styles.alertMessage}>
+              Tem a certeza que deseja remover esta viagem do seu histórico? Esta acção não pode ser desfeita.
+            </Text>
+            <View style={styles.alertButtonRow}>
+              <TouchableOpacity 
+                style={styles.alertCancelButton} 
+                onPress={() => setTripToDelete(null)}
+              >
+                <Text style={styles.alertCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.alertConfirmButton} 
+                onPress={() => deleteTripConfirmed(tripToDelete)}
+              >
+                <Text style={styles.alertConfirmButtonText}>Apagar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🔥 PREMIUM SUCCESS MODAL */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <View style={styles.successContainer}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark-outline" size={40} color="#10B981" />
+            </View>
+            <Text style={styles.alertTitle}>Apagado com Sucesso</Text>
+            <Text style={styles.alertMessage}>
+              O registo da viagem foi removido do seu histórico.
+            </Text>
           </View>
         </View>
       </Modal>
@@ -502,9 +583,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   tripHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
     marginBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
@@ -526,6 +606,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
+    marginTop: 10,
+    alignSelf: 'flex-start',
   },
   statusText: {
     color: "#FFF",
@@ -558,27 +640,68 @@ const styles = StyleSheet.create({
   },
   locationDivider: {
     width: 2,
-    height: 16,
+    height: 20,
     backgroundColor: "#E5E7EB",
-    marginLeft: 7,
-    marginVertical: -8,
+    marginLeft: 11,
+    marginVertical: 4,
+    borderStyle: 'dashed',
+  },
+  iconBoxPrimary: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(127, 0, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconBoxDanger: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  motiveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  motiveText: {
+    fontSize: 13,
+    color: '#92400E',
+    marginLeft: 8,
+    fontWeight: '600',
+    flex: 1,
   },
   tripFooter: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.gray100,
   },
-  infoItem: {
+  statChip: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flexShrink: 1,
   },
-  infoText: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginLeft: 4,
+  statText: {
+    fontSize: 13,
+    color: "#4B5563",
+    marginLeft: 6,
+    fontWeight: "700",
   },
   
   actionButtons: {
@@ -834,9 +957,103 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   modalGridValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#1F2937",
+    marginTop: 4,
     textAlign: "center",
+  },
+  // 🔥 PREMIUM ALERT CSS
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  alertContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "80%",
+    alignItems: "center",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+  },
+  alertIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEE2E2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  alertMessage: {
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  alertButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 12,
+  },
+  alertCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+  },
+  alertCancelButtonText: {
+    color: "#4B5563",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  alertConfirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+  },
+  alertConfirmButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  // 🔥 PREMIUM SUCCESS MODAL CSS
+  successContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "75%",
+    alignItems: "center",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+  },
+  successIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#D1FAE5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
   },
 });

@@ -23,20 +23,20 @@ requestServiceer.get(
     const seller = req.query.seller || '';
     const sellerFilter = seller ? { seller } : {};
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const orders = await RequestService.find({
       ...sellerFilter,
-      deleted: { $eq: false},
-    }).populate('user', 'name phoneNumber profileImage').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+      deleted: { $eq: false },
+    }).populate('user', 'name phoneNumber profileImage').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countOrders = await RequestService.countDocuments({
       ...sellerFilter,
       deleted: { $eq: false },
     });
 
-    const  pages = Math.ceil(countOrders/pageSize);
-    res.send({orders, pages});
+    const pages = Math.ceil(countOrders / pageSize);
+    res.send({ orders, pages });
   })
 );
 
@@ -46,20 +46,20 @@ requestServiceer.get(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const requests = await RequestService.find({
-      isPaid: {$eq: true},
-      deleted: { $eq: false},
-    }).populate('user', 'name phoneNumber profileImage').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+      isPaid: { $eq: true },
+      deleted: { $eq: false },
+    }).populate('user', 'name phoneNumber profileImage').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
     const countRequests = await RequestService.countDocuments({
-      isPaid: {$eq: true},
+      isPaid: { $eq: true },
       deleted: { $eq: false },
     });
 
-    const  pages = Math.ceil(countRequests/pageSize);
-    res.send({requests, pages});
+    const pages = Math.ceil(countRequests / pageSize);
+    res.send({ requests, pages });
   })
 );
 
@@ -109,18 +109,18 @@ requestServiceer.post(
       name: req.body.name,
       phoneNumber: req.body.phoneNumber,
       goodType: req.body.goodType,
-      transportType:  req.body.transportType,
-      deliverCity:  req.body.deliverCity,
+      transportType: req.body.transportType,
+      deliverCity: req.body.deliverCity,
       reason: req.body.reason,
-      origin:  req.body.origin,
-      destination:  req.body.destination,
+      origin: req.body.origin,
+      destination: req.body.destination,
       originDetails: req.body.originDetails || null,
       destinationDetails: req.body.destinationDetails || null,
       stops: req.body.stops || [],
-      paymentOption:  req.body.paymentOption,
-      description:  req.body.description,
-      paymentMethod:  req.body.paymentMethod,
-      deliveryPrice:  req.body.deliveryPrice, // Will be overridden below by server-side calculation
+      paymentOption: req.body.paymentOption,
+      description: req.body.description,
+      paymentMethod: req.body.paymentMethod,
+      deliveryPrice: req.body.deliveryPrice, // Will be overridden below by server-side calculation
       serviceId: req.body.serviceId || null,
       user: req.user._id,
       code: generateCode(),
@@ -151,19 +151,19 @@ requestServiceer.post(
         const priceResult = await PricingService.calculatePrice({
           serviceId,
           originLoc: { lat: originDetails.lat, lng: originDetails.lng },
-          destLoc:   { lat: destinationDetails.lat, lng: destinationDetails.lng },
+          destLoc: { lat: destinationDetails.lat, lng: destinationDetails.lng },
           clientSuggestedPrice: req.body.deliveryPrice,
           providerId: req.body.targetDriverId
         });
 
         // Guardar snapshot completo e imutável do cálculo
         newOrder.pricing = {
-          distanceKm:     priceResult.breakdown.distanceKm,
+          distanceKm: priceResult.breakdown.distanceKm,
           costDeslocacao: priceResult.breakdown.distanceCost + priceResult.breakdown.timeCost,
-          costServico:    priceResult.breakdown.actualBaseFare,
-          totalPrice:     priceResult.price,
-          calculatedAt:   new Date(),
-          breakdown:      priceResult.breakdown,
+          costServico: priceResult.breakdown.actualBaseFare,
+          totalPrice: priceResult.price,
+          calculatedAt: new Date(),
+          breakdown: priceResult.breakdown,
         };
 
         // Substituir o deliveryPrice enviado pelo cliente pelo valor calculado pelo servidor
@@ -178,21 +178,21 @@ requestServiceer.post(
       console.log(`[PricingService] ℹ️ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
     }
 
-    let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a Nhiquela Shop.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n Nhiquela Shop`; 
-    
+    let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
+
     //  Para envio de mensagens
     // const sellerOfProduct = await User.findById(newOrder.seller);
 
-      if (newOrder.isPaid){
-        // Enviar sms para o fornecedor
-      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`; 
-      sendSMSToUSendItDeliverman( msg);
-    }else{
-       let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`; 
-        sendSMSToUSendItAdmin(msg);
+    if (newOrder.isPaid) {
+      // Enviar sms para o fornecedor
+      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`;
+      sendSMSToUSendItDeliverman(msg);
+    } else {
+      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`;
+      sendSMSToUSendItAdmin(msg);
     }
 
-     sendEmailOrderStatus(req,mailText, newOrder, res);
+    sendEmailOrderStatus(req, mailText, newOrder, res);
 
 
     const requestService = await newOrder.save();
@@ -206,7 +206,7 @@ requestServiceer.post(
       if (newOrder.targetDriverId) {
         const orderPayload = { ...requestService.toObject(), type: 'requestService' };
         io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
-        
+
         // Push notification para o motorista alvo
         const targetDriver = await User.findById(newOrder.targetDriverId);
         if (targetDriver && targetDriver.pushToken) {
@@ -216,7 +216,7 @@ requestServiceer.post(
             pushToken: targetDriver.pushToken
           });
         }
-        
+
         // 45s timeout logic
         setTimeout(async () => {
           try {
@@ -226,10 +226,10 @@ requestServiceer.post(
               checkOrder.targetDriverId = null;
               checkOrder.canceledReason = 'Tempo esgotado (45s)';
               await checkOrder.save();
-              
+
               // Notify driver to remove order from their screen
               io.to(`driver_${newOrder.targetDriverId}`).emit('order_updated', checkOrder);
-              
+
               // Notify client
               io.to(`order_${checkOrder._id}`).emit('order_updated', checkOrder);
               const users = req.app.get('users') || [];
@@ -261,24 +261,24 @@ requestServiceer.get(
     const userFilter = user ? { user } : {};
 
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
+    const pageSize = 10
+
     const deliverRequests = await RequestService.find({
       ...userFilter,
-      deleted: { $eq: false},
+      deleted: { $eq: false },
 
-    }).populate('user', 'name phoneNumber profileImage').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    }).populate('user', 'name phoneNumber profileImage').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
 
     const countRequests = await RequestService.countDocuments({
-     ...userFilter,
-     deleted: { $eq: false},
+      ...userFilter,
+      deleted: { $eq: false },
 
     });
 
-    const  pages = Math.ceil(countRequests/pageSize);
+    const pages = Math.ceil(countRequests / pageSize);
 
-    res.send({deliverRequests, pages});
+    res.send({ deliverRequests, pages });
   })
 );
 
@@ -291,21 +291,21 @@ requestServiceer.get(
   expressAsyncHandler(async (req, res) => {
 
     const page = req.query.page || 1;
-    const pageSize = 10    
-    
-    const deliverRequests = await RequestService.find({
-      deleted: { $eq: false},
+    const pageSize = 10
 
-    }).populate('user', 'name phoneNumber profileImage').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
+    const deliverRequests = await RequestService.find({
+      deleted: { $eq: false },
+
+    }).populate('user', 'name phoneNumber profileImage').skip(pageSize * (page - 1)).limit(pageSize).sort({ createdAt: -1 });
 
 
     const countRequests = await RequestService.countDocuments({
-     deleted: { $eq: false},
+      deleted: { $eq: false },
     });
 
-    const  pages = Math.ceil(countRequests/pageSize);
+    const pages = Math.ceil(countRequests / pageSize);
 
-    res.send({deliverRequests, pages});
+    res.send({ deliverRequests, pages });
   })
 );
 
@@ -402,15 +402,15 @@ requestServiceer.put(
       }
 
       let deliverymanData = {};
-      if(user_deliver.isDeliveryMan){
+      if (user_deliver.isDeliveryMan) {
         deliverymanData = {
           id: user_deliver._id,
           photo: user_deliver.deliveryman?.photo || '',
-          name:  user_deliver.deliveryman?.name || '',
-          phoneNumber:  user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
-          transport_type:  user_deliver.deliveryman?.transport_type || '',
-          transport_color:  user_deliver.deliveryman?.transport_color || '',
-          transport_registration:  user_deliver.deliveryman?.transport_registration || '',
+          name: user_deliver.deliveryman?.name || '',
+          phoneNumber: user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
+          transport_type: user_deliver.deliveryman?.transport_type || '',
+          transport_color: user_deliver.deliveryman?.transport_color || '',
+          transport_registration: user_deliver.deliveryman?.transport_registration || '',
         };
       }
 
@@ -438,13 +438,13 @@ requestServiceer.put(
 
       //  Para envio de mensagens
       const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
-      let msg =`Olá, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
+      let msg = `Olá, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
 
       sendSMSToUSendIt(req, msg);
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n Nhiquela Shop`; 
-    
-      sendEmailOrderStatus(req,mailText, updateOrder, res);
+      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n nhiquela`;
+
+      sendEmailOrderStatus(req, mailText, updateOrder, res);
 
       // WebSocket Optimization
       await updateOrder.populate('user', 'name phoneNumber profileImage');
@@ -484,17 +484,17 @@ requestServiceer.put(
 
       await order.save();
 
-        //  Para envio de mensagens
+      //  Para envio de mensagens
 
-        let msg =`Olá ${req.user.name},\n \n A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
- 
- 
-        sendSMSToUSendIt(req, msg)
-       
- 
-        let mailText = `A Nhiquela Shop tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.. \n \n Atenciosamente, \n Nhiquela Shop`; 
-     
-       sendEmailOrderStatus(req,mailText, order, res);
+      let msg = `Olá ${req.user.name},\n \n A nhiquela tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
+
+
+      sendSMSToUSendIt(req, msg)
+
+
+      let mailText = `A nhiquela tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.. \n \n Atenciosamente, \n nhiquela`;
+
+      sendEmailOrderStatus(req, mailText, order, res);
 
       // WebSocket Optimization
       const io = req.app.get('io');
@@ -504,7 +504,7 @@ requestServiceer.put(
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
         }
       }
-        
+
       res.send({ message: `Pedido em trânsito` });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -521,21 +521,28 @@ requestServiceer.put(
 
     if (order) {
       order.status = 'No destino indicado';
-      order.stepStatus= 5;
+      order.stepStatus = 5;
+
+      order.arrivedAtDestination = Date.now();
+      if (req.body.latitude && req.body.longitude) {
+        order.arrivalLatitude = req.body.latitude;
+        order.arrivalLongitude = req.body.longitude;
+      }
+
       const updateOrder = await order.save();
 
 
       //  Para envio de mensagens
 
-       let msg =`Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}`;
- 
- 
-       sendSMSToUSendIt(req, msg)
-      
+      let msg = `Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}`;
 
-       let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n Nhiquela Shop`; 
-    
-       sendEmailOrderStatus(req,mailText, updateOrder, res);
+
+      sendSMSToUSendIt(req, msg)
+
+
+      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n nhiquela`;
+
+      sendEmailOrderStatus(req, mailText, updateOrder, res);
 
       // WebSocket Optimization
       const io = req.app.get('io');
@@ -547,6 +554,35 @@ requestServiceer.put(
       }
 
       res.send({ message: `No destino indicado`, order: updateOrder });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+// Motorista cancela viagem por "Cliente não compareceu" (após 5 minutos)
+requestServiceer.put(
+  '/:id/driver-no-show',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+
+    if (order) {
+      order.status = 'Cancelado';
+      order.stepStatus = 7; // Status de cancelamento/falha
+
+      const updateOrder = await order.save();
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        if (updateOrder.deliveryman?.id) {
+          io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
+        }
+      }
+
+      res.send({ message: `Viagem cancelada por não comparência`, order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -569,15 +605,17 @@ requestServiceer.put(
       if (order) {
         order.isDelivered = true;
         order.deliveredAt = Date.now();
-        order.status = 'Finalizado';
+        order.status = 'Concluído';
         order.stepStatus = 6;
 
-        order.paymentResult = {
-          id: req.body.id,
-          status: req.body.status,
-          update_time: req.body.update_time,
-          email_address: req.body.email_address,
-        };
+        if (req.body && req.body.id) {
+          order.paymentResult = {
+            id: req.body.id,
+            status: req.body.status,
+            update_time: req.body.update_time,
+            email_address: req.body.email_address,
+          };
+        }
 
         if (order.deliveryman && order.deliveryman.id) {
           const financialConfig = await getFinancialConfig();
@@ -614,39 +652,39 @@ requestServiceer.put(
         await session.commitTransaction();
         session.endSession();
 
-       //  Para envio de mensagens
+        //  Para envio de mensagens
 
-      let msg =`Olá, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. Nhiquela Shop - Tudo em suas mãos.`;
- 
-      sendSMSToUSendIt(req,msg);
+        let msg = `Olá, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. nhiquela - Tudo em suas mãos.`;
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
-    
-      sendEmailOrderStatus(req,mailText, order, res);
+        sendSMSToUSendIt(req, msg);
 
-      // WebSocket Optimization — notificar cliente e motorista
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`order_${order._id}`).emit('order_updated', order);
-        if (order.deliveryman?.id) {
-          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
-          // Notificar motorista que pode aceitar novos pedidos
-          io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
+        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n nhiquela`;
+
+        sendEmailOrderStatus(req, mailText, order, res);
+
+        // WebSocket Optimization — notificar cliente e motorista
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`order_${order._id}`).emit('order_updated', order);
+          if (order.deliveryman?.id) {
+            io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+            // Notificar motorista que pode aceitar novos pedidos
+            io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
+          }
         }
-      }
 
-      res.send({ message: `Pedido entregue com sucesso` });
-    } else {
+        res.send({ message: `Pedido entregue com sucesso` });
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(404).send({ message: 'Pedido não encontrado' });
+      }
+    } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      console.error('Erro na finalização do pedido:', error);
+      res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido. Tente novamente.' });
     }
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Erro na finalização do pedido:', error);
-    res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido. Tente novamente.' });
-  }
   })
 );
 
@@ -673,13 +711,13 @@ requestServiceer.put(
 
         order.isCanceled = true;
         order.isAccepted = false;
-        
+
         if (req.user.isDeliveryMan && !wasAccepted) {
           order.status = 'Motorista indisponível';
         } else {
           order.status = 'Cancelado';
         }
-        
+
         order.stepStatus = 7;
         order.canceledReason = req.body.message;
 
@@ -696,42 +734,42 @@ requestServiceer.put(
 
         await session.commitTransaction();
         session.endSession();
-      
-      //  Para envio de mensagens
 
-      let msg =`Olá, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
- 
-      sendSMSToUSendIt(req,msg);
+        //  Para envio de mensagens
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n Nhiquela Shop`; 
-    
-      sendEmailOrderStatus(req,mailText, order, res);
+        let msg = `Olá, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
 
-      // WebSocket Optimization
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`order_${order._id}`).emit('order_updated', order);
-        if (order.deliveryman?.id) {
-          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
-          // Notificar motorista que está livre
-          io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Serviço cancelado. Pode agora receber novos pedidos.' });
-        } else {
-          io.emit('order_updated', order); // broadcast to all
+        sendSMSToUSendIt(req, msg);
+
+        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n nhiquela`;
+
+        sendEmailOrderStatus(req, mailText, order, res);
+
+        // WebSocket Optimization
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`order_${order._id}`).emit('order_updated', order);
+          if (order.deliveryman?.id) {
+            io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+            // Notificar motorista que está livre
+            io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Serviço cancelado. Pode agora receber novos pedidos.' });
+          } else {
+            io.emit('order_updated', order); // broadcast to all
+          }
         }
-      }
 
-      res.send({ message: `Pedido Cancelado`, order: order });
-    } else {
+        res.send({ message: `Pedido Cancelado`, order: order });
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(404).send({ message: 'Pedido não encontrado' });
+      }
+    } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      console.error('Erro no cancelamento do pedido:', error);
+      res.status(500).send({ message: error.message || 'Erro ao cancelar o pedido. Tente novamente.' });
     }
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Erro no cancelamento do pedido:', error);
-    res.status(500).send({ message: error.message || 'Erro ao cancelar o pedido. Tente novamente.' });
-  }
   })
 );
 
@@ -748,17 +786,17 @@ requestServiceer.put(
       order.isPaid = true;
       order.stepStatus = 1;
       order.paidAt = Date.now();
-      
+
       const updateOrder = await order.save();
 
 
-       
+
 
       //  Para envio de mensagens
-      let msg =`Olá, a Nhiquela gostaria de lhe informar que o pagamento referente ao pedido n ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
+      let msg = `Olá, a Nhiquela gostaria de lhe informar que o pagamento referente ao pedido n ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
 
       // Em falta metodo para envio de mensagem e email
-      sendSMSToUSendItDeliverman( msg);
+      sendSMSToUSendItDeliverman(msg);
 
 
       res.send({ message: `Pedido Pago`, order: updateOrder });
@@ -779,7 +817,7 @@ requestServiceer.put(
     if (order) {
       order.status = 'Motorista indisponível';
       order.targetDriverId = null;
-      order.stepStatus = 7; 
+      order.stepStatus = 7;
       order.canceledReason = 'Motorista indisponível ou tempo esgotado';
       await order.save();
       const io = req.app.get('io');
@@ -802,12 +840,12 @@ requestServiceer.put(
     if (order) {
       order.status = req.body.status;
       await order.save();
-      
+
       const io = req.app.get('io');
       if (io) {
         io.to(`order_${order._id}`).emit('order_updated', order);
       }
-      
+
       res.send({ message: 'Estado atualizado com sucesso', order: order });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
@@ -823,7 +861,7 @@ requestServiceer.post(
     const order = await RequestService.findById(req.params.id);
     if (order && (order.status === 'Pendente' || order.status === 'Motorista indisponível')) {
       const targetDriverId = req.body.targetDriverId || order.targetDriverId;
-      
+
       if (targetDriverId) {
         order.status = 'Pendente';
         order.targetDriverId = targetDriverId;
@@ -833,7 +871,7 @@ requestServiceer.post(
         const io = req.app.get('io');
         if (io) {
           io.to(`driver_${targetDriverId}`).emit('new_order', order);
-          
+
           // Push notification para o motorista alvo
           const targetDriverUser = await User.findById(targetDriverId);
           if (targetDriverUser && targetDriverUser.pushToken) {
@@ -852,6 +890,78 @@ requestServiceer.post(
       }
     } else {
       res.status(400).send({ message: 'Não é possível reenviar este pedido' });
+    }
+  })
+);
+
+// Cancelar pedido pendente
+requestServiceer.delete(
+  '/:id',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+    if (order) {
+      if (order.status !== 'Pendente') {
+        return res.status(409).send({ message: 'Não é possível cancelar a busca porque a viagem já foi aceite pelo motorista ou mudou de estado.' });
+      }
+      if (order.user.toString() === req.user._id.toString() || req.user.isAdmin) {
+        order.status = 'Cancelado';
+        order.canceledReason = 'Cancelado pelo cliente na busca';
+        await order.save();
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`order_${order._id}`).emit('order_updated', order);
+          if (order.targetDriverId) {
+            io.to(`driver_${order.targetDriverId}`).emit('order_cancelled', { orderId: order._id });
+          }
+        }
+
+        res.send({ message: 'Pedido cancelado com sucesso' });
+      } else {
+        res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
+      }
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+// Cancelar pedido a partir da tela de detalhes
+requestServiceer.put(
+  '/:id/cancel',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+    if (order) {
+      if (order.user.toString() === req.user._id.toString() || req.user.isAdmin) {
+        if (order.status === 'Cancelado' || order.status === 'Finalizado' || order.status === 'Entregue') {
+          return res.status(400).send({ message: 'Este pedido já não pode ser cancelado.' });
+        }
+        order.status = 'Cancelado';
+        order.canceledReason = req.body.message || 'Cancelado pelo cliente';
+        await order.save();
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`order_${order._id}`).emit('order_updated', order);
+          if (order.targetDriverId) {
+            io.to(`driver_${order.targetDriverId}`).emit('order_cancelled', { orderId: order._id });
+          }
+          if (order.deliveryman && order.deliveryman.id) {
+            io.to(`driver_${order.deliveryman.id}`).emit('order_cancelled', { orderId: order._id });
+            // Libertar motorista
+            const User = require('../models/UserModel.js').default || require('../models/UserModel.js');
+            await User.updateOne({ _id: order.deliveryman.id }, { $set: { 'deliveryman.hasActiveService': false } });
+          }
+        }
+
+        res.send({ message: 'Pedido cancelado com sucesso', order: order });
+      } else {
+        res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
+      }
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
     }
   })
 );

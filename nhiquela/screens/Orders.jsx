@@ -425,6 +425,35 @@ const Orders = () => {
                     </Animated.View>
                   ) : null}
                 </View>
+
+                {/* Alerta Motorista Chegou */}
+                {(item.status === 'No destino indicado' || item.arrivedAtDestination) && item.status !== 'Finalizado' && item.status !== 'Cancelado' && item.status !== 'Concluído' && item.status !== 'Entregue' && (
+                  <View style={{ 
+                    marginTop: 12, 
+                    backgroundColor: '#10B981', 
+                    paddingVertical: 10, 
+                    paddingHorizontal: 12, 
+                    borderRadius: 8, 
+                    flexDirection: 'row', 
+                    alignItems: 'center' 
+                  }}>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                    <View style={{ marginLeft: 8, flex: 1 }}>
+                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>
+                        O motorista chegou ao destino
+                      </Text>
+                      {currentTimes[item._id] !== undefined && (
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#FFF', marginTop: 2 }}>
+                          Tempo de espera: {(() => {
+                            const secs = currentTimes[item._id];
+                            return `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
+                          })()}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+
               </View>
             );
           })()}

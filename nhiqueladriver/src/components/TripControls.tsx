@@ -8,6 +8,7 @@ type Props = {
   onFinishTrip: () => void;
   canFinishTrip: boolean;
   routeDrawn: boolean; // indica se rota já foi desenhada
+  isWaitingClient?: boolean;
 };
 
 export default function TripControls({
@@ -15,6 +16,7 @@ export default function TripControls({
   onFinishTrip,
   canFinishTrip,
   routeDrawn,
+  isWaitingClient,
 }: Props) {
 
 
@@ -26,10 +28,10 @@ export default function TripControls({
         style={{ opacity: 1 }}
       >
         <LinearGradient
-          colors={canFinishTrip ? ["#27AE60", "#2ECC71"] : ["#ccc", "#aaa"]}
+          colors={canFinishTrip || isWaitingClient ? ["#27AE60", "#2ECC71"] : ["#ccc", "#aaa"]}
           style={styles.finishButton}
         >
-          <Text style={styles.text}>Cheguei ao Destino</Text>
+          <Text style={styles.text}>{isWaitingClient ? "Concluir Serviço" : "Cheguei ao Destino"}</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>

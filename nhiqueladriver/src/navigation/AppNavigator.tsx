@@ -68,8 +68,8 @@ function MainTabs() {
           newBalance = `MT ${parseFloat(balanceRes.value.data.available_balance || 0).toFixed(2)}`;
         }
         if (earningsRes.status === 'fulfilled') {
-          newTodayEarnings = `MT ${parseFloat(earningsRes.value.data.today || 0).toFixed(2)}`;
-          newTrips = earningsRes.value.data.tripsToday || 0;
+          newTodayEarnings = parseFloat(earningsRes.value.data.today || 0);
+          newTrips = earningsRes.value.data.totalTrips ?? (earningsRes.value.data.tripsToday || 0);
         }
 
         if (
@@ -113,9 +113,9 @@ function MainTabs() {
               onMenuPress={() => {}}
               onNotificationPress={() => {}}
               onEarningsPress={() => navigation.navigate(ROUTES.EARNINGS)}
-              todayEarnings={user?.deliveryman?.todayEarnings || "MT 0,00"}
+              todayEarnings={!isNaN(Number(user?.deliveryman?.todayEarnings)) ? `MT ${Number(user?.deliveryman?.todayEarnings || 0).toFixed(2)}` : "MT 0.00"}
               totalPassengers={user?.deliveryman?.totalTrips || 0}
-              credit={user?.deliveryman?.balance || "MT 0,00"}
+              credit={user?.deliveryman?.balance || "MT 0.00"}
               userRating={user?.deliveryman?.rating || 5.0}
             />
           ),

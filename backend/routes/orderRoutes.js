@@ -1154,13 +1154,66 @@ orderRouter.put(
         io.emit('order_taken', { orderId: order._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
-      res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
+      res.send({ order: updateOrder, message: `Aceite pelo entregador` });
 
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
       console.error('Erro ao aceitar pedido:', error);
       res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.' });
+    }
+  })
+);
+
+// Motorista cancela/recusa a viagem de ecommerce
+orderRouter.put(
+  '/:id/cancelByDeliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const order = await Order.findById(req.params.id).session(session);
+
+      if (order) {
+        order.status = 'Pendente';
+        order.stepStatus = 1;
+        order.isAccepted = false;
+        
+        // Libertar o motorista
+        if (order.deliveryman && order.deliveryman.id) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } },
+            { session }
+          );
+        }
+        
+        order.deliveryman = null;
+
+        await order.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+
+        // Broadcast to all drivers that this order is available again
+        const io = req.app.get('io');
+        if (io) {
+          io.emit('order_updated', order);
+          io.to(`driver_${req.user._id}`).emit('service_released', { message: 'Pedido recusado.' });
+        }
+
+        res.send({ message: 'Pedido recusado com sucesso', order });
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(404).send({ message: 'Pedido não encontrado' });
+      }
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error('Erro ao cancelar pedido pelo entregador:', error);
+      res.status(500).send({ message: 'Erro ao recusar pedido' });
     }
   })
 );
@@ -1296,6 +1349,13 @@ orderRouter.put(
     if (order) {
       order.status = 'No destino indicado';
       order.stepStatus = 5;
+      
+      order.arrivedAtDestination = Date.now();
+      if (req.body.latitude && req.body.longitude) {
+        order.arrivalLatitude = req.body.latitude;
+        order.arrivalLongitude = req.body.longitude;
+      }
+      
       const updateOrder = await order.save();
 
 
@@ -1341,11 +1401,39 @@ orderRouter.put(
 
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+      res.status(404).send({ message: 'Pedido no encontrado' });
     }
   })
 );
 
+// Motorista cancela viagem por "Cliente não compareceu" (após 5 minutos)
+orderRouter.put(
+  '/:id/driver-no-show',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.status = 'Cancelado';
+      order.stepStatus = 7; // Status de cancelamento/falha
+      
+      const updateOrder = await order.save();
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        if (updateOrder.deliveryman?.id) {
+          io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
+        }
+      }
+
+      res.send({ message: `Viagem cancelada por não comparência`, order: updateOrder });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
 
 // O cliente finaliza a confirmar a recepcao do pedido
 orderRouter.put(
@@ -1716,7 +1804,7 @@ orderRouter.get(
       'deliveryman.id': deliverymanId,
       deleted: false
     })
-      .populate('user', 'name')
+      .populate('user', 'name profileImage phoneNumber')
       .populate('sellers', 'name')
       .lean();
 
@@ -1725,7 +1813,7 @@ orderRouter.get(
       'deliveryman.id': deliverymanId,
       deleted: false
     })
-      .populate('user', 'name')
+      .populate('user', 'name profileImage phoneNumber')
       .populate('serviceId', 'name')
       .lean();
 

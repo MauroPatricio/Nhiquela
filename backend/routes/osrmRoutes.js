@@ -11,7 +11,7 @@ const osrmRouter = express.Router();
  */
 export const calculateETA = async (origin, destination) => {
   try {
-    const osrmBaseUrl = process.env.OSRM_URL || 'http://localhost:5000';
+    const osrmBaseUrl = process.env.OSRM_BASE_URL || process.env.OSRM_URL || 'http://localhost:5000';
     const osrmUrl = `${osrmBaseUrl}/route/v1/driving/${origin};${destination}?overview=false`;
     const response = await axios.get(osrmUrl);
     if (response.data && response.data.routes && response.data.routes.length > 0) {
@@ -62,7 +62,7 @@ osrmRouter.get(
 
     try {
       // Faz o proxy para o servidor OSRM local rodando via Docker (porta 5000)
-      const osrmBaseUrl = process.env.OSRM_URL || 'http://localhost:5000';
+      const osrmBaseUrl = process.env.OSRM_BASE_URL || process.env.OSRM_URL || 'http://localhost:5000';
       const osrmUrl = `${osrmBaseUrl}/route/v1/driving/${origin};${destination}?overview=false`;
       const response = await axios.get(osrmUrl);
 

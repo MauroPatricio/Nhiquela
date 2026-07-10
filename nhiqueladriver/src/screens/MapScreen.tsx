@@ -5,7 +5,7 @@ import TripControls from "../components/TripControls";
 import { getCurrentLocation, updateDeliverymanLocation } from "../services/driverLocationService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from 'expo-location';
-import { startOrderInTransit, confirmOrderDelivered } from "../services/orderService"; 
+import { startOrderInTransit, confirmOrderDelivered, cancelNoShowOrder, finalizeOrder } from "../services/orderService"; 
 import { io } from 'socket.io-client';
 import { showMessage } from "react-native-flash-message";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,19 +54,26 @@ export default function MapScreen({ route, navigation }: any) {
         // Atualiza a localização a cada 10 segundos via socket (otimizado)
         interval = setInterval(async () => {
           try {
-            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            const locationData = {
-              driverId: storedTrip?.deliveryman?.id,
-              orderId,
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
-              heading: loc.coords.heading,
-              speed: loc.coords.speed
-            };
-            
-            // Emite a localização em tempo real para o backend processar e transmitir ao cliente
-            socket.emit('update_location', locationData);
-            
+            let loc = null;
+            try {
+              loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            } catch (err) {
+              // Fallback to last known position if current fails (e.g. emulator without GPS)
+              loc = await Location.getLastKnownPositionAsync();
+            }
+
+            if (loc) {
+              const locationData = {
+                driverId: storedTrip?.deliveryman?.id,
+                orderId,
+                latitude: loc.coords.latitude,
+                longitude: loc.coords.longitude,
+                heading: loc.coords.heading,
+                speed: loc.coords.speed
+              };
+              // Emite a localização em tempo real para o backend processar e transmitir ao cliente
+              socket.emit('update_location', locationData);
+            }
           } catch (err) {
             console.log("Erro ao capturar GPS para socket", err);
           }
@@ -278,6 +285,36 @@ export default function MapScreen({ route, navigation }: any) {
     }
   };
 
+  const handleNoShow = () => {
+    Alert.alert(
+      "Confirmar Cancelamento",
+      "Tem certeza de que o cliente não compareceu? A viagem será cancelada.",
+      [
+        { text: "Não", style: "cancel" },
+        { 
+          text: "Sim", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const tripId = tripData?.id || tripData?._id;
+              if (tripId) {
+                const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
+                await cancelNoShowOrder(tripId, isRequestService);
+              }
+              await AsyncStorage.removeItem("acceptedTrip");
+              setTripData(null);
+              Alert.alert("Sucesso", "Viagem cancelada por não comparecimento.");
+              navigation.goBack();
+            } catch (error) {
+              console.error("Erro ao cancelar:", error);
+              Alert.alert("Erro", "Não foi possível cancelar a viagem.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371e3; // Earth radius in metres
     const rad = Math.PI / 180;
@@ -319,13 +356,50 @@ export default function MapScreen({ route, navigation }: any) {
       // 🔥 AVISAR O BACKEND QUE O MOTORISTA CHEGOU AO DESTINO
       if (tripData?.id) {
         const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
-        await confirmOrderDelivered(tripData.id, isRequestService);
+        await confirmOrderDelivered(tripData.id, isRequestService, currentLocation?.latitude, currentLocation?.longitude);
       }
       
+      // Update local state to waiting
+      const updatedTrip = { ...tripData, status: 'No destino indicado', stepStatus: 6 };
+      setTripData(updatedTrip);
+      await AsyncStorage.setItem("acceptedTrip", JSON.stringify(updatedTrip));
+      
+      // Start waiting timer (optional)
+      // We will show UI based on stepStatus === 6 in TripMap
+    } catch (error) {
+      console.warn("Erro ao confirmar chegada:", error);
+    }
+  };
+
+  const completeService = async () => {
+    if (currentLocation && destination) {
+      const distance = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        destination.latitude,
+        destination.longitude
+      );
+      
+      if (distance > 200) {
+        setShowCannotFinishModal(true);
+        return;
+      }
+    } else if (!canFinishTrip) {
+      setShowCannotFinishModal(true);
+      return;
+    }
+
+    try {
+      const tripId = tripData?.id || tripData?._id;
+      if (tripId) {
+        const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
+        await finalizeOrder(tripId, isRequestService);
+      }
       await AsyncStorage.removeItem("acceptedTrip");
       setShowFinishSuccessModal(true);
-    } catch (error) {
-      console.warn("Erro ao finalizar viagem:", error);
+    } catch(err) {
+      console.warn(err);
+      Alert.alert("Erro", "Falha ao tentar finalizar a viagem.");
     }
   };
 
@@ -411,17 +485,20 @@ export default function MapScreen({ route, navigation }: any) {
         onStartTrip={startTrip}
         onCancelTrip={handleCancelTrip}
         onFinishTrip={handleFinishTrip}
+        onCompleteService={completeService}
+        onNoShow={handleNoShow}
         canFinishTrip={canFinishTrip}
         routeDrawn={routeDrawn}
       />
 
       {/* 🔥 CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
-      {tripData?.stepStatus === 5 && (
+      {(tripData?.stepStatus === 5 || tripData?.stepStatus === 6) && (
         <TripControls
           onCancelTrip={handleCancelTrip}
-          onFinishTrip={handleFinishTrip}
+          onFinishTrip={tripData?.stepStatus === 5 ? handleFinishTrip : completeService}
           canFinishTrip={canFinishTrip}
           routeDrawn={routeDrawn}
+          isWaitingClient={tripData?.stepStatus === 6}
         />
       )}
 
@@ -612,6 +689,7 @@ export default function MapScreen({ route, navigation }: any) {
               activeOpacity={0.85}
               onPress={() => {
                 setShowFinishSuccessModal(false);
+                setTripData(null);
                 navigation.navigate("Home");
               }}
             >

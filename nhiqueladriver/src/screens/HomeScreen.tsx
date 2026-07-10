@@ -78,6 +78,9 @@ export default function HomeScreen({ navigation }: any) {
   const [startedTripData, setStartedTripData] = useState<Trip | null>(null);
   const [showLocationRequiredModal, setShowLocationRequiredModal] = useState(false);
   const { user, updateUser, updateDeliveryman } = useAuth();
+  
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [tripToCancelId, setTripToCancelId] = useState<string | null>(null);
 
   // Load alert sound
   useEffect(() => {
@@ -318,6 +321,38 @@ export default function HomeScreen({ navigation }: any) {
             // Remover o pedido da lista apenas se não foi este motorista que o aceitou
             if (acceptedBy === user?._id) return prev;
             return prev.filter(t => t.id !== orderId);
+          });
+        });
+
+        // 🔥 LISTENER PARA CANCELAMENTO DE PEDIDO PELO CLIENTE
+        websocketService.on('order_cancelled', async (data: any) => {
+          if (!isMounted.current) return;
+          const { orderId } = data;
+          
+          // Parar alarme se estiver tocando
+          if (alertSound) {
+            alertSound.stopAsync().catch(() => {});
+          }
+          Vibration.cancel();
+
+          // Remover o pedido da lista
+          setAllTrips(prev => prev.filter(t => t.id !== orderId));
+          
+          // Se for a viagem atual sendo aceita ou iniciada, limpar
+          setAcceptedTrip(prev => {
+            if (prev && prev.id === orderId) {
+              AsyncStorage.removeItem("acceptedTrip");
+              setIsTripStarted(false);
+              setRouteSummary(null);
+              // Avisar o motorista
+              Alert.alert(
+                "Viagem Cancelada", 
+                "O cliente cancelou esta viagem.",
+                [{ text: "OK" }]
+              );
+              return null;
+            }
+            return prev;
           });
         });
 
@@ -918,7 +953,7 @@ export default function HomeScreen({ navigation }: any) {
         // Usar um timeout para não bloquear eternamente e usar Balanced (rápido e suficiente para este step)
         const location = await Promise.race([
           Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 7000))
         ]) as Location.LocationObject;
         
         currentLocation = {
@@ -929,8 +964,23 @@ export default function HomeScreen({ navigation }: any) {
         };
 
       } catch (error: any) {
-        setShowLocationRequiredModal(true);
-        throw new Error('Localização não disponível');
+        // 🔥 FALLBACK: Se falhar ou der timeout, tenta usar a última localização conhecida
+        try {
+          const lastLocation = await Location.getLastKnownPositionAsync();
+          if (lastLocation) {
+            currentLocation = {
+              latitude: lastLocation.coords.latitude,
+              longitude: lastLocation.coords.longitude,
+              accuracy: lastLocation.coords.accuracy ?? undefined,
+              timestamp: new Date().toISOString()
+            };
+          } else {
+            throw new Error('Sem última localização');
+          }
+        } catch (fallbackError) {
+          setShowLocationRequiredModal(true);
+          throw new Error('Localização não disponível');
+        }
       }
 
       // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
@@ -1072,46 +1122,44 @@ const startLocationSharingToBackend = (orderId: string) => {
 const locationSharingRef = useRef<(() => void) | null>(null);
 
 const cancelTrip = useCallback(async (tripId: string) => {
-  Alert.alert(
-    "Cancelar Viagem",
-    "Deseja realmente cancelar a viagem?",
-    [
-      { text: "Não", style: "cancel" },
-      {
-        text: "Sim",
-        onPress: async () => {
-          try {
-            setCancelingTripId(tripId);
-
-            // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
-            if (locationSharingRef.current) {
-              locationSharingRef.current();
-              locationSharingRef.current = null;
-            }
-
-            // Feedback visual instantâneo
-            setAllTrips(prev => prev.filter(t => t.id !== tripId));
-
-            const trip = allTrips.find(t => t.id === tripId);
-            const isReq = trip?.originalData?.type === 'requestService';
-            await cancelOrderByDeliveryman(tripId, isReq);
-
-            setAcceptedTrip(null);
-            setIsTripStarted(false);
-            setRouteSummary(null);
-            blinkAnim.stopAnimation();
-            await AsyncStorage.removeItem("acceptedTrip");
-          } catch (error: any) {
-            console.error("Erro ao cancelar viagem:", error.message);
-            Alert.alert("Erro", "Não foi possível cancelar a viagem.");
-          } finally {
-            setCancelingTripId(null);
-          }
-        },
-      },
-    ]
-  );
+  setTripToCancelId(tripId);
+  setCancelModalVisible(true);
 }, []);
+
+const confirmCancelTrip = async () => {
+  if (!tripToCancelId) return;
+  const tripId = tripToCancelId;
+  
+  try {
+    setCancelModalVisible(false);
+    setCancelingTripId(tripId);
+
+    // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
+    if (locationSharingRef.current) {
+      locationSharingRef.current();
+      locationSharingRef.current = null;
+    }
+
+    // Feedback visual instantâneo
+    setAllTrips(prev => prev.filter(t => t.id !== tripId));
+
+    const trip = allTrips.find(t => t.id === tripId);
+    const isReq = trip?.originalData?.goodType !== undefined || trip?.originalData?.type === 'requestService';
+    await cancelOrderByDeliveryman(tripId, isReq);
+
+    setAcceptedTrip(null);
+    setIsTripStarted(false);
+    setRouteSummary(null);
+    blinkAnim.stopAnimation();
+    await AsyncStorage.removeItem("acceptedTrip");
+  } catch (error: any) {
+    console.error("Erro ao cancelar viagem:", error.message);
+    Alert.alert("Erro", "Não foi possível cancelar a viagem.");
+  } finally {
+    setCancelingTripId(null);
+    setTripToCancelId(null);
+  }
+};
 
 const startTrip = useCallback((trip: Trip) => {
   setTripToStart(trip);
@@ -1777,6 +1825,40 @@ const proceedStartTrip = async (trip: Trip) => {
                 <Text style={styles.premiumConfirmButtonText}>Entendido</Text>
               </LinearGradient>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL PREMIUM PARA CANCELAR VIAGEM */}
+      <Modal
+        visible={cancelModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCancelModalVisible(false)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="warning" size={40} color="#EF4444" />
+            </View>
+            <Text style={styles.premiumModalTitle}>Cancelar Viagem?</Text>
+            <Text style={styles.premiumModalMessage}>
+              Tem a certeza de que deseja cancelar esta viagem? Esta ação afetará as suas estatísticas e ganhos.
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity
+                style={[styles.premiumConfirmButton, { flex: 1, backgroundColor: '#F3F4F6' }]}
+                onPress={() => setCancelModalVisible(false)}
+              >
+                <Text style={{ color: '#4B5563', fontWeight: '700', fontSize: 16 }}>Manter Viagem</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.premiumConfirmButton, { flex: 1, backgroundColor: '#EF4444', shadowColor: '#EF4444' }]}
+                onPress={confirmCancelTrip}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Sim, Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

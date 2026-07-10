@@ -26,7 +26,7 @@ export default function MainTabs() {
         onNotificationPress={() => console.log("Notifications pressed")}
         onStartTrip={() => console.log("Viagem iniciada")}
         profileImage="https://via.placeholder.com/150"
-        todayEarnings={`MT ${driverEarnings}`}
+        todayEarnings={!isNaN(Number(driverEarnings)) ? `MT ${Number(driverEarnings).toFixed(2)}` : "MT 0.00"}
         totalPassengers={driverTrips}
         credit={driverBalance ? String(driverBalance) : "MT 0,00"}
         currentLocation="Maputo, Moçambique"
