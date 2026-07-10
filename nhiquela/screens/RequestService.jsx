@@ -1331,9 +1331,18 @@ export default function RequestServiceSimple() {
           )}
 
           {selectedDriverForRequest && (() => {
-            let selectedBaseFare = selectedDriverForRequest.deliveryman?.customPrice || selectedDriverForRequest.deliveryman?.assigned_base_fee || service?.baseFare || price;
-            let selectedDeslocacao = price - (service?.baseFare || price);
-            if (selectedDeslocacao < 0) selectedDeslocacao = 0;
+            const serviceBase = service?.baseFare || 0;
+            let selectedDeslocacao = price > serviceBase ? price - serviceBase : 0;
+            
+            let selectedBaseFare = price;
+            if (selectedDriverForRequest.deliveryman?.allowCustomPrice && selectedDriverForRequest.deliveryman?.customPrice) {
+              selectedBaseFare = selectedDriverForRequest.deliveryman.customPrice;
+            } else if (selectedDriverForRequest.deliveryman?.assigned_base_fee) {
+              selectedBaseFare = selectedDriverForRequest.deliveryman.assigned_base_fee;
+            } else if (serviceBase > 0) {
+              selectedBaseFare = serviceBase;
+            }
+            
             let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
 
             return (
@@ -1343,7 +1352,7 @@ export default function RequestServiceSimple() {
                   {selectedFinalPrice.toFixed(0)} MT
                 </Text>
                 <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                  Taxa Base ({selectedBaseFare.toFixed(0)}) + Deslocação ({selectedDeslocacao.toFixed(0)})
+                  Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
                 </Text>
               </View>
             );
