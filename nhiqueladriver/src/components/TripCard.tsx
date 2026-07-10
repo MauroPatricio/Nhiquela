@@ -108,6 +108,11 @@ const TripCard = React.memo(function TripCard({
             <Text style={styles.passengerName} numberOfLines={1}>
               {item.serviceName ? `${item.serviceName} - ${item.passenger}` : item.passenger}
             </Text>
+            {item.serviceMotive && (
+              <Text style={styles.serviceMotive} numberOfLines={1}>
+                Motivo: {item.serviceMotive}
+              </Text>
+            )}
             
             <View style={styles.badgesContainer}>
               {isInTransit && (
@@ -137,8 +142,8 @@ const TripCard = React.memo(function TripCard({
           <TouchableOpacity 
             style={styles.callButton}
             onPress={() => {
-              const phoneStr = typeof item.passengerPhone === 'string' ? item.passengerPhone.replace(/\D/g, '') : '840000000';
-              Linking.openURL(`tel:${phoneStr}`).catch(() => {});
+              const phoneStr = typeof item.passengerPhone === 'string' ? item.passengerPhone.replace(/\D/g, '') : '';
+              if (phoneStr) Linking.openURL(`tel:${phoneStr}`).catch(() => {});
             }}
           >
             <Ionicons name="call" size={18} color="#FFF" />
@@ -326,10 +331,15 @@ const styles = StyleSheet.create({
   },
   passengerName: {
     fontSize: 18,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  serviceMotive: {
+    fontSize: 13,
+    color: "#6B7280",
     marginBottom: 6,
-    letterSpacing: -0.5,
+    fontStyle: 'italic',
   },
   badgesContainer: {
     flexDirection: 'row',

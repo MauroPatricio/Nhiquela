@@ -37,6 +37,20 @@ const Orders = () => {
     ).start();
   }, []);
 
+  const [subcategories, setSubcategories] = useState([]);
+
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      try {
+        const { data } = await api.get('/provider-subcategories');
+        setSubcategories(data);
+      } catch (error) {
+        console.error('Erro ao buscar subcategorias', error);
+      }
+    };
+    fetchSubcategories();
+  }, []);
+
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -195,6 +209,29 @@ const Orders = () => {
     fetchEtas();
   }, [orders, currentLocation]);
 
+  const [currentTimes, setCurrentTimes] = useState({});
+  useEffect(() => {
+    let interval = setInterval(() => {
+      if (orders && orders.length > 0) {
+        const newTimes = {};
+        const now = new Date().getTime();
+        orders.forEach(order => {
+          const isTripActive = order.status === 'No destino indicado' || 
+                               order.status === 'Em Trânsito' || 
+                               order.status === 'A Caminho do Destino' ||
+                               order.stepStatus === 5;
+          if (isTripActive && order.updatedAt) {
+            const startTime = new Date(order.updatedAt).getTime();
+            const diffInSeconds = Math.floor((now - startTime) / 1000);
+            newTimes[order._id] = diffInSeconds > 0 ? diffInSeconds : 0;
+          }
+        });
+        setCurrentTimes(newTimes);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [orders]);
+
   // Mapa de serviço -> ícone
   const getServiceIcon = (name) => {
     if (!name) return { icon: 'help-circle-outline', color: '#6B7280', bg: '#F3F4F6' };
@@ -346,7 +383,10 @@ const Orders = () => {
                     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
                       {tType && (
                         <Text style={[styles.deliverymanVehicle, { marginBottom: 0 }]} numberOfLines={1}>
-                          🚗 {tType}
+                          🚗 {(() => {
+                            const subcat = subcategories.find(s => s._id === tType || s.id === tType);
+                            return subcat ? subcat.name : tType;
+                          })()}
                         </Text>
                       )}
                       {tColor && (
@@ -364,21 +404,36 @@ const Orders = () => {
                       )}
                     </View>
                   </View>
-                  {timeMinutes !== null && item.status !== 'Entregue' && item.status !== 'Cancelado' && (
+                  {currentTimes[item._id] !== undefined ? (
                     <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
-                      <Ionicons name="time-outline" size={14} color="#EF4444" />
+                      <Ionicons name="stopwatch-outline" size={14} color="#EF4444" />
+                      <Text style={styles.timeText}>
+                        {(() => {
+                          const seconds = currentTimes[item._id];
+                          const hrs = Math.floor(seconds / 3600);
+                          const mins = Math.floor((seconds % 3600) / 60);
+                          const secs = seconds % 60;
+                          if (hrs > 0) return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        })()}
+                      </Text>
+                    </Animated.View>
+                  ) : timeMinutes !== null && item.status !== 'Entregue' && item.status !== 'Cancelado' ? (
+                    <Animated.View style={[styles.timeContainer, { opacity: blinkAnim }]}>
+                      <Ionicons name="navigate-outline" size={14} color="#EF4444" />
                       <Text style={styles.timeText}>{timeMinutes} min</Text>
                     </Animated.View>
-                  )}
+                  ) : null}
                 </View>
               </View>
             );
           })()}
 
-          {['Entregue', 'Cancelado', 'Finalizado', 'Concluído'].includes(item.status) && (
+          {['Entregue', 'Cancelado', 'Finalizado', 'Concluído', 'Motorista indisponível'].includes(item.status) && (
             <TouchableOpacity 
               onPress={() => deleteOrder(item._id)} 
               style={styles.deleteButton}
+
             >
               <Ionicons name="trash-outline" size={20} color="#EF4444" />
               <Text style={styles.deleteButtonText}>Remover Histórico</Text>

@@ -76,6 +76,7 @@ export default function HomeScreen({ navigation }: any) {
   const [tripToStart, setTripToStart] = useState<Trip | null>(null);
   const [showTripStartedModal, setShowTripStartedModal] = useState(false);
   const [startedTripData, setStartedTripData] = useState<Trip | null>(null);
+  const [showLocationRequiredModal, setShowLocationRequiredModal] = useState(false);
   const { user, updateUser, updateDeliveryman } = useAuth();
 
   // Load alert sound
@@ -223,7 +224,7 @@ export default function HomeScreen({ navigation }: any) {
 
           const newFormattedOrder = formatOrder(data, currentPosition);
           
-          const isCancelled = data.status === 'Cancelado' || data.isCanceled || data.deleted;
+          const isCancelled = data.status === 'Cancelado' || data.status === 'Motorista indisponível' || data.isCanceled || data.deleted;
           
           setAllTrips((prevTrips: any[]) => {
             let newTrips = [];
@@ -635,7 +636,7 @@ export default function HomeScreen({ navigation }: any) {
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || order.stepStatus === 6 || order.stepStatus === 7;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
           // Keep if not completed OR if it's currently marked as accepted/in transit by THIS driver (sanity check)
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
@@ -676,7 +677,9 @@ export default function HomeScreen({ navigation }: any) {
       }
 
     } catch (error: any) {
-      console.error("❌ Erro na atualização silenciosa:", error.message);
+      if (error.message !== 'Network Error') {
+        console.error("❌ Erro na atualização silenciosa:", error.message);
+      }
     }
   };
 
@@ -726,7 +729,7 @@ export default function HomeScreen({ navigation }: any) {
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || order.stepStatus === 6 || order.stepStatus === 7;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
   
@@ -855,19 +858,24 @@ export default function HomeScreen({ navigation }: any) {
     const isReq = order.goodType !== undefined || order.type === 'requestService';
     let serviceNameStr;
     if (isReq) {
-      serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "Servio");
+      if (order.serviceId && order.serviceId.name) {
+        serviceNameStr = order.serviceId.name;
+      } else {
+        serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "Serviço");
+      }
     }
 
     return {
-      id: order._id,
+      id: order._id || order.id,
       passengerId: order.user?._id || order.user?.id || order.userId || "0",
       serviceName: serviceNameStr,
+      serviceMotive: order.reason || order.description || order.goodType || undefined,
       passenger: order.user?.name || order.clientName || "Cliente",
       passengerImage: order.user?.profileImage,
       passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Nao disponvel",
       pickup: order.originDetails?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
-      reward: `MZN ${order.pricing?.totalPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
+      reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
       distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia nao disponvel",
       time: timeStr,
       destinationLocation: {
@@ -907,10 +915,11 @@ export default function HomeScreen({ navigation }: any) {
       let currentLocation = null;
       
       try {
-        
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
+        // Usar um timeout para não bloquear eternamente e usar Balanced (rápido e suficiente para este step)
+        const location = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ]) as Location.LocationObject;
         
         currentLocation = {
           latitude: location.coords.latitude,
@@ -920,11 +929,7 @@ export default function HomeScreen({ navigation }: any) {
         };
 
       } catch (error: any) {
-        Alert.alert(
-          "Localização Necessária", 
-          "Não foi possível obter sua localização. Ative a localização do dispositivo e tente novamente.",
-          [{ text: "OK" }]
-        );
+        setShowLocationRequiredModal(true);
         throw new Error('Localização não disponível');
       }
 
@@ -1696,6 +1701,80 @@ const proceedStartTrip = async (trip: Trip) => {
                 style={styles.premiumConfirmGradient}
               >
                 <Text style={styles.premiumConfirmButtonText}>Ir para o Mapa</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO NECESSÁRIA */}
+      <Modal
+        visible={showLocationRequiredModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLocationRequiredModal(false)}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="location-outline" size={44} color="#D97706" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Localização Necessária</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              Não foi possível obter sua localização. Ative a localização do dispositivo e tente novamente.
+            </Text>
+
+            <TouchableOpacity 
+              style={[styles.premiumConfirmButton, { width: '100%', flex: 0, marginTop: 16 }]}
+              activeOpacity={0.85}
+              onPress={() => setShowLocationRequiredModal(false)}
+            >
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Entendido</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🔥 MODAL DE ERRO */}
+      <Modal
+        visible={errorModal.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setErrorModal({ visible: false, message: '' })}
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="warning" size={40} color="#EF4444" />
+            </View>
+            
+            <Text style={styles.premiumModalTitle}>Aviso</Text>
+            
+            <Text style={styles.premiumModalMessage}>
+              {errorModal.message}
+            </Text>
+
+            <TouchableOpacity 
+              style={[styles.premiumConfirmButton, { width: '100%', flex: 0, marginTop: 16 }]}
+              activeOpacity={0.85}
+              onPress={() => setErrorModal({ visible: false, message: '' })}
+            >
+              <LinearGradient
+                colors={['#EF4444', '#DC2626']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumConfirmGradient}
+              >
+                <Text style={styles.premiumConfirmButtonText}>Entendido</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

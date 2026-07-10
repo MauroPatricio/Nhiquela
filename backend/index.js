@@ -90,7 +90,12 @@ mongoose.connection.on('error', (err) => {
 // **Inicializando Express**
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.BASE_URL, 'https://nhiquelaservicos.com', 'https://www.nhiquelaservicos.com'] 
+    : '*',
+  credentials: true
+}));
 
 // Prote��es b�sicas de seguran�a (Helmet)
 // Protees bsicas de segurana (Helmet)
@@ -180,6 +185,7 @@ app.use('/api/system/app-config', appConfigRouter);
 
 // 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
 app.get('/api/debug/socket-status', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden in production' });
   const io = req.app.get('io');
   const users = req.app.get('users') || [];
   const rooms = io ? [...io.sockets.adapter.rooms.keys()].filter(r => r.startsWith('driver_')) : [];
@@ -190,6 +196,7 @@ app.get('/api/debug/socket-status', (req, res) => {
 });
 
 app.get('/api/debug/emit-test/:driverId', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden in production' });
   const io = req.app.get('io');
   const users = req.app.get('users') || [];
   const { driverId } = req.params;
@@ -455,7 +462,7 @@ function randomString(codeLength){
     const randomString = randomArray.join("");
     return randomString;
 }
-const port = process.env.PORT || 5002;
+const port = process.env.PORT || 5000;
 console.log('Port configuration: process.env.PORT =', process.env.PORT);
 if (process.env.NODE_ENV !== 'test') {
   httpServer.listen(port, () => {

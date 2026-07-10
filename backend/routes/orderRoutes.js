@@ -575,6 +575,15 @@ orderRouter.delete(
     if (order) {
       order.deleted = true;
       order.isActive = false;
+      order.status = 'Cancelado';
+
+      if (order.deliveryman && order.deliveryman.id) {
+        const User = mongoose.model('User');
+        await User.updateOne(
+          { _id: order.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
+      }
 
       await order.save();
 
@@ -584,6 +593,16 @@ orderRouter.delete(
       if (trip) {
         trip.deleted = true;
         trip.isActive = false;
+        trip.status = 'Cancelado';
+        
+        if (trip.deliveryman && trip.deliveryman.id) {
+          const User = mongoose.model('User');
+          await User.updateOne(
+            { _id: trip.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } }
+          );
+        }
+
         await trip.save();
         res.send({ message: `Pedido removido com sucesso` });
       } else {
@@ -603,6 +622,15 @@ orderRouter.delete(
       order.isDeletedBySeller = true;
       order.deleted = true;
       order.isActive = false;
+      order.status = 'Cancelado';
+
+      if (order.deliveryman && order.deliveryman.id) {
+        const User = mongoose.model('User');
+        await User.updateOne(
+          { _id: order.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
+      }
 
       await order.save();
 
@@ -624,6 +652,11 @@ orderRouter.delete(
       order.status = 'Cancelado';
       order.targetDriverId = null;
       if (order.deliveryman && order.deliveryman.id) {
+        const User = mongoose.model('User');
+        await User.updateOne(
+          { _id: order.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
         order.deliveryman.id = null;
       }
 
@@ -1598,10 +1631,13 @@ orderRouter.get(
 
     const driver = await User.findById(deliverymanId);
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista n�o encontrado' });
+      return res.status(404).send({ message: 'Motorista no encontrado' });
     }
 
     const isDriverActive = driver.availability === 'active';
+    const { hasSufficientBalance } = await import('../services/walletService.js');
+    const hasBalance = await hasSufficientBalance(deliverymanId, driver);
+    const canAcceptNewTrips = isDriverActive && hasBalance;
     const driverTransportType = driver.deliveryman?.transport_type;
 
     // Buscar Orders normais
@@ -1609,8 +1645,8 @@ orderRouter.get(
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
     ];
-    if (isDriverActive) {
-      orderConditions.push({ stepStatus: 3 }); // Dispon�veis para aceitar se ativo
+    if (canAcceptNewTrips) {
+      orderConditions.push({ stepStatus: 3 }); // Disponiveis para aceitar se ativo
     }
 
     const ordersPromise = Order.find({
@@ -1621,13 +1657,13 @@ orderRouter.get(
       .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestServices de servi�os (reboque, etc)
+    // Buscar RequestServices de servios (reboque, etc)
     // Buscar RequestServices de servios (reboque, etc)
     const requestServiceConditions = [
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade
     ];
-    if (isDriverActive) {
+    if (canAcceptNewTrips) {
       const availableCondition = { 
         stepStatus: 3,
         $or: [
@@ -1648,6 +1684,7 @@ orderRouter.get(
       $or: requestServiceConditions
     })
       .populate('user', 'name phoneNumber profileImage')
+      .populate('serviceId', 'name')
       .lean();
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
@@ -1689,6 +1726,7 @@ orderRouter.get(
       deleted: false
     })
       .populate('user', 'name')
+      .populate('serviceId', 'name')
       .lean();
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);

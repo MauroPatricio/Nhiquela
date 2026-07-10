@@ -147,7 +147,7 @@ class PricingService {
   /**
    * C�lculo Final
    */
-  async calculatePrice({ serviceId, originLoc, destLoc, weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false, trafficCondition = 'normal', demandLevel = 'normal', providerId = null }) {
+  async calculatePrice({ serviceId, originLoc, destLoc, weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false, trafficCondition = 'normal', demandLevel = 'normal', providerId = null, clientSuggestedPrice = null }) {
     const engineConfig = await this.getGlobalSettings();
     const service = await ProviderSubcategory.findById(serviceId);
     
@@ -172,15 +172,21 @@ class PricingService {
     // 1. Rota (OSRM)
     const { distanceKm, durationMin, routeCoordinates } = await this.getRouteInfo(originLoc, destLoc);
 
-    // 2. Ve�culo
+    // 2. Veculo
     let vehicle = null;
     if (service.requiresVehicleType || distanceKm > 0) {
       vehicle = await this.autoSelectVehicle(weightKg, vehicleTypeId);
     }
 
-    // 3. Somat�rio Base
+    // 3. Somatrio Base
     let actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
-    if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
+    
+    // Se o cliente definiu um preço sugerido, esse preço torna-se a taxa base
+    if (clientSuggestedPrice !== null && clientSuggestedPrice !== undefined && clientSuggestedPrice > 0) {
+      actualBaseFare = Number(clientSuggestedPrice);
+    } 
+    // Caso contrário, se o provedor tem um preço base definido
+    else if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
       actualBaseFare = customBasePrice;
     }
 
@@ -210,9 +216,15 @@ class PricingService {
     let totalPostMultipliers = subtotal * timeMult * weatherMult * demandMult * trafficMult * providerRatingMult;
 
     // Minimums
-    if (vehicle && totalPostMultipliers < vehicle.minFare) totalPostMultipliers = vehicle.minFare;
+    if (vehicle && totalPostMultipliers < vehicle.minFare) {
+      actualBaseFare += (vehicle.minFare - totalPostMultipliers);
+      totalPostMultipliers = vehicle.minFare;
+    }
     const minSystemFare = service.pricingMode === 'PROVIDER_DEFINED' ? engineConfig.minFareService : engineConfig.minFareDelivery;
-    if (totalPostMultipliers < minSystemFare) totalPostMultipliers = minSystemFare;
+    if (totalPostMultipliers < minSystemFare) {
+      actualBaseFare += (minSystemFare - totalPostMultipliers);
+      totalPostMultipliers = minSystemFare;
+    }
 
     // Arredondamento (multiplos de 10)
     totalPostMultipliers = Math.round(totalPostMultipliers * 100) / 100; // Nao arredondar para a dezena, apenas usar duas casas decimais

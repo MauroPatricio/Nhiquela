@@ -113,7 +113,26 @@ router.put(
 
       // Bloquear se o motorista tem um serviço ativo aguardando confirmação do cliente
       if (driver.deliveryman && driver.deliveryman.hasActiveService) {
-        return res.status(403).send({ message: 'Tem um serviço em curso. Aguarde que o cliente confirme a conclusão do serviço antes de aceitar novos pedidos.' });
+        // SELF-HEALING: Verificar se realmente existe um serviço ativo na BD
+        const activeTrip = await RequestService.findOne({
+          'deliveryman.id': driver._id,
+          deleted: false,
+          status: { $in: ['Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
+        });
+
+        const activeOrder = await Order.findOne({
+          'deliveryman.id': driver._id,
+          deleted: false,
+          status: { $in: ['Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
+        });
+
+        if (!activeTrip && !activeOrder) {
+          // O motorista ficou preso com a flag true (provavelmente devido a um delete antigo). Auto-corrigir!
+          await User.updateOne({ _id: driver._id }, { $set: { 'deliveryman.hasActiveService': false } });
+          driver.deliveryman.hasActiveService = false;
+        } else {
+          return res.status(403).send({ message: 'Tem um serviço em curso. Aguarde que o cliente confirme a conclusão do serviço antes de aceitar novos pedidos.' });
+        }
       }
     }
 
@@ -289,7 +308,15 @@ router.get(
 
     drivers = drivers.filter(d => !busyDriverIds.has(d._id.toString()));
   
-
+    // EXCLUIR MOTORISTAS SEM SALDO SUFICIENTE
+    const { hasSufficientBalance } = await import('../services/walletService.js');
+    const driversWithBalance = [];
+    for (const d of drivers) {
+      if (await hasSufficientBalance(d._id, d)) {
+        driversWithBalance.push(d);
+      }
+    }
+    drivers = driversWithBalance;
     if (!lat || !lng) {
       return res.send({ drivers });
     }

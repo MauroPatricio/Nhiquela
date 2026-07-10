@@ -17,7 +17,7 @@ export default function useTrackingSocket(orderId) {
     const isDev = process.env.NODE_ENV !== 'production';
     let socketUrl = process.env.EXPO_PUBLIC_SOCKET_URL || process.env.REACT_APP_SOCKET_URL;
     if (!socketUrl) {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5002' : 'https://api.nhiquelaservicos.com');
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.3:5000' : 'https://api.nhiquelaservicos.com');
       socketUrl = apiUrl.replace('/api', '');
     }
     const socket = io(socketUrl, { transports: ['websocket'] });

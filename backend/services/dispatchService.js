@@ -9,7 +9,7 @@ export const runIntelligentDispatch = async (io) => {
       isSearching: true,
       deleted: false,
       isCanceled: false
-    });
+    }).populate('serviceId', 'name').populate('user', 'name phoneNumber profileImage');
 
     if (activeRequests.length === 0) return;
 
@@ -81,9 +81,10 @@ export const runIntelligentDispatch = async (io) => {
           request.lastDispatchTime = now;
           await request.save();
 
-          // 3. Emitir evento apenas para estes 5 motoristas
+          // 3. Emitir evento apenas para estes motoristas
           nearestDrivers.forEach(driver => {
-            io.to(`driver_${driver._id.toString()}`).emit('new_order', request);
+            const payload = { ...request.toObject(), type: 'requestService' };
+            io.to(`driver_${driver._id.toString()}`).emit('new_order', payload);
           });
           
           console.log(`[Intelligent Dispatch] Pedido ${request._id} enviado para ${nearestDrivers.length} motoristas no raio de ${request.searchRadius}m`);

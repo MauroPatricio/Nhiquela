@@ -6,7 +6,7 @@ import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
 import PricingService from '../services/PricingService.js';
-
+import createNotification from '../utils/createNotification.js';
 
 const requestServiceer = express.Router();
 
@@ -48,12 +48,12 @@ requestServiceer.get(
     const page = req.query.page || 1;
     const pageSize = 10    
     
-    const requests = await requestServiceer.find({
+    const requests = await RequestService.find({
       isPaid: {$eq: true},
       deleted: { $eq: false},
     }).populate('user', 'name phoneNumber profileImage').skip(pageSize *(page -1)).limit(pageSize).sort({createdAt: -1});
 
-    const countRequests = await requestServiceer.countDocuments({
+    const countRequests = await RequestService.countDocuments({
       isPaid: {$eq: true},
       deleted: { $eq: false },
     });
@@ -71,7 +71,7 @@ requestServiceer.get(
     const activeTrip = await RequestService.findOne({
       user: req.user._id,
       deleted: false,
-      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento'] }
+      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Em trânsito'] }
     }).populate('user', 'name phoneNumber profileImage');
 
     if (activeTrip) {
@@ -91,7 +91,7 @@ requestServiceer.post(
     const existingActiveTrip = await RequestService.findOne({
       user: req.user._id,
       deleted: false,
-      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento'] }
+      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Em trânsito'] }
     });
 
     if (existingActiveTrip) {
@@ -111,6 +111,7 @@ requestServiceer.post(
       goodType: req.body.goodType,
       transportType:  req.body.transportType,
       deliverCity:  req.body.deliverCity,
+      reason: req.body.reason,
       origin:  req.body.origin,
       destination:  req.body.destination,
       originDetails: req.body.originDetails || null,
@@ -151,6 +152,8 @@ requestServiceer.post(
           serviceId,
           originLoc: { lat: originDetails.lat, lng: originDetails.lng },
           destLoc:   { lat: destinationDetails.lat, lng: destinationDetails.lng },
+          clientSuggestedPrice: req.body.deliveryPrice,
+          providerId: req.body.targetDriverId
         });
 
         // Guardar snapshot completo e imutável do cálculo
@@ -193,13 +196,26 @@ requestServiceer.post(
 
 
     const requestService = await newOrder.save();
-    await requestService.populate('user', 'name phoneNumber profileImage');
+    await requestService.populate([
+      { path: 'user', select: 'name phoneNumber profileImage' },
+      { path: 'serviceId', select: 'name' }
+    ]);
 
     const io = req.app.get('io');
     if (io) {
       if (newOrder.targetDriverId) {
         const orderPayload = { ...requestService.toObject(), type: 'requestService' };
         io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
+        
+        // Push notification para o motorista alvo
+        const targetDriver = await User.findById(newOrder.targetDriverId);
+        if (targetDriver && targetDriver.pushToken) {
+          await createNotification({
+            message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
+            receiver_id: targetDriver._id,
+            pushToken: targetDriver.pushToken
+          });
+        }
         
         // 45s timeout logic
         setTimeout(async () => {
@@ -323,6 +339,11 @@ requestServiceer.delete(
       requestService.status = 'Cancelado';
       requestService.targetDriverId = null;
       if (requestService.deliveryman && requestService.deliveryman.id) {
+        // 🔥 CORREÇÃO: Libertar o motorista ao apagar o pedido
+        await User.updateOne(
+          { _id: requestService.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
         requestService.deliveryman.id = null;
       }
 
@@ -397,6 +418,7 @@ requestServiceer.put(
       order.status = 'Aceite pelo entregador';
       order.stepStatus = 4;
       order.isAccepted = true;
+      order.acceptedAt = new Date();
       order.isSearching = false;
       order.deliveryman = deliverymanData;
 
@@ -457,7 +479,8 @@ requestServiceer.put(
     if (order) {
       order.status = 'Em trânsito';
       order.isintransit = true;
-      order.stepStatus=5;
+      order.stepStatus = 5;
+      order.pickupStartedAt = new Date();
 
       await order.save();
 
@@ -599,7 +622,7 @@ requestServiceer.put(
 
       let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n Nhiquela Shop`; 
     
-      // sendEmailOrderStatus(req,mailText, order, res);
+      sendEmailOrderStatus(req,mailText, order, res);
 
       // WebSocket Optimization — notificar cliente e motorista
       const io = req.app.get('io');
@@ -650,7 +673,13 @@ requestServiceer.put(
 
         order.isCanceled = true;
         order.isAccepted = false;
-        order.status = 'Cancelado';
+        
+        if (req.user.isDeliveryMan && !wasAccepted) {
+          order.status = 'Motorista indisponível';
+        } else {
+          order.status = 'Cancelado';
+        }
+        
         order.stepStatus = 7;
         order.canceledReason = req.body.message;
 
@@ -782,6 +811,47 @@ requestServiceer.put(
       res.send({ message: 'Estado atualizado com sucesso', order: order });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+// Reenviar notificação para o motorista
+requestServiceer.post(
+  '/:id/resend',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+    if (order && (order.status === 'Pendente' || order.status === 'Motorista indisponível')) {
+      const targetDriverId = req.body.targetDriverId || order.targetDriverId;
+      
+      if (targetDriverId) {
+        order.status = 'Pendente';
+        order.targetDriverId = targetDriverId;
+        order.canceledReason = null;
+        await order.save();
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`driver_${targetDriverId}`).emit('new_order', order);
+          
+          // Push notification para o motorista alvo
+          const targetDriverUser = await User.findById(targetDriverId);
+          if (targetDriverUser && targetDriverUser.pushToken) {
+            await createNotification({
+              message: `Novo pedido de viagem! Origem: ${order.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
+              receiver_id: targetDriverUser._id,
+              pushToken: targetDriverUser.pushToken
+            });
+          }
+          // Atualiza também o ecrã do cliente para refletir o estado 'Pendente' e apagar a mensagem de erro
+          io.to(`order_${order._id}`).emit('order_updated', order);
+        }
+        res.send({ message: 'Notificação reenviada com sucesso' });
+      } else {
+        res.status(400).send({ message: 'Nenhum motorista alvo definido para reenvio' });
+      }
+    } else {
+      res.status(400).send({ message: 'Não é possível reenviar este pedido' });
     }
   })
 );

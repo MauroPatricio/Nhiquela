@@ -14,8 +14,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: process.env.SMTP_USER || 'mauro.patricio1@gmail.com',      // Your email address
-    pass: process.env.SMTP_PASS,         // Your email password
+    user: process.env.EMAIL_USER || 'nhiquelaservicos@gmail.com',      // Your email address
+    pass: process.env.EMAIL_PASSWORD || 'kuzw tvds iikq elkx',         // Your email password (fallback from commented code)
   },
   tls:{
     rejectUnauthorized: false
@@ -153,7 +153,7 @@ export const sendEmailOrderToAdminAndUser = async (req, msg, order, res)=>{
 const test ='nhiquelaservicosconsultoria@gmail.com'
 // Email message configuration
 const mailOptions = {
-  from: 'mauro.patricio1@gmail.com',      // Your email address
+  from: process.env.EMAIL_FROM || 'SOLICITACAO DE RECARGA <noreply@nhiquelaservicos.com>',      // Your email address
   to: [ test, email],       
   subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
@@ -184,7 +184,7 @@ export const sendEmailOrderToSeller = async (req, msg,seller, order, res)=>{
   if(userOrderEmail){
 // Email message configuration
 const mailOptions = {
-  from: 'mauro.patricio1@gmail.com',      // Your email address
+  from: process.env.EMAIL_FROM || 'SOLICITACAO DE RECARGA <noreply@nhiquelaservicos.com>',      // Your email address
   to: [ sellerEmail, userOrderEmail],       
   subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
@@ -214,7 +214,7 @@ export const sendEmailOrderStatusToSellerAndDeliver = async (req, msg, seller, o
   if(userOrderEmail){
 // Email message configuration
 const mailOptions = {
-  from: 'mauro.patricio1@gmail.com',      // Your email address
+  from: process.env.EMAIL_FROM || 'SOLICITACAO DE RECARGA <noreply@nhiquelaservicos.com>',      // Your email address
   to: [ sellerEmail, userOrderEmail],       
   subject: `Nhiquela Shop - Acompanhamento do Pedido - pedido Nº ${order.code}`,                
   text: msg,
@@ -232,16 +232,20 @@ const mailOptions = {
   }
 }
 
-export const sendEmailTopUpRequestAdmin = async (driverName, amount, description, emails) => {
+export const sendEmailTopUpRequestAdmin = async (driverName, amount, description, emails, isManual = true) => {
   if (emails && emails.length > 0) {
+    const title = isManual ? 'Novo Pedido de Recarga Pendente' : 'Nova Recarga Efetuada';
+    const text = isManual 
+      ? `O motorista <b>${driverName}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.<br><br>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.`
+      : `O motorista <b>${driverName}</b> efetuou com sucesso uma recarga automática na carteira no valor de <b>${amount} MT</b>.`;
+
     const mailOptions = {
-      from: 'Nhiquela Shop <nhiquelaservicosconsultoria@gmail.com>',
+      from: process.env.EMAIL_FROM || 'SOLICITACAO DE RECARGA <noreply@nhiquelaservicos.com>',
       to: emails,
-      subject: `Nhiquela - Novo Pedido de Recarga Pendente`,
-      html: `<h2>Novo Pedido de Recarga Pendente</h2>
-             <p>O motorista <b>${driverName}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.</p>
-             <p>Detalhes: ${description}</p>
-             <p>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.</p>`,
+      subject: `Nhiquela - ${title}`,
+      html: `<h2>${title}</h2>
+             <p>${text}</p>
+             <p>Detalhes: ${description}</p>`,
     };
 
     transporter.sendMail(mailOptions, function (error, info) {

@@ -19,6 +19,7 @@ export type Trip = {
   originalData: any;
   isProcessing?: boolean;
   serviceName?: string;
+  serviceMotive?: string;
 };
 
 export type WebSocketOrderData = {

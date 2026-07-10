@@ -10,6 +10,7 @@ import {
   Animated,
   Modal,
   RefreshControl,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -71,7 +72,12 @@ export default function TripScreen({ navigation }: any) {
       }
 
       // 🔹 FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestServices)
-      const formattedTrips = apiTrips.map((trip: any) => {
+      const hiddenTripsString = await AsyncStorage.getItem("hiddenTrips");
+      const hiddenTrips = hiddenTripsString ? JSON.parse(hiddenTripsString) : [];
+
+      const formattedTrips = apiTrips
+        .filter((trip: any) => !hiddenTrips.includes(trip.id || trip._id))
+        .map((trip: any) => {
         const isRequestService = trip.type === 'requestService';
         
         const distance = trip.distance || 0;
@@ -117,10 +123,20 @@ export default function TripScreen({ navigation }: any) {
           rewardPrice = trip.deliveryPrice || trip.totalPrice || 0;
         }
 
+        let serviceNameStr = "Pedido de Loja";
+        if (isRequestService) {
+          if (trip.serviceId && trip.serviceId.name) {
+            serviceNameStr = trip.serviceId.name;
+          } else {
+            serviceNameStr = (trip.name && !trip.name.match(/^[0-9a-fA-F]{24}$/)) ? trip.name : (trip.goodType || "Serviço");
+          }
+        }
+
         return {
           id: trip.id || trip._id || Math.random().toString(),
           passengerId: trip.user?._id || trip.user?.id || trip.user || trip.userId || trip.client || "Não disponível",
-          type: isRequestService ? (trip.name && !trip.name.match(/^[0-9a-fA-F]{24}$/) ? trip.name : (trip.goodType || "Serviço")) : "Pedido de Loja",
+          passengerPhoto: trip.user?.profileImage || trip.user?.photo || null,
+          type: serviceNameStr,
           passenger: passengerName,
           pickup: pickupLoc,
           destination: destLoc,
@@ -153,6 +169,36 @@ export default function TripScreen({ navigation }: any) {
       "Compartilhar Viagem",
       `Detalhes da viagem com ${trip.passenger} copiados para a área de transferência.`,
       [{ text: "OK", style: "default" }]
+    );
+  };
+
+  // 🔹 APAGAR REGISTO DA VIAGEM LOCALMENTE
+  const confirmDeleteTrip = (trip: any) => {
+    Alert.alert(
+      "Apagar Registo",
+      "Tem a certeza que deseja remover esta viagem do seu histórico? Esta acção não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Apagar", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const hiddenTripsString = await AsyncStorage.getItem("hiddenTrips");
+              const hiddenTrips = hiddenTripsString ? JSON.parse(hiddenTripsString) : [];
+              hiddenTrips.push(trip.id);
+              await AsyncStorage.setItem("hiddenTrips", JSON.stringify(hiddenTrips));
+              
+              // Remove do estado local
+              setTrips(prev => prev.filter(t => t.id !== trip.id));
+              
+              Alert.alert("Sucesso", "O registo da viagem foi removido do seu histórico.");
+            } catch (err) {
+              Alert.alert("Erro", "Não foi possível apagar o registo.");
+            }
+          }
+        }
+      ]
     );
   };
 
@@ -200,7 +246,10 @@ export default function TripScreen({ navigation }: any) {
         <View style={styles.tripHeader}>
           <View style={styles.passengerInfo}>
             <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.passengerName}>{item.passenger}</Text>
+            <View>
+              <Text style={styles.passengerName}>{item.passenger}</Text>
+              <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{item.type}</Text>
+            </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: item.statusColor }]}>
             <Ionicons name={item.statusIcon} size={14} color="#FFF" />
@@ -253,6 +302,16 @@ export default function TripScreen({ navigation }: any) {
             <Ionicons name="share-outline" size={16} color="#666" />
             <Text style={styles.shareButtonText}>Compartilhar</Text>
           </TouchableOpacity>
+
+          {item.status === "Concluída" && (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => confirmDeleteTrip(item)}
+            >
+              <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
+              <Text style={styles.deleteButtonText}>Apagar</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -342,11 +401,19 @@ export default function TripScreen({ navigation }: any) {
 
                   <View style={styles.modalSection}>
                     <View style={styles.modalRow}>
-                      <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
                       <Text style={styles.modalTextTitle}>Passageiro/Cliente</Text>
                     </View>
-                    <Text style={styles.modalTextValue}>{selectedTrip.passenger}</Text>
-                    <Text style={{ fontSize: 12, color: "#9CA3AF", marginLeft: 32, marginTop: 2 }}>ID: {selectedTrip.passengerId}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                      {selectedTrip.passengerPhoto ? (
+                        <Image source={{ uri: selectedTrip.passengerPhoto.startsWith('http') ? selectedTrip.passengerPhoto : `https://api.nhiquelaservicos.com/${selectedTrip.passengerPhoto}` }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12, backgroundColor: '#E5E7EB' }} />
+                      ) : (
+                        <Ionicons name="person-circle-outline" size={40} color={COLORS.primary} style={{ marginRight: 12 }} />
+                      )}
+                      <View>
+                        <Text style={styles.modalTextValue}>{selectedTrip.passenger}</Text>
+                        <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>ID: {selectedTrip.passengerId}</Text>
+                      </View>
+                    </View>
                   </View>
 
                   <View style={styles.modalDivider} />
@@ -543,7 +610,21 @@ const styles = StyleSheet.create({
   shareButtonText: {
     fontSize: 12,
     fontWeight: "500",
-    color: COLORS.gray,
+    color: "#666",
+    marginLeft: 4,
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 78, 78, 0.1)",
+  },
+  deleteButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FF4E4E",
     marginLeft: 4,
   },
   

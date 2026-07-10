@@ -16,7 +16,22 @@ export const getFinancialConfig = async () => {
     engineConfig = new PricingEngine();
     await engineConfig.save();
   }
-  return engineConfig.financialEngine;
+  
+  // Clone to avoid modifying mongoose document directly
+  const financialEngine = { ...engineConfig.financialEngine };
+  
+  try {
+    const Settings = (await import('../models/SettingsModel.js')).default;
+    const commSetting = await Settings.findOne({ key: 'driver_commission_rate' });
+    if (commSetting && commSetting.value !== undefined) {
+      // Divide by 100 because the web dashboard sends it as a percentage (e.g. 15 for 15%)
+      financialEngine.driverCommissionRate = Number(commSetting.value) / 100;
+    }
+  } catch (err) {
+    console.error('Erro ao ler comissao do settings:', err);
+  }
+
+  return financialEngine;
 };
 
 /** Get or create a wallet for a user or partner */

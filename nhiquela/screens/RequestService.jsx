@@ -334,10 +334,10 @@ export default function RequestServiceSimple() {
             weightKg: 5
           });
           
-          if (!isDistance) {
-            setPrice(service?.basePrice || 0);
+          if (data && data.price > 0) {
+            setPrice(data.price);
           } else {
-            setPrice(data.price || 0);
+            setPrice(service?.baseFare || 0);
           }
           // NAO forcar snap aqui — deixar o utilizador controlar a posicao do sheet
           if (data.routeCoordinates && data.routeCoordinates.length > 0) {
@@ -460,10 +460,13 @@ export default function RequestServiceSimple() {
       }
 
       let finalPrice = price;
-      if (driver.allowCustomPrice && driver.customPrice) {
-        finalPrice = driver.customPrice * (driver.distance || 1);
-      } else if (service?.basePrice) {
-        finalPrice = (service.basePrice || price) * (driver.distance || 1);
+      const providerPrice = driver.deliveryman?.customPrice || driver.deliveryman?.assigned_base_fee;
+      if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
+        finalPrice = driver.deliveryman.customPrice;
+      } else if (providerPrice) {
+        finalPrice = providerPrice || price;
+      } else if (service?.baseFare) {
+        finalPrice = service.baseFare || price;
       }
 
       const payload = {
@@ -485,6 +488,7 @@ export default function RequestServiceSimple() {
           lng: destCoord.lng
         },
         paymentOption: 'Dinheiro',
+        reason: reason,
         description: reason,
         paymentMethod: 'Dinheiro',
         deliveryPrice: finalPrice,  // Backend irá substituir pelo valor calculado server-side
@@ -521,21 +525,25 @@ export default function RequestServiceSimple() {
                 setSelectedDriverForRequest(data.targetDriver || { _id: data.targetDriverId, name: 'Motorista' });
                 setWaitingForDriver(true);
               } else {
+                setWaitingForDriver(false);
                 setIsSearching(true);
               }
             } else {
+              setWaitingForDriver(false);
               setActiveTripData(data);
             }
           } else {
-            Alert.alert("Atenção", "Você já tem uma viagem activa.");
+            setWaitingForDriver(false);
+            setShowWarningModal({ visible: true, message: 'Você já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
           }
         } catch (e) {
-          Alert.alert("Atenção", "Você já tem uma viagem activa.");
+          setWaitingForDriver(false);
+          setShowWarningModal({ visible: true, message: 'Você já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
         }
       } else {
-        Alert.alert("Erro", "Falha ao criar o pedido.");
+        setWaitingForDriver(false);
+        setShowWarningModal({ visible: true, message: 'Falha ao criar o pedido. Verifique sua conexão e tente novamente.' });
       }
-      setWaitingForDriver(false);
     }
   };
 
@@ -597,13 +605,18 @@ export default function RequestServiceSimple() {
 
       socket.on('order_updated', (updatedOrder) => {
          if (isMounted && updatedOrder._id === currentRequestServiceId) {
-            if (updatedOrder.status === 'Cancelado' || updatedOrder.status === 'Motorista indisponível') {
+            if (updatedOrder.status === 'Motorista indisponível') {
                 setRejectedDriverIds(prev => [...prev, selectedDriverForRequest?._id]);
                 setWaitingForDriver(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
                 Alert.alert('Indisponível', 'O motorista selecionado não está disponível neste momento. Escolha outro motorista ou realize uma nova pesquisa.');
-                // Note: availableDriversList is still populated, so the list modal will show up again automatically.
+            } else if (updatedOrder.status === 'Cancelado') {
+                setRejectedDriverIds(prev => [...prev, selectedDriverForRequest?._id]);
+                setWaitingForDriver(false);
+                setSelectedDriverForRequest(null);
+                setCurrentRequestServiceId(null);
+                // Sem alert, pois foi o próprio cliente que cancelou ou admin
             } else if (updatedOrder.status === 'Aceite pelo entregador') {
                 setWaitingForDriver(false);
                 setActiveTripData(updatedOrder);
@@ -1074,8 +1087,8 @@ export default function RequestServiceSimple() {
             
             <ScrollView showsVerticalScrollIndicator={false}>
               {availableDriversList.map((driver, index) => {
-                let baseFare = driver.deliveryman?.customPrice || driver.deliveryman?.assigned_base_fee || service?.basePrice || price;
-                let deslocacao = price - (service?.basePrice || price);
+                let baseFare = driver.deliveryman?.customPrice || driver.deliveryman?.assigned_base_fee || service?.baseFare || price;
+                let deslocacao = price - (service?.baseFare || price);
                 if (deslocacao < 0) deslocacao = 0;
                 let finalPrice = baseFare + deslocacao;
                 
@@ -1096,67 +1109,79 @@ export default function RequestServiceSimple() {
                     }}
                   >
                     <Image
-                      source={driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+                      source={driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture ? { uri: driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture } : driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
                       style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#E5E7EB' }}
                     />
                     
                     <View style={{ flex: 1, marginLeft: 15 }}>
                       <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }}>{driver.name}</Text>
                       
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
                         <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
                         <Text style={{ fontSize: 13, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
                           {driver.deliveryman?.rating || 'Novo'}
                         </Text>
+                        
                         <Text style={{ fontSize: 13, color: '#9CA3AF', marginHorizontal: 6 }}>•</Text>
+                        
                         <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
                         <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 4 }}>
-                          {driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
+                          {service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
                         </Text>
+
+                        {!!(driver.deliveryman?.transport_color || driver.deliveryman?.transport_registration) && (
+                          <>
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginHorizontal: 6 }}>•</Text>
+                            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>
+                              {driver.deliveryman?.transport_color || 'Cor não definida'}
+                            </Text>
+                          </>
+                        )}
+
+                        {!!driver.deliveryman?.transport_registration && (
+                          <>
+                            <Text style={{ fontSize: 12, color: '#9CA3AF', marginHorizontal: 6 }}>|</Text>
+                            <View style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#D1D5DB' }}>
+                              <Text style={{ fontSize: 10, color: '#374151', fontWeight: 'bold', letterSpacing: 0.5 }}>
+                                {driver.deliveryman?.transport_registration.toUpperCase()}
+                              </Text>
+                            </View>
+                          </>
+                        )}
                       </View>
                       
-                      {(driver.deliveryman?.transport_color || driver.deliveryman?.transport_registration) && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                          <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>
-                            {driver.deliveryman?.transport_color || 'Cor não definida'}
-                          </Text>
-                          {driver.deliveryman?.transport_registration && (
-                            <>
-                              <Text style={{ fontSize: 12, color: '#9CA3AF', marginHorizontal: 6 }}>|</Text>
-                              <View style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#D1D5DB' }}>
-                                <Text style={{ fontSize: 10, color: '#374151', fontWeight: 'bold', letterSpacing: 0.5 }}>
-                                  {driver.deliveryman?.transport_registration.toUpperCase()}
-                                </Text>
-                              </View>
-                            </>
-                          )}
-                        </View>
-                      )}
-                      
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                        <View style={{ backgroundColor: '#EEF2FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: 8 }}>
-                          <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '600' }}>
-                            A {driver.distance ? driver.distance.toFixed(1) : '?'} km
+                      <View style={{ marginTop: 8, gap: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="map-marker-distance" size={14} color="#4F46E5" style={{ width: 16 }} />
+                          <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '500', marginLeft: 4 }}>
+                            Distância até si: <Text style={{ fontWeight: '700' }}>{driver.distance ? driver.distance.toFixed(1) : '?'} km</Text>
                           </Text>
                         </View>
-                        <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                          <Text style={{ fontSize: 12, color: '#D97706', fontWeight: '600' }}>
-                            ~{driver.distance ? Math.ceil(driver.distance * 2) : '?'} min
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="clock-fast" size={14} color="#D97706" style={{ width: 16 }} />
+                          <Text style={{ fontSize: 12, color: '#D97706', fontWeight: '500', marginLeft: 4 }}>
+                            Chega a si em: <Text style={{ fontWeight: '700' }}>~{driver.distance ? Math.ceil(driver.distance * 2) : '?'} min</Text>
                           </Text>
                         </View>
                       </View>
                     </View>
                     
                     <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>
-                         {baseFare.toFixed(0)} + {deslocacao.toFixed(0)} (Desl.)
+                      <Text style={{ fontSize: 10, color: '#6B7280', marginBottom: 2, fontWeight: '500' }}>
+                         Valor cobrado pelo prestador
                       </Text>
-                      <Text style={{ fontSize: 16, fontWeight: '800', color: '#9800FF' }}>
+                      <Text style={{ fontSize: 11, color: '#4B5563', marginBottom: 4 }}>
+                         {baseFare.toFixed(0)} + {deslocacao.toFixed(0)} MT
+                      </Text>
+                      <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF' }}>
                          {finalPrice.toFixed(0)} MT
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
-                         ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                        <MaterialCommunityIcons name="flag-checkered" size={12} color="#6B7280" />
+                        <Text style={{ fontSize: 10, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
+                           Tempo de chegada ao destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 );
@@ -1211,20 +1236,37 @@ export default function RequestServiceSimple() {
               opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
             }]} />
             <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
-              <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+              {waitingCountdown > 0 ? (
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#A855F7' }}>{waitingCountdown}</Text>
+              ) : (
+                <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+              )}
             </View>
           </View>
 
-          <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-            A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
-          </Text>
-          <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-            Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
-          </Text>
+          {waitingCountdown > 0 ? (
+            <>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
+              </Text>
+              <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                O motorista está a demorar...
+              </Text>
+              <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                Pode continuar a esperar ou procurar novos motoristas disponíveis.
+              </Text>
+            </>
+          )}
 
           {selectedDriverForRequest && (() => {
-            let selectedBaseFare = selectedDriverForRequest.deliveryman?.customPrice || selectedDriverForRequest.deliveryman?.assigned_base_fee || service?.basePrice || price;
-            let selectedDeslocacao = price - (service?.basePrice || price);
+            let selectedBaseFare = selectedDriverForRequest.deliveryman?.customPrice || selectedDriverForRequest.deliveryman?.assigned_base_fee || service?.baseFare || price;
+            let selectedDeslocacao = price - (service?.baseFare || price);
             if (selectedDeslocacao < 0) selectedDeslocacao = 0;
             let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
 
@@ -1241,23 +1283,70 @@ export default function RequestServiceSimple() {
             );
           })()}
 
-          <TouchableOpacity
-            style={{
-              marginTop: 24,
-              paddingVertical: 12,
-              paddingHorizontal: 32,
-              backgroundColor: '#FEF2F2',
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: '#FECACA',
-              width: '100%',
-              alignItems: 'center',
-            }}
-            activeOpacity={0.8}
-            onPress={handleCancelPendingRequest}
-          >
-            <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
-          </TouchableOpacity>
+          {waitingCountdown > 0 ? (
+            <TouchableOpacity
+              style={{
+                marginTop: 24,
+                paddingVertical: 12,
+                paddingHorizontal: 32,
+                backgroundColor: '#FEF2F2',
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#FECACA',
+                width: '100%',
+                alignItems: 'center',
+              }}
+              activeOpacity={0.8}
+              onPress={handleCancelPendingRequest}
+            >
+              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: '100%', marginTop: 24, gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 12,
+                  backgroundColor: '#7F00FF',
+                  borderRadius: 14,
+                  alignItems: 'center',
+                }}
+                activeOpacity={0.8}
+                onPress={async () => {
+                  setWaitingCountdown(45);
+                  try {
+                    const storedUserData = await AsyncStorage.getItem('userData');
+                    const token = storedUserData ? JSON.parse(storedUserData).token : '';
+                    await api.post(`/request-service/${currentRequestServiceId}/resend`, 
+                      { targetDriverId: selectedDriverForRequest?._id }, 
+                      { headers: { authorization: `Bearer ${token}` } }
+                    );
+                  } catch(e) { console.log('Erro ao reenviar', e); }
+                }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar à espera</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 12,
+                  backgroundColor: '#FEF2F2',
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: '#FECACA',
+                  alignItems: 'center',
+                }}
+                activeOpacity={0.8}
+                onPress={async () => {
+                  await handleCancelPendingRequest();
+                  setRejectedDriverIds([]);
+                  setIsSearching(true);
+                  startPulse();
+                }}
+              >
+                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Procurar novos motoristas</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>

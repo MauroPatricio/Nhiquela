@@ -48,7 +48,7 @@ export const cancelOrderByDeliveryman = async (orderId: string, isRequestService
   const endpoint = isRequestService
     ? `/request-service/${orderId}/cancel`
     : ENDPOINTS.CANCEL_ORDER_BY_DELIVERYMAN(orderId);
-  const response = await apiClient.put(endpoint);
+  const response = await apiClient.put(endpoint, { message: 'Motorista recusou a viagem' });
   return response.data;
 };
 

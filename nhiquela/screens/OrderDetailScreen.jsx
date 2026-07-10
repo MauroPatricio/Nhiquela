@@ -51,12 +51,43 @@ const OrderDetailsScreen = () => {
   const [driverSpeed, setDriverSpeed] = useState(null);
   const [etaDistance, setEtaDistance] = useState(null);
   const [etaDuration, setEtaDuration] = useState(null);
+  const [indisponivelCountdown, setIndisponivelCountdown] = useState(45);
 
   const handleUpdateTracking = useCallback(({ speed, distance, duration }) => {
     if (speed !== undefined) setDriverSpeed(speed);
     if (distance !== undefined) setEtaDistance(distance);
     if (duration !== undefined) setEtaDuration(duration);
   }, []);
+
+  useEffect(() => {
+    let timer;
+    if (currentOrder?.status === 'Motorista indisponível' && indisponivelCountdown > 0) {
+      timer = setInterval(() => {
+        setIndisponivelCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (currentOrder?.status === 'Motorista indisponível' && indisponivelCountdown === 0) {
+      if (isRequestService && currentOrder?.serviceId) {
+        navigation.reset({ 
+          index: 1, 
+          routes: [
+            { name: 'BottomNavigation' },
+            { 
+              name: 'RequestService', 
+              params: { 
+                selectedService: { 
+                  _id: currentOrder.serviceId, 
+                  name: currentOrder.name || currentOrder.goodType || 'Serviço' 
+                } 
+              } 
+            }
+          ] 
+        });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
+      }
+    }
+    return () => clearInterval(timer);
+  }, [currentOrder, indisponivelCountdown, navigation, isRequestService]);
 
   useEffect(() => {
     checkIfUserExist();
@@ -392,6 +423,74 @@ const OrderDetailsScreen = () => {
 
       {/* Ações */}
       <View style={styles.actionsContainer}>
+        {currentOrder.status === 'Motorista indisponível' && (
+          <View style={{
+            backgroundColor: '#FFF',
+            padding: 16,
+            borderRadius: 16,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: '#F3F4F6',
+            shadowColor: '#EF4444',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 3,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <View style={{ backgroundColor: '#FEF2F2', padding: 8, borderRadius: 20, marginRight: 10 }}>
+                <Ionicons name="close-circle" size={24} color="#EF4444" />
+              </View>
+              <Text style={{ color: '#111827', fontSize: 16, fontWeight: '700' }}>
+                Motorista Indisponível
+              </Text>
+            </View>
+            <Text style={{ color: '#6B7280', fontSize: 14, lineHeight: 22, marginBottom: 16 }}>
+              O motorista não pôde realizar esta viagem. Será redirecionado em <Text style={{color: '#EF4444', fontWeight: 'bold'}}>{indisponivelCountdown}s</Text> para pesquisar novos motoristas.
+            </Text>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              style={{ width: '100%', overflow: 'hidden', borderRadius: 12 }}
+              onPress={() => {
+                if (isRequestService && currentOrder?.serviceId) {
+                  navigation.reset({ 
+                    index: 1, 
+                    routes: [
+                      { name: 'BottomNavigation' },
+                      { 
+                        name: 'RequestService', 
+                        params: { 
+                          selectedService: { 
+                            _id: currentOrder.serviceId, 
+                            name: currentOrder.name || currentOrder.goodType || 'Serviço' 
+                          } 
+                        } 
+                      }
+                    ] 
+                  });
+                } else {
+                  navigation.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
+                }
+              }}
+            >
+              <LinearGradient 
+                colors={['#A855F7', '#7E22CE']} 
+                start={{ x: 0, y: 0 }} 
+                end={{ x: 1, y: 1 }}
+                style={{
+                  flexDirection: 'row',
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="search" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Procurar Novamente</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {currentOrder.status === 'No destino indicado' && (
           <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
             <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>

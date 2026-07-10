@@ -1,9 +1,9 @@
-﻿import express from 'express';
+import express from 'express';
 import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import VehicleType from '../models/VehicleTypeModel.js';
-import { isAuth } from '../utils.js';
+import { isAuth, sendEmailTopUpRequestAdmin } from '../utils.js';
 import mpesa from 'mpesa-node-api';
 import config from '../config.js';
 
@@ -117,6 +117,14 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
     const successMessage = isManualDeposit 
       ? 'O seu pedido de recarga foi recebido e está pendente de validação pela nossa equipa.'
       : 'Saldo recarregado com sucesso!';
+
+    await sendEmailTopUpRequestAdmin(
+      req.user.name || 'Utilizador',
+      amount,
+      description || (isManualDeposit ? 'Recarga manual via app' : 'Recarga M-Pesa / e-Mola via app'),
+      ['mauro.patricio1@gmail.com', 'nhiquelaservicos@gmail.com'],
+      isManualDeposit
+    );
 
     return res.json({ message: successMessage, balance });
   } catch (error) {
