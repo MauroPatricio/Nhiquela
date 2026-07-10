@@ -215,7 +215,12 @@ class PricingService {
     let demandMult = engineConfig.demandMultipliers[demandLevel] || 1.0;
     let trafficMult = engineConfig.trafficMultipliers[trafficCondition] || 1.0;
 
-    let totalPostMultipliers = subtotal * timeMult * weatherMult * demandMult * trafficMult * providerRatingMult;
+    let totalPostMultipliers;
+    if (overrideDistance) {
+      totalPostMultipliers = subtotal; // Skip multipliers if client suggested price is used
+    } else {
+      totalPostMultipliers = subtotal * timeMult * weatherMult * demandMult * trafficMult * providerRatingMult;
+    }
 
     // Minimums
     if (vehicle && totalPostMultipliers < vehicle.minFare) {
