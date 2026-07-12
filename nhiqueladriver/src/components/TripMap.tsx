@@ -295,7 +295,8 @@ export default function TripMap({
           setElapsedSeconds(elapsed > 0 ? elapsed : 0);
         }
       }, 1000);
-    } else {
+    } else if (stepStatus !== 7) {
+      // Se não for 7 (Concluído), reinicia. Se for 7, congela o valor atual para o ecrã final.
       setElapsedSeconds(0);
     }
     return () => clearInterval(interval);
@@ -569,18 +570,18 @@ export default function TripMap({
       )}
 
       {/* 🔥 CRONÓMETRO (TEMPO DECORRIDO) */}
-      {(stepStatus === 4 || stepStatus === 5 || stepStatus === 6) && (
+      {(stepStatus === 4 || stepStatus === 5 || stepStatus === 6 || stepStatus === 7) && (
         <View style={styles.stopwatchBox}>
           <Ionicons name="stopwatch" size={18} color="#FFF" style={styles.stopwatchIcon} />
           <Text style={styles.stopwatchText}>{formatTime(elapsedSeconds)}</Text>
           <Text style={styles.stopwatchLabel}>
-            {stepStatus === 4 ? "Até Recolha" : stepStatus === 5 ? "Em Viagem" : "A Aguardar Cliente"}
+            {stepStatus === 4 ? "Até Recolha" : stepStatus === 5 ? "Em Viagem" : stepStatus === 6 ? "A Aguardar Cliente" : "Viagem Concluída"}
           </Text>
         </View>
       )}
 
-      {/* 🔥 DISTÂNCIA (APENAS SE TEM ROTA) */}
-      {(distance !== null && distance > 0) && shouldDrawRoute && (
+      {/* 🔥 DISTÂNCIA (APENAS SE TEM ROTA E NÃO ESTÁ CONCLUÍDA) */}
+      {(distance !== null && distance > 0) && shouldDrawRoute && stepStatus !== 7 && (
         <View style={styles.distanceBox}>
           <Ionicons name="speedometer" size={16} color="#FFF" style={styles.distanceIcon} />
           <Text style={styles.distanceText}>{distance.toFixed(1)} km</Text>

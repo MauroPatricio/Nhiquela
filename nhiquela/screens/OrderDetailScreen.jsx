@@ -8,7 +8,8 @@ import {
   Modal,
   TextInput,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  Share
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +43,10 @@ const OrderDetailsScreen = () => {
   const [isRequestService, setIsRequestService] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(!item);
+  
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [review, setReview] = useState('');
   const navigation = useNavigation();
   const toast = useToast();
 
@@ -70,6 +75,20 @@ const OrderDetailsScreen = () => {
     if (distance !== undefined) setEtaDistance(distance);
     if (duration !== undefined) setEtaDuration(duration);
   }, []);
+
+  const handleShareTrip = async () => {
+    if (currentOrder && currentOrder._id) {
+      try {
+        const shareUrl = `https://app.nhiquela.com/track/${currentOrder._id}`;
+        await Share.share({
+          message: `Acompanhe a minha viagem na Nhiquela em tempo real: ${shareUrl}`,
+          title: 'Partilhar Viagem'
+        });
+      } catch (error) {
+        console.log('Erro ao partilhar viagem:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     let timer;
@@ -261,6 +280,21 @@ const OrderDetailsScreen = () => {
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
       toast.show('Não foi possível confirmar a entrega.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
+    }
+  };
+
+  const submitRating = async () => {
+    try {
+      await api.post(`/request-service/${currentOrder._id}/rate`, { rating, review }, {
+        headers: { Authorization: `Bearer ${userData.token}` }
+      });
+      toast.show('Avaliação enviada com sucesso!', { type: 'success', placement: 'top' });
+      setRatingModalVisible(false);
+      navigation.goBack();
+    } catch (err) {
+      toast.show('Erro ao enviar avaliação.', { type: 'danger', placement: 'top' });
+      setRatingModalVisible(false);
+      navigation.goBack();
     }
   };
 
@@ -563,6 +597,15 @@ const OrderDetailsScreen = () => {
           </View>
         )}
 
+        {['Aceite', 'A Caminho', 'No destino indicado'].includes(currentOrder.status) && (
+          <TouchableOpacity onPress={handleShareTrip} style={[styles.actionBtn, { marginBottom: 12 }]}>
+            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.gradientBtn}>
+              <Ionicons name="share-social" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Partilhar Viagem ao Vivo</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {currentOrder.status === 'No destino indicado' && (
           <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
             <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
@@ -762,7 +805,11 @@ const OrderDetailsScreen = () => {
               activeOpacity={0.85}
               onPress={() => {
                 setShowFinishSuccessModal(false);
-                navigation.goBack();
+                if (isRequestService && !currentOrder.rating) {
+                  setRatingModalVisible(true);
+                } else {
+                  navigation.goBack();
+                }
               }}
             >
               <LinearGradient
@@ -771,9 +818,70 @@ const OrderDetailsScreen = () => {
                 end={{ x: 1, y: 1 }}
                 style={styles.premiumConfirmGradient}
               >
-                <Text style={styles.premiumConfirmButtonText}>Voltar</Text>
+                <Text style={styles.premiumConfirmButtonText}>Continuar</Text>
               </LinearGradient>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🌟 MODAL PREMIUM — AVALIAÇÃO DO MOTORISTA */}
+      <Modal
+        visible={ratingModalVisible}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="star" size={44} color="#F59E0B" />
+            </View>
+            <Text style={styles.premiumModalTitle}>Avalie o Motorista</Text>
+            <Text style={styles.premiumModalMessage}>Como foi a sua experiência com {currentDeliveryMan?.name || 'o motorista'}?</Text>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 15 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRating(star)}>
+                  <Ionicons name={star <= rating ? "star" : "star-outline"} size={40} color="#F59E0B" style={{ marginHorizontal: 5 }} />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={[styles.modalInput, { width: '100%', minHeight: 80 }]}
+              placeholder="Deixe um comentário (opcional)..."
+              value={review}
+              onChangeText={setReview}
+              multiline
+            />
+            
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setRatingModalVisible(false);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.premiumCancelButtonText}>Pular</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
+                onPress={submitRating}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Avaliar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

@@ -44,6 +44,7 @@ export const generateToken = (user) => {
       phoneNumber: user.phoneNumber,
       isAdmin: user.isAdmin,
       isSeller: user.isSeller,
+      isDeliveryMan: user.isDeliveryMan,
       roleId: user.roleId,
     },
     process.env.JWT_SECRET,
@@ -259,4 +260,38 @@ export const sendEmailTopUpRequestAdmin = async (driverName, amount, description
     console.log('Nenhum email configurado para notificações financeiras.');
   }
 };
+
+import Settings from './models/SettingsModel.js';
+
+export const sendAdminNotificationEmail = async (subject, textHtml) => {
+  try {
+    const emailSetting = await Settings.findOne({ key: 'admin_notification_emails' });
+    let emails = 'mauro.patricio1@gmail.com,nhiquelaservicos@gmail.com';
+    if (emailSetting && emailSetting.value) {
+      emails = emailSetting.value;
+    }
+
+    const emailList = emails.split(',').map(e => e.trim()).filter(e => e);
+
+    if (emailList.length > 0) {
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'NHIQUELA NOTIFICAÇÕES <nhiquelaservicos@gmail.com>',
+        to: emailList,
+        subject: `Nhiquela - ${subject}`,
+        html: `<h2>${subject}</h2><p>${textHtml}</p>`,
+      };
+
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          console.error('Erro ao enviar email de notificação Admin:', error);
+        } else {
+          console.log('Email de notificação Admin enviado:', info.response);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar emails de notificação:', error);
+  }
+};
+
 

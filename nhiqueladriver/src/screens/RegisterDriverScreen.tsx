@@ -54,7 +54,7 @@ interface DriverForm {
 export default function RegisterDriverScreen({ navigation }: any) {
     const [step, setStep] = useState(0);
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string }[]>([]);
+    const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string, description?: string }[]>([]);
     const [colorOptions, setColorOptions] = useState<{ label: string, value: string }[]>([]);
 
     useEffect(() => {
@@ -71,7 +71,8 @@ export default function RegisterDriverScreen({ navigation }: any) {
                 const formatted = filtered.map((item: any) => ({
                     label: item.name,
                     value: item._id, // Usar o ID do serviço
-                    pricingMode: item.pricingMode
+                    pricingMode: item.pricingMode,
+                    description: item.description
                 }));
                 setSubcategories(formatted);
                 
@@ -463,7 +464,14 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                     { label: "Caminhão", value: "caminhao" },
                                 ]}
                             />
-                                {subcategories.find(s => s.value === form.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (
+                            {form.transport_type && subcategories.find(s => s.value === form.transport_type)?.description && (
+                                <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                                    <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic' }}>
+                                        {subcategories.find(s => s.value === form.transport_type)?.description}
+                                    </Text>
+                                </View>
+                            )}
+                            {subcategories.find(s => s.value === form.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (
                                 renderInput("Valor do serviço que presta (MT) *", "assigned_base_fee", "cash-outline", { keyboardType: "numeric", placeholder: "Ex: 500" })
                             )}
                             <SelectField

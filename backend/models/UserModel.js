@@ -134,7 +134,9 @@ const modelSchema = new mongoose.Schema({
         // Permissão para atualizar documentos
         docUpdateStatus: { type: String, enum: ['Nenhum', 'Pendente', 'Aprovado'], default: 'Nenhum' },
         // Controlo de serviço ativo — impede receber novos pedidos até o cliente confirmar conclusão
-        hasActiveService: { type: Boolean, default: false }
+        hasActiveService: { type: Boolean, default: false },
+        averageRating: { type: Number, default: 0 },
+        totalRatings: { type: Number, default: 0 }
     }
 }, {
     timestamps: true

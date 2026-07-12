@@ -1,8 +1,9 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const ProviderSubcategorySchema = new Schema({
   name: { type: String, required: true },
+  order: { type: Number, default: 0 },
   providerTypeId: { type: Schema.Types.ObjectId, ref: 'ProviderType', required: true },
   description: { type: String },
   iconUrl: { type: String },

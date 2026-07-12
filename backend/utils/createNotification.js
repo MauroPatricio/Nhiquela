@@ -21,10 +21,23 @@ export async function createNotification({
   title = 'Nhiquela',
 }) {
   try {
+    let finalPushToken = pushToken;
+    
+    // Auto-lookup token if not provided
+    if (!finalPushToken && receiver_id) {
+      const NotificationToken = (await import('../models/NotificationToken.js')).default;
+      // Busca o Ãºltimo token registado (mais recente) para este utilizador
+      const tokenRecord = await NotificationToken.findOne({ user: receiver_id }).sort({ createdAt: -1 });
+      if (tokenRecord && tokenRecord.deviceToken) {
+        finalPushToken = tokenRecord.deviceToken;
+      }
+    }
+
     // Create notification in database
+    const NotificationModel = (await import('../models/NotificationModel.js')).default;
     const notification = new NotificationModel({
       user: receiver_id,
-      tokenID: pushToken,
+      tokenID: finalPushToken,
       title: title,
       body: message,
       data: {
@@ -37,8 +50,9 @@ export async function createNotification({
     await notification.save();
 
     // Send push notification if token is valid
-    if (pushToken && pushToken !== 'null' && pushToken !== null) {
-      await sendNotification(pushToken, title, message, {
+    if (finalPushToken && finalPushToken !== 'null') {
+      const { sendNotification } = await import('./sendNotification.js');
+      await sendNotification(finalPushToken, title, message, {
         orderId: orderID,
         senderId: sender_id,
       });
@@ -46,7 +60,7 @@ export async function createNotification({
 
     return notification;
   } catch (error) {
-    console.error('Erro ao criar notificação:', error.message);
+    console.error('Erro ao criar notificaÃ§Ã£o:', error.message);
     // Don't throw error to prevent order processing from failing
     return null;
   }

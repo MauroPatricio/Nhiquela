@@ -10,7 +10,8 @@ export const list = asyncHandler(async (req, res) => {
         select: 'name classificationId description',
         populate: { path: 'classificationId', select: 'name' }
       })
-      .populate('vehicleTypes');
+      .populate('vehicleTypes')
+      .sort({ order: 1 });
     res.json(subcategories);
   } catch (error) {
     console.error('Error listing subcategories', error);
@@ -39,9 +40,20 @@ export const getById = asyncHandler(async (req, res) => {
 // POST /api/provider-subcategories
 export const create = asyncHandler(async (req, res) => {
   try {
-    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
-  const newSub = new ProviderSubcategory({ name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode });
-  await newSub.save();
+    const { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
+    
+    // Auto-reorder: Se já existir algum com esta ordem, empurra todos para baixo
+    const parsedOrder = order !== undefined ? parseInt(order, 10) : 0;
+    const exists = await ProviderSubcategory.exists({ order: parsedOrder, providerTypeId });
+    if (exists) {
+      await ProviderSubcategory.updateMany(
+        { order: { $gte: parsedOrder }, providerTypeId },
+        { $inc: { order: 1 } }
+      );
+    }
+
+    const newSub = new ProviderSubcategory({ name, order: parsedOrder, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode });
+    await newSub.save();
   
   const io = req.app.get('io');
   if (io) {
@@ -58,10 +70,28 @@ export const create = asyncHandler(async (req, res) => {
 // PUT /api/provider-subcategories/:id
 export const update = asyncHandler(async (req, res) => {
   try {
-    const { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
+    const { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode } = req.body;
+    
+    // Auto-reorder: Se a ordem mudou ou mudou de tipo, precisamos de empurrar os existentes para baixo
+    if (order !== undefined) {
+      const parsedOrder = parseInt(order, 10);
+      const existingSub = await ProviderSubcategory.findById(req.params.id);
+      
+      if (existingSub && (existingSub.order !== parsedOrder || existingSub.providerTypeId.toString() !== providerTypeId)) {
+        // Apenas empurra se já existir um (diferente deste) nessa posição e no mesmo tipo
+        const conflict = await ProviderSubcategory.exists({ order: parsedOrder, providerTypeId, _id: { $ne: req.params.id } });
+        if (conflict) {
+          await ProviderSubcategory.updateMany(
+            { order: { $gte: parsedOrder }, providerTypeId, _id: { $ne: req.params.id } },
+            { $inc: { order: 1 } }
+          );
+        }
+      }
+    }
+
     const updated = await ProviderSubcategory.findByIdAndUpdate(
       req.params.id,
-      { name, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode },
+      { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode },
       { new: true }
     )
     .populate({

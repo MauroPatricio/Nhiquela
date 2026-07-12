@@ -1,6 +1,6 @@
 import express from 'express';
 import User from '../models/UserModel.js';
-import { baseUrl, generateToken, isAdmin, isAuth, isDeliveryMan } from '../utils.js';
+import { baseUrl, generateToken, isAdmin, isAuth, isDeliveryMan, sendAdminNotificationEmail } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 import Product from '../models/ProductModel.js';
@@ -749,6 +749,18 @@ userRouter.post(
       // Actually, since we need to save the new fields:
       const updateData = req.body;
 
+      // Check if transport_type is being updated
+      const isTransportTypeChanging = updateData.transport_type && updateData.transport_type !== user.deliveryman.transport_type;
+      
+      let finalTransportType = user.deliveryman.transport_type;
+      let finalBaseFee = user.deliveryman.assigned_base_fee;
+      
+      // If not changing service, apply directly
+      if (!isTransportTypeChanging) {
+        finalTransportType = updateData.transport_type || user.deliveryman.transport_type;
+        finalBaseFee = updateData.assigned_base_fee !== undefined ? updateData.assigned_base_fee : user.deliveryman.assigned_base_fee;
+      }
+
       // update user directly for now so changes take effect
       user.deliveryman = {
         ...user.deliveryman,
@@ -764,18 +776,18 @@ userRouter.post(
         vihicle_Insurance: updateData.vihicle_Insurance || user.deliveryman.vihicle_Insurance,
         Proof_of_Address: updateData.Proof_of_Address || user.deliveryman.Proof_of_Address,
         phoneNumber: updateData.phoneNumber || user.deliveryman.phoneNumber,
-        transport_type: updateData.transport_type || user.deliveryman.transport_type,
+        transport_type: finalTransportType,
         transport_color: updateData.transport_color || user.deliveryman.transport_color,
         transport_registration: updateData.transport_registration || user.deliveryman.transport_registration,
         document_type: updateData.document_type || user.deliveryman.document_type,
         Proof_of_Addres_Reason: updateData.Proof_of_Addres_Reason || user.deliveryman.Proof_of_Addres_Reason,
         hasHelpers: updateData.hasHelpers !== undefined ? updateData.hasHelpers : user.deliveryman.hasHelpers,
         helperCount: updateData.helperCount !== undefined ? updateData.helperCount : user.deliveryman.helperCount,
-        assigned_base_fee: updateData.assigned_base_fee !== undefined ? updateData.assigned_base_fee : user.deliveryman.assigned_base_fee,
+        assigned_base_fee: finalBaseFee,
         docUpdateStatus: 'Nenhum'
       };
 
-      if (updateData.assigned_base_fee !== undefined && updateData.transport_type) {
+      if (!isTransportTypeChanging && updateData.assigned_base_fee !== undefined && updateData.transport_type) {
         user.providedServices = [{
           serviceId: updateData.transport_type,
           customBasePrice: updateData.assigned_base_fee
@@ -793,9 +805,10 @@ userRouter.post(
       const updateRequest = new DeliverymanUpdateRequest({
         deliverymanId: user._id,
         type: 'profile_update',
-        status: 'APPROVED', // Já foi editado e guardado diretamente
+        status: isTransportTypeChanging ? 'PENDING' : 'APPROVED', 
         updatedFields: updateData
       });
+      await updateRequest.save();
       await updateRequest.save();
 
       res.status(200).send({
@@ -1232,6 +1245,13 @@ userRouter.post(
         }
 
         const user = await newUser.save();
+
+        if (user.isDeliveryMan) {
+          sendAdminNotificationEmail(
+            'Novo Registo de Motorista Pendente',
+            `O motorista <b>${user.name}</b> (Tel: ${user.phoneNumber}) registou-se na plataforma e aguarda aprovação ou conformidade de documentos.<br><br>Por favor, aceda à aba "Motoristas" ou "Validação Doc." no painel de administração para rever os dados.`
+          );
+        }
 
         if (user.isSeller) {
           const Provider = mongoose.model('Provider');

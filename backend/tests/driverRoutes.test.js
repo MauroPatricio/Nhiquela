@@ -97,3 +97,48 @@ describe('PUT /api/drivers/availability/:id', () => {
     expect(res.status).toBe(401);
   }, 15000);
 });
+
+describe('GET /api/drivers/nearby (Radar API)', () => {
+  it('should return nearby drivers securely without sensitive data', async () => {
+    // Garantir que o driver está online para ser apanhado
+    await User.updateOne({ _id: testDriver._id }, {
+      $set: {
+        availability: true,
+        status: 'Active',
+        locationGeo: {
+          type: 'Point',
+          coordinates: [32.5731, -25.9614]
+        }
+      }
+    });
+
+    const res = await request(app)
+      .get('/api/drivers/nearby')
+      .query({ lat: -25.9614, lng: 32.5731, radius: 10 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('count');
+    expect(res.body).toHaveProperty('drivers');
+    
+    // Validate security: Ensure sensitive fields are stripped
+    if (res.body.drivers.length > 0) {
+      const driver = res.body.drivers[0];
+      expect(driver).toHaveProperty('id');
+      expect(driver).toHaveProperty('location');
+      expect(driver.location).toHaveProperty('lat');
+      expect(driver.location).toHaveProperty('lng');
+      
+      // THESE SHOULD NOT EXIST!
+      expect(driver).not.toHaveProperty('email');
+      expect(driver).not.toHaveProperty('phoneNumber');
+      expect(driver).not.toHaveProperty('password');
+      expect(driver).not.toHaveProperty('walletBalance');
+    }
+  }, 15000);
+
+  it('should return 400 if lat/lng missing', async () => {
+    const res = await request(app).get('/api/drivers/nearby');
+    expect(res.status).toBe(400);
+  }, 15000);
+});
+

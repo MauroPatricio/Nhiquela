@@ -9,7 +9,7 @@ import {
   FaStore, FaWrench, FaBroom, FaCar, FaTruck, 
   FaPaintRoller, FaHammer, FaPlug, FaWater, FaTree, FaCut, FaUtensils, FaTshirt, FaLaptop,
   FaMotorcycle, FaShoppingCart, FaBox, FaTruckMoving, FaTruckPickup, FaEllipsisH,
-  FaPills, FaClinicMedical
+  FaPills, FaClinicMedical, FaFire, FaGasPump, FaTruckLoading, FaShippingFast, FaDolly, FaShuttleVan, FaCarCrash
 } from 'react-icons/fa';
 
 const AVAILABLE_ICONS = [
@@ -32,6 +32,12 @@ const AVAILABLE_ICONS = [
   { id: 'box', component: FaBox, label: 'Encomenda' },
   { id: 'truck-moving', component: FaTruckMoving, label: 'Mudança' },
   { id: 'truck-pickup', component: FaTruckPickup, label: 'Reboque' },
+  { id: 'car-crash', component: FaCarCrash, label: 'Serviço de Reboque' },
+  { id: 'gas-pump', component: FaGasPump, label: 'Gás a Domicílio' },
+  { id: 'fire', component: FaFire, label: 'Gás/Fogo' },
+  { id: 'truck-loading', component: FaTruckLoading, label: 'Mudanças' },
+  { id: 'dolly', component: FaDolly, label: 'Cargas' },
+  { id: 'shipping-fast', component: FaShippingFast, label: 'Encomendas Expresso' },
   { id: 'ellipsis-h', component: FaEllipsisH, label: 'Outros' },
   { id: 'pills', component: FaPills, label: 'Farmácia' },
   { id: 'clinic', component: FaClinicMedical, label: 'Clínica' },

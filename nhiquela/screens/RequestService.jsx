@@ -18,7 +18,8 @@ import {
   Platform,
   FlatList,
   LogBox,
-  Image
+  Image,
+  Share
 } from 'react-native';
 
 LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
@@ -56,6 +57,9 @@ export default function RequestServiceSimple() {
   
   const [originCoord, setOriginCoord] = useState(null);
   const [destCoord, setDestCoord] = useState(null);
+  const [driverCoord, setDriverCoord] = useState(null);
+  const [driverHeading, setDriverHeading] = useState(0);
+  const [radarDrivers, setRadarDrivers] = useState([]);
   
   // Radar Search State
   const [radius, setRadius] = useState(5);
@@ -153,11 +157,17 @@ export default function RequestServiceSimple() {
 
   const handleGetCurrentLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      Alert.alert('Acesso Negado', 'Precisamos da sua localização para encontrar serviços próximos de si.');
+      return;
+    }
 
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      if (!loc) return;
+      if (!loc) {
+        Alert.alert('Erro', 'Não foi possível obter a sua localização. Verifique se o GPS está ativo.');
+        return;
+      }
 
       setLocation({
         lat: loc.coords.latitude,
@@ -342,7 +352,11 @@ export default function RequestServiceSimple() {
           // NAO forcar snap aqui — deixar o utilizador controlar a posicao do sheet
           if (data.routeCoordinates && data.routeCoordinates.length > 0) {
             setRouteCoords(data.routeCoordinates);
+          } else {
+            setRouteCoords([]);
+            Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
           }
+          
           if (data.breakdown && data.breakdown.durationMin) {
             setDuration(Math.round(data.breakdown.durationMin));
           }
@@ -350,12 +364,39 @@ export default function RequestServiceSimple() {
           console.log('Erro ao consultar motor de preços:', error);
           setPrice(120); // Fallback
           setRouteCoords([]);
+          Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
         }
       }
     };
     
     fetchPrice();
   }, [originCoord, destCoord]);
+
+  // Radar continuo de motoristas
+  useEffect(() => {
+    let intervalId;
+    const fetchRadarDrivers = async () => {
+      try {
+        if (!location?.lat) return;
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        const response = await api.get('/drivers/nearby', {
+          params: { lat: location.lat, lng: location.lng, radius: 10 },
+          headers: { authorization: `Bearer ${token}` }
+        });
+        if (response.data && response.data.drivers) {
+          setRadarDrivers(response.data.drivers);
+        }
+      } catch (err) {
+        console.log('Erro ao procurar radar:', err);
+      }
+    };
+    if (step === 1 && !isSearching && !activeTripData) {
+      fetchRadarDrivers();
+      intervalId = setInterval(fetchRadarDrivers, 15000);
+    }
+    return () => clearInterval(intervalId);
+  }, [location, step, isSearching, activeTripData]);
 
   // Zoom and Fit map when origin, destination, or route changes
   useEffect(() => {
@@ -570,6 +611,19 @@ export default function RequestServiceSimple() {
       snapTo(SNAP_TOP);
     }
   };
+  const handleShareTrip = async () => {
+    if (activeTripData && activeTripData._id) {
+      try {
+        const shareUrl = `https://app.nhiquela.com/track/${activeTripData._id}`;
+        await Share.share({
+          message: `Acompanhe a minha viagem na Nhiquela em tempo real: ${shareUrl}`,
+          title: 'Partilhar Viagem'
+        });
+      } catch (error) {
+        console.log('Erro ao partilhar viagem:', error);
+      }
+    }
+  };
   
   
   useEffect(() => {
@@ -673,6 +727,17 @@ export default function RequestServiceSimple() {
                );
                setActiveTripData(null);
             }
+         }
+      });
+      
+      // Listener para a localização do motorista em tempo real
+      socket.on('driver_location_update', (data) => {
+         if (isMounted) {
+            setDriverCoord({
+              lat: parseFloat(data.latitude),
+              lng: parseFloat(data.longitude)
+            });
+            setDriverHeading(parseFloat(data.heading || 0));
          }
       });
 
@@ -783,6 +848,60 @@ export default function RequestServiceSimple() {
             strokeColor="#A855F7" 
           />
         )}
+
+        {driverCoord && activeTripData && (
+          <Marker
+            coordinate={{ latitude: driverCoord.lat, longitude: driverCoord.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={driverHeading}
+            flat={true}
+          >
+            <View style={{
+              width: 36,
+              height: 36,
+              backgroundColor: '#fff',
+              borderRadius: 18,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 3,
+              elevation: 5
+            }}>
+              <MaterialCommunityIcons name="car-side" size={20} color="#7F00FF" />
+            </View>
+          </Marker>
+        )}
+
+        {/* Render Radar Drivers (when no active trip) */}
+        {!activeTripData && radarDrivers.map(d => (
+          <Marker
+            key={d.id}
+            coordinate={{ latitude: d.location.lat, longitude: d.location.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={d.heading || 0}
+            flat={true}
+          >
+            <View style={{
+              width: 28,
+              height: 28,
+              backgroundColor: '#fff',
+              borderRadius: 14,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 2,
+              elevation: 3,
+              borderWidth: 2,
+              borderColor: '#10B981' // Green to show they are available
+            }}>
+              <MaterialCommunityIcons name="car" size={16} color="#10B981" />
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       <TouchableOpacity 

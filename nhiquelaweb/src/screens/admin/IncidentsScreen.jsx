@@ -27,7 +27,7 @@ export default function IncidentsScreen() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ ticket: '', title: '', relatedTo: '', status: 'Aberto', priority: 'Média' });
+  const [formData, setFormData] = useState({ ticket: '', title: '', relatedTo: '', status: 'Aberto', priority: 'MÃ©dia' });
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -43,7 +43,7 @@ export default function IncidentsScreen() {
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ ticket: `#INC-${Math.floor(1000 + Math.random() * 9000)}`, title: '', relatedTo: '', status: 'Aberto', priority: 'Média' });
+      setFormData({ ticket: `#INC-${Math.floor(1000 + Math.random() * 9000)}`, title: '', relatedTo: '', status: 'Aberto', priority: 'MÃ©dia' });
     }
     setShowModal(true);
   };
@@ -52,7 +52,7 @@ export default function IncidentsScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.title) return toast.error('Título é obrigatório');
+    if (!formData.title) return toast.error('TÃ­tulo ï¿½ obrigatÃ³rio');
     
     try {
       if (isEditing) {
@@ -86,7 +86,7 @@ export default function IncidentsScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Incidentes e Suporte</h2>
-          <span className="text-muted small">Gestão de reclamações, problemas e tickets</span>
+          <span className="text-muted small">GestÃ£o de reclamaÃ§Ãµes, problemas e tickets</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -113,11 +113,11 @@ export default function IncidentsScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Ticket / Título</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Ticket / TÃ­tulo</th>
                   <th className="border-0 text-muted py-3">Relacionado A</th>
                   <th className="border-0 text-muted py-3">Prioridade</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,7 +140,7 @@ export default function IncidentsScreen() {
                     </td>
                     <td>{incident.relatedTo}</td>
                     <td>
-                      <span className={`badge rounded-pill ${incident.priority === 'Crítica' ? 'bg-danger' : incident.priority === 'Alta' ? 'bg-warning text-dark' : 'bg-info'}`}>
+                      <span className={`badge rounded-pill ${incident.priority === 'CrÃ­tica' ? 'bg-danger' : incident.priority === 'Alta' ? 'bg-warning text-dark' : 'bg-info'}`}>
                         {incident.priority}
                       </span>
                     </td>
@@ -176,7 +176,7 @@ export default function IncidentsScreen() {
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Título / Descrição Curta</label>
+                  <label className="form-label fw-bold small text-muted mb-1">TÃ­tulo / DescriÃ§Ã£o Curta</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required />
                 </div>
                 <div className="mb-3">
@@ -188,22 +188,22 @@ export default function IncidentsScreen() {
                     <label className="form-label fw-bold small text-muted mb-1">Prioridade</label>
                     <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.priority} onChange={(e) => setFormData({...formData, priority: e.target.value})}>
                       <option value="Baixa">Baixa</option>
-                      <option value="Média">Média</option>
+                      <option value="MÃ©dia">MÃ©dia</option>
                       <option value="Alta">Alta</option>
-                      <option value="Crítica">Crítica</option>
+                      <option value="CrÃ­tica">CrÃ­tica</option>
                     </select>
                   </div>
                   <div className="col-6">
                     <label className="form-label fw-bold small text-muted mb-1">Status</label>
                     <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
                       <option value="Aberto">Aberto</option>
-                      <option value="Em Análise">Em Análise</option>
+                      <option value="Em AnÃ¡lise">Em AnÃ¡lise</option>
                       <option value="Resolvido">Resolvido</option>
                     </select>
                   </div>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Registar Incidente'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Registar Incidente'}
                 </button>
               </form>
             </div>

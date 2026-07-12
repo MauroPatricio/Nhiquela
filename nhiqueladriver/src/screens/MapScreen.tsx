@@ -394,6 +394,8 @@ export default function MapScreen({ route, navigation }: any) {
       if (tripId) {
         const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
         await finalizeOrder(tripId, isRequestService);
+        // Atualiza o estado local para parar o cronómetro no TripMap (que apenas conta em 4, 5, ou 6)
+        setTripData(prev => prev ? { ...prev, stepStatus: 7 } : null);
       }
       await AsyncStorage.removeItem("acceptedTrip");
       setShowFinishSuccessModal(true);

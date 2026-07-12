@@ -1,7 +1,7 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Support from '../models/SupportModel.js';
-import { isAuth, isAdmin } from '../utils.js';
+import { isAuth, isAdmin, sendAdminNotificationEmail } from '../utils.js';
 
 const supportRouter = express.Router();
 
@@ -27,6 +27,12 @@ supportRouter.post(
       message: req.body.message,
     });
     const createdTicket = await ticket.save();
+
+    await sendAdminNotificationEmail(
+      `Novo Pedido de Suporte: ${req.body.subject}`,
+      `O utilizador <b>${req.user.name || 'Desconhecido'}</b> abriu um novo ticket de suporte.<br><br><b>Assunto:</b> ${req.body.subject}<br><b>Mensagem:</b> ${req.body.message}`
+    );
+
     res.status(201).send({ message: 'Ticket criado com sucesso', ticket: createdTicket });
   })
 );

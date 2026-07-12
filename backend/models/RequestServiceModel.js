@@ -58,6 +58,8 @@ const requestServiceSchema = new mongoose.Schema(
     canceledReason: { type: String},
     targetDriverId: { type: String},
     isDeletedBySeller: { type: Boolean, default: false },
+    rating: { type: Number, min: 1, max: 5 },
+    review: { type: String },
     isDeletedByDeliverman: { type: Boolean, default: false },
     isDeletedByAdmin: { type: Boolean, default: false },
 

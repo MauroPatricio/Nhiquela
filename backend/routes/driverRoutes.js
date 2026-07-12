@@ -36,6 +36,51 @@ router.get(
   })
 );
 
+// Obter motoristas próximos (público / para clientes)
+router.get(
+  '/nearby',
+  expressAsyncHandler(async (req, res) => {
+    const { lat, lng, radius = 5 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).send({ message: 'Coordenadas (lat, lng) são obrigatórias' });
+    }
+
+    const MAX_DISTANCE_METERS = Number(radius) * 1000;
+
+    const nearbyDrivers = await User.find({
+      isDeliveryMan: true,
+      availability: true,
+      status: 'Active',
+      locationGeo: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          $maxDistance: MAX_DISTANCE_METERS
+        }
+      }
+    })
+    .select('_id name deliveryman.transport_type locationGeo heading speed')
+    .lean();
+
+    // Map para enviar apenas dados essenciais e formatar
+    const safeDriversData = nearbyDrivers.map(d => ({
+      id: d._id,
+      name: d.name,
+      type: d.deliveryman?.transport_type,
+      location: d.locationGeo?.coordinates ? {
+        lat: d.locationGeo.coordinates[1],
+        lng: d.locationGeo.coordinates[0],
+      } : null,
+      heading: d.heading || 0,
+    })).filter(d => d.location !== null);
+
+    res.send({ count: safeDriversData.length, drivers: safeDriversData });
+  })
+);
+
 // Rota ultra-rápida (Ping) para os Motoristas atualizarem a sua localização (10 em 10 segs)
 router.put(
   '/ping',
@@ -438,7 +483,26 @@ router.put(
     const driver = await User.findById(request.deliverymanId);
     if (driver) {
       if (decision === 'APPROVED') {
-        driver.deliveryman.docUpdateStatus = 'Aprovado';
+        // Se houver transport_type pendente de alteracao, atualiza o perfil do motorista
+        if (request.updatedFields && request.updatedFields.transport_type) {
+          driver.deliveryman.transport_type = request.updatedFields.transport_type;
+          
+          if (request.updatedFields.assigned_base_fee !== undefined) {
+             driver.deliveryman.assigned_base_fee = request.updatedFields.assigned_base_fee;
+             driver.providedServices = [{
+               serviceId: request.updatedFields.transport_type,
+               customBasePrice: request.updatedFields.assigned_base_fee
+             }];
+          } else {
+             // Caso nao haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
+             driver.providedServices = [{
+               serviceId: request.updatedFields.transport_type,
+               customBasePrice: driver.deliveryman.assigned_base_fee
+             }];
+          }
+        } else {
+          driver.deliveryman.docUpdateStatus = 'Aprovado';
+        }
       } else {
         driver.deliveryman.docUpdateStatus = 'Nenhum';
       }

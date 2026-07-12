@@ -59,7 +59,7 @@ import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
-import { runIntelligentDispatch } from './services/dispatchService.js';
+
 
 // Conectar ao MongoDB
 mongoose
@@ -468,9 +468,9 @@ if (process.env.NODE_ENV !== 'test') {
   httpServer.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);
     
-    // Start the Intelligent Dispatch Job
-    setInterval(() => {
-      runIntelligentDispatch(io);
+    // Processar pedidos em fallback
+    setInterval(async () => {
+
     }, 5000); // Executa a cada 5 segundos
   });
 }

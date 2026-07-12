@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import VehicleType from '../models/VehicleTypeModel.js';
-import { isAuth, sendEmailTopUpRequestAdmin } from '../utils.js';
+import { isAuth, sendAdminNotificationEmail } from '../utils.js';
 import mpesa from 'mpesa-node-api';
 import config from '../config.js';
 
@@ -118,13 +118,12 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
       ? 'O seu pedido de recarga foi recebido e está pendente de validação pela nossa equipa.'
       : 'Saldo recarregado com sucesso!';
 
-    await sendEmailTopUpRequestAdmin(
-      req.user.name || 'Utilizador',
-      amount,
-      description || (isManualDeposit ? 'Recarga manual via app' : 'Recarga M-Pesa / e-Mola via app'),
-      ['mauro.patricio1@gmail.com', 'nhiquelaservicos@gmail.com'],
-      isManualDeposit
-    );
+    const title = isManualDeposit ? 'Novo Pedido de Recarga Pendente' : 'Nova Recarga Efetuada';
+    const textHtml = isManualDeposit
+      ? `O motorista/cliente <b>${req.user.name || 'Utilizador'}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.<br><br>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.<br>Detalhes: ${description}`
+      : `O motorista/cliente <b>${req.user.name || 'Utilizador'}</b> efetuou com sucesso uma recarga automática na carteira no valor de <b>${amount} MT</b>.<br>Detalhes: ${description}`;
+
+    await sendAdminNotificationEmail(title, textHtml);
 
     return res.json({ message: successMessage, balance });
   } catch (error) {

@@ -403,33 +403,52 @@ export default function WalletScreen({ navigation, route }: any) {
               </View>
             </View>
 
-            {/* Gráfico de Ganhos Diários (Visualização Nativa Simples) */}
+            {/* Gráfico de Ganhos Diários (Visualização Nativa Detalhada) */}
             {dailyEarnings.length > 0 && (
-              <View style={styles.chartContainer}>
+              <View style={[styles.chartContainer, { paddingVertical: 20 }]}>
                 <Text style={styles.sectionTitle}>Trabalhos Diários (Ganhos)</Text>
-                <View style={styles.barChartContainer}>
-                  {dailyEarnings.slice(-7).map((item, index) => {
-                    // Calcula a altura da barra relativa ao número de viagens, com escala em blocos de 10
+                
+                <View style={{ flexDirection: 'row', height: 220, marginTop: 15, alignItems: 'flex-end' }}>
+                  {/* Eixo Y (Escala de 10 em 10) */}
+                  {(() => {
                     const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1);
-                    const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10; // Arredonda para a próxima dezena (10, 20, 30...)
-                    const heightPercent = Math.max(((item.trips || 0) / scaleTop) * 100, 5); // Mínimo de 5% de altura
-
-                    // Formata a data (ex: "15/06")
-                    const dateObj = new Date(item.date);
-                    const dayLabel = isNaN(dateObj.getTime()) ? item.date.substring(0, 5) : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-
+                    const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10;
                     return (
-                      <TouchableOpacity key={index} style={styles.barChartCol} onPress={() => setSelectedDayStats(item)}>
-                        <Text style={styles.barChartValue} numberOfLines={1} adjustsFontSizeToFit>
-                          {(item.amount || 0) > 0 ? `${item.amount} MT` : ''}
-                        </Text>
-                        <View style={styles.barChartBarBg}>
-                          <View style={[styles.barChartBarFill, { height: `${heightPercent}%` }]} />
-                        </View>
-                        <Text style={styles.barChartLabel}>{dayLabel}</Text>
-                      </TouchableOpacity>
+                      <View style={{ justifyContent: 'space-between', height: '100%', paddingBottom: 25, paddingRight: 10, borderRightWidth: 1, borderRightColor: '#E0E0E0' }}>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>{scaleTop} V</Text>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>{Math.round(scaleTop / 2)} V</Text>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>0</Text>
+                      </View>
                     );
-                  })}
+                  })()}
+
+                  {/* Barras do Gráfico */}
+                  <View style={[styles.barChartContainer, { flex: 1, height: '100%', paddingLeft: 5 }]}>
+                    {dailyEarnings.slice(-7).map((item, index) => {
+                      const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1);
+                      const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10;
+                      // Calcula altura em relação ao teto da escala
+                      const heightPercent = Math.max(((item.trips || 0) / scaleTop) * 100, 2); 
+                      
+                      const dateObj = new Date(item.date);
+                      const dayLabel = isNaN(dateObj.getTime()) ? item.date.substring(0, 5) : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+
+                      return (
+                        <TouchableOpacity key={index} style={styles.barChartCol} onPress={() => setSelectedDayStats(item)}>
+                          <Text style={[styles.barChartValue, { marginBottom: 2, fontSize: 10 }]} numberOfLines={1} adjustsFontSizeToFit>
+                            {(item.amount || 0) > 0 ? `${item.amount} MT` : ''}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#34C759', fontWeight: 'bold', marginBottom: 4 }}>
+                            {item.trips ? `${item.trips}` : '0'}
+                          </Text>
+                          <View style={[styles.barChartBarBg, { overflow: 'hidden', backgroundColor: '#F0F0F0', borderRadius: 6 }]}>
+                            <View style={[styles.barChartBarFill, { height: `${heightPercent}%`, backgroundColor: '#7F00FF', borderRadius: 6, width: '100%' }]} />
+                          </View>
+                          <Text style={[styles.barChartLabel, { marginTop: 8, fontSize: 11, fontWeight: '600' }]}>{dayLabel}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
             )}

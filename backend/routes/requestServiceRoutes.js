@@ -5,6 +5,8 @@ import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMST
 import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
+import Wallet from '../models/WalletModel.js';
+import Transaction from '../models/TransactionModel.js';
 import PricingService from '../services/PricingService.js';
 import createNotification from '../utils/createNotification.js';
 
@@ -244,6 +246,10 @@ requestServiceer.post(
         }, 45000);
       } else {
         // Intelligent Dispatch engine will handle emitting to nearest drivers
+        import('../services/dispatchService.js').then((module) => {
+          const DispatchService = module.default;
+          DispatchService.startDispatch(requestService, io);
+        }).catch(err => console.error('Falha ao carregar DispatchService', err));
       }
     }
 
@@ -313,6 +319,23 @@ requestServiceer.get(
 
 
 // get requestService by userid
+// Endpoint publico para partilha de viagem (Tracking)
+requestServiceer.get(
+  '/:id/track',
+  expressAsyncHandler(async (req, res) => {
+    const requestService = await RequestService.findById(req.params.id)
+      .select('-paymentMethod -paymentOption -isPaid -paidAt -deleted') // Esconder dados sensiveis
+      .populate('user', 'name')
+      .populate('deliveryman.id', 'name');
+
+    if (requestService) {
+      res.send(requestService);
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
 requestServiceer.get(
   '/:id',
   isAuth,
@@ -454,6 +477,15 @@ requestServiceer.put(
         io.to(`driver_${user_deliver._id}`).emit('order_assigned', updateOrder);
         // Notificar o cliente que o pedido foi aceite
         io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        
+        await createNotification({
+          message: `O seu pedido foi aceite por ${user_deliver.deliveryman?.name || 'um motorista'} e está a caminho!`,
+          receiver_id: updateOrder.user,
+          sender_id: user_deliver._id,
+          orderID: updateOrder._id,
+          title: 'Pedido Aceite!'
+        });
+        
         // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
         io.emit('order_taken', { orderId: updateOrder._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
@@ -478,7 +510,7 @@ requestServiceer.put(
 
     if (order) {
       order.status = 'Em trânsito';
-      order.isintransit = true;
+      order.isInTransit = true;
       order.stepStatus = 5;
       order.pickupStartedAt = new Date();
 
@@ -503,6 +535,14 @@ requestServiceer.put(
         if (order.deliveryman?.id) {
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
         }
+
+        await createNotification({
+          message: `O motorista chegou ao local e a viagem foi iniciada.`,
+          receiver_id: order.user,
+          sender_id: order.deliveryman?.id,
+          orderID: order._id,
+          title: 'Viagem Iniciada'
+        });
       }
 
       res.send({ message: `Pedido em trânsito` });
@@ -551,6 +591,14 @@ requestServiceer.put(
         if (updateOrder.deliveryman?.id) {
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
+
+        await createNotification({
+          message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
+          receiver_id: updateOrder.user,
+          sender_id: updateOrder.deliveryman?.id,
+          orderID: updateOrder._id,
+          title: 'Motorista Chegou!'
+        });
       }
 
       res.send({ message: `No destino indicado`, order: updateOrder });
@@ -580,6 +628,14 @@ requestServiceer.put(
         if (updateOrder.deliveryman?.id) {
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
+
+        await createNotification({
+          message: `O seu pedido foi cancelado pelo motorista pelo motivo: Não comparência.`,
+          receiver_id: updateOrder.user,
+          sender_id: updateOrder.deliveryman?.id,
+          orderID: updateOrder._id,
+          title: 'Viagem Cancelada'
+        });
       }
 
       res.send({ message: `Viagem cancelada por não comparência`, order: updateOrder });
@@ -671,6 +727,14 @@ requestServiceer.put(
             // Notificar motorista que pode aceitar novos pedidos
             io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
           }
+
+          await createNotification({
+            message: `A sua viagem foi entregue com sucesso! Obrigado por viajar com a Nhiquela.`,
+            receiver_id: order.user,
+            sender_id: order.deliveryman?.id,
+            orderID: order._id,
+            title: 'Viagem Concluída'
+          });
         }
 
         res.send({ message: `Pedido entregue com sucesso` });
@@ -684,6 +748,57 @@ requestServiceer.put(
       session.endSession();
       console.error('Erro na finalização do pedido:', error);
       res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido. Tente novamente.' });
+    }
+  })
+);
+
+// Avaliar motorista
+requestServiceer.post(
+  '/:id/rate',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const { rating, review } = req.body;
+    
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).send({ message: 'A avaliação deve ser entre 1 e 5 estrelas.' });
+    }
+
+    const order = await RequestService.findById(req.params.id);
+
+    if (order) {
+      if (order.user.toString() !== req.user._id.toString()) {
+        return res.status(403).send({ message: 'Sem permissão para avaliar este pedido.' });
+      }
+      
+      if (order.rating) {
+        return res.status(400).send({ message: 'Este pedido já foi avaliado.' });
+      }
+
+      order.rating = rating;
+      order.review = review;
+      await order.save();
+
+      // Recalcular a média de avaliação do motorista
+      if (order.deliveryman && order.deliveryman.id) {
+        const driver = await User.findById(order.deliveryman.id);
+        
+        if (driver && driver.deliveryman) {
+          const currentTotal = driver.deliveryman.totalRatings || 0;
+          const currentAvg = driver.deliveryman.averageRating || 0;
+          
+          const newTotal = currentTotal + 1;
+          const newAvg = ((currentAvg * currentTotal) + rating) / newTotal;
+          
+          driver.deliveryman.totalRatings = newTotal;
+          driver.deliveryman.averageRating = newAvg;
+          
+          await driver.save();
+        }
+      }
+
+      res.send({ message: 'Avaliação submetida com sucesso', order });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
     }
   })
 );
@@ -730,6 +845,26 @@ requestServiceer.put(
             { $set: { 'deliveryman.hasActiveService': false } },
             { session }
           );
+
+          // Penalização de 50MT se o motorista cancelar a viagem que ele mesmo aceitou
+          if (req.user.isDeliveryMan) {
+            let wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] }).session(session);
+            if (!wallet) {
+               // Criar carteira caso não exista (fallback)
+               wallet = new Wallet({ ownerId: req.user._id, ownerType: 'driver', userId: req.user._id, balance: 0 });
+            }
+            wallet.balance -= 50;
+            await wallet.save({ session });
+
+            await Transaction.create([{
+              walletId: wallet._id,
+              type: 'debit',
+              amount: 50,
+              method: 'wallet',
+              description: 'Penalização por cancelar viagem aceite',
+              status: 'confirmado'
+            }], { session });
+          }
         }
 
         await session.commitTransaction();
@@ -756,6 +891,14 @@ requestServiceer.put(
           } else {
             io.emit('order_updated', order); // broadcast to all
           }
+          
+          await createNotification({
+            message: `A sua viagem foi cancelada pelo motorista. Motivo: ${req.body.message}`,
+            receiver_id: order.user,
+            sender_id: order.deliveryman?.id,
+            orderID: order._id,
+            title: 'Viagem Cancelada'
+          });
         }
 
         res.send({ message: `Pedido Cancelado`, order: order });
@@ -915,6 +1058,16 @@ requestServiceer.delete(
           if (order.targetDriverId) {
             io.to(`driver_${order.targetDriverId}`).emit('order_cancelled', { orderId: order._id });
           }
+          
+          if (order.targetDriverId) {
+            await createNotification({
+              message: `O cliente cancelou a busca pela viagem.`,
+              receiver_id: order.targetDriverId,
+              sender_id: order.user,
+              orderID: order._id,
+              title: 'Viagem Cancelada'
+            });
+          }
         }
 
         res.send({ message: 'Pedido cancelado com sucesso' });
@@ -953,6 +1106,14 @@ requestServiceer.put(
             // Libertar motorista
             const User = require('../models/UserModel.js').default || require('../models/UserModel.js');
             await User.updateOne({ _id: order.deliveryman.id }, { $set: { 'deliveryman.hasActiveService': false } });
+            
+            await createNotification({
+              message: `O cliente cancelou a viagem. O seu estado foi libertado para receber novos pedidos.`,
+              receiver_id: order.deliveryman.id,
+              sender_id: order.user,
+              orderID: order._id,
+              title: 'Viagem Cancelada'
+            });
           }
         }
 

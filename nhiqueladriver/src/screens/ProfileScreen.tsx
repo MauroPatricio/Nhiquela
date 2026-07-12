@@ -71,7 +71,7 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const transportTypeData = user?.deliveryman?.transport_type;
-  const transportTypeNameFromUser = typeof transportTypeData === 'object' ? transportTypeData?.name : null;
+  const transportTypeNameFromUser = transportTypeData && typeof transportTypeData === 'object' ? (transportTypeData as any).name : null;
 
   const userData = {
     name: user?.name || 'Motorista',
@@ -80,7 +80,8 @@ export default function ProfileScreen({ navigation }: Props) {
     level: user?.isDeliveryMan ? 'Motorista' : 'Passageiro',
     memberSince: getMemberSince(),
     totalTrips: user?.deliveryman?.totalTrips || 0,
-    rating: user?.deliveryman?.rating || '5.0',
+    totalRatings: user?.deliveryman?.totalRatings || 0,
+    rating: user?.deliveryman?.averageRating ? user.deliveryman.averageRating.toFixed(1) : (user?.deliveryman?.rating || '5.0'),
     acceptanceRate: '100%',
     totalEarnings: user?.deliveryman?.totalEarnings ? `${Number(user.deliveryman.totalEarnings).toFixed(2)} MT` : '0.00 MT',
     vehicle: transportTypeName || transportTypeNameFromUser || (typeof transportTypeData === 'string' ? transportTypeData : 'Veículo Não registado'),
@@ -90,8 +91,8 @@ export default function ProfileScreen({ navigation }: Props) {
 
   useEffect(() => {
     const fetchTransportTypeName = async () => {
-      const typeId = typeof user?.deliveryman?.transport_type === 'object' 
-        ? user?.deliveryman?.transport_type?._id || user?.deliveryman?.transport_type?.id
+      const typeId = user?.deliveryman?.transport_type && typeof user.deliveryman.transport_type === 'object' 
+        ? (user.deliveryman.transport_type as any)._id || (user.deliveryman.transport_type as any).id
         : user?.deliveryman?.transport_type;
 
       if (!typeId) return;

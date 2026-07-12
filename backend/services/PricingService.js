@@ -22,13 +22,48 @@ class PricingService {
       return Number(setting.value);
     };
 
+    const getStringSetting = async (key, defaultValue, description) => {
+      let setting = allSettings.find(s => s.key === key);
+      if (!setting) {
+        setting = await Settings.create({ key, value: defaultValue.toString(), description, type: 'string' });
+        allSettings.push(setting);
+      }
+      return setting.value;
+    };
+
     const engineConfig = {
-      minFareDelivery: await getSetting('min_fare_delivery', 80, 'Tarifa m�nima (MT): Entregas e T�xi'),
-      minFareService: await getSetting('min_fare_service', 100, 'Tarifa m�nima (MT): Servi�os (ex: Eletricista)'),
+      useGlobalPricing: await getStringSetting('use_global_pricing', 'false', 'Usar Variáveis Globais (Ignora Preço do Veículo)') === 'true',
+      deliveryPricingModel: await getStringSetting('delivery_pricing_model', 'formula', 'steps ou formula'),
+      deliveryBaseFee: await getSetting('delivery_base_fee', 50, 'Taxa Base de entrega (MZN)'),
+      deliveryPricePerKm: await getSetting('delivery_price_per_km', 15, 'Valor cobrado por Quilómetro (MZN)'),
+      deliverySteps: [
+        {
+          minKm: await getSetting('delivery_step_1_min_km', 0, 'Escalão 1 (Km Mínimo)'),
+          maxKm: await getSetting('delivery_step_1_km', 3, 'Escalão 1 (Km)'),
+          price: await getSetting('delivery_step_1_price', 80, 'Escalão 1 (Preço)')
+        },
+        {
+          minKm: await getSetting('delivery_step_2_min_km', 3, 'Escalão 2 (Km Mínimo)'),
+          maxKm: await getSetting('delivery_step_2_km', 7, 'Escalão 2 (Km)'),
+          price: await getSetting('delivery_step_2_price', 120, 'Escalão 2 (Preço)')
+        },
+        {
+          minKm: await getSetting('delivery_step_3_min_km', 7, 'Escalão 3 (Km Mínimo)'),
+          maxKm: await getSetting('delivery_step_3_km', 12, 'Escalão 3 (Km)'),
+          price: await getSetting('delivery_step_3_price', 180, 'Escalão 3 (Preço)')
+        },
+        {
+          minKm: await getSetting('delivery_step_4_min_km', 12, 'Escalão 4 (Km Mínimo)'),
+          maxKm: await getSetting('delivery_step_4_km', 20, 'Escalão 4 (Km)'),
+          price: await getSetting('delivery_step_4_price', 250, 'Escalão 4 (Preço)')
+        }
+      ],
+      minFareDelivery: await getSetting('min_fare_delivery', 80, 'Tarifa mnima (MT): Entregas e Txi'),
+      minFareService: await getSetting('min_fare_service', 100, 'Tarifa mnima (MT): Servios (ex: Eletricista)'),
       
       weatherMultipliers: {
         clear: 1.0,
-        rain: await getSetting('mult_weather_rain', 1.20, 'Multiplicador Pre�o: Quando chove (ex: 1.20 = +20%)'),
+        rain: await getSetting('mult_weather_rain', 1.20, 'Multiplicador Preo: Quando chove (ex: 1.20 = +20%)'),
       },
       
       timeMultipliers: {
@@ -178,33 +213,73 @@ class PricingService {
       vehicle = await this.autoSelectVehicle(weightKg, vehicleTypeId);
     }
 
-    // 3. Somatrio Base
-    let actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
-    
-    // Se o cliente definiu um preço sugerido, assumimos que esse é o total e não adicionamos distância/tempo novamente
+    // 3. Somatório Base
+    let actualBaseFare = 0;
+    let distanceCost = 0;
+    let timeCost = 0;
+    let extras = 0;
     let overrideDistance = false;
+
+    // Se o cliente definiu um preço sugerido
     if (clientSuggestedPrice !== null && clientSuggestedPrice !== undefined && clientSuggestedPrice > 0) {
       actualBaseFare = Number(clientSuggestedPrice);
       overrideDistance = true;
     } 
-    // Caso contrário, se o provedor tem um preço base definido
+    // Se for provedor custom
     else if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
       actualBaseFare = customBasePrice;
+      const FALLBACK_PRICE_PER_KM = 40; 
+      let pKm = vehicle ? (vehicle.pricePerKm || service.pricePerKm || FALLBACK_PRICE_PER_KM) : (service.pricePerKm || FALLBACK_PRICE_PER_KM); 
+      if (distanceKm > 20) pKm = pKm * 0.85; 
+      distanceCost = distanceKm * pKm;
+      timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
+    }
+    else {
+      // Modelos globais da plataforma
+      if (engineConfig.deliveryPricingModel === 'steps') {
+        // Encontrar o escalão
+        let stepFound = false;
+        for (const step of engineConfig.deliverySteps) {
+          if (distanceKm >= step.minKm && distanceKm <= step.maxKm) {
+            actualBaseFare = step.price; // Escalão cobra tudo no base fare
+            distanceCost = 0;
+            stepFound = true;
+            break;
+          }
+        }
+        
+        // Se ultrapassar todos os escalões (ex: > 20km), usa a fórmula para o remanescente ou base do último
+        if (!stepFound) {
+          const lastStep = engineConfig.deliverySteps[engineConfig.deliverySteps.length - 1];
+          actualBaseFare = lastStep.price;
+          // Cobrar km extra usando a configuração global ou veículo? O UI diz: "Acima de X km: Preço + P/Km"
+          const extraKm = distanceKm - lastStep.maxKm;
+          const pKm = engineConfig.useGlobalPricing ? engineConfig.deliveryPricePerKm : (vehicle ? vehicle.pricePerKm || 40 : 40);
+          distanceCost = extraKm * pKm;
+        }
+        
+        timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
+      } 
+      else {
+        // formula
+        if (engineConfig.useGlobalPricing) {
+          actualBaseFare = engineConfig.deliveryBaseFee;
+          let pKm = engineConfig.deliveryPricePerKm;
+          if (distanceKm > 20) pKm = pKm * 0.85; 
+          distanceCost = distanceKm * pKm;
+        } else {
+          // Fallback antigo: preço por veículo
+          actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
+          const FALLBACK_PRICE_PER_KM = 40; 
+          let pKm = vehicle ? (vehicle.pricePerKm || service.pricePerKm || FALLBACK_PRICE_PER_KM) : (service.pricePerKm || FALLBACK_PRICE_PER_KM); 
+          if (distanceKm > 20) pKm = pKm * 0.85; 
+          distanceCost = distanceKm * pKm;
+        }
+        timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
+      }
     }
 
-    const FALLBACK_PRICE_PER_KM = 40; 
-    let pKm = vehicle ? (vehicle.pricePerKm || service.pricePerKm || FALLBACK_PRICE_PER_KM) : (service.pricePerKm || FALLBACK_PRICE_PER_KM); 
-    
-    // Desconto para viagens longas (ex: acima de 20 km, reduz 15% o valor por km)
-    if (distanceKm > 20) {
-      pKm = pKm * 0.85; 
-    }
-    
-    let distanceCost = overrideDistance ? 0 : (distanceKm * pKm);
-    let timeCost = overrideDistance ? 0 : (vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0);
-    
-    let extras = 0;
-    if (hasHelper && service.supportsHelpers) extras += 200; // Helper price could be moved to config
+    if (hasHelper && service.supportsHelpers) extras += 200; 
     if (vehicle && vehicle.includesLoading) extras += vehicle.loadingFee;
 
     let subtotal = actualBaseFare + distanceCost + timeCost + extras;

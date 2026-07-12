@@ -43,7 +43,7 @@ export default function EstablishmentTypesScreen() {
       const { data } = await api.get('/payment-methods');
       setAllPaymentMethods(data || []);
     } catch (error) {
-      console.error('Erro ao carregar mÈtodos de pagamento', error);
+      console.error('Erro ao carregar m√©todos de pagamento', error);
     }
   };
   const handleOpenModal = (type = null) => {
@@ -82,7 +82,7 @@ export default function EstablishmentTypesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('O nome È obrigatÛrio');
+    if (!formData.name) return toast.error('O nome ÔøΩ obrigat√≥rio');
     
     try {
       if (isEditing) {
@@ -116,7 +116,7 @@ export default function EstablishmentTypesScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Tipos de Estabelecimento</h2>
-          <span className="text-muted small">Gest„o das categorias macro de lojas parceiras</span>
+          <span className="text-muted small">Gest√£o das categorias macro de lojas parceiras</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -145,8 +145,8 @@ export default function EstablishmentTypesScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Tipo</th>
-                  <th className="border-0 text-muted py-3">DescriÁ„o</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
+                  <th className="border-0 text-muted py-3">Descri√ß√£o</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,7 +174,7 @@ export default function EstablishmentTypesScreen() {
                         <span className="fw-bold text-dark fs-6">{type.nome || type.name}</span>
                       </div>
                     </td>
-                    <td className="text-muted">{type.description || 'Sem descriÁ„o'}</td>
+                    <td className="text-muted">{type.description || 'Sem descri√ß√£o'}</td>
                     <td className="text-end px-4">
                       <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(type)} title="Editar">
                         <FontAwesomeIcon icon={faEdit} />
@@ -221,17 +221,17 @@ export default function EstablishmentTypesScreen() {
                 </div>
                 <div className="row mb-4">
                   <div className="col-10">
-                    <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
                     <textarea 
                       className="form-control bg-light border-0 py-3 rounded-3" 
                       rows="2"
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      placeholder="DescriÁ„o do tipo de estabelecimento"
+                      placeholder="Descri√ß√£o do tipo de estabelecimento"
                     ></textarea>
                         {/* Average preparation time */}
                         <div className="mb-3">
-                          <label className="form-label fw-bold small text-muted mb-1">Tempo MÈdio de PreparaÁ„o (minutos)</label>
+                          <label className="form-label fw-bold small text-muted mb-1">Tempo M√©dio de Prepara√ß√£o (minutos)</label>
                           <input
                             type="number"
                             min="0"
@@ -257,7 +257,7 @@ export default function EstablishmentTypesScreen() {
                         
                         {/* Payment Methods */}
                         <div className="mb-3">
-                          <label className="form-label fw-bold small text-muted mb-2">MÈtodos de Pagamento Aceites</label>
+                          <label className="form-label fw-bold small text-muted mb-2">M√©todos de Pagamento Aceites</label>
                           <div className="d-flex flex-wrap gap-2">
                             {allPaymentMethods.map(pm => (
                               <div 
@@ -273,7 +273,7 @@ export default function EstablishmentTypesScreen() {
                         </div>
                   </div>
                   <div className="col-2">
-                    <label className="form-label fw-bold small text-muted mb-1">Õcone</label>
+                    <label className="form-label fw-bold small text-muted mb-1">√çcone</label>
                     <input 
                       type="text" 
                       className="form-control bg-light border-0 py-3 rounded-3 text-center fs-4" 
@@ -285,7 +285,7 @@ export default function EstablishmentTypesScreen() {
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar AlteraÁıes' : 'Criar Tipo'}
+                  {isEditing ? 'Guardar Altera√ß√µes' : 'Criar Tipo'}
                 </button>
               </form>
             </div>

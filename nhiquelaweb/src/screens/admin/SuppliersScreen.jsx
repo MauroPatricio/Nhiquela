@@ -26,13 +26,13 @@ export default function SuppliersScreen() {
   };
 
   const [provinces] = useState([
-    'Maputo Cidade', 'Maputo Província', 'Gaza', 'Inhambane', 
-    'Sofala', 'Manica', 'Tete', 'Zambézia', 
+    'Maputo Cidade', 'Maputo ProvÃ­ncia', 'Gaza', 'Inhambane', 
+    'Sofala', 'Manica', 'Tete', 'ZambÃ©zia', 
     'Nampula', 'Cabo Delgado', 'Niassa'
   ]);
   
   const [establishmentTypes] = useState([
-    'Supermercado', 'Mercearia', 'Farmácia', 'Restaurante', 'Loja de Conveniência', 'Talho'
+    'Supermercado', 'Mercearia', 'FarmÃ¡cia', 'Restaurante', 'Loja de ConveniÃªncia', 'Talho'
   ]);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -109,7 +109,7 @@ export default function SuppliersScreen() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.representanteNome) {
-      return toast.error('Nome da empresa, Email e Nome do Representante são obrigatórios.');
+      return toast.error('Nome da empresa, Email e Nome do Representante sÃ£o obrigatÃ³rios.');
     }
     
     try {
@@ -139,7 +139,7 @@ export default function SuppliersScreen() {
         await api.put(`/users/${currentId}`, payload);
         toast.success('Fornecedor atualizado com sucesso!');
       } else {
-        if(!formData.password) return toast.error('Para novos cadastros a senha inicial é obrigatória.');
+        if(!formData.password) return toast.error('Para novos cadastros a senha inicial ï¿½ obrigatÃ³ria.');
         await api.post('/users/signup', payload);
         toast.success('Novo Fornecedor registado com sucesso!');
       }
@@ -164,10 +164,10 @@ export default function SuppliersScreen() {
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      return toast.error('Geolocalização não é suportada neste navegador.');
+      return toast.error('GeolocalizaÃ§Ã£o nÃ£o ï¿½ suportada neste navegador.');
     }
     
-    toast.info('A obter localização GPS...');
+    toast.info('A obter localizaÃ§Ã£o GPS...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setFormData({
@@ -175,10 +175,10 @@ export default function SuppliersScreen() {
           latitude: position.coords.latitude.toFixed(6),
           longitude: position.coords.longitude.toFixed(6)
         });
-        toast.success('Localização capturada com sucesso!');
+        toast.success('LocalizaÃ§Ã£o capturada com sucesso!');
       },
       (error) => {
-        toast.error('Erro ao obter localização. Verifique as permissões de GPS no seu navegador.');
+        toast.error('Erro ao obter localizaÃ§Ã£o. Verifique as permissÃµes de GPS no seu navegador.');
       }
     );
   };
@@ -188,7 +188,7 @@ export default function SuppliersScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Fornecedores & Lojas</h2>
-          <span className="text-muted small">Gestão de parceiros, restaurantes, supermercados e pagamentos</span>
+          <span className="text-muted small">GestÃ£o de parceiros, restaurantes, supermercados e pagamentos</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -217,10 +217,10 @@ export default function SuppliersScreen() {
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Empresa / Loja</th>
                   <th className="border-0 text-muted py-3">Tipo</th>
-                  <th className="border-0 text-muted py-3">Província</th>
+                  <th className="border-0 text-muted py-3">ProvÃ­ncia</th>
                   <th className="border-0 text-muted py-3">Representante</th>
                   <th className="border-0 text-muted py-3 text-center">Status</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,7 +299,7 @@ export default function SuppliersScreen() {
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.representanteNome} onChange={(e) => setFormData({...formData, representanteNome: e.target.value})} required />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Número de Telefone Pessoal</label>
+                    <label className="form-label fw-bold small text-muted mb-1">NÃºmero de Telefone Pessoal</label>
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.representanteTelefone} onChange={(e) => setFormData({...formData, representanteTelefone: e.target.value})} placeholder="Ex: 841234567" required />
                   </div>
                   <div className="col-md-6">
@@ -327,28 +327,28 @@ export default function SuppliersScreen() {
                     </select>
                   </div>
                   <div className="col-md-12">
-                    <label className="form-label fw-bold small text-muted mb-1">Descrição [Especialidade]</label>
+                    <label className="form-label fw-bold small text-muted mb-1">DescriÃ§Ã£o [Especialidade]</label>
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required />
                   </div>
                 </div>
 
-                {/* LOCALIZAÇÃO */}
+                {/* LOCALIZAÃ‡ÃƒO */}
                 <div className="row g-3 mb-4">
                   <div className="col-md-4">
-                    <label className="form-label fw-bold small text-muted mb-1">Província / Localização</label>
+                    <label className="form-label fw-bold small text-muted mb-1">ProvÃ­ncia / LocalizaÃ§Ã£o</label>
                     <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.province} onChange={(e) => setFormData({...formData, province: e.target.value})} required>
                       <option value="">Selecione...</option>
                       {provinces.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                   <div className="col-md-8">
-                    <label className="form-label fw-bold small text-muted mb-1">Endereço do Estabelecimento [Rua/Av.]</label>
+                    <label className="form-label fw-bold small text-muted mb-1">EndereÃ§o do Estabelecimento [Rua/Av.]</label>
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} required />
                   </div>
                   <div className="col-12 d-flex justify-content-between align-items-end mt-4 mb-2">
-                    <h6 className="fw-bold text-dark m-0">Coordenadas Geográficas</h6>
+                    <h6 className="fw-bold text-dark m-0">Coordenadas GeogrÃ¡ficas</h6>
                     <button type="button" className="btn btn-sm btn-outline-primary rounded-pill fw-bold" onClick={handleGetLocation}>
-                      <FontAwesomeIcon icon={faLocationArrow} className="me-2" /> Obter Minha Localização Atual
+                      <FontAwesomeIcon icon={faLocationArrow} className="me-2" /> Obter Minha LocalizaÃ§Ã£o Atual
                     </button>
                   </div>
                   <div className="col-md-6 mt-0">
@@ -401,13 +401,13 @@ export default function SuppliersScreen() {
                     <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
                       <option value="Ativo">Ativo</option>
                       <option value="Inativo">Inativo</option>
-                      <option value="Pendente">Pendente de Aprovação</option>
+                      <option value="Pendente">Pendente de AprovaÃ§Ã£o</option>
                     </select>
                   </div>
                 </div>
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Registar Estabelecimento'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Registar Estabelecimento'}
                 </button>
               </form>
             </div>
@@ -445,9 +445,9 @@ export default function SuppliersScreen() {
               <div className="row g-4 mb-4">
                 <div className="col-md-6 border-end">
                   <h6 className="fw-bold text-muted mb-3 text-uppercase small">Dados da Empresa</h6>
-                  <p className="small text-dark mb-2"><strong>Especialidade:</strong> <br/>{selectedSupplier.seller?.description || 'Não especificada'}</p>
-                  <p className="small text-dark mb-2"><strong>Endereço:</strong> <br/>{selectedSupplier.seller?.address || 'N/A'}</p>
-                  <p className="small text-dark mb-2"><strong>Província:</strong> {selectedSupplier.seller?.province || 'N/A'}</p>
+                  <p className="small text-dark mb-2"><strong>Especialidade:</strong> <br/>{selectedSupplier.seller?.description || 'NÃ£o especificada'}</p>
+                  <p className="small text-dark mb-2"><strong>EndereÃ§o:</strong> <br/>{selectedSupplier.seller?.address || 'N/A'}</p>
+                  <p className="small text-dark mb-2"><strong>ProvÃ­ncia:</strong> {selectedSupplier.seller?.province || 'N/A'}</p>
                   <p className="small text-dark mb-0 text-muted" style={{fontSize: '11px'}}>GPS: {selectedSupplier.seller?.latitude}, {selectedSupplier.seller?.longitude}</p>
                 </div>
                 
