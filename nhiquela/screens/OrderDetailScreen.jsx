@@ -20,6 +20,7 @@ import * as Location from 'expo-location';
 import api from '../hooks/createConnectionApi';
 import { sendOrderNotificationToUser } from '../utils/notificationUtils';
 import { useToast } from "react-native-toast-notifications";
+import io from 'socket.io-client';
 import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
@@ -132,6 +133,29 @@ const OrderDetailsScreen = () => {
     } else {
       setLoadingOrder(false);
     }
+  }, [orderIdParam]);
+
+  useEffect(() => {
+    if (!orderIdParam) return;
+
+    const isDev = process.env.NODE_ENV !== 'production';
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.3:5000' : 'https://api.nhiquelaservicos.com');
+    const socketUrl = apiUrl.replace('/api', '');
+    const socket = io(socketUrl, { transports: ['websocket'] });
+
+    socket.emit('joinRoom', { orderId: orderIdParam });
+
+    socket.on('order_updated', (updatedOrder) => {
+      if (updatedOrder && updatedOrder._id === orderIdParam) {
+        setCurrentOrder(updatedOrder);
+        toast.show(`Estado atualizado: ${updatedOrder.status}`, { type: 'info', placement: 'top', duration: 4000 });
+      }
+    });
+
+    return () => {
+      socket.emit('leaveRoom', { orderId: orderIdParam });
+      socket.disconnect();
+    };
   }, [orderIdParam]);
 
   const [subcategories, setSubcategories] = useState([]);
@@ -645,6 +669,7 @@ const OrderDetailsScreen = () => {
         <TrackingMap 
           orderId={currentOrder._id}
           destination={destination}
+          stepStatus={currentOrder.stepStatus}
           vehicleType={currentOrder.deliveryman?.transport_type}
           vehicleColor={currentOrder.deliveryman?.transport_color}
           onUpdateTracking={handleUpdateTracking}

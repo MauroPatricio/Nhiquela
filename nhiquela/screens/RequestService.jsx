@@ -71,6 +71,7 @@ export default function RequestServiceSimple() {
   const [waitingCountdown, setWaitingCountdown] = useState(45);
   const [rejectedDriverIds, setRejectedDriverIds] = useState([]);
   const [showBusyModal, setShowBusyModal] = useState(false);
+  const [showUnavailableAlert, setShowUnavailableAlert] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState({ visible: false, message: '' });
   const [duration, setDuration] = useState(null);
   const [activeTripData, setActiveTripData] = useState(null);
@@ -691,7 +692,7 @@ export default function RequestServiceSimple() {
                 setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
-                Alert.alert('Indisponível', 'Nenhum motorista está disponível neste momento. Tente novamente mais tarde.');
+                setShowUnavailableAlert(true);
             } else if (updatedOrder.status === 'Cancelado') {
                 setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
                 setWaitingForDriver(false);
@@ -1303,85 +1304,90 @@ export default function RequestServiceSimple() {
                     activeOpacity={0.7}
                     onPress={() => sendRequestToDriver(driver)}
                     style={{
-                      flexDirection: 'row',
-                      padding: 15,
+                      padding: 14,
                       borderWidth: 1,
                       borderColor: '#F3F4F6',
                       borderRadius: 16,
                       marginBottom: 12,
                       backgroundColor: '#F9FAFB',
-                      alignItems: 'center'
                     }}
                   >
-                    <Image
-                      source={driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture ? { uri: driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture } : driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
-                      style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#E5E7EB' }}
-                    />
-                    
-                    <View style={{ flex: 1, marginLeft: 15 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }}>{driver.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                      <Image
+                        source={driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture ? { uri: driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture } : driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+                        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#E5E7EB' }}
+                      />
                       
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
-                        <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
-                        <Text style={{ fontSize: 13, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
-                          {driver.deliveryman?.rating || 'Novo'}
-                        </Text>
-                        
-                        <Text style={{ fontSize: 13, color: '#9CA3AF', marginHorizontal: 6 }}>•</Text>
-                        
-                        <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
-                        <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 4 }}>
-                          {service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
-                        </Text>
-
-                        {!!driver.deliveryman?.transport_color && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 6 }}>
-                            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colorHex, marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB' }} />
-                            <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>{tColor}</Text>
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <View style={{ flex: 1, paddingRight: 8 }}>
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }} numberOfLines={1}>{driver.name}</Text>
+                            
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 4 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
+                                <Text style={{ fontSize: 13, color: '#4B5563', marginLeft: 2, fontWeight: '600' }}>
+                                  {driver.deliveryman?.rating || 'Novo'}
+                                </Text>
+                              </View>
+                              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
+                                <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 2 }} numberOfLines={1}>
+                                  {service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                        )}
-                        {!!driver.deliveryman?.transport_registration && (
-                          <>
-                            <Text style={{ fontSize: 12, color: '#9CA3AF', marginHorizontal: 6 }}>|</Text>
+                          
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={{ fontSize: 17, fontWeight: '800', color: '#9800FF' }}>
+                               {finalPrice.toFixed(0)} MT
+                            </Text>
+                            <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>
+                               Base: {baseFare.toFixed(0)} + {deslocacao.toFixed(0)}
+                            </Text>
+                          </View>
+                        </View>
+                        
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexWrap: 'wrap', gap: 6 }}>
+                          {!!driver.deliveryman?.transport_color && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colorHex, marginRight: 4, borderWidth: 1, borderColor: '#E5E7EB' }} />
+                              <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>{tColor}</Text>
+                            </View>
+                          )}
+                          {!!driver.deliveryman?.transport_registration && (
                             <View style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#D1D5DB' }}>
                               <Text style={{ fontSize: 10, color: '#374151', fontWeight: 'bold', letterSpacing: 0.5 }}>
                                 {driver.deliveryman?.transport_registration.toUpperCase()}
                               </Text>
                             </View>
-                          </>
-                        )}
-                      </View>
-                      
-                      <View style={{ marginTop: 8, gap: 6 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <MaterialCommunityIcons name="map-marker-distance" size={14} color="#4F46E5" style={{ width: 16 }} />
-                          <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '500', marginLeft: 4 }}>
-                            Distância até si: <Text style={{ fontWeight: '700' }}>{driver.distance ? driver.distance.toFixed(1) : '?'} km</Text>
-                          </Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <MaterialCommunityIcons name="clock-fast" size={14} color="#D97706" style={{ width: 16 }} />
-                          <Text style={{ fontSize: 12, color: '#D97706', fontWeight: '500', marginLeft: 4 }}>
-                            Chega a si em: <Text style={{ fontWeight: '700' }}>~{driver.distance ? Math.ceil(driver.distance * 2) : '?'} min</Text>
-                          </Text>
+                          )}
                         </View>
                       </View>
                     </View>
                     
-                    <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 10, color: '#6B7280', marginBottom: 2, fontWeight: '500' }}>
-                         Valor cobrado pelo prestador
-                      </Text>
-                      <Text style={{ fontSize: 11, color: '#4B5563', marginBottom: 4 }}>
-                         {baseFare.toFixed(0)} + {deslocacao.toFixed(0)} MT
-                      </Text>
-                      <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF' }}>
-                         {finalPrice.toFixed(0)} MT
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', flex: 1, gap: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="clock-fast" size={14} color="#D97706" />
+                          <Text style={{ fontSize: 12, color: '#D97706', fontWeight: '600', marginLeft: 4 }}>
+                            A {driver.distance ? Math.ceil(driver.distance * 2) : '?'} min
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="map-marker-distance" size={14} color="#4F46E5" />
+                          <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '600', marginLeft: 4 }}>
+                            {driver.distance ? driver.distance.toFixed(1) : '?'} km
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                         <MaterialCommunityIcons name="flag-checkered" size={12} color="#6B7280" />
-                        <Text style={{ fontSize: 10, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
-                           Chegada ao destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
+                        <Text style={{ fontSize: 11, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
+                           Destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
                         </Text>
                       </View>
                     </View>
@@ -1599,6 +1605,35 @@ export default function RequestServiceSimple() {
               >
                 <LinearGradient colors={['#A855F7', '#7F00FF']} style={styles.modalBtnGradient}>
                   <Text style={styles.modalBtnConfirmText}>Aumentar Raio</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showUnavailableAlert} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modernModal}>
+            <View style={[styles.modalIconBox, { backgroundColor: '#FEF2F2' }]}>
+              <MaterialCommunityIcons name="car-off" size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Indisponível</Text>
+            <Text style={styles.modalDesc}>
+              O motorista selecionado não se encontra disponível neste momento. Por favor, pesquise por outros motoristas.
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%' }]} 
+                onPress={() => {
+                  setShowUnavailableAlert(false);
+                  setIsSearching(true);
+                  startPulse();
+                }}
+              >
+                <LinearGradient colors={['#A855F7', '#7F00FF']} style={styles.modalBtnGradient}>
+                  <Text style={styles.modalBtnConfirmText}>Pesquisar Novamente</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
