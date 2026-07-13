@@ -64,7 +64,7 @@ export default function ProductAttributesScreen() {
         { _id: '3', nome: 'G' }, { _id: '4', nome: 'GG' },
         { _id: '5', nome: '1L' }, { _id: '6', nome: '2L' },
         { _id: '7', nome: '5kg' }, { _id: '8', nome: '10kg' },
-        { _id: '9', nome: 'Único' }, { _id: '10', nome: 'N/A' }
+        { _id: '9', nome: 'Ãšnico' }, { _id: '10', nome: 'N/A' }
       ]);
     } finally {
       setLoadingSizes(false);
@@ -88,7 +88,7 @@ export default function ProductAttributesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.nome) return toast.error('O nome é obrigatório.');
+    if (!formData.nome) return toast.error('O nome ï¿½ obrigatÃ³rio.');
 
     try {
       const endpoint = activeTab === 'colors' ? '/colors' : '/sizes';
@@ -108,7 +108,7 @@ export default function ProductAttributesScreen() {
       }
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar alterações.');
+      toast.error('Erro ao guardar alteraÃ§Ãµes.');
     }
   };
 
@@ -135,7 +135,7 @@ export default function ProductAttributesScreen() {
         <thead className="bg-light">
           <tr>
             <th className="border-0 text-muted py-3 px-4 rounded-start-4">{type}</th>
-            <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+            <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
           </tr>
         </thead>
         <tbody>
@@ -176,7 +176,7 @@ export default function ProductAttributesScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Atributos de Produto</h2>
-          <span className="text-muted small">Gestão de variantes globais: Cores e Tamanhos</span>
+          <span className="text-muted small">GestÃ£o de variantes globais: Cores e Tamanhos</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -203,19 +203,19 @@ export default function ProductAttributesScreen() {
             className={`btn border-0 py-3 px-5 rounded-0 fw-bold ${activeTab === 'colors' ? 'bg-white text-primary-custom border-bottom border-primary-custom border-3' : 'text-muted'}`}
             onClick={() => setActiveTab('colors')}
           >
-            <FontAwesomeIcon icon={faPalette} className="me-2" /> Cores Disponíveis
+            <FontAwesomeIcon icon={faPalette} className="me-2" /> Cores DisponÃ­veis
           </button>
           <button 
             className={`btn border-0 py-3 px-5 rounded-0 fw-bold ${activeTab === 'sizes' ? 'bg-white text-primary-custom border-bottom border-primary-custom border-3' : 'text-muted'}`}
             onClick={() => setActiveTab('sizes')}
           >
-            <FontAwesomeIcon icon={faRuler} className="me-2" /> Tamanhos Disponíveis
+            <FontAwesomeIcon icon={faRuler} className="me-2" /> Tamanhos DisponÃ­veis
           </button>
         </div>
 
         <div className="card-body p-0">
           {activeTab === 'colors' && renderTable(currentData, faPalette, 'Nome da Cor')}
-          {activeTab === 'sizes' && renderTable(currentData, faRuler, 'Descrição do Tamanho / Medida')}
+          {activeTab === 'sizes' && renderTable(currentData, faRuler, 'DescriÃ§Ã£o do Tamanho / Medida')}
         </div>
       </div>
 
@@ -235,7 +235,7 @@ export default function ProductAttributesScreen() {
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} required />
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Adicionar'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Adicionar'}
                 </button>
               </form>
             </div>

@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import QualityType from '../models/QualityTypeModel.js';
@@ -42,7 +42,7 @@ qualityTypeRouter.get(
     if (qualityType) {
       res.send(qualityType);
     } else {
-      res.status(404).send({ message: 'Qualidade do produto não encontrado' });
+      res.status(404).send({ message: 'Qualidade do produto nï¿½o encontrado' });
     }
   })
 );
@@ -70,7 +70,7 @@ qualityTypeRouter.put(
       await qualityType.save();
       res.send({ message: `Qualidade do produto actualizado com sucesso` });
     } else {
-      res.status(404).send({ message: 'Qualidade não encontrada' });
+      res.status(404).send({ message: 'Qualidade nï¿½o encontrada' });
     }
   })
 );
@@ -92,7 +92,7 @@ qualityTypeRouter.delete(
 
       res.send({ message: `Qualidade Removida Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Qualidade não encontrada' });
+      res.status(404).send({ message: 'Qualidade nï¿½o encontrada' });
     }
   })
 );

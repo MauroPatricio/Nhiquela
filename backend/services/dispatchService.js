@@ -1,102 +1,128 @@
-import RequestService from '../models/RequestServiceModel.js';
+// backend/services/DispatchService.js
+import mongoose from 'mongoose';
 import User from '../models/UserModel.js';
+import RequestService from '../models/RequestServiceModel.js';
+import createNotification from '../utils/createNotification.js';
 
-export const runIntelligentDispatch = async (io) => {
-  try {
-    // 1. Procurar pedidos pendentes em fase de busca
-    const activeRequests = await RequestService.find({
-      status: 'Pendente',
-      isSearching: true,
-      deleted: false,
-      isCanceled: false
-    });
+class DispatchService {
+  /**
+   * Procura motoristas disponíveis perto de uma localização e tenta atribuir a viagem em cascata
+   * @param {Object} order - O documento do pedido (RequestService)
+   * @param {Object} io - A instância do socket.io
+   */
+  async startDispatch(order, io) {
+    try {
+      console.log(`[DispatchService] Iniciando despacho para o pedido ${order.code}`);
+      
+      const originDetails = order.originDetails;
+      if (!originDetails || !originDetails.lat || !originDetails.lng) {
+        console.error(`[DispatchService] Falha: O pedido ${order.code} não tem coordenadas válidas.`);
+        return this._markUnavailable(order, io, 'Coordenadas inválidas para buscar motoristas.');
+      }
 
-    if (activeRequests.length === 0) return;
+      const MAX_DISTANCE_METERS = 10000; // 10km radius
 
-    for (const request of activeRequests) {
-      const now = new Date();
-      // Se não houver data de último dispatch, inicializamos
-      const lastDispatch = request.lastDispatchTime || request.createdAt;
-      const diffInSeconds = (now - lastDispatch) / 1000;
-
-      // Definir um tempo limite para aceitação (ex: 30 segundos)
-      const TIMEOUT_SECONDS = 30;
-
-      // Se é o primeiro ciclo de dispatch ou passou o tempo limite para os motoristas atuais
-      if (!request.lastDispatchTime || diffInSeconds >= TIMEOUT_SECONDS) {
-        
-        // Se não for o primeiro ciclo, significa que nenhum dos contactados aceitou, aumenta o raio
-        if (request.lastDispatchTime) {
-          request.searchRadius += 2000; // Aumenta 2km a cada iteração
-        }
-
-        // Se passar do raio limite (ex: 15km), cancela o pedido
-        if (request.searchRadius > 15000) {
-          request.status = 'Cancelado';
-          request.isSearching = false;
-          request.canceledReason = 'Nenhum motorista encontrado no raio de 15km';
-          await request.save();
-          // Notificar o cliente que não há motoristas
-          io.to(request.user.toString()).emit('no_driver_found', { orderId: request._id });
-          continue;
-        }
-
-        // Validar coordenadas para evitar erro do MongoDB (coordinates: [null, null])
-        const requestLng = request.longitude || request.originDetails?.lng || request.originDetails?.longitude;
-        const requestLat = request.latitude || request.originDetails?.lat || request.originDetails?.latitude;
-
-        if (!requestLng || !requestLat) {
-          console.warn(`[Intelligent Dispatch] Pedido ${request._id} não tem coordenadas válidas. Cancelando busca.`);
-          request.isSearching = false;
-          request.status = 'Cancelado';
-          request.canceledReason = 'Coordenadas de origem inválidas no pedido';
-          await request.save();
-          continue;
-        }
-
-        // 2. Procurar motoristas próximos
-        const nearestDrivers = await User.find({
-          isDeliveryMan: true,
-          isApproved: true,
-          status: { $ne: 'Inativo' },
-          availability: 'active',
-          _id: { $nin: request.contactedDrivers }, // Excluir motoristas já contactados
-          locationGeo: {
-            $near: {
-              $geometry: {
-                type: 'Point',
-                coordinates: [requestLng, requestLat]
-              },
-              $maxDistance: request.searchRadius // Distância em metros
-            }
+      // Busca geospacial dos motoristas disponíveis e livres
+      const availableDrivers = await User.find({
+        isDeliveryMan: true,
+        availability: true, // Motorista online
+        status: 'Active',
+        'deliveryman.hasActiveService': false, // Não está em viagem
+        locationGeo: {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [parseFloat(originDetails.lng), parseFloat(originDetails.lat)]
+            },
+            $maxDistance: MAX_DISTANCE_METERS
           }
-        }).limit(5); // Pega apenas os 5 mais próximos
-
-        if (nearestDrivers.length > 0) {
-          const newDriverIds = nearestDrivers.map(d => d._id);
-          
-          // Adiciona aos contactados
-          request.contactedDrivers.push(...newDriverIds);
-          request.lastDispatchTime = now;
-          await request.save();
-
-          // 3. Emitir evento apenas para estes 5 motoristas
-          nearestDrivers.forEach(driver => {
-            io.to(`driver_${driver._id.toString()}`).emit('new_order', request);
-          });
-          
-          console.log(`[Intelligent Dispatch] Pedido ${request._id} enviado para ${nearestDrivers.length} motoristas no raio de ${request.searchRadius}m`);
-        } else {
-          // Nenhum motorista novo encontrado neste raio, forçamos um update no lastDispatchTime 
-          // para que na próxima vez aumente o raio sem esperar os 30s completos se quisermos,
-          // mas vamos apenas aguardar os 30s ou acelerar o aumento.
-          request.lastDispatchTime = now; 
-          await request.save();
-          console.log(`[Intelligent Dispatch] Nenhum motorista encontrado para o pedido ${request._id} no raio de ${request.searchRadius}m`);
         }
+      }).select('_id name pushToken locationGeo').limit(5); // Tenta os 5 mais próximos
+
+      if (availableDrivers.length === 0) {
+        console.log(`[DispatchService] Nenhum motorista disponível num raio de 10km para o pedido ${order.code}`);
+        return this._markUnavailable(order, io, 'Nenhum motorista disponível perto de si.');
+      }
+
+      console.log(`[DispatchService] Encontrados ${availableDrivers.length} motoristas potenciais para o pedido ${order.code}`);
+
+      // Começa o loop de ping em cascata
+      this._pingDriversSequentially(order, availableDrivers, io);
+
+    } catch (error) {
+      console.error('[DispatchService] Erro crítico no dispatch:', error);
+    }
+  }
+
+  async _pingDriversSequentially(order, drivers, io) {
+    for (let i = 0; i < drivers.length; i++) {
+      const driver = drivers[i];
+      
+      // Verificar se o pedido ainda está "Pendente" antes de contactar o próximo
+      const currentOrderState = await RequestService.findById(order._id);
+      if (!currentOrderState || currentOrderState.status !== 'Pendente') {
+        console.log(`[DispatchService] Pedido ${order.code} já foi aceite ou cancelado. Terminando dispatch.`);
+        return;
+      }
+
+      console.log(`[DispatchService] ⏳ Pingando motorista ${i+1}/${drivers.length} (${driver.name}). Aguardando 30s...`);
+
+      // 1. Atualizar o pedido para apontar para este targetTemporario
+      currentOrderState.targetDriverId = driver._id;
+      await currentOrderState.save();
+
+      // 2. Emitir o evento via WebSocket e Push Notification
+      const orderPayload = { ...currentOrderState.toObject(), type: 'requestService' };
+      io.to(`driver_${driver._id}`).emit('new_order', orderPayload);
+
+      if (driver.pushToken) {
+        await createNotification({
+          message: `Novo pedido de viagem perto de si! Clique para aceitar.`,
+          receiver_id: driver._id,
+          pushToken: driver.pushToken
+        });
+      }
+
+      // 3. Esperar 30 segundos usando uma Promise
+      await new Promise(resolve => setTimeout(resolve, 30000));
+
+      // 4. Verificar após 30s se o motorista aceitou
+      const checkOrder = await RequestService.findById(order._id);
+      if (checkOrder && checkOrder.status === 'Pendente') {
+        // Motorista não aceitou a tempo. Vamos avisá-lo para remover do ecrã
+        console.log(`[DispatchService] ❌ Motorista ${driver.name} ignorou/demorou. Passando ao próximo...`);
+        // Opcional: Emitimos evento de order_expired para este motorista fechar o pop-up
+        io.to(`driver_${driver._id}`).emit('order_expired', checkOrder);
+      } else {
+        // Alguém aceitou (ou cliente cancelou)
+        console.log(`[DispatchService] ✅ Motorista aceitou ou pedido fechado. Dispatch concluído.`);
+        return;
       }
     }
-  } catch (error) {
-    console.error('[Intelligent Dispatch Error]', error);
+
+    // Se saiu do loop, nenhum dos 5 motoristas aceitou
+    console.log(`[DispatchService] 🚨 Fim da linha. Nenhum dos ${drivers.length} motoristas aceitou o pedido ${order.code}.`);
+    await this._markUnavailable(order, io, 'Nenhum motorista aceitou a sua viagem a tempo.');
   }
-};
+
+  async _markUnavailable(order, io, reason) {
+    try {
+      const finalOrder = await RequestService.findById(order._id);
+      if (finalOrder && finalOrder.status === 'Pendente') {
+        finalOrder.status = 'Motorista indisponível';
+        finalOrder.targetDriverId = null;
+        finalOrder.canceledReason = reason;
+        await finalOrder.save();
+
+        // Notificar cliente
+        io.to(`order_${finalOrder._id}`).emit('order_updated', finalOrder);
+        // Emissão redundante para ter a certeza que o frontend capta a resposta
+        io.emit('order_unavailable', finalOrder);
+      }
+    } catch (e) {
+      console.error('[DispatchService] Erro ao marcar como indisponível', e);
+    }
+  }
+}
+
+export default new DispatchService();

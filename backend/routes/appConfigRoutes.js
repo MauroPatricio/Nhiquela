@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import AppConfig from '../models/AppConfigModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -58,7 +58,7 @@ appConfigRouter.put(
     if (req.body.enabledPaymentMethods !== undefined) config.enabledPaymentMethods = req.body.enabledPaymentMethods;
 
     await config.save();
-    res.send({ message: 'Configurações Globais atualizadas', config });
+    res.send({ message: 'Configuraï¿½ï¿½es Globais atualizadas', config });
   })
 );
 

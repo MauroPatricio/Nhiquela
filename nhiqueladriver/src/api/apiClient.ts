@@ -24,7 +24,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.response || error.message);
+    if (error.message !== 'Network Error') {
+      // Usar console.warn em vez de console.error para evitar o Red Screen no React Native para erros tratados
+      console.warn("API Error:", error.response?.data?.message || error.message);
+    }
     return Promise.reject(error);
   }
 );

@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import PricingService from '../services/PricingService.js';
 import { isAuth } from '../utils.js';
@@ -51,7 +51,7 @@ pricingRouter.post(
     const { serviceId, originLoc, destLoc, weightKg, vehicleTypeId, hasHelper, isRaining, trafficCondition, demandLevel, providerId } = req.body;
     
     if (!serviceId) {
-      return res.status(400).send({ message: 'serviceId é obrigatório' });
+      return res.status(400).send({ message: 'serviceId ï¿½ obrigatï¿½rio' });
     }
 
     const result = await PricingService.calculatePrice({

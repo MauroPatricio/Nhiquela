@@ -18,12 +18,13 @@ import {
   Switch,
 } from "react-native";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
+import SelectField from "../components/SelectField";
 import { updateDeliverymanRequest, getProviderSubcategories } from "../services/deliveryService";
 import { API_BASE_URL } from "../api/apiConfig";
 
@@ -128,7 +129,7 @@ export default function EditProfileScreen({ navigation, route }: Props) {
     setProofOfAddressImage(formatBase64Image(user?.deliveryman?.Proof_of_Address) || "");
   }, [user]);
 
-  const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string }[]>([]);
+  const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string, description?: string }[]>([]);
 
   useEffect(() => {
     const fetchSubcategories = async () => {
@@ -137,7 +138,9 @@ export default function EditProfileScreen({ navigation, route }: Props) {
         const formatted = data.map((item: any) => ({
           label: item.name,
           value: item._id,
-          pricingMode: item.pricingMode
+          pricingMode: item.pricingMode,
+          description: item.description,
+          vehicleTypes: item.vehicleTypes ? item.vehicleTypes.map((v: any) => v.name).join(', ') : ''
         }));
         setSubcategories(formatted);
       } catch (error) {
@@ -160,6 +163,8 @@ export default function EditProfileScreen({ navigation, route }: Props) {
     Proof_of_Addres_Reason: user?.deliveryman?.Proof_of_Addres_Reason || "",
     hasHelpers: user?.deliveryman?.hasHelpers || false,
     helperCount: user?.deliveryman?.helperCount?.toString() || "0",
+    eMolaNumber: user?.deliveryman?.transferPreferences?.eMolaNumber || "",
+    mPesaNumber: user?.deliveryman?.transferPreferences?.mPesaNumber || "",
   };
 
   // ✅ FUNÇÃO PARA VISUALIZAR IMAGEM EM TELA CHEIA
@@ -309,6 +314,8 @@ const handleSave = async (values: any) => {
           isDeliveryMan: true,
           hasHelpers: values.hasHelpers,
           helperCount: parseInt(values.helperCount) || 0,
+          mPesaNumber: values.mPesaNumber,
+          eMolaNumber: values.eMolaNumber,
         };
   
     
@@ -319,10 +326,18 @@ const handleSave = async (values: any) => {
         // ✅ OPÇÃO 2: Enviar apenas o necessário
         // const userData = await updateDeliverymanRequestSimple(deliverymanData, user);
           
-        Alert.alert(
-          "✅ Sucesso", 
-          `O seu perfil e/ou documentos foram atualizados com sucesso.`
-        );
+        const isTransportTypeChanging = values.transport_type && values.transport_type !== user?.deliveryman?.transport_type;
+        if (isTransportTypeChanging) {
+          Alert.alert(
+            "✅ Sucesso", 
+            `O seu perfil foi atualizado. A alteração da categoria de serviço foi enviada para aprovação do administrador.`
+          );
+        } else {
+          Alert.alert(
+            "✅ Sucesso", 
+            `O seu perfil e/ou documentos foram atualizados com sucesso.`
+          );
+        }
   
         // ✅ ATUALIZAR CONTEXTO LOCALMENTE (opcional)
         // Isso mantém a UI atualizada enquanto aguarda aprovação
@@ -690,18 +705,59 @@ const handleSave = async (values: any) => {
             {/* ✅ SECÇÃO APENAS PARA MOTORISTAS */}
             {user?.isDeliveryMan && (
               <>
+                {/* Preferências de Transferência */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Preferências de Transferência (Opcional)</Text>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Número M-Pesa</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 84..."
+                      keyboardType="phone-pad"
+                      value={values.mPesaNumber}
+                      onChangeText={handleChange('mPesaNumber')}
+                      onBlur={handleBlur('mPesaNumber')}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Número e-Mola</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 86..."
+                      keyboardType="phone-pad"
+                      value={values.eMolaNumber}
+                      onChangeText={handleChange('eMolaNumber')}
+                      onBlur={handleBlur('eMolaNumber')}
+                    />
+                  </View>
+                </View>
+
                 {/* Informações do Veículo */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Informações do Veículo</Text>
                   
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Tipo de Veículo</Text>
-                    <View style={[styles.input, { backgroundColor: '#f3f4f6', justifyContent: 'center' }]}>
-                      <Text style={{ color: '#6b7280' }}>
-                        {subcategories.find(s => s.value === values.transport_type || s.label === values.transport_type)?.label || values.transport_type || 'N/A'}
-                      </Text>
-                    </View>
-                  </View>
+                  <SelectField
+                    label="Tipo de Veículo / Serviço"
+                    field="transport_type"
+                    value={values.transport_type}
+                    options={subcategories.length > 0 ? subcategories : [{ label: values.transport_type || 'N/A', value: values.transport_type }]}
+                    onChange={(field, val) => setFieldValue('transport_type', val)}
+                  />
+                  
+                  {values.transport_type && subcategories.find(s => s.value === values.transport_type)?.description && (
+                      <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                          <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic', marginBottom: 4 }}>
+                              {subcategories.find(s => s.value === values.transport_type)?.description}
+                          </Text>
+                          {(subcategories as any).find((s: any) => s.value === values.transport_type)?.vehicleTypes ? (
+                              <Text style={{ fontSize: 12, color: '#4B5563', fontWeight: 'bold' }}>
+                                  Tipos de Viatura Associados: <Text style={{ fontWeight: 'normal' }}>{(subcategories as any).find((s: any) => s.value === values.transport_type)?.vehicleTypes}</Text>
+                              </Text>
+                          ) : null}
+                      </View>
+                  )}
 
                   {/* Preço Base do Serviço (Se aplicável) */}
                   {subcategories.find(s => s.label === values.transport_type || s.value === values.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (

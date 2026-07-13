@@ -6,6 +6,7 @@ import Radio from '../components/Radio';
 import SubmitPaymentButton from '../components/SubmitPaymentButton';
 import { Ionicons } from '@expo/vector-icons'
 import { useNavigation, useRoute } from '@react-navigation/native'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PaymentMethod = () => {
   const navigation = useNavigation();
@@ -27,6 +28,7 @@ const PaymentMethod = () => {
              shortName: pm.name 
           }));
           setPayments(formattedPayments);
+          loadPreferredPayment(formattedPayments);
           return;
         }
       }
@@ -38,6 +40,7 @@ const PaymentMethod = () => {
              shortName: pm.name
         }));
         setPayments(formattedPayments);
+        loadPreferredPayment(formattedPayments);
       }
     } catch (error) {
       console.log(error);
@@ -45,6 +48,31 @@ const PaymentMethod = () => {
       setLoading(false);
     }
   }
+
+  const loadPreferredPayment = async (paymentsList) => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      if (storedUserData) {
+        const parsed = JSON.parse(storedUserData);
+        if (parsed.preferredPaymentMethod) {
+          const pref = paymentsList.find(p => p._id === parsed.preferredPaymentMethod);
+          if (pref) {
+            setSelectedPayment(pref.shortName);
+            return;
+          }
+        }
+      }
+      // If no preference found, default to 'Em dinheiro' if available
+      const cashMethod = paymentsList.find(p => p.shortName.toLowerCase().includes('dinheiro') || p.name.toLowerCase().includes('dinheiro'));
+      if (cashMethod) {
+        setSelectedPayment(cashMethod.shortName);
+      } else if (paymentsList.length > 0) {
+        setSelectedPayment(paymentsList[0].shortName); // Default to first
+      }
+    } catch (e) {
+      console.log('Error loading preferred payment', e);
+    }
+  };
 
   useEffect(() => {
     fechtData()

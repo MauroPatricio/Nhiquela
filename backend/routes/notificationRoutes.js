@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import NotificationToken from '../models/NotificationToken.js';
 import { Expo } from 'expo-server-sdk';
@@ -14,12 +14,12 @@ notificationRouter.post(
     const { deviceToken, userId, platform } = req.body;
 
     if (!deviceToken || deviceToken === 'null' || deviceToken === null) {
-      return res.status(400).json({ message: 'Token inválido ou ausente.' });
+      return res.status(400).json({ message: 'Token invï¿½lido ou ausente.' });
     }
 
     const existing = await NotificationToken.findOne({ deviceToken });
     if (existing) {
-      return res.status(200).json({ message: 'Token já registrado.' });
+      return res.status(200).json({ message: 'Token jï¿½ registrado.' });
     }
 
     const newToken = new NotificationToken({
@@ -34,16 +34,16 @@ notificationRouter.post(
 );
 
 
-// ? Rota para enviar notificação
+// ? Rota para enviar notificaï¿½ï¿½o
 notificationRouter.post('/send', async (req, res) => {
   const { deviceToken, title, body, data } = req.body;
 
   try {
     const result = await sendNotification(deviceToken, title, body, data);
     if (result.success) {
-      res.status(200).json({ message: 'Notificação enviada com sucesso.', tickets: result.tickets });
+      res.status(200).json({ message: 'Notificaï¿½ï¿½o enviada com sucesso.', tickets: result.tickets });
     } else {
-      res.status(500).json({ message: 'Erro ao enviar notificação.', error: result.error });
+      res.status(500).json({ message: 'Erro ao enviar notificaï¿½ï¿½o.', error: result.error });
     }
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -52,7 +52,7 @@ notificationRouter.post('/send', async (req, res) => {
 
 
 /**
- * Rota: Enviar notificação para um usuário
+ * Rota: Enviar notificaï¿½ï¿½o para um usuï¿½rio
  */
 notificationRouter.post(
   '/send-to-user',
@@ -61,19 +61,19 @@ notificationRouter.post(
 
 
     if (!userId || !title || !body) {
-      return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
+      return res.status(400).json({ message: 'Campos obrigatï¿½rios ausentes.' });
     }
 
-    // Busca todos os tokens associados ao usuário (caso o usuário use vários dispositivos)
+    // Busca todos os tokens associados ao usuï¿½rio (caso o usuï¿½rio use vï¿½rios dispositivos)
     const deviceTokens = await NotificationToken.find({ user: userId });
 
     if (!deviceTokens.length) {
-      console.log('Nenhum token encontrado para este usuário. '+ userId)
-      // return res.status(404).json({ message: 'Nenhum token encontrado para este usuário.' });
+      console.log('Nenhum token encontrado para este usuï¿½rio. '+ userId)
+      // return res.status(404).json({ message: 'Nenhum token encontrado para este usuï¿½rio.' });
     }
 
     const results = [];
-     // Salvar notificação no histórico do banco
+     // Salvar notificaï¿½ï¿½o no histï¿½rico do banco
     // await Notification.create({ user: userId, title, body, data });
 
     for (const tokenObj of deviceTokens) {
@@ -81,12 +81,12 @@ notificationRouter.post(
       results.push(result);
     }
 
-    res.status(200).json({ message: 'Notificações enviadas.', results });
+    res.status(200).json({ message: 'Notificaï¿½ï¿½es enviadas.', results });
   })
 );
 
 /**
- * Enviar notificação para todos os tokens registrados
+ * Enviar notificaï¿½ï¿½o para todos os tokens registrados
  */
 notificationRouter.post(
   '/broadcast',
@@ -94,7 +94,7 @@ notificationRouter.post(
     const { title, body, data } = req.body;
 
     if (!title || !body) {
-      return res.status(400).json({ message: 'Título e corpo são obrigatórios.' });
+      return res.status(400).json({ message: 'Tï¿½tulo e corpo sï¿½o obrigatï¿½rios.' });
     }
 
     const deviceTokens = await NotificationToken.find();
@@ -111,7 +111,7 @@ notificationRouter.post(
     }
 
     res.status(200).json({
-      message: `Notificações enviadas para ${deviceTokens.length} dispositivos.`,
+      message: `Notificaï¿½ï¿½es enviadas para ${deviceTokens.length} dispositivos.`,
       results,
     });
   })

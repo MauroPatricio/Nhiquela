@@ -11,7 +11,7 @@ import Partner from '../models/PartnerModel.js';
 import partnerService from '../services/partnerService.js';
 import reputationTracker from '../utils/reputationTracker.js';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, getFinancialConfig } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
 
 
 const orderRouter = express.Router();
@@ -575,6 +575,15 @@ orderRouter.delete(
     if (order) {
       order.deleted = true;
       order.isActive = false;
+      order.status = 'Cancelado';
+
+      if (order.deliveryman && order.deliveryman.id) {
+        const User = mongoose.model('User');
+        await User.updateOne(
+          { _id: order.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
+      }
 
       await order.save();
 
@@ -584,6 +593,16 @@ orderRouter.delete(
       if (trip) {
         trip.deleted = true;
         trip.isActive = false;
+        trip.status = 'Cancelado';
+        
+        if (trip.deliveryman && trip.deliveryman.id) {
+          const User = mongoose.model('User');
+          await User.updateOne(
+            { _id: trip.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } }
+          );
+        }
+
         await trip.save();
         res.send({ message: `Pedido removido com sucesso` });
       } else {
@@ -603,6 +622,15 @@ orderRouter.delete(
       order.isDeletedBySeller = true;
       order.deleted = true;
       order.isActive = false;
+      order.status = 'Cancelado';
+
+      if (order.deliveryman && order.deliveryman.id) {
+        const User = mongoose.model('User');
+        await User.updateOne(
+          { _id: order.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
+      }
 
       await order.save();
 
@@ -624,6 +652,11 @@ orderRouter.delete(
       order.status = 'Cancelado';
       order.targetDriverId = null;
       if (order.deliveryman && order.deliveryman.id) {
+        const User = mongoose.model('User');
+        await User.updateOne(
+          { _id: order.deliveryman.id },
+          { $set: { 'deliveryman.hasActiveService': false } }
+        );
         order.deliveryman.id = null;
       }
 
@@ -1058,19 +1091,12 @@ orderRouter.put(
       const serviceValue = order.deliveryPrice || order.totalPrice || 0;
       const commissionAmount = serviceValue * commissionRate;
 
-      // Realizar o débito da carteira do motorista (lançará erro se não houver saldo)
-      try {
-        await debitDriverCommissionWithSession(
-          user_deliver._id, 
-          commissionAmount, 
-          `Comissão de serviço para o pedido ${order.code}`, 
-          'wallet', 
-          session
-        );
-      } catch (error) {
+      // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
+      const canAfford = await canAffordTripCommission(user_deliver._id, commissionAmount);
+      if (!canAfford) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).send({ message: error.message });
+        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
       }
 
       let deliverymanData = {};
@@ -1096,7 +1122,9 @@ orderRouter.put(
       await session.commitTransaction();
       session.endSession();
 
-      const updateOrder = order;
+      const updateOrder = await Order.findById(order._id)
+        .populate('user', 'name phoneNumber profileImage')
+        .populate('seller', 'name location');
       const sellerOfProduct = await User.findById(order.seller);
 
       //  Para envio de mensagens
@@ -1128,13 +1156,66 @@ orderRouter.put(
         io.emit('order_taken', { orderId: order._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
-      res.send({ order, message: `Aceite pelo entregador`, order: updateOrder });
+      res.send({ order: updateOrder, message: `Aceite pelo entregador` });
 
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
       console.error('Erro ao aceitar pedido:', error);
       res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.' });
+    }
+  })
+);
+
+// Motorista cancela/recusa a viagem de ecommerce
+orderRouter.put(
+  '/:id/cancelByDeliveryman',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const order = await Order.findById(req.params.id).session(session);
+
+      if (order) {
+        order.status = 'Pendente';
+        order.stepStatus = 1;
+        order.isAccepted = false;
+        
+        // Libertar o motorista
+        if (order.deliveryman && order.deliveryman.id) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } },
+            { session }
+          );
+        }
+        
+        order.deliveryman = null;
+
+        await order.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+
+        // Broadcast to all drivers that this order is available again
+        const io = req.app.get('io');
+        if (io) {
+          io.emit('order_updated', order);
+          io.to(`driver_${req.user._id}`).emit('service_released', { message: 'Pedido recusado.' });
+        }
+
+        res.send({ message: 'Pedido recusado com sucesso', order });
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(404).send({ message: 'Pedido não encontrado' });
+      }
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error('Erro ao cancelar pedido pelo entregador:', error);
+      res.status(500).send({ message: 'Erro ao recusar pedido' });
     }
   })
 );
@@ -1270,6 +1351,13 @@ orderRouter.put(
     if (order) {
       order.status = 'No destino indicado';
       order.stepStatus = 5;
+      
+      order.arrivedAtDestination = Date.now();
+      if (req.body.latitude && req.body.longitude) {
+        order.arrivalLatitude = req.body.latitude;
+        order.arrivalLongitude = req.body.longitude;
+      }
+      
       const updateOrder = await order.save();
 
 
@@ -1315,96 +1403,131 @@ orderRouter.put(
 
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+      res.status(404).send({ message: 'Pedido no encontrado' });
     }
   })
 );
 
+// Motorista cancela viagem por "Cliente não compareceu" (após 5 minutos)
+orderRouter.put(
+  '/:id/driver-no-show',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+      order.status = 'Cancelado';
+      order.stepStatus = 7; // Status de cancelamento/falha
+      
+      const updateOrder = await order.save();
+
+      // WebSocket Optimization
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        if (updateOrder.deliveryman?.id) {
+          io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
+        }
+      }
+
+      res.send({ message: `Viagem cancelada por não comparência`, order: updateOrder });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
 
 // O cliente finaliza a confirmar a recepcao do pedido
 orderRouter.put(
   '/:id/deliver',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    // const user_deliver = await User.findById(req.user._id);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (order) {
-      //     order.isPaid = true;
-      //     order.paidAt= Date.now();
-      order.status = 'Entregue';
-      order.isDelivered = true
-      order.deliveredAt = Date.now();
-      order.stepStatus = 6;
+    try {
+      const order = await Order.findById(req.params.id).session(session);
 
-      // Track reputation for completed order
-      await reputationTracker.recordOrderCompleted(order.user);
+      if (order) {
+        order.status = 'Entregue';
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
+        order.stepStatus = 6;
 
-      // if(user_deliver.isDeliveryMan){
+        await reputationTracker.recordOrderCompleted(order.user);
 
-      //   order.deliveryman = {
-      //     photo: user_deliver.deliveryman.photo,
-      //     name:  user_deliver.deliveryman.name,
-      //     phoneNumber:  user_deliver.deliveryman.phoneNumber,
-      //     transport_type:  user_deliver.deliveryman.transport_type,
-      //     transport_color:  user_deliver.deliveryman.transport_color,
-      //     transport_registration:  user_deliver.deliveryman.transport_registration,
-      //   }
-      // }
+        // Calculate and debit commission if a deliveryman exists
+        if (order.deliveryman && order.deliveryman.id) {
+          const financialConfig = await getFinancialConfig();
+          const commissionRate = financialConfig?.driverCommissionRate || 0.15;
+          const serviceValue = order.deliveryPrice || order.totalPrice || 0;
+          const commissionAmount = serviceValue * commissionRate;
 
-
-      // order.paymentResult = {
-      //   id: req.body.id,
-      //   status: req.body.status,
-      //   update_time: req.body.update_time,
-      //   email_address: req.body.email_address,
-      // };
-      const savedOrder = await order.save();
-
-      //  Para envio de mensagens
-
-      let message = `A Nhiquela informa que o pedido ${order.code} foi entregue com sucesso.`;
-
-      //  sendSMSToUSendIt(req,message);
-
-      const sellerOfProduct = await User.findById(order.seller);
-      const clientOfProduct = await User.findById(order.user);
-
-      //toSeller
-      await createNotification({
-        message: message,
-        receiver_id: order.seller,
-        sender_id: order.user,
-        orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
-
-      });
-      //toOrderClient
-      await createNotification({
-        message: message,
-        receiver_id: order.user,
-        sender_id: order.seller,
-        orderID: order._id,
-        pushToken: clientOfProduct.pushToken
-      });
-      // sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);       
-      
-      // WebSocket Optimization
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`order_${order._id}`).emit('order_updated', savedOrder);
-        if (order.deliveryman?.id) {
-          io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+          try {
+            await debitDriverCommissionWithSession(
+              order.deliveryman.id,
+              commissionAmount,
+              `Comissão de serviço para o pedido ${order.code}`,
+              'wallet',
+              session
+            );
+          } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).send({ message: error.message });
+          }
         }
+
+        const savedOrder = await order.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+
+        let message = `A Nhiquela informa que o pedido ${order.code} foi entregue com sucesso.`;
+
+        const sellerOfProduct = await User.findById(order.seller);
+        const clientOfProduct = await User.findById(order.user);
+
+        if (sellerOfProduct && sellerOfProduct.pushToken) {
+          await createNotification({
+            message: message,
+            receiver_id: order.seller,
+            sender_id: order.user,
+            orderID: order._id,
+            pushToken: sellerOfProduct.pushToken,
+          });
+        }
+
+        if (clientOfProduct && clientOfProduct.pushToken) {
+          await createNotification({
+            message: message,
+            receiver_id: order.user,
+            sender_id: order.seller,
+            orderID: order._id,
+            pushToken: clientOfProduct.pushToken
+          });
+        }
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`order_${order._id}`).emit('order_updated', savedOrder);
+          if (order.deliveryman?.id) {
+            io.to(`driver_${order.deliveryman.id}`).emit('order_updated', savedOrder);
+          }
+        }
+
+        res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(404).send({ message: 'Pedido não encontrado' });
       }
-      
-      res.send({ order: savedOrder, message: `Pedido entregue com sucesso` });
-    } else {
-      res.status(404).send({ message: 'Pedido n�o encontrado' });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido.' });
     }
   })
 );
-
 
 // Em caso de cancelamento do pedido
 orderRouter.put(
@@ -1598,10 +1721,13 @@ orderRouter.get(
 
     const driver = await User.findById(deliverymanId);
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista n�o encontrado' });
+      return res.status(404).send({ message: 'Motorista no encontrado' });
     }
 
     const isDriverActive = driver.availability === 'active';
+    const { hasSufficientBalance } = await import('../services/walletService.js');
+    const hasBalance = await hasSufficientBalance(deliverymanId, driver);
+    const canAcceptNewTrips = isDriverActive && hasBalance;
     const driverTransportType = driver.deliveryman?.transport_type;
 
     // Buscar Orders normais
@@ -1609,8 +1735,8 @@ orderRouter.get(
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
     ];
-    if (isDriverActive) {
-      orderConditions.push({ stepStatus: 3 }); // Dispon�veis para aceitar se ativo
+    if (canAcceptNewTrips) {
+      orderConditions.push({ stepStatus: 3 }); // Disponiveis para aceitar se ativo
     }
 
     const ordersPromise = Order.find({
@@ -1621,13 +1747,13 @@ orderRouter.get(
       .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestServices de servi�os (reboque, etc)
+    // Buscar RequestServices de servios (reboque, etc)
     // Buscar RequestServices de servios (reboque, etc)
     const requestServiceConditions = [
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId }  // compatibilidade
     ];
-    if (isDriverActive) {
+    if (canAcceptNewTrips) {
       const availableCondition = { 
         stepStatus: 3,
         $or: [
@@ -1648,6 +1774,7 @@ orderRouter.get(
       $or: requestServiceConditions
     })
       .populate('user', 'name phoneNumber profileImage')
+      .populate('serviceId', 'name')
       .lean();
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
@@ -1679,7 +1806,7 @@ orderRouter.get(
       'deliveryman.id': deliverymanId,
       deleted: false
     })
-      .populate('user', 'name')
+      .populate('user', 'name profileImage phoneNumber')
       .populate('sellers', 'name')
       .lean();
 
@@ -1688,7 +1815,8 @@ orderRouter.get(
       'deliveryman.id': deliverymanId,
       deleted: false
     })
-      .populate('user', 'name')
+      .populate('user', 'name profileImage phoneNumber')
+      .populate('serviceId', 'name')
       .lean();
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);

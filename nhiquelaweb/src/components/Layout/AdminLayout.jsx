@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Outlet, NavLink, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { setUserLogout } from '../../store/features/userSlice';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userInfo } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   if (!userInfo) {
     return <Navigate to="/login" replace />;
@@ -121,15 +124,24 @@ export default function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 mt-auto">
-          <NavLink to="/" className="btn btn-light w-100 text-start text-dark shadow-sm border-0">
+        <div className="p-3 mt-auto border-top border-light pt-4">
+          <NavLink to="/" className="btn btn-light w-100 text-start text-dark shadow-sm border-0 mb-3 rounded-3 hover-bg-light transition-all py-2">
             <FontAwesomeIcon icon={faArrowLeft} className="me-2 text-muted" /> Voltar ao Site
           </NavLink>
+          <button 
+            onClick={() => setShowLogoutModal(true)} 
+            className="btn w-100 text-start shadow-sm border-0 rounded-3 text-white transition-all py-2 d-flex justify-content-between align-items-center"
+            style={{ background: 'linear-gradient(135deg, #ff4d4f 0%, #d9363e 100%)' }}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <span><FontAwesomeIcon icon={faSignOutAlt} className="me-2" /> Terminar Sessão</span>
+          </button>
         </div>
       </div>
 
       {/* Main Content Area ajustada */}
-      <div className="flex-grow-1 ms-0 ms-md-250 w-100 d-flex flex-column">
+      <div className="flex-grow-1 ms-0 ms-md-250 w-100 d-flex flex-column" style={{ minWidth: 0 }}>
         {/* Header Mobile para abrir sidebar */}
         <div className="d-md-none bg-white p-3 shadow-sm d-flex justify-content-between align-items-center sticky-top">
           <div className="d-flex align-items-center">
@@ -144,6 +156,53 @@ export default function AdminLayout() {
           <Outlet />
         </div>
       </div>
+
+      {/* Premium Logout Modal */}
+      {showLogoutModal && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)' }}>
+          <div className="bg-white rounded-4 shadow-lg overflow-hidden animation-fade-in-up" style={{ width: '90%', maxWidth: '420px', transform: 'scale(1)', transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+            <div className="p-4 p-md-5 text-center position-relative">
+              <button 
+                onClick={() => setShowLogoutModal(false)}
+                className="btn btn-sm btn-light rounded-circle position-absolute" 
+                style={{ top: '15px', right: '15px', width: '32px', height: '32px', zIndex: 10 }}
+              >
+                <FontAwesomeIcon icon={faTimes} className="text-muted" />
+              </button>
+              
+              <div className="mx-auto mb-4 d-flex align-items-center justify-content-center rounded-circle" style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', boxShadow: '0 8px 16px rgba(239, 68, 68, 0.15)' }}>
+                <FontAwesomeIcon icon={faSignOutAlt} className="text-danger" style={{ fontSize: '2rem' }} />
+              </div>
+              
+              <h4 className="fw-bold text-dark mb-2">Terminar Sessão</h4>
+              <p className="text-muted mb-4 px-2" style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
+                Tem a certeza que deseja sair do Painel de Administração? Terá de iniciar sessão novamente.
+              </p>
+              
+              <div className="d-flex flex-column flex-sm-row gap-3 mt-2">
+                <button 
+                  onClick={() => setShowLogoutModal(false)} 
+                  className="btn btn-light fw-bold flex-grow-1 py-2 rounded-3 text-secondary transition-all"
+                  style={{ border: '1px solid #e2e8f0' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowLogoutModal(false);
+                    dispatch(setUserLogout());
+                  }} 
+                  className="btn btn-danger fw-bold flex-grow-1 py-2 rounded-3 text-white shadow-sm transition-all position-relative overflow-hidden premium-btn-danger"
+                >
+                  <span className="position-relative z-1">Sim, Sair</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Classe CSS extra injetada via estilo inline para garantir transições */}
       <style>{`
@@ -155,6 +214,35 @@ export default function AdminLayout() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.05); border-radius: 10px; }
         .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); }
+
+        .animation-fade-in-up {
+          animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .premium-btn-danger {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          border: none;
+        }
+        .premium-btn-danger::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; width: 100%; height: 100%;
+          background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .premium-btn-danger:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 12px rgba(220, 38, 38, 0.2) !important;
+        }
+        .premium-btn-danger:hover::before {
+          opacity: 1;
+        }
 
         @media (min-width: 768px) {
           .start-md-0 { left: 0 !important; }

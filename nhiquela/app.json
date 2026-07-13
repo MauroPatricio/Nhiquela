@@ -46,7 +46,7 @@
 
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
+          "apiKey": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE"
         }
       }
     },
@@ -109,10 +109,10 @@
     ],
 
     "extra": {
-      "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA",
+      "googleMapsApiKey": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE",
 
       "firebase": {
-        "apiKey": "AIzaSyAssq-4rWO4Ju9xg-PcNH0k3bAAkDerAY4",
+        "apiKey": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus",
         "authDomain": "nhiquela-4bfb5.firebaseapp.com",
         "projectId": "nhiquela-4bfb5",
         "storageBucket": "nhiquela-4bfb5.appspot.com",

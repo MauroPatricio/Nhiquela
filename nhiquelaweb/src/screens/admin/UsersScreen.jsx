@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api, { SOCKET_URL } from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -81,7 +81,12 @@ export default function UsersScreen() {
   const fetchUsers = async () => {
     try {
       const { data } = await api.get('/users');
-      setUsers(data.users || []);
+      const sortedUsers = (data.users || []).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : parseInt(a._id.toString().substring(0, 8), 16) * 1000;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : parseInt(b._id.toString().substring(0, 8), 16) * 1000;
+        return dateB - dateA;
+      });
+      setUsers(sortedUsers);
     } catch (error) {
       toast.error('Erro ao carregar utilizadores');
     } finally {
@@ -251,7 +256,7 @@ export default function UsersScreen() {
                       {user.isBanned ? (
                         <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faBan} className="me-1" /> Bloqueado</span>
                       ) : !user.isApproved && (user.isSeller || user.isDeliveryMan) ? (
-                        <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faTimes} className="me-1" /> Pendente</span>
+                        <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faPauseCircle} className="me-1" /> Inativo / Pendente</span>
                       ) : (
                         <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Ativo</span>
                       )}
@@ -272,9 +277,16 @@ export default function UsersScreen() {
                           </button>
                         </>
                       ) : (
-                        <button className="btn btn-sm btn-light text-warning me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: true, isApproved: false })} title="Bloquear Conta">
-                          <FontAwesomeIcon icon={faBan} /> Bloquear
-                        </button>
+                        <>
+                          {(user.isSeller || user.isDeliveryMan) && (
+                            <button className="btn btn-sm btn-light text-secondary me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isApproved: false, isBanned: false })} title="Inativar Conta">
+                              <FontAwesomeIcon icon={faPauseCircle} /> Inativar
+                            </button>
+                          )}
+                          <button className="btn btn-sm btn-light text-warning me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: true, isApproved: false })} title="Bloquear Conta">
+                            <FontAwesomeIcon icon={faBan} /> Bloquear
+                          </button>
+                        </>
                       )}
 
                       {/* Outras Actions */}
@@ -592,10 +604,21 @@ export default function UsersScreen() {
                           { label: 'Inspeção', img: selectedUserView.deliveryman.vihicle_inspection },
                         ].map((item, idx) => item.img && (
                           <div className="col-4" key={idx}>
-                            <div className="border rounded-3 p-1 text-center h-100 bg-light">
+                            <div className="border rounded-3 p-1 text-center h-100 bg-light position-relative">
                               <div style={{ cursor: 'pointer' }} onClick={() => setSelectedImageModal(getImageUrl(item.img))}>
                                 <img src={getImageUrl(item.img)} alt={item.label} className="img-fluid rounded-2 mb-1" style={{ height: '70px', objectFit: 'cover', width: '100%' }} />
                               </div>
+                              <a 
+                                href={getImageUrl(item.img)} 
+                                download={item.label} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="btn btn-sm btn-primary position-absolute shadow-sm" 
+                                style={{ top: '6px', right: '6px', padding: '2px 6px', fontSize: '10px', borderRadius: '50%' }}
+                                title="Baixar"
+                              >
+                                <FontAwesomeIcon icon={faDownload} />
+                              </a>
                               <small className="text-muted d-block" style={{ fontSize: '10px', lineHeight: '1.2' }}>{item.label}</small>
                             </div>
                           </div>

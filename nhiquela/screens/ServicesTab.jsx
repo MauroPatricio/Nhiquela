@@ -231,11 +231,23 @@ export default function ServicesTab() {
       iconName = 'tow-truck';
     } else if (service.name && service.name.toLowerCase().includes('mudan')) {
       iconName = 'truck-outline';
-    } else if (service.name && service.name.toLowerCase().includes('box')) {
+    } else if (service.name && (service.name.toLowerCase().includes('box') || service.name.toLowerCase().includes('carga') || service.name.toLowerCase().includes('encomenda'))) {
       iconName = 'package-variant-closed';
-    } else {
+    } else if (service.name && (service.name.toLowerCase().includes('gás') || service.name.toLowerCase().includes('gas'))) {
+      iconName = 'gas-cylinder';
+    } else if (service.name && (service.name.toLowerCase().includes('deliver') || service.name.toLowerCase().includes('mototaxi') || service.name.toLowerCase().includes('mota'))) {
+      iconName = 'moped';
+    } else if (!iconName.startsWith('http')) {
       if (iconName === 'motorcycle') iconName = 'motorbike';
       if (iconName === 'truck-pickup') iconName = 'truck-outline';
+      if (iconName === 'car-crash') iconName = 'tow-truck';
+      if (iconName === 'gas-pump' || iconName === 'fire' || iconName === 'burn') iconName = 'gas-cylinder';
+      if (iconName === 'truck-loading') iconName = 'truck-delivery';
+      if (iconName === 'dolly') iconName = 'cart-outline';
+      if (iconName === 'shipping-fast') iconName = 'truck-fast';
+      if (iconName === 'ellipsis-h') iconName = 'dots-horizontal';
+      if (iconName === 'taxi') iconName = 'taxi';
+      if (iconName === 'biking') iconName = 'moped';
     }
 
     const mapped = iconColors[iconName] || { color: '#7F00FF', bg: '#F3E8FF' };

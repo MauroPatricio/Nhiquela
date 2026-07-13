@@ -54,7 +54,7 @@ describe('reputationTracker', () => {
         totalOrders: 1,
       });
       await reputationTracker.recordOrderCompleted('user123');
-      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { $inc: { completedOrders: 1 } });
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { $inc: { completedOrders: 1 }, $set: { consecutiveCancellations: 0 } });
     });
   });
 
@@ -67,7 +67,7 @@ describe('reputationTracker', () => {
         totalOrders: 1,
       });
       await reputationTracker.recordOrderCancelled('user123');
-      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { $inc: { cancelledOrders: 1 } });
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { $inc: { cancelledOrders: 1, consecutiveCancellations: 1 } }, { new: true });
     });
   });
 
@@ -97,7 +97,7 @@ describe('reputationTracker', () => {
       mockFindById.mockResolvedValue({ completedOrders: 1, cancelledOrders: 5, totalOrders: 6 });
       mockFindByIdAndUpdate.mockResolvedValue({});
       await reputationTracker.updateUserRating('user123');
-      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { rating: 'Alto índice de cancelamento' });
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith('user123', { rating: 'Alto Ã­ndice de cancelamento' });
     });
   });
 

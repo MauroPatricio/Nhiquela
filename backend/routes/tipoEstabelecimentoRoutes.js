@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
 import { body, validationResult } from 'express-validator';
@@ -12,9 +12,9 @@ router.post(
   isAuth,
   isSellerOrAdmin,
   [
-    body('nome').notEmpty().withMessage('Nome é obrigatório'),
-    body('img').notEmpty().withMessage('Imagem é obrigatória'),
-    body('averagePreparationTime').isNumeric().withMessage('averagePreparationTime deve ser numérico'),
+    body('nome').notEmpty().withMessage('Nome ï¿½ obrigatï¿½rio'),
+    body('img').notEmpty().withMessage('Imagem ï¿½ obrigatï¿½ria'),
+    body('averagePreparationTime').isNumeric().withMessage('averagePreparationTime deve ser numï¿½rico'),
     body('autoAssignDriver').isBoolean().withMessage('autoAssignDriver deve ser boolean'),
   ],
   expressAsyncHandler(async (req, res) => {
@@ -35,9 +35,9 @@ router.put(
   isAuth,
   isSellerOrAdmin,
   [
-    body('nome').optional().notEmpty().withMessage('Nome não pode ser vazio'),
-    body('img').optional().notEmpty().withMessage('Imagem não pode ser vazia'),
-    body('averagePreparationTime').optional().isNumeric().withMessage('averagePreparationTime deve ser numérico'),
+    body('nome').optional().notEmpty().withMessage('Nome nï¿½o pode ser vazio'),
+    body('img').optional().notEmpty().withMessage('Imagem nï¿½o pode ser vazia'),
+    body('averagePreparationTime').optional().isNumeric().withMessage('averagePreparationTime deve ser numï¿½rico'),
     body('autoAssignDriver').optional().isBoolean().withMessage('autoAssignDriver deve ser boolean'),
     body('isActive').optional().isBoolean().withMessage('isActive deve ser boolean'),
   ],
@@ -64,12 +64,12 @@ router.put(
       await tipoEstabelecimento.save();
       res.send({ message: 'Tipo de estabelecimento atualizado com sucesso' });
     } else {
-      res.status(404).send({ message: 'Tipo de estabelecimento não encontrado' });
+      res.status(404).send({ message: 'Tipo de estabelecimento nï¿½o encontrado' });
     }
   })
 );
 
-// Obter todos os tipos de estabelecimentos com paginação e busca
+// Obter todos os tipos de estabelecimentos com paginaï¿½ï¿½o e busca
 router.get(
   '/',
   expressAsyncHandler(async (req, res) => {
@@ -107,7 +107,7 @@ router.get(
     if (tipoestabelecimento) {
       res.send(tipoestabelecimento);
     } else {
-      res.status(404).send({ message: 'Tipo de estabelecimento não encontrado' });
+      res.status(404).send({ message: 'Tipo de estabelecimento nï¿½o encontrado' });
     }
   })
 );
@@ -123,7 +123,7 @@ router.delete(
       await tipo.deleteOne();
       res.status(200).json({ message: 'Tipo de estabelecimento removido com sucesso' });
     } else {
-      res.status(404).json({ message: 'Tipo de estabelecimento não encontrado' });
+      res.status(404).json({ message: 'Tipo de estabelecimento nï¿½o encontrado' });
     }
   })
 );
@@ -136,7 +136,7 @@ router.patch(
   expressAsyncHandler(async (req, res) => {
     const tipo = await TipoEstabelecimento.findById(req.params.id);
     if (!tipo) {
-      return res.status(404).json({ message: 'Tipo de estabelecimento não encontrado' });
+      return res.status(404).json({ message: 'Tipo de estabelecimento nï¿½o encontrado' });
     }
     tipo.isActive = !tipo.isActive;
     await tipo.save();

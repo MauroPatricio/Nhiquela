@@ -2,6 +2,7 @@ import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import axios from 'axios';
 import Settings from '../models/SettingsModel.js';
+import PricingEngine from '../models/PricingEngineModel.js';
 
 const osrmRouter = express.Router();
 
@@ -10,7 +11,7 @@ const osrmRouter = express.Router();
  */
 export const calculateETA = async (origin, destination) => {
   try {
-    const osrmBaseUrl = process.env.OSRM_URL || 'http://localhost:5000';
+    const osrmBaseUrl = process.env.OSRM_BASE_URL || process.env.OSRM_URL || 'http://localhost:5000';
     const osrmUrl = `${osrmBaseUrl}/route/v1/driving/${origin};${destination}?overview=false`;
     const response = await axios.get(osrmUrl);
     if (response.data && response.data.routes && response.data.routes.length > 0) {
@@ -41,7 +42,7 @@ export const calculateETA = async (origin, destination) => {
 };
 
 /**
- * @desc    Obter distância, tempo estimado de chegada (ETA) e PREÇO através do OSRM
+ * @desc    Obter distï¿½ncia, tempo estimado de chegada (ETA) e PREï¿½O atravï¿½s do OSRM
  * @route   GET /api/osrm/route?origin=lng,lat&destination=lng,lat
  * @access  Public
  */
@@ -49,9 +50,10 @@ osrmRouter.get(
   '/route',
   expressAsyncHandler(async (req, res) => {
     const { origin, destination } = req.query;
+    const isRaining = req.query.isRaining === 'true'; // Permitir simular chuva via query params
 
     if (!origin || !destination) {
-      return res.status(400).send({ message: 'Origem e destino são obrigatórios' });
+      return res.status(400).send({ message: 'Origem e destino sï¿½o obrigatï¿½rios' });
     }
 
     let distanceKm;
@@ -60,7 +62,7 @@ osrmRouter.get(
 
     try {
       // Faz o proxy para o servidor OSRM local rodando via Docker (porta 5000)
-      const osrmBaseUrl = process.env.OSRM_URL || 'http://localhost:5000';
+      const osrmBaseUrl = process.env.OSRM_BASE_URL || process.env.OSRM_URL || 'http://localhost:5000';
       const osrmUrl = `${osrmBaseUrl}/route/v1/driving/${origin};${destination}?overview=false`;
       const response = await axios.get(osrmUrl);
 
@@ -69,20 +71,27 @@ osrmRouter.get(
         distanceKm = parseFloat((route.distance / 1000).toFixed(2));
         durationMin = parseFloat((route.duration / 60).toFixed(0));
       } else {
-        throw new Error('Rota não encontrada pelo OSRM');
+        throw new Error('Rota nï¿½o encontrada pelo OSRM');
       }
     } catch (error) {
       console.error('Erro ao acessar OSRM local:', error.message);
-      // Fallback em caso do container OSRM estar em baixo (Calculo Matemático Simples Haversine)
+      // Fallback em caso do container OSRM estar em baixo (Calculo Matemï¿½tico Simples Haversine)
+      // Fallback em caso do container OSRM estar em baixo (Calculo Matemtico Simples Haversine)
       const fallback = await calculateETA(origin, destination);
       distanceKm = parseFloat(fallback.distanceKm);
       durationMin = parseFloat(fallback.durationMin);
       isFallback = true;
     }
 
-    // Buscar configurações de Preços do Administrador
+    // Buscar configuraes de Preos do Administrador
     const settingsRecords = await Settings.find({
-      key: { $in: ['delivery_pricing_model', 'delivery_base_fee', 'delivery_price_per_km', 'delivery_service_fee'] }
+      key: { $in: [
+        'delivery_pricing_model', 'delivery_base_fee', 'delivery_price_per_km', 'delivery_service_fee',
+        'delivery_step_1_km', 'delivery_step_1_price',
+        'delivery_step_2_km', 'delivery_step_2_price',
+        'delivery_step_3_km', 'delivery_step_3_price',
+        'delivery_step_4_km', 'delivery_step_4_price'
+      ]}
     });
 
     // Defaults recomendados para Nhiquela (Maputo)
@@ -90,7 +99,11 @@ osrmRouter.get(
       model: 'steps', // steps | formula
       baseFee: 50,
       pricePerKm: 15,
-      serviceFee: 20
+      serviceFee: 20,
+      s1k: 3, s1p: 80,
+      s2k: 7, s2p: 120,
+      s3k: 12, s3p: 180,
+      s4k: 20, s4p: 250
     };
 
     settingsRecords.forEach(setting => {
@@ -98,33 +111,64 @@ osrmRouter.get(
       if (setting.key === 'delivery_base_fee') config.baseFee = Number(setting.value);
       if (setting.key === 'delivery_price_per_km') config.pricePerKm = Number(setting.value);
       if (setting.key === 'delivery_service_fee') config.serviceFee = Number(setting.value);
+      if (setting.key === 'delivery_step_1_km') config.s1k = Number(setting.value);
+      if (setting.key === 'delivery_step_1_price') config.s1p = Number(setting.value);
+      if (setting.key === 'delivery_step_2_km') config.s2k = Number(setting.value);
+      if (setting.key === 'delivery_step_2_price') config.s2p = Number(setting.value);
+      if (setting.key === 'delivery_step_3_km') config.s3k = Number(setting.value);
+      if (setting.key === 'delivery_step_3_price') config.s3p = Number(setting.value);
+      if (setting.key === 'delivery_step_4_km') config.s4k = Number(setting.value);
+      if (setting.key === 'delivery_step_4_price') config.s4p = Number(setting.value);
     });
 
-    // Calcular o preço
+    // Calcular o preo
     let price = 0;
 
     if (config.model === 'formula') {
-      // Fórmula Simples: Taxa Base + (Km × Valor/Km) + Taxa Serviço
+      // Frmula Simples: Taxa Base + (Km  Valor/Km) + Taxa Servio
       price = config.baseFee + (distanceKm * config.pricePerKm) + config.serviceFee;
     } else {
-      // Estratégia Maputo (Escalões baseados nos KM)
-      if (distanceKm <= 3) {
-        price = 80;
-      } else if (distanceKm > 3 && distanceKm <= 7) {
-        price = 120;
-      } else if (distanceKm > 7 && distanceKm <= 12) {
-        price = 180;
-      } else if (distanceKm > 12 && distanceKm <= 20) {
-        price = 250;
+      // Estratgia DinÃ¢mica (Escales baseados nos KM)
+      if (distanceKm <= config.s1k) {
+        price = config.s1p;
+      } else if (distanceKm > config.s1k && distanceKm <= config.s2k) {
+        price = config.s2p;
+      } else if (distanceKm > config.s2k && distanceKm <= config.s3k) {
+        price = config.s3p;
+      } else if (distanceKm > config.s3k && distanceKm <= config.s4k) {
+        price = config.s4p;
       } else {
-        price = 250 + ((distanceKm - 20) * config.pricePerKm);
+        price = config.s4p + ((distanceKm - config.s4k) * config.pricePerKm);
       }
-      // Se tiver Taxa de Serviço, podemos somar adicionalmente
-      // Mas o modelo steps do utilizador não fala em somar a taxa de serviço na tarifa "step", 
-      // embora no modelo mais rentável sim. Por omissão, no step model as tranches absorvem o serviço.
     }
 
-    // Arredondar preço (opcional) para ficar bonito
+    // IntegraÃ§Ã£o Surge Pricing (Multiplicadores DinÃ¢micos)
+    let engineConfig = await PricingEngine.findOne();
+    if (engineConfig) {
+      // Tempo e Dia
+      const now = new Date();
+      const hour = now.getHours();
+      const day = now.getDay();
+      
+      let timeMult = engineConfig.timeMultipliers.day;
+      if (hour >= 20 || hour < 2) timeMult = engineConfig.timeMultipliers.night;
+      else if (hour >= 2 && hour < 6) timeMult = engineConfig.timeMultipliers.latenight;
+
+      let dayMult = engineConfig.dayMultipliers.weekday;
+      if (day === 6) dayMult = engineConfig.dayMultipliers.saturday;
+      else if (day === 0) dayMult = engineConfig.dayMultipliers.sunday;
+
+      // Clima
+      let weatherMult = engineConfig.weatherMultipliers.clear;
+      if (isRaining) {
+        weatherMult = engineConfig.weatherMultipliers.storm; // Aplicamos storm como fallback forte
+      }
+
+      // PreÃ§o final inflacionado
+      price = price * timeMult * dayMult * weatherMult;
+    }
+
+    // Arredondar preÃ§o (opcional) para ficar bonito
     price = Math.ceil(price);
 
     res.send({

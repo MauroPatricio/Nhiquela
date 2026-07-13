@@ -120,6 +120,9 @@ const orderSchema = new mongoose.Schema(
       timestamp: { type: Date },
       _id: false // Importante para evitar criação automática de _id
     }],
+    arrivedAtDestination: { type: Date },
+    arrivalLatitude: { type: Number },
+    arrivalLongitude: { type: Number },
     paymentMethod: { type: String, require: true },
     paymentResult: {
       id: String,

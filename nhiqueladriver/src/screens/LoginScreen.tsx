@@ -18,8 +18,7 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { loginUser, forgotPassword } from "../services/authService";
 import { Alert } from "react-native";
 import { useAuth } from '../context/AuthContext';
-import io from 'socket.io-client';
-import { API_BASE_URL } from '../api/apiConfig';
+import websocketService from '../services/websocketService';
 
 export default function LoginScreen({ navigation }: any) {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -40,24 +39,24 @@ export default function LoginScreen({ navigation }: any) {
 
   const authContext = useAuth();
 
+  // 🔔 OUVE o evento driver_status_updated via websocketService centralizado
+  // (o websocketService já emite onLogin depois de se ligar, e o AuthContext
+  //  atualiza user.status automaticamente — isso faz desaparecer o modal)
   useEffect(() => {
-    let socket: any;
-    if (showAnalysisModal && authContext?.user?._id) {
-      const socketUrl = API_BASE_URL.replace('/api', '');
-      socket = io(socketUrl);
-      
-      socket.on('userStatusChanged', async (data: any) => {
-        if (data.userId === authContext.user?._id && data.isApproved) {
-          setShowAnalysisModal(false);
-          await authContext.refreshUser(); // Refresh User trigger navigation to Home automatically
-        }
-      });
-    }
+    if (!showAnalysisModal || !authContext?.user?._id) return;
 
-    return () => {
-      if (socket) socket.disconnect();
+    const handleStatusUpdated = (data: any) => {
+      const nowApproved = data.status === 'Disponível' || data.status === 'Em Entrega';
+      if (nowApproved) {
+        setShowAnalysisModal(false);
+      }
     };
-  }, [showAnalysisModal, authContext?.user]);
+
+    websocketService.on('driver_status_updated', handleStatusUpdated);
+    return () => {
+      websocketService.off('driver_status_updated', handleStatusUpdated);
+    };
+  }, [showAnalysisModal, authContext?.user?._id]);
 
   const handleForgotPassword = async () => {
     if (phoneNumber.length < 9) {

@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import ProcessingFee from '../models/ProcessingFee.js';
 import { isAuth, isSellerOrAdmin, isAdmin } from '../utils.js';
@@ -31,7 +31,7 @@ router.get(
     if (genericFee) {
       res.json(genericFee);
     } else {
-      res.status(404).json({ message: 'Taxa de processamento não encontrada para este serviço' });
+      res.status(404).json({ message: 'Taxa de processamento nï¿½o encontrada para este serviï¿½o' });
     }
   })
 );
@@ -48,7 +48,7 @@ router.post(
     const query = { serviceType, establishment: establishment || null };
     const existing = await ProcessingFee.findOne(query);
     if (existing) {
-      return res.status(400).json({ message: 'Já existe uma taxa configurada para este serviço e estabelecimento.' });
+      return res.status(400).json({ message: 'Jï¿½ existe uma taxa configurada para este serviï¿½o e estabelecimento.' });
     }
 
     const fee = new ProcessingFee({
@@ -85,7 +85,7 @@ router.put(
       const updatedFee = await fee.save();
       res.json(updatedFee);
     } else {
-      res.status(404).json({ message: 'Taxa de processamento não encontrada' });
+      res.status(404).json({ message: 'Taxa de processamento nï¿½o encontrada' });
     }
   })
 );
@@ -101,7 +101,7 @@ router.delete(
       await fee.deleteOne();
       res.json({ message: 'Taxa de processamento removida' });
     } else {
-      res.status(404).json({ message: 'Taxa de processamento não encontrada' });
+      res.status(404).json({ message: 'Taxa de processamento nï¿½o encontrada' });
     }
   })
 );

@@ -59,7 +59,7 @@ import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
-import { runIntelligentDispatch } from './services/dispatchService.js';
+
 
 // Conectar ao MongoDB
 mongoose
@@ -90,7 +90,12 @@ mongoose.connection.on('error', (err) => {
 // **Inicializando Express**
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.BASE_URL, 'https://nhiquelaservicos.com', 'https://www.nhiquelaservicos.com'] 
+    : '*',
+  credentials: true
+}));
 
 // Prote��es b�sicas de seguran�a (Helmet)
 // Protees bsicas de segurana (Helmet)
@@ -177,6 +182,34 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/roles', roleRouter);
 app.use('/api/routing', routingRoutes);
 app.use('/api/system/app-config', appConfigRouter);
+
+// 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
+app.get('/api/debug/socket-status', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden in production' });
+  const io = req.app.get('io');
+  const users = req.app.get('users') || [];
+  const rooms = io ? [...io.sockets.adapter.rooms.keys()].filter(r => r.startsWith('driver_')) : [];
+  res.json({
+    connectedUsers: users.map(u => ({ _id: u._id, name: u.name, socketId: u.socketId, online: u.online, isDeliveryMan: u.isDeliveryMan })),
+    driverRooms: rooms,
+  });
+});
+
+app.get('/api/debug/emit-test/:driverId', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden in production' });
+  const io = req.app.get('io');
+  const users = req.app.get('users') || [];
+  const { driverId } = req.params;
+  const { status = 'Disponível' } = req.query;
+  const payload = { status, isApproved: status === 'Disponível', message: 'Teste de socket' };
+  const room = `driver_${driverId}`;
+  io.to(room).emit('driver_status_updated', payload);
+  const driverUser = users.find(u => u._id && u._id.toString() === driverId);
+  if (driverUser?.socketId) {
+    io.to(driverUser.socketId).emit('driver_status_updated', payload);
+  }
+  res.json({ sent: true, room, driverSocketId: driverUser?.socketId || null, payload });
+});
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.log(err);
@@ -189,7 +222,7 @@ const users = [];
 
 const io = new Server(httpServer, { cors: { origin: '*' } });
 app.set('io', io);
-
+app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
 
 io.on('connection', (socket) => {
@@ -234,7 +267,9 @@ io.on('connection', (socket) => {
     if (user._id && user.isDeliveryMan) {
       const driverRoom = `driver_${user._id}`;
       socket.join(driverRoom);
-      console.log(`?? Motorista ${user.name} entrou na sala ${driverRoom}`);
+      console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
+    } else {
+      console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
     }
 
     const admin = users.find((x) => x.isAdmin && x.online);
@@ -269,6 +304,7 @@ io.on('connection', (socket) => {
   // Alta Performance: Receber localizacao do motorista via WebSocket
   socket.on('update_location', async (data) => {
     try {
+      console.log('update_location recebido:', data);
       const { driverId, orderId, latitude, longitude, heading, speed } = data;
       if (driverId && latitude && longitude) {
         const now = Date.now();
@@ -426,16 +462,18 @@ function randomString(codeLength){
     const randomString = randomArray.join("");
     return randomString;
 }
-const port = process.env.PORT || 5002;
+const port = process.env.PORT || 5000;
 console.log('Port configuration: process.env.PORT =', process.env.PORT);
-httpServer.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-  
-  // Start the Intelligent Dispatch Job
-  setInterval(() => {
-    runIntelligentDispatch(io);
-  }, 5000); // Executa a cada 5 segundos
-});
+if (process.env.NODE_ENV !== 'test') {
+  httpServer.listen(port, () => {
+    console.log(`Servidor rodando em http://localhost:${port}`);
+    
+    // Processar pedidos em fallback
+    setInterval(async () => {
+
+    }, 5000); // Executa a cada 5 segundos
+  });
+}
 
 // Export the Express app for integration testing when in test mode
 export default app;

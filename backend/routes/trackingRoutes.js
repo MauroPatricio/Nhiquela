@@ -102,18 +102,25 @@ router.get('/:orderId', isAuth, expressAsyncHandler(async (req, res) => {
   }
 
   // 2. Fallback: retrieve the order and check the driver's current profile position
-  const order = await RequestService.findById(orderId);
-  if (order && (order.targetDriverId || order.deliveryman?.id)) {
-    const driverId = order.targetDriverId || order.deliveryman.id;
-    const driver = await User.findById(driverId);
-    if (driver && driver.latitude && driver.longitude) {
-      return res.send({
-        latitude: Number(driver.latitude),
-        longitude: Number(driver.longitude),
-        speed: Number(driver.speed) || 0,
-        heading: Number(driver.heading) || 0,
-        timestamp: driver.lastPingAt || new Date()
-      });
+  let order = await RequestService.findById(orderId);
+  if (!order) {
+    order = await Order.findById(orderId);
+  }
+
+  if (order) {
+    // Both RequestService and Order might have driver info in different fields
+    const driverId = order.targetDriverId || order.deliveryman?.id || order.deliveryman || order.driverId;
+    if (driverId) {
+      const driver = await User.findById(driverId);
+      if (driver && driver.latitude && driver.longitude) {
+        return res.send({
+          latitude: Number(driver.latitude),
+          longitude: Number(driver.longitude),
+          speed: Number(driver.speed) || 0,
+          heading: Number(driver.heading) || 0,
+          timestamp: driver.lastPingAt || new Date()
+        });
+      }
     }
   }
 

@@ -20,7 +20,6 @@ providerRouter.get(
       if (status) query.status = status; // e.g., 'active'
 
       const providers = await Provider.find(query)
-        .populate('provider_type_id', 'name description')
         .populate('userId', 'name email phoneNumber')
         .populate('categoryId', 'name')
         .populate('location.province', 'name')
@@ -49,7 +48,7 @@ providerRouter.get(
 
       res.send({ providers });
     } catch (error) {
-      res.status(500).send({ message: 'Erro ao buscar providers próximos' });
+      res.status(500).send({ message: 'Erro ao buscar providers prï¿½ximos' });
     }
   })
 );
@@ -81,7 +80,7 @@ providerRouter.get(
       if (provider) {
         res.send({ provider });
       } else {
-        res.status(404).send({ message: 'Provider não encontrado' });
+        res.status(404).send({ message: 'Provider nï¿½o encontrado' });
       }
     } catch (error) {
       res.status(500).send({ message: 'Erro interno ao buscar provider' });
@@ -103,7 +102,7 @@ providerRouter.post(
       const typeDoc = await ProviderTypeModel.findById(provider_type_id).populate('classificationId');
 
       if (!typeDoc) {
-        return res.status(404).send({ message: 'Tipo de prestador não encontrado' });
+        return res.status(404).send({ message: 'Tipo de prestador nï¿½o encontrado' });
       }
 
       const providerType = typeDoc.classificationId ? typeDoc.classificationId.name : 'UNKNOWN';
@@ -162,7 +161,7 @@ providerRouter.put(
         const updatedProvider = await provider.save();
         res.send({ message: 'Provider atualizado com sucesso', provider: updatedProvider });
       } else {
-        res.status(404).send({ message: 'Provider não encontrado' });
+        res.status(404).send({ message: 'Provider nï¿½o encontrado' });
       }
     } catch (error) {
       res.status(500).send({ message: 'Erro ao atualizar provider', error: error.message });

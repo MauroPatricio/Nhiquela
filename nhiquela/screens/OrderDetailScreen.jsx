@@ -8,11 +8,12 @@ import {
   Modal,
   TextInput,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  Share
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -42,6 +43,10 @@ const OrderDetailsScreen = () => {
   const [isRequestService, setIsRequestService] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(!item);
+  
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [review, setReview] = useState('');
   const navigation = useNavigation();
   const toast = useToast();
 
@@ -51,12 +56,69 @@ const OrderDetailsScreen = () => {
   const [driverSpeed, setDriverSpeed] = useState(null);
   const [etaDistance, setEtaDistance] = useState(null);
   const [etaDuration, setEtaDuration] = useState(null);
+  const [indisponivelCountdown, setIndisponivelCountdown] = useState(45);
+  const [driverWaitTime, setDriverWaitTime] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (currentOrder?.status === 'No destino indicado' && currentOrder?.updatedAt) {
+      interval = setInterval(() => {
+        const diff = Math.floor((Date.now() - new Date(currentOrder.updatedAt).getTime()) / 1000);
+        setDriverWaitTime(diff > 0 ? diff : 0);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [currentOrder?.status, currentOrder?.updatedAt]);
 
   const handleUpdateTracking = useCallback(({ speed, distance, duration }) => {
     if (speed !== undefined) setDriverSpeed(speed);
     if (distance !== undefined) setEtaDistance(distance);
     if (duration !== undefined) setEtaDuration(duration);
   }, []);
+
+  const handleShareTrip = async () => {
+    if (currentOrder && currentOrder._id) {
+      try {
+        const shareUrl = `https://app.nhiquela.com/track/${currentOrder._id}`;
+        await Share.share({
+          message: `Acompanhe a minha viagem na Nhiquela em tempo real: ${shareUrl}`,
+          title: 'Partilhar Viagem'
+        });
+      } catch (error) {
+        console.log('Erro ao partilhar viagem:', error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    let timer;
+    if (currentOrder?.status === 'Motorista indisponível' && indisponivelCountdown > 0) {
+      timer = setInterval(() => {
+        setIndisponivelCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (currentOrder?.status === 'Motorista indisponível' && indisponivelCountdown === 0) {
+      if (isRequestService && currentOrder?.serviceId) {
+        navigation.reset({ 
+          index: 1, 
+          routes: [
+            { name: 'BottomNavigation' },
+            { 
+              name: 'RequestService', 
+              params: { 
+                selectedService: { 
+                  _id: currentOrder.serviceId, 
+                  name: currentOrder.name || currentOrder.goodType || 'Serviço' 
+                } 
+              } 
+            }
+          ] 
+        });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
+      }
+    }
+    return () => clearInterval(timer);
+  }, [currentOrder, indisponivelCountdown, navigation, isRequestService]);
 
   useEffect(() => {
     checkIfUserExist();
@@ -71,6 +133,19 @@ const OrderDetailsScreen = () => {
       setLoadingOrder(false);
     }
   }, [orderIdParam]);
+
+  const [subcategories, setSubcategories] = useState([]);
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      try {
+        const { data } = await api.get('/provider-subcategories');
+        setSubcategories(data);
+      } catch (error) {
+        console.error('Erro ao buscar subcategorias', error);
+      }
+    };
+    fetchSubcategories();
+  }, []);
 
   useEffect(() => {
     if (currentOrder) {
@@ -110,7 +185,7 @@ const OrderDetailsScreen = () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permissão necessária', 'Permissão para acessar localização é necessária.');
+        toast.show('Permissão para acessar localização é necessária.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
         return;
       }
 
@@ -135,16 +210,20 @@ const OrderDetailsScreen = () => {
   const cancelOrderPop = async (orderId) => {
     try {
       if (!userData) throw new Error('User is not logged in');
+      const endpoint = isRequestService 
+        ? `/request-service/${orderId}/cancel` 
+        : `/orders/${orderId}/cancel`;
+
       const { data } = await api.put(
-        `/orders/${orderId}/cancel`,
+        endpoint,
         { message },
         { headers: { Authorization: `Bearer ${userData.token}` } }
       );
       setCurrentOrder(data.order);
-      Alert.alert('Sucesso', 'Pedido cancelado com sucesso.');
+      toast.show('Pedido cancelado com sucesso.', { type: 'success', placement: 'top', duration: 4000, animationType: 'slide-in' });
     } catch (error) {
       console.error('Erro ao cancelar pedido', error);
-      Alert.alert('Erro', 'Não foi possível cancelar o pedido.');
+      toast.show(error?.response?.data?.message || 'Não foi possível cancelar o pedido.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
     } finally {
       setModalVisible(false);
     }
@@ -156,11 +235,11 @@ const OrderDetailsScreen = () => {
       await api.delete(`/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${userData.token}` },
       });
-      Alert.alert('Sucesso', 'Pedido apagado com sucesso!');
+      toast.show('Pedido apagado com sucesso!', { type: 'success', placement: 'top', duration: 4000, animationType: 'slide-in' });
       navigation.goBack();
     } catch (error) {
       console.error('Erro ao apagar o pedido', error);
-      Alert.alert('Erro', 'Não foi possível apagar o pedido.');
+      toast.show('Não foi possível apagar o pedido.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
     }
   };
 
@@ -200,15 +279,28 @@ const OrderDetailsScreen = () => {
       setShowFinishSuccessModal(true);
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
-      Alert.alert('Erro', 'Não foi possível confirmar a entrega.');
+      toast.show('Não foi possível confirmar a entrega.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
     }
   };
 
+  const submitRating = async () => {
+    try {
+      await api.post(`/request-service/${currentOrder._id}/rate`, { rating, review }, {
+        headers: { Authorization: `Bearer ${userData.token}` }
+      });
+      toast.show('Avaliação enviada com sucesso!', { type: 'success', placement: 'top' });
+      setRatingModalVisible(false);
+      navigation.goBack();
+    } catch (err) {
+      toast.show('Erro ao enviar avaliação.', { type: 'danger', placement: 'top' });
+      setRatingModalVisible(false);
+      navigation.goBack();
+    }
+  };
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const confirmDeleteOrder = (orderId) => {
-    Alert.alert('Confirmar Exclusão', 'Deseja apagar este pedido?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Apagar', onPress: () => deleteOrder(orderId) },
-    ]);
+    setShowDeleteModal(true);
   };
 
   const confirmDeliveryOrder = (orderId) => {
@@ -229,9 +321,24 @@ const OrderDetailsScreen = () => {
   };
 
   // Compute destination based on order type (store or service)
-  const destination = currentOrder?.deliveryAddress 
-    ? { latitude: currentOrder.deliveryAddress.latitude, longitude: currentOrder.deliveryAddress.longitude }
-    : (currentOrder?.latitude ? { latitude: currentOrder.latitude, longitude: currentOrder.longitude } : null);
+  let destination = null;
+  if (currentOrder) {
+    if (currentOrder.stepStatus === 4) {
+      // Motorista a caminho do local de recolha
+      const lat = currentOrder.originDetails?.lat || currentOrder.seller?.latitude || currentOrder.originLocation?.latitude;
+      const lng = currentOrder.originDetails?.lng || currentOrder.seller?.longitude || currentOrder.originLocation?.longitude;
+      if (lat && lng) {
+        destination = { latitude: Number(lat), longitude: Number(lng) };
+      }
+    } else {
+      // Em transito (stepStatus 5)
+      const lat = currentOrder.destinationDetails?.lat || currentOrder.deliveryAddress?.latitude || currentOrder.destinationLocation?.latitude || currentOrder.latitude;
+      const lng = currentOrder.destinationDetails?.lng || currentOrder.deliveryAddress?.longitude || currentOrder.destinationLocation?.longitude || currentOrder.longitude;
+      if (lat && lng) {
+        destination = { latitude: Number(lat), longitude: Number(lng) };
+      }
+    }
+  }
 
   if (loadingOrder || !currentOrder) {
     return (
@@ -245,6 +352,21 @@ const OrderDetailsScreen = () => {
   const renderContent = () => (
     <View style={styles.sheetContent}>
       {/* Resumo Rápido para a aba inicial (15%) */}
+      {currentOrder.status === 'No destino indicado' && (
+        <View style={{ backgroundColor: '#DCFCE7', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="checkmark-circle" size={28} color="#16A34A" style={{ marginRight: 12 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>O motorista chegou!</Text>
+            <Text style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>Encontre-se com ele no local indicado para confirmar a receção.</Text>
+            {driverWaitTime > 0 && (
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#EF4444', marginTop: 6 }}>
+                Tempo de espera: {Math.floor(driverWaitTime / 60).toString().padStart(2, '0')}:{(driverWaitTime % 60).toString().padStart(2, '0')}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
+      
       <View style={styles.quickSummary}>
         <View style={styles.summaryRow}>
           <Text style={styles.storeName}>
@@ -272,24 +394,51 @@ const OrderDetailsScreen = () => {
               />
               <View style={styles.driverInfo}>
                 <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
-                    {currentOrder.deliveryman.transport_type} • {currentOrder.deliveryman.transport_registration}
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
+                  {currentOrder.deliveryman.transport_type && (
+                    <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>
+                      🚗 {(() => {
+                        const tType = currentOrder.deliveryman.transport_type;
+                        const subcat = subcategories.find(s => s._id === tType || s.id === tType);
+                        return subcat ? subcat.name : tType;
+                      })()}
+                    </Text>
+                  )}
                   {currentOrder.deliveryman.transport_color && (
-                    <View style={{
-                      width: 14, height: 14, borderRadius: 7, 
-                      backgroundColor: (() => {
-                        const c = currentOrder.deliveryman.transport_color.toLowerCase();
-                        const map = { 'vermelho': 'red', 'azul': 'blue', 'verde': 'green', 'preto': 'black', 'branco': 'white', 'cinzento': 'gray', 'cinza': 'gray', 'amarelo': 'yellow', 'laranja': 'orange', 'castanho': 'brown', 'prata': 'silver', 'roxo': 'purple', 'rosa': 'pink', 'ouro': 'gold' };
-                        return map[c] || c;
-                      })(),
-                      marginLeft: 8, borderWidth: 1, borderColor: '#D1D5DB'
-                    }} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
+                      <View style={{
+                        width: 10, height: 10, borderRadius: 5,
+                        backgroundColor: (() => {
+                          const c = currentOrder.deliveryman.transport_color.toLowerCase();
+                          const map = { 'vermelho': 'red', 'azul': 'blue', 'verde': 'green', 'preto': 'black', 'branco': 'white', 'cinzento': 'gray', 'cinza': 'gray', 'amarelo': 'yellow', 'laranja': 'orange', 'castanho': 'brown', 'prata': 'silver', 'roxo': 'purple', 'rosa': 'pink', 'ouro': 'gold' };
+                          return map[c] || c;
+                        })(),
+                        marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB'
+                      }} />
+                      <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>Cor: {currentOrder.deliveryman.transport_color}</Text>
+                    </View>
+                  )}
+                  {currentOrder.deliveryman.transport_registration && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#111827', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
+                      <MaterialCommunityIcons name="card-text-outline" size={11} color="#FFF" style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 11, color: '#FFF', fontWeight: '800', letterSpacing: 0.8 }}>{currentOrder.deliveryman.transport_registration}</Text>
+                    </View>
                   )}
                 </View>
               </View>
             </View>
+
+            {currentOrder.deliveryman.transferPreferences ? (
+              <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <Text style={{ fontSize: 13, color: '#475569', fontWeight: '600', marginBottom: 6 }}>Contactos para Pagamento Móvel:</Text>
+                {currentOrder.deliveryman.transferPreferences.mPesaNumber ? (
+                  <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500', marginBottom: 2 }}>M-Pesa: <Text style={{fontWeight: 'bold', color: '#DC2626'}}>{currentOrder.deliveryman.transferPreferences.mPesaNumber}</Text></Text>
+                ) : null}
+                {currentOrder.deliveryman.transferPreferences.eMolaNumber ? (
+                  <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500' }}>e-Mola: <Text style={{fontWeight: 'bold', color: '#EA580C'}}>{currentOrder.deliveryman.transferPreferences.eMolaNumber}</Text></Text>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Foto da Viatura */}
             {(currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture) && (
@@ -341,7 +490,26 @@ const OrderDetailsScreen = () => {
         </View>
       )}
 
-      {/* Informações do Pedido */}
+      {/* Detalhes do Serviço */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Detalhes do Serviço</Text>
+        {currentOrder.reason && (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={[styles.infoLabel, { marginBottom: 6, fontWeight: '600' }]}>Motivo da solicitação:</Text>
+            <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB' }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>{currentOrder.reason}</Text>
+            </View>
+          </View>
+        )}
+        {currentOrder.description && (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={[styles.infoLabel, { marginBottom: 4 }]}>Descrição / Observações:</Text>
+            <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>{currentOrder.description}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Informações do Pagamento */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Detalhes do Pagamento</Text>
         <View style={styles.infoRow}>
@@ -373,6 +541,83 @@ const OrderDetailsScreen = () => {
 
       {/* Ações */}
       <View style={styles.actionsContainer}>
+        {currentOrder.status === 'Motorista indisponível' && (
+          <View style={{
+            backgroundColor: '#FFF',
+            padding: 16,
+            borderRadius: 16,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: '#F3F4F6',
+            shadowColor: '#EF4444',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 3,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <View style={{ backgroundColor: '#FEF2F2', padding: 8, borderRadius: 20, marginRight: 10 }}>
+                <Ionicons name="close-circle" size={24} color="#EF4444" />
+              </View>
+              <Text style={{ color: '#111827', fontSize: 16, fontWeight: '700' }}>
+                Motorista Indisponível
+              </Text>
+            </View>
+            <Text style={{ color: '#6B7280', fontSize: 14, lineHeight: 22, marginBottom: 16 }}>
+              O motorista não pôde realizar esta viagem. Será redirecionado em <Text style={{color: '#EF4444', fontWeight: 'bold'}}>{indisponivelCountdown}s</Text> para pesquisar novos motoristas.
+            </Text>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              style={{ width: '100%', overflow: 'hidden', borderRadius: 12 }}
+              onPress={() => {
+                if (isRequestService && currentOrder?.serviceId) {
+                  navigation.reset({ 
+                    index: 1, 
+                    routes: [
+                      { name: 'BottomNavigation' },
+                      { 
+                        name: 'RequestService', 
+                        params: { 
+                          selectedService: { 
+                            _id: currentOrder.serviceId, 
+                            name: currentOrder.name || currentOrder.goodType || 'Serviço' 
+                          } 
+                        } 
+                      }
+                    ] 
+                  });
+                } else {
+                  navigation.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
+                }
+              }}
+            >
+              <LinearGradient 
+                colors={['#A855F7', '#7E22CE']} 
+                start={{ x: 0, y: 0 }} 
+                end={{ x: 1, y: 1 }}
+                style={{
+                  flexDirection: 'row',
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="search" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Procurar Novamente</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {['Aceite', 'A Caminho', 'No destino indicado'].includes(currentOrder.status) && (
+          <TouchableOpacity onPress={handleShareTrip} style={[styles.actionBtn, { marginBottom: 12 }]}>
+            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.gradientBtn}>
+              <Ionicons name="share-social" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Partilhar Viagem ao Vivo</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {currentOrder.status === 'No destino indicado' && (
           <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
             <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
@@ -427,24 +672,68 @@ const OrderDetailsScreen = () => {
         </BottomSheetScrollView>
       </BottomSheet>
 
-      {/* Modal de Cancelamento */}
-      <Modal animationType="slide" transparent visible={modalVisible}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Motivo do cancelamento</Text>
+      {/* Modal de Cancelamento (Premium) */}
+      <Modal animationType="fade" transparent visible={modalVisible}>
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEF2F2' }]}>
+              <Ionicons name="close-circle" size={44} color="#EF4444" />
+            </View>
+            <Text style={styles.premiumModalTitle}>Cancelar Pedido</Text>
+            <Text style={styles.premiumModalMessage}>Descreva o motivo do cancelamento</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { width: '100%' }]}
               placeholder="Descreva o motivo..."
               value={message}
               onChangeText={setMessage}
               multiline
             />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#EF4444' }]} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalBtnText}>Fechar</Text>
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center' }}
+                onPress={() => setModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#4B5563' }}>Fechar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#10B981' }]} onPress={() => cancelOrderPop(currentOrder._id)}>
-                <Text style={styles.modalBtnText}>Confirmar</Text>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#EF4444', alignItems: 'center' }}
+                onPress={() => cancelOrderPop(currentOrder._id)}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Apagar Histórico (Premium) */}
+      <Modal animationType="fade" transparent visible={showDeleteModal}>
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEF2F2' }]}>
+              <Ionicons name="trash-outline" size={44} color="#EF4444" />
+            </View>
+            <Text style={styles.premiumModalTitle}>Remover Pedido</Text>
+            <Text style={styles.premiumModalMessage}>Tem a certeza que deseja remover este pedido do seu histórico? Esta ação não pode ser desfeita.</Text>
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12, marginTop: 10 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center' }}
+                onPress={() => setShowDeleteModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#4B5563' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#EF4444', alignItems: 'center', shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 }}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  deleteOrder(currentOrder._id);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Apagar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -528,7 +817,11 @@ const OrderDetailsScreen = () => {
               activeOpacity={0.85}
               onPress={() => {
                 setShowFinishSuccessModal(false);
-                navigation.goBack();
+                if (isRequestService && !currentOrder.rating) {
+                  setRatingModalVisible(true);
+                } else {
+                  navigation.goBack();
+                }
               }}
             >
               <LinearGradient
@@ -537,9 +830,70 @@ const OrderDetailsScreen = () => {
                 end={{ x: 1, y: 1 }}
                 style={styles.premiumConfirmGradient}
               >
-                <Text style={styles.premiumConfirmButtonText}>Voltar</Text>
+                <Text style={styles.premiumConfirmButtonText}>Continuar</Text>
               </LinearGradient>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🌟 MODAL PREMIUM — AVALIAÇÃO DO MOTORISTA */}
+      <Modal
+        visible={ratingModalVisible}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.premiumModalOverlay}>
+          <View style={styles.premiumModalContainer}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="star" size={44} color="#F59E0B" />
+            </View>
+            <Text style={styles.premiumModalTitle}>Avalie o Motorista</Text>
+            <Text style={styles.premiumModalMessage}>Como foi a sua experiência com {currentDeliveryMan?.name || 'o motorista'}?</Text>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 15 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRating(star)}>
+                  <Ionicons name={star <= rating ? "star" : "star-outline"} size={40} color="#F59E0B" style={{ marginHorizontal: 5 }} />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={[styles.modalInput, { width: '100%', minHeight: 80 }]}
+              placeholder="Deixe um comentário (opcional)..."
+              value={review}
+              onChangeText={setReview}
+              multiline
+            />
+            
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+              <TouchableOpacity 
+                style={styles.premiumCancelButton}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setRatingModalVisible(false);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.premiumCancelButtonText}>Pular</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.premiumConfirmButton}
+                activeOpacity={0.85}
+                onPress={submitRating}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumConfirmGradient}
+                >
+                  <Text style={styles.premiumConfirmButtonText}>Avaliar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

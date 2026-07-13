@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import PaymentMethod from '../models/PaymentMethod.js';
 import { isAuth, isSellerOrAdmin } from '../utils.js';
@@ -22,7 +22,7 @@ router.get(
     if (pm) {
       res.json(pm);
     } else {
-      res.status(404).json({ message: 'Método de pagamento não encontrado' });
+      res.status(404).json({ message: 'Mï¿½todo de pagamento nï¿½o encontrado' });
     }
   })
 );
@@ -65,7 +65,7 @@ router.put(
       const updatedPm = await pm.save();
       res.json(updatedPm);
     } else {
-      res.status(404).json({ message: 'Método de pagamento não encontrado' });
+      res.status(404).json({ message: 'Mï¿½todo de pagamento nï¿½o encontrado' });
     }
   })
 );
@@ -79,9 +79,9 @@ router.delete(
     const pm = await PaymentMethod.findById(req.params.id);
     if (pm) {
       await pm.deleteOne();
-      res.json({ message: 'Método de pagamento removido' });
+      res.json({ message: 'Mï¿½todo de pagamento removido' });
     } else {
-      res.status(404).json({ message: 'Método de pagamento não encontrado' });
+      res.status(404).json({ message: 'Mï¿½todo de pagamento nï¿½o encontrado' });
     }
   })
 );

@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import multer from 'multer';
 import path from 'path';
@@ -36,7 +36,7 @@ router.post('/submit', isAuth, upload.single('file'), expressAsyncHandler(async 
     autoAssignEstablishment: autoAssignEstablishment === 'true',
     serviceType,
     documentPath: req.file.path,
-    status: 'Pendente de Validação',
+    status: 'Pendente de Validaï¿½ï¿½o',
     processingFee: feeAmount,
     totalAmount: feeAmount // initially just the fee
   });
@@ -63,7 +63,7 @@ router.put('/:id/validate', isAuth, isSellerOrAdmin, expressAsyncHandler(async (
   order.deliveryFee = 150; // Dummy delivery fee
   order.totalAmount = itemsTotal + order.serviceFee + order.deliveryFee + order.processingFee;
   
-  order.status = 'Aguardando Aprovação do Cliente';
+  order.status = 'Aguardando Aprovaï¿½ï¿½o do Cliente';
   order.operator = req.user._id;
 
   const updatedOrder = await order.save();
@@ -75,7 +75,7 @@ router.post('/:id/approve-and-pay', isAuth, expressAsyncHandler(async (req, res)
   const order = await DocumentOrder.findById(req.params.id);
   if (!order) return res.status(404).json({ message: 'Order not found' });
   
-  if (order.status !== 'Aguardando Aprovação do Cliente') {
+  if (order.status !== 'Aguardando Aprovaï¿½ï¿½o do Cliente') {
       return res.status(400).json({ message: 'Order is not waiting for approval' });
   }
 
@@ -129,7 +129,7 @@ router.put('/:id/status', isAuth, expressAsyncHandler(async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     order.status = status;
-    if (status === 'Concluído') await reputationTracker.recordOrderCompleted(order.user);
+    if (status === 'Concluï¿½do') await reputationTracker.recordOrderCompleted(order.user);
     if (status === 'Cancelado') await reputationTracker.recordOrderCancelled(order.user);
 
     const updatedOrder = await order.save();

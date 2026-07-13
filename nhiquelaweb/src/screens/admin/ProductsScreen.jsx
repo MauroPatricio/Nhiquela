@@ -11,7 +11,7 @@ export default function ProductsScreen() {
   const [loading, setLoading] = useState(true);
 
   const [categoriesList, setCategoriesList] = useState([]);
-  const [provincesList] = useState(['Maputo Cidade', 'Maputo ProvÌncia', 'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'ZambÈzia', 'Nampula', 'Cabo Delgado', 'Niassa']);
+  const [provincesList] = useState(['Maputo Cidade', 'Maputo Prov√≠ncia', 'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zamb√©zia', 'Nampula', 'Cabo Delgado', 'Niassa']);
   
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
@@ -31,9 +31,9 @@ export default function ProductsScreen() {
         api.get('/users/sellers').catch(() => ({ data: { sellers: [] } }))
       ]);
       setProducts(prodRes.data.products || []);
-      setCategoriesList(catRes.data.categories ? catRes.data.categories.map(c => c.name) : ['Mercearia B·sica', 'Bebidas']);
+      setCategoriesList(catRes.data.categories ? catRes.data.categories.map(c => c.name) : ['Mercearia B√°sica', 'Bebidas']);
       setAvailableColors(colRes.data.colors ? colRes.data.colors.map(c => c.name) : ['Preto', 'Branco']);
-      setAvailableSizes(sizeRes.data.sizes ? sizeRes.data.sizes.map(s => s.name) : ['P', 'M', 'G', '⁄nico']);
+      setAvailableSizes(sizeRes.data.sizes ? sizeRes.data.sizes.map(s => s.name) : ['P', 'M', 'G', '√önico']);
       setSuppliersList(supRes.data.sellers || []);
     } catch (error) {
       toast.error('Erro ao carregar dados dos produtos');
@@ -130,7 +130,7 @@ export default function ProductsScreen() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.price || !formData.category || !formData.province) {
-      return toast.error('Nome (PT), PreÁo, Categoria e ProvÌncia s„o obrigatÛrios.');
+      return toast.error('Nome (PT), Pre√ßo, Categoria e Prov√≠ncia s√£o obrigat√≥rios.');
     }
     if (formData.color.length === 0 || formData.size.length === 0) {
       return toast.error('Deve selecionar pelo menos uma cor e um tamanho.');
@@ -167,8 +167,8 @@ export default function ProductsScreen() {
     <div className="animation-fade-in pb-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Cat·logo de Produtos</h2>
-          <span className="text-muted small">Gest„o de estoque, promoÁıes, garantias e atributos</span>
+          <h2 className="fw-bold m-0 text-dark">Cat√°logo de Produtos</h2>
+          <span className="text-muted small">Gest√£o de estoque, promo√ß√µes, garantias e atributos</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -196,15 +196,15 @@ export default function ProductsScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Produto</th>
-                  <th className="border-0 text-muted py-3">Categoria & ProvÌncia</th>
-                  <th className="border-0 text-muted py-3">PreÁo</th>
+                  <th className="border-0 text-muted py-3">Categoria & Prov√≠ncia</th>
+                  <th className="border-0 text-muted py-3">Pre√ßo</th>
                   <th className="border-0 text-muted py-3">Estoque</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="5" className="text-center py-5 text-muted"><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A carregar cat·logo...</td></tr>
+                  <tr><td colSpan="5" className="text-center py-5 text-muted"><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A carregar cat√°logo...</td></tr>
                 ) : currentProducts.length === 0 ? (
                   <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhum produto encontrado.</td></tr>
                 ) : currentProducts.map(product => (
@@ -278,12 +278,12 @@ export default function ProductsScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Produto (AvanÁado)' : 'Novo Produto (Completo)'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Produto (Avan√ßado)' : 'Novo Produto (Completo)'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             <div className="card-body p-4" style={{ overflowY: 'auto' }}>
               <form onSubmit={handleSave}>
-                <h6 className="fw-bold text-primary-custom mb-3 border-bottom pb-2">IdentificaÁ„o e Base</h6>
+                <h6 className="fw-bold text-primary-custom mb-3 border-bottom pb-2">Identifica√ß√£o e Base</h6>
                 <div className="row g-3 mb-3">
                   <div className="col-md-6">
                     <label className="form-label fw-bold small text-muted mb-1">Nome do Produto (PT)</label>
@@ -305,7 +305,7 @@ export default function ProductsScreen() {
                     </select>
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label fw-bold small text-muted mb-1">LocalizaÁ„o (ProvÌncia)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Localiza√ß√£o (Prov√≠ncia)</label>
                     <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.province} onChange={(e) => setFormData({...formData, province: e.target.value})} required>
                       <option value="">Selecione...</option>
                       {provincesList.map(p => <option key={p} value={p}>{p}</option>)}
@@ -322,7 +322,7 @@ export default function ProductsScreen() {
 
                 <div className="row g-3 mb-4">
                   <div className="col-md-4">
-                    <label className="form-label fw-bold small text-muted mb-1">PreÁo (MT)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Pre√ßo (MT)</label>
                     <input type="number" step="0.01" className="form-control bg-light border-0 py-2 rounded-3 fw-bold" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} required />
                   </div>
                   <div className="col-md-4">
@@ -346,7 +346,7 @@ export default function ProductsScreen() {
                     )}
                   </div>
                   <div className="col-md-12">
-                    <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
                     <textarea className="form-control bg-light border-0 py-2 rounded-3" rows="2" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}></textarea>
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function ProductsScreen() {
                 <h6 className="fw-bold text-primary-custom mb-3 border-bottom pb-2">Variantes do Produto</h6>
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted mb-2"><FontAwesomeIcon icon={faPalette} className="me-1"/> Cores DisponÌveis</label>
+                    <label className="form-label fw-bold small text-muted mb-2"><FontAwesomeIcon icon={faPalette} className="me-1"/> Cores Dispon√≠veis</label>
                     <div className="d-flex flex-wrap gap-2">
                       {availableColors.map(c => (
                         <div key={c} className={`badge border cursor-pointer p-2 ${formData.color.includes(c) ? 'bg-primary-custom text-white' : 'bg-white text-dark'}`} onClick={() => toggleArrayItem('color', c)}>
@@ -364,7 +364,7 @@ export default function ProductsScreen() {
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted mb-2"><FontAwesomeIcon icon={faRuler} className="me-1"/> Tamanhos DisponÌveis</label>
+                    <label className="form-label fw-bold small text-muted mb-2"><FontAwesomeIcon icon={faRuler} className="me-1"/> Tamanhos Dispon√≠veis</label>
                     <div className="d-flex flex-wrap gap-2">
                       {availableSizes.map(s => (
                         <div key={s} className={`badge border cursor-pointer p-2 ${formData.size.includes(s) ? 'bg-primary-custom text-white' : 'bg-white text-dark'}`} onClick={() => toggleArrayItem('size', s)}>
@@ -375,12 +375,12 @@ export default function ProductsScreen() {
                   </div>
                 </div>
 
-                <h6 className="fw-bold text-primary-custom mb-3 border-bottom pb-2">PolÌticas Comerciais</h6>
+                <h6 className="fw-bold text-primary-custom mb-3 border-bottom pb-2">Pol√≠ticas Comerciais</h6>
                 <div className="row g-3 mb-4 bg-light p-3 rounded-4 mx-0">
                   <div className="col-md-4">
                     <div className="form-check form-switch mb-2">
                       <input className="form-check-input" type="checkbox" role="switch" checked={formData.onSale} onChange={(e) => setFormData({...formData, onSale: e.target.checked})} />
-                      <label className="form-check-label fw-bold small text-dark"><FontAwesomeIcon icon={faPercent} className="me-1 text-danger"/> Em PromoÁ„o?</label>
+                      <label className="form-check-label fw-bold small text-dark"><FontAwesomeIcon icon={faPercent} className="me-1 text-danger"/> Em Promo√ß√£o?</label>
                     </div>
                     {formData.onSale && (
                       <select className="form-select form-select-sm" value={formData.onSalePercentage} onChange={(e) => setFormData({...formData, onSalePercentage: e.target.value})}>
@@ -410,15 +410,15 @@ export default function ProductsScreen() {
                     </div>
                     {formData.isGuaranteed && (
                       <select className="form-select form-select-sm" value={formData.guaranteedPeriod} onChange={(e) => setFormData({...formData, guaranteedPeriod: e.target.value})}>
-                        <option value="">PerÌodo...</option>
-                        {['1 mÍs', '3 meses', '6 meses', '12 meses'].map(v => <option key={v} value={v}>{v}</option>)}
+                        <option value="">Per√≠odo...</option>
+                        {['1 m√™s', '3 meses', '6 meses', '12 meses'].map(v => <option key={v} value={v}>{v}</option>)}
                       </select>
                     )}
                   </div>
                 </div>
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÁıes' : 'Criar Produto'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Altera√ß√µes' : 'Criar Produto'}
                 </button>
               </form>
             </div>
@@ -426,7 +426,7 @@ export default function ProductsScreen() {
         </div>
       )}
 
-      {/* Modal Ficha TÈcnica do Produto */}
+      {/* Modal Ficha T√©cnica do Produto */}
       {showDetailsModal && selectedProduct && (
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '700px', display: 'flex', flexDirection: 'column' }}>
@@ -505,8 +505,8 @@ export default function ProductsScreen() {
                   </div>
 
                   <div>
-                    <span className="text-muted small fw-bold d-block mb-1">DescriÁ„o (PT)</span>
-                    <p className="small text-dark mb-0">{selectedProduct.description || 'Nenhuma descriÁ„o fornecida.'}</p>
+                    <span className="text-muted small fw-bold d-block mb-1">Descri√ß√£o (PT)</span>
+                    <p className="small text-dark mb-0">{selectedProduct.description || 'Nenhuma descri√ß√£o fornecida.'}</p>
                     {selectedProduct.name && (
                       <p className="small text-muted mt-1 fst-italic">EN: {selectedProduct.name}</p>
                     )}

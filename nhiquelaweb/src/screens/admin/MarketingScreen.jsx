@@ -52,7 +52,7 @@ export default function MarketingScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.title) return toast.error('O título é obrigatório');
+    if (!formData.title) return toast.error('O tÃ­tulo ï¿½ obrigatÃ³rio');
     
     try {
       if (isEditing) {
@@ -86,7 +86,7 @@ export default function MarketingScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Banners & Marketing</h2>
-          <span className="text-muted small">Gestão de publicidade e destaques na plataforma</span>
+          <span className="text-muted small">GestÃ£o de publicidade e destaques na plataforma</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -113,10 +113,10 @@ export default function MarketingScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Título do Banner</th>
-                  <th className="border-0 text-muted py-3">Tipo (Posição)</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">TÃ­tulo do Banner</th>
+                  <th className="border-0 text-muted py-3">Tipo (PosiÃ§Ã£o)</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +167,7 @@ export default function MarketingScreen() {
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Título da Campanha</label>
+                  <label className="form-label fw-bold small text-muted mb-1">TÃ­tulo da Campanha</label>
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required />
                 </div>
                 <div className="mb-3">
@@ -180,10 +180,10 @@ export default function MarketingScreen() {
                 </div>
                 <div className="row g-3 mb-4">
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Tipo de Banner (Posição)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Tipo de Banner (PosiÃ§Ã£o)</label>
                     <select className="form-select bg-light border-0 py-3 rounded-3" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
                       <option value="Home Principal">Home Principal</option>
-                      <option value="Home Secundário">Home Secundário</option>
+                      <option value="Home SecundÃ¡rio">Home SecundÃ¡rio</option>
                       <option value="App Mobile Top">App Mobile Top</option>
                       <option value="App Mobile Bottom">App Mobile Bottom</option>
                     </select>
@@ -197,7 +197,7 @@ export default function MarketingScreen() {
                   </div>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Criar Banner'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Criar Banner'}
                 </button>
               </form>
             </div>

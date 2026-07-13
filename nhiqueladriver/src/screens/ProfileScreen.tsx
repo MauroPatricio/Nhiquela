@@ -70,24 +70,31 @@ export default function ProfileScreen({ navigation }: Props) {
     return '2024';
   };
 
+  const transportTypeData = user?.deliveryman?.transport_type;
+  const transportTypeNameFromUser = transportTypeData && typeof transportTypeData === 'object' ? (transportTypeData as any).name : null;
+
   const userData = {
     name: user?.name || 'Motorista',
     email: user?.email || 'email@exemplo.com',
     phone: user?.phoneNumber ? `+258 ${user.phoneNumber}` : '+258 84 000 0000',
     level: user?.isDeliveryMan ? 'Motorista' : 'Passageiro',
     memberSince: getMemberSince(),
-    totalTrips: 0,
-    rating: '0.0',
-    acceptanceRate: '0%',
-    totalEarnings: '0 MT',
-    vehicle: transportTypeName || user?.deliveryman?.transport_type || 'Veículo Não registado',
+    totalTrips: user?.deliveryman?.totalTrips || 0,
+    totalRatings: user?.deliveryman?.totalRatings || 0,
+    rating: user?.deliveryman?.averageRating ? user.deliveryman.averageRating.toFixed(1) : (user?.deliveryman?.rating || '5.0'),
+    acceptanceRate: '100%',
+    totalEarnings: user?.deliveryman?.totalEarnings ? `${Number(user.deliveryman.totalEarnings).toFixed(2)} MT` : '0.00 MT',
+    vehicle: transportTypeName || transportTypeNameFromUser || (typeof transportTypeData === 'string' ? transportTypeData : 'Veículo Não registado'),
     licensePlate: user?.deliveryman?.transport_registration || 'Não definida',
     vehicleColor: user?.deliveryman?.transport_color || 'Não definida',
   };
 
   useEffect(() => {
     const fetchTransportTypeName = async () => {
-      const typeId = user?.deliveryman?.transport_type;
+      const typeId = user?.deliveryman?.transport_type && typeof user.deliveryman.transport_type === 'object' 
+        ? (user.deliveryman.transport_type as any)._id || (user.deliveryman.transport_type as any).id
+        : user?.deliveryman?.transport_type;
+
       if (!typeId) return;
       try {
         const subcategories = await getProviderSubcategories();
@@ -293,7 +300,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 150, flexGrow: 1 }}
       >
 
 
