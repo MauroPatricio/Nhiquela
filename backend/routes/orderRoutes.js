@@ -1122,7 +1122,9 @@ orderRouter.put(
       await session.commitTransaction();
       session.endSession();
 
-      const updateOrder = order;
+      const updateOrder = await Order.findById(order._id)
+        .populate('user', 'name phoneNumber profileImage')
+        .populate('seller', 'name location');
       const sellerOfProduct = await User.findById(order.seller);
 
       //  Para envio de mensagens

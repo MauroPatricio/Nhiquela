@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Provider from '../models/ProviderModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -20,7 +20,6 @@ providerRouter.get(
       if (status) query.status = status; // e.g., 'active'
 
       const providers = await Provider.find(query)
-        .populate('provider_type_id', 'name description')
         .populate('userId', 'name email phoneNumber')
         .populate('categoryId', 'name')
         .populate('location.province', 'name')

@@ -311,6 +311,10 @@ userRouter.put(
         user.email = req.body.email || user.email;
         user.profileImage = req.body.profileImage || user.profileImage;
         user.isSeller = req.body.isSeller;
+        
+        if (req.body.preferredPaymentMethod) {
+            user.preferredPaymentMethod = req.body.preferredPaymentMethod;
+        }
 
         if (req.body.isSeller) {
           user.seller = {
@@ -388,7 +392,11 @@ userRouter.put(
             phoneNumber: req.body.deliveryManPhoneNumber,
             transport_type: req.body.deliveryMantransportType,
             transport_registration: req.body.deliveryMantransportRegistration,
-            transport_color: req.body.deliveryMantransportColor
+            transport_color: req.body.deliveryMantransportColor,
+            transferPreferences: {
+                mPesaNumber: req.body.mPesaNumber !== undefined ? req.body.mPesaNumber : user.deliveryman?.transferPreferences?.mPesaNumber,
+                eMolaNumber: req.body.eMolaNumber !== undefined ? req.body.eMolaNumber : user.deliveryman?.transferPreferences?.eMolaNumber
+            }
           };
         }
 
@@ -408,6 +416,8 @@ userRouter.put(
           isSeller: updatedUser.isSeller,
           isBanned: updatedUser.isBanned,
           seller: updatedUser.seller,
+          deliveryman: updatedUser.deliveryman,
+          preferredPaymentMethod: updatedUser.preferredPaymentMethod,
           savedLocations: updatedUser.savedLocations || [],
           createdAt: updatedUser.createdAt,
           token: generateToken(updatedUser),
@@ -1208,7 +1218,7 @@ userRouter.post(
             'transport_registration', 'vihicle_picture', 'vihicle_picture_front',
             'vihicle_picture_back', 'vihicle_inspection', 'vihicle_Insurance',
             'vihicle_logbook', 'license_front', 'license_back',
-            'document_front', 'document_back'
+            'document_front', 'document_back', 'Proof_of_Address'
           ];
           for (let field of requiredFields) {
             if (!req.body[field]) {
@@ -1236,7 +1246,11 @@ userRouter.post(
             document_front: req.body.document_front,
             document_back: req.body.document_back,
             Proof_of_Address: req.body.Proof_of_Address,
-            register_conformance: "PENDING_CONFORMANCE"
+            register_conformance: "PENDING_CONFORMANCE",
+            transferPreferences: {
+                mPesaNumber: req.body.mPesaNumber || '',
+                eMolaNumber: req.body.eMolaNumber || ''
+            }
           };
 
           if (req.body.providedServices) {

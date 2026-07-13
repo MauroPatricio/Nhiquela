@@ -48,6 +48,8 @@ interface DriverForm {
     document_back: string;
     Proof_of_Address: string;
     assigned_base_fee?: string;
+    eMolaNumber?: string;
+    mPesaNumber?: string;
 }
 
 
@@ -72,7 +74,8 @@ export default function RegisterDriverScreen({ navigation }: any) {
                     label: item.name,
                     value: item._id, // Usar o ID do serviço
                     pricingMode: item.pricingMode,
-                    description: item.description
+                    description: item.description,
+                    vehicleTypes: item.vehicleTypes ? item.vehicleTypes.map((v: any) => v.name).join(', ') : ''
                 }));
                 setSubcategories(formatted);
                 
@@ -95,6 +98,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
         transport_type: "", transport_color: "", transport_registration: "", vihicle_picture: "", vihicle_picture_front: "", vihicle_picture_back: "",
         vihicle_inspection: "", vihicle_Insurance: "", vihicle_logbook: "", license_front: "", license_back: "",
         document_type: "bi", document_front: "", document_back: "", Proof_of_Address: "",
+        eMolaNumber: "", mPesaNumber: ""
     });
 
     const { showLoading, hideLoading, showProcessing } = useLoadingContext();
@@ -199,6 +203,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
         if (!form.document_back) newErrors.document_back = 'Obrigatório';
         if (!form.license_front) newErrors.license_front = 'Obrigatório';
         if (!form.license_back) newErrors.license_back = 'Obrigatório';
+        if (!form.Proof_of_Address) newErrors.Proof_of_Address = 'Obrigatório';
         if (Object.keys(newErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...newErrors }));
             showMessage({ message: "As fotos dos documentos pessoais são obrigatórias", type: "warning" });
@@ -432,6 +437,10 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                     />
                                 </View>
                             </View>
+                            {/* Preferências de Transferência */}
+                            <Text style={[styles.sectionTitle, {marginTop: 15, marginBottom: 15}]}>Preferências de Transferência (Opcional)</Text>
+                            {renderInput("Número M-Pesa", "mPesaNumber", "phone-portrait-outline", { placeholder: "Ex: 84...", keyboardType: "phone-pad" })}
+                            {renderInput("Número e-Mola", "eMolaNumber", "phone-portrait-outline", { placeholder: "Ex: 86...", keyboardType: "phone-pad" })}
                         </View>
                     )}
 
@@ -445,7 +454,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                 {renderGridImageUpload("BI ou Passaporte (Verso) *", "document_back", "passport")}
                             </View>
                             <View style={{ marginTop: 10, marginBottom: 20 }}>
-                                {renderImageUpload("Comprovativo de Morada (Opcional)", "Proof_of_Address", "home-map-marker")}
+                                {renderImageUpload("Comprovativo de Morada *", "Proof_of_Address", "home-map-marker")}
                             </View>
                         </View>
                     )}
@@ -466,9 +475,14 @@ export default function RegisterDriverScreen({ navigation }: any) {
                             />
                             {form.transport_type && subcategories.find(s => s.value === form.transport_type)?.description && (
                                 <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-                                    <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic' }}>
+                                    <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic', marginBottom: 4 }}>
                                         {subcategories.find(s => s.value === form.transport_type)?.description}
                                     </Text>
+                                    {(subcategories as any).find((s: any) => s.value === form.transport_type)?.vehicleTypes ? (
+                                        <Text style={{ fontSize: 12, color: '#4B5563', fontWeight: 'bold' }}>
+                                            Tipos de Viatura Associados: <Text style={{ fontWeight: 'normal' }}>{(subcategories as any).find((s: any) => s.value === form.transport_type)?.vehicleTypes}</Text>
+                                        </Text>
+                                    ) : null}
                                 </View>
                             )}
                             {subcategories.find(s => s.value === form.transport_type)?.pricingMode === 'PROVIDER_DEFINED' && (

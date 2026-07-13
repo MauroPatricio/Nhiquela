@@ -114,6 +114,18 @@ export const debitCommissionFromPartner = async (partnerId, orderAmount, commiss
   partner.isActive = wallet.balance >= minBal;
 
   await partner.save();
+
+  // Record transaction
+  const Transaction = (await import('../models/TransactionModel.js')).default;
+  await Transaction.create({
+    walletId: wallet._id,
+    type: 'debit',
+    amount: commission,
+    method: 'wallet',
+    description: `Comissão sobre venda de ${orderAmount}`,
+    status: 'confirmado'
+  });
+
   return { wallet, commission };
 };
 
@@ -155,14 +167,13 @@ export const hasSufficientBalance = async (driverId, driverDoc = null) => {
   return wallet.balance >= limit;
 };
 
-/** Verify if driver has sufficient balance/credit to afford an upcoming trip commission */
-export const canAffordTripCommission = async (driverId, amount) => {
-  const wallet = await getWallet(driverId);
-  const config = await getFinancialConfig();
-  
+export const getDriverMinimumBalance = async (driverId, config, session = null) => {
   let limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
   
-  const driver = await User.findById(driverId);
+  const query = User.findById(driverId);
+  if (session) query.session(session);
+  const driver = await query;
+  
   if (driver && driver.deliveryman) {
     let vType = null;
     const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
@@ -171,16 +182,37 @@ export const canAffordTripCommission = async (driverId, amount) => {
     if (driver.deliveryman.vehicle_type_id) {
       vType = await VehicleType.findById(driver.deliveryman.vehicle_type_id);
     } else if (driver.deliveryman.transport_type) {
-      vType = await VehicleType.findOne({ name: driver.deliveryman.transport_type });
+      const transportType = driver.deliveryman.transport_type;
+      
+      // Se for um ObjectId, é um ProviderSubcategory
+      if (mongoose.Types.ObjectId.isValid(transportType)) {
+        const ProviderSubcategory = (await import('../models/ProviderSubcategoryModel.js')).default;
+        const subcategory = await ProviderSubcategory.findById(transportType);
+        if (subcategory && subcategory.vehicleTypes && subcategory.vehicleTypes.length > 0) {
+          vType = await VehicleType.findById(subcategory.vehicleTypes[0]);
+        }
+      } else {
+        vType = await VehicleType.findOne({ name: transportType });
+      }
     }
 
     if (vType && vType.minVisibilityFee > 0) {
       limit = vType.minVisibilityFee;
     }
   }
+  return limit;
+};
+
+/** Verify if driver has sufficient balance/credit to afford an upcoming trip commission */
+export const canAffordTripCommission = async (driverId, amount) => {
+  const wallet = await getWallet(driverId);
+  const config = await getFinancialConfig();
   
-  // They can afford it if their balance minus the commission is still >= their operational limit
-  return (wallet.balance - amount) >= limit;
+  const limit = await getDriverMinimumBalance(driverId, config);
+  
+  // O motorista pode aceitar a viagem desde que o seu saldo ATUAL seja >= ao limite (Ex: 500MT).
+  // Se a comissão for 537, ele ficará negativo (-37), o que é permitido. Ele será inativado ao finalizar a viagem.
+  return wallet.balance >= limit;
 };
 
 /** Reset daily sales for all partners */
@@ -214,6 +246,19 @@ export const debitDriverCommissionWithSession = async (driverId, amount, descrip
     description: description,
     status: 'confirmado'
   }], { session });
+
+  // Suspend driver if balance falls below required minimum after this debit
+  const config = await getFinancialConfig();
+  const limit = await getDriverMinimumBalance(driverId, config, session);
+  if (config.autoDisableOnLowBalance && wallet.balance < limit) {
+    const driver = await User.findById(driverId).session(session);
+    if (driver) {
+      driver.status = 'Inativo'; // Suspenso por falta de saldo
+      if (!driver.deliveryman) driver.deliveryman = {};
+      driver.deliveryman.register_conformance = 'INCONFORMANCE';
+      await driver.save({ session });
+    }
+  }
 
   // Note: we don't commit the session here, the route controller does it
   return wallet;

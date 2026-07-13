@@ -17,6 +17,7 @@ const modelSchema = new mongoose.Schema({
     isDeliveryMan: { type: Boolean, default: false },
     isSeller: { type: Boolean, default: false },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' }, // Nova referência para Role dinâmica
+    preferredPaymentMethod: { type: mongoose.Schema.Types.ObjectId, ref: 'PaymentMethod' },
     // Reputation counters (denormalized for fast access)
     totalOrders: { type: Number, default: 0 },
     completedOrders: { type: Number, default: 0 },
@@ -94,6 +95,10 @@ const modelSchema = new mongoose.Schema({
         transport_registration: { type: String },
         vehicle_type_id: { type: mongoose.Schema.Types.ObjectId, ref: 'VehicleType' },
         assigned_base_fee: { type: Number },
+        transferPreferences: {
+            mPesaNumber: { type: String, default: '' },
+            eMolaNumber: { type: String, default: '' }
+        },
 
         vihicle_picture: { type: String }, // DEPRECATED
         vihicle_picture_front: { type: String },

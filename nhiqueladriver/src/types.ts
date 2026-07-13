@@ -20,6 +20,7 @@ export type Trip = {
   isProcessing?: boolean;
   serviceName?: string;
   serviceMotive?: string;
+  paymentMethod?: string;
 };
 
 export type WebSocketOrderData = {

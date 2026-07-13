@@ -428,6 +428,18 @@ const OrderDetailsScreen = () => {
               </View>
             </View>
 
+            {currentOrder.deliveryman.transferPreferences ? (
+              <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <Text style={{ fontSize: 13, color: '#475569', fontWeight: '600', marginBottom: 6 }}>Contactos para Pagamento Móvel:</Text>
+                {currentOrder.deliveryman.transferPreferences.mPesaNumber ? (
+                  <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500', marginBottom: 2 }}>M-Pesa: <Text style={{fontWeight: 'bold', color: '#DC2626'}}>{currentOrder.deliveryman.transferPreferences.mPesaNumber}</Text></Text>
+                ) : null}
+                {currentOrder.deliveryman.transferPreferences.eMolaNumber ? (
+                  <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500' }}>e-Mola: <Text style={{fontWeight: 'bold', color: '#EA580C'}}>{currentOrder.deliveryman.transferPreferences.eMolaNumber}</Text></Text>
+                ) : null}
+              </View>
+            ) : null}
+
             {/* Foto da Viatura */}
             {(currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture) && (
               <View style={styles.vehicleImageContainer}>

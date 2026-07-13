@@ -128,7 +128,11 @@ export default function OrdersScreen() {
       const requestsArray = requestsRes.data.deliverRequests || [];
       const formattedRequests = requestsArray.map(r => ({ ...r, orderType: 'Encomenda' }));
 
-      const combinedOrders = [...formattedOrders, ...formattedRequests].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const combinedOrders = [...formattedOrders, ...formattedRequests].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : parseInt(a._id.toString().substring(0, 8), 16) * 1000;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : parseInt(b._id.toString().substring(0, 8), 16) * 1000;
+        return dateB - dateA;
+      });
       setOrders(combinedOrders);
 
     } catch (error) {

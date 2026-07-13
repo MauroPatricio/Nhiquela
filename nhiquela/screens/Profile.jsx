@@ -34,6 +34,9 @@ const Profile = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
   const mapRef = useRef(null);
   const defaultCoord = { lat: -25.9692, lng: 32.5732 };
 
@@ -58,6 +61,40 @@ const Profile = () => {
       toast.show("Erro ao atualizar a senha", { type: 'danger' });
     } finally {
       setIsSavingPassword(false);
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const { default: api } = await import('../hooks/createConnectionApi');
+      const res = await api.get('/payment-methods');
+      setPaymentMethods(res.data);
+    } catch (e) {
+      console.log('Erro ao buscar métodos de pagamento', e);
+    }
+  };
+
+  const updatePreferredPayment = async (paymentId) => {
+    try {
+      setIsSavingPayment(true);
+      const { default: api } = await import('../hooks/createConnectionApi');
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const parsed = JSON.parse(storedUserData);
+      await api.put('/users/profile', { preferredPaymentMethod: paymentId }, {
+        headers: { authorization: `Bearer ${parsed.token}` }
+      });
+      
+      const updatedUser = { ...parsed, preferredPaymentMethod: paymentId };
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      setUserData(updatedUser);
+      
+      toast.show("Método de pagamento atualizado com sucesso!", { type: 'success' });
+      setPaymentModalVisible(false);
+    } catch (e) {
+      console.error(e);
+      toast.show("Erro ao atualizar método", { type: 'danger' });
+    } finally {
+      setIsSavingPayment(false);
     }
   };
 
@@ -238,6 +275,7 @@ const Profile = () => {
 
   useEffect(() => {
     checkIfUserExist();
+    fetchPaymentMethods();
   }, []);
 
   const checkIfUserExist = async () => {
@@ -420,6 +458,25 @@ const Profile = () => {
             {/* Quick Actions Card */}
             <View style={styles.infoCard}>
               <Text style={styles.cardSectionTitle}>Ações Rápidas</Text>
+
+              <TouchableOpacity
+                onPress={() => setPaymentModalVisible(true)}
+                style={styles.actionItem}
+              >
+                <Ionicons name="card" size={20} color="#9333EA" />
+                <View style={{ flex: 1, marginLeft: 0 }}>
+                  <Text style={styles.actionText}>Método de Pagamento Padrão</Text>
+                  <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                    {userData?.preferredPaymentMethod ? 
+                      paymentMethods.find(p => p._id === userData.preferredPaymentMethod)?.name || 'Em dinheiro'
+                      : 'Em dinheiro'
+                    }
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <View style={styles.lineDivider} />
 
               <TouchableOpacity
                 onPress={() => navigation.navigate('Pedidos')}
@@ -707,6 +764,57 @@ const Profile = () => {
               )}
             </TouchableOpacity>
           </View>
+        </View>
+      </BottomSheetComponent>
+
+      {/* PAYMENT METHOD BOTTOM SHEET */}
+      <BottomSheetComponent
+        isOpen={paymentModalVisible}
+        toggleSheet={() => setPaymentModalVisible(false)}
+        height={450}
+      >
+        <View style={{ flex: 1, backgroundColor: '#F8FAFC', borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' }}>
+          <View style={{ padding: 20, paddingBottom: 15, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                <Ionicons name="card" size={20} color="#9333EA" />
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B' }}>Método de Pagamento</Text>
+            </View>
+            <TouchableOpacity onPress={() => setPaymentModalVisible(false)} style={{ backgroundColor: '#F1F5F9', padding: 8, borderRadius: 20 }}>
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ padding: 20, flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 15 }}>Selecione o seu método padrão</Text>
+            {paymentMethods.map((pm) => (
+              <TouchableOpacity
+                key={pm._id}
+                onPress={() => updatePreferredPayment(pm._id)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#FFF',
+                  padding: 15,
+                  borderRadius: 12,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: userData?.preferredPaymentMethod === pm._id ? '#9333EA' : '#E2E8F0',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 3,
+                  elevation: 2
+                }}
+              >
+                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: userData?.preferredPaymentMethod === pm._id ? '#9333EA' : '#CBD5E1', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
+                  {userData?.preferredPaymentMethod === pm._id && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#9333EA' }} />}
+                </View>
+                <Text style={{ fontSize: 16, color: '#1E293B', fontWeight: userData?.preferredPaymentMethod === pm._id ? '700' : '400' }}>{pm.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       </BottomSheetComponent>
 

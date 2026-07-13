@@ -58,6 +58,7 @@ export default function RequestServiceSimple() {
   const [originCoord, setOriginCoord] = useState(null);
   const [destCoord, setDestCoord] = useState(null);
   const [driverCoord, setDriverCoord] = useState(null);
+  const [preferredPaymentMethodName, setPreferredPaymentMethodName] = useState('Dinheiro');
   const [driverHeading, setDriverHeading] = useState(0);
   const [radarDrivers, setRadarDrivers] = useState([]);
   
@@ -228,6 +229,22 @@ export default function RequestServiceSimple() {
 
           const parsed = JSON.parse(storedUserData);
           if (!parsed.token) return;
+
+          if (parsed.preferredPaymentMethod) {
+            try {
+              const pmRes = await api.get('/payment-methods', {
+                headers: { authorization: `Bearer ${parsed.token}` }
+              });
+              if (pmRes.status === 200 && pmRes.data?.paymentMethods) {
+                const pref = pmRes.data.paymentMethods.find(p => p._id === parsed.preferredPaymentMethod);
+                if (pref) {
+                  setPreferredPaymentMethodName(pref.name);
+                }
+              }
+            } catch (err) {
+              console.log('Error fetching payment methods:', err);
+            }
+          }
 
           const { data } = await api.get('/request-service/active', {
             headers: { authorization: `Bearer ${parsed.token}` }
@@ -532,10 +549,10 @@ export default function RequestServiceSimple() {
           lat: destCoord.lat,
           lng: destCoord.lng
         },
-        paymentOption: 'Dinheiro',
+        paymentOption: preferredPaymentMethodName,
         reason: reason,
         description: reason,
-        paymentMethod: 'Dinheiro',
+        paymentMethod: preferredPaymentMethodName,
         deliveryPrice: finalPrice,  // Backend irá substituir pelo valor calculado server-side
         serviceId: service._id,     // Obrigatório para o motor de preços recalcular server-side
         isPaid: false,

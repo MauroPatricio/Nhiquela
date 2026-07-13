@@ -177,6 +177,7 @@ export default function TripScreen({ navigation }: any) {
           status: status,
           statusColor: statusColor,
           statusIcon: statusIcon,
+          paymentMethod: trip.paymentMethod || 'Dinheiro',
           originLat,
           originLng,
           destLat,
@@ -480,6 +481,11 @@ export default function TripScreen({ navigation }: any) {
                       <Ionicons name="cash-outline" size={22} color="#2ECC71" />
                       <Text style={styles.modalGridLabel}>Valor</Text>
                       <Text style={styles.modalGridValue}>{selectedTrip.reward}</Text>
+                    </View>
+                    <View style={styles.modalGridItem}>
+                      <Ionicons name="card-outline" size={22} color="#9B59B6" />
+                      <Text style={styles.modalGridLabel}>Método</Text>
+                      <Text style={styles.modalGridValue}>{selectedTrip.paymentMethod}</Text>
                     </View>
                     <View style={styles.modalGridItem}>
                       <Ionicons name="speedometer-outline" size={22} color="#3498DB" />

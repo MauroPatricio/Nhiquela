@@ -96,8 +96,8 @@ export default function HomeScreen({ navigation }: any) {
         });
 
         const { sound } = await Audio.Sound.createAsync(
-          require('../assets/sounds/alert.ogg'),
-          { volume: 1.0 }
+          require('../assets/sounds/calldriver.mp3'),
+          { volume: 1.0}
         );
         await sound.setVolumeAsync(1.0);
         await sound.setIsLoopingAsync(true);
@@ -908,7 +908,7 @@ export default function HomeScreen({ navigation }: any) {
       passenger: order.user?.name || order.clientName || "Cliente",
       passengerImage: order.user?.profileImage,
       passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Nao disponvel",
-      pickup: order.originDetails?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
+      pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
       distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia nao disponvel",
@@ -920,6 +920,7 @@ export default function HomeScreen({ navigation }: any) {
       stepStatus: order.stepStatus,
       status: order.status,
       isAcceptedByDeliveryman,
+      paymentMethod: order.paymentMethod || 'Dinheiro',
       originalData: order
     };
   };
@@ -1286,7 +1287,7 @@ const proceedStartTrip = async (trip: Trip) => {
                 {routeSummary.pickup} → {routeSummary.destination}
               </Text>
               <Text style={styles.routeDetails}>
-                {routeSummary.distance} • {routeSummary.time} • {routeSummary.reward}
+                {routeSummary.distance} • {routeSummary.time} • {routeSummary.reward} • {routeSummary.paymentMethod}
               </Text>
             </View>
           </View>

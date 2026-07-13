@@ -139,7 +139,8 @@ export default function EditProfileScreen({ navigation, route }: Props) {
           label: item.name,
           value: item._id,
           pricingMode: item.pricingMode,
-          description: item.description
+          description: item.description,
+          vehicleTypes: item.vehicleTypes ? item.vehicleTypes.map((v: any) => v.name).join(', ') : ''
         }));
         setSubcategories(formatted);
       } catch (error) {
@@ -162,6 +163,8 @@ export default function EditProfileScreen({ navigation, route }: Props) {
     Proof_of_Addres_Reason: user?.deliveryman?.Proof_of_Addres_Reason || "",
     hasHelpers: user?.deliveryman?.hasHelpers || false,
     helperCount: user?.deliveryman?.helperCount?.toString() || "0",
+    eMolaNumber: user?.deliveryman?.transferPreferences?.eMolaNumber || "",
+    mPesaNumber: user?.deliveryman?.transferPreferences?.mPesaNumber || "",
   };
 
   // ✅ FUNÇÃO PARA VISUALIZAR IMAGEM EM TELA CHEIA
@@ -311,6 +314,8 @@ const handleSave = async (values: any) => {
           isDeliveryMan: true,
           hasHelpers: values.hasHelpers,
           helperCount: parseInt(values.helperCount) || 0,
+          mPesaNumber: values.mPesaNumber,
+          eMolaNumber: values.eMolaNumber,
         };
   
     
@@ -700,6 +705,35 @@ const handleSave = async (values: any) => {
             {/* ✅ SECÇÃO APENAS PARA MOTORISTAS */}
             {user?.isDeliveryMan && (
               <>
+                {/* Preferências de Transferência */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Preferências de Transferência (Opcional)</Text>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Número M-Pesa</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 84..."
+                      keyboardType="phone-pad"
+                      value={values.mPesaNumber}
+                      onChangeText={handleChange('mPesaNumber')}
+                      onBlur={handleBlur('mPesaNumber')}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Número e-Mola</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 86..."
+                      keyboardType="phone-pad"
+                      value={values.eMolaNumber}
+                      onChangeText={handleChange('eMolaNumber')}
+                      onBlur={handleBlur('eMolaNumber')}
+                    />
+                  </View>
+                </View>
+
                 {/* Informações do Veículo */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Informações do Veículo</Text>
@@ -714,9 +748,14 @@ const handleSave = async (values: any) => {
                   
                   {values.transport_type && subcategories.find(s => s.value === values.transport_type)?.description && (
                       <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-                          <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic' }}>
+                          <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic', marginBottom: 4 }}>
                               {subcategories.find(s => s.value === values.transport_type)?.description}
                           </Text>
+                          {(subcategories as any).find((s: any) => s.value === values.transport_type)?.vehicleTypes ? (
+                              <Text style={{ fontSize: 12, color: '#4B5563', fontWeight: 'bold' }}>
+                                  Tipos de Viatura Associados: <Text style={{ fontWeight: 'normal' }}>{(subcategories as any).find((s: any) => s.value === values.transport_type)?.vehicleTypes}</Text>
+                              </Text>
+                          ) : null}
                       </View>
                   )}
 

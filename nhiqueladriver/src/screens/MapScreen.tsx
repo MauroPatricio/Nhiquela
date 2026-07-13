@@ -165,8 +165,8 @@ export default function MapScreen({ route, navigation }: any) {
           } else {
             // STEP PENDENTE / ACEITE MAS NÃO INICIADO → destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
             // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
-            const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
-            const pickupLatLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
+            const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
+            const pickupLatLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
             const pickupLng = pickupLatLng; // Aliasing since previous name was pickupLng
             
             if (pickupLat && pickupLng) {
