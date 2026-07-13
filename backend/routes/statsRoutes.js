@@ -1,9 +1,9 @@
-import express from 'express';
+﻿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Province from '../models/ProvinceModel.js';
 import User from '../models/UserModel.js';
 import Order from '../models/OrderModel.js';
-import RequestDeliver from '../models/RequestDeliverModel.js';
+import RequestService from '../models/RequestServiceModel.js';
 import Transaction from '../models/TransactionModel.js';
 
 const statsRouter = express.Router();
@@ -37,13 +37,13 @@ statsRouter.get(
     // Fetch orders (products)
     const orders = await Order.find({ isPaid: true, deleted: false });
     // Fetch deliveries
-    const deliveries = await RequestDeliver.find({ isPaid: true, deleted: false });
+    const deliveries = await RequestService.find({ isPaid: true, deleted: false });
 
     let receitaHoje = 0;
     let receitaSemana = 0;
     let receitaMes = 0;
     let lucroEstimado = 0;
-    let numServicosConcluidos = 0;
+    let numServicosConcluídos = 0;
     
     const motoristasRanking = {};
     const receitaPorServico = {};
@@ -61,7 +61,7 @@ statsRouter.get(
       lucroEstimado += tax;
 
       if (record.status === 'Entregue' || record.isDelivered || record.status === 'delivered') {
-        numServicosConcluidos++;
+        numServicosConcluídos++;
       }
 
       // Ranking
@@ -88,16 +88,24 @@ statsRouter.get(
     orders.forEach(o => processRecord(o, 'paidAt', 'totalPrice', o.siteTax || 0, false));
     deliveries.forEach(d => {
       let profit = 0;
-      if (d.deliveryPrice && d.deliveryman && d.deliveryman.pricetopay) {
+      // 1. Usar a comissao real oficial gravada no aceite do servico (Nova Regra)
+      if (d.platformCommission !== undefined && d.platformCommission !== null) {
+        profit = d.platformCommission;
+      } 
+      // 2. Legacy fallback
+      else if (d.deliveryPrice && d.deliveryman && d.deliveryman.pricetopay) {
         profit = d.deliveryPrice - d.deliveryman.pricetopay;
         if (profit < 0) profit = 0;
-      } else {
-        profit = (d.deliveryPrice || 0) * 0.1; // fallback 10%
+      } 
+      // 3. Fallback genérico (15% por omissao)
+      else {
+        profit = (d.deliveryPrice || 0) * 0.15; 
       }
+      
       processRecord(d, 'paidAt', 'deliveryPrice', profit, true);
     });
 
-    const motoristasAtivos = await User.countDocuments({ isDeliveryMan: true, status: { $in: ['Disponível', 'Em Entrega'] } });
+    const motoristasAtivos = await User.countDocuments({ isDeliveryMan: true, status: { $in: ['Dispon�vel', 'Em Entrega'] } });
     const clientesAtivos = await User.countDocuments({ isDeliveryMan: false, isSeller: false });
 
     // Formatting ranking
@@ -110,14 +118,14 @@ statsRouter.get(
     }));
 
     const receitaTotal = orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0) + deliveries.reduce((sum, d) => sum + (d.deliveryPrice || 0), 0);
-    const ticketMedioReal = numServicosConcluidos > 0 ? receitaTotal / numServicosConcluidos : 0;
+    const ticketMedioReal = numServicosConcluídos > 0 ? receitaTotal / numServicosConcluídos : 0;
 
     res.send({
       receitaHoje,
       receitaSemana,
       receitaMes,
       lucroEstimado,
-      numServicosConcluidos,
+      numServicosConcluídos,
       ticketMedio: ticketMedioReal,
       comissaoArrecadada: lucroEstimado, // Usando o mesmo valor de lucro estimado para simplificar
       motoristasAtivos,

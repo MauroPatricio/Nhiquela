@@ -2,7 +2,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
-import { isAuth } from '../utils.js';
+import VehicleType from '../models/VehicleTypeModel.js';
+import { isAuth, sendAdminNotificationEmail } from '../utils.js';
 import mpesa from 'mpesa-node-api';
 import config from '../config.js';
 
@@ -20,13 +21,13 @@ const walletRouter = express.Router();
 /**
  * Função genérica para atualizar saldo e registrar transação com segurança (MongoDB transaction)
  */
-async function updateWallet(userId, amount, type, method, description, status = 'confirmado') {
+async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver') {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    let wallet = await Wallet.findOne({ userId }).session(session);
+    let wallet = await Wallet.findOne({ ownerId }).session(session);
     if (!wallet) {
-      wallet = await Wallet.create([{ userId, balance: 0 }], { session });
+      wallet = await Wallet.create([{ ownerId, ownerType, balance: 0 }], { session });
       wallet = wallet[0]; // create retorna array no modo transacional
     }
 
@@ -34,9 +35,14 @@ async function updateWallet(userId, amount, type, method, description, status = 
       throw new Error('Saldo insuficiente');
     }
 
-    // Atualiza saldo
-    wallet.balance += (type === 'credit' ? amount : -amount);
-    await wallet.save({ session });
+    // Atualiza saldo apenas se não for um crédito pendente
+    // (créditos pendentes só entram no saldo quando o admin/sistema confirmar)
+    const shouldUpdateBalance = !(type === 'credit' && status === 'pendente');
+    
+    if (shouldUpdateBalance) {
+      wallet.balance += (type === 'credit' ? amount : -amount);
+      await wallet.save({ session });
+    }
 
     // Registra transação separada
     await Transaction.create([{
@@ -95,15 +101,31 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
       }
     }
 
+    const isManualDeposit = method && method.includes('Manual');
+    const txStatus = isManualDeposit ? 'pendente' : 'confirmado';
+
     const balance = await updateWallet(
       req.user._id,
       amount,
       'credit',
       method || 'Pagamento recebido',
-      description || 'Recepção de valor do cliente'
+      description || 'Recepção de valor do cliente',
+      txStatus,
+      req.user.isDriver ? 'driver' : 'User'
     );
 
-    return res.json({ message: 'Saldo recarregado com sucesso', balance });
+    const successMessage = isManualDeposit 
+      ? 'O seu pedido de recarga foi recebido e está pendente de validação pela nossa equipa.'
+      : 'Saldo recarregado com sucesso!';
+
+    const title = isManualDeposit ? 'Novo Pedido de Recarga Pendente' : 'Nova Recarga Efetuada';
+    const textHtml = isManualDeposit
+      ? `O motorista/cliente <b>${req.user.name || 'Utilizador'}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.<br><br>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.<br>Detalhes: ${description}`
+      : `O motorista/cliente <b>${req.user.name || 'Utilizador'}</b> efetuou com sucesso uma recarga automática na carteira no valor de <b>${amount} MT</b>.<br>Detalhes: ${description}`;
+
+    await sendAdminNotificationEmail(title, textHtml);
+
+    return res.json({ message: successMessage, balance });
   } catch (error) {
     console.error('Erro ao recarregar saldo:', error?.response?.data || error.message);
     const mpesaError = error?.response?.data?.output?.ResponseDesc;
@@ -140,6 +162,96 @@ walletRouter.get('/balance', isAuth, async (req, res) => {
   } catch (error) {
     console.error('Erro ao consultar saldo:', error);
     res.status(500).json({ message: 'Erro interno ao consultar saldo.' });
+  }
+});
+
+/**
+ * Consultar sumário financeiro do Motorista (Dashboard Financeiro)
+ */
+walletRouter.get('/driver-summary', isAuth, async (req, res) => {
+  try {
+    const { getFinancialConfig } = await import('../services/walletService.js');
+    const config = await getFinancialConfig();
+
+    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
+    const balance = wallet?.balance || 0;
+    
+    // Calcular estatísticas usando transações
+    // Total Recarregado (Soma de todos os 'credit')
+    const recharges = await Transaction.aggregate([
+      { $match: { walletId: wallet?._id, type: 'credit', status: 'confirmado' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalRecharged = recharges[0]?.total || 0;
+
+    // Comissões descontadas (Soma de todos os 'debit' de serviço)
+    const commissions = await Transaction.aggregate([
+      { $match: { walletId: wallet?._id, type: 'debit', status: 'confirmado' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalCommissions = commissions[0]?.total || 0;
+
+    // Determinar o Estado
+    const limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
+    let currentState = 'Ativo';
+    
+    if (balance < limit) {
+      currentState = 'Suspenso';
+    } else if (config.allowNegativeBalance && balance < 0) {
+      currentState = 'Crédito Controlado';
+    } else if (balance <= config.lowBalanceWarningThreshold) {
+      currentState = 'Aviso';
+    }
+
+    // Obter Taxa Base do Veículo e Taxa Mínima de Visibilidade
+    let baseFare = 0;
+    let minVisibilityFee = 0;
+    let vehicleName = '';
+    let categoryName = '';
+    const fullUser = await mongoose.model('User').findById(req.user._id);
+    if (fullUser && fullUser.deliveryman && fullUser.deliveryman.transport_type) {
+      let vType = null;
+      const transportType = fullUser.deliveryman.transport_type;
+      
+      if (mongoose.Types.ObjectId.isValid(transportType)) {
+        const ProviderSubcategory = mongoose.model('ProviderSubcategory');
+        const subcategory = await ProviderSubcategory.findById(transportType);
+        if (subcategory) {
+          categoryName = subcategory.name;
+          if (subcategory.vehicleTypes && subcategory.vehicleTypes.length > 0) {
+            vType = await VehicleType.findById(subcategory.vehicleTypes[0]);
+          }
+        }
+      } else {
+        vType = await VehicleType.findOne({ name: transportType });
+      }
+
+      if (vType) {
+        baseFare = vType.basePrice || vType.baseFare || 0;
+        minVisibilityFee = vType.minVisibilityFee || 0;
+        vehicleName = vType.name;
+      }
+    }
+
+    res.json({
+      saldo_atual: balance,
+      limite_credito: config.allowNegativeBalance ? config.creditLimit : 0,
+      saldo_operacional_minimo: config.minOperationalBalance,
+      taxa_base_veículo: baseFare,
+      taxa_minima_recarga: minVisibilityFee > 0 ? minVisibilityFee : config.minOperationalBalance,
+      nome_veiculo: vehicleName,
+      nome_categoria: categoryName,
+      saldo_disponivel: balance - limit,
+      estado_atual: currentState,
+      total_recarregado: totalRecharged,
+      total_comissoes: totalCommissions,
+      permite_negativo: config.allowNegativeBalance,
+      bloqueio_automatico: config.autoDisableOnLowBalance,
+      currency: 'MZN'
+    });
+  } catch (error) {
+    console.error('Erro ao buscar sumário financeiro:', error);
+    res.status(500).json({ message: 'Erro interno ao consultar sumário financeiro.' });
   }
 });
 
@@ -315,7 +427,7 @@ walletRouter.post('/withdraw', isAuth, async (req, res) => {
           adminWallet = await Wallet.findOne({ userId: req.user._id }).session(session);
         }
         if (!adminWallet) {
-          adminWallet = await Wallet.create([{ ownerId: req.user._id, ownerType: 'admin', balance: 0 }], { session }).then(w => w[0]);
+          adminWallet = await Wallet.create([{ ownerId: req.user._id, ownerType: 'admin', userId: req.user._id, balance: 0 }], { session }).then(w => w[0]);
         }
 
         // Subtrai do saldo do admin (que reduzirá o saldo total do sistema)
@@ -456,6 +568,34 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Emit socket event to notify the driver to refresh wallet/status
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const userId = wallet.user.toString();
+        io.to(userId).emit('userStatusChanged', {
+          userId: userId,
+          status: 'approved', // Trigger a refresh on frontend
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(`driver_${userId}`).emit('userStatusChanged', {
+          userId: userId,
+          status: 'approved', // Trigger a refresh on frontend
+          message: 'A sua recarga foi aprovada!'
+        });
+        
+        io.to(userId).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(`driver_${userId}`).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+      }
+    } catch (socketErr) {
+      console.log('Socket error emitting:', socketErr.message);
+    }
+
     res.status(200).json({ message: 'Recarga autorizada com sucesso!' });
   } catch (err) {
     await session.abortTransaction();
@@ -525,13 +665,26 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - 6);
 
-    // Preciso importar o modelo Order para funcionar
+    // Import models
     const Order = mongoose.model('Order');
-    const orders = await Order.find({
+    const RequestService = mongoose.model('RequestService');
+
+    // Busca encomendas normais (Orders)
+    const ordersPromise = Order.find({
       'deliveryman.id': driverId,
       isDelivered: true,
       deliveredAt: { $gte: startOfWeek }
-    });
+    }).populate('user', 'name profileImage');
+
+    // Busca serviços de transporte directo (RequestService)
+    const requestsPromise = RequestService.find({
+      'deliveryman.id': driverId,
+      isDelivered: true,
+      deliveredAt: { $gte: startOfWeek }
+    }).populate('user', 'name profileImage');
+
+    const [orders, requestServices] = await Promise.all([ordersPromise, requestsPromise]);
+    const allTrips = [...orders, ...requestServices];
 
     let todayEarnings = 0;
     let weekEarnings = 0;
@@ -541,24 +694,41 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);
       d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
-      dailyStatsMap[dateStr] = { date: dateStr, amount: 0, trips: 0 };
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      dailyStatsMap[dateStr] = { date: dateStr, amount: 0, trips: 0, tripsList: [] };
     }
 
-    orders.forEach(order => {
-      const deliveryPrice = order.deliveryPrice || order.deliveryman?.pricetopay || 0;
-      const orderDate = new Date(order.deliveredAt);
+    allTrips.forEach(trip => {
+      const deliveryPrice = trip.pricing?.totalPrice || trip.deliveryPrice || trip.deliveryman?.pricetopay || 0;
+      const tripDate = new Date(trip.deliveredAt);
       
-      if (orderDate >= startOfToday) {
+      if (tripDate >= startOfToday) {
         todayEarnings += deliveryPrice;
         tripsToday++;
       }
       weekEarnings += deliveryPrice;
 
-      const dStr = orderDate.toISOString().split('T')[0];
+      const dStr = `${tripDate.getFullYear()}-${String(tripDate.getMonth() + 1).padStart(2, '0')}-${String(tripDate.getDate()).padStart(2, '0')}`;
       if (dailyStatsMap[dStr]) {
         dailyStatsMap[dStr].amount += deliveryPrice;
         dailyStatsMap[dStr].trips += 1;
+        
+        // Determinar origem e destino
+        const origin = trip.origin || trip.pickupAddress?.address || 'Origem não especificada';
+        const destination = trip.destination || trip.deliveryAddress?.address || 'Destino não especificado';
+        
+        dailyStatsMap[dStr].tripsList.push({
+          id: trip._id,
+          code: trip.code || trip._id.toString().slice(-6).toUpperCase(),
+          time: tripDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+          amount: deliveryPrice,
+          type: trip.pricing ? 'Serviço' : 'Encomenda',
+          clientName: trip.user?.name || trip.name || 'Cliente Desconhecido',
+          clientImage: trip.user?.profileImage || null,
+          origin,
+          destination,
+          reason: trip.reason || trip.description || 'Sem motivo especificado'
+        });
       }
     });
 
@@ -566,6 +736,7 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
       today: todayEarnings,
       week: weekEarnings,
       tripsToday: tripsToday,
+      totalTrips: allTrips.length,
       dailyEarnings: Object.values(dailyStatsMap).sort((a, b) => new Date(a.date) - new Date(b.date))
     });
   } catch (error) {

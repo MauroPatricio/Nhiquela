@@ -1,4 +1,4 @@
-import User from '../models/UserModel.js'; // Modelo de usuário onde está salvo o pushToken
+﻿import User from '../models/UserModel.js'; // Modelo de usuário onde está salvo o pushToken
 import { Expo } from 'expo-server-sdk';
 import NotificationNhabanga from '../models/NotificationModelNhabanga.js'; // Corrigido o nome para consistência
 
@@ -70,7 +70,7 @@ export const createNotification = async ({ message, receiver_id, sender_id, orde
       newNotification.send_status = true;
       await newNotification.save();
     }else{
-      console.log("Ocorreu um erro e receptor nao recebeu mensagem!")
+      console.log("Ocorreu um erro e receptor não recebeu mensagem!")
     }
 
     console.log('Notificação criada e enviada com sucesso:', newNotification);

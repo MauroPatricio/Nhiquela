@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 85,
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   titleText: {
     textAlign: 'center', 
@@ -120,3 +121,4 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 });
+

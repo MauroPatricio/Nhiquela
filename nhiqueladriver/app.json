@@ -1,0 +1,89 @@
+{
+  "expo": {
+    "name": "nhiqueladriver",
+    "slug": "nhiqueladriver",
+    "scheme": "nhiqueladriver",
+    "platforms": ["ios", "android"],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/nhiquela2-square.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/nhiquela2-square.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5c146d00-4349-41b9-8b42-a41e24f11743"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.nhiquela.driver",
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE"
+        }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/nhiquela2-square.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "NOTIFICATIONS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.nhiquela.driver",
+      "supportsTablet": true,
+      "usesAppleSignIn": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["location", "remote-notification"],
+        "NSUserTrackingUsageDescription": "O Nhiquela Driver usa notificações para atualizações de pedidos e entregas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Precisamos da sua localização em segundo plano para que os clientes saibam onde está."
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas."
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "firebase": {
+       "apiKey": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE",
+        "authDomain": "nhiqueladriver.firebaseapp.com",
+        "projectId": "nhiqueladriver",
+        "storageBucket": "nhiqueladriver.firebasestorage.app",
+        "messagingSenderId": "70873895337",
+        "appId": "1:70873895337:web:ee31dd9615c900dd4db4b8",
+        "measurementId": "G-QZ9T2YJF4C"
+      },
+      "eas": {
+        "projectId": "5c146d00-4349-41b9-8b42-a41e24f11743"
+      }
+    },
+    "runtimeVersion": "1.0.0"
+  }
+}

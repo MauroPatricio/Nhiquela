@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Subcategory from '../models/SubcategoryModel.js';
@@ -6,7 +6,7 @@ import Product from '../models/ProductModel.js';
 
 const subcategoryRouter = express.Router();
 
-// All Subcategories (paginação opcional)
+// All Subcategories (pagina��o opcional)
 subcategoryRouter.get(
   '/',
   expressAsyncHandler(async (req, res) => {
@@ -59,7 +59,7 @@ subcategoryRouter.get(
     if (subcategory) {
       res.send(subcategory);
     } else {
-      res.status(404).send({ message: 'Subcategoria não encontrada' });
+      res.status(404).send({ message: 'Subcategoria n�o encontrada' });
     }
   })
 );
@@ -93,7 +93,7 @@ subcategoryRouter.put(
       await subcategory.save();
       res.send({ message: 'Subcategoria atualizada com sucesso', subcategory });
     } else {
-      res.status(404).send({ message: 'Subcategoria não encontrada' });
+      res.status(404).send({ message: 'Subcategoria n�o encontrada' });
     }
   })
 );
@@ -118,7 +118,7 @@ subcategoryRouter.delete(
 
       res.send({ message: 'Subcategoria removida com sucesso' });
     } else {
-      res.status(404).send({ message: 'Subcategoria não encontrada' });
+      res.status(404).send({ message: 'Subcategoria n�o encontrada' });
     }
   })
 );

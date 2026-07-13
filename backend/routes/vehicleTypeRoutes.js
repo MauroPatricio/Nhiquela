@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import VehicleType from '../models/VehicleTypeModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -25,6 +25,7 @@ vehicleTypeRouter.post(
       capacityKg: req.body.capacityKg,
       basePrice: req.body.basePrice,
       pricePerKm: req.body.pricePerKm,
+      minVisibilityFee: req.body.minVisibilityFee || 0,
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     });
     const createdType = await newType.save();
@@ -45,6 +46,7 @@ vehicleTypeRouter.put(
       type.capacityKg = req.body.capacityKg !== undefined ? req.body.capacityKg : type.capacityKg;
       type.basePrice = req.body.basePrice !== undefined ? req.body.basePrice : type.basePrice;
       type.pricePerKm = req.body.pricePerKm !== undefined ? req.body.pricePerKm : type.pricePerKm;
+      type.minVisibilityFee = req.body.minVisibilityFee !== undefined ? req.body.minVisibilityFee : type.minVisibilityFee;
       type.isActive = req.body.isActive !== undefined ? req.body.isActive : type.isActive;
       
       const updatedType = await type.save();

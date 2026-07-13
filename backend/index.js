@@ -1,3 +1,4 @@
+import 'express-async-errors';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -23,7 +24,7 @@ import conditionStatusRouter from './routes/conditionStatusRoutes.js';
 import colorRoutes from './routes/colorRoutes.js';
 import sizeRoutes from './routes/sizeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import requestDeliverRoutes from './routes/requestDeliverRoutes.js';
+import requestServiceRoutes from './routes/requestServiceRoutes.js';
 import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
 import { fileURLToPath } from 'url';
@@ -31,12 +32,13 @@ import { dirname } from 'path';
 import { readFile } from 'fs/promises';
 import './firebase.js';
 
-// **Nova importação**
+// **Nova importa��o**
 import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
 import serviceRouter from './routes/serviceRoutes.js';
 import homeRouter from './routes/homeRoutes.js';
 import statsRouter from './routes/statsRoutes.js';
 import providerRouter from './routes/providerRoutes.js';
+import User from './models/UserModel.js';
 import providerTypeRoutes from './routes/providerTypeRoutes.js';
 import providerClassificationRoutes from './routes/providerClassificationRoutes.js';
 import providerSubcategoryRoutes from './routes/providerSubcategoryRoutes.js';
@@ -56,46 +58,54 @@ import trackingRoutes from './routes/trackingRoutes.js';
 import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
+import appConfigRouter from './routes/appConfigRoutes.js';
+
 
 // Conectar ao MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 30000, // ✅ 30 segundos timeout
-    socketTimeoutMS: 45000, // ✅ 45 segundos socket
-    maxPoolSize: 10, // ✅ Limite de conexões
-    minPoolSize: 5, // ✅ Mínimo de conexões
-    retryWrites: true, // ✅ Re-tentar escritas
-    w: 'majority' // ✅ Write concern
+    serverSelectionTimeoutMS: 30000, // ? 30 segundos timeout
+    socketTimeoutMS: 45000, // ? 45 segundos socket
+    maxPoolSize: 100, // Elevado para 100 para produção
+    minPoolSize: 5, // ? Mnimo de conexes
+    retryWrites: true, // ? Re-tentar escritas
+    w: 'majority' // ? Write concern
   })
   .then(() => {
-    console.log('✅ Conectei me ao MongoDB com SUCESSO');
+    console.log('? Conectei me ao MongoDB com SUCESSO');
   })
   .catch((err) => {
-    console.log('❌ ERRO INICIAL MongoDB:', err.message);
+    console.log('? ERRO INICIAL MongoDB:', err.message);
     process.exit(1); // Exit if initial connection fails so nodemon/pm2 restarts it
   });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠️ MongoDB desconectado. O Mongoose tentará reconectar automaticamente...');
+  console.log('?? MongoDB desconectado. O Mongoose tentar� reconectar automaticamente...');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.log('❌ ERRO MongoDB na conexão ativa:', err.message);
+  console.log('? ERRO MongoDB na conex�o ativa:', err.message);
 });
 
 // **Inicializando Express**
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.BASE_URL, 'https://nhiquelaservicos.com', 'https://www.nhiquelaservicos.com'] 
+    : '*',
+  credentials: true
+}));
 
-// Proteções básicas de segurança (Helmet)
+// Prote��es b�sicas de seguran�a (Helmet)
+// Protees bsicas de segurana (Helmet)
 app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domínios
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domnios
 
-// Rate Limiting (Bloqueia DDoS e ataques de força bruta)
+// Rate Limiting (Bloqueia DDoS e ataques de fora bruta)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 1000, // limite de 1000 requisicoes por IP
+  max: 800, // Proteção DDoS ativa em produção
   message: { message: 'Muitas requisições deste IP, tente novamente mais tarde.' }
 });
 app.use('/api', limiter); // Aplica o limitador a todas as rotas de API
@@ -133,7 +143,7 @@ app.use('/api/categories', categoryRouter);
 app.use('/api/subcategories', subcategoryRouter);
 app.use('/api/tipoEstabelecimentos', tipoEstabelecimentoRoutes);
 app.use('/api/services', serviceRouter);
-app.use('/api/service-requests', requestDeliverRoutes);
+app.use('/api/service-requests', requestServiceRoutes);
 app.use('/api/providers', providerRouter);
 
 app.use('/api/provinces', provinceRoutes);
@@ -146,7 +156,7 @@ app.use('/api/provider-subcategories', providerSubcategoryRoutes);
 app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/request-deliver', requestDeliverRoutes);
+app.use('/api/request-service', requestServiceRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
 app.use('/api/establishment-types', establishmentTypeRoutes);
@@ -171,6 +181,35 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/roles', roleRouter);
 app.use('/api/routing', routingRoutes);
+app.use('/api/system/app-config', appConfigRouter);
+
+// 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
+app.get('/api/debug/socket-status', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden in production' });
+  const io = req.app.get('io');
+  const users = req.app.get('users') || [];
+  const rooms = io ? [...io.sockets.adapter.rooms.keys()].filter(r => r.startsWith('driver_')) : [];
+  res.json({
+    connectedUsers: users.map(u => ({ _id: u._id, name: u.name, socketId: u.socketId, online: u.online, isDeliveryMan: u.isDeliveryMan })),
+    driverRooms: rooms,
+  });
+});
+
+app.get('/api/debug/emit-test/:driverId', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Forbidden in production' });
+  const io = req.app.get('io');
+  const users = req.app.get('users') || [];
+  const { driverId } = req.params;
+  const { status = 'Disponível' } = req.query;
+  const payload = { status, isApproved: status === 'Disponível', message: 'Teste de socket' };
+  const room = `driver_${driverId}`;
+  io.to(room).emit('driver_status_updated', payload);
+  const driverUser = users.find(u => u._id && u._id.toString() === driverId);
+  if (driverUser?.socketId) {
+    io.to(driverUser.socketId).emit('driver_status_updated', payload);
+  }
+  res.json({ sent: true, room, driverSocketId: driverUser?.socketId || null, payload });
+});
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.log(err);
@@ -183,7 +222,7 @@ const users = [];
 
 const io = new Server(httpServer, { cors: { origin: '*' } });
 app.set('io', io);
-
+app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
 
 io.on('connection', (socket) => {
@@ -192,6 +231,14 @@ io.on('connection', (socket) => {
     if (user) {
       user.online = false;
       console.log('Offline', user.name);
+      // PREVENT MEMORY LEAK: Remove user from global array after 5 mins if not reconnected
+      setTimeout(() => {
+        const checkUser = users.find((x) => x.socketId === socket.id);
+        if (checkUser && !checkUser.online) {
+          const index = users.findIndex((x) => x.socketId === socket.id);
+          if (index !== -1) users.splice(index, 1);
+        }
+      }, 300000);
       const admin = users.find((x) => x.isAdmin && x.online);
       if (admin) {
         io.to(admin.socketId).emit('updateUser', user);
@@ -215,12 +262,14 @@ io.on('connection', (socket) => {
     }
     console.log('Online', user.name);
 
-    // 🔔 Motoristas entram automaticamente na sua sala pessoal
-    // Isso permite que o admin envie notificações direcionadas (ex: aprovação de conta)
+    // ?? Motoristas entram automaticamente na sua sala pessoal
+    // Isso permite que o admin envie notifica��es direcionadas (ex: aprova��o de conta)
     if (user._id && user.isDeliveryMan) {
       const driverRoom = `driver_${user._id}`;
       socket.join(driverRoom);
-      console.log(`🚗 Motorista ${user.name} entrou na sala ${driverRoom}`);
+      console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
+    } else {
+      console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
     }
 
     const admin = users.find((x) => x.isAdmin && x.online);
@@ -246,6 +295,55 @@ io.on('connection', (socket) => {
       const roomName = `order_${data.orderId}`;
       socket.leave(roomName);
       console.log(`Socket ${socket.id} left room ${roomName}`);
+    }
+  });
+
+  // Memória cache para evitar sobrecarga na DB
+  const locationUpdateCache = new Map();
+
+  // Alta Performance: Receber localizacao do motorista via WebSocket
+  socket.on('update_location', async (data) => {
+    try {
+      console.log('update_location recebido:', data);
+      const { driverId, orderId, latitude, longitude, heading, speed } = data;
+      if (driverId && latitude && longitude) {
+        const now = Date.now();
+        const lastUpdate = locationUpdateCache.get(driverId) || 0;
+        
+        // Debounce: Apenas escreve na Base de Dados a cada 15 segundos
+        if (now - lastUpdate > 15000) {
+          await User.updateOne(
+            { _id: driverId },
+            {
+              latitude: latitude.toString(),
+              longitude: longitude.toString(),
+              locationGeo: {
+                type: 'Point',
+                coordinates: [longitude, latitude],
+              },
+              heading: heading || 0,
+              speed: speed || 0,
+            }
+          );
+          locationUpdateCache.set(driverId, now);
+        }
+
+        // Limpeza de cache a cada 24 horas omitida para simplicidade (GC gere maps estáticos razoavelmente se limitados a drivers ativos)
+
+        // Enviar a localização via WebSockets imediatamente (sem debounce para o UI ser fluído)
+        if (orderId) {
+          const roomName = `order_${orderId}`;
+          io.to(roomName).emit('driver_location_update', {
+            driverId,
+            latitude,
+            longitude,
+            heading,
+            speed,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Erro no update_location socket:', err.message);
     }
   });
 });
@@ -287,10 +385,10 @@ io.on('connection', (socket) => {
 //             receiverNumber: process.env.MPESA_SERVICE_PROVIDER_CODE,
 //           });
 
-//           console.log(`✅ Pagamento realizado para o pedido ${orderToProcess.code}`);
+//           console.log(`? Pagamento realizado para o pedido ${orderToProcess.code}`);
 //         }
 //       } catch (err) {
-//         console.error(`❌ Erro no pagamento do pedido ${order.code}: ${err.message}`);
+//         console.error(`? Erro no pagamento do pedido ${order.code}: ${err.message}`);
 //         await Order.findByIdAndUpdate(order._id, { $set: { isSupplierPaid: false } });
 //       }
 //     }));
@@ -298,7 +396,7 @@ io.on('connection', (socket) => {
 //     console.error('Erro ao verificar pedidos pagos pelo comprador!', err?.message);
 //   } finally {
 //     const duration = Date.now() - start;
-//     console.log(`✅ Fim da execução do cron. Duração: ${duration}ms`);
+//     console.log(`? Fim da execu��o do cron. Dura��o: ${duration}ms`);
 //   }
 // });
 
@@ -364,11 +462,22 @@ function randomString(codeLength){
     const randomString = randomArray.join("");
     return randomString;
 }
-const port = process.env.PORT || 5002;
+const port = process.env.PORT || 5000;
 console.log('Port configuration: process.env.PORT =', process.env.PORT);
-httpServer.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  httpServer.listen(port, () => {
+    console.log(`Servidor rodando em http://localhost:${port}`);
+    
+    // Processar pedidos em fallback
+    setInterval(async () => {
+
+    }, 5000); // Executa a cada 5 segundos
+  });
+}
 
 // Export the Express app for integration testing when in test mode
 export default app;
+
+// trigger restart
+
+// clean restart

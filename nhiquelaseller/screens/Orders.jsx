@@ -1,50 +1,40 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { COLORS, SIZES, RADIUS, SHADOWS, getStatusColor, getStatusBg } from '../constants/theme';
 
 const Orders = () => {
   const [userData, setUserData] = useState(null);
   const [ordersHistory, setOrdersHistory] = useState([]);
-
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState(null);
   const navigation = useNavigation();
+  const [userLogin, setUserLogin] = useState(false);
 
-  const [userLogin, setUserLogin] = useState(false)
-
-  useEffect(() => {
-    checkIfUserExist();
-  }, []);
+  useEffect(() => { checkIfUserExist(); }, []);
 
   useEffect(() => {
-    if (userData) {
-      fetchData();
-    }
+    if (userData) fetchData();
   }, [userData]);
 
   useFocusEffect(
     useCallback(() => {
-      if (userData) {
-        fetchData();
-      }
+      if (userData) fetchData();
     }, [userData])
   );
 
-  const getStatusColor = (status) => {
+  const getStatusIcon = (status) => {
     switch (status) {
-      case 'Pendente':
-        return '#FFD700';
-      case 'Em trânsito':
-        return '#1E90FF';
-      case 'Entregue':
-        return '#32CD32';
-      case 'Cancelado':
-        return '#FF4500';
-      default:
-        return '#7F00FF';
+      case 'Pendente': return 'time-outline';
+      case 'Aceite': return 'checkmark-circle-outline';
+      case 'Em trânsito': return 'car-outline';
+      case 'Entregue': return 'checkmark-done-outline';
+      case 'Cancelado': return 'close-circle-outline';
+      default: return 'cart-outline';
     }
   };
 
@@ -54,7 +44,6 @@ const Orders = () => {
       const response = await api.get(`orders/sellerview?seller=${userData._id}`, {
         headers: { authorization: `Bearer ${userData?.token}` },
       });
-
       if (response?.status === 200) {
         setOrdersHistory(response?.data?.orders);
       }
@@ -69,66 +58,55 @@ const Orders = () => {
     try {
       const storedUserData = await AsyncStorage.getItem('userData');
       const storedUserId = await AsyncStorage.getItem('id');
-
       if (storedUserData && storedUserId) {
         const parsedUserData = JSON.parse(storedUserData);
-
         if (parsedUserData._id === storedUserId) {
           setUserData(parsedUserData);
           setUserLogin(true);
         } else {
-          setIsLoading(false); // ✅ Para o loading se inconsistente
+          setIsLoading(false);
           navigation.navigate('Login');
-
         }
       } else {
-        setIsLoading(false); // ✅ Para o loading se não logado
+        setIsLoading(false);
         navigation.navigate('Login');
-
       }
     } catch (error) {
-      setIsLoading(false); // ✅ Garante parada mesmo em erro
+      setIsLoading(false);
       navigation.navigate('Login');
-
     }
   };
-
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   const onRefresh = useCallback(async () => {
-    if (userData) {
-      await fetchData();
-    }
-  }, [userData, fetchData]);
+    if (userData) await fetchData();
+  }, [userData]);
+
+  const availableStatuses = [...new Set(ordersHistory.map(o => o.status))];
+  const filtered = selectedStatus ? ordersHistory.filter(o => o.status === selectedStatus) : ordersHistory;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#333" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          Histórico de Pedidos
-        </Text>
-        <View style={{ width: 28 }}></View>
+        <Text style={styles.headerTitle}>Histórico de Pedidos</Text>
+        <View style={{ width: 38 }} />
       </View>
 
-      {/* Loading Indicator */}
       {isLoading ? (
-        <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>A carregar pedidos...</Text>
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -136,141 +114,216 @@ const Orders = () => {
             <RefreshControl
               refreshing={false}
               onRefresh={onRefresh}
-              colors={['#7F00FF']}
-              tintColor="#7F00FF"
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
             />
           }
         >
-          {ordersHistory?.length > 0 ? ordersHistory?.map((order) => (
+          {/* Filtros de Status */}
+          {availableStatuses.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+              <TouchableOpacity
+                style={[styles.chip, !selectedStatus && styles.chipActive]}
+                onPress={() => setSelectedStatus(null)}
+              >
+                <Text style={[styles.chipText, !selectedStatus && styles.chipTextActive]}>
+                  Todos ({ordersHistory.length})
+                </Text>
+              </TouchableOpacity>
+              {availableStatuses.map(s => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.chip, selectedStatus === s && { backgroundColor: getStatusBg(s), borderColor: getStatusColor(s) }]}
+                  onPress={() => setSelectedStatus(selectedStatus === s ? null : s)}
+                >
+                  <View style={[styles.dot, { backgroundColor: getStatusColor(s) }]} />
+                  <Text style={[styles.chipText, selectedStatus === s && { color: getStatusColor(s), fontWeight: '700' }]}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Cards */}
+          {filtered.length > 0 ? filtered.map((order) => (
             <TouchableOpacity
               key={order._id}
               style={styles.card}
               onPress={() => navigation.navigate('OrderDetail', { order })}
+              activeOpacity={0.85}
             >
-              {/* Barra colorida mostrando o status */}
               <View style={[styles.statusBar, { backgroundColor: getStatusColor(order?.status) }]} />
-
-              {/* Ícone do pedido */}
-              <View style={styles.iconWrapper}>
-                <Ionicons name="cart-outline" style={styles.cartIcon} />
+              <View style={[styles.iconBox, { backgroundColor: getStatusBg(order?.status) }]}>
+                <Ionicons name={getStatusIcon(order?.status)} size={22} color={getStatusColor(order?.status)} />
               </View>
-
-              {/* Detalhes do pedido */}
-              <View style={styles.content}>
-                <Text style={styles.code}>
-                  Pedidos #{order?.code}
-                </Text>
-                <Text style={styles.createAt}>
-                  {formatDate(order?.createdAt)}
-                </Text>
-                <Text style={styles.price}>
-                  {order?.totalPrice} MT
-                </Text>
-                <Text style={styles.status}>
-                  {order?.status}
-                </Text>
+              <View style={styles.cardContent}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.code}>#{order?.code}</Text>
+                  <Text style={styles.price}>{order?.totalPrice} MT</Text>
+                </View>
+                <Text style={styles.date}>{formatDate(order?.createdAt)}</Text>
+                <View style={[styles.statusPill, { backgroundColor: getStatusBg(order?.status), borderColor: getStatusColor(order?.status) }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(order?.status) }]}>{order?.status}</Text>
+                </View>
               </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
-          )) : <Text style={styles.empty}>
-            Nenhum pedido encontrado.
-          </Text>}
+          )) : (
+            <View style={styles.empty}>
+              <Ionicons name="cart-outline" size={60} color={COLORS.textMuted} />
+              <Text style={styles.emptyText}>Nenhum pedido encontrado.</Text>
+            </View>
+          )}
           <View style={{ paddingBottom: 100 }} />
         </ScrollView>
       )}
-
     </SafeAreaView>
-  )
-}
+  );
+};
 
 export default Orders;
 
 const styles = StyleSheet.create({
-  safe: {
+  container: {
     flex: 1,
-    backgroundColor: '#F2F4F8',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
+    paddingVertical: 14,
+    backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: COLORS.border,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: COLORS.textSecondary,
+    marginTop: 12,
+    fontSize: SIZES.sm,
   },
   scroll: {
     padding: 16,
   },
+  filterRow: {
+    marginBottom: 16,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 6,
+  },
+  chipActive: {
+    backgroundColor: COLORS.primaryGlow,
+    borderColor: COLORS.primary,
+  },
+  chipText: {
+    color: COLORS.textSecondary,
+    fontSize: SIZES.sm,
+    fontWeight: '500',
+  },
+  chipTextActive: {
+    color: COLORS.primaryLight,
+    fontWeight: '700',
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.md,
+    marginBottom: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
   statusBar: {
-    width: 6,
-    height: '100%',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    marginRight: 16,
+    width: 5,
+    alignSelf: 'stretch',
   },
-  iconWrapper: {
-    backgroundColor: '#edf2ff',
-    padding: 12,
-    borderRadius: 50,
-    marginRight: 16,
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 12,
   },
-  cartIcon: {
-    fontSize: 24,
-    color: '#7F00FF',
-  },
-  content: {
+  cardContent: {
     flex: 1,
+    paddingVertical: 12,
+    paddingRight: 12,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   code: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  createAt: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 4,
+    fontSize: SIZES.base,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   price: {
-    fontSize: 15,
-    color: '#7F00FF',
-    fontWeight: '500',
-    marginBottom: 4,
+    fontSize: SIZES.base,
+    color: COLORS.primaryLight,
+    fontWeight: '700',
   },
-  status: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-    textTransform: 'capitalize',
+  date: {
+    fontSize: SIZES.xs,
+    color: COLORS.textMuted,
+    marginBottom: 6,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   empty: {
-    textAlign: 'center',
-    color: '#555',
-    marginTop: 20,
-    fontSize: 16,
-  }
-}); 
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: COLORS.textSecondary,
+    marginTop: 16,
+    fontSize: SIZES.base,
+    fontWeight: '500',
+  },
+});

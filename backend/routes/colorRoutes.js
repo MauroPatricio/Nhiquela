@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
@@ -48,7 +48,7 @@ colorRoutes.get(
     if (color) {
       res.send(color);
     } else {
-      res.status(404).send({ message: 'Cor não encontrada' });
+      res.status(404).send({ message: 'Cor n�o encontrada' });
     }
   })
 );
@@ -76,7 +76,7 @@ colorRoutes.put(
       await color.save();
       res.send({ message: `Cor actualizada com sucesso` });
     } else {
-      res.status(404).send({ message: 'Cor não encontrada' });
+      res.status(404).send({ message: 'Cor n�o encontrada' });
     }
   })
 );
@@ -98,7 +98,7 @@ colorRoutes.delete(
 
       res.send({ message: `Cor Removida Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Cor não encontrada' });
+      res.status(404).send({ message: 'Cor n�o encontrada' });
     }
   })
 );

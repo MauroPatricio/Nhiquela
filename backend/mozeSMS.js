@@ -1,30 +1,30 @@
 // Para bulk SMS
 const axios = require('axios');
 
-// Defina os nÃºmeros de telefone e as mensagens que deseja enviar
-const tell1 = 'NUMERO1'; // Substitua "NUMERO1" pelo nÃºmero de telefone 1
-const tell2 = 'NUMERO2'; // Substitua "NUMERO2" pelo nÃºmero de telefone 2
-const tell3 = 'NUMERO3'; // Substitua "NUMERO3" pelo nÃºmero de telefone 3
+// Defina os números de telefone e as mensagens que deseja enviar
+const tell1 = 'NUMERO1'; // Substitua "NUMERO1" pelo número de telefone 1
+const tell2 = 'NUMERO2'; // Substitua "NUMERO2" pelo número de telefone 2
+const tell3 = 'NUMERO3'; // Substitua "NUMERO3" pelo número de telefone 3
 
 const messages = [
   {
     number: tell1,
-    text: 'Esta Ã© a sua mensagem'
+    text: 'Esta é a sua mensagem'
   },
   {
     number: tell2,
-    text: 'Esta Ã© outra mensagem'
+    text: 'Esta é outra mensagem'
   },
   {
     number: tell3,
-    text: 'Esta Ã© outra mensagem'
+    text: 'Esta é outra mensagem'
   }
 ];
 
 const apiUrl = 'http://api.mozesms.com/bulk_json/v2/';
-const bearerToken = 'Bearer Seu token'; // Substitua pelo seu token de autorizaÃ§Ã£o
+const bearerToken = 'Bearer Seu token'; // Substitua pelo seu token de autorização
 
-// Envia a solicitaÃ§Ã£o HTTP POST usando axios
+// Envia a solicitação HTTP POST usando axios
 axios.post(apiUrl, { messages }, { headers: { Authorization: bearerToken } })
   .then(response => {
     console.log('Resposta da API:', response.data);

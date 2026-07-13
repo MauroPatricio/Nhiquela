@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Settings from '../models/SettingsModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -20,7 +20,7 @@ settingsRouter.post(
   expressAsyncHandler(async (req, res) => {
     const exist = await Settings.findOne({ key: req.body.key });
     if (exist) {
-      return res.status(400).send({ message: 'A chave de configuração já existe' });
+      return res.status(400).send({ message: 'A chave de configura��o j� existe' });
     }
     const newSetting = new Settings({
       key: req.body.key,
@@ -29,7 +29,7 @@ settingsRouter.post(
       type: req.body.type || 'string'
     });
     const createdSetting = await newSetting.save();
-    res.status(201).send({ message: 'Definição criada', setting: createdSetting });
+    res.status(201).send({ message: 'Defini��o criada', setting: createdSetting });
   })
 );
 
@@ -43,9 +43,9 @@ settingsRouter.put(
       setting.value = req.body.value !== undefined ? req.body.value : setting.value;
       setting.description = req.body.description || setting.description;
       const updatedSetting = await setting.save();
-      res.send({ message: 'Definição atualizada', setting: updatedSetting });
+      res.send({ message: 'Defini��o atualizada', setting: updatedSetting });
     } else {
-      res.status(404).send({ message: 'Definição não encontrada' });
+      res.status(404).send({ message: 'Defini��o n�o encontrada' });
     }
   })
 );
@@ -58,9 +58,9 @@ settingsRouter.delete(
     const setting = await Settings.findById(req.params.id);
     if (setting) {
       await setting.deleteOne();
-      res.send({ message: 'Definição apagada' });
+      res.send({ message: 'Defini��o apagada' });
     } else {
-      res.status(404).send({ message: 'Definição não encontrada' });
+      res.status(404).send({ message: 'Defini��o n�o encontrada' });
     }
   })
 );

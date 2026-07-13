@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import ConditionStatus from '../models/ConditionStatusModel.js';
@@ -48,7 +48,7 @@ conditionStatusRouter.get(
     if (conditionStatus) {
       res.send(conditionStatus);
     } else {
-      res.status(404).send({ message: 'Estado do produto não encontrado' });
+      res.status(404).send({ message: 'Estado do produto n�o encontrado' });
     }
   })
 );
@@ -76,7 +76,7 @@ conditionStatusRouter.put(
       await conditionStatus.save();
       res.send({ message: `Estado do produto actualizado com sucesso` });
     } else {
-      res.status(404).send({ message: 'Estado do produto não encontrado' });
+      res.status(404).send({ message: 'Estado do produto n�o encontrado' });
     }
   })
 );
@@ -98,7 +98,7 @@ conditionStatusRouter.delete(
 
       res.send({ message: `Estado do produto Removido Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Estado do produto não encontrado' });
+      res.status(404).send({ message: 'Estado do produto n�o encontrado' });
     }
   })
 );

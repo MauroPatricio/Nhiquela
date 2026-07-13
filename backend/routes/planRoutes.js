@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Plan from '../models/PlanModel.js';
 import Subscription from '../models/SubscriptionModel.js';
@@ -50,12 +50,12 @@ planRouter.put(
       const updatedPlan = await plan.save();
       res.send({ message: 'Plano atualizado', plan: updatedPlan });
     } else {
-      res.status(404).send({ message: 'Plano não encontrado' });
+      res.status(404).send({ message: 'Plano n�o encontrado' });
     }
   })
 );
 
-// -- Subscrições --
+// -- Subscri��es --
 planRouter.get(
   '/subscriptions',
   isAuth,
@@ -77,7 +77,7 @@ planRouter.post(
       paymentReference: req.body.paymentReference || ''
     });
     const createdSub = await newSub.save();
-    res.status(201).send({ message: 'Subscrição solicitada', subscription: createdSub });
+    res.status(201).send({ message: 'Subscri��o solicitada', subscription: createdSub });
   })
 );
 
@@ -91,9 +91,9 @@ planRouter.put(
       sub.status = req.body.status || sub.status;
       if (req.body.endDate) sub.endDate = req.body.endDate;
       const updatedSub = await sub.save();
-      res.send({ message: 'Subscrição atualizada', subscription: updatedSub });
+      res.send({ message: 'Subscri��o atualizada', subscription: updatedSub });
     } else {
-      res.status(404).send({ message: 'Subscrição não encontrada' });
+      res.status(404).send({ message: 'Subscri��o n�o encontrada' });
     }
   })
 );

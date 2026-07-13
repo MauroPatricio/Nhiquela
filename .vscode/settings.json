@@ -1,3 +1,14 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+    "typescript.disableAutomaticTypeAcquisition": false,
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true
+    },
+    "files.watcherExclude": {
+        "**/node_modules/**": true
+    },
+    "typescript.validate.enable": true,
+    "js/ts.implicitProjectConfig.checkJs": false
 }

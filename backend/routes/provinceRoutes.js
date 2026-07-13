@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Province from '../models/ProvinceModel.js';
@@ -37,7 +37,7 @@ provinceRoutes.post(
     const province = await newProvince.save();
     res
       .status(201)
-      .send({ message: 'Província criada com sucesso', province });
+      .send({ message: 'Prov�ncia criada com sucesso', province });
   })
 );
 
@@ -50,7 +50,7 @@ provinceRoutes.get(
     if (province) {
       res.send(province);
     } else {
-      res.status(404).send({ message: 'Província não encontrada' });
+      res.status(404).send({ message: 'Prov�ncia n�o encontrada' });
     }
   })
 );
@@ -69,9 +69,9 @@ provinceRoutes.put(
       if (req.body.isActive !== undefined) province.isActive = req.body.isActive;
 
       await province.save();
-      res.send({ message: `Província actualizada com sucesso` });
+      res.send({ message: `Prov�ncia actualizada com sucesso` });
     } else {
-      res.status(404).send({ message: 'Província não encontrada' });
+      res.status(404).send({ message: 'Prov�ncia n�o encontrada' });
     }
   })
 );
@@ -87,9 +87,9 @@ provinceRoutes.delete(
       province.isActive = false;
       await province.save();
 
-      res.send({ message: `Província removida Com Sucesso` });
+      res.send({ message: `Prov�ncia removida Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Província não encontrada' });
+      res.status(404).send({ message: 'Prov�ncia n�o encontrada' });
     }
   })
 );

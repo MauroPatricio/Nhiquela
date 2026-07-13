@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import DocumentType from '../models/DocumentTypeModel.js';
@@ -49,7 +49,7 @@ documentTypeRoutes.get(
     if (documenType) {
       res.send(documenType);
     } else {
-      res.status(404).send({ message: 'Tipo de documento não encontrado' });
+      res.status(404).send({ message: 'Tipo de documento n�o encontrado' });
     }
   })
 );
@@ -68,7 +68,7 @@ documentTypeRoutes.put(
       await documenType.save();
       res.send({ message: `Tipo de documento actualizado com sucesso` });
     } else {
-      res.status(404).send({ message: 'Tipo de documento não encontrado' });
+      res.status(404).send({ message: 'Tipo de documento n�o encontrado' });
     }
   })
 );
@@ -86,7 +86,7 @@ documentTypeRoutes.delete(
 
       res.send({ message: `Tipo de documento Removido Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Tipo de documento não encontrado' });
+      res.status(404).send({ message: 'Tipo de documento n�o encontrado' });
     }
   })
 );

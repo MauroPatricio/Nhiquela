@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import mpesa from 'mpesa-node-api';
 
@@ -50,7 +50,7 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
   const { customerNumber, amount } = req.body;
 
   if (!customerNumber || typeof amount !== 'number' || amount <= 0) {
-    return res.status(400).send({ message: 'Número ou valor inválido.' });
+    return res.status(400).send({ message: 'N�mero ou valor inv�lido.' });
   }
 
   const referenceCode = randomString(5);
@@ -73,7 +73,10 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
       transactionId: mpesaRes.output_TransactionID,
       conversationId: mpesaRes.output_ConversationID,
       reference: mpesaRes.output_ThirdPartyReference,
-      paid: mpesaRes.output_ResponseCode === 'INS-0',
+      // INS-0 apenas significa que o pedido foi enviado para o telefone do cliente.
+      // A confirma��o real ser� feita via Webhook.
+      paid: false, 
+      status: mpesaRes.output_ResponseCode === 'INS-0' ? 'Pendente' : 'Falha'
     };
 
     const savedPayment = await salvarPagamento({
@@ -88,9 +91,10 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
       receiverNumber: config.MPESA_SERVICE_PROVIDER_CODE,
     });
 
-    
-
-    return res.status(result.paid ? 200 : 202).send(savedPayment);
+    return res.status(result.status === 'Pendente' ? 200 : 400).send({
+      ...savedPayment._doc,
+      message: result.status === 'Pendente' ? 'Verifique o seu telem�vel para colocar o PIN.' : 'Falha ao iniciar pagamento.'
+    });
 
   } catch (err) {
     console.error('Erro no pagamento MPESA:', err?.message || err);
@@ -125,7 +129,47 @@ paymentRouter.post('/mpesa/c2b', expressAsyncHandler(async (req, res) => {
   }
 }));
 
+// Webhook para confirma��o ass�ncrona do M-Pesa
+paymentRouter.post('/mpesa/webhook', expressAsyncHandler(async (req, res) => {
+  console.log('?? Webhook M-Pesa Recebido:', req.body);
+  
+  // O M-Pesa envia o estado da transa��o no body. Exemplo de estrutura comum:
+  // { ThirdPartyReference, TransactionID, ResponseCode, ResponseDesc, ... }
+  const { ThirdPartyReference, TransactionID, ResponseCode } = req.body;
 
+  if (!ThirdPartyReference) {
+    return res.status(400).send({ message: 'ThirdPartyReference n�o encontrado.' });
+  }
+
+  // Verificar na base de dados o pagamento com a refer�ncia
+  const payment = await Payment.findOne({ reference: ThirdPartyReference });
+  
+  if (!payment) {
+    console.error('? Pagamento n�o encontrado para a refer�ncia:', ThirdPartyReference);
+    return res.status(404).send({ message: 'Pagamento n�o encontrado.' });
+  }
+
+  // Verifica se o pagamento foi conclu�do com sucesso
+  // O c�digo 'INS-0' na confirma��o significa sucesso na transfer�ncia.
+  if (ResponseCode === 'INS-0' || ResponseCode === '0') {
+    payment.paid = true;
+    payment.status = 'Sucesso';
+    payment.transaction = TransactionID || payment.transaction;
+    await payment.save();
+    
+    // Atualizar Order ou Wallet consoante o sistema
+    // ... Aqui poder� colocar a l�gica de recarga de saldo do utilizador (wallet) ...
+    console.log(`? Pagamento M-Pesa ${ThirdPartyReference} confirmado com sucesso!`);
+  } else {
+    payment.paid = false;
+    payment.status = 'Falha';
+    await payment.save();
+    console.log(`? Pagamento M-Pesa ${ThirdPartyReference} falhou ou foi cancelado.`);
+  }
+
+  // O M-Pesa espera um 200 OK para saber que o webhook foi processado.
+  return res.status(200).send({ message: 'Webhook recebido com sucesso.' });
+}));
 
 async function salvarPagamento(data) {
   const pagamento = new Payment(data);

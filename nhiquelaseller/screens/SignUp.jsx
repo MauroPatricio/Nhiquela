@@ -1,24 +1,12 @@
 import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  ActivityIndicator,
-  Animated,
-  StatusBar
+  View, Text, TextInput, ScrollView, StyleSheet, Image,
+  TouchableOpacity, TouchableWithoutFeedback, KeyboardAvoidingView,
+  Platform, Keyboard, ActivityIndicator, Animated, StatusBar
 } from 'react-native';
 import api from '../hooks/createConnectionApi';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import BackBtn from '../components/BackBtn';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -26,6 +14,7 @@ import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
 import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
 
 export default function SignUp() {
   const navigation = useNavigation();
@@ -256,11 +245,7 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const payload = {
-        ...form,
-        isSeller: true,
-      };
-
+      const payload = { ...form, isSeller: true };
       await api.post('/users/signup', payload);
 
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -296,12 +281,13 @@ export default function SignUp() {
     return (
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>{label}</Text>
-        <View style={[styles.inputWrapper, hasError && { borderColor: '#FF0000' }]}>
-          <Ionicons name={icon} size={20} color="#6B7280" style={styles.inputIcon} />
+        <View style={[styles.inputWrapper, hasError && { borderColor: COLORS.error }]}>
+          <Ionicons name={icon} size={20} color={COLORS.textMuted} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             value={value}
             onChangeText={(v) => handleChange(field, v, isSeller)}
+            placeholderTextColor={COLORS.textMuted}
             {...props}
           />
         </View>
@@ -312,22 +298,20 @@ export default function SignUp() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          {/* Cabeçalho de Navegação */}
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          
+          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <Ionicons name="arrow-back" size={24} color="#111827" />
+              <Ionicons name="arrow-back" size={20} color={COLORS.text} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Novo Parceiro</Text>
-            <View style={{ width: 24 }} />
+            <View style={{ width: 38 }} />
           </View>
 
-          {/* Indicador de Passos */}
+          {/* Stepper */}
           <View style={styles.stepperContainer}>
             <View style={styles.stepIndicator}>
               <View style={[styles.stepDot, step >= 0 && styles.stepDotActive]} />
@@ -335,14 +319,11 @@ export default function SignUp() {
               <View style={[styles.stepDot, step >= 1 && styles.stepDotActive]} />
             </View>
             <Text style={styles.stepTitle}>
-              {step === 0 ? "Passo 1: Dados do Representante" : "Passo 2: O Estabelecimento"}
+              {step === 0 ? "1. Dados do Representante" : "2. O Estabelecimento"}
             </Text>
           </View>
 
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
               
               {/* PASSO 1: DADOS PESSOAIS */}
@@ -355,17 +336,18 @@ export default function SignUp() {
                   {/* Password */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Senha (mín. 6) *</Text>
-                    <View style={[styles.inputWrapper, errors.password && { borderColor: '#FF0000' }]}>
-                      <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
+                    <View style={[styles.inputWrapper, errors.password && { borderColor: COLORS.error }]}>
+                      <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={styles.input}
                         value={form.password}
                         onChangeText={(v) => handleChange('password', v, false)}
                         placeholder="******"
+                        placeholderTextColor={COLORS.textMuted}
                         secureTextEntry={!showPassword}
                       />
                       <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-                        <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#6B7280" />
+                        <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={COLORS.textMuted} />
                       </TouchableOpacity>
                     </View>
                     {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -374,17 +356,18 @@ export default function SignUp() {
                   {/* Confirm Password */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Confirmar Senha *</Text>
-                    <View style={[styles.inputWrapper, errors.confirmPassword && { borderColor: '#FF0000' }]}>
-                      <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
+                    <View style={[styles.inputWrapper, errors.confirmPassword && { borderColor: COLORS.error }]}>
+                      <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={styles.input}
                         value={form.confirmPassword}
                         onChangeText={(v) => handleChange('confirmPassword', v, false)}
                         placeholder="******"
+                        placeholderTextColor={COLORS.textMuted}
                         secureTextEntry={!showConfirmPassword}
                       />
                       <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeButton}>
-                        <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color="#6B7280" />
+                        <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color={COLORS.textMuted} />
                       </TouchableOpacity>
                     </View>
                     {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
@@ -400,17 +383,17 @@ export default function SignUp() {
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Logótipo do Estabelecimento *</Text>
                     <TouchableOpacity 
-                      style={[styles.uploadBox, errors.logo && { borderColor: '#FF0000' }]} 
+                      style={[styles.uploadBox, errors.logo && { borderColor: COLORS.error }]} 
                       onPress={handleImagePicker}
                       disabled={imageUploading}
                     >
                       {imageUploading ? (
-                        <ActivityIndicator color="#7F00FF" />
+                        <ActivityIndicator color={COLORS.primaryLight} />
                       ) : form.seller.logo ? (
                         <Image source={{ uri: form.seller.logo }} style={styles.previewImage} />
                       ) : (
                         <>
-                          <MaterialCommunityIcons name="storefront-outline" size={32} color="#9CA3AF" />
+                          <MaterialCommunityIcons name="storefront-outline" size={32} color={COLORS.textMuted} />
                           <Text style={styles.uploadText}>Toque para adicionar logótipo</Text>
                         </>
                       )}
@@ -421,15 +404,16 @@ export default function SignUp() {
                   {/* Tipo de Estabelecimento */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Categoria Principal *</Text>
-                    <View style={[styles.pickerContainer, errors.tipoEstabelecimento && { borderColor: '#FF0000' }]}>
+                    <View style={[styles.pickerContainer, errors.tipoEstabelecimento && { borderColor: COLORS.error }]}>
                       <Picker 
                         selectedValue={form.seller.tipoEstabelecimento} 
                         onValueChange={(v) => handleChange('tipoEstabelecimento', v, true)}
                         style={styles.picker}
+                        dropdownIconColor={COLORS.text}
                       >
-                        <Picker.Item label="Selecione a categoria" value="" color="#9CA3AF" />
+                        <Picker.Item label="Selecione a categoria" value="" color={COLORS.textMuted} />
                         {tiposEstabelecimentos.map((tipo) => (
-                          <Picker.Item key={tipo._id} label={tipo.name} value={tipo._id} />
+                          <Picker.Item key={tipo._id} label={tipo.name} value={tipo._id} color="#000" />
                         ))}
                       </Picker>
                     </View>
@@ -442,15 +426,16 @@ export default function SignUp() {
                   {/* Província */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Localização *</Text>
-                    <View style={[styles.pickerContainer, errors.province && { borderColor: '#FF0000' }]}>
+                    <View style={[styles.pickerContainer, errors.province && { borderColor: COLORS.error }]}>
                       <Picker 
                         selectedValue={form.seller.province} 
                         onValueChange={(v) => handleChange('province', v, true)}
                         style={styles.picker}
+                        dropdownIconColor={COLORS.text}
                       >
-                        <Picker.Item label="Selecione a província" value="" color="#9CA3AF" />
+                        <Picker.Item label="Selecione a província" value="" color={COLORS.textMuted} />
                         {provinces.map((prov) => (
-                          <Picker.Item key={prov._id} label={prov.name} value={prov._id} />
+                          <Picker.Item key={prov._id} label={prov.name} value={prov._id} color="#000" />
                         ))}
                       </Picker>
                     </View>
@@ -458,7 +443,6 @@ export default function SignUp() {
                   </View>
 
                   {renderInput("Morada (Rua/Avenida) *", "address", "location-outline", true, { placeholder: "Av. principal..." })}
-
 
                   {renderInput("Telefone de Pagamentos (M-PESA) *", "phoneNumberAccount", "cash-outline", true, { placeholder: "84 ou 85...", keyboardType: "numeric", maxLength: 9 })}
                   {renderInput("Telefone de Pagamentos (E-MOLA) *", "alternativePhoneNumberAccount", "wallet-outline", true, { placeholder: "86 ou 87...", keyboardType: "numeric", maxLength: 9 })}
@@ -472,10 +456,10 @@ export default function SignUp() {
                       disabled={locationLoading}
                     >
                       {locationLoading ? (
-                        <ActivityIndicator color="#7F00FF" />
+                        <ActivityIndicator color={COLORS.primaryLight} />
                       ) : (
                         <>
-                          <Ionicons name="location-outline" size={20} color="#7F00FF" />
+                          <Ionicons name="location-outline" size={20} color={COLORS.primaryLight} />
                           <Text style={styles.secondaryButtonText}>Atualizar Localização</Text>
                         </>
                       )}
@@ -483,10 +467,9 @@ export default function SignUp() {
                     {form.seller.latitude ? (
                       <Text style={styles.locationText}>Lat: {form.seller.latitude.toFixed(6)} | Lng: {form.seller.longitude.toFixed(6)}</Text>
                     ) : (
-                      <Text style={[styles.locationText, { color: 'red' }]}>Aguardando localização...</Text>
+                      <Text style={[styles.locationText, { color: COLORS.error }]}>Aguardando localização...</Text>
                     )}
                   </View>
-
                 </View>
               )}
             </Animated.View>
@@ -498,6 +481,7 @@ export default function SignUp() {
               style={[styles.primaryButton, loading && styles.disabledButton]} 
               onPress={step === 1 ? handleSubmit : handleNext}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#FFF" />
@@ -517,42 +501,63 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FFF" },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 15 },
-  backButton: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
-  stepperContainer: { paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  header: { 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: COLORS.surface,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border 
+  },
+  backButton: { 
+    width: 38, height: 38, borderRadius: RADIUS.sm, backgroundColor: COLORS.surface2, 
+    alignItems: 'center', justifyContent: 'center' 
+  },
+  headerTitle: { fontSize: SIZES.lg, fontWeight: '700', color: COLORS.text },
+  stepperContainer: { paddingHorizontal: 20, paddingVertical: 16, backgroundColor: COLORS.surfaceCard, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E5E7EB' },
-  stepDotActive: { backgroundColor: '#7F00FF' },
-  stepLine: { width: 60, height: 2, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
-  stepLineActive: { backgroundColor: '#7F00FF' },
-  stepTitle: { textAlign: 'center', fontSize: 16, fontWeight: '600', color: '#374151' },
+  stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border },
+  stepDotActive: { backgroundColor: COLORS.primaryLight, borderColor: COLORS.primaryLight },
+  stepLine: { width: 60, height: 2, backgroundColor: COLORS.surface2, marginHorizontal: 4 },
+  stepLineActive: { backgroundColor: COLORS.primaryLight },
+  stepTitle: { textAlign: 'center', fontSize: SIZES.sm, fontWeight: '700', color: COLORS.text },
   scrollContent: { padding: 20, paddingBottom: 40 },
   stepContent: { flex: 1 },
   
-  inputContainer: { marginBottom: 20 },
-  inputLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, height: 56, paddingHorizontal: 16 },
+  inputContainer: { marginBottom: 16 },
+  inputLabel: { fontSize: SIZES.sm, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8 },
+  inputWrapper: { 
+    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface2, 
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, 
+    height: 56, paddingHorizontal: 16 
+  },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#111827' },
-  errorText: { color: 'red', fontSize: 12, marginTop: 4, marginLeft: 4 },
+  input: { flex: 1, fontSize: SIZES.base, color: COLORS.text, fontWeight: '500' },
+  errorText: { color: COLORS.error, fontSize: SIZES.xs, marginTop: 4, marginLeft: 4, fontWeight: '600' },
   
   eyeButton: { padding: 5 },
 
-  uploadBox: { height: 120, backgroundColor: '#F9FAFB', borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  uploadText: { marginTop: 8, fontSize: 14, color: '#9CA3AF' },
+  uploadBox: { 
+    height: 120, backgroundColor: COLORS.surface2, borderWidth: 1.5, borderColor: COLORS.border, 
+    borderStyle: 'dashed', borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' 
+  },
+  uploadText: { marginTop: 8, fontSize: SIZES.sm, color: COLORS.textMuted },
   previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
 
-  pickerContainer: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, overflow: 'hidden' },
-  picker: { height: 56, color: '#111827' },
+  pickerContainer: { backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, overflow: 'hidden' },
+  picker: { height: 56, color: COLORS.text },
 
-  secondaryButton: { backgroundColor: '#F3E8FF', borderRadius: 12, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  secondaryButtonText: { color: '#7F00FF', fontSize: 15, fontWeight: '600', marginLeft: 8 },
-  locationText: { fontSize: 13, color: '#6B7280', textAlign: 'center' },
+  secondaryButton: { 
+    backgroundColor: COLORS.primaryGlow, borderRadius: RADIUS.sm, height: 52, 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+    borderWidth: 1, borderColor: COLORS.primary + '40'
+  },
+  secondaryButtonText: { color: COLORS.primaryLight, fontSize: SIZES.sm, fontWeight: '700', marginLeft: 8 },
+  locationText: { fontSize: SIZES.xs, color: COLORS.textSecondary, textAlign: 'center' },
 
-  footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#F3F4F6', backgroundColor: '#FFF' },
-  primaryButton: { backgroundColor: '#7F00FF', borderRadius: 16, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#7F00FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-  disabledButton: { opacity: 0.7 },
-  primaryButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
+  footer: { padding: 20, backgroundColor: COLORS.surfaceCard, borderTopWidth: 1, borderTopColor: COLORS.border },
+  primaryButton: { 
+    backgroundColor: COLORS.primary, borderRadius: RADIUS.sm, height: 56, 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...SHADOWS.md 
+  },
+  disabledButton: { opacity: 0.6 },
+  primaryButtonText: { color: '#FFF', fontSize: SIZES.base, fontWeight: '700' }
 });

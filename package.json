@@ -29,9 +29,17 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^29.5.14",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
     "jest": "^30.4.2",
+    "lint-staged": "^15.5.2",
     "supertest": "^7.2.2",
     "ts-jest": "^29.1.0",
-    "@types/jest": "^29.5.14"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.0"
   }
 }

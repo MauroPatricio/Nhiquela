@@ -1,14 +1,6 @@
+import { Image } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  FlatList,
-  ActivityIndicator,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import api from '../../hooks/createConnectionApi';
@@ -161,7 +153,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    contentFit: 'cover',
   },
   closedOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -246,3 +238,4 @@ const styles = StyleSheet.create({
     color: '#7F00FF',
   },
 });
+

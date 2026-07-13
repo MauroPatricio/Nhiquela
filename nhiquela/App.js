@@ -1,5 +1,7 @@
+import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, Text, TouchableOpacity } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,6 +10,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORRETO
 // ❌ REMOVIDO: import Toast from 'react-native-toast-message';
@@ -41,10 +44,11 @@ import SellersList from './components/SellersList';
 import ForgotPassword from './screens/ForgotPassword';
 import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
-import RequestDelivScreen from './screens/RequestDeliv';
+import RequestServiceScreen from './screens/RequestService';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 // --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
@@ -97,6 +101,29 @@ export default function App() {
     };
   }, []);
 
+  const [appConfig, setAppConfig] = React.useState(null);
+  const [configLoading, setConfigLoading] = React.useState(true);
+  const [isFirstLaunch, setIsFirstLaunch] = React.useState(null);
+
+  // Buscar configuracoes globais (Forced Update & Maintenance)
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await api.get('/system/app-config');
+        setAppConfig(response.data);
+        // Guardar as configuracoes globalmente para acesso nos ecrãs (ex: WhatsApp)
+        await AsyncStorage.setItem('appConfig', JSON.stringify(response.data));
+      } catch (err) {
+        console.error('Erro ao buscar app config:', err);
+      } finally {
+        const hasViewed = await AsyncStorage.getItem('@hasViewedOnboarding');
+        setIsFirstLaunch(hasViewed === null);
+        setConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
   // Registar token do dispositivo
   useEffect(() => {
     const registerToken = async () => {
@@ -107,8 +134,28 @@ export default function App() {
           if (userDataString) {
             const userData = JSON.parse(userDataString);
             const userId = userData?._id || userData?.id;
+            const userName = userData?.name || "Client";
 
             if (userId) {
+              // Init ZegoCloud Prebuilt Call Service
+              ZegoUIKitPrebuiltCallService.init(
+                zegoConfig.appID,
+                zegoConfig.appSign,
+                userId,
+                userName,
+                (ZIM && ZPNs) ? [ZIM, ZPNs] : [],
+                {
+                  ringtoneConfig: {
+                    incomingCallFileName: 'zego_incoming.mp3',
+                    outgoingCallFileName: 'zego_outgoing.mp3',
+                  },
+                  androidNotificationConfig: {
+                    channelID: "ZegoUIKit",
+                    channelName: "ZegoUIKit",
+                  },
+                }
+              );
+
               await api.post('/notifications/savedevicetoken', {
                 deviceToken,
                 userId,
@@ -117,7 +164,7 @@ export default function App() {
             }
           }
         } catch (err) {
-          console.error('Erro ao salvar token do dispositivo:', err);
+          console.log('⚠️ Erro no Zego/Push token:', err.message);
         }
       }
     };
@@ -125,48 +172,164 @@ export default function App() {
     registerToken();
   }, []);
 
+  // Logica de bloqueio
+  const currentVersion = Constants.expoConfig?.version || '1.0.0';
+  const isVersionObsolete = (current, min) => {
+    if (!min) return false;
+    const currParts = current.split('.').map(Number);
+    const minParts = min.split('.').map(Number);
+    for (let i = 0; i < Math.max(currParts.length, minParts.length); i++) {
+      const c = currParts[i] || 0;
+      const m = minParts[i] || 0;
+      if (c < m) return true;
+      if (c > m) return false;
+    }
+    return false;
+  };
+
+  const forceUpdate = appConfig && isVersionObsolete(currentVersion, appConfig.minAppVersionClient);
+  const inMaintenance = appConfig && appConfig.isMaintenanceModeClient;
+
+  // Wait for first launch check
+  if (isFirstLaunch === null) return null;
+
+  // Ecrã de bloqueio
+  if (!configLoading && (forceUpdate || inMaintenance)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' }}>
+        <StatusBar style="dark" />
+        <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: forceUpdate ? '#E3F2FD' : '#FFF3E0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+           <Text style={{ fontSize: 40 }}>{forceUpdate ? '🚀' : '🔧'}</Text>
+        </View>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#333' }}>
+          {forceUpdate ? 'Atualização Necessária' : 'Em Manutenção'}
+        </Text>
+        <Text style={{ fontSize: 16, textAlign: 'center', color: '#666', marginBottom: 30, lineHeight: 24 }}>
+          {forceUpdate 
+            ? 'Uma nova versão da Nhiquela está disponível. Por favor, atualize a sua aplicação para continuar a usar os nossos serviços com as últimas novidades e melhorias de segurança.' 
+            : (appConfig?.maintenanceMessage || 'Estamos a realizar melhorias na plataforma. Voltaremos muito em breve!')}
+        </Text>
+        
+        {forceUpdate && (
+          <View style={{ width: '100%', marginTop: 10 }}>
+            {/* Botao de Update (aqui usaria Linking para a App Store/Play Store real) */}
+            <View style={{ backgroundColor: '#7F00FF', padding: 15, borderRadius: 10, alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Atualizar Agora</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+
   return (
-    <ToastProvider>
-      <StatusBar backgroundColor="white" style="dark" />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider
+        placement="top"
+        duration={4000}
+        animationType="slide-in"
+        animationDuration={250}
+        renderToast={(toastOptions) => {
+          const isError = toastOptions.type === 'danger' || toastOptions.type === 'error';
+          const isSuccess = toastOptions.type === 'success';
+          const bgColor = isError ? '#FEF2F2' : isSuccess ? '#F0FDF4' : '#F8FAFC';
+          const borderColor = isError ? '#FECACA' : isSuccess ? '#BBF7D0' : '#E2E8F0';
+          const iconColor = isError ? '#EF4444' : isSuccess ? '#22C55E' : '#3B82F6';
+          const iconName = isError ? 'alert-circle' : isSuccess ? 'checkmark-circle' : 'information-circle';
+          
+          return (
+            <TouchableOpacity 
+              activeOpacity={toastOptions.data?.onPress ? 0.8 : 1}
+              onPress={() => {
+                if (toastOptions.data?.onPress) {
+                  toastOptions.data.onPress();
+                }
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: bgColor,
+                borderWidth: 1,
+                borderColor: borderColor,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 16,
+                marginHorizontal: 20,
+                marginTop: 50,
+                shadowColor: iconColor,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.2,
+                shadowRadius: 10,
+                elevation: 5,
+                width: '90%'
+            }}>
+              <Ionicons name={iconName} size={28} color={iconColor} style={{ marginRight: 12 }} />
+              <Text style={{
+                color: '#1E293B',
+                fontSize: 15,
+                fontWeight: '600',
+                flex: 1,
+                lineHeight: 22,
+              }}>
+                {toastOptions.message}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      >
+        <StatusBar backgroundColor="white" style="dark" />
 
-      <Provider store={store}>
-        <SafeAreaProvider>
+        <Provider store={store}>
+          <SafeAreaProvider>
 
-          <NavigationContainer ref={navigationRef}>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
-              <Stack.Screen name="ProductDetail" component={ProductDetail} />
-              <Stack.Screen name="ProductList" component={NewProducts} />
-              <Stack.Screen name="ProductList2" component={ProductList} />
-              <Stack.Screen name="Login" component={LoginPage} />
-              <Stack.Screen name="SignUp" component={SignUp} />
-              <Stack.Screen name="SellerScreen" component={SellerScreen} />
-              <Stack.Screen name="SellerProduct" component={SellerProduct} />
-              <Stack.Screen name="SellersList" component={SellersList} />
-              <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
-              <Stack.Screen name="Cart" component={Cart} />
-              <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
-              <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
-              <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
-              <Stack.Screen name="FailedPayment" component={FailedPayment} />
-              <Stack.Screen name="MapScreen" component={MapScreen} />
-              <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
-              <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
-              <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
-              <Stack.Screen name="OrderList" component={OrderList} />
-              <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-              <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
-              <Stack.Screen name="RequestDeliv" component={RequestDelivScreen} />
-              <Stack.Screen name="Favorite" component={Favorite} />
-              <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
+            <NavigationContainer 
+                ref={navigationRef}
+                linking={{
+                  prefixes: ['nhiquela://'],
+                  config: {
+                    screens: {
+                      OrderDetailsScreen: 'order/:orderId',
+                      OrderList: 'orders'
+                    }
+                  }
+                }}
+            >
+              <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isFirstLaunch ? 'Onboarding' : 'BottomNavigation'}>
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                <Stack.Screen name="BottomNavigation" component={ButtomTabNavegation} />
+                <Stack.Screen name="ProductDetail" component={ProductDetail} />
+                <Stack.Screen name="ProductList" component={NewProducts} />
+                <Stack.Screen name="ProductList2" component={ProductList} />
+                <Stack.Screen name="Login" component={LoginPage} />
+                <Stack.Screen name="SignUp" component={SignUp} />
+                <Stack.Screen name="SellerScreen" component={SellerScreen} />
+                <Stack.Screen name="SellerProduct" component={SellerProduct} />
+                <Stack.Screen name="SellersList" component={SellersList} />
+                <Stack.Screen name="PaymentMethod" component={PaymentMethod} />
+                <Stack.Screen name="Cart" component={Cart} />
+                <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
+                <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
+                <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
+                <Stack.Screen name="FailedPayment" component={FailedPayment} />
+                <Stack.Screen name="MapScreen" component={MapScreen} />
+                <Stack.Screen name="EstablishmentList" component={EstablishmentList} />
+                <Stack.Screen name="RideOptionsCard" component={RideOptionsCard} />
+                <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} />
+                <Stack.Screen name="OrderList" component={OrderList} />
+                <Stack.Screen name="SellersByEstablishment" component={SellersByEstablishment} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+                <Stack.Screen name="DeliveryDetails" component={DeliveryDetailsScreen} />
+                <Stack.Screen name="RequestService" component={RequestServiceScreen} />
+                <Stack.Screen name="Favorite" component={Favorite} />
+                <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
 
-        </SafeAreaProvider>
-      </Provider>
+          </SafeAreaProvider>
+        </Provider>
 
-    </ToastProvider>
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }
 

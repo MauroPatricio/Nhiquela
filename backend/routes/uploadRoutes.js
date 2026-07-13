@@ -1,13 +1,17 @@
-import express from 'express';
+﻿import express from 'express';
 import {v2 as cloudinary} from 'cloudinary';
 import streamifier from 'streamifier';
 import multer from 'multer';
 const uploadRouter = express.Router();
 
-const upload = multer()
+const upload = multer({ limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
 // upload Media files
-uploadRouter.post('/',  upload.single('file'),async (req, res) => {
+uploadRouter.post('/', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).send({ message: 'No file uploaded' });
+    }
+
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
         api_key: process.env.CLOUDINARY_API_KEY,
@@ -20,25 +24,27 @@ uploadRouter.post('/',  upload.single('file'),async (req, res) => {
           { quality: 'auto' }, // Automatically adjust quality
         ],
         maxFileSize: 5000000, // Limit to 5MB
-      }
+    };
+
     const streamUpload = (req) => {
-    return new Promise((resolve, reject)=>{
-        const stream = cloudinary.uploader.upload_stream(imgOptions,(error, result)=>{
-            if (result){
-                resolve(result);
-            }else{
-                    // reject(error);
-                res.status(error.http_code).send({message: error.message})
-            }
+        return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(imgOptions, (error, result) => {
+                if (result) {
+                    resolve(result);
+                } else {
+                    reject(error);
+                }
+            });
+            streamifier.createReadStream(req.file.buffer).pipe(stream);
         });
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
-    });
-    }
+    };
     
-    const result = await streamUpload(req)
-
-
-   res.send(result)
+    try {
+        const result = await streamUpload(req);
+        res.send(result);
+    } catch (error) {
+        res.status(error.http_code || 500).send({ message: error.message || 'Error uploading file' });
+    }
 });
 
 
@@ -50,51 +56,55 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Local Storage setup
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        // Determine the category of the upload (driver, document, establishment, vehicle, others)
-        const category = req.body.type || 'others';
-        const allowed = ['driver', 'document', 'establishment', 'vehicle', 'others'];
-        const safeCategory = allowed.includes(category) ? category : 'others';
-        const uploadPath = path.join(__dirname, '../../uploads/nhiquela_driver', safeCategory);
-        // Ensure the directory exists
-        import('fs').then(fs => {
-            if (!fs.existsSync(uploadPath)) {
-                fs.mkdirSync(uploadPath, { recursive: true });
-            }
-            cb(null, uploadPath);
-        });
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname) || '.jpg';
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-    }
-});
+// Local Storage setup removed in favor of Cloudinary (Stateless Architecture)
 
-const uploadLocal = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } });
-
-// Local Upload Route
-uploadRouter.post('/local', uploadLocal.single('file'), (req, res) => {
+// Local Upload Route - Now redirects to Cloudinary transparently
+uploadRouter.post('/local', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).send({ message: 'Nenhum ficheiro enviado' });
         }
         
-        // Construct the URL to access the file
-        // The server.js should serve the /uploads folder statically
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+        });
+
         const category = req.body.type || 'others';
-        const safeCategory = ['driver', 'document', 'establishment', 'vehicle', 'others'].includes(category) ? category : 'others';
-        const fileUrl = `/uploads/nhiquela_driver/${safeCategory}/${req.file.filename}`;
+        const safeCategory = ['driver', 'document', 'establishment', 'vehicle', 'others', 'client'].includes(category) ? category : 'others';
+
+        const imgOptions = {
+            folder: `nhiquela_driver/${safeCategory}`,
+            transformation: [
+              { quality: 'auto' }
+            ],
+            maxFileSize: 2000000 // 2MB
+        };
+
+        const streamUpload = (req) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(imgOptions, (error, result) => {
+                    if (result) {
+                        resolve(result);
+                    } else {
+                        reject(error);
+                    }
+                });
+                streamifier.createReadStream(req.file.buffer).pipe(stream);
+            });
+        };
         
+        const result = await streamUpload(req);
+
         res.send({ 
             message: 'Upload feito com sucesso',
-            url: fileUrl,
-            filename: req.file.filename
+            url: result.secure_url,
+            filename: result.public_id
         });
     } catch (error) {
-        res.status(500).send({ message: 'Erro ao fazer upload local: ' + error.message });
+        console.error('Cloudinary upload error:', error);
+        res.status(500).send({ message: 'Erro ao fazer upload: ' + (error.message || 'Unknown error') });
     }
 });
 

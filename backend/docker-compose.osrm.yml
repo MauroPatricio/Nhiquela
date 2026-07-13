@@ -1,0 +1,25 @@
+version: '3'
+services:
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: osrm-mz
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: "osrm-routed --algorithm mld /data/mozambique-latest.osrm"
+
+# INSTRUÇÕES PARA CONFIGURAÇÃO NO VPS:
+# 1. Cria a pasta osrm-data: `mkdir osrm-data`
+# 2. Faz o download do mapa de Moçambique:
+#    `wget http://download.geofabrik.de/africa/mozambique-latest.osm.pbf -P osrm-data/`
+# 3. Extrai os nós com perfil de carro:
+#    `docker run -t -v $(pwd)/osrm-data:/data osrm/osrm-backend osrm-extract -p /opt/car.lua /data/mozambique-latest.osm.pbf`
+# 4. Particiona o mapa (algoritmo MLD - rápido e bom para mapas dinâmicos):
+#    `docker run -t -v $(pwd)/osrm-data:/data osrm/osrm-backend osrm-partition /data/mozambique-latest.osrm`
+# 5. Personaliza o roteamento (Customize):
+#    `docker run -t -v $(pwd)/osrm-data:/data osrm/osrm-backend osrm-customize /data/mozambique-latest.osrm`
+# 6. Finalmente, sobe o servidor com este ficheiro:
+#    `docker-compose -f docker-compose.osrm.yml up -d`
+# A API ficará disponível em http://ip-do-vps:5000/route/v1/driving/

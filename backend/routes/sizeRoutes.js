@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
@@ -48,7 +48,7 @@ sizeRoutes.get(
     if (size) {
       res.send(size);
     } else {
-      res.status(404).send({ message: 'Tamanho não encontrada' });
+      res.status(404).send({ message: 'Tamanho n�o encontrada' });
     }
   })
 );
@@ -75,7 +75,7 @@ sizeRoutes.put(
       await size.save();
       res.send({ message: `Tamanhos actualizados com sucesso` });
     } else {
-      res.status(404).send({ message: 'Tamanho não encontrado' });
+      res.status(404).send({ message: 'Tamanho n�o encontrado' });
     }
   })
 );
@@ -97,7 +97,7 @@ sizeRoutes.delete(
 
       res.send({ message: `Tamanho Removido Com Sucesso` });
     } else {
-      res.status(404).send({ message: 'Tamanho não encontrado' });
+      res.status(404).send({ message: 'Tamanho n�o encontrado' });
     }
   })
 );
