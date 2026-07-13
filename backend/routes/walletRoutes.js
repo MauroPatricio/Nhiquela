@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import VehicleType from '../models/VehicleTypeModel.js';
-import { isAuth } from '../utils.js';
+import { isAuth, sendAdminNotificationEmail } from '../utils.js';
 import mpesa from 'mpesa-node-api';
 import config from '../config.js';
 
@@ -117,6 +117,13 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
     const successMessage = isManualDeposit 
       ? 'O seu pedido de recarga foi recebido e está pendente de validação pela nossa equipa.'
       : 'Saldo recarregado com sucesso!';
+
+    const title = isManualDeposit ? 'Novo Pedido de Recarga Pendente' : 'Nova Recarga Efetuada';
+    const textHtml = isManualDeposit
+      ? `O motorista/cliente <b>${req.user.name || 'Utilizador'}</b> solicitou uma recarga manual na carteira no valor de <b>${amount} MT</b>.<br><br>Por favor, aceda à aba Financeiro no painel de administração para analisar o comprovativo e aprovar/rejeitar o pedido.<br>Detalhes: ${description}`
+      : `O motorista/cliente <b>${req.user.name || 'Utilizador'}</b> efetuou com sucesso uma recarga automática na carteira no valor de <b>${amount} MT</b>.<br>Detalhes: ${description}`;
+
+    await sendAdminNotificationEmail(title, textHtml);
 
     return res.json({ message: successMessage, balance });
   } catch (error) {
@@ -566,12 +573,22 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(wallet.user.toString()).emit('userStatusChanged', {
-          userId: wallet.user.toString(),
+        const userId = wallet.user.toString();
+        io.to(userId).emit('userStatusChanged', {
+          userId: userId,
           status: 'approved', // Trigger a refresh on frontend
           message: 'A sua recarga foi aprovada!'
         });
-        io.to(wallet.user.toString()).emit('walletUpdated', {
+        io.to(`driver_${userId}`).emit('userStatusChanged', {
+          userId: userId,
+          status: 'approved', // Trigger a refresh on frontend
+          message: 'A sua recarga foi aprovada!'
+        });
+        
+        io.to(userId).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(`driver_${userId}`).emit('walletUpdated', {
           message: 'A sua recarga foi aprovada!'
         });
       }
@@ -648,13 +665,26 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - 6);
 
-    // Preciso importar o modelo Order para funcionar
+    // Import models
     const Order = mongoose.model('Order');
-    const orders = await Order.find({
+    const RequestService = mongoose.model('RequestService');
+
+    // Busca encomendas normais (Orders)
+    const ordersPromise = Order.find({
       'deliveryman.id': driverId,
       isDelivered: true,
       deliveredAt: { $gte: startOfWeek }
-    });
+    }).populate('user', 'name profileImage');
+
+    // Busca serviços de transporte directo (RequestService)
+    const requestsPromise = RequestService.find({
+      'deliveryman.id': driverId,
+      isDelivered: true,
+      deliveredAt: { $gte: startOfWeek }
+    }).populate('user', 'name profileImage');
+
+    const [orders, requestServices] = await Promise.all([ordersPromise, requestsPromise]);
+    const allTrips = [...orders, ...requestServices];
 
     let todayEarnings = 0;
     let weekEarnings = 0;
@@ -664,24 +694,41 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);
       d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
-      dailyStatsMap[dateStr] = { date: dateStr, amount: 0, trips: 0 };
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      dailyStatsMap[dateStr] = { date: dateStr, amount: 0, trips: 0, tripsList: [] };
     }
 
-    orders.forEach(order => {
-      const deliveryPrice = order.deliveryPrice || order.deliveryman?.pricetopay || 0;
-      const orderDate = new Date(order.deliveredAt);
+    allTrips.forEach(trip => {
+      const deliveryPrice = trip.pricing?.totalPrice || trip.deliveryPrice || trip.deliveryman?.pricetopay || 0;
+      const tripDate = new Date(trip.deliveredAt);
       
-      if (orderDate >= startOfToday) {
+      if (tripDate >= startOfToday) {
         todayEarnings += deliveryPrice;
         tripsToday++;
       }
       weekEarnings += deliveryPrice;
 
-      const dStr = orderDate.toISOString().split('T')[0];
+      const dStr = `${tripDate.getFullYear()}-${String(tripDate.getMonth() + 1).padStart(2, '0')}-${String(tripDate.getDate()).padStart(2, '0')}`;
       if (dailyStatsMap[dStr]) {
         dailyStatsMap[dStr].amount += deliveryPrice;
         dailyStatsMap[dStr].trips += 1;
+        
+        // Determinar origem e destino
+        const origin = trip.origin || trip.pickupAddress?.address || 'Origem não especificada';
+        const destination = trip.destination || trip.deliveryAddress?.address || 'Destino não especificado';
+        
+        dailyStatsMap[dStr].tripsList.push({
+          id: trip._id,
+          code: trip.code || trip._id.toString().slice(-6).toUpperCase(),
+          time: tripDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+          amount: deliveryPrice,
+          type: trip.pricing ? 'Serviço' : 'Encomenda',
+          clientName: trip.user?.name || trip.name || 'Cliente Desconhecido',
+          clientImage: trip.user?.profileImage || null,
+          origin,
+          destination,
+          reason: trip.reason || trip.description || 'Sem motivo especificado'
+        });
       }
     });
 
@@ -689,6 +736,7 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
       today: todayEarnings,
       week: weekEarnings,
       tripsToday: tripsToday,
+      totalTrips: allTrips.length,
       dailyEarnings: Object.values(dailyStatsMap).sort((a, b) => new Date(a.date) - new Date(b.date))
     });
   } catch (error) {

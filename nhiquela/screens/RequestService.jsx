@@ -17,7 +17,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   FlatList,
-  LogBox
+  LogBox,
+  Image,
+  Share
 } from 'react-native';
 
 LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
@@ -55,12 +57,19 @@ export default function RequestServiceSimple() {
   
   const [originCoord, setOriginCoord] = useState(null);
   const [destCoord, setDestCoord] = useState(null);
+  const [driverCoord, setDriverCoord] = useState(null);
+  const [preferredPaymentMethodName, setPreferredPaymentMethodName] = useState('Dinheiro');
+  const [driverHeading, setDriverHeading] = useState(0);
+  const [radarDrivers, setRadarDrivers] = useState([]);
   
   // Radar Search State
   const [radius, setRadius] = useState(5);
   const [isSearching, setIsSearching] = useState(false);
   const [waitingForDriver, setWaitingForDriver] = useState(false);
   const [selectedDriverForRequest, setSelectedDriverForRequest] = useState(null);
+  const [availableDriversList, setAvailableDriversList] = useState([]);
+  const [waitingCountdown, setWaitingCountdown] = useState(45);
+  const [rejectedDriverIds, setRejectedDriverIds] = useState([]);
   const [showBusyModal, setShowBusyModal] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState({ visible: false, message: '' });
   const [duration, setDuration] = useState(null);
@@ -149,11 +158,17 @@ export default function RequestServiceSimple() {
 
   const handleGetCurrentLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      Alert.alert('Acesso Negado', 'Precisamos da sua localização para encontrar serviços próximos de si.');
+      return;
+    }
 
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      if (!loc) return;
+      if (!loc) {
+        Alert.alert('Erro', 'Não foi possível obter a sua localização. Verifique se o GPS está ativo.');
+        return;
+      }
 
       setLocation({
         lat: loc.coords.latitude,
@@ -215,12 +230,38 @@ export default function RequestServiceSimple() {
           const parsed = JSON.parse(storedUserData);
           if (!parsed.token) return;
 
+          if (parsed.preferredPaymentMethod) {
+            try {
+              const pmRes = await api.get('/payment-methods', {
+                headers: { authorization: `Bearer ${parsed.token}` }
+              });
+              if (pmRes.status === 200 && pmRes.data?.paymentMethods) {
+                const pref = pmRes.data.paymentMethods.find(p => p._id === parsed.preferredPaymentMethod);
+                if (pref) {
+                  setPreferredPaymentMethodName(pref.name);
+                }
+              }
+            } catch (err) {
+              console.log('Error fetching payment methods:', err);
+            }
+          }
+
           const { data } = await api.get('/request-service/active', {
             headers: { authorization: `Bearer ${parsed.token}` }
           });
 
           if (data) {
-            setActiveTripData(data);
+            if (data.status === 'Pendente') {
+              if (data.targetDriverId) {
+                setCurrentRequestServiceId(data._id);
+                setSelectedDriverForRequest(data.targetDriver || { _id: data.targetDriverId, name: 'Motorista' });
+                setWaitingForDriver(true);
+              } else {
+                setIsSearching(true);
+              }
+            } else {
+              setActiveTripData(data);
+            }
           }
         } catch (error) {
           // If 404, it means no active trip, which is fine
@@ -320,15 +361,19 @@ export default function RequestServiceSimple() {
             weightKg: 5
           });
           
-          if (!isDistance) {
-            setPrice(service?.basePrice || 0);
+          if (data && data.price > 0) {
+            setPrice(data.price);
           } else {
-            setPrice(data.price || 0);
+            setPrice(service?.baseFare || 0);
           }
           // NAO forcar snap aqui — deixar o utilizador controlar a posicao do sheet
           if (data.routeCoordinates && data.routeCoordinates.length > 0) {
             setRouteCoords(data.routeCoordinates);
+          } else {
+            setRouteCoords([]);
+            Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
           }
+          
           if (data.breakdown && data.breakdown.durationMin) {
             setDuration(Math.round(data.breakdown.durationMin));
           }
@@ -336,6 +381,7 @@ export default function RequestServiceSimple() {
           console.log('Erro ao consultar motor de preços:', error);
           setPrice(120); // Fallback
           setRouteCoords([]);
+          Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
         }
       }
     };
@@ -343,11 +389,42 @@ export default function RequestServiceSimple() {
     fetchPrice();
   }, [originCoord, destCoord]);
 
+  // Radar continuo de motoristas
+  useEffect(() => {
+    let intervalId;
+    const fetchRadarDrivers = async () => {
+      try {
+        if (!location?.lat) return;
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        const response = await api.get('/drivers/nearby', {
+          params: { lat: location.lat, lng: location.lng, radius: 10 },
+          headers: { authorization: `Bearer ${token}` }
+        });
+        if (response.data && response.data.drivers) {
+          setRadarDrivers(response.data.drivers);
+        }
+      } catch (err) {
+        console.log('Erro ao procurar radar:', err);
+      }
+    };
+    if (step === 1 && !isSearching && !activeTripData) {
+      fetchRadarDrivers();
+      intervalId = setInterval(fetchRadarDrivers, 15000);
+    }
+    return () => clearInterval(intervalId);
+  }, [location, step, isSearching, activeTripData]);
+
   // Zoom and Fit map when origin, destination, or route changes
   useEffect(() => {
     if (mapRef.current && originCoord) {
       if (destCoord && routeCoords.length > 0) {
-        mapRef.current.fitToCoordinates([originCoord, destCoord, ...routeCoords], {
+        const coordsToFit = [
+          { latitude: originCoord.lat, longitude: originCoord.lng },
+          { latitude: destCoord.lat, longitude: destCoord.lng },
+          ...routeCoords
+        ];
+        mapRef.current.fitToCoordinates(coordsToFit, {
           edgePadding: { top: 100, right: 50, bottom: Dimensions.get('window').height * 0.5, left: 50 },
           animated: true,
         });
@@ -393,12 +470,14 @@ export default function RequestServiceSimple() {
           },
           headers: { authorization: `Bearer ${token}` }
         });
-        const drivers = response.data?.drivers || response.data || [];
+        let drivers = response.data?.drivers || response.data || [];
+        // Filtrar motoristas que j rejeitaram
+        drivers = drivers.filter(d => !rejectedDriverIds.includes(d._id));
         if (drivers.length > 0) {
           clearTimeout(searchTimerRef.current);
           clearInterval(searchCounterRef.current);
           setIsSearching(false);
-          sendRequestToDriver(drivers[0]);
+          setAvailableDriversList(drivers);
           return;
         }
       } catch (err) {
@@ -410,12 +489,9 @@ export default function RequestServiceSimple() {
     searchDrivers();
     const pollInterval = setInterval(searchDrivers, 3000);
 
-    // Apos 60s sem motorista encontrado -> perguntar para aumentar o raio
+    // Apos 60s sem motorista encontrado -> aumentar o raio automaticamente e continuar
     searchTimerRef.current = setTimeout(() => {
-      clearInterval(pollInterval);
-      clearInterval(searchCounterRef.current);
-      setIsSearching(false);
-      setShowBusyModal(true);
+      setRadius(r => r + 2);
     }, 60000);
 
     return () => {
@@ -430,6 +506,7 @@ export default function RequestServiceSimple() {
     try {
       setSelectedDriverForRequest(driver);
       setWaitingForDriver(true);
+      setWaitingCountdown(45);
       
       const storedUserData = await AsyncStorage.getItem('userData');
       let token = '';
@@ -440,12 +517,19 @@ export default function RequestServiceSimple() {
         phoneNumber = parsed.phoneNumber;
       }
 
-      let finalPrice = price;
-      if (driver.allowCustomPrice && driver.customPrice) {
-        finalPrice = driver.customPrice * (driver.distance || 1);
-      } else if (service?.basePrice) {
-        finalPrice = (service.basePrice || price) * (driver.distance || 1);
+      const serviceBase = service?.baseFare || 0;
+      let deslocacao = price > serviceBase ? price - serviceBase : 0;
+      
+      let baseFare = price;
+      if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
+        baseFare = driver.deliveryman.customPrice;
+      } else if (driver.deliveryman?.assigned_base_fee) {
+        baseFare = driver.deliveryman.assigned_base_fee;
+      } else if (serviceBase > 0) {
+        baseFare = serviceBase;
       }
+      
+      let finalPrice = baseFare + deslocacao;
 
       const payload = {
         name: service.name,
@@ -465,9 +549,10 @@ export default function RequestServiceSimple() {
           lat: destCoord.lat,
           lng: destCoord.lng
         },
-        paymentOption: 'Dinheiro',
+        paymentOption: preferredPaymentMethodName,
+        reason: reason,
         description: reason,
-        paymentMethod: 'Dinheiro',
+        paymentMethod: preferredPaymentMethodName,
         deliveryPrice: finalPrice,  // Backend irá substituir pelo valor calculado server-side
         serviceId: service._id,     // Obrigatório para o motor de preços recalcular server-side
         isPaid: false,
@@ -495,15 +580,32 @@ export default function RequestServiceSimple() {
           const { data } = await api.get('/request-service/active', {
             headers: { authorization: `Bearer ${token}` }
           });
-          if (data) setActiveTripData(data);
-          else Alert.alert("Atenção", "Você já tem uma viagem activa.");
+          if (data) {
+            if (data.status === 'Pendente') {
+              if (data.targetDriverId) {
+                setCurrentRequestServiceId(data._id);
+                setSelectedDriverForRequest(data.targetDriver || { _id: data.targetDriverId, name: 'Motorista' });
+                setWaitingForDriver(true);
+              } else {
+                setWaitingForDriver(false);
+                setIsSearching(true);
+              }
+            } else {
+              setWaitingForDriver(false);
+              setActiveTripData(data);
+            }
+          } else {
+            setWaitingForDriver(false);
+            setShowWarningModal({ visible: true, message: 'Você já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
+          }
         } catch (e) {
-          Alert.alert("Atenção", "Você já tem uma viagem activa.");
+          setWaitingForDriver(false);
+          setShowWarningModal({ visible: true, message: 'Você já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
         }
       } else {
-        Alert.alert("Erro", "Falha ao criar o pedido.");
+        setWaitingForDriver(false);
+        setShowWarningModal({ visible: true, message: 'Falha ao criar o pedido. Verifique sua conexão e tente novamente.' });
       }
-      setWaitingForDriver(false);
     }
   };
 
@@ -526,10 +628,23 @@ export default function RequestServiceSimple() {
       snapTo(SNAP_TOP);
     }
   };
+  const handleShareTrip = async () => {
+    if (activeTripData && activeTripData._id) {
+      try {
+        const shareUrl = `https://app.nhiquela.com/track/${activeTripData._id}`;
+        await Share.share({
+          message: `Acompanhe a minha viagem na Nhiquela em tempo real: ${shareUrl}`,
+          title: 'Partilhar Viagem'
+        });
+      } catch (error) {
+        console.log('Erro ao partilhar viagem:', error);
+      }
+    }
+  };
   
   
   useEffect(() => {
-    if (waitingForDriver && selectedDriverForRequest && currentRequestServiceId) {
+    if (currentRequestServiceId && (waitingForDriver || isSearching)) {
       let isMounted = true;
       const socketUrl = api.defaults.baseURL.replace(/\/api\/?$/, '');
       const socket = io(socketUrl, { transports: ['websocket'] });
@@ -543,13 +658,15 @@ export default function RequestServiceSimple() {
            });
            const myOrder = data.deliverRequests && data.deliverRequests[0];
            if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
-             if (myOrder.status === 'Cancelado') {
-                Alert.alert("Motorista Indisponível", "O motorista não pôde aceitar a corrida.");
+             if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') {
+                Alert.alert("Cancelado", "O pedido foi cancelado ou nenhum motorista aceitou.");
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
              } else if (myOrder.status === 'Aceite pelo entregador') {
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setActiveTripData(myOrder);
                 setCurrentRequestServiceId(null);
              }
@@ -561,17 +678,30 @@ export default function RequestServiceSimple() {
 
       socket.on('connect', () => {
         console.log('Socket connected for waiting driver');
+        if (currentRequestServiceId) {
+          socket.emit('joinRoom', { orderId: currentRequestServiceId });
+        }
       });
 
       socket.on('order_updated', (updatedOrder) => {
          if (isMounted && updatedOrder._id === currentRequestServiceId) {
-            if (updatedOrder.status === 'Cancelado') {
-                Alert.alert("Motorista Indisponível", "O motorista não pôde aceitar a corrida.");
+            if (updatedOrder.status === 'Motorista indisponível') {
+                setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
+                Alert.alert('Indisponível', 'Nenhum motorista está disponível neste momento. Tente novamente mais tarde.');
+            } else if (updatedOrder.status === 'Cancelado') {
+                setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
+                setWaitingForDriver(false);
+                setIsSearching(false);
+                setSelectedDriverForRequest(null);
+                setCurrentRequestServiceId(null);
+                // Sem alert, pois foi o próprio cliente que cancelou ou admin
             } else if (updatedOrder.status === 'Aceite pelo entregador') {
                 setWaitingForDriver(false);
+                setIsSearching(false);
                 setActiveTripData(updatedOrder);
                 setCurrentRequestServiceId(null);
             }
@@ -583,8 +713,58 @@ export default function RequestServiceSimple() {
         socket.disconnect();
       };
     }
-  }, [waitingForDriver, selectedDriverForRequest, currentRequestServiceId]);
+  }, [waitingForDriver, selectedDriverForRequest, currentRequestServiceId, isSearching]);
   
+  // Socket listener para a viagem activa (quando o motorista aceitou)
+  useEffect(() => {
+    if (activeTripData && activeTripData._id) {
+      let isMounted = true;
+      const socketUrl = api.defaults.baseURL.replace(/\/api\/?$/, '');
+      const socket = io(socketUrl, { transports: ['websocket'] });
+      
+      socket.on('connect', () => {
+        console.log('Socket conectado para a viagem activa');
+        socket.emit('joinRoom', { orderId: activeTripData._id });
+      });
+
+      socket.on('order_updated', (updatedOrder) => {
+         if (isMounted && updatedOrder._id === activeTripData._id) {
+            setActiveTripData(updatedOrder);
+            
+            // Notificações Baseadas no Estado
+            if (updatedOrder.status === 'No destino indicado') {
+               Alert.alert(
+                 "O motorista chegou!", 
+                 `O motorista ${updatedOrder.deliveryman?.name || ''} acaba de chegar ao local indicado.`
+               );
+            } else if (updatedOrder.status === 'Cancelado') {
+               Alert.alert(
+                 "Viagem Cancelada", 
+                 "O motorista cancelou a viagem."
+               );
+               setActiveTripData(null);
+            }
+         }
+      });
+      
+      // Listener para a localização do motorista em tempo real
+      socket.on('driver_location_update', (data) => {
+         if (isMounted) {
+            setDriverCoord({
+              lat: parseFloat(data.latitude),
+              lng: parseFloat(data.longitude)
+            });
+            setDriverHeading(parseFloat(data.heading || 0));
+         }
+      });
+
+      return () => {
+        isMounted = false;
+        socket.disconnect();
+      };
+    }
+  }, [activeTripData?._id]);
+
   const startPulse = () => {
     pulseAnim.setValue(0);
     Animated.loop(
@@ -596,6 +776,16 @@ export default function RequestServiceSimple() {
       })
     ).start();
   };
+
+  useEffect(() => {
+    let interval = null;
+    if (waitingForDriver && waitingCountdown > 0) {
+      interval = setInterval(() => {
+        setWaitingCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [waitingForDriver, waitingCountdown]);
 
   if (!service) return null;
 
@@ -675,6 +865,60 @@ export default function RequestServiceSimple() {
             strokeColor="#A855F7" 
           />
         )}
+
+        {driverCoord && activeTripData && (
+          <Marker
+            coordinate={{ latitude: driverCoord.lat, longitude: driverCoord.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={driverHeading}
+            flat={true}
+          >
+            <View style={{
+              width: 36,
+              height: 36,
+              backgroundColor: '#fff',
+              borderRadius: 18,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 3,
+              elevation: 5
+            }}>
+              <MaterialCommunityIcons name="car-side" size={20} color="#7F00FF" />
+            </View>
+          </Marker>
+        )}
+
+        {/* Render Radar Drivers (when no active trip) */}
+        {!activeTripData && radarDrivers.map(d => (
+          <Marker
+            key={d.id}
+            coordinate={{ latitude: d.location.lat, longitude: d.location.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={d.heading || 0}
+            flat={true}
+          >
+            <View style={{
+              width: 28,
+              height: 28,
+              backgroundColor: '#fff',
+              borderRadius: 14,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 2,
+              elevation: 3,
+              borderWidth: 2,
+              borderColor: '#10B981' // Green to show they are available
+            }}>
+              <MaterialCommunityIcons name="car" size={16} color="#10B981" />
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       <TouchableOpacity 
@@ -906,6 +1150,7 @@ export default function RequestServiceSimple() {
                 }
                 Keyboard.dismiss();
                 snapTo(screenHeight);
+                setRejectedDriverIds([]);
                 setIsSearching(true);
                 startPulse();
               }}
@@ -995,6 +1240,9 @@ export default function RequestServiceSimple() {
             }}
             onPress={() => {
               setIsSearching(false);
+              clearTimeout(searchTimerRef.current);
+              clearInterval(searchCounterRef.current);
+              setRejectedDriverIds([]);
               snapTo(SNAP_TOP);
             }}
           >
@@ -1003,6 +1251,157 @@ export default function RequestServiceSimple() {
         </View>
       </View>
     </Modal>
+
+      {/* Lista de Motoristas Disponiveis */}
+      <Modal
+        visible={availableDriversList.length > 0 && !waitingForDriver && !isSearching && !activeTripData}
+        transparent
+        animationType="slide"
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' }}>
+            
+            <View style={{ width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginBottom: 15 }} />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Motoristas Disponíveis</Text>
+              <TouchableOpacity onPress={() => { setAvailableDriversList([]); setRejectedDriverIds([]); setIsSearching(true); startPulse(); }}>
+                 <MaterialCommunityIcons name="refresh" size={24} color="#9800FF" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 15 }}>Escolha o motorista que preferir.</Text>
+            
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {availableDriversList.map((driver, index) => {
+                const serviceBase = service?.baseFare || 0;
+                let deslocacao = price > serviceBase ? price - serviceBase : 0;
+                
+                let baseFare = price;
+                if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
+                  baseFare = driver.deliveryman.customPrice;
+                } else if (driver.deliveryman?.assigned_base_fee) {
+                  baseFare = driver.deliveryman.assigned_base_fee;
+                } else if (serviceBase > 0) {
+                  baseFare = serviceBase;
+                }
+                
+                let finalPrice = baseFare + deslocacao;
+                
+                const colorMap = {
+                  branco: '#E5E7EB', preto: '#1F2937', vermelho: '#EF4444',
+                  azul: '#3B82F6', verde: '#10B981', amarelo: '#F59E0B',
+                  cinza: '#9CA3AF', cinzento: '#9CA3AF', laranja: '#F97316',
+                  rosa: '#EC4899', violeta: '#8B5CF6', castanho: '#92400E',
+                };
+                const tColor = driver.deliveryman?.transport_color || '';
+                const colorHex = colorMap[tColor.toLowerCase()] || '#6B7280';
+
+                return (
+                  <TouchableOpacity
+                    key={driver._id || index}
+                    activeOpacity={0.7}
+                    onPress={() => sendRequestToDriver(driver)}
+                    style={{
+                      flexDirection: 'row',
+                      padding: 15,
+                      borderWidth: 1,
+                      borderColor: '#F3F4F6',
+                      borderRadius: 16,
+                      marginBottom: 12,
+                      backgroundColor: '#F9FAFB',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Image
+                      source={driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture ? { uri: driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture } : driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+                      style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#E5E7EB' }}
+                    />
+                    
+                    <View style={{ flex: 1, marginLeft: 15 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }}>{driver.name}</Text>
+                      
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+                        <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
+                        <Text style={{ fontSize: 13, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
+                          {driver.deliveryman?.rating || 'Novo'}
+                        </Text>
+                        
+                        <Text style={{ fontSize: 13, color: '#9CA3AF', marginHorizontal: 6 }}>•</Text>
+                        
+                        <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
+                        <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 4 }}>
+                          {service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
+                        </Text>
+
+                        {!!driver.deliveryman?.transport_color && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 6 }}>
+                            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colorHex, marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB' }} />
+                            <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>{tColor}</Text>
+                          </View>
+                        )}
+                        {!!driver.deliveryman?.transport_registration && (
+                          <>
+                            <Text style={{ fontSize: 12, color: '#9CA3AF', marginHorizontal: 6 }}>|</Text>
+                            <View style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#D1D5DB' }}>
+                              <Text style={{ fontSize: 10, color: '#374151', fontWeight: 'bold', letterSpacing: 0.5 }}>
+                                {driver.deliveryman?.transport_registration.toUpperCase()}
+                              </Text>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                      
+                      <View style={{ marginTop: 8, gap: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="map-marker-distance" size={14} color="#4F46E5" style={{ width: 16 }} />
+                          <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '500', marginLeft: 4 }}>
+                            Distância até si: <Text style={{ fontWeight: '700' }}>{driver.distance ? driver.distance.toFixed(1) : '?'} km</Text>
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="clock-fast" size={14} color="#D97706" style={{ width: 16 }} />
+                          <Text style={{ fontSize: 12, color: '#D97706', fontWeight: '500', marginLeft: 4 }}>
+                            Chega a si em: <Text style={{ fontWeight: '700' }}>~{driver.distance ? Math.ceil(driver.distance * 2) : '?'} min</Text>
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 10, color: '#6B7280', marginBottom: 2, fontWeight: '500' }}>
+                         Valor cobrado pelo prestador
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#4B5563', marginBottom: 4 }}>
+                         {baseFare.toFixed(0)} + {deslocacao.toFixed(0)} MT
+                      </Text>
+                      <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF' }}>
+                         {finalPrice.toFixed(0)} MT
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                        <MaterialCommunityIcons name="flag-checkered" size={12} color="#6B7280" />
+                        <Text style={{ fontSize: 10, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
+                           Chegada ao destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={{ padding: 16, marginTop: 10, alignItems: 'center' }}
+              onPress={() => {
+                setAvailableDriversList([]);
+                snapTo(SNAP_TOP);
+              }}
+            >
+              <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 16 }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
     <Modal visible={waitingForDriver} transparent animationType="fade">
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
@@ -1039,34 +1438,126 @@ export default function RequestServiceSimple() {
               opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
             }]} />
             <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
-              <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+              {waitingCountdown > 0 ? (
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#A855F7' }}>{waitingCountdown}</Text>
+              ) : (
+                <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+              )}
             </View>
           </View>
 
-          <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-            A aguardar confirmação do motorista...
-          </Text>
-          <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-            Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
-          </Text>
+          {waitingCountdown > 0 ? (
+            <>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
+              </Text>
+              <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                O motorista está a demorar...
+              </Text>
+              <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                Pode continuar a esperar ou procurar novos motoristas disponíveis.
+              </Text>
+            </>
+          )}
 
-          <TouchableOpacity
-            style={{
-              marginTop: 24,
-              paddingVertical: 12,
-              paddingHorizontal: 32,
-              backgroundColor: '#FEF2F2',
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: '#FECACA',
-              width: '100%',
-              alignItems: 'center',
-            }}
-            activeOpacity={0.8}
-            onPress={handleCancelPendingRequest}
-          >
-            <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
-          </TouchableOpacity>
+          {selectedDriverForRequest && (() => {
+            const serviceBase = service?.baseFare || 0;
+            let selectedDeslocacao = price > serviceBase ? price - serviceBase : 0;
+            
+            let selectedBaseFare = price;
+            if (selectedDriverForRequest.deliveryman?.allowCustomPrice && selectedDriverForRequest.deliveryman?.customPrice) {
+              selectedBaseFare = selectedDriverForRequest.deliveryman.customPrice;
+            } else if (selectedDriverForRequest.deliveryman?.assigned_base_fee) {
+              selectedBaseFare = selectedDriverForRequest.deliveryman.assigned_base_fee;
+            } else if (serviceBase > 0) {
+              selectedBaseFare = serviceBase;
+            }
+            
+            let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
+
+            return (
+              <View style={{ marginTop: 15, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 12, width: '100%', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#6B7280' }}>Resumo do Pedido</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF', marginTop: 4 }}>
+                  {selectedFinalPrice.toFixed(0)} MT
+                </Text>
+                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                  Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
+                </Text>
+              </View>
+            );
+          })()}
+
+          {waitingCountdown > 0 ? (
+            <TouchableOpacity
+              style={{
+                marginTop: 24,
+                paddingVertical: 12,
+                paddingHorizontal: 32,
+                backgroundColor: '#FEF2F2',
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#FECACA',
+                width: '100%',
+                alignItems: 'center',
+              }}
+              activeOpacity={0.8}
+              onPress={handleCancelPendingRequest}
+            >
+              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: '100%', marginTop: 24, gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 12,
+                  backgroundColor: '#7F00FF',
+                  borderRadius: 14,
+                  alignItems: 'center',
+                }}
+                activeOpacity={0.8}
+                onPress={async () => {
+                  setWaitingCountdown(45);
+                  try {
+                    const storedUserData = await AsyncStorage.getItem('userData');
+                    const token = storedUserData ? JSON.parse(storedUserData).token : '';
+                    await api.post(`/request-service/${currentRequestServiceId}/resend`, 
+                      { targetDriverId: selectedDriverForRequest?._id }, 
+                      { headers: { authorization: `Bearer ${token}` } }
+                    );
+                  } catch(e) { console.log('Erro ao reenviar', e); }
+                }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar à espera</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 12,
+                  backgroundColor: '#FEF2F2',
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: '#FECACA',
+                  alignItems: 'center',
+                }}
+                activeOpacity={0.8}
+                onPress={async () => {
+                  await handleCancelPendingRequest();
+                  setRejectedDriverIds([]);
+                  setIsSearching(true);
+                  startPulse();
+                }}
+              >
+                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Procurar novos motoristas</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -1088,6 +1579,7 @@ export default function RequestServiceSimple() {
                 onPress={() => {
                   setShowBusyModal(false);
                   setRadius(5); // Reset raio para o valor inicial
+                  setRejectedDriverIds([]);
                   snapTo(SNAP_TOP); // Abrir o formulario para o utilizador mudar destino
                   setIsMinimized(false);
                 }}
@@ -1100,6 +1592,7 @@ export default function RequestServiceSimple() {
                 onPress={() => {
                   setShowBusyModal(false);
                   setRadius(r => r + 2);
+                  setRejectedDriverIds([]);
                   setIsSearching(true);
                   startPulse();
                 }}

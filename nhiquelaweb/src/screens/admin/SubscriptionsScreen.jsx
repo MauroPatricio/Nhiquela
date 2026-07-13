@@ -29,7 +29,7 @@ export default function SubscriptionsScreen() {
       const { data } = await api.get('/plans');
       setPlans(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar planos de subscrição');
+      toast.error('Erro ao carregar planos de subscriÃ§Ã£o');
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function SubscriptionsScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('Nome do plano é obrigatório');
+    if (!formData.name) return toast.error('Nome do plano ï¿½ obrigatÃ³rio');
     
     try {
       if (isEditing) {
@@ -70,7 +70,7 @@ export default function SubscriptionsScreen() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Eliminar este plano de subscrição?')) {
+    if (window.confirm('Eliminar este plano de subscriÃ§Ã£o?')) {
       try {
         await api.delete(`/plans/${id}`);
         toast.success('Eliminado com sucesso!');
@@ -85,8 +85,8 @@ export default function SubscriptionsScreen() {
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold m-0 text-dark">Planos de Subscrição</h2>
-          <span className="text-muted small">Pacotes e mensalidades (Modelo de Negócio)</span>
+          <h2 className="fw-bold m-0 text-dark">Planos de SubscriÃ§Ã£o</h2>
+          <span className="text-muted small">Pacotes e mensalidades (Modelo de NegÃ³cio)</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -114,10 +114,10 @@ export default function SubscriptionsScreen() {
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Plano</th>
-                  <th className="border-0 text-muted py-3">Preço</th>
+                  <th className="border-0 text-muted py-3">PreÃ§o</th>
                   <th className="border-0 text-muted py-3">Limites / Vantagens</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÃ§Ãµes</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,13 +177,13 @@ export default function SubscriptionsScreen() {
                   <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required placeholder="Ex: Plano Profissional" />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Preço (MT)</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} required placeholder="Ex: 2000 MT/mês" />
+                  <label className="form-label fw-bold small text-muted mb-1">PreÃ§o (MT)</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} required placeholder="Ex: 2000 MT/mÃªs" />
                 </div>
                 <div className="row g-3 mb-4">
                   <div className="col-6">
                     <label className="form-label fw-bold small text-muted mb-1">Limites / Vantagens</label>
-                    <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.limits} onChange={(e) => setFormData({...formData, limits: e.target.value})} required placeholder="Ex: Estatísticas, Destaque" />
+                    <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.limits} onChange={(e) => setFormData({...formData, limits: e.target.value})} required placeholder="Ex: EstatÃ­sticas, Destaque" />
                   </div>
                   <div className="col-6">
                     <label className="form-label fw-bold small text-muted mb-1">Status</label>
@@ -195,7 +195,7 @@ export default function SubscriptionsScreen() {
                   </div>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
-                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Criar Plano'}
+                  <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Criar Plano'}
                 </button>
               </form>
             </div>

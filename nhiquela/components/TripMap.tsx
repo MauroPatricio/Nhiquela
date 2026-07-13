@@ -243,14 +243,14 @@ export default function TripMap({ destination, onRouteReady, onDeliveryConfirmed
 
     (async () => {
       try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           console.error('Permissão de localização negada');
           return;
         }
 
         // Configuração para performance
-        let location = await Location.getCurrentPositionAsync({
+        const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced
         });
         

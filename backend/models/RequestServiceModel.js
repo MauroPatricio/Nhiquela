@@ -2,13 +2,14 @@ import mongoose from 'mongoose';
 
 const requestServiceSchema = new mongoose.Schema(
   {
-    name: { type: String, require: true },
-    phoneNumber: { type: String, require: true },
-    goodType: { type: String, require: true },
-    transportType: { type: String, require: true },
-    deliverCity:{ type: String, require: true },
-    origin: { type: String, require: true },
-    destination: { type: String, require: true },
+    name: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
+    goodType: { type: String, required: true },
+    transportType: { type: String, required: true },
+    deliverCity:{ type: String, required: true },
+    reason: { type: String, required: false }, // Motivo do servico, ex: Pneu furado, Acidente, etc.
+    origin: { type: String, required: true },
+    destination: { type: String, required: true },
     originDetails: {
       address: { type: String },
       lat: { type: Number },
@@ -43,6 +44,12 @@ const requestServiceSchema = new mongoose.Schema(
     isAvailableToDeliver:{ type: Boolean, default: false },
     isDelivered: { type: Boolean, default: false },
     isInTransit: { type: Boolean, default: false },
+    acceptedAt: { type: Date },
+    arrivedAtPickup: { type: Date },
+    pickupStartedAt: { type: Date },
+    arrivedAtDestination: { type: Date },
+    arrivalLatitude: { type: Number },
+    arrivalLongitude: { type: Number },
     deliveredAt: { type: Date },
     status:{type: String},
     stepStatus:{type: Number},
@@ -51,6 +58,8 @@ const requestServiceSchema = new mongoose.Schema(
     canceledReason: { type: String},
     targetDriverId: { type: String},
     isDeletedBySeller: { type: Boolean, default: false },
+    rating: { type: Number, min: 1, max: 5 },
+    review: { type: String },
     isDeletedByDeliverman: { type: Boolean, default: false },
     isDeletedByAdmin: { type: Boolean, default: false },
 

@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Category from '../models/CategoryModel.js';
 import Product from '../models/ProductModel.js';
@@ -47,18 +47,18 @@ homeRouter.get(
 
     // 5?? Static promotional content (hard-coded for now)
     const promos = {
-      tagline: 'Tudo o que precisa, entregue à distância de um clique.',
-      searchPlaceholder: 'Pesquisar produtos, serviços ou motoristas...',
+      tagline: 'Tudo o que precisa, entregue ï¿½ distï¿½ncia de um clique.',
+      searchPlaceholder: 'Pesquisar produtos, serviï¿½os ou motoristas...',
       highlights: [
         { title: 'Entrega < 30 min', icon: '??' },
         { title: 'Pagamento seguro', icon: '??' },
         { title: 'Suporte 24/7', icon: '??' },
       ],
       howItWorks: [
-        { step: 1, title: 'Escolha', description: 'Selecione um produto ou serviço entre milhares de opções.' },
-        { step: 2, title: 'Confirme', description: 'Pagamento seguro e confirmação instantânea.' },
+        { step: 1, title: 'Escolha', description: 'Selecione um produto ou serviï¿½o entre milhares de opï¿½ï¿½es.' },
+        { step: 2, title: 'Confirme', description: 'Pagamento seguro e confirmaï¿½ï¿½o instantï¿½nea.' },
         { step: 3, title: 'Acompanhe', description: 'Siga em tempo real no mapa interativo.' },
-        { step: 4, title: 'Receba', description: 'Entregue no local que indicar, sem complicação.' },
+        { step: 4, title: 'Receba', description: 'Entregue no local que indicar, sem complicaï¿½ï¿½o.' },
       ],
       forSuppliers: {
         title: 'Para Fornecedores',
@@ -66,16 +66,16 @@ homeRouter.get(
           'Venda mais sem abrir novas lojas.',
           'Maior visibilidade digital',
           'Mais clientes todos os dias',
-          'Gestão simplificada',
-          'Relatórios avançados de vendas',
+          'Gestï¿½o simplificada',
+          'Relatï¿½rios avanï¿½ados de vendas',
         ],
       },
       forDrivers: {
         title: 'Para Motoristas',
         points: [
           'Ganhe dinheiro com a sua viatura.',
-          'Horários 100% flexíveis',
-          'Pagamentos rápidos e seguros',
+          'Horï¿½rios 100% flexï¿½veis',
+          'Pagamentos rï¿½pidos e seguros',
           'Mais oportunidades por semana',
           'Suporte dedicado ao motorista',
         ],

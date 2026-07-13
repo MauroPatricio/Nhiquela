@@ -11,10 +11,21 @@ export default function DocRequestsPanel() {
   const [processing, setProcessing] = useState(null);
   const [rejectModal, setRejectModal] = useState(null); // { requestId, driverName }
   const [rejectionReason, setRejectionReason] = useState('');
+  const [subcategories, setSubcategories] = useState([]);
 
   useEffect(() => {
     fetchRequests();
+    fetchSubcategories();
   }, [filter]);
+
+  const fetchSubcategories = async () => {
+    try {
+      const { data } = await api.get('/provider-subcategories');
+      setSubcategories(data);
+    } catch (err) {
+      console.error('Erro ao carregar subcategorias', err);
+    }
+  };
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -118,9 +129,21 @@ export default function DocRequestsPanel() {
                       </div>
                     </td>
                     <td>
-                      <span className="badge bg-light text-dark border">
-                        {req.deliverymanId?.deliveryman?.transport_type || 'N/D'}
-                      </span>
+                      {req.type === 'profile_update' ? (
+                        <>
+                          <span className="badge bg-warning text-dark border me-2">Mudança de Serviço</span>
+                          <div className="small mt-1 text-muted">
+                            Novo Serviço: <strong>{subcategories.find(s => s._id === req.updatedFields?.transport_type)?.name || req.updatedFields?.transport_type || 'N/D'}</strong>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="badge bg-light text-dark border">
+                            {subcategories.find(s => s._id === req.deliverymanId?.deliveryman?.transport_type)?.name || req.deliverymanId?.deliveryman?.transport_type || 'N/D'}
+                          </span>
+                          <div className="small mt-1 text-muted">Acesso a Documentos</div>
+                        </>
+                      )}
                     </td>
                     <td className="text-muted small">
                       {new Date(req.requestedAt).toLocaleString('pt-MZ')}
@@ -138,7 +161,9 @@ export default function DocRequestsPanel() {
                           onClick={() => handleDecision(req._id, 'APPROVED')}
                           disabled={processing === req._id}
                         >
-                          {processing === req._id ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faLockOpen} className="me-1" /> Permitir Edição</>}
+                          {processing === req._id ? <FontAwesomeIcon icon={faSpinner} spin /> : (
+                            req.type === 'profile_update' ? <><FontAwesomeIcon icon={faMotorcycle} className="me-1" /> Aprovar Mudança</> : <><FontAwesomeIcon icon={faLockOpen} className="me-1" /> Permitir Edição</>
+                          )}
                         </button>
                         <button 
                           className="btn btn-outline-danger btn-sm rounded-3 px-3"

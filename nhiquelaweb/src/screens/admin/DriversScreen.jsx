@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMotorcycle, faTruck, faFileAlt, faImage, faCheckCircle, faPhone, faEnvelope, faMapMarkerAlt, faPalette, faShieldAlt, faExclamationTriangle, faStar, faBoxOpen, faSearch, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faEdit, faTrash, faPlus, faSave, faTimes, faIdCard, faEye, faMotorcycle, faTruck, faFileAlt, faImage, faCheckCircle, faPhone, faEnvelope, faMapMarkerAlt, faPalette, faShieldAlt, faExclamationTriangle, faStar, faBoxOpen, faSearch, faSpinner, faDownload } from '@fortawesome/free-solid-svg-icons';
 
 import { toast } from 'react-toastify';
 
@@ -57,8 +57,12 @@ export default function DriversScreen() {
     try {
 
       const { data } = await api.get('/drivers');
-
-      setDrivers(data.drivers || []);
+      const sortedDrivers = (data.drivers || []).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : parseInt(a._id.toString().substring(0, 8), 16) * 1000;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : parseInt(b._id.toString().substring(0, 8), 16) * 1000;
+        return dateB - dateA;
+      });
+      setDrivers(sortedDrivers);
 
     } catch (error) {
 
@@ -514,7 +518,7 @@ export default function DriversScreen() {
 
                       <div className="d-flex flex-column">
 
-                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.deliveryman?.transport_type)} className="me-2 text-muted" />{getVehicleName(driver.deliveryman?.transport_type)}</div>
+                        <div className="text-dark fw-bold text-capitalize"><FontAwesomeIcon icon={getVehicleIcon(driver.deliveryman?.transport_type || driver.deliveryman?.providedServices?.[0]?.serviceId)} className="me-2 text-muted" />{getVehicleName(driver.deliveryman?.transport_type || driver.deliveryman?.providedServices?.[0]?.serviceId)}</div>
 
                         <small className="text-muted"><FontAwesomeIcon icon={faPalette} className="me-1" /> {driver.deliveryman?.transport_color || 'N/A'}</small>
 
@@ -982,7 +986,7 @@ export default function DriversScreen() {
 
               <div className="bg-primary-subtle p-3 rounded-4 mb-4 border border-primary-custom shadow-sm">
 
-                <h6 className="fw-bold text-primary-custom mb-3"><FontAwesomeIcon icon={getVehicleIcon(selectedDriver.deliveryman?.transport_type)} className="me-2" />Dados do Veículo</h6>
+                <h6 className="fw-bold text-primary-custom mb-3"><FontAwesomeIcon icon={getVehicleIcon(selectedDriver.deliveryman?.transport_type || selectedDriver.deliveryman?.providedServices?.[0]?.serviceId)} className="me-2" />Dados do Veículo</h6>
 
                 <div className="row g-3">
 
@@ -990,7 +994,7 @@ export default function DriversScreen() {
 
                     <div className="text-primary-custom small fw-bold text-uppercase">Tipo</div>
 
-                    <div className="fw-bold text-dark text-capitalize">{getVehicleName(selectedDriver.deliveryman?.transport_type)}</div>
+                    <div className="fw-bold text-dark text-capitalize">{getVehicleName(selectedDriver.deliveryman?.transport_type || selectedDriver.deliveryman?.providedServices?.[0]?.serviceId)}</div>
 
                   </div>
 
@@ -1059,21 +1063,25 @@ export default function DriversScreen() {
                       <div className="mt-auto pt-2">
 
                         {selectedDriver.deliveryman?.[doc.key] ? (
-
-                          <button 
-
-                            type="button" 
-
-                            onClick={() => setSelectedImage(getImageUrl(selectedDriver.deliveryman[doc.key]))} 
-
-                            className="btn btn-sm btn-outline-success w-100 rounded-3 fw-bold"
-
-                          >
-
-                            <FontAwesomeIcon icon={faEye} className="me-1" /> Ver Imagem
-
-                          </button>
-
+                          <div className="d-flex gap-2">
+                            <button 
+                              type="button" 
+                              onClick={() => setSelectedImage(getImageUrl(selectedDriver.deliveryman[doc.key]))} 
+                              className="btn btn-sm btn-outline-success flex-grow-1 rounded-3 fw-bold"
+                            >
+                              <FontAwesomeIcon icon={faEye} className="me-1" /> Ver Imagem
+                            </button>
+                            <a 
+                              href={getImageUrl(selectedDriver.deliveryman[doc.key])} 
+                              download={`${doc.label}.jpg`} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="btn btn-sm btn-success rounded-3 fw-bold d-flex align-items-center justify-content-center px-3"
+                              title="Baixar Documento"
+                            >
+                              <FontAwesomeIcon icon={faDownload} />
+                            </a>
+                          </div>
                         ) : (
 
                           <button className="btn btn-sm btn-light w-100 rounded-3 text-muted disabled">Não Submetido</button>

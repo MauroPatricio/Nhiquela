@@ -1,7 +1,7 @@
 import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Support from '../models/SupportModel.js';
-import { isAuth, isAdmin } from '../utils.js';
+import { isAuth, isAdmin, sendAdminNotificationEmail } from '../utils.js';
 
 const supportRouter = express.Router();
 
@@ -27,6 +27,12 @@ supportRouter.post(
       message: req.body.message,
     });
     const createdTicket = await ticket.save();
+
+    await sendAdminNotificationEmail(
+      `Novo Pedido de Suporte: ${req.body.subject}`,
+      `O utilizador <b>${req.user.name || 'Desconhecido'}</b> abriu um novo ticket de suporte.<br><br><b>Assunto:</b> ${req.body.subject}<br><b>Mensagem:</b> ${req.body.message}`
+    );
+
     res.status(201).send({ message: 'Ticket criado com sucesso', ticket: createdTicket });
   })
 );
@@ -40,7 +46,7 @@ supportRouter.get(
     if (ticket) {
       res.send(ticket);
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );
@@ -59,7 +65,7 @@ supportRouter.post(
       const updatedTicket = await ticket.save();
       res.send({ message: 'Resposta adicionada', ticket: updatedTicket });
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );
@@ -76,7 +82,7 @@ supportRouter.put(
       const updatedTicket = await ticket.save();
       res.send({ message: 'Status atualizado', ticket: updatedTicket });
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );
@@ -92,7 +98,7 @@ supportRouter.delete(
       await ticket.deleteOne();
       res.send({ message: 'Ticket removido com sucesso' });
     } else {
-      res.status(404).send({ message: 'Ticket não encontrado' });
+      res.status(404).send({ message: 'Ticket nï¿½o encontrado' });
     }
   })
 );

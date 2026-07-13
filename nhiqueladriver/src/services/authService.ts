@@ -15,16 +15,22 @@ export const loginUser = async (phoneNumber: string, password: string): Promise<
 
     const responseData = response.data;
 
-    // ✅ CORREÇÃO: Adaptar a estrutura para nossa interface User
+    // ✅ Mapear todos os campos da resposta do servidor para o User local
     const userData: User = {
       _id: responseData._id,
       name: responseData.name,
-      photo: responseData.photo,
+      // profileImage é o campo real na BD MongoDB
+      photo: responseData.profileImage || responseData.photo,
+      profileImage: responseData.profileImage || responseData.photo,
       email: responseData.email,
       phoneNumber: responseData.phoneNumber,
       isDeliveryMan: responseData.isDeliveryMan,
-      isBanned: false,
-      isSeller: false,
+      isBanned: responseData.isBanned ?? false,
+      isSeller: responseData.isSeller ?? false,
+      isApproved: responseData.isApproved ?? false,
+      // status é o campo chave para verificar aprovação do motorista
+      status: responseData.status,
+      availability: responseData.availability,
       token: responseData.token,
       deliveryman: responseData.deliveryman
     };
@@ -103,10 +109,16 @@ export const verifyOTP = async (phoneNumber: string, otp: string): Promise<User>
     const userData: User = {
       _id: responseData._id,
       name: responseData.name,
-      photo: responseData.photo,
+      photo: responseData.profileImage || responseData.photo,
+      profileImage: responseData.profileImage || responseData.photo,
       email: responseData.email,
       phoneNumber: responseData.phoneNumber,
       isDeliveryMan: responseData.isDeliveryMan,
+      isBanned: responseData.isBanned ?? false,
+      isSeller: responseData.isSeller ?? false,
+      isApproved: responseData.isApproved ?? false,
+      status: responseData.status,
+      availability: responseData.availability,
       token: responseData.token,
       deliveryman: responseData.deliveryman
     };

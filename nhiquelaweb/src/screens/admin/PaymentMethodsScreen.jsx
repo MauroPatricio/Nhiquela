@@ -18,7 +18,7 @@ export default function PaymentMethodsScreen() {
     icon: '', 
     status: 'Ativo', 
     order: 0, 
-    type: 'Carteira Digital' 
+    type: '0 - Numer√°rio / Dinheiro' 
   });
   
   const [showModal, setShowModal] = useState(false);
@@ -29,7 +29,7 @@ export default function PaymentMethodsScreen() {
   } = usePagination(methods, 10, ['name', 'description', 'type']);
 
   const paymentTypes = [
-    'Carteira Digital', 'Dinheiro', 'Cart„o Visa', 'Cart„o Mastercard', 'M-Pesa', 'E-Mola', 'TransferÍncia Banc·ria', 'Outros'
+    '0 - Numer√°rio / Dinheiro', '1 - Carteira Digital', '2 - Transfer√™ncia M√≥vel', '3 - Transfer√™ncia Banc√°ria / VISA'
   ];
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function PaymentMethodsScreen() {
       const { data } = await api.get('/payment-methods');
       setMethods(data || []);
     } catch (error) {
-      toast.error('Erro ao carregar mÈtodos de pagamento');
+      toast.error('Erro ao carregar m√©todos de pagamento');
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function PaymentMethodsScreen() {
         icon: method.icon || '', 
         status: method.status || 'Ativo',
         order: method.order ?? 0,
-        type: method.type || 'Outros'
+        type: method.type || '0 - Numer√°rio / Dinheiro'
       });
     } else {
       setIsEditing(false);
@@ -68,7 +68,7 @@ export default function PaymentMethodsScreen() {
         icon: '', 
         status: 'Ativo', 
         order: 0, 
-        type: 'Carteira Digital' 
+        type: '0 - Numer√°rio / Dinheiro' 
       });
     }
     setShowModal(true);
@@ -76,34 +76,45 @@ export default function PaymentMethodsScreen() {
 
   const handleCloseModal = () => setShowModal(false);
 
+  const toggleStatus = async (method) => {
+    const newStatus = method.status === 'Ativo' ? 'Inativo' : 'Ativo';
+    try {
+      await api.put(`/payment-methods/${method._id || method.id}`, { status: newStatus });
+      toast.success(`M√©todo ${newStatus.toLowerCase()} com sucesso!`);
+      fetchMethods();
+    } catch (error) {
+      toast.error('Erro ao alterar estado do m√©todo');
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('O nome È obrigatÛrio');
-    if (!formData.type) return toast.error('O tipo È obrigatÛrio');
+    if (!formData.name) return toast.error('O nome ÔøΩ obrigat√≥rio');
+    if (!formData.type) return toast.error('O tipo ÔøΩ obrigat√≥rio');
     
     try {
       if (isEditing) {
         await api.put(`/payment-methods/${currentId}`, formData);
-        toast.success('MÈtodo atualizado com sucesso!');
+        toast.success('M√©todo atualizado com sucesso!');
       } else {
         await api.post('/payment-methods', formData);
-        toast.success('MÈtodo criado com sucesso!');
+        toast.success('M√©todo criado com sucesso!');
       }
       fetchMethods();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar mÈtodo de pagamento');
+      toast.error('Erro ao guardar m√©todo de pagamento');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem a certeza que deseja eliminar este mÈtodo de pagamento?')) {
+    if (window.confirm('Tem a certeza que deseja eliminar este m√©todo de pagamento?')) {
       try {
         await api.delete(`/payment-methods/${id}`);
-        toast.success('MÈtodo eliminado com sucesso!');
+        toast.success('M√©todo eliminado com sucesso!');
         fetchMethods();
       } catch (error) {
-        toast.error('Erro ao eliminar mÈtodo');
+        toast.error('Erro ao eliminar m√©todo');
       }
     }
   };
@@ -113,7 +124,7 @@ export default function PaymentMethodsScreen() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold m-0 text-dark">Formas de Pagamento</h2>
-          <span className="text-muted small">Gest„o global de mÈtodos de pagamento do sistema</span>
+          <span className="text-muted small">Gest√£o global de m√©todos de pagamento do sistema</span>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="position-relative" style={{ width: '250px' }}>
@@ -123,14 +134,14 @@ export default function PaymentMethodsScreen() {
             <input 
               type="text" 
               className="form-control rounded-pill ps-5 bg-light border-0 py-2" 
-              placeholder="Pesquisar mÈtodo..."
+              placeholder="Pesquisar m√©todo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
             <FontAwesomeIcon icon={faPlus} className="me-2" />
-            Novo MÈtodo
+            Novo M√©todo
           </button>
         </div>
       </div>
@@ -141,11 +152,11 @@ export default function PaymentMethodsScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">MÈtodo</th>
+                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">M√©todo</th>
                   <th className="border-0 text-muted py-3">Tipo</th>
                   <th className="border-0 text-muted py-3">Ordem</th>
                   <th className="border-0 text-muted py-3">Estado</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">AÁıes</th>
+                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">A√ß√µes</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +166,7 @@ export default function PaymentMethodsScreen() {
                   </tr>
                 ) : currentMethods.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum mÈtodo encontrado.</td>
+                    <td colSpan="5" className="text-center py-5 text-muted">Nenhum m√©todo encontrado.</td>
                   </tr>
                 ) : currentMethods.map(method => (
                   <tr key={method._id || method.id}>
@@ -181,11 +192,18 @@ export default function PaymentMethodsScreen() {
                     </td>
                     <td>{method.order}</td>
                     <td>
-                      {method.status === 'Ativo' ? (
-                        <span className="badge bg-success-subtle text-success border border-success-subtle"><FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Ativo</span>
-                      ) : (
-                        <span className="badge bg-danger-subtle text-danger border border-danger-subtle"><FontAwesomeIcon icon={faTimesCircle} className="me-1" /> Inativo</span>
-                      )}
+                      <div 
+                        className="d-inline-block transition-all" 
+                        style={{ cursor: 'pointer' }} 
+                        onClick={() => toggleStatus(method)}
+                        title="Clique para alterar o estado"
+                      >
+                        {method.status === 'Ativo' ? (
+                          <span className="badge bg-success-subtle text-success border border-success-subtle hover-transform"><FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Ativo</span>
+                        ) : (
+                          <span className="badge bg-danger-subtle text-danger border border-danger-subtle hover-transform"><FontAwesomeIcon icon={faTimesCircle} className="me-1" /> Inativo</span>
+                        )}
+                      </div>
                     </td>
                     <td className="text-end px-4">
                       <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(method)} title="Editar">
@@ -212,7 +230,7 @@ export default function PaymentMethodsScreen() {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
           <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '600px' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar MÈtodo' : 'Novo MÈtodo de Pagamento'}</h5>
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar M√©todo' : 'Novo M√©todo de Pagamento'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}>
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -232,25 +250,39 @@ export default function PaymentMethodsScreen() {
                     />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label fw-bold small text-muted mb-1">Õcone</label>
+                    <label className="form-label fw-bold small text-muted mb-1">√çcone</label>
                     <input 
                       type="text" 
-                      className="form-control bg-light border-0 py-2 rounded-3" 
+                      className="form-control bg-light border-0 py-2 rounded-3 mb-2" 
                       value={formData.icon}
                       onChange={(e) => setFormData({...formData, icon: e.target.value})}
                       placeholder="URL ou Emoji"
                     />
+                    <div className="d-flex flex-wrap gap-1">
+                      {['üí∞', 'üí≥', 'üè¶', 'üì±', 'üíµ', 'ü™ô', 'üí∏', 'üí≤'].map(emoji => (
+                        <button 
+                          type="button" 
+                          key={emoji} 
+                          className={`btn btn-sm ${formData.icon === emoji ? 'bg-primary-custom text-white border-0' : 'btn-light text-dark border'}`}
+                          style={{ padding: '0.2rem 0.4rem', fontSize: '1.1rem' }}
+                          onClick={() => setFormData({...formData, icon: emoji})}
+                          title="Usar este emoji"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">DescriÁ„o</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Descri√ß√£o</label>
                   <textarea 
                     className="form-control bg-light border-0 py-2 rounded-3" 
                     rows="2"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Breve descriÁ„o do mÈtodo"
+                    placeholder="Breve descri√ß√£o do m√©todo"
                   ></textarea>
                 </div>
 
@@ -292,7 +324,7 @@ export default function PaymentMethodsScreen() {
 
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" />
-                  {isEditing ? 'Guardar AlteraÁıes' : 'Criar MÈtodo'}
+                  {isEditing ? 'Guardar Altera√ß√µes' : 'Criar M√©todo'}
                 </button>
               </form>
             </div>

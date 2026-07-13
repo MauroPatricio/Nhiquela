@@ -1,4 +1,4 @@
-// routes/partnerRoutes.js
+﻿// routes/partnerRoutes.js
 import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Partner from '../models/PartnerModel.js';

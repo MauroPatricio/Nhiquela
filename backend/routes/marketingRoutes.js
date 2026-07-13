@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Marketing from '../models/MarketingModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -49,7 +49,7 @@ marketingRouter.put(
       const updatedCampaign = await campaign.save();
       res.send({ message: 'Campanha atualizada', marketing: updatedCampaign });
     } else {
-      res.status(404).send({ message: 'Campanha não encontrada' });
+      res.status(404).send({ message: 'Campanha nï¿½o encontrada' });
     }
   })
 );
@@ -64,7 +64,7 @@ marketingRouter.delete(
       await campaign.deleteOne();
       res.send({ message: 'Campanha apagada' });
     } else {
-      res.status(404).send({ message: 'Campanha não encontrada' });
+      res.status(404).send({ message: 'Campanha nï¿½o encontrada' });
     }
   })
 );

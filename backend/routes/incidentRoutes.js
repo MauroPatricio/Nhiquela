@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Incident from '../models/IncidentModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -40,7 +40,7 @@ incidentRouter.put(
       const updatedIncident = await incident.save();
       res.send({ message: 'Incidente atualizado', incident: updatedIncident });
     } else {
-      res.status(404).send({ message: 'Incidente não encontrado' });
+      res.status(404).send({ message: 'Incidente nï¿½o encontrado' });
     }
   })
 );
@@ -55,7 +55,7 @@ incidentRouter.delete(
       await incident.deleteOne();
       res.send({ message: 'Incidente apagado' });
     } else {
-      res.status(404).send({ message: 'Incidente não encontrado' });
+      res.status(404).send({ message: 'Incidente nï¿½o encontrado' });
     }
   })
 );

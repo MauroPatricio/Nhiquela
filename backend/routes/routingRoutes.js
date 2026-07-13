@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import { getRoute } from '../services/routingService.js';
 
 const router = express.Router();
@@ -9,7 +9,7 @@ router.get('/route', async (req, res) => {
     const { originLat, originLng, destLat, destLng } = req.query;
 
     if (!originLat || !originLng || !destLat || !destLng) {
-      return res.status(400).json({ message: 'Parâmetros de origem e destino são obrigatórios' });
+      return res.status(400).json({ message: 'Parï¿½metros de origem e destino sï¿½o obrigatï¿½rios' });
     }
 
     const routeData = await getRoute(

@@ -8,6 +8,7 @@ type Props = {
   onFinishTrip: () => void;
   canFinishTrip: boolean;
   routeDrawn: boolean; // indica se rota já foi desenhada
+  isWaitingClient?: boolean;
 };
 
 export default function TripControls({
@@ -15,42 +16,22 @@ export default function TripControls({
   onFinishTrip,
   canFinishTrip,
   routeDrawn,
+  isWaitingClient,
 }: Props) {
-  const handleCancel = () => {
-    if (routeDrawn) {
-      Alert.alert(
-        "❌ Cancelamento não permitido",
-        "Não é possível cancelar a viagem após a rota estar desenhada. Complete a entrega do produto.",
-        [{ text: "OK" }]
-      );
-    } else {
-      onCancelTrip();
-    }
-  };
+
 
   return (
     <View style={styles.container}>
-      {/* Botão Cancelar Viagem */}
-      <TouchableOpacity onPress={handleCancel}>
-        <LinearGradient
-          colors={["#FF4E4E", "#FF7F7F"]}
-          style={styles.cancelButton}
-        >
-          <Text style={styles.text}>Cancelar Viagem</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-
       {/* Botão Finalizar Viagem */}
       <TouchableOpacity
         onPress={onFinishTrip}
-        disabled={!canFinishTrip}
-        style={{ opacity: canFinishTrip ? 1 : 0.6 }}
+        style={{ opacity: 1 }}
       >
         <LinearGradient
-          colors={canFinishTrip ? ["#27AE60", "#2ECC71"] : ["#ccc", "#aaa"]}
+          colors={canFinishTrip || isWaitingClient ? ["#27AE60", "#2ECC71"] : ["#ccc", "#aaa"]}
           style={styles.finishButton}
         >
-          <Text style={styles.text}>Finalizar Viagem</Text>
+          <Text style={styles.text}>{isWaitingClient ? "Concluir Serviço" : "Cheguei ao Destino"}</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>

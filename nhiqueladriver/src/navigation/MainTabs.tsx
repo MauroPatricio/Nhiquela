@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -10,10 +10,15 @@ import MapScreen from "../screens/MapScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import BottomMenu from "../components/BottomMenu";
 import DriverHeader from "../components/DriverHeader";
+import { useAuth } from "../context/AuthContext";
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
+  const { user } = useAuth();
+  const driverBalance = user?.deliveryman?.balance || 0;
+  const driverTrips = user?.deliveryman?.totalTrips || 0;
+  const driverEarnings = user?.deliveryman?.todayEarnings || 0;
   return (
     <View style={styles.container}>
       <DriverHeader
@@ -21,9 +26,9 @@ export default function MainTabs() {
         onNotificationPress={() => console.log("Notifications pressed")}
         onStartTrip={() => console.log("Viagem iniciada")}
         profileImage="https://via.placeholder.com/150"
-        todayEarnings="MT 245,00"
-        totalPassengers={12}
-        credit="MT 100,00"
+        todayEarnings={!isNaN(Number(driverEarnings)) ? `MT ${Number(driverEarnings).toFixed(2)}` : "MT 0.00"}
+        totalPassengers={driverTrips}
+        credit={driverBalance ? String(driverBalance) : "MT 0,00"}
         currentLocation="Maputo, Moçambique"
         batteryLevel={92}
         online={true}

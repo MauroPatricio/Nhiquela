@@ -14,7 +14,7 @@ requestRouter.post(
     const { serviceId, origin, destination, vehicleTypeId, details, recipientName, recipientPhone } = req.body;
     
     const service = await Service.findById(serviceId);
-    if (!service) return res.status(404).send({ message: 'Serviço não encontrado' });
+    if (!service) return res.status(404).send({ message: 'Serviï¿½o nï¿½o encontrado' });
 
     let estimatedPrice = service.basePrice || 0;
 
@@ -26,25 +26,46 @@ requestRouter.post(
       // Pull dynamic settings
       const Settings = (await import('../models/SettingsModel.js')).default;
       const settingsRecords = await Settings.find({
-        key: { $in: ['delivery_pricing_model', 'delivery_base_fee', 'delivery_price_per_km', 'delivery_service_fee'] }
+        key: { $in: [
+          'delivery_pricing_model', 'delivery_base_fee', 'delivery_price_per_km', 'delivery_service_fee',
+          'delivery_step_1_km', 'delivery_step_1_price',
+          'delivery_step_2_km', 'delivery_step_2_price',
+          'delivery_step_3_km', 'delivery_step_3_price',
+          'delivery_step_4_km', 'delivery_step_4_price'
+        ]}
       });
       
       let pricePerKm = 15;
       let model = 'steps';
+      let s1k = 3, s1p = 80;
+      let s2k = 7, s2p = 120;
+      let s3k = 12, s3p = 180;
+      let s4k = 20, s4p = 250;
+      let serviceFee = 20;
+
       settingsRecords.forEach(setting => {
         if (setting.key === 'delivery_pricing_model') model = setting.value;
         if (setting.key === 'delivery_price_per_km') pricePerKm = Number(setting.value);
+        if (setting.key === 'delivery_service_fee') serviceFee = Number(setting.value);
+        if (setting.key === 'delivery_step_1_km') s1k = Number(setting.value);
+        if (setting.key === 'delivery_step_1_price') s1p = Number(setting.value);
+        if (setting.key === 'delivery_step_2_km') s2k = Number(setting.value);
+        if (setting.key === 'delivery_step_2_price') s2p = Number(setting.value);
+        if (setting.key === 'delivery_step_3_km') s3k = Number(setting.value);
+        if (setting.key === 'delivery_step_3_price') s3p = Number(setting.value);
+        if (setting.key === 'delivery_step_4_km') s4k = Number(setting.value);
+        if (setting.key === 'delivery_step_4_price') s4p = Number(setting.value);
       });
 
       if (model === 'steps') {
-        if (distanceKm <= 3) estimatedPrice += 80;
-        else if (distanceKm <= 7) estimatedPrice += 120;
-        else if (distanceKm <= 12) estimatedPrice += 180;
-        else if (distanceKm <= 20) estimatedPrice += 250;
-        else estimatedPrice += 250 + ((distanceKm - 20) * pricePerKm);
+        if (distanceKm <= s1k) estimatedPrice += s1p;
+        else if (distanceKm <= s2k) estimatedPrice += s2p;
+        else if (distanceKm <= s3k) estimatedPrice += s3p;
+        else if (distanceKm <= s4k) estimatedPrice += s4p;
+        else estimatedPrice += s4p + ((distanceKm - s4k) * pricePerKm);
       } else {
         // Formula
-        estimatedPrice += distanceKm * pricePerKm;
+        estimatedPrice += (distanceKm * pricePerKm) + serviceFee;
       }
     }
 

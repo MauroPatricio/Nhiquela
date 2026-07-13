@@ -1,0 +1,222 @@
+export default [
+  {
+    "_id": "6a5228b9daf294badb95b61a",
+    "name": "Preto",
+    "hexCode": "#000000",
+    "rgbCode": "RGB(0,0,0)",
+    "isActive": true,
+    "sortOrder": 1,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.739Z",
+    "updatedAt": "2026-07-11T11:27:53.739Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b61b",
+    "name": "Branco",
+    "hexCode": "#FFFFFF",
+    "rgbCode": "RGB(255,255,255)",
+    "isActive": true,
+    "sortOrder": 2,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b61c",
+    "name": "Vermelho",
+    "hexCode": "#FF0000",
+    "rgbCode": "RGB(255,0,0)",
+    "isActive": true,
+    "sortOrder": 3,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b61d",
+    "name": "Verde",
+    "hexCode": "#008000",
+    "rgbCode": "RGB(0,128,0)",
+    "isActive": true,
+    "sortOrder": 4,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b61e",
+    "name": "Azul",
+    "hexCode": "#0000FF",
+    "rgbCode": "RGB(0,0,255)",
+    "isActive": true,
+    "sortOrder": 5,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b61f",
+    "name": "Amarelo",
+    "hexCode": "#FFFF00",
+    "rgbCode": "RGB(255,255,0)",
+    "isActive": true,
+    "sortOrder": 6,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b620",
+    "name": "Cinza",
+    "hexCode": "#808080",
+    "rgbCode": "RGB(128,128,128)",
+    "isActive": true,
+    "sortOrder": 7,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b621",
+    "name": "Prata",
+    "hexCode": "#C0C0C0",
+    "rgbCode": "RGB(192,192,192)",
+    "isActive": true,
+    "sortOrder": 8,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b622",
+    "name": "Dourado",
+    "hexCode": "#FFD700",
+    "rgbCode": "RGB(255,215,0)",
+    "isActive": true,
+    "sortOrder": 9,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b623",
+    "name": "Castanho",
+    "hexCode": "#8B4513",
+    "rgbCode": "RGB(139,69,19)",
+    "isActive": true,
+    "sortOrder": 10,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b624",
+    "name": "Bege",
+    "hexCode": "#F5F5DC",
+    "rgbCode": "RGB(245,245,220)",
+    "isActive": true,
+    "sortOrder": 11,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b625",
+    "name": "Laranja",
+    "hexCode": "#FFA500",
+    "rgbCode": "RGB(255,165,0)",
+    "isActive": true,
+    "sortOrder": 12,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b626",
+    "name": "Roxo",
+    "hexCode": "#800080",
+    "rgbCode": "RGB(128,0,128)",
+    "isActive": true,
+    "sortOrder": 13,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b627",
+    "name": "Rosa",
+    "hexCode": "#FFC0CB",
+    "rgbCode": "RGB(255,192,203)",
+    "isActive": true,
+    "sortOrder": 14,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b628",
+    "name": "Bordô",
+    "hexCode": "#800000",
+    "rgbCode": "RGB(128,0,0)",
+    "isActive": true,
+    "sortOrder": 15,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b629",
+    "name": "Azul Escuro",
+    "hexCode": "#000080",
+    "rgbCode": "RGB(0,0,128)",
+    "isActive": true,
+    "sortOrder": 16,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b62a",
+    "name": "Verde Escuro",
+    "hexCode": "#006400",
+    "rgbCode": "RGB(0,100,0)",
+    "isActive": true,
+    "sortOrder": 17,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.740Z",
+    "updatedAt": "2026-07-11T11:27:53.740Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b62b",
+    "name": "Preto Fosco",
+    "hexCode": "#1C1C1C",
+    "rgbCode": "RGB(28,28,28)",
+    "isActive": true,
+    "sortOrder": 18,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.741Z",
+    "updatedAt": "2026-07-11T11:27:53.741Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b62c",
+    "name": "Prata Metálico",
+    "hexCode": "#BFC1C2",
+    "rgbCode": "RGB(191,193,194)",
+    "isActive": true,
+    "sortOrder": 19,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.741Z",
+    "updatedAt": "2026-07-11T11:27:53.741Z"
+  },
+  {
+    "_id": "6a5228b9daf294badb95b62d",
+    "name": "Branco Pérola",
+    "hexCode": "#F8F8FF",
+    "rgbCode": "RGB(248,248,255)",
+    "isActive": true,
+    "sortOrder": 20,
+    "__v": 0,
+    "createdAt": "2026-07-11T11:27:53.741Z",
+    "updatedAt": "2026-07-11T11:27:53.741Z"
+  }
+];

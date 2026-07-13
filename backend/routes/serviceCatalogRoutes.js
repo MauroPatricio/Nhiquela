@@ -1,4 +1,4 @@
-import express from 'express';
+ï»¿import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import ServiceCategory from '../models/ServiceCategoryModel.js';
 import Service from '../models/ServiceModel.js';
@@ -65,7 +65,7 @@ catalogRouter.put(
       const updated = await category.save();
       res.send({ message: 'Categoria atualizada', category: updated });
     } else {
-      res.status(404).send({ message: 'Categoria não encontrada' });
+      res.status(404).send({ message: 'Categoria nï¿½o encontrada' });
     }
   })
 );
@@ -89,7 +89,7 @@ catalogRouter.post(
   expressAsyncHandler(async (req, res) => {
     const newService = new Service(req.body);
     const saved = await newService.save();
-    res.status(201).send({ message: 'Serviço criado', service: saved });
+    res.status(201).send({ message: 'Serviï¿½o criado', service: saved });
   })
 );
 
@@ -111,9 +111,9 @@ catalogRouter.put(
       service.sortOrder = req.body.sortOrder || service.sortOrder;
       
       const updated = await service.save();
-      res.send({ message: 'Serviço atualizado', service: updated });
+      res.send({ message: 'Serviï¿½o atualizado', service: updated });
     } else {
-      res.status(404).send({ message: 'Serviço não encontrado' });
+      res.status(404).send({ message: 'Serviï¿½o nï¿½o encontrado' });
     }
   })
 );

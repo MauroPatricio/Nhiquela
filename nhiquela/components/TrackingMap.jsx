@@ -5,19 +5,23 @@ import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import io from 'socket.io-client';
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 /**
  * TrackingMap – displays the driver location in real time for a given order.
  * Now uses react-native-maps and OSRM routing.
  */
-export default function TrackingMap({ orderId, destination, vehicleType, vehicleColor, onUpdateTracking, darkMode = false }) {
+export default function TrackingMap({ orderId, destination, origin, stepStatus, vehicleType, vehicleColor, onUpdateTracking, darkMode = false }) {
   const [driverLocation, setDriverLocation] = useState(null);
-  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [snappedDriverLocation, setSnappedDriverLocation] = useState(null);
+  const [routeCoordinates, setRouteCoordinates] = useState([]); // Driver -> Target
+  const [tripRouteCoordinates, setTripRouteCoordinates] = useState([]); // Origin -> Destination
   const [connected, setConnected] = useState(false);
   const [activeVehicleType, setActiveVehicleType] = useState(vehicleType || '');
   const [activeVehicleColor, setActiveVehicleColor] = useState(vehicleColor || '');
   const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const hasFittedInitial = useRef(false);
 
   // Fetch initial location of the driver on mount
   useEffect(() => {
@@ -58,7 +62,7 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
     if (!orderId) return;
 
     const isDev = process.env.NODE_ENV !== 'production';
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000' : 'https://api.nhiquelaservicos.com');
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.3:5000' : 'https://api.nhiquelaservicos.com');
     const socketUrl = apiUrl.replace('/api', '');
 
     const socket = io(socketUrl, { transports: ['websocket'] });
@@ -68,14 +72,14 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
 
     socket.emit('joinRoom', { orderId });
 
-    socket.on('driverLocation', (data) => {
-      setDriverLocation({ latitude: data.lat, longitude: data.lng });
+    socket.on('driver_location_update', (data) => {
+      setDriverLocation({ latitude: data.latitude, longitude: data.longitude });
       if (onUpdateTracking) {
         const speedKmH = data.speed ? data.speed * 3.6 : 0;
         onUpdateTracking({
           speed: speedKmH,
-          latitude: data.lat,
-          longitude: data.lng
+          latitude: data.latitude,
+          longitude: data.longitude
         });
       }
     });
@@ -86,39 +90,69 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
     };
   }, [orderId, onUpdateTracking]);
 
-  // Fetch OSRM route when driver location and destination are available
+  // Fetch OSRM route when driver location and target are available
   useEffect(() => {
     const fetchRoute = async () => {
-      if (!driverLocation || !destination || !destination.latitude || !destination.longitude) return;
+      // Determine the target for the driver's route
+      const target = stepStatus === 4 ? origin : destination;
+      if (!driverLocation || !target || !target.latitude || !target.longitude) return;
 
       try {
-        const osrmUrl = `http://router.project-osrm.org/route/v1/driving/${driverLocation.longitude},${driverLocation.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`;
-        const response = await fetch(osrmUrl);
-        const json = await response.json();
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        
+        const { data: result } = await api.get('/routing/route', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { 
+            originLat: driverLocation.latitude, 
+            originLng: driverLocation.longitude, 
+            destLat: target.latitude, 
+            destLng: target.longitude 
+          }
+        });
 
-        if (json.routes && json.routes.length > 0) {
-          const route = json.routes[0].geometry.coordinates.map((coord) => ({
+        if (result && result.coordinates) {
+          const route = result.coordinates.map((coord) => ({
             latitude: coord[1],
             longitude: coord[0],
           }));
           setRouteCoordinates(route);
 
+          if (route.length > 0) {
+            setSnappedDriverLocation(route[0]);
+          }
+
           if (onUpdateTracking) {
             onUpdateTracking({
-              distance: json.routes[0].distance,
-              duration: json.routes[0].duration,
+              distance: result.distanceKm * 1000,
+              duration: result.durationMinutes * 60,
             });
           }
 
-          // Fit map to show both driver and destination
+          // Acompanhar o motorista com zoom mais próximo (real time follow)
           if (mapRef.current) {
-            mapRef.current.fitToCoordinates(
-              [{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }, { latitude: destination.latitude, longitude: destination.longitude }],
-              {
-                edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
-                animated: true,
-              }
-            );
+            if (!hasFittedInitial.current) {
+               // First time: show the whole route
+               mapRef.current.fitToCoordinates(
+                 [{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }, { latitude: target.latitude, longitude: target.longitude }],
+                 {
+                   edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
+                   animated: true,
+                 }
+               );
+               hasFittedInitial.current = true;
+            } else if (route.length > 0) {
+               // Follow the driver closely, using snapped location
+               mapRef.current.animateCamera({
+                 center: {
+                   latitude: route[0].latitude,
+                   longitude: route[0].longitude,
+                 },
+                 pitch: 45,
+                 heading: driverLocation.heading || 0,
+                 zoom: 17 // Zoom in closely
+               }, { duration: 1000 });
+            }
           }
         }
       } catch (error) {
@@ -132,7 +166,53 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
     }, 2000);
 
     return () => clearTimeout(timeoutId);
-  }, [driverLocation, destination, onUpdateTracking]);
+  }, [driverLocation, destination]); // Removido onUpdateTracking para evitar re-renders infinitos e timeouts cancelados
+
+  // Fetch full trip route (Origin to Destination) - Useful for history and full context
+  useEffect(() => {
+    if (!origin || !destination || !origin.latitude || !destination.latitude) return;
+
+    const fetchTripRoute = async () => {
+      try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+        
+        const { data: result } = await api.get('/routing/route', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { 
+            originLat: origin.latitude, 
+            originLng: origin.longitude, 
+            destLat: destination.latitude, 
+            destLng: destination.longitude 
+          }
+        });
+
+        if (result && result.coordinates) {
+          const route = result.coordinates.map((coord) => ({
+            latitude: coord[1],
+            longitude: coord[0],
+          }));
+          setTripRouteCoordinates(route);
+          
+          // Fit map to show the whole trip if driver location is not yet available
+          if (!driverLocation && mapRef.current && !hasFittedInitial.current) {
+             mapRef.current.fitToCoordinates(
+               [{ latitude: origin.latitude, longitude: origin.longitude }, { latitude: destination.latitude, longitude: destination.longitude }],
+               {
+                 edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
+                 animated: true,
+               }
+             );
+             hasFittedInitial.current = true;
+          }
+        }
+      } catch (error) {
+        console.warn("Erro ao buscar rota completa da viagem:", error);
+      }
+    };
+
+    fetchTripRoute();
+  }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude]);
 
   const getVehicleIcon = (type) => {
     const t = (type || '').toLowerCase();
@@ -192,20 +272,27 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
         initialRegion={initialRegion}
         showsUserLocation={false}
       >
-        {destination && destination.latitude && destination.longitude && (
-          <Marker
-            coordinate={{ latitude: destination.latitude, longitude: destination.longitude }}
-            anchor={{ x: 0.5, y: 1 }}
-          >
-             <View style={styles.destinationMarker}>
-               <View style={styles.destinationInner} />
-             </View>
+        {/* Marcador da Origem (Ponto de recolha) */}
+        {origin && (
+          <Marker coordinate={origin} title="Origem">
+            <View style={[styles.destinationMarker, { backgroundColor: '#10B981' }]}>
+              <Ionicons name="flag" size={24} color="#FFF" />
+            </View>
           </Marker>
         )}
 
-        {driverLocation && (
+        {/* Marcador do Destino (Pode ser o cliente ou o destino final) */}
+        {destination && (
+          <Marker coordinate={destination} title="Destino">
+            <View style={styles.destinationMarker}>
+              <Ionicons name="location" size={24} color="#FFF" />
+            </View>
+          </Marker>
+        )}
+
+        {(snappedDriverLocation || driverLocation) && (
           <Marker
-            coordinate={driverLocation}
+            coordinate={snappedDriverLocation || driverLocation}
             anchor={{ x: 0.5, y: 0.5 }}
           >
             <View style={[styles.vehicleMarkerContainer, { borderColor: activeColor }]}>
@@ -218,10 +305,21 @@ export default function TrackingMap({ orderId, destination, vehicleType, vehicle
           </Marker>
         )}
 
+        {/* 🔥 Full Trip Route (Origin -> Destination) for history and context */}
+        {tripRouteCoordinates.length > 0 && (
+          <Polyline
+            coordinates={tripRouteCoordinates}
+            strokeColor="#D8B4FE" // Lighter purple for the background full route
+            strokeWidth={4}
+            lineDashPattern={[1]}
+          />
+        )}
+
+        {/* 🔥 Driver Route (Driver -> Target) */}
         {routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
-            strokeColor="#9333EA" // Cor lilas/roxo da Nhiquela
+            strokeColor="#A855F7" // Strong purple for the active driver route
             strokeWidth={5}
           />
         )}

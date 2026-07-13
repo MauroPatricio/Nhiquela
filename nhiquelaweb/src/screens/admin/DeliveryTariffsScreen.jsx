@@ -12,6 +12,15 @@ export default function DeliveryTariffsScreen() {
   const [baseFee, setBaseFee] = useState(50);
   const [pricePerKm, setPricePerKm] = useState(15);
   const [serviceFee, setServiceFee] = useState(20);
+  const [driverCommissionRate, setDriverCommissionRate] = useState(15);
+  const [step1Km, setStep1Km] = useState(3);
+  const [step1Price, setStep1Price] = useState(80);
+  const [step2Km, setStep2Km] = useState(7);
+  const [step2Price, setStep2Price] = useState(120);
+  const [step3Km, setStep3Km] = useState(12);
+  const [step3Price, setStep3Price] = useState(180);
+  const [step4Km, setStep4Km] = useState(20);
+  const [step4Price, setStep4Price] = useState(250);
 
   useEffect(() => {
     fetchSettings();
@@ -27,6 +36,15 @@ export default function DeliveryTariffsScreen() {
         if (s.key === 'delivery_base_fee') setBaseFee(Number(s.value));
         if (s.key === 'delivery_price_per_km') setPricePerKm(Number(s.value));
         if (s.key === 'delivery_service_fee') setServiceFee(Number(s.value));
+        if (s.key === 'driver_commission_rate') setDriverCommissionRate(Number(s.value));
+        if (s.key === 'delivery_step_1_km') setStep1Km(Number(s.value));
+        if (s.key === 'delivery_step_1_price') setStep1Price(Number(s.value));
+        if (s.key === 'delivery_step_2_km') setStep2Km(Number(s.value));
+        if (s.key === 'delivery_step_2_price') setStep2Price(Number(s.value));
+        if (s.key === 'delivery_step_3_km') setStep3Km(Number(s.value));
+        if (s.key === 'delivery_step_3_price') setStep3Price(Number(s.value));
+        if (s.key === 'delivery_step_4_km') setStep4Km(Number(s.value));
+        if (s.key === 'delivery_step_4_price') setStep4Price(Number(s.value));
       });
     } catch (error) {
       toast.error('Erro ao carregar tarifas de entrega');
@@ -66,6 +84,15 @@ export default function DeliveryTariffsScreen() {
       await saveSetting('delivery_base_fee', baseFee, 'Taxa Base de entrega (MZN)');
       await saveSetting('delivery_price_per_km', pricePerKm, 'Valor cobrado por Quilómetro (MZN)');
       await saveSetting('delivery_service_fee', serviceFee, 'Taxa Fixa de Serviço da Plataforma (MZN)');
+      await saveSetting('driver_commission_rate', driverCommissionRate, 'Comissão da Plataforma (%)');
+      await saveSetting('delivery_step_1_km', step1Km, 'Escalão 1 (Km)');
+      await saveSetting('delivery_step_1_price', step1Price, 'Escalão 1 (Preço)');
+      await saveSetting('delivery_step_2_km', step2Km, 'Escalão 2 (Km)');
+      await saveSetting('delivery_step_2_price', step2Price, 'Escalão 2 (Preço)');
+      await saveSetting('delivery_step_3_km', step3Km, 'Escalão 3 (Km)');
+      await saveSetting('delivery_step_3_price', step3Price, 'Escalão 3 (Preço)');
+      await saveSetting('delivery_step_4_km', step4Km, 'Escalão 4 (Km)');
+      await saveSetting('delivery_step_4_price', step4Price, 'Escalão 4 (Preço)');
       
       toast.success('Configurações de Tarifas guardadas com sucesso! 🚀');
     } catch (error) {
@@ -158,6 +185,15 @@ export default function DeliveryTariffsScreen() {
                   </div>
                   <div className="form-text small">Comissão ou taxa fixa adicional (aplica-se apenas à Fórmula).</div>
                 </div>
+
+                <div className="col-md-6 mt-3">
+                  <label className="form-label fw-bold small text-muted">Comissão da Plataforma (%)</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-0"><FontAwesomeIcon icon={faBalanceScale} className="text-muted"/></span>
+                    <input type="number" className="form-control bg-light border-0 py-2" value={driverCommissionRate} onChange={(e) => setDriverCommissionRate(e.target.value)} />
+                  </div>
+                  <div className="form-text small">Percentagem cobrada ao motorista (ex: 15).</div>
+                </div>
               </div>
             </div>
           </div>
@@ -174,27 +210,39 @@ export default function DeliveryTariffsScreen() {
               
               {pricingModel === 'steps' ? (
                 <>
-                  <p className="text-light opacity-75 small mb-4">No modelo de escalões competitivo focado em Maputo, a tarifa é é cobrada por zonas de quilometragem da seguinte forma:</p>
+                  <p className="text-light opacity-75 small mb-4">No modelo de escalões competitivo, a tarifa é é cobrada por zonas de quilometragem da seguinte forma:</p>
                   
-                  <div className="d-flex justify-content-between mb-2">
-                    <span className="fw-bold">0 a 3 km:</span>
-                    <span className="text-warning fw-bold">80 MZN</span>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-bold d-flex align-items-center">0 a <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary mx-2 text-center" style={{width: '60px'}} value={step1Km} onChange={(e)=>setStep1Km(e.target.value)} /> km:</span>
+                    <div className="d-flex align-items-center">
+                      <input type="number" className="form-control form-control-sm bg-dark text-warning border-warning fw-bold text-end" style={{width: '80px'}} value={step1Price} onChange={(e)=>setStep1Price(e.target.value)} />
+                      <span className="text-warning fw-bold ms-2">MZN</span>
+                    </div>
                   </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span className="fw-bold">3 a 7 km:</span>
-                    <span className="text-warning fw-bold">120 MZN</span>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-bold d-flex align-items-center">{step1Km} a <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary mx-2 text-center" style={{width: '60px'}} value={step2Km} onChange={(e)=>setStep2Km(e.target.value)} /> km:</span>
+                    <div className="d-flex align-items-center">
+                      <input type="number" className="form-control form-control-sm bg-dark text-warning border-warning fw-bold text-end" style={{width: '80px'}} value={step2Price} onChange={(e)=>setStep2Price(e.target.value)} />
+                      <span className="text-warning fw-bold ms-2">MZN</span>
+                    </div>
                   </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span className="fw-bold">7 a 12 km:</span>
-                    <span className="text-warning fw-bold">180 MZN</span>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-bold d-flex align-items-center">{step2Km} a <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary mx-2 text-center" style={{width: '60px'}} value={step3Km} onChange={(e)=>setStep3Km(e.target.value)} /> km:</span>
+                    <div className="d-flex align-items-center">
+                      <input type="number" className="form-control form-control-sm bg-dark text-warning border-warning fw-bold text-end" style={{width: '80px'}} value={step3Price} onChange={(e)=>setStep3Price(e.target.value)} />
+                      <span className="text-warning fw-bold ms-2">MZN</span>
+                    </div>
                   </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span className="fw-bold">12 a 20 km:</span>
-                    <span className="text-warning fw-bold">250 MZN</span>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-bold d-flex align-items-center">{step3Km} a <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary mx-2 text-center" style={{width: '60px'}} value={step4Km} onChange={(e)=>setStep4Km(e.target.value)} /> km:</span>
+                    <div className="d-flex align-items-center">
+                      <input type="number" className="form-control form-control-sm bg-dark text-warning border-warning fw-bold text-end" style={{width: '80px'}} value={step4Price} onChange={(e)=>setStep4Price(e.target.value)} />
+                      <span className="text-warning fw-bold ms-2">MZN</span>
+                    </div>
                   </div>
                   <div className="d-flex justify-content-between pt-2 border-top border-secondary mt-2">
-                    <span className="fw-bold">Acima de 20 km:</span>
-                    <span className="text-warning fw-bold">250 + {pricePerKm} MZN/km</span>
+                    <span className="fw-bold">Acima de {step4Km} km:</span>
+                    <span className="text-warning fw-bold">{step4Price} + {pricePerKm} MZN/km</span>
                   </div>
                 </>
               ) : (

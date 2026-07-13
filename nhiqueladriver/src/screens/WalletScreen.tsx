@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Alert, Modal, TextInput, Image, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,10 +52,12 @@ export default function WalletScreen({ navigation, route }: any) {
   const [invalidValueModalVisible, setInvalidValueModalVisible] = useState(false);
   const [invalidValueMessage, setInvalidValueMessage] = useState("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [rechargeApprovedModalVisible, setRechargeApprovedModalVisible] = useState(false);
   const [missingReceiptModalVisible, setMissingReceiptModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
+  const [selectedDayStats, setSelectedDayStats] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchTransportTypeName = async () => {
@@ -138,8 +140,12 @@ export default function WalletScreen({ navigation, route }: any) {
       const socketUrl = API_BASE_URL.replace('/api', '');
       socket = io(socketUrl);
 
+      // Join the driver room by emitting onLogin
+      socket.emit('onLogin', user);
+
       socket.on('walletUpdated', (data: any) => {
-        // When a recharge is approved, refresh the wallet immediately
+        // When a recharge is approved, refresh the wallet immediately and show premium modal
+        setRechargeApprovedModalVisible(true);
         fetchWalletData(true); // silent refresh
       });
     }
@@ -300,7 +306,7 @@ export default function WalletScreen({ navigation, route }: any) {
           />
         </View>
         <View style={styles.transactionDetails}>
-          <Text style={styles.transactionDesc}>{isCredit ? 'Recarga' : 'Levantamento'}</Text>
+          <Text style={styles.transactionDesc}>{isCredit ? 'Recarga' : 'Levantamento (Comissão)'}</Text>
           <Text style={styles.transactionDate}>
             {formattedDate}
             {item.status === 'pendente' && <Text style={{color: '#FF9800', fontWeight: 'bold'}}> (Pendente)</Text>}
@@ -397,32 +403,52 @@ export default function WalletScreen({ navigation, route }: any) {
               </View>
             </View>
 
-            {/* Gráfico de Ganhos Diários (Visualização Nativa Simples) */}
+            {/* Gráfico de Ganhos Diários (Visualização Nativa Detalhada) */}
             {dailyEarnings.length > 0 && (
-              <View style={styles.chartContainer}>
-                <Text style={styles.sectionTitle}>Trabalhos Diários (Viagens)</Text>
-                <View style={styles.barChartContainer}>
-                  {dailyEarnings.slice(-7).map((item, index) => {
-                    // Calcula a altura da barra relativa ao número máximo de viagens
-                    const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1); // Evita divisão por zero
-                    const heightPercent = Math.max(((item.trips || 0) / maxTrips) * 100, 5); // Mínimo de 5% de altura
-
-                    // Formata a data (ex: "15/06")
-                    const dateObj = new Date(item.date);
-                    const dayLabel = isNaN(dateObj.getTime()) ? item.date.substring(0, 5) : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-
+              <View style={[styles.chartContainer, { paddingVertical: 20 }]}>
+                <Text style={styles.sectionTitle}>Trabalhos Diários (Ganhos)</Text>
+                
+                <View style={{ flexDirection: 'row', height: 220, marginTop: 15, alignItems: 'flex-end' }}>
+                  {/* Eixo Y (Escala de 10 em 10) */}
+                  {(() => {
+                    const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1);
+                    const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10;
                     return (
-                      <View key={index} style={styles.barChartCol}>
-                        <Text style={styles.barChartValue} numberOfLines={1} adjustsFontSizeToFit>
-                          {(item.trips || 0) > 0 ? `${item.trips}` : ''}
-                        </Text>
-                        <View style={styles.barChartBarBg}>
-                          <View style={[styles.barChartBarFill, { height: `${heightPercent}%` }]} />
-                        </View>
-                        <Text style={styles.barChartLabel}>{dayLabel}</Text>
+                      <View style={{ justifyContent: 'space-between', height: '100%', paddingBottom: 25, paddingRight: 10, borderRightWidth: 1, borderRightColor: '#E0E0E0' }}>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>{scaleTop} V</Text>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>{Math.round(scaleTop / 2)} V</Text>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>0</Text>
                       </View>
                     );
-                  })}
+                  })()}
+
+                  {/* Barras do Gráfico */}
+                  <View style={[styles.barChartContainer, { flex: 1, height: '100%', paddingLeft: 5 }]}>
+                    {dailyEarnings.slice(-7).map((item, index) => {
+                      const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1);
+                      const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10;
+                      // Calcula altura em relação ao teto da escala
+                      const heightPercent = Math.max(((item.trips || 0) / scaleTop) * 100, 2); 
+                      
+                      const dateObj = new Date(item.date);
+                      const dayLabel = isNaN(dateObj.getTime()) ? item.date.substring(0, 5) : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+
+                      return (
+                        <TouchableOpacity key={index} style={styles.barChartCol} onPress={() => setSelectedDayStats(item)}>
+                          <Text style={[styles.barChartValue, { marginBottom: 2, fontSize: 10 }]} numberOfLines={1} adjustsFontSizeToFit>
+                            {(item.amount || 0) > 0 ? `${item.amount} MT` : ''}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#34C759', fontWeight: 'bold', marginBottom: 4 }}>
+                            {item.trips ? `${item.trips}` : '0'}
+                          </Text>
+                          <View style={[styles.barChartBarBg, { overflow: 'hidden', backgroundColor: '#F0F0F0', borderRadius: 6 }]}>
+                            <View style={[styles.barChartBarFill, { height: `${heightPercent}%`, backgroundColor: '#7F00FF', borderRadius: 6, width: '100%' }]} />
+                          </View>
+                          <Text style={[styles.barChartLabel, { marginTop: 8, fontSize: 11, fontWeight: '600' }]}>{dayLabel}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
             )}
@@ -437,7 +463,7 @@ export default function WalletScreen({ navigation, route }: any) {
             <Text style={styles.emptyText}>Nenhum movimento registado.</Text>
           </View>
         }
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
       />
 
       {/* Modal de Recarga */}
@@ -522,6 +548,134 @@ export default function WalletScreen({ navigation, route }: any) {
           </View>
         </View>
       </Modal>
+      {/* Modal de Detalhes Diários */}
+      <Modal visible={!!selectedDayStats} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Detalhes - {selectedDayStats ? (() => {
+                  const dateObj = new Date(selectedDayStats.date);
+                  return isNaN(dateObj.getTime()) ? selectedDayStats.date : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+                })() : ''}
+              </Text>
+              <TouchableOpacity onPress={() => setSelectedDayStats(null)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ marginBottom: 15, padding: 15, backgroundColor: '#F8F9FA', borderRadius: 12 }}>
+              <Text style={{ fontSize: 14, color: '#666', marginBottom: 5 }}>Faturação do dia</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#34C759' }}>{selectedDayStats ? formatCurrency(selectedDayStats.amount) : ''}</Text>
+              <Text style={{ fontSize: 13, color: '#666', marginTop: 5 }}>Total de {selectedDayStats?.trips || 0} viagens</Text>
+            </View>
+            <ScrollView style={{ flexGrow: 0 }}>
+              {selectedDayStats?.tripsList?.length > 0 ? (
+                selectedDayStats.tripsList.map((trip: any, idx: number) => (
+                  <View key={idx} style={{ 
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 16,
+                    padding: 20,
+                    marginBottom: 16,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 8,
+                    elevation: 3,
+                    borderWidth: 1,
+                    borderColor: '#F3F4F6'
+                  }}>
+                    {/* Cabeçalho da Viagem: Código e Preço */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <View>
+                        <Text style={{ fontWeight: '900', fontSize: 18, color: '#1F2937' }}>#{trip.code}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                            <Ionicons name="time-outline" size={12} color="#4B5563" style={{ marginRight: 4 }} />
+                            <Text style={{ color: '#4B5563', fontSize: 12, fontWeight: '600' }}>{trip.time}</Text>
+                          </View>
+                          <View style={{ marginHorizontal: 8 }}>
+                            <Text style={{ color: '#D1D5DB' }}>•</Text>
+                          </View>
+                          <Text style={{ color: '#7F00FF', fontSize: 13, fontWeight: '700' }}>{trip.type}</Text>
+                        </View>
+                      </View>
+                      <View style={{ backgroundColor: '#ECFDF5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
+                        <Text style={{ fontWeight: '800', fontSize: 18, color: '#059669' }}>{formatCurrency(trip.amount)}</Text>
+                      </View>
+                    </View>
+                    
+                    {/* Motivo da Viagem (se houver) */}
+                    {trip.reason && (
+                      <View style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        backgroundColor: '#FFFBEB', 
+                        padding: 12, 
+                        borderRadius: 10,
+                        marginBottom: 16,
+                        borderLeftWidth: 4,
+                        borderLeftColor: '#F59E0B'
+                      }}>
+                        <Ionicons name="information-circle" size={20} color="#D97706" style={{ marginRight: 8 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 }}>Motivo da Viagem</Text>
+                          <Text style={{ fontSize: 14, color: '#92400E', fontWeight: '500' }}>{trip.reason}</Text>
+                        </View>
+                      </View>
+                    )}
+                    
+                    {/* Box de Cliente e Trajeto */}
+                    <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 16 }}>
+                      
+                      {/* Cliente */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                        <Image 
+                          source={{ uri: trip.clientImage || 'https://via.placeholder.com/60' }} 
+                          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E7EB', marginRight: 12 }} 
+                        />
+                        <View>
+                          <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 }}>Cliente</Text>
+                          <Text style={{ fontWeight: '700', color: '#111827', fontSize: 16 }}>{trip.clientName}</Text>
+                        </View>
+                      </View>
+                      
+                      {/* Trajeto */}
+                      <View style={{ paddingLeft: 6 }}>
+                        {/* Origem */}
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
+                          <View style={{ alignItems: 'center', marginRight: 12 }}>
+                            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#7F00FF', marginTop: 4 }} />
+                            <View style={{ width: 2, height: 24, backgroundColor: '#E5E7EB', marginTop: 4 }} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Ponto de Partida</Text>
+                            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 20 }}>{trip.origin}</Text>
+                          </View>
+                        </View>
+                        
+                        {/* Destino */}
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                          <View style={{ alignItems: 'center', marginRight: 12 }}>
+                            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#10B981', marginTop: 4 }} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Ponto de Chegada</Text>
+                            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 20 }}>{trip.destination}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>Detalhes não disponíveis para este dia.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal de Sucesso Customizado (Premium) */}
       <Modal visible={successModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlayCenter}>
@@ -540,6 +694,51 @@ export default function WalletScreen({ navigation, route }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* ✅ Modal Premium de Recarga Aprovada pelo Admin */}
+      <Modal visible={rechargeApprovedModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF', borderRadius: 32, width: '100%', maxWidth: 350,
+            padding: 32, alignItems: 'center',
+            shadowColor: '#10B981', shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.3, shadowRadius: 30, elevation: 18,
+          }}>
+            <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Ionicons name="wallet" size={50} color="#059669" />
+              <View style={{ position: 'absolute', bottom: 5, right: 5, backgroundColor: '#FFF', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="checkmark-circle" size={24} color="#059669" />
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#064E3B', marginBottom: 12, textAlign: 'center' }}>
+              Recarga Aprovada! 💸
+            </Text>
+
+            <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 24, marginBottom: 8, fontWeight: '600' }}>
+              O seu saldo foi atualizado.
+            </Text>
+            
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+              A equipa validou o seu comprovativo e o valor já está disponível na sua carteira Nhiquela.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                width: '100%', paddingVertical: 16, borderRadius: 16,
+                backgroundColor: '#059669', alignItems: 'center',
+                shadowColor: '#059669', shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+              }}
+              onPress={() => setRechargeApprovedModalVisible(false)}
+              activeOpacity={0.9}
+            >
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>Ver Saldo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
 
       {/* Modal Premium de Falta de Comprovativo */}
       <Modal visible={missingReceiptModalVisible} transparent animationType="fade">
@@ -582,7 +781,7 @@ export default function WalletScreen({ navigation, route }: any) {
             </View>
 
             <Text style={styles.premiumAlertTitle}>
-              {selectedTransaction?.type === 'credit' ? 'Recarga' : 'Levantamento'}
+              {selectedTransaction?.type === 'credit' ? 'Recarga' : 'Levantamento (Comissão)'}
             </Text>
             
             <Text style={{ 
