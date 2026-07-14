@@ -76,6 +76,14 @@ export default function ProviderSubcategoriesScreen() {
     requiresPhotos: false,
     vehicleTypes: [],
     pricingMode: 'AUTO',
+    commission: 0,
+    baseFare: 0,
+    pricePerKm: 0,
+    minProviderPrice: 0,
+    maxProviderPrice: 0,
+    allowNegotiation: false,
+    commissionIncidence: 'TOTAL',
+    serviceFee: 0,
   });
   const [iconPreview, setIconPreview] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -151,6 +159,9 @@ export default function ProviderSubcategoriesScreen() {
         requiresPhotos: item.requiresPhotos || false,
         vehicleTypes: item.vehicleTypes?.map(v => v._id || v) || [],
         pricingMode: item.pricingMode || 'AUTO',
+        serviceCommission: item.serviceCommission || 0,
+        allowNegotiation: item.allowNegotiation || false,
+        serviceFee: item.serviceFee || 0,
         order: item.order !== undefined ? item.order : 0,
       });
     } else {
@@ -168,6 +179,9 @@ export default function ProviderSubcategoriesScreen() {
         requiresPhotos: false,
         vehicleTypes: [],
         pricingMode: 'AUTO',
+        serviceCommission: 0,
+        allowNegotiation: false,
+        serviceFee: 0,
         order: 0,
       });
     }
@@ -273,6 +287,7 @@ export default function ProviderSubcategoriesScreen() {
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Ordem</th>
                   <th className="border-0 text-muted py-3">Nome</th>
+                  <th className="border-0 text-muted py-3">Comissão</th>
                   <th className="border-0 text-muted py-3">Tipo de Prestador</th>
                   <th className="border-0 text-muted py-3">Classificação Base</th>
                   <th className="border-0 text-muted py-3">Tipos de Viatura</th>
@@ -308,6 +323,13 @@ export default function ProviderSubcategoriesScreen() {
                             )}
                           </div>
                           <span className="fw-bold text-dark fs-6">{item.name}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="d-flex flex-column gap-1">
+                          <span className="fw-bold text-success bg-success-subtle px-2 py-1 rounded w-100 text-center" style={{fontSize: '0.75rem'}}>
+                            S: {item.serviceCommission || 0}%
+                          </span>
                         </div>
                       </td>
                       <td className="text-muted">
@@ -633,6 +655,34 @@ export default function ProviderSubcategoriesScreen() {
                         </label>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="row mb-3">
+                    <div className="col-md-12">
+                      <label className="form-label fw-bold small text-muted">Comissão do Serviço (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control bg-light border-0"
+                        value={formData.serviceCommission}
+                        onChange={e => setFormData({ ...formData, serviceCommission: Math.max(0, Number(e.target.value)) })}
+                      />
+                    </div>
+                  </div>
+
+
+
+                  <div className="form-check mb-3">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={formData.allowNegotiation}
+                      onChange={e => setFormData({ ...formData, allowNegotiation: e.target.checked })}
+                      id="allowNegotiationCheck"
+                    />
+                    <label className="form-check-label fw-bold small text-muted ms-2" htmlFor="allowNegotiationCheck">
+                      Permite Negociação?
+                    </label>
                   </div>
 
                   <div className="form-check mb-2">

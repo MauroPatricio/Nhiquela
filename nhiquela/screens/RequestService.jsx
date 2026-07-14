@@ -42,6 +42,7 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 import { EXPO_GOOGLE_MAPS_APIKEY } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
+import DateTimePicker from '@react-native-community/datetimepicker';
 export default function RequestServiceSimple() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -85,6 +86,17 @@ export default function RequestServiceSimple() {
   const [searchSeconds, setSearchSeconds] = useState(0); // contador visivel na busca
   const searchTimerRef = React.useRef(null);
   const searchCounterRef = React.useRef(null);
+
+  // Agendamento
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 1, 0, 0, 0); // default: 1 hora a partir de agora
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [scheduledConfirmed, setScheduledConfirmed] = useState(false);
 
   // Autocomplete state
   const [originText, setOriginText] = useState('');
@@ -160,14 +172,14 @@ export default function RequestServiceSimple() {
   const handleGetCurrentLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Acesso Negado', 'Precisamos da sua localização para encontrar serviços próximos de si.');
+      Alert.alert('Acesso Negado', 'Precisamos da sua localizaÃ§Ã£o para encontrar serviÃ§os prÃ³ximos de si.');
       return;
     }
 
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       if (!loc) {
-        Alert.alert('Erro', 'Não foi possível obter a sua localização. Verifique se o GPS está ativo.');
+        Alert.alert('Erro', 'NÃ£o foi possÃ­vel obter a sua localizaÃ§Ã£o. Verifique se o GPS estÃ¡ ativo.');
         return;
       }
 
@@ -183,7 +195,7 @@ export default function RequestServiceSimple() {
           longitude: loc.coords.longitude
         });
         
-        let placeName = 'Minha localização atual';
+        let placeName = 'Minha localizaÃ§Ã£o atual';
         if (addressArray && addressArray.length > 0) {
           const addr = addressArray[0];
           const street = addr.street || addr.name || '';
@@ -204,8 +216,8 @@ export default function RequestServiceSimple() {
         }
       } catch (error) {
         console.log('Erro no reverse geocoding:', error);
-        setOriginText('Minha localização atual');
-        setOrigin('Minha localização atual');
+        setOriginText('Minha localizaÃ§Ã£o atual');
+        setOrigin('Minha localizaÃ§Ã£o atual');
       }
 
       if (mapRef.current) {
@@ -367,22 +379,22 @@ export default function RequestServiceSimple() {
           } else {
             setPrice(service?.baseFare || 0);
           }
-          // NAO forcar snap aqui — deixar o utilizador controlar a posicao do sheet
+          // NAO forcar snap aqui â€” deixar o utilizador controlar a posicao do sheet
           if (data.routeCoordinates && data.routeCoordinates.length > 0) {
             setRouteCoords(data.routeCoordinates);
           } else {
             setRouteCoords([]);
-            Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
+            Alert.alert('Erro de Rota', 'NÃ£o foi possÃ­vel calcular esta rota. Escolha outro destino.');
           }
           
           if (data.breakdown && data.breakdown.durationMin) {
             setDuration(Math.round(data.breakdown.durationMin));
           }
         } catch (error) {
-          console.log('Erro ao consultar motor de preços:', error);
+          console.log('Erro ao consultar motor de preÃ§os:', error);
           setPrice(120); // Fallback
           setRouteCoords([]);
-          Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
+          Alert.alert('Erro de Rota', 'NÃ£o foi possÃ­vel calcular esta rota. Escolha outro destino.');
         }
       }
     };
@@ -440,7 +452,7 @@ export default function RequestServiceSimple() {
     }
   }, [originCoord, destCoord, routeCoords]);
 
-  // REAL Search Logic — calls API, waits 10s, then asks to expand radius
+  // REAL Search Logic â€” calls API, waits 10s, then asks to expand radius
   useEffect(() => {
     if (!isSearching) {
       // Limpar timers ao parar a busca
@@ -554,13 +566,16 @@ export default function RequestServiceSimple() {
         reason: reason,
         description: reason,
         paymentMethod: preferredPaymentMethodName,
-        deliveryPrice: finalPrice,  // Backend irá substituir pelo valor calculado server-side
-        serviceId: service._id,     // Obrigatório para o motor de preços recalcular server-side
+        deliveryPrice: finalPrice,  // Backend irÃ¡ substituir pelo valor calculado server-side
+        serviceId: service._id,     // ObrigatÃ³rio para o motor de preÃ§os recalcular server-side
         isPaid: false,
         stepStatus: 3,
         latitude: originCoord.lat,
         longitude: originCoord.lng,
-        targetDriverId: driver._id
+        targetDriverId: driver._id,
+        // Agendamento
+        isScheduled: isScheduled,
+        scheduledAt: isScheduled ? scheduledDate.toISOString() : null,
       };
 
       const response = await api.post('/request-service', payload, {
@@ -597,15 +612,15 @@ export default function RequestServiceSimple() {
             }
           } else {
             setWaitingForDriver(false);
-            setShowWarningModal({ visible: true, message: 'Você já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
+            setShowWarningModal({ visible: true, message: 'VocÃª jÃ¡ tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
           }
         } catch (e) {
           setWaitingForDriver(false);
-          setShowWarningModal({ visible: true, message: 'Você já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
+          setShowWarningModal({ visible: true, message: 'VocÃª jÃ¡ tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
         }
       } else {
         setWaitingForDriver(false);
-        setShowWarningModal({ visible: true, message: 'Falha ao criar o pedido. Verifique sua conexão e tente novamente.' });
+        setShowWarningModal({ visible: true, message: 'Falha ao criar o pedido. Verifique sua conexÃ£o e tente novamente.' });
       }
     }
   };
@@ -659,13 +674,13 @@ export default function RequestServiceSimple() {
            });
            const myOrder = data.deliverRequests && data.deliverRequests[0];
            if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
-             if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') {
+             if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponÃ­vel') {
                 Alert.alert("Cancelado", "O pedido foi cancelado ou nenhum motorista aceitou.");
                 setWaitingForDriver(false);
                 setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
-             } else if (myOrder.status === 'Aceite pelo entregador') {
+             } else if (myOrder.status === 'Pedido aceite') {
                 setWaitingForDriver(false);
                 setIsSearching(false);
                 setActiveTripData(myOrder);
@@ -686,7 +701,7 @@ export default function RequestServiceSimple() {
 
       socket.on('order_updated', (updatedOrder) => {
          if (isMounted && updatedOrder._id === currentRequestServiceId) {
-            if (updatedOrder.status === 'Motorista indisponível') {
+            if (updatedOrder.status === 'Motorista indisponÃ­vel') {
                 setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
                 setWaitingForDriver(false);
                 setIsSearching(false);
@@ -699,8 +714,8 @@ export default function RequestServiceSimple() {
                 setIsSearching(false);
                 setSelectedDriverForRequest(null);
                 setCurrentRequestServiceId(null);
-                // Sem alert, pois foi o próprio cliente que cancelou ou admin
-            } else if (updatedOrder.status === 'Aceite pelo entregador') {
+                // Sem alert, pois foi o prÃ³prio cliente que cancelou ou admin
+            } else if (updatedOrder.status === 'Pedido aceite') {
                 setWaitingForDriver(false);
                 setIsSearching(false);
                 setActiveTripData(updatedOrder);
@@ -732,7 +747,7 @@ export default function RequestServiceSimple() {
          if (isMounted && updatedOrder._id === activeTripData._id) {
             setActiveTripData(updatedOrder);
             
-            // Notificações Baseadas no Estado
+            // NotificaÃ§Ãµes Baseadas no Estado
             if (updatedOrder.status === 'No destino indicado') {
                Alert.alert(
                  "O motorista chegou!", 
@@ -748,7 +763,7 @@ export default function RequestServiceSimple() {
          }
       });
       
-      // Listener para a localização do motorista em tempo real
+      // Listener para a localizaÃ§Ã£o do motorista em tempo real
       socket.on('driver_location_update', (data) => {
          if (isMounted) {
             setDriverCoord({
@@ -795,9 +810,9 @@ export default function RequestServiceSimple() {
     ? service.motives
     : [
         'Transporte de documentos',
-        'Mudança de casa',
+        'MudanÃ§a de casa',
         'Mercadorias gerais',
-        'Equipamento frágil'
+        'Equipamento frÃ¡gil'
       ];
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -853,7 +868,7 @@ export default function RequestServiceSimple() {
                 borderRadius: 10,
                 alignItems: 'center',
               }}>
-                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>📍 Arraste para ajustar</Text>
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>ðŸ“ Arraste para ajustar</Text>
               </View>
             </Callout>
           </Marker>
@@ -943,7 +958,7 @@ export default function RequestServiceSimple() {
                 <Ionicons name="close" size={24} color="#1A1A1A" />
               </TouchableOpacity>
               <Text style={styles.mainTitle}>O que pretende fazer?</Text>
-              {/* Botão de minimizar — toggle ver rota / voltar */}
+              {/* BotÃ£o de minimizar â€” toggle ver rota / voltar */}
               {originCoord && destCoord ? (
                 <TouchableOpacity
                   style={[
@@ -987,13 +1002,13 @@ export default function RequestServiceSimple() {
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
             <View>
-              <Text style={styles.label}>Serviço</Text>
+              <Text style={styles.label}>ServiÃ§o</Text>
               <Text style={styles.serviceName}>{service.name}</Text>
             </View>
             <TouchableOpacity 
               onPress={() => {
                 if (!reason && showMotives) {
-                  setShowWarningModal({ visible: true, message: 'Selecione primeiro o motivo da solicitação.' });
+                  setShowWarningModal({ visible: true, message: 'Selecione primeiro o motivo da solicitaÃ§Ã£o.' });
                   return;
                 }
                 setShowMotives(!showMotives);
@@ -1007,7 +1022,7 @@ export default function RequestServiceSimple() {
           {showMotives && (
             <>
               <Text style={[styles.label, { marginTop: 5 }]}>
-                Motivo da solicitação <Text style={{ color: 'red' }}>*</Text>
+                Motivo da solicitaÃ§Ã£o <Text style={{ color: 'red' }}>*</Text>
               </Text>
               <View style={styles.grid}>
                 {motivesList.map((motive, i) => {
@@ -1139,28 +1154,141 @@ export default function RequestServiceSimple() {
             </View>
           )}
 
-          {/* BOTAO CONFIRMAR dentro do sheet — sempre presente quando origem+destino definidos */}
+          {/* ========================================================= */}
+          {/* BLOCO DE AGENDAMENTO + CONFIRMAR â€” aparece com origem+destino */}
+          {/* ========================================================= */}
           {originCoord && destCoord && !isSearching && (
-            <TouchableOpacity
-              style={styles.confirmBtnInSheet}
-              activeOpacity={0.85}
-              onPress={() => {
-                if (!reason) {
-                  setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitação.' });
-                  return;
-                }
-                Keyboard.dismiss();
-                snapTo(screenHeight);
-                setRejectedDriverIds([]);
-                setIsSearching(true);
-                startPulse();
-              }}
-            >
-              <LinearGradient colors={['#6D00E0', '#A855F7']} style={styles.confirmGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Ionicons name="checkmark-circle" size={22} color="#FFF" style={{ marginRight: 8 }} />
-                <Text style={styles.confirmBtnText}>Confirmar Pedido</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <View style={{ marginTop: 16 }}>
+
+              {/* Toggle Imediato / Agendar */}
+              <Text style={[styles.label, { marginBottom: 8 }]}>Quando pretende o servico?</Text>
+              <View style={{ flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#A855F7', marginBottom: 16 }}>
+                <TouchableOpacity
+                  style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, !isScheduled && { backgroundColor: '#7F00FF' }]}
+                  onPress={() => { setIsScheduled(false); setScheduledConfirmed(false); }}
+                >
+                  <Text style={{ color: !isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Imediato</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, isScheduled && { backgroundColor: '#7F00FF' }]}
+                  onPress={() => setIsScheduled(true)}
+                >
+                  <Text style={{ color: isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Agendar</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Seletor de Data e Hora (apenas quando Agendar selecionado) */}
+              {isScheduled && (
+                <View style={{ backgroundColor: '#F5F3FF', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#DDD6FE' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#5B21B6', marginBottom: 10 }}>Data e Hora do Servico</Text>
+
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    {/* Botao Data */}
+                    <TouchableOpacity
+                      onPress={() => setShowDatePicker(true)}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', borderRadius: 10, padding: 10 }}
+                    >
+                      <Ionicons name="calendar-outline" size={18} color="#7F00FF" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#4C1D95', fontWeight: '600', fontSize: 13 }}>
+                        {scheduledDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Botao Hora */}
+                    <TouchableOpacity
+                      onPress={() => setShowTimePicker(true)}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', borderRadius: 10, padding: 10 }}
+                    >
+                      <Ionicons name="time-outline" size={18} color="#7F00FF" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#4C1D95', fontWeight: '600', fontSize: 13 }}>
+                        {scheduledDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Aviso se a data for no passado */}
+                  {scheduledDate <= new Date() && (
+                    <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 8, fontWeight: '600' }}>
+                      âš  Escolha uma data/hora futura.
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* DatePicker (nativo) */}
+              {showDatePicker && (
+                <DateTimePicker
+                  value={scheduledDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) {
+                      const updated = new Date(scheduledDate);
+                      updated.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                      setScheduledDate(updated);
+                    }
+                  }}
+                />
+              )}
+
+              {/* TimePicker (nativo) */}
+              {showTimePicker && (
+                <DateTimePicker
+                  value={scheduledDate}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  is24Hour={true}
+                  onChange={(event, selectedTime) => {
+                    setShowTimePicker(false);
+                    if (selectedTime) {
+                      const updated = new Date(scheduledDate);
+                      updated.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+                      setScheduledDate(updated);
+                    }
+                  }}
+                />
+              )}
+
+              {/* Botao Confirmar */}
+              <TouchableOpacity
+                style={styles.confirmBtnInSheet}
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (!reason) {
+                    setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitacao.' });
+                    return;
+                  }
+                  if (isScheduled && scheduledDate <= new Date()) {
+                    setShowWarningModal({ visible: true, message: 'Por favor escolha uma data e hora futuras para o agendamento.' });
+                    return;
+                  }
+                  Keyboard.dismiss();
+                  snapTo(screenHeight);
+                  setRejectedDriverIds([]);
+                  setIsSearching(true);
+                  startPulse();
+                }}
+              >
+                <LinearGradient
+                  colors={isScheduled ? ['#F59E0B', '#D97706'] : ['#6D00E0', '#A855F7']}
+                  style={styles.confirmGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Ionicons
+                    name={isScheduled ? 'calendar-sharp' : 'checkmark-circle'}
+                    size={22}
+                    color="#FFF"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.confirmBtnText}>
+                    {isScheduled ? 'Confirmar Agendamento' : 'Confirmar Pedido'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* Espaco extra no fundo do scroll */}
@@ -1210,7 +1338,7 @@ export default function RequestServiceSimple() {
           </View>
 
           <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-            Procurando serviço de {service?.name}...
+            Procurando serviÃ§o de {service?.name}...
           </Text>
           <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14 }}>
             Raio de busca: <Text style={{ color: '#A855F7', fontWeight: '700' }}>{radius} KM</Text>
@@ -1265,7 +1393,7 @@ export default function RequestServiceSimple() {
             <View style={{ width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginBottom: 15 }} />
             
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Motoristas Disponíveis</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Motoristas DisponÃ­veis</Text>
               <TouchableOpacity onPress={() => { setAvailableDriversList([]); setRejectedDriverIds([]); setIsSearching(true); startPulse(); }}>
                  <MaterialCommunityIcons name="refresh" size={24} color="#9800FF" />
               </TouchableOpacity>
@@ -1330,7 +1458,7 @@ export default function RequestServiceSimple() {
                                   {driver.deliveryman?.rating || 'Novo'}
                                 </Text>
                               </View>
-                              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
+                              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>â€¢</Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
                                 <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 2 }} numberOfLines={1}>
@@ -1458,16 +1586,16 @@ export default function RequestServiceSimple() {
                 A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
               </Text>
               <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-                Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
+                EnviÃ¡mos o seu pedido. Por favor aguarde enquanto o motorista analisa.
               </Text>
             </>
           ) : (
             <>
               <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                O motorista está a demorar...
+                O motorista estÃ¡ a demorar...
               </Text>
               <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-                Pode continuar a esperar ou procurar novos motoristas disponíveis.
+                Pode continuar a esperar ou procurar novos motoristas disponÃ­veis.
               </Text>
             </>
           )}
@@ -1494,7 +1622,7 @@ export default function RequestServiceSimple() {
                   {selectedFinalPrice.toFixed(0)} MT
                 </Text>
                 <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                  Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
+                  Taxa Base ({selectedBaseFare.toFixed(0)} MT) + DeslocaÃ§Ã£o ({selectedDeslocacao.toFixed(0)} MT)
                 </Text>
               </View>
             );
@@ -1540,7 +1668,7 @@ export default function RequestServiceSimple() {
                   } catch(e) { console.log('Erro ao reenviar', e); }
                 }}
               >
-                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar à espera</Text>
+                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar Ã  espera</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -1576,7 +1704,7 @@ export default function RequestServiceSimple() {
             </View>
             <Text style={styles.modalTitle}>Motoristas Ocupados</Text>
             <Text style={styles.modalDesc}>
-              Não encontrámos nenhum motorista disponível num raio de {radius} KM. Deseja aumentar o raio em +2 KM?
+              NÃ£o encontrÃ¡mos nenhum motorista disponÃ­vel num raio de {radius} KM. Deseja aumentar o raio em +2 KM?
             </Text>
             
             <View style={styles.modalButtons}>
@@ -1618,9 +1746,9 @@ export default function RequestServiceSimple() {
             <View style={[styles.modalIconBox, { backgroundColor: '#FEF2F2' }]}>
               <MaterialCommunityIcons name="car-off" size={32} color="#EF4444" />
             </View>
-            <Text style={styles.modalTitle}>Indisponível</Text>
+            <Text style={styles.modalTitle}>IndisponÃ­vel</Text>
             <Text style={styles.modalDesc}>
-              O motorista selecionado não se encontra disponível neste momento. Por favor, pesquise por outros motoristas.
+              O motorista selecionado nÃ£o se encontra disponÃ­vel neste momento. Por favor, pesquise por outros motoristas.
             </Text>
             
             <View style={styles.modalButtons}>
@@ -1647,7 +1775,7 @@ export default function RequestServiceSimple() {
             <View style={[styles.modalIconBox, { backgroundColor: '#FEE2E2' }]}>
               <MaterialCommunityIcons name="alert-circle-outline" size={32} color="#EF4444" />
             </View>
-            <Text style={styles.modalTitle}>Atenção</Text>
+            <Text style={styles.modalTitle}>AtenÃ§Ã£o</Text>
             <Text style={styles.modalDesc}>
               {showWarningModal.message}
             </Text>
@@ -1688,13 +1816,13 @@ export default function RequestServiceSimple() {
             </View>
             
             <Text style={styles.premiumModalTitle}>
-              {activeTripData?.status === 'Pendente' ? 'Solicitação Pendente' : 'Viagem Aceite!'}
+              {activeTripData?.status === 'Pendente' ? 'SolicitaÃ§Ã£o Pendente' : 'Viagem Aceite!'}
             </Text>
             
             <Text style={styles.premiumModalBody}>
               {activeTripData?.status === 'Pendente' 
-                ? 'Você já tem uma solicitação pendente em curso. Por favor, acompanhe-a antes de iniciar outro serviço.'
-                : `O motorista ${activeTripData?.deliveryman?.name || 'parceiro'} aceitou a sua viagem! Acompanhe a trajetória em tempo real.`}
+                ? 'VocÃª jÃ¡ tem uma solicitaÃ§Ã£o pendente em curso. Por favor, acompanhe-a antes de iniciar outro serviÃ§o.'
+                : `O motorista ${activeTripData?.deliveryman?.name || 'parceiro'} aceitou a sua viagem! Acompanhe a trajetÃ³ria em tempo real.`}
             </Text>
             
             <TouchableOpacity

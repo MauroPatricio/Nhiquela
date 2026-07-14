@@ -1,20 +1,25 @@
-const request = require('supertest');
-const mongoose = require('mongoose');
-const app = require('../index'); // Assuming index.js exports the express app
-const User = require('../models/UserModel');
-const DeliverymanUpdateRequest = require('../models/DeliverymanUpdateRequestModel');
-const { setupDB, teardownDB, clearDB } = require('./setup'); // Assuming setup helpers exist
+import request from 'supertest';
+import mongoose from 'mongoose';
+import app from '../index.js'; // Assuming index.js exports the express app
+import User from '../models/UserModel.js';
+import DeliverymanUpdateRequest from '../models/DeliverymanUpdateRequestModel.js';
+
+const EMAIL_SUFFIX = '@delupdate.com';
 
 beforeAll(async () => {
-  await setupDB();
+  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nhiquela_test_db');
+  await User.deleteMany({ email: { $regex: EMAIL_SUFFIX + '$' } });
 });
 
 afterAll(async () => {
-  await teardownDB();
+  await User.deleteMany({ email: { $regex: EMAIL_SUFFIX + '$' } });
+  await DeliverymanUpdateRequest.deleteMany({});
+  await mongoose.connection.close();
 });
 
 afterEach(async () => {
-  await clearDB();
+  await User.deleteMany({ email: { $regex: EMAIL_SUFFIX + '$' } });
+  await DeliverymanUpdateRequest.deleteMany({});
 });
 
 describe('Deliveryman Profile Update', () => {
@@ -26,7 +31,7 @@ describe('Deliveryman Profile Update', () => {
     // Create driver
     const driver = new User({
       name: 'Driver Test',
-      email: 'driver@test.com',
+      email: `driver${EMAIL_SUFFIX}`,
       password: 'password123',
       isDeliveryMan: true,
       deliveryman: {
@@ -41,7 +46,7 @@ describe('Deliveryman Profile Update', () => {
     // Create admin
     const admin = new User({
       name: 'Admin Test',
-      email: 'admin@test.com',
+      email: `admin${EMAIL_SUFFIX}`,
       password: 'password123',
       isAdmin: true,
     });
@@ -51,12 +56,12 @@ describe('Deliveryman Profile Update', () => {
     // For unit testing routes with isAuth, usually we mock the token or login
     const driverLogin = await request(app)
       .post('/api/users/signin')
-      .send({ email: 'driver@test.com', password: 'password123' });
+      .send({ email: `driver${EMAIL_SUFFIX}`, password: 'password123' });
     driverToken = driverLogin.body.token;
 
     const adminLogin = await request(app)
       .post('/api/users/signin')
-      .send({ email: 'admin@test.com', password: 'password123' });
+      .send({ email: `admin${EMAIL_SUFFIX}`, password: 'password123' });
     adminToken = adminLogin.body.token;
   });
 

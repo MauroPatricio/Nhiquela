@@ -73,7 +73,7 @@ requestServiceer.get(
     const activeTrip = await RequestService.findOne({
       user: req.user._id,
       deleted: false,
-      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Em trânsito'] }
+      status: { $in: ['Pendente', 'Pedido aceite', 'A Caminho', 'Em andamento', 'Em trÃ¢nsito'] }
     }).populate('user', 'name phoneNumber profileImage');
 
     if (activeTrip) {
@@ -93,17 +93,17 @@ requestServiceer.post(
     const existingActiveTrip = await RequestService.findOne({
       user: req.user._id,
       deleted: false,
-      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Em trânsito'] }
+      status: { $in: ['Pendente', 'Pedido aceite', 'A Caminho', 'Em andamento', 'Em trÃ¢nsito'] }
     });
 
     if (existingActiveTrip) {
-      return res.status(409).send({ message: 'Já tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
+      return res.status(409).send({ message: 'JÃ¡ tem uma viagem activa. Conclua ou cancele a viagem actual antes de solicitar uma nova.' });
     }
 
     // Check for cancellation penalty block
     const currentUser = await User.findById(req.user._id);
     if (currentUser && currentUser.blockedUntil && currentUser.blockedUntil > new Date()) {
-      return res.status(403).send({ message: "Conta bloqueada por 30 dias devido a cancelamentos sucessivos sem justificação válida." });
+      return res.status(403).send({ message: "Conta bloqueada por 30 dias devido a cancelamentos sucessivos sem justificaÃ§Ã£o vÃ¡lida." });
     }
 
 
@@ -133,15 +133,18 @@ requestServiceer.post(
       targetDriverId: req.body.targetDriverId,
       latitude: req.body.latitude,
       longitude: req.body.longitude,
-      isSearching: !req.body.targetDriverId,
+      isSearching: !req.body.targetDriverId && !req.body.isScheduled, // NÃ£o iniciar busca se for agendado
       searchRadius: 3000,
       contactedDrivers: [],
-      lastDispatchTime: new Date()
+      lastDispatchTime: new Date(),
+      // Agendamento
+      isScheduled: req.body.isScheduled || false,
+      scheduledAt: req.body.isScheduled && req.body.scheduledAt ? new Date(req.body.scheduledAt) : null,
     });
 
     // ============================================================
-    // CÁLCULO AUTOMÁTICO DO PREÇO (server-side, imutável)
-    // Executado ANTES do save() — o backend nunca confia no preço do cliente
+    // CÃLCULO AUTOMÃTICO DO PREÃ‡O (server-side, imutÃ¡vel)
+    // Executado ANTES do save() â€” o backend nunca confia no preÃ§o do cliente
     // ============================================================
     const originDetails = req.body.originDetails;
     const destinationDetails = req.body.destinationDetails;
@@ -149,7 +152,7 @@ requestServiceer.post(
 
     if (originDetails?.lat && destinationDetails?.lat && serviceId) {
       try {
-        console.log(`[PricingService] A calcular preço para pedido ${newOrder.code}...`);
+        console.log(`[PricingService] A calcular preÃ§o para pedido ${newOrder.code}...`);
         const priceResult = await PricingService.calculatePrice({
           serviceId,
           originLoc: { lat: originDetails.lat, lng: originDetails.lng },
@@ -158,7 +161,7 @@ requestServiceer.post(
           providerId: req.body.targetDriverId
         });
 
-        // Guardar snapshot completo e imutável do cálculo
+        // Guardar snapshot completo e imutÃ¡vel do cÃ¡lculo
         newOrder.pricing = {
           distanceKm: priceResult.breakdown.distanceKm,
           costDeslocacao: priceResult.breakdown.distanceCost + priceResult.breakdown.timeCost,
@@ -171,26 +174,26 @@ requestServiceer.post(
         // Substituir o deliveryPrice enviado pelo cliente pelo valor calculado pelo servidor
         newOrder.deliveryPrice = priceResult.price;
 
-        console.log(`[PricingService] ✅ Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
+        console.log(`[PricingService] âœ… PreÃ§o calculado: ${priceResult.price} MT (distÃ¢ncia: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
       } catch (pricingErr) {
-        // Não bloquear a criação do pedido — usar o preço do cliente como fallback
-        console.warn(`[PricingService] ⚠️ Falha no cálculo automático. A usar deliveryPrice do cliente (${req.body.deliveryPrice} MT). Erro: ${pricingErr.message}`);
+        // NÃ£o bloquear a criaÃ§Ã£o do pedido â€” usar o preÃ§o do cliente como fallback
+        console.warn(`[PricingService] âš ï¸ Falha no cÃ¡lculo automÃ¡tico. A usar deliveryPrice do cliente (${req.body.deliveryPrice} MT). Erro: ${pricingErr.message}`);
       }
     } else {
-      console.log(`[PricingService] ℹ️ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
+      console.log(`[PricingService] â„¹ï¸ Campos inÃ³suficientes para cÃ¡lculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
     }
 
-    let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
+    let mailText = `OlÃ¡ ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
 
     //  Para envio de mensagens
     // const sellerOfProduct = await User.findById(newOrder.seller);
 
     if (newOrder.isPaid) {
       // Enviar sms para o fornecedor
-      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`;
+      let msg = `OlÃ¡, a Nhiquela  informa que possui um novo pedido com o cÃ³digo n ${newOrder.code}`;
       sendSMSToUSendItDeliverman(msg);
     } else {
-      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`;
+      let msg = `OlÃ¡, a Nhiquela  informa que possui um novo pedido com o cÃ³digo n ${newOrder.code}`;
       sendSMSToUSendItAdmin(msg);
     }
 
@@ -224,7 +227,7 @@ requestServiceer.post(
           try {
             const checkOrder = await RequestService.findById(requestService._id);
             if (checkOrder && checkOrder.status === 'Pendente') {
-              checkOrder.status = 'Motorista indisponível';
+              checkOrder.status = 'Motorista indisponÃ­vel';
               checkOrder.targetDriverId = null;
               checkOrder.canceledReason = 'Tempo esgotado (45s)';
               await checkOrder.save();
@@ -244,6 +247,43 @@ requestServiceer.post(
             console.error('[RequestService Timeout Error]', e);
           }
         }, 45000);
+      } else if (newOrder.isScheduled) {
+        // ============================================================
+        // PEDIDO AGENDADO â€” NÃƒO despachar agora.
+        // Notificar apenas o cliente com a confirmaÃ§Ã£o do agendamento.
+        // ============================================================
+        const orderPayload = { ...requestService.toObject(), type: 'requestService' };
+
+        // Notificar o cliente via socket (confirmaÃ§Ã£o de agendamento)
+        const users = req.app.get('users') || [];
+        const orderUser = users.find((x) => x._id === req.user._id.toString());
+        if (orderUser) {
+          io.to(orderUser.socketId).emit('order_scheduled', orderPayload);
+        }
+
+        // Buscar todos os motoristas disponÃ­veis e notificÃ¡-los do novo serviÃ§o agendado
+        const availableDrivers = await User.find({
+          role: 'deliveryman',
+          'deliveryman.status': { $in: ['DisponÃ­vel', 'Em Entrega'] },
+          pushToken: { $exists: true, $ne: null }
+        }).select('_id pushToken deliveryman');
+
+        const scheduledDateStr = requestService.scheduledAt
+          ? new Date(requestService.scheduledAt).toLocaleString('pt-PT', { timeZone: 'Africa/Maputo', dateStyle: 'short', timeStyle: 'short' })
+          : 'hora nÃ£o definida';
+
+        for (const driver of availableDrivers) {
+          io.to(`driver_${driver._id}`).emit('new_scheduled_order', orderPayload);
+          if (driver.pushToken) {
+            await createNotification({
+              message: `â° ServiÃ§o agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedÃªncia.`,
+              receiver_id: driver._id,
+              pushToken: driver.pushToken
+            });
+          }
+        }
+
+        console.log(`[Scheduling] Pedido agendado ${requestService.code} para ${scheduledDateStr}. Notificados ${availableDrivers.length} motoristas.`);
       } else {
         // Intelligent Dispatch engine will handle emitting to nearest drivers
         import('../services/dispatchService.js').then((module) => {
@@ -331,7 +371,7 @@ requestServiceer.get(
     if (requestService) {
       res.send(requestService);
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -345,7 +385,7 @@ requestServiceer.get(
     if (requestService) {
       res.send(requestService);
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -362,7 +402,7 @@ requestServiceer.delete(
       requestService.status = 'Cancelado';
       requestService.targetDriverId = null;
       if (requestService.deliveryman && requestService.deliveryman.id) {
-        // 🔥 CORREÇÃO: Libertar o motorista ao apagar o pedido
+        // ðŸ”¥ CORREÃ‡ÃƒO: Libertar o motorista ao apagar o pedido
         await User.updateOne(
           { _id: requestService.deliveryman.id },
           { $set: { 'deliveryman.hasActiveService': false } }
@@ -375,13 +415,13 @@ requestServiceer.delete(
       const io = req.app.get('io');
       if (io) {
         io.to(`order_${requestService._id}`).emit('order_updated', requestService);
-        // Se ainda não tinha sido aceite por ninguém, avisar todos para removerem da lista
+        // Se ainda nÃ£o tinha sido aceite por ninguÃ©m, avisar todos para removerem da lista
         io.emit('order_updated', requestService);
       }
 
       res.send({ message: `Pedido removido com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -394,10 +434,10 @@ requestServiceer.put(
     const user_deliver = await User.findById(req.user._id);
 
     if (!user_deliver) {
-      return res.status(404).send({ message: 'Motorista não encontrado na base de dados. Por favor, inicie sessão novamente.' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado na base de dados. Por favor, inicie sessÃ£o novamente.' });
     }
 
-    // Usar uma tranósação para garantir que débito e aceite ocorrem de forma atómica
+    // Usar uma tranÃ³saÃ§Ã£o para garantir que dÃ©bito e aceite ocorrem de forma atÃ³mica
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -407,21 +447,19 @@ requestServiceer.put(
       if (!order) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
+        return res.status(409).send({ message: 'Pedido jÃ¡ foi aceite por outro motorista ou nÃ£o estÃ¡ disponÃ­vel' });
       }
 
-      // Calcular comissão baseada nas configurações financeiras dinâmicas (default 15%)
-      const financialConfig = await getFinancialConfig();
-      const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-      const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
-      const commissionmount = serviceValue * commissionRate;
+      // Calcular comissão baseada nas configurações financeiras e subcategoria
+      const { calculateDynamicCommission } = await import('../services/walletService.js');
+      const commissionmount = await calculateDynamicCommission(order);
 
-      // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
+      // Apenas validar se o motorista tem saldo suficiente, mas NÃƒO debitar ainda.
       const canAfford = await canAffordTripCommission(user_deliver._id, commissionmount);
       if (!canAfford) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
+        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviÃ§o Ã© necessÃ¡rio possuir saldo suficiente na sua carteira digital para cobrir a comissÃ£o da Nhiquela. Efetue uma recarga e tente novamente.' });
       }
 
       let deliverymanData = {};
@@ -437,8 +475,8 @@ requestServiceer.put(
         };
       }
 
-      // 🔥 ATOMIC UPDATE manually on the document
-      order.status = 'Aceite pelo entregador';
+      // ðŸ”¥ ATOMIC UPDATE manually on the document
+      order.status = 'Pedido aceite';
       order.stepStatus = 4;
       order.isAccepted = true;
       order.acceptedAt = new Date();
@@ -447,7 +485,7 @@ requestServiceer.put(
 
       await order.save({ session });
 
-      // Marcar motorista como ocupado — não deve receber novos pedidos até o cliente confirmar
+      // Marcar motorista como ocupado â€” nÃ£o deve receber novos pedidos atÃ© o cliente confirmar
       await User.updateOne(
         { _id: user_deliver._id },
         { $set: { 'deliveryman.hasActiveService': true } },
@@ -461,11 +499,11 @@ requestServiceer.put(
 
       //  Para envio de mensagens
       const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
-      let msg = `Olá, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
+      let msg = `OlÃ¡, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
 
       sendSMSToUSendIt(req, msg);
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n nhiquela`;
+      let mailText = `OlÃ¡ ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n nhiquela`;
 
       sendEmailOrderStatus(req, mailText, updateOrder, res);
 
@@ -479,18 +517,18 @@ requestServiceer.put(
         io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
         
         await createNotification({
-          message: `O seu pedido foi aceite por ${user_deliver.deliveryman?.name || 'um motorista'} e está a caminho!`,
+          message: `O seu pedido foi aceite por ${user_deliver.deliveryman?.name || 'um motorista'} e estÃ¡ a caminho!`,
           receiver_id: updateOrder.user,
           sender_id: user_deliver._id,
           orderID: updateOrder._id,
           title: 'Pedido Aceite!'
         });
         
-        // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
+        // ðŸ”¥ Notificar TODOS os outros motoristas que tinham este pedido que ele jÃ¡ foi aceite
         io.emit('order_taken', { orderId: updateOrder._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
-      res.send({ message: `Aceite pelo entregador`, order: updateOrder });
+      res.send({ message: `Pedido aceite`, order: updateOrder });
 
     } catch (error) {
       await session.abortTransaction();
@@ -518,7 +556,7 @@ requestServiceer.put(
 
       //  Para envio de mensagens
 
-      let msg = `Olá ${req.user.name},\n \n A nhiquela tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
+      let msg = `OlÃ¡ ${req.user.name},\n \n A nhiquela tem o prazer de lhe informar que o pedido ${order.code} esta a caminho do destino indicado.`;
 
 
       sendSMSToUSendIt(req, msg)
@@ -545,9 +583,9 @@ requestServiceer.put(
         });
       }
 
-      res.send({ message: `Pedido em trânsito` });
+      res.send({ message: `Pedido em trÃ¢nsito` });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -574,13 +612,13 @@ requestServiceer.put(
 
       //  Para envio de mensagens
 
-      let msg = `Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}`;
+      let msg = `OlÃ¡, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}`;
 
 
       sendSMSToUSendIt(req, msg)
 
 
-      let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n nhiquela`;
+      let mailText = `OlÃ¡ ${req.user.name},\n \n a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n nhiquela`;
 
       sendEmailOrderStatus(req, mailText, updateOrder, res);
 
@@ -593,7 +631,7 @@ requestServiceer.put(
         }
 
         await createNotification({
-          message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
+          message: `O motorista chegou ao local de recolha/destino. Por favor, vÃ¡ ao encontro do motorista.`,
           receiver_id: updateOrder.user,
           sender_id: updateOrder.deliveryman?.id,
           orderID: updateOrder._id,
@@ -603,12 +641,12 @@ requestServiceer.put(
 
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
 
-// Motorista cancela viagem por "Cliente não compareceu" (após 5 minutos)
+// Motorista cancela viagem por "Cliente nÃ£o compareceu" (apÃ³s 5 minutos)
 requestServiceer.put(
   '/:id/driver-no-show',
   isAuth,
@@ -630,7 +668,7 @@ requestServiceer.put(
         }
 
         await createNotification({
-          message: `O seu pedido foi cancelado pelo motorista pelo motivo: Não comparência.`,
+          message: `O seu pedido foi cancelado pelo motorista pelo motivo: NÃ£o comparÃªncia.`,
           receiver_id: updateOrder.user,
           sender_id: updateOrder.deliveryman?.id,
           orderID: updateOrder._id,
@@ -638,9 +676,9 @@ requestServiceer.put(
         });
       }
 
-      res.send({ message: `Viagem cancelada por não comparência`, order: updateOrder });
+      res.send({ message: `Viagem cancelada por nÃ£o comparÃªncia`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -651,7 +689,7 @@ requestServiceer.put(
   '/:id/deliver',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    // Iniciar sessão Mongoose para garantir débito e finalização de forma atómica
+    // Iniciar sessÃ£o Mongoose para garantir dÃ©bito e finalizaÃ§Ã£o de forma atÃ³mica
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -674,16 +712,15 @@ requestServiceer.put(
         }
 
         if (order.deliveryman && order.deliveryman.id) {
-          const financialConfig = await getFinancialConfig();
-          const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-          const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
-          const commissionAmount = serviceValue * commissionRate;
+          // Calcular comissão baseada nas configurações financeiras e subcategoria
+          const { calculateDynamicCommission } = await import('../services/walletService.js');
+          const commissionAmount = await calculateDynamicCommission(order);
 
           try {
             await debitDriverCommissionWithSession(
               order.deliveryman.id,
               commissionAmount,
-              `Comissão de serviço para o pedido direto ${order.code} finalizado`,
+              `ComissÃ£o de serviÃ§o para o pedido direto ${order.code} finalizado`,
               'wallet',
               session
             );
@@ -696,7 +733,7 @@ requestServiceer.put(
 
         await order.save({ session });
 
-        // Libertar motorista — pode agora receber novos pedidos
+        // Libertar motorista â€” pode agora receber novos pedidos
         if (order.deliveryman && order.deliveryman.id) {
           await User.updateOne(
             { _id: order.deliveryman.id },
@@ -710,15 +747,15 @@ requestServiceer.put(
 
         //  Para envio de mensagens
 
-        let msg = `Olá, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. nhiquela - Tudo em suas mãos.`;
+        let msg = `OlÃ¡, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nÃ³s. nhiquela - Tudo em suas mÃ£os.`;
 
         sendSMSToUSendIt(req, msg);
 
-        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n nhiquela`;
+        let mailText = `OlÃ¡ ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nÃ³s. \n \n Atenciosamente, \n nhiquela`;
 
         sendEmailOrderStatus(req, mailText, order, res);
 
-        // WebSocket Optimization — notificar cliente e motorista
+        // WebSocket Optimization â€” notificar cliente e motorista
         const io = req.app.get('io');
         if (io) {
           io.to(`order_${order._id}`).emit('order_updated', order);
@@ -733,7 +770,7 @@ requestServiceer.put(
             receiver_id: order.user,
             sender_id: order.deliveryman?.id,
             orderID: order._id,
-            title: 'Viagem Concluída'
+            title: 'Viagem ConcluÃ­da'
           });
         }
 
@@ -741,12 +778,12 @@ requestServiceer.put(
       } else {
         await session.abortTransaction();
         session.endSession();
-        res.status(404).send({ message: 'Pedido não encontrado' });
+        res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
       }
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      console.error('Erro na finalização do pedido:', error);
+      console.error('Erro na finalizaÃ§Ã£o do pedido:', error);
       res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido. Tente novamente.' });
     }
   })
@@ -760,25 +797,25 @@ requestServiceer.post(
     const { rating, review } = req.body;
     
     if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).send({ message: 'A avaliação deve ser entre 1 e 5 estrelas.' });
+      return res.status(400).send({ message: 'A avaliaÃ§Ã£o deve ser entre 1 e 5 estrelas.' });
     }
 
     const order = await RequestService.findById(req.params.id);
 
     if (order) {
       if (order.user.toString() !== req.user._id.toString()) {
-        return res.status(403).send({ message: 'Sem permissão para avaliar este pedido.' });
+        return res.status(403).send({ message: 'Sem permissÃ£o para avaliar este pedido.' });
       }
       
       if (order.rating) {
-        return res.status(400).send({ message: 'Este pedido já foi avaliado.' });
+        return res.status(400).send({ message: 'Este pedido jÃ¡ foi avaliado.' });
       }
 
       order.rating = rating;
       order.review = review;
       await order.save();
 
-      // Recalcular a média de avaliação do motorista
+      // Recalcular a mÃ©dia de avaliaÃ§Ã£o do motorista
       if (order.deliveryman && order.deliveryman.id) {
         const driver = await User.findById(order.deliveryman.id);
         
@@ -796,9 +833,9 @@ requestServiceer.post(
         }
       }
 
-      res.send({ message: 'Avaliação submetida com sucesso', order });
+      res.send({ message: 'AvaliaÃ§Ã£o submetida com sucesso', order });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -828,7 +865,7 @@ requestServiceer.put(
         order.isAccepted = false;
 
         if (req.user.isDeliveryMan && !wasAccepted) {
-          order.status = 'Motorista indisponível';
+          order.status = 'Motorista indisponÃ­vel';
         } else {
           order.status = 'Cancelado';
         }
@@ -838,7 +875,7 @@ requestServiceer.put(
 
         await order.save({ session });
 
-        // Se o pedido já tinha sido aceite, libertar o motorista
+        // Se o pedido jÃ¡ tinha sido aceite, libertar o motorista
         if (wasAccepted) {
           await User.updateOne(
             { _id: order.deliveryman.id },
@@ -846,11 +883,11 @@ requestServiceer.put(
             { session }
           );
 
-          // Penalização de 50MT se o motorista cancelar a viagem que ele mesmo aceitou
+          // PenalizaÃ§Ã£o de 50MT se o motorista cancelar a viagem que ele mesmo aceitou
           if (req.user.isDeliveryMan) {
             let wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] }).session(session);
             if (!wallet) {
-               // Criar carteira caso não exista (fallback)
+               // Criar carteira caso nÃ£o exista (fallback)
                wallet = new Wallet({ ownerId: req.user._id, ownerType: 'driver', userId: req.user._id, balance: 0 });
             }
             wallet.balance -= 50;
@@ -861,7 +898,7 @@ requestServiceer.put(
               type: 'debit',
               amount: 50,
               method: 'wallet',
-              description: 'Penalização por cancelar viagem aceite',
+              description: 'PenalizaÃ§Ã£o por cancelar viagem aceite',
               status: 'confirmado'
             }], { session });
           }
@@ -872,11 +909,11 @@ requestServiceer.put(
 
         //  Para envio de mensagens
 
-        let msg = `Olá, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
+        let msg = `OlÃ¡, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderÃ¡ verificar no site pesquisando pelo cÃ³digo.`;
 
         sendSMSToUSendIt(req, msg);
 
-        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n nhiquela`;
+        let mailText = `OlÃ¡ ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n nhiquela`;
 
         sendEmailOrderStatus(req, mailText, order, res);
 
@@ -886,8 +923,8 @@ requestServiceer.put(
           io.to(`order_${order._id}`).emit('order_updated', order);
           if (order.deliveryman?.id) {
             io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
-            // Notificar motorista que está livre
-            io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Serviço cancelado. Pode agora receber novos pedidos.' });
+            // Notificar motorista que estÃ¡ livre
+            io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'ServiÃ§o cancelado. Pode agora receber novos pedidos.' });
           } else {
             io.emit('order_updated', order); // broadcast to all
           }
@@ -905,7 +942,7 @@ requestServiceer.put(
       } else {
         await session.abortTransaction();
         session.endSession();
-        res.status(404).send({ message: 'Pedido não encontrado' });
+        res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
       }
     } catch (error) {
       await session.abortTransaction();
@@ -936,7 +973,7 @@ requestServiceer.put(
 
 
       //  Para envio de mensagens
-      let msg = `Olá, a Nhiquela gostaria de lhe informar que o pagamento referente ao pedido n ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
+      let msg = `OlÃ¡, a Nhiquela gostaria de lhe informar que o pagamento referente ao pedido n ${updateOrder.code} no valor de ${updateOrder.totalPrice} foi efectuado com sucesso.`;
 
       // Em falta metodo para envio de mensagem e email
       sendSMSToUSendItDeliverman(msg);
@@ -944,7 +981,7 @@ requestServiceer.put(
 
       res.send({ message: `Pedido Pago`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -958,10 +995,10 @@ requestServiceer.put(
   expressAsyncHandler(async (req, res) => {
     const order = await RequestService.findById(req.params.id);
     if (order) {
-      order.status = 'Motorista indisponível';
+      order.status = 'Motorista indisponÃ­vel';
       order.targetDriverId = null;
       order.stepStatus = 7;
-      order.canceledReason = 'Motorista indisponível ou tempo esgotado';
+      order.canceledReason = 'Motorista indisponÃ­vel ou tempo esgotado';
       await order.save();
       const io = req.app.get('io');
       if (io) {
@@ -969,7 +1006,7 @@ requestServiceer.put(
       }
       res.send({ message: 'Pedido rejeitado/timeout', order: order });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -991,18 +1028,18 @@ requestServiceer.put(
 
       res.send({ message: 'Estado atualizado com sucesso', order: order });
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
 
-// Reenviar notificação para o motorista
+// Reenviar notificaÃ§Ã£o para o motorista
 requestServiceer.post(
   '/:id/resend',
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const order = await RequestService.findById(req.params.id);
-    if (order && (order.status === 'Pendente' || order.status === 'Motorista indisponível')) {
+    if (order && (order.status === 'Pendente' || order.status === 'Motorista indisponÃ­vel')) {
       const targetDriverId = req.body.targetDriverId || order.targetDriverId;
 
       if (targetDriverId) {
@@ -1024,15 +1061,15 @@ requestServiceer.post(
               pushToken: targetDriverUser.pushToken
             });
           }
-          // Atualiza também o ecrã do cliente para refletir o estado 'Pendente' e apagar a mensagem de erro
+          // Atualiza tambÃ©m o ecrÃ£ do cliente para refletir o estado 'Pendente' e apagar a mensagem de erro
           io.to(`order_${order._id}`).emit('order_updated', order);
         }
-        res.send({ message: 'Notificação reenviada com sucesso' });
+        res.send({ message: 'NotificaÃ§Ã£o reenviada com sucesso' });
       } else {
         res.status(400).send({ message: 'Nenhum motorista alvo definido para reenvio' });
       }
     } else {
-      res.status(400).send({ message: 'Não é possível reenviar este pedido' });
+      res.status(400).send({ message: 'NÃ£o Ã© possÃ­vel reenviar este pedido' });
     }
   })
 );
@@ -1045,7 +1082,7 @@ requestServiceer.delete(
     const order = await RequestService.findById(req.params.id);
     if (order) {
       if (order.status !== 'Pendente') {
-        return res.status(409).send({ message: 'Não é possível cancelar a busca porque a viagem já foi aceite pelo motorista ou mudou de estado.' });
+        return res.status(409).send({ message: 'NÃ£o Ã© possÃ­vel cancelar a busca porque a viagem jÃ¡ foi aceite pelo motorista ou mudou de estado.' });
       }
       if (order.user.toString() === req.user._id.toString() || req.user.isAdmin) {
         order.status = 'Cancelado';
@@ -1072,10 +1109,10 @@ requestServiceer.delete(
 
         res.send({ message: 'Pedido cancelado com sucesso' });
       } else {
-        res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
+        res.status(403).send({ message: 'Sem permissÃ£o para cancelar este pedido' });
       }
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );
@@ -1089,7 +1126,7 @@ requestServiceer.put(
     if (order) {
       if (order.user.toString() === req.user._id.toString() || req.user.isAdmin) {
         if (order.status === 'Cancelado' || order.status === 'Finalizado' || order.status === 'Entregue') {
-          return res.status(400).send({ message: 'Este pedido já não pode ser cancelado.' });
+          return res.status(400).send({ message: 'Este pedido jÃ¡ nÃ£o pode ser cancelado.' });
         }
         order.status = 'Cancelado';
         order.canceledReason = req.body.message || 'Cancelado pelo cliente';
@@ -1119,10 +1156,10 @@ requestServiceer.put(
 
         res.send({ message: 'Pedido cancelado com sucesso', order: order });
       } else {
-        res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
+        res.status(403).send({ message: 'Sem permissÃ£o para cancelar este pedido' });
       }
     } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
     }
   })
 );

@@ -21,6 +21,8 @@ export type Trip = {
   serviceName?: string;
   serviceMotive?: string;
   paymentMethod?: string;
+  isScheduled?: boolean;
+  scheduledAt?: string;
 };
 
 export type WebSocketOrderData = {

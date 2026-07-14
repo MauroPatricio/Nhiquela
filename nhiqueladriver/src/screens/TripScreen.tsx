@@ -30,7 +30,7 @@ export default function TripScreen({ navigation }: any) {
   const [isDriverApproved, setIsDriverApproved] = useState<boolean | null>(null);
   const { user } = useAuth();
 
-  // 🔍 Verificar aprovação do motorista
+  // ðŸ” Verificar aprovaÃ§Ã£o do motorista
   const checkDriverApproval = async () => {
     try {
       const driverStatus = await AsyncStorage.getItem("driverApprovalStatus");
@@ -45,17 +45,17 @@ export default function TripScreen({ navigation }: any) {
         );
       }
     } catch (error) {
-      console.error("Erro ao verificar aprovação do motorista:", error);
+      console.error("Erro ao verificar aprovaÃ§Ã£o do motorista:", error);
       setIsDriverApproved(false);
     }
   };
 
-  // 🚀 Carregar histórico de viagens da API
+  // ðŸš€ Carregar histÃ³rico de viagens da API
   const loadTripsHistory = async () => {
     setLoading(true);
     try {
       if (!user?._id) {
-        console.error("User ID não encontrado");
+        console.error("User ID nÃ£o encontrado");
         setLoading(false);
         return;
       }
@@ -75,7 +75,7 @@ export default function TripScreen({ navigation }: any) {
         return;
       }
 
-      // 🔹 FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestServices)
+      // ðŸ”¹ FORMATAR HISTÃ“RICO DE VIAGENS (Misto de Orders e RequestServices)
       const hiddenTripsString = await AsyncStorage.getItem("hiddenTrips");
       const hiddenTrips = hiddenTripsString ? JSON.parse(hiddenTripsString) : [];
 
@@ -86,7 +86,7 @@ export default function TripScreen({ navigation }: any) {
         
         const distance = trip.distance || 0;
         
-        let status = "Concluída";
+        let status = "ConcluÃ­da";
         let statusColor = "#27AE60";
         let statusIcon = "checkmark-circle";
         
@@ -95,17 +95,17 @@ export default function TripScreen({ navigation }: any) {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "aceite pelo entregador") {
+        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "Pedido aceite") {
           status = "Em Andamento";
           statusColor = "#F39C12";
           statusIcon = "time";
-        } else if (trip.isDelivered || tripStatus === "concluído" || tripStatus === "concluido" || tripStatus === "delivered" || tripStatus === "concluida") {
-          status = "Concluída";
+        } else if (trip.isDelivered || tripStatus === "concluÃ­do" || tripStatus === "concluido" || tripStatus === "delivered" || tripStatus === "concluida") {
+          status = "ConcluÃ­da";
           statusColor = "#27AE60";
           statusIcon = "checkmark-circle";
         }
 
-        let tripDate = "Data não disponível";
+        let tripDate = "Data nÃ£o disponÃ­vel";
         if (trip.createdAt) {
           const date = new Date(trip.createdAt);
           tripDate = date.toLocaleDateString('pt-BR') + " " + date.toLocaleTimeString('pt-BR', { 
@@ -125,7 +125,7 @@ export default function TripScreen({ navigation }: any) {
           rewardPrice = trip.deliveryPrice || trip.pricetopay || 0;
         } else {
           pickupLoc = trip.sellers?.[0]?.name || trip.orderItems?.[0]?.seller || "Loja/Fornecedor";
-          destLoc = trip.deliveryAddress?.address || trip.deliveryAddress?.city || "Endereço do Cliente";
+          destLoc = trip.deliveryAddress?.address || trip.deliveryAddress?.city || "EndereÃ§o do Cliente";
           rewardPrice = trip.deliveryPrice || trip.totalPrice || 0;
         }
 
@@ -134,7 +134,7 @@ export default function TripScreen({ navigation }: any) {
           if (trip.serviceId && trip.serviceId.name) {
             serviceNameStr = trip.serviceId.name;
           } else {
-            serviceNameStr = (trip.name && !trip.name.match(/^[0-9a-fA-F]{24}$/)) ? trip.name : (trip.goodType || "Serviço");
+            serviceNameStr = (trip.name && !trip.name.match(/^[0-9a-fA-F]{24}$/)) ? trip.name : (trip.goodType || "ServiÃ§o");
           }
         }
 
@@ -164,7 +164,7 @@ export default function TripScreen({ navigation }: any) {
 
         return {
           id: trip.id || trip._id || Math.random().toString(),
-          passengerId: trip.user?._id || trip.user?.id || trip.user || trip.userId || trip.client || "Não disponível",
+          passengerId: trip.user?._id || trip.user?.id || trip.user || trip.userId || trip.client || "NÃ£o disponÃ­vel",
           passengerPhoto: passengerPhoto,
           type: serviceNameStr,
           motive: trip.reason || trip.description || trip.goodType || null,
@@ -172,7 +172,7 @@ export default function TripScreen({ navigation }: any) {
           pickup: pickupLoc,
           destination: destLoc,
           reward: rewardPrice > 0 ? `MT ${rewardPrice.toFixed(2)}` : `MT ${Math.round(distance * 25).toFixed(2)}`,
-          distance: distance ? `${distance.toFixed(2)} km` : "Distância não disponível",
+          distance: distance ? `${distance.toFixed(2)} km` : "DistÃ¢ncia nÃ£o disponÃ­vel",
           time: tripDate,
           status: status,
           statusColor: statusColor,
@@ -187,28 +187,28 @@ export default function TripScreen({ navigation }: any) {
 
       setTrips(formattedTrips);
     } catch (error) {
-      console.error("Erro ao carregar histórico de viagens:", error);
+      console.error("Erro ao carregar histÃ³rico de viagens:", error);
       setTrips([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 VER DETALHES DA VIAGEM
+  // ðŸ”¹ VER DETALHES DA VIAGEM
   const viewTripDetails = (trip: any) => {
     setSelectedTrip(trip);
   };
 
-  // 🔹 COMPARTILHAR DETALHES DA VIAGEM
+  // ðŸ”¹ COMPARTILHAR DETALHES DA VIAGEM
   const shareTripDetails = (trip: any) => {
     Alert.alert(
       "Compartilhar Viagem",
-      `Detalhes da viagem com ${trip.passenger} copiados para a área de transferência.`,
+      `Detalhes da viagem com ${trip.passenger} copiados para a Ã¡rea de transferÃªncia.`,
       [{ text: "OK", style: "default" }]
     );
   };
 
-  // 🔹 APAGAR REGISTO DA VIAGEM LOCALMENTE
+  // ðŸ”¹ APAGAR REGISTO DA VIAGEM LOCALMENTE
   const confirmDeleteTrip = (trip: any) => {
     setTripToDelete(trip);
   };
@@ -232,7 +232,7 @@ export default function TripScreen({ navigation }: any) {
       }, 2500);
       
     } catch (err) {
-      Alert.alert("Erro", "Não foi possível apagar o registo.");
+      Alert.alert("Erro", "NÃ£o foi possÃ­vel apagar o registo.");
       setTripToDelete(null);
     }
   };
@@ -249,10 +249,10 @@ export default function TripScreen({ navigation }: any) {
     <View style={styles.notApprovedContainer}>
       <Ionicons name="alert-circle-outline" size={64} color={COLORS.warning} />
       <Text style={styles.notApprovedTitle}>
-        Sua conta ainda não foi aprovada
+        Sua conta ainda nÃ£o foi aprovada
       </Text>
       <Text style={styles.notApprovedSubtitle}>
-        Aguarde a aprovação da sua conta para visualizar o histórico de viagens.
+        Aguarde a aprovaÃ§Ã£o da sua conta para visualizar o histÃ³rico de viagens.
       </Text>
     </View>
   );
@@ -260,9 +260,9 @@ export default function TripScreen({ navigation }: any) {
   const renderEmptyHistory = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="time-outline" size={64} color={COLORS.gray} />
-      <Text style={styles.emptyTitle}>Nenhuma viagem no histórico</Text>
+      <Text style={styles.emptyTitle}>Nenhuma viagem no histÃ³rico</Text>
       <Text style={styles.emptySubtitle}>
-        Você ainda não realizou nenhuma viagem. As viagens concluídas aparecerão aqui.
+        VocÃª ainda nÃ£o realizou nenhuma viagem. As viagens concluÃ­das aparecerÃ£o aqui.
       </Text>
       <TouchableOpacity style={styles.retryButton} onPress={loadTripsHistory}>
         <Ionicons name="refresh-outline" size={20} color="#FFF" />
@@ -364,7 +364,7 @@ export default function TripScreen({ navigation }: any) {
       >
         <>
           <View style={styles.header}>
-            <Text style={styles.sectionTitle}>Histórico de Viagens</Text>
+            <Text style={styles.sectionTitle}>HistÃ³rico de Viagens</Text>
             <TouchableOpacity style={styles.refreshButton} onPress={loadTripsHistory}>
               <Ionicons name="refresh-outline" size={20} color={COLORS.primary} />
             </TouchableOpacity>
@@ -373,13 +373,13 @@ export default function TripScreen({ navigation }: any) {
           <Text style={styles.sectionSubtitle}>
             {trips.length > 0 
               ? `${trips.length} viagem${trips.length > 1 ? 's' : ''} encontrada${trips.length > 1 ? 's' : ''}` 
-              : "Suas viagens aparecerão aqui"}
+              : "Suas viagens aparecerÃ£o aqui"}
           </Text>
           
           {loading ? (
             <View style={styles.loadingContainer}>
               <Ionicons name="time-outline" size={48} color={COLORS.gray} />
-              <Text style={styles.loadingText}>Carregando histórico...</Text>
+              <Text style={styles.loadingText}>Carregando histÃ³rico...</Text>
             </View>
           ) : trips.length === 0 ? (
             renderEmptyHistory()
@@ -395,7 +395,7 @@ export default function TripScreen({ navigation }: any) {
         </>
       </ScrollView>
 
-      {/* 🔥 MODAL DE DETALHES DA VIAGEM PREMIUM */}
+      {/* ðŸ”¥ MODAL DE DETALHES DA VIAGEM PREMIUM */}
       <Modal visible={selectedTrip !== null} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -464,7 +464,7 @@ export default function TripScreen({ navigation }: any) {
                             const url = `https://www.google.com/maps/dir/?api=1&origin=${selectedTrip.originLat},${selectedTrip.originLng}&destination=${selectedTrip.destLat},${selectedTrip.destLng}`;
                             Linking.openURL(url);
                           } else {
-                            Alert.alert("Mapa Indisponível", "As coordenadas exatas desta viagem não estão disponíveis no histórico.");
+                            Alert.alert("Mapa IndisponÃ­vel", "As coordenadas exatas desta viagem nÃ£o estÃ£o disponÃ­veis no histÃ³rico.");
                           }
                         }}
                       >
@@ -484,12 +484,12 @@ export default function TripScreen({ navigation }: any) {
                     </View>
                     <View style={styles.modalGridItem}>
                       <Ionicons name="card-outline" size={22} color="#9B59B6" />
-                      <Text style={styles.modalGridLabel}>Método</Text>
+                      <Text style={styles.modalGridLabel}>MÃ©todo</Text>
                       <Text style={styles.modalGridValue}>{selectedTrip.paymentMethod}</Text>
                     </View>
                     <View style={styles.modalGridItem}>
                       <Ionicons name="speedometer-outline" size={22} color="#3498DB" />
-                      <Text style={styles.modalGridLabel}>Distância</Text>
+                      <Text style={styles.modalGridLabel}>DistÃ¢ncia</Text>
                       <Text style={styles.modalGridValue}>{selectedTrip.distance}</Text>
                     </View>
                     <View style={styles.modalGridItem}>
@@ -505,7 +505,7 @@ export default function TripScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🔥 PREMIUM ALERT MODAL PARA APAGAR VIAGEM */}
+      {/* ðŸ”¥ PREMIUM ALERT MODAL PARA APAGAR VIAGEM */}
       <Modal visible={tripToDelete !== null} transparent animationType="fade">
         <View style={styles.alertOverlay}>
           <View style={styles.alertContainer}>
@@ -514,7 +514,7 @@ export default function TripScreen({ navigation }: any) {
             </View>
             <Text style={styles.alertTitle}>Apagar Registo</Text>
             <Text style={styles.alertMessage}>
-              Tem a certeza que deseja remover esta viagem do seu histórico? Esta acção não pode ser desfeita.
+              Tem a certeza que deseja remover esta viagem do seu histÃ³rico? Esta acÃ§Ã£o nÃ£o pode ser desfeita.
             </Text>
             <View style={styles.alertButtonRow}>
               <TouchableOpacity 
@@ -534,7 +534,7 @@ export default function TripScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🔥 PREMIUM SUCCESS MODAL */}
+      {/* ðŸ”¥ PREMIUM SUCCESS MODAL */}
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.alertOverlay}>
           <View style={styles.successContainer}>
@@ -543,7 +543,7 @@ export default function TripScreen({ navigation }: any) {
             </View>
             <Text style={styles.alertTitle}>Apagado com Sucesso</Text>
             <Text style={styles.alertMessage}>
-              O registo da viagem foi removido do seu histórico.
+              O registo da viagem foi removido do seu histÃ³rico.
             </Text>
           </View>
         </View>
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     lineHeight: 20,
   },
-  // 🔥 PREMIUM MODAL CSS
+  // ðŸ”¥ PREMIUM MODAL CSS
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -969,7 +969,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
-  // 🔥 PREMIUM ALERT CSS
+  // ðŸ”¥ PREMIUM ALERT CSS
   alertOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  // 🔥 PREMIUM SUCCESS MODAL CSS
+  // ðŸ”¥ PREMIUM SUCCESS MODAL CSS
   successContainer: {
     backgroundColor: "#FFF",
     borderRadius: 24,

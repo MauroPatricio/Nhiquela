@@ -107,7 +107,7 @@ describe('Full Trip Lifecycle Integration Test', () => {
     expect(res.status).toBeLessThan(400);
     
     const trip = await RequestService.findById(tripId);
-    expect(trip.status).toBe('Aceite pelo entregador');
+    expect(trip.status).toBe('Pedido aceite');
     expect(trip.isAccepted).toBe(true);
   });
 
@@ -147,6 +147,14 @@ describe('Full Trip Lifecycle Integration Test', () => {
     const trip = await RequestService.findById(tripId);
     expect(trip.status).toBe('Concluído');
     expect(trip.isDelivered).toBe(true);
+
+    // Validate that the commission was deducted from the driver's wallet
+    const wallet = await Wallet.findOne({ ownerId: driverUser._id });
+    // Assuming 500 MT base wallet balance
+    // If it falls back to 15% default commission on the 500 price: 15% of 500 = 75 MT
+    // Wait, the test uses deliveryPrice: 500
+    // So commission should be deducted.
+    expect(wallet.balance).toBeLessThan(500); 
   });
 
   it('6. Client should be able to submit a review for the trip', async () => {

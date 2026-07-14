@@ -70,6 +70,13 @@ const requestServiceSchema = new mongoose.Schema(
     lastDispatchTime: { type: Date },
     priorityLevel: { type: String, enum: ['normal', 'alta'], default: 'normal' },
 
+    // ==========================================
+    // AGENDAMENTO
+    // ==========================================
+    isScheduled: { type: Boolean, default: false }, // true = pedido agendado para data futura
+    scheduledAt: { type: Date, default: null },      // data/hora definida pelo cliente
+    scheduledNotified: { type: Boolean, default: false }, // true quando a notificação de 45min foi enviada
+
     deliveryman: {
       id:{type: mongoose.Schema.Types.ObjectId, ref: 'Provider'},
       photo: { type: String },

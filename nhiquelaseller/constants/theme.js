@@ -1,5 +1,5 @@
-// nhiquelaseller — Design System Tokens
-// Dark mode roxo/violeta — consistente com nhiqueladriver
+// nhiquelaseller â€” Design System Tokens
+// Dark mode roxo/violeta â€” consistente com nhiqueladriver
 
 export const COLORS = {
   // Fundos
@@ -19,7 +19,7 @@ export const COLORS = {
   accent: '#00D4FF',
   accentGlow: 'rgba(0, 212, 255, 0.15)',
 
-  // Semânticas
+  // SemÃ¢nticas
   success: '#34C759',
   successBg: 'rgba(52, 199, 89, 0.12)',
   warning: '#FF9F0A',
@@ -104,8 +104,8 @@ export const RADIUS = {
 export const getStatusColor = (status) => {
   switch (status) {
     case 'Pendente': return COLORS.statusPendente;
-    case 'Em trânsito':
-    case 'Em Trânsito':
+    case 'Em trÃ¢nsito':
+    case 'Em TrÃ¢nsito':
     case 'A caminho': return COLORS.statusTransito;
     case 'Entregue':
     case 'Entregue com sucesso': return COLORS.statusEntregue;
@@ -113,7 +113,7 @@ export const getStatusColor = (status) => {
     case 'Cancelada': return COLORS.statusCancelado;
     case 'Aceite':
     case 'Aceite pelo vendedor':
-    case 'Aceite pelo entregador': return COLORS.statusAceite;
+    case 'Pedido aceite': return COLORS.statusAceite;
     default: return COLORS.primary;
   }
 };
@@ -121,8 +121,8 @@ export const getStatusColor = (status) => {
 export const getStatusBg = (status) => {
   switch (status) {
     case 'Pendente': return COLORS.warningBg;
-    case 'Em trânsito':
-    case 'Em Trânsito': return COLORS.infoBg;
+    case 'Em trÃ¢nsito':
+    case 'Em TrÃ¢nsito': return COLORS.infoBg;
     case 'Entregue': return COLORS.successBg;
     case 'Cancelado': return COLORS.errorBg;
     case 'Aceite':
@@ -131,7 +131,7 @@ export const getStatusBg = (status) => {
   }
 };
 
-// Estilos comuns reutilizáveis
+// Estilos comuns reutilizÃ¡veis
 export const COMMON_STYLES = {
   screen: {
     flex: 1,

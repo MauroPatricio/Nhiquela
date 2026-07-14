@@ -59,6 +59,7 @@ import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
+import { initScheduledOrderService } from './services/scheduledOrderService.js';
 
 
 // Conectar ao MongoDB
@@ -223,6 +224,9 @@ const users = [];
 const io = new Server(httpServer, { cors: { origin: '*' } });
 app.set('io', io);
 app.set('users', users); // ← expõe para routes poderem emitir por socketId
+
+// Iniciar serviço de agendamento automático de pedidos
+initScheduledOrderService(io);
 
 
 io.on('connection', (socket) => {

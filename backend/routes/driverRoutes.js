@@ -36,14 +36,14 @@ router.get(
   })
 );
 
-// Obter motoristas próximos (público / para clientes)
+// Obter motoristas prÃ³ximos (pÃºblico / para clientes)
 router.get(
   '/nearby',
   expressAsyncHandler(async (req, res) => {
     const { lat, lng, radius = 5 } = req.query;
 
     if (!lat || !lng) {
-      return res.status(400).send({ message: 'Coordenadas (lat, lng) são obrigatórias' });
+      return res.status(400).send({ message: 'Coordenadas (lat, lng) sÃ£o obrigatÃ³rias' });
     }
 
     const MAX_DISTANCE_METERS = Number(radius) * 1000;
@@ -81,7 +81,7 @@ router.get(
   })
 );
 
-// Rota ultra-rápida (Ping) para os Motoristas atualizarem a sua localização (10 em 10 segs)
+// Rota ultra-rÃ¡pida (Ping) para os Motoristas atualizarem a sua localizaÃ§Ã£o (10 em 10 segs)
 router.put(
   '/ping',
   isAuth,
@@ -89,7 +89,7 @@ router.put(
     const { lat, lng } = req.body;
     
     if (!lat || !lng) {
-      return res.status(400).send({ message: 'Coordenadas (lat, lng) são obrigatórias' });
+      return res.status(400).send({ message: 'Coordenadas (lat, lng) sÃ£o obrigatÃ³rias' });
     }
 
     await User.updateOne(
@@ -98,7 +98,7 @@ router.put(
         $set: {
           locationGeo: {
             type: 'Point',
-            coordinates: [Number(lng), Number(lat)] // Padrão GeoJSON [longitude, latitude]
+            coordinates: [Number(lng), Number(lat)] // PadrÃ£o GeoJSON [longitude, latitude]
           },
           latitude: String(lat),
           longitude: String(lng),
@@ -118,7 +118,7 @@ router.get(
   expressAsyncHandler(async (req, res) => {
     const driver = await User.findById(req.user._id).lean();
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista não encontrado.' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado.' });
     }
 
     // Inject actual balance from Wallet
@@ -171,35 +171,35 @@ router.put(
     const { availability } = req.body;
     
     if (!['active', 'paused', 'inactive'].includes(availability)) {
-      return res.status(400).send({ message: 'Status de disponibilidade inválido.' });
+      return res.status(400).send({ message: 'Status de disponibilidade invÃ¡lido.' });
     }
 
     const driver = await User.findById(req.user._id);
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista não encontrado' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado' });
     }
 
-    // Integrar Motor Financeiro (verificação de saldo antes de ficar online)
+    // Integrar Motor Financeiro (verificaÃ§Ã£o de saldo antes de ficar online)
     if (availability === 'active') {
       const { hasSufficientBalance } = await import('../services/walletService.js');
       const canGoOnline = await hasSufficientBalance(req.user._id, driver);
       if (!canGoOnline) {
-        return res.status(402).send({ message: 'Saldo insuficiente. Faça um recarregamento para voltar a receber pedidos.' });
+        return res.status(402).send({ message: 'Saldo insuficiente. FaÃ§a um recarregamento para voltar a receber pedidos.' });
       }
 
-      // Bloquear se o motorista tem um serviço ativo aguardando confirmação do cliente
+      // Bloquear se o motorista tem um serviÃ§o ativo aguardando confirmaÃ§Ã£o do cliente
       if (driver.deliveryman && driver.deliveryman.hasActiveService) {
-        // SELF-HEALING: Verificar se realmente existe um serviço ativo na BD
+        // SELF-HEALING: Verificar se realmente existe um serviÃ§o ativo na BD
         const activeTrip = await RequestService.findOne({
           'deliveryman.id': driver._id,
           deleted: false,
-          status: { $in: ['Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
+          status: { $in: ['Pedido aceite', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
         });
 
         const activeOrder = await Order.findOne({
           'deliveryman.id': driver._id,
           deleted: false,
-          status: { $in: ['Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
+          status: { $in: ['Pedido aceite', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
         });
 
         if (!activeTrip && !activeOrder) {
@@ -207,35 +207,35 @@ router.put(
           await User.updateOne({ _id: driver._id }, { $set: { 'deliveryman.hasActiveService': false } });
           driver.deliveryman.hasActiveService = false;
         } else {
-          return res.status(403).send({ message: 'Tem um serviço em curso. Aguarde que o cliente confirme a conclusão do serviço antes de aceitar novos pedidos.' });
+          return res.status(403).send({ message: 'Tem um serviÃ§o em curso. Aguarde que o cliente confirme a conclusÃ£o do serviÃ§o antes de aceitar novos pedidos.' });
         }
       }
     }
 
-    // Se estava suspenso (Inativo por administração ou saldo), não deixa ficar ativo
+    // Se estava suspenso (Inativo por administraÃ§Ã£o ou saldo), nÃ£o deixa ficar ativo
     if (availability === 'active' && driver.status === 'Inativo') {
       return res.status(403).send({ message: 'A sua conta encontra-se suspensa. Contacte o suporte ou recarregue o seu saldo.' });
     }
 
-    // Otimização: usar updateOne em vez de driver.save() para evitar carregar e validar documentos grandes
+    // OtimizaÃ§Ã£o: usar updateOne em vez de driver.save() para evitar carregar e validar documentos grandes
     await User.updateOne({ _id: driver._id }, { $set: { availability: availability } });
     
     res.send({ message: 'Disponibilidade atualizada com sucesso', availability: availability });
   })
 );
 
-// Estatísticas do Motorista
+// EstatÃ­sticas do Motorista
 router.get(
   '/stats/mine',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    // Conta as viagens concluídas pelo motorista autenticado
+    // Conta as viagens concluÃ­das pelo motorista autenticado
     const totalTrips = await Order.countDocuments({
       'deliveryman.id': req.user._id,
       isDelivered: true
     });
 
-    // Rating fixo para já (4.8), no futuro virá da média das avaliações das ordens
+    // Rating fixo para jÃ¡ (4.8), no futuro virÃ¡ da mÃ©dia das avaliaÃ§Ãµes das ordens
     res.send({
       totalTrips: totalTrips || 0,
       rating: 4.8
@@ -249,10 +249,10 @@ router.post(
   isAuth,
   isSellerOrAdmin,
   [
-    body('name').notEmpty().withMessage('Nome é obrigatório'),
-    body('email').isEmail().withMessage('Email inválido'),
+    body('name').notEmpty().withMessage('Nome Ã© obrigatÃ³rio'),
+    body('email').isEmail().withMessage('Email invÃ¡lido'),
     body('password').isLength({ min: 6 }).withMessage('Senha deve ter ao menos 6 caracteres'),
-    body('phoneNumber').notEmpty().withMessage('Telefone é obrigatório'),
+    body('phoneNumber').notEmpty().withMessage('Telefone Ã© obrigatÃ³rio'),
   ],
   expressAsyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -262,7 +262,7 @@ router.post(
     const { name, email, password, phoneNumber, transport_type, transport_color, plate, licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices } = req.body;
     const exists = await User.findOne({ $or: [{ email }, { phoneNumber }] });
     if (exists) {
-      return res.status(400).send({ message: 'Email ou telefone já registado' });
+      return res.status(400).send({ message: 'Email ou telefone jÃ¡ registado' });
     }
     
     // Process VehicleType to get baseFee
@@ -283,7 +283,7 @@ router.post(
       : [];
 
     if (!driverServices || driverServices.length === 0) {
-      return res.status(400).send({ message: 'É obrigatório selecionar pelo menos um serviço/subcategoria para se registar como motorista.' });
+      return res.status(400).send({ message: 'Ã‰ obrigatÃ³rio selecionar pelo menos um serviÃ§o/subcategoria para se registar como motorista.' });
     }
 
     const driver = new User({
@@ -363,13 +363,13 @@ router.get(
     // Try to find drivers
     let drivers = await User.find(filter).lean();
     
-    // EXCLUIR MOTORISTAS OCUPADOS (com serviço ativo aguardando confirmação do cliente)
-    // Método 1: campo hasActiveService no modelo do motorista (mais rápido)
+    // EXCLUIR MOTORISTAS OCUPADOS (com serviÃ§o ativo aguardando confirmaÃ§Ã£o do cliente)
+    // MÃ©todo 1: campo hasActiveService no modelo do motorista (mais rÃ¡pido)
     drivers = drivers.filter(d => !(d.deliveryman && d.deliveryman.hasActiveService));
 
-    // Método 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
+    // MÃ©todo 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
     const activeOrders = await RequestService.find({
-       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Concluido', 'Motorista indisponível', 'Rejeitado'] }
+       status: { $nin: ['Finalizado', 'Cancelado', 'ConcluÃ­do', 'Concluido', 'Motorista indisponÃ­vel', 'Rejeitado'] }
     }).select('deliveryman targetDriverId').lean();
     
     const busyDriverIds = new Set();
@@ -437,7 +437,7 @@ router.get(
   })
 );
 
-// GET /api/drivers/doc-update-requests — Admin lista pedidos de documentos
+// GET /api/drivers/doc-update-requests â€” Admin lista pedidos de documentos
 router.get(
   '/doc-update-requests',
   isAuth,
@@ -454,7 +454,7 @@ router.get(
   })
 );
 
-// PUT /api/drivers/doc-update-requests/:id/review — Admin aprova ou rejeita pedido de docs
+// PUT /api/drivers/doc-update-requests/:id/review â€” Admin aprova ou rejeita pedido de docs
 router.put(
   '/doc-update-requests/:id/review',
   isAuth,
@@ -462,15 +462,15 @@ router.put(
   expressAsyncHandler(async (req, res) => {
     const { decision, rejectionReason } = req.body;
     if (!['APPROVED', 'REJECTED'].includes(decision)) {
-      return res.status(400).send({ message: 'Decisão inválida. Use APPROVED ou REJECTED.' });
+      return res.status(400).send({ message: 'DecisÃ£o invÃ¡lida. Use APPROVED ou REJECTED.' });
     }
 
     const request = await DeliverymanUpdateRequest.findById(req.params.id);
     if (!request || request.type !== 'profile_update') {
-      return res.status(404).send({ message: 'Pedido não encontrado.' });
+      return res.status(404).send({ message: 'Pedido nÃ£o encontrado.' });
     }
     if (request.status !== 'PENDING') {
-      return res.status(400).send({ message: 'Este pedido já foi processado.' });
+      return res.status(400).send({ message: 'Este pedido jÃ¡ foi processado.' });
     }
 
     request.status = decision;
@@ -509,7 +509,7 @@ router.put(
       await driver.save();
     }
 
-    // Notificação push opcional
+    // NotificaÃ§Ã£o push opcional
     if (driver?.deviceToken) {
       try {
         const { Expo } = await import('expo-server-sdk');
@@ -520,7 +520,7 @@ router.put(
         await expo.sendPushNotificationsAsync([{
           to: driver.deviceToken,
           sound: 'default',
-          title: 'Atualização de Documentos',
+          title: 'AtualizaÃ§Ã£o de Documentos',
           body: msg,
         }]);
       } catch (err) {
@@ -533,25 +533,25 @@ router.put(
 );
 
 // ============================================================
-// POST /api/drivers/price-request — Motorista submete pedido de alteração de preço
+// POST /api/drivers/price-request â€” Motorista submete pedido de alteraÃ§Ã£o de preÃ§o
 router.post(
   '/price-request',
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const { requestedPrice } = req.body;
     if (!requestedPrice || isNaN(requestedPrice) || Number(requestedPrice) <= 0) {
-      return res.status(400).send({ message: 'Valor inválido. O preço deve ser maior que 0.' });
+      return res.status(400).send({ message: 'Valor invÃ¡lido. O preÃ§o deve ser maior que 0.' });
     }
 
     const driver = await User.findById(req.user._id);
     if (!driver || !driver.isDeliveryMan) {
-      return res.status(404).send({ message: 'Motorista não encontrado.' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado.' });
     }
 
     // Cancelar qualquer pedido pendente anterior
     await DeliverymanUpdateRequest.updateMany(
       { deliverymanId: req.user._id, type: 'price_change', status: 'PENDING' },
-      { status: 'REJECTED', reason: 'Substituído por novo pedido' }
+      { status: 'REJECTED', reason: 'SubstituÃ­do por novo pedido' }
     );
 
     // Criar novo pedido
@@ -568,11 +568,11 @@ router.post(
     driver.deliveryman.priceRequestStatus = 'Pendente';
     await driver.save();
 
-    res.status(201).send({ message: 'Pedido de alteração de preço submetido com sucesso.', request: priceRequest });
+    res.status(201).send({ message: 'Pedido de alteraÃ§Ã£o de preÃ§o submetido com sucesso.', request: priceRequest });
   })
 );
 
-// PUT /api/drivers/price-request/toggle — Motorista activa/desactiva preço personalizado
+// PUT /api/drivers/price-request/toggle â€” Motorista activa/desactiva preÃ§o personalizado
 router.put(
   '/price-request/toggle',
   isAuth,
@@ -580,15 +580,15 @@ router.put(
     const { allowCustomPrice } = req.body;
     const driver = await User.findById(req.user._id);
     if (!driver || !driver.isDeliveryMan) {
-      return res.status(404).send({ message: 'Motorista não encontrado.' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado.' });
     }
     driver.deliveryman.allowCustomPrice = !!allowCustomPrice;
     await driver.save();
-    res.send({ message: 'Preferência de preço atualizada.', allowCustomPrice: driver.deliveryman.allowCustomPrice });
+    res.send({ message: 'PreferÃªncia de preÃ§o atualizada.', allowCustomPrice: driver.deliveryman.allowCustomPrice });
   })
 );
 
-// GET /api/drivers/price-requests — Admin lista pedidos de alteração de preço
+// GET /api/drivers/price-requests â€” Admin lista pedidos de alteraÃ§Ã£o de preÃ§o
 router.get(
   '/price-requests',
   isAuth,
@@ -605,7 +605,7 @@ router.get(
   })
 );
 
-// PUT /api/drivers/price-requests/:id/review — Admin aprova ou rejeita
+// PUT /api/drivers/price-requests/:id/review â€” Admin aprova ou rejeita
 router.put(
   '/price-requests/:id/review',
   isAuth,
@@ -613,15 +613,15 @@ router.put(
   expressAsyncHandler(async (req, res) => {
     const { decision, rejectionReason } = req.body;
     if (!['APPROVED', 'REJECTED'].includes(decision)) {
-      return res.status(400).send({ message: 'Decisão inválida. Use APPROVED ou REJECTED.' });
+      return res.status(400).send({ message: 'DecisÃ£o invÃ¡lida. Use APPROVED ou REJECTED.' });
     }
 
     const request = await DeliverymanUpdateRequest.findById(req.params.id);
     if (!request || request.type !== 'price_change') {
-      return res.status(404).send({ message: 'Pedido não encontrado.' });
+      return res.status(404).send({ message: 'Pedido nÃ£o encontrado.' });
     }
     if (request.status !== 'PENDING') {
-      return res.status(400).send({ message: 'Este pedido já foi processado.' });
+      return res.status(400).send({ message: 'Este pedido jÃ¡ foi processado.' });
     }
 
     request.status = decision;
@@ -646,15 +646,15 @@ router.put(
       await driver.save();
     }
 
-    // Notificação push (se tiver deviceToken)
+    // NotificaÃ§Ã£o push (se tiver deviceToken)
     if (driver?.deviceToken) {
       try {
         const { Expo } = await import('expo-server-sdk');
         const expo = new Expo();
         const msg = decision === 'APPROVED'
-          ? `✅ O seu preço de ${request.requestedPrice} MT foi aprovado!`
-          : `❌ O seu pedido de preço foi rejeitado. Motivo: ${rejectionReason || 'Não especificado'}`;
-        await expo.sendPushNotificationsAsync([{ to: driver.deviceToken, title: 'Nhiquela — Preço', body: msg }]);
+          ? `âœ… O seu preÃ§o de ${request.requestedPrice} MT foi aprovado!`
+          : `âŒ O seu pedido de preÃ§o foi rejeitado. Motivo: ${rejectionReason || 'NÃ£o especificado'}`;
+        await expo.sendPushNotificationsAsync([{ to: driver.deviceToken, title: 'Nhiquela â€” PreÃ§o', body: msg }]);
       } catch (e) { /* ignore push errors */ }
     }
 
@@ -669,7 +669,7 @@ router.get(
   expressAsyncHandler(async (req, res) => {
     const driver = await User.findById(req.params.id).populate('deliveryman.providedServices.serviceId');
     if (!driver || !driver.isDeliveryMan) {
-      return res.status(404).send({ message: 'Motorista não encontrado' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado' });
     }
     // Allow self or admin
     if (req.user._id !== driver._id.toString() && !req.user.isAdmin) {
@@ -685,9 +685,9 @@ router.put(
   isAuth,
   isSellerOrAdmin,
   [
-    body('name').optional().notEmpty().withMessage('Nome não pode ser vazio'),
-    body('email').optional().isEmail().withMessage('Email inválido'),
-    body('phoneNumber').optional().notEmpty().withMessage('Telefone não pode ser vazio'),
+    body('name').optional().notEmpty().withMessage('Nome nÃ£o pode ser vazio'),
+    body('email').optional().isEmail().withMessage('Email invÃ¡lido'),
+    body('phoneNumber').optional().notEmpty().withMessage('Telefone nÃ£o pode ser vazio'),
     body('password').optional().isLength({ min: 6 }).withMessage('Senha deve ter ao menos 6 caracteres'),
   ],
   expressAsyncHandler(async (req, res) => {
@@ -697,7 +697,7 @@ router.put(
     }
     const driver = await User.findById(req.params.id);
     if (!driver || !driver.isDeliveryMan) {
-      return res.status(404).send({ message: 'Motorista não encontrado' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado' });
     }
     if (req.user._id !== driver._id.toString() && !req.user.isAdmin) {
       return res.status(403).send({ message: 'Acesso negado' });
@@ -710,9 +710,9 @@ router.put(
     if (status) {
       driver.status = status;
       // Sincroniza register_conformance com o status para que o app mobile
-      // reflita imediatamente a decisão tomada no painel de administração.
+      // reflita imediatamente a decisÃ£o tomada no painel de administraÃ§Ã£o.
       if (!driver.deliveryman) driver.deliveryman = {};
-      if (status === 'Disponível') {
+      if (status === 'DisponÃ­vel') {
         driver.deliveryman.register_conformance = 'CONFORMANCE';
       } else if (status === 'Inativo') {
         driver.deliveryman.register_conformance = 'INCONFORMANCE';
@@ -751,7 +751,7 @@ router.put(
 
     await driver.save();
 
-    // 🔔 Notifica o motorista em tempo real via Socket.io (dupla estratégia)
+    // ðŸ”” Notifica o motorista em tempo real via Socket.io (dupla estratÃ©gia)
     try {
       const io = req.app.get('io');
       const users = req.app.get('users') || [];
@@ -759,27 +759,27 @@ router.put(
       const payload = {
         status: driver.status,
         register_conformance: driver.deliveryman?.register_conformance,
-        isApproved: driver.status === 'Disponível',
-        message: driver.status === 'Disponível'
-          ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
+        isApproved: driver.status === 'DisponÃ­vel',
+        message: driver.status === 'DisponÃ­vel'
+          ? 'âœ… A sua conta foi aprovada! JÃ¡ pode receber pedidos.'
           : driver.status === 'Inativo'
-          ? '❌ A sua conta foi suspensa. Contacte o suporte.'
-          : '⏳ A sua conta está em análise.',
+          ? 'âŒ A sua conta foi suspensa. Contacte o suporte.'
+          : 'â³ A sua conta estÃ¡ em anÃ¡lise.',
       };
 
       if (io && status) {
-        // Estratégia 1: Emitir para a sala (room) do motorista
+        // EstratÃ©gia 1: Emitir para a sala (room) do motorista
         const room = `driver_${driver._id}`;
         io.to(room).emit('driver_status_updated', payload);
-        console.log(`📡 [ROOM] driver_status_updated → ${room}: ${driver.status}`);
+        console.log(`ðŸ“¡ [ROOM] driver_status_updated â†’ ${room}: ${driver.status}`);
 
-        // Estratégia 2: Emitir directamente para o socketId do motorista (mais fiável)
+        // EstratÃ©gia 2: Emitir directamente para o socketId do motorista (mais fiÃ¡vel)
         const driverUser = users.find(u => u._id && u._id.toString() === driver._id.toString());
         if (driverUser?.socketId) {
           io.to(driverUser.socketId).emit('driver_status_updated', payload);
-          console.log(`📡 [DIRECT] driver_status_updated → socketId ${driverUser.socketId}: ${driver.status}`);
+          console.log(`ðŸ“¡ [DIRECT] driver_status_updated â†’ socketId ${driverUser.socketId}: ${driver.status}`);
         } else {
-          console.warn(`⚠️  Motorista ${driver._id} não encontrado nos sockets ligados. Sockets activos: ${users.map(u => u._id).join(', ')}`);
+          console.warn(`âš ï¸  Motorista ${driver._id} nÃ£o encontrado nos sockets ligados. Sockets activos: ${users.map(u => u._id).join(', ')}`);
         }
       }
     } catch (socketError) {
@@ -798,7 +798,7 @@ router.delete(
   expressAsyncHandler(async (req, res) => {
     const driver = await User.findById(req.params.id);
     if (!driver || !driver.isDeliveryMan) {
-      return res.status(404).send({ message: 'Motorista não encontrado' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado' });
     }
     await driver.deleteOne();
     res.send({ message: 'Motorista removido' });
@@ -808,29 +808,29 @@ router.delete(
 export default router;
 
 // ============================================================
-// ROTAS DE PREÇO PERSONALIZADO
+// ROTAS DE PREÃ‡O PERSONALIZADO
 // ============================================================
 
 
 
 // ============================================================
-// PEDIDOS DE ATUALIZAÇÃO DE DOCUMENTOS (DOC UPDATE)
+// PEDIDOS DE ATUALIZAÃ‡ÃƒO DE DOCUMENTOS (DOC UPDATE)
 // ============================================================
 
-// POST /api/drivers/doc-update-request — Motorista submete pedido de alteração de documentos
+// POST /api/drivers/doc-update-request â€” Motorista submete pedido de alteraÃ§Ã£o de documentos
 router.post(
   '/doc-update-request',
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const driver = await User.findById(req.user._id);
     if (!driver || !driver.isDeliveryMan) {
-      return res.status(404).send({ message: 'Motorista não encontrado.' });
+      return res.status(404).send({ message: 'Motorista nÃ£o encontrado.' });
     }
 
     // Cancelar qualquer pedido pendente anterior do mesmo tipo
     await DeliverymanUpdateRequest.updateMany(
       { deliverymanId: req.user._id, type: 'profile_update', status: 'PENDING' },
-      { status: 'REJECTED', reason: 'Substituído por novo pedido' }
+      { status: 'REJECTED', reason: 'SubstituÃ­do por novo pedido' }
     );
 
     // Criar novo pedido
@@ -845,6 +845,6 @@ router.post(
     driver.deliveryman.docUpdateStatus = 'Pendente';
     await driver.save();
 
-    res.send({ message: 'Pedido de atualização enviado com sucesso.', docRequest });
+    res.send({ message: 'Pedido de atualizaÃ§Ã£o enviado com sucesso.', docRequest });
   })
 );

@@ -218,104 +218,93 @@ class PricingService {
     let distanceCost = 0;
     let timeCost = 0;
     let extras = 0;
+    let serviceCost = 0;
     let overrideDistance = false;
 
-    // Se o cliente definiu um preço sugerido
+    // Se o cliente definiu um preço sugerido ou o provedor tem um fixo
     if (clientSuggestedPrice !== null && clientSuggestedPrice !== undefined && clientSuggestedPrice > 0) {
-      actualBaseFare = Number(clientSuggestedPrice);
-      overrideDistance = true;
-    } 
-    // Se for provedor custom
-    else if (service.pricingMode === 'PROVIDER_DEFINED' && customBasePrice !== null && customBasePrice !== undefined) {
-      actualBaseFare = customBasePrice;
-      const FALLBACK_PRICE_PER_KM = 40; 
-      let pKm = vehicle ? (vehicle.pricePerKm || service.pricePerKm || FALLBACK_PRICE_PER_KM) : (service.pricePerKm || FALLBACK_PRICE_PER_KM); 
-      if (distanceKm > 20) pKm = pKm * 0.85; 
-      distanceCost = distanceKm * pKm;
-      timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
+      serviceCost = Number(clientSuggestedPrice);
+    } else if (service.pricingMode === 'PROVIDER_DEFINED') {
+      serviceCost = service.serviceFee || 0;
     }
-    else {
-      // Modelos globais da plataforma
-      if (engineConfig.deliveryPricingModel === 'steps') {
-        // Encontrar o escalão
-        let stepFound = false;
-        for (const step of engineConfig.deliverySteps) {
-          if (distanceKm >= step.minKm && distanceKm <= step.maxKm) {
-            actualBaseFare = step.price; // Escalão cobra tudo no base fare
-            distanceCost = 0;
-            stepFound = true;
-            break;
-          }
+
+    // Calcula a tarifa de deslocação (distancePrice) usando sempre os modelos globais/veículo da plataforma
+    if (engineConfig.deliveryPricingModel === 'steps') {
+      let stepFound = false;
+      for (const step of engineConfig.deliverySteps) {
+        if (distanceKm >= step.minKm && distanceKm <= step.maxKm) {
+          actualBaseFare = step.price; 
+          distanceCost = 0;
+          stepFound = true;
+          break;
         }
-        
-        // Se ultrapassar todos os escalões (ex: > 20km), usa a fórmula para o remanescente ou base do último
-        if (!stepFound) {
-          const lastStep = engineConfig.deliverySteps[engineConfig.deliverySteps.length - 1];
-          actualBaseFare = lastStep.price;
-          // Cobrar km extra usando a configuração global ou veículo? O UI diz: "Acima de X km: Preço + P/Km"
-          const extraKm = distanceKm - lastStep.maxKm;
-          const pKm = engineConfig.useGlobalPricing ? engineConfig.deliveryPricePerKm : (vehicle ? vehicle.pricePerKm || 40 : 40);
-          distanceCost = extraKm * pKm;
-        }
-        
-        timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
-      } 
-      else {
-        // formula
-        if (engineConfig.useGlobalPricing) {
-          actualBaseFare = engineConfig.deliveryBaseFee;
-          let pKm = engineConfig.deliveryPricePerKm;
-          if (distanceKm > 20) pKm = pKm * 0.85; 
-          distanceCost = distanceKm * pKm;
-        } else {
-          // Fallback antigo: preço por veículo
-          actualBaseFare = (service.baseFare || 0) + (vehicle ? (vehicle.baseFare || 0) : 0);
-          const FALLBACK_PRICE_PER_KM = 40; 
-          let pKm = vehicle ? (vehicle.pricePerKm || service.pricePerKm || FALLBACK_PRICE_PER_KM) : (service.pricePerKm || FALLBACK_PRICE_PER_KM); 
-          if (distanceKm > 20) pKm = pKm * 0.85; 
-          distanceCost = distanceKm * pKm;
-        }
-        timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
       }
+      
+      if (!stepFound) {
+        const lastStep = engineConfig.deliverySteps[engineConfig.deliverySteps.length - 1];
+        actualBaseFare = lastStep.price;
+        const extraKm = distanceKm - lastStep.maxKm;
+        const pKm = engineConfig.useGlobalPricing ? engineConfig.deliveryPricePerKm : (vehicle ? vehicle.pricePerKm || 40 : 40);
+        distanceCost = extraKm * pKm;
+      }
+      
+      timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
+    } 
+    else {
+      // formula
+      if (engineConfig.useGlobalPricing) {
+        actualBaseFare = engineConfig.deliveryBaseFee;
+        let pKm = engineConfig.deliveryPricePerKm;
+        if (distanceKm > 20) pKm = pKm * 0.85; 
+        distanceCost = distanceKm * pKm;
+      } else {
+        actualBaseFare = (vehicle ? (vehicle.baseFare || 0) : 0);
+        const FALLBACK_PRICE_PER_KM = 40; 
+        let pKm = vehicle ? (vehicle.pricePerKm || FALLBACK_PRICE_PER_KM) : FALLBACK_PRICE_PER_KM; 
+        if (distanceKm > 20) pKm = pKm * 0.85; 
+        distanceCost = distanceKm * pKm;
+      }
+      timeCost = vehicle ? (durationMin * (vehicle.pricePerMinute || 0)) : 0;
     }
 
     if (hasHelper && service.supportsHelpers) extras += 200; 
     if (vehicle && vehicle.includesLoading) extras += vehicle.loadingFee;
 
-    let subtotal = actualBaseFare + distanceCost + timeCost + extras;
+    let distanceSubtotal = actualBaseFare + distanceCost + timeCost + extras;
 
-    // 4. Multiplicadores
+    // 4. Multiplicadores (apenas na deslocação)
     let timeMult = this.getTimeMultipliers(engineConfig);
     let weatherMult = isRaining ? engineConfig.weatherMultipliers.rain : engineConfig.weatherMultipliers.clear;
     let demandMult = engineConfig.demandMultipliers[demandLevel] || 1.0;
     let trafficMult = engineConfig.trafficMultipliers[trafficCondition] || 1.0;
 
-    let totalPostMultipliers;
-    if (overrideDistance) {
-      totalPostMultipliers = subtotal; // Skip multipliers if client suggested price is used
-    } else {
-      totalPostMultipliers = subtotal * timeMult * weatherMult * demandMult * trafficMult * providerRatingMult;
+    let distanceTotalPostMultipliers = distanceSubtotal * timeMult * weatherMult * demandMult * trafficMult * providerRatingMult;
+
+    // Minimums on distance
+    if (vehicle && distanceTotalPostMultipliers < vehicle.minFare) {
+      actualBaseFare += (vehicle.minFare - distanceTotalPostMultipliers);
+      distanceTotalPostMultipliers = vehicle.minFare;
+    }
+    const minSystemFare = service.pricingMode === 'PROVIDER_DEFINED' ? 0 : engineConfig.minFareDelivery;
+    if (service.pricingMode !== 'PROVIDER_DEFINED' && distanceTotalPostMultipliers < minSystemFare) {
+      actualBaseFare += (minSystemFare - distanceTotalPostMultipliers);
+      distanceTotalPostMultipliers = minSystemFare;
     }
 
-    // Minimums
-    if (vehicle && totalPostMultipliers < vehicle.minFare) {
-      actualBaseFare += (vehicle.minFare - totalPostMultipliers);
-      totalPostMultipliers = vehicle.minFare;
-    }
-    const minSystemFare = service.pricingMode === 'PROVIDER_DEFINED' ? engineConfig.minFareService : engineConfig.minFareDelivery;
-    if (totalPostMultipliers < minSystemFare) {
-      actualBaseFare += (minSystemFare - totalPostMultipliers);
-      totalPostMultipliers = minSystemFare;
-    }
+    // Calcular subtotal final
+    let subtotalFinal = distanceTotalPostMultipliers + serviceCost;
 
-    // Arredondamento (multiplos de 10)
-    totalPostMultipliers = Math.round(totalPostMultipliers * 100) / 100; // Nao arredondar para a dezena, apenas usar duas casas decimais
+    // Arredondamento (apenas usar duas casas decimais)
+    subtotalFinal = Math.round(subtotalFinal * 100) / 100; 
 
     return {
-      price: totalPostMultipliers,
+      price: subtotalFinal,
       currency: 'MT',
-      routeCoordinates, // Retornamos as coordenadas ao frontend!
+      routeCoordinates,
       breakdown: {
+        distancePrice: distanceTotalPostMultipliers,
+        servicePrice: serviceCost,
+        subtotal: subtotalFinal,
         actualBaseFare,
         distanceCost,
         timeCost,

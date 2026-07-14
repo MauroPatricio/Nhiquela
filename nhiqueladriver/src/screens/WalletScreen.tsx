@@ -217,7 +217,7 @@ export default function WalletScreen({ navigation, route }: any) {
 
   const handleTopUpSubmit = async () => {
     const amountNum = Number(topUpAmount);
-    const taxaMinima = balanceSummary.taxa_minima_recarga || 0;
+    const taxaMinima = balanceSummary.taxa_base_veículo || 0;
 
     if (!topUpAmount || isNaN(amountNum) || amountNum <= 0) {
       setInvalidValueMessage("Por favor, introduza um montante numérico válido e maior que zero para efetuar o recarregamento.");
@@ -227,7 +227,7 @@ export default function WalletScreen({ navigation, route }: any) {
 
     if (amountNum < taxaMinima) {
       const vName = balanceSummary.nome_categoria || balanceSummary.nome_veiculo || transportTypeName || user?.deliveryman?.transport_type || 'registado';
-      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para a sua categoria (${vName}) é de ${taxaMinima} MT (Taxa Mínima).`);
+      setInvalidValueMessage(`Atenção: O valor mínimo de recarga para a sua categoria (${vName}) é de ${taxaMinima} MT (Taxa Base).`);
       setInvalidValueModalVisible(true);
       return;
     }

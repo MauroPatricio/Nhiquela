@@ -134,6 +134,12 @@ const TripCard = React.memo(function TripCard({
                   <Text style={styles.badgeText}>PARTILHANDO</Text>
                 </View>
               )}
+              {item.isScheduled && (
+                <View style={[styles.badge, { backgroundColor: "#F59E0B" }]}>
+                  <Ionicons name="calendar" size={10} color="#FFF" />
+                  <Text style={styles.badgeText}>AGENDADO</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -192,6 +198,16 @@ const TripCard = React.memo(function TripCard({
               </View>
             )}
           </View>
+
+          {/* Data/hora de agendamento */}
+          {item.isScheduled && item.scheduledAt && (
+            <View style={[styles.statChip, { backgroundColor: '#FEF3C7', marginTop: 8, flexDirection: 'row', alignSelf: 'flex-start' }]}>
+              <Ionicons name="calendar-outline" size={14} color="#D97706" />
+              <Text style={[styles.statText, { color: '#D97706', marginLeft: 6 }]}>
+                {new Date(item.scheduledAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 

@@ -1,4 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+const fs = require('fs');
+let provStr = fs.readFileSync('d:\\Projectos\\Nhiquela\\backend\\seeds\\providerSubcategories.js', 'utf8');
+provStr = provStr.replace(/"commission": 0/g, '"serviceCommission": 10');
+fs.writeFileSync('d:\\Projectos\\Nhiquela\\backend\\seeds\\providerSubcategories.js', provStr);
+
+const trackTripCode = `import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import api, { SOCKET_URL } from '../api';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
@@ -33,7 +38,7 @@ export default function TrackTrip() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const { data } = await api.get(`/request-service/${id}/track`);
+        const { data } = await api.get(\`/request-service/\${id}/track\`);
         setOrder(data);
         
         if (data.latitude && data.longitude) {
@@ -178,3 +183,7 @@ export default function TrackTrip() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('d:\\Projectos\\Nhiquela\\nhiquelaweb\\src\\screens\\TrackTrip.jsx', trackTripCode);
+console.log("Script concluído!");

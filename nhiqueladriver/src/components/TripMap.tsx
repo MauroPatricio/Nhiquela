@@ -36,7 +36,7 @@ type Props = {
   routeDrawn?: boolean;
 };
 
-const GOOGLE_API_KEY = "AIzaSyCcEJkIShYipbwcKBfDFKKkLR6QudOQG3Q";
+const GOOGLE_API_KEY = "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s";
 
 export default function TripMap({ 
   currentLocation, 

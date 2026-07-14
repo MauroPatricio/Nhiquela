@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { API_BASE_URL } from '../api/apiConfig';
 
-// 🔥 LOCALIZAÇÃO FALLBACK (caso não consiga obter a real)
+// ðŸ”¥ LOCALIZAÃ‡ÃƒO FALLBACK (caso nÃ£o consiga obter a real)
 const FALLBACK_LOCATION = {
   latitude: -25.8195323,
   longitude: 32.5109306
@@ -51,7 +51,7 @@ export default function MapScreen({ route, navigation }: any) {
   
         await updateDeliverymanLocation(orderId);
   
-        // Atualiza a localização a cada 10 segundos via socket (otimizado)
+        // Atualiza a localizaÃ§Ã£o a cada 10 segundos via socket (otimizado)
         interval = setInterval(async () => {
           try {
             let loc = null;
@@ -71,7 +71,7 @@ export default function MapScreen({ route, navigation }: any) {
                 heading: loc.coords.heading,
                 speed: loc.coords.speed
               };
-              // Emite a localização em tempo real para o backend processar e transmitir ao cliente
+              // Emite a localizaÃ§Ã£o em tempo real para o backend processar e transmitir ao cliente
               socket.emit('update_location', locationData);
             }
           } catch (err) {
@@ -80,7 +80,7 @@ export default function MapScreen({ route, navigation }: any) {
         }, 10000);
   
       } catch (error) {
-        console.error("Erro ao iniciar atualização automática da localização:", error);
+        console.error("Erro ao iniciar atualizaÃ§Ã£o automÃ¡tica da localizaÃ§Ã£o:", error);
       }
     };
   
@@ -98,13 +98,13 @@ export default function MapScreen({ route, navigation }: any) {
       try {
         setLoading(true);
 
-        // 🔥 Obter localização atual com fallback PRIMEIRO
+        // ðŸ”¥ Obter localizaÃ§Ã£o atual com fallback PRIMEIRO
         try {
           const location = await getCurrentLocation();
           setCurrentLocation(location);
           setLocationError(null);
         } catch (locationError: any) {
-          console.warn("⚠️ Não foi possível obter localização, usando fallback:", locationError.message);
+          console.warn("âš ï¸ NÃ£o foi possÃ­vel obter localizaÃ§Ã£o, usando fallback:", locationError.message);
           setCurrentLocation(FALLBACK_LOCATION);
           setLocationError(locationError.message);
         }
@@ -125,13 +125,13 @@ export default function MapScreen({ route, navigation }: any) {
           return;
         }
   
-        // 🔥 Guardar dados no estado
+        // ðŸ”¥ Guardar dados no estado
         setTripData(storedTrip);
   
-        // 🔥 Definir destino baseado no stepStatus
+        // ðŸ”¥ Definir destino baseado no stepStatus
         if (storedTrip) {  
           if (storedTrip.stepStatus === 4) {
-            // STEP 4 → destino = local do VENDEDOR/COLETA (originLocation ou seller)
+            // STEP 4 â†’ destino = local do VENDEDOR/COLETA (originLocation ou seller)
             const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
             const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
   
@@ -147,7 +147,7 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else if (storedTrip.stepStatus === 5) {
-            // STEP 5 → destino = local do CLIENTE (destinationLocation ou deliveryAddress)
+            // STEP 5 â†’ destino = local do CLIENTE (destinationLocation ou deliveryAddress)
             const clientLat = Number(storedTrip.originalData?.destinationDetails?.lat || storedTrip.originalData?.destinationLocation?.latitude || storedTrip.originalData?.deliveryAddress?.latitude || storedTrip.originalData?.latitude);
             const clientLng = Number(storedTrip.originalData?.destinationDetails?.lng || storedTrip.originalData?.destinationLocation?.longitude || storedTrip.originalData?.deliveryAddress?.longitude || storedTrip.originalData?.longitude);
   
@@ -163,8 +163,8 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else {
-            // STEP PENDENTE / ACEITE MAS NÃO INICIADO → destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
-            // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
+            // STEP PENDENTE / ACEITE MAS NÃƒO INICIADO â†’ destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
+            // Permite ao motorista ver a distÃ¢ncia e rota atÃ© Ã  coleta ANTES de aceitar/iniciar.
             const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
             const pickupLatLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
             const pickupLng = pickupLatLng; // Aliasing since previous name was pickupLng
@@ -183,7 +183,7 @@ export default function MapScreen({ route, navigation }: any) {
         }
   
       } catch (err: any) {
-        Alert.alert("Erro", "Não foi possível carregar os dados do mapa.");
+        Alert.alert("Erro", "NÃ£o foi possÃ­vel carregar os dados do mapa.");
       } finally {
         setLoading(false);
       }
@@ -192,22 +192,22 @@ export default function MapScreen({ route, navigation }: any) {
     loadTripData();
   }, []);
   
-  // 🔥 FUNÇÃO startTrip ATUALIZADA
+  // ðŸ”¥ FUNÃ‡ÃƒO startTrip ATUALIZADA
   const startTrip = async (trip: any) => {
     try {
       setStartingTrip(true);
 
-      // Feedback visual instantâneo
+      // Feedback visual instantÃ¢neo
       const updatedTrip = {
         ...trip,
-        status: 'Em trânsito', 
+        status: 'Em trÃ¢nsito', 
         stepStatus: 5
       };
       
       setTripData(updatedTrip);
       await AsyncStorage.setItem("acceptedTrip", JSON.stringify(updatedTrip));
 
-      // 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND AO INICIAR VIAGEM
+      // ðŸ”¥ ATUALIZAR LOCALIZAÃ‡ÃƒO NO BACKEND AO INICIAR VIAGEM
       try {
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High
@@ -230,7 +230,7 @@ export default function MapScreen({ route, navigation }: any) {
           })
         });
       } catch (locationError) {
-        console.warn('Erro ao atualizar localização de início:', locationError);
+        console.warn('Erro ao atualizar localizaÃ§Ã£o de inÃ­cio:', locationError);
       }
 
       // Atualizar status da ordem no backend
@@ -255,17 +255,17 @@ export default function MapScreen({ route, navigation }: any) {
     } catch (error: any) {
       console.error("Erro ao iniciar viagem:", error.message);
       
-      // Reverter mudança visual em caso de erro
+      // Reverter mudanÃ§a visual em caso de erro
       const revertedTrip = {
         ...trip,
-        status: 'Aceite pelo entregador',
+        status: 'Pedido aceite',
         stepStatus: 4
       };
       
       setTripData(revertedTrip);
       await AsyncStorage.setItem("acceptedTrip", JSON.stringify(revertedTrip));
       
-      Alert.alert("Erro", "Não foi possível iniciar a viagem.");
+      Alert.alert("Erro", "NÃ£o foi possÃ­vel iniciar a viagem.");
     } finally {
       setStartingTrip(false);
     }
@@ -274,12 +274,12 @@ export default function MapScreen({ route, navigation }: any) {
   const handleCancelTrip = () => {
     if (routeDrawn) {
       Alert.alert(
-        "❌ Cancelamento não permitido",
-        "Não é possível cancelar a viagem após a rota estar desenhada. Complete a entrega do produto.",
+        "âŒ Cancelamento nÃ£o permitido",
+        "NÃ£o Ã© possÃ­vel cancelar a viagem apÃ³s a rota estar desenhada. Complete a entrega do produto.",
         [{ text: "OK" }]
       );
     } else {
-      Alert.alert("Viagem cancelada", "Você cancelou a viagem.");
+      Alert.alert("Viagem cancelada", "VocÃª cancelou a viagem.");
       AsyncStorage.removeItem("acceptedTrip");
       navigation.goBack();
     }
@@ -288,9 +288,9 @@ export default function MapScreen({ route, navigation }: any) {
   const handleNoShow = () => {
     Alert.alert(
       "Confirmar Cancelamento",
-      "Tem certeza de que o cliente não compareceu? A viagem será cancelada.",
+      "Tem certeza de que o cliente nÃ£o compareceu? A viagem serÃ¡ cancelada.",
       [
-        { text: "Não", style: "cancel" },
+        { text: "NÃ£o", style: "cancel" },
         { 
           text: "Sim", 
           style: "destructive",
@@ -303,11 +303,11 @@ export default function MapScreen({ route, navigation }: any) {
               }
               await AsyncStorage.removeItem("acceptedTrip");
               setTripData(null);
-              Alert.alert("Sucesso", "Viagem cancelada por não comparecimento.");
+              Alert.alert("Sucesso", "Viagem cancelada por nÃ£o comparecimento.");
               navigation.goBack();
             } catch (error) {
               console.error("Erro ao cancelar:", error);
-              Alert.alert("Erro", "Não foi possível cancelar a viagem.");
+              Alert.alert("Erro", "NÃ£o foi possÃ­vel cancelar a viagem.");
             }
           }
         }
@@ -336,7 +336,7 @@ export default function MapScreen({ route, navigation }: any) {
         destination.longitude
       );
       
-      // Se a distância for maior que 200 metros, não permite finalizar
+      // Se a distÃ¢ncia for maior que 200 metros, nÃ£o permite finalizar
       if (distance > 200) {
         setShowCannotFinishModal(true);
         return;
@@ -353,7 +353,7 @@ export default function MapScreen({ route, navigation }: any) {
     try {
       setShowFinishConfirmationModal(false);
       
-      // 🔥 AVISAR O BACKEND QUE O MOTORISTA CHEGOU AO DESTINO
+      // ðŸ”¥ AVISAR O BACKEND QUE O MOTORISTA CHEGOU AO DESTINO
       if (tripData?.id) {
         const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
         await confirmOrderDelivered(tripData.id, isRequestService, currentLocation?.latitude, currentLocation?.longitude);
@@ -394,7 +394,7 @@ export default function MapScreen({ route, navigation }: any) {
       if (tripId) {
         const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
         await finalizeOrder(tripId, isRequestService);
-        // Atualiza o estado local para parar o cronómetro no TripMap (que apenas conta em 4, 5, ou 6)
+        // Atualiza o estado local para parar o cronÃ³metro no TripMap (que apenas conta em 4, 5, ou 6)
         setTripData(prev => prev ? { ...prev, stepStatus: 7 } : null);
       }
       await AsyncStorage.removeItem("acceptedTrip");
@@ -412,14 +412,14 @@ export default function MapScreen({ route, navigation }: any) {
       setCurrentLocation(location);
       setLocationError(null);
     } catch (error: any) {
-      console.error("❌ Falha ao tentar obter localização novamente:", error.message);
+      console.error("âŒ Falha ao tentar obter localizaÃ§Ã£o novamente:", error.message);
       setLocationError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔥 TELA DE CARREGAMENTO
+  // ðŸ”¥ TELA DE CARREGAMENTO
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -429,11 +429,11 @@ export default function MapScreen({ route, navigation }: any) {
     );
   }
 
-  // 🔥 SE NÃO TEM LOCALIZAÇÃO (nem fallback)
+  // ðŸ”¥ SE NÃƒO TEM LOCALIZAÃ‡ÃƒO (nem fallback)
   if (!currentLocation) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Não foi possível obter a localização</Text>
+        <Text style={styles.errorText}>NÃ£o foi possÃ­vel obter a localizaÃ§Ã£o</Text>
         <Text style={styles.errorDetail}>{locationError}</Text>
         <TouchableOpacity 
           style={styles.retryButton}
@@ -453,11 +453,11 @@ export default function MapScreen({ route, navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* 🔥 AVISO SE ESTIVER USANDO FALLBACK */}
+      {/* ðŸ”¥ AVISO SE ESTIVER USANDO FALLBACK */}
       {locationError && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
-            ⚠️ Usando localização aproximada: {locationError}
+            âš ï¸ Usando localizaÃ§Ã£o aproximada: {locationError}
           </Text>
           <TouchableOpacity onPress={handleRetryLocation}>
             <Text style={styles.retryLinkText}>Tentar novamente</Text>
@@ -465,7 +465,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {/* 🔥 INDICADOR DE CARREGAMENTO AO INICIAR VIAGEM */}
+      {/* ðŸ”¥ INDICADOR DE CARREGAMENTO AO INICIAR VIAGEM */}
       {startingTrip && (
         <View style={styles.startingTripOverlay}>
           <ActivityIndicator size="large" color="#FFF" />
@@ -473,7 +473,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {/* 🔥 COMPONENTE DO MAPA */}
+      {/* ðŸ”¥ COMPONENTE DO MAPA */}
       <TripMap
         currentLocation={currentLocation}
         destination={destination}
@@ -493,7 +493,7 @@ export default function MapScreen({ route, navigation }: any) {
         routeDrawn={routeDrawn}
       />
 
-      {/* 🔥 CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
+      {/* ðŸ”¥ CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
       {(tripData?.stepStatus === 5 || tripData?.stepStatus === 6) && (
         <TripControls
           onCancelTrip={handleCancelTrip}
@@ -504,7 +504,7 @@ export default function MapScreen({ route, navigation }: any) {
         />
       )}
 
-      {/* 🔥 MODAL PREMIUM — VIAGEM INICIADA COM SUCESSO */}
+      {/* ðŸ”¥ MODAL PREMIUM â€” VIAGEM INICIADA COM SUCESSO */}
       <Modal
         visible={showTripStartedModal}
         transparent={true}
@@ -516,10 +516,10 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="compass-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! ðŸš€</Text>
             
             <Text style={styles.premiumModalMessage}>
-              A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
+              A rota para a entrega foi traÃ§ada com sucesso. Conduza com cuidado e respeite as regras de trÃ¢nsito.
             </Text>
 
             <TouchableOpacity 
@@ -540,7 +540,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO INDISPONÍVEL */}
+      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÃ‡ÃƒO INDISPONÃVEL */}
       <Modal
         visible={showNoLocationModal}
         transparent={true}
@@ -553,10 +553,10 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="location-off-outline" size={44} color="#D97706" />
             </View>
             
-            <Text style={styles.premiumWarningModalTitle}>Localização Indisponível</Text>
+            <Text style={styles.premiumWarningModalTitle}>LocalizaÃ§Ã£o IndisponÃ­vel</Text>
             
             <Text style={styles.premiumWarningModalMessage}>
-              Infelizmente, não foi possível obter as coordenadas geográficas para o local de entrega.{'\n\n'}Por favor, contacte o cliente diretamente para combinar a rota ou obter direções.
+              Infelizmente, nÃ£o foi possÃ­vel obter as coordenadas geogrÃ¡ficas para o local de entrega.{'\n\n'}Por favor, contacte o cliente diretamente para combinar a rota ou obter direÃ§Ãµes.
             </Text>
 
             <TouchableOpacity 
@@ -577,7 +577,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🏁 MODAL PREMIUM — CONFIRMAR ENTREGA */}
+      {/* ðŸ MODAL PREMIUM â€” CONFIRMAR ENTREGA */}
       <Modal
         visible={showFinishConfirmationModal}
         transparent={true}
@@ -624,7 +624,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* ⚠️ MODAL PREMIUM — NÃO PODE FINALIZAR */}
+      {/* âš ï¸ MODAL PREMIUM â€” NÃƒO PODE FINALIZAR */}
       <Modal
         visible={showCannotFinishModal}
         transparent={true}
@@ -636,7 +636,7 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="location-outline" size={44} color="#EF4444" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Viagem não pode ser finalizada</Text>
+            <Text style={styles.premiumModalTitle}>Viagem nÃ£o pode ser finalizada</Text>
             
             <Text style={styles.premiumModalMessage}>
               Para terminar a viagem deve estar no local de destino.
@@ -664,7 +664,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🎉 MODAL PREMIUM — ENTREGA CONCLUÍDA COM SUCESSO */}
+      {/* ðŸŽ‰ MODAL PREMIUM â€” ENTREGA CONCLUÃDA COM SUCESSO */}
       <Modal
         visible={showFinishSuccessModal}
         transparent={true}
@@ -676,10 +676,10 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="trophy-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Entrega Concluída! 🎉</Text>
+            <Text style={styles.premiumModalTitle}>Entrega ConcluÃ­da! ðŸŽ‰</Text>
             
             <Text style={styles.premiumModalMessage}>
-              Parabéns! Completou a sua entrega com sucesso. O seu saldo e estatísticas foram atualizados.
+              ParabÃ©ns! Completou a sua entrega com sucesso. O seu saldo e estatÃ­sticas foram atualizados.
             </Text>
 
             <TouchableOpacity 
@@ -701,7 +701,7 @@ export default function MapScreen({ route, navigation }: any) {
                 end={{ x: 1, y: 1 }}
                 style={styles.premiumConfirmGradient}
               >
-                <Text style={styles.premiumConfirmButtonText}>Voltar ao Início</Text>
+                <Text style={styles.premiumConfirmButtonText}>Voltar ao InÃ­cio</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
