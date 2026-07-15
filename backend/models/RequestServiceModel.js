@@ -71,11 +71,14 @@ const requestServiceSchema = new mongoose.Schema(
     priorityLevel: { type: String, enum: ['normal', 'alta'], default: 'normal' },
 
     // ==========================================
-    // AGENDAMENTO
+    // AGENDAMENTO INTELIGENTE
     // ==========================================
     isScheduled: { type: Boolean, default: false }, // true = pedido agendado para data futura
     scheduledAt: { type: Date, default: null },      // data/hora definida pelo cliente
-    scheduledNotified: { type: Boolean, default: false }, // true quando a notificação de 45min foi enviada
+    searchWindowStart: { type: Date, default: null }, // Momento calculado pelo motor preditivo para iniciar procura
+    driverAssignedAt: { type: Date, default: null },  // Quando o motorista confirmou o agendamento
+    confidenceScore: { type: Number, default: 100 },  // Índice de segurança (0-100)
+    scheduledNotified: { type: Boolean, default: false }, // true quando a notificação de 45min/30min foi enviada
 
     deliveryman: {
       id:{type: mongoose.Schema.Types.ObjectId, ref: 'Provider'},

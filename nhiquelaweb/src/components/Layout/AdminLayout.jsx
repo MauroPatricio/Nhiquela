@@ -1,15 +1,100 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, Navigate } from 'react-router-dom';
+import api, { SOCKET_URL } from '../../api';
 import { useSelector, useDispatch } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { setUserLogout } from '../../store/features/userSlice';
+import { io } from 'socket.io-client';
+import { toast } from 'react-toastify';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userInfo } = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0 });
+
+  useEffect(() => {
+    if (userInfo && userInfo.isAdmin) {
+      const fetchBadges = async () => {
+        try {
+          const { data } = await api.get('/api/stats/admin-badges', {
+            headers: { Authorization: `Bearer ${userInfo.token}` }
+          });
+          setBadges(data);
+        } catch (error) {
+          console.error("Failed to fetch admin badges", error);
+        }
+      };
+      
+      fetchBadges();
+      // Optional: Set up an interval to refresh badges every minute
+      const interval = setInterval(fetchBadges, 60000);
+      
+      // WebSockets for Real-Time Badges & Notifications
+      const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+      
+      socket.on('connect', () => {
+        // Authenticate admin socket on connection
+        socket.emit('onLogin', { 
+          _id: userInfo._id, 
+          isAdmin: true, 
+          token: userInfo.token 
+        });
+      });
+
+      socket.on('adminNotification', (data) => {
+        // Play notification sound
+        playNotificationSound();
+        
+        // Show Toast Visual
+        toast.info(data.message, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "colored"
+        });
+        
+        // Update badges immediately
+        fetchBadges();
+      });
+
+      return () => {
+        clearInterval(interval);
+        socket.disconnect();
+      };
+    }
+  }, [userInfo]);
+
+  const playNotificationSound = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1); // A6
+      
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (e) {
+      console.error('AudioContext error', e);
+    }
+  };
 
   if (!userInfo) {
     return <Navigate to="/login" replace />;
@@ -23,7 +108,7 @@ export default function AdminLayout() {
     { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
     { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog },
     { name: 'Papéis (Roles)', path: '/admin/roles', icon: faShieldAlt },
-    { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart },
+    { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart, badge: badges.pendingOrders },
     { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
     { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
     { name: 'Tipos Estabel.', path: '/admin/establishment-types', icon: faBuilding },
@@ -37,7 +122,7 @@ export default function AdminLayout() {
     { name: 'Categorias', path: '/admin/categories', icon: faTags },
     { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },
     { name: 'Serviços', path: '/admin/services', icon: faTools },
-    { name: '🚚 Motoristas', path: '/admin/drivers', icon: faMotorcycle },
+    { name: '🚚 Motoristas', path: '/admin/drivers', icon: faMotorcycle, badge: badges.pendingDrivers },
     { name: '💰 Pedidos de Preço', path: '/admin/price-requests', icon: faMoneyBillWave },
     { name: '📄 Pedidos de Docs', path: '/admin/doc-requests', icon: faFileAlt },
     { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },
@@ -46,7 +131,7 @@ export default function AdminLayout() {
     { name: 'Subscrições', path: '/admin/subscriptions', icon: faCrown },
     { name: 'Push Notificações', path: '/admin/push-notifications', icon: faBell },
     { name: 'Banners & Marketing', path: '/admin/marketing', icon: faBullhorn },
-    { name: 'Financeiro', path: '/admin/finance', icon: faMoneyBillWave },
+    { name: 'Financeiro', path: '/admin/finance', icon: faMoneyBillWave, badge: badges.pendingRecharges },
     { name: 'Métodos Pagamento', path: '/admin/payment-methods', icon: faMoneyBillWave },
     { name: 'Taxas Processamento', path: '/admin/fees', icon: faMoneyBillWave },
     { name: 'Tarifas de Entrega', path: '/admin/delivery-tariffs', icon: faCar },
@@ -114,13 +199,20 @@ export default function AdminLayout() {
               to={item.path} 
               onClick={() => setSidebarOpen(false)} // Fecha no click em telas pequenas
               className={({ isActive }) => 
-                `nav-link rounded-3 px-3 py-2 text-dark d-flex align-items-center ${isActive ? 'bg-primary-custom text-white fw-bold shadow-sm' : 'hover-bg-light'}`
+                `nav-link rounded-3 px-3 py-2 text-dark d-flex align-items-center justify-content-between ${isActive ? 'bg-primary-custom text-white fw-bold shadow-sm' : 'hover-bg-light'}`
               }
             >
-              <div style={{ width: '25px' }} className="text-center me-2">
-                <FontAwesomeIcon icon={item.icon} />
+              <div className="d-flex align-items-center">
+                <div style={{ width: '25px' }} className="text-center me-2">
+                  <FontAwesomeIcon icon={item.icon} />
+                </div>
+                {item.name}
               </div>
-              {item.name}
+              {item.badge > 0 && (
+                <span className="badge bg-danger rounded-pill shadow-sm" style={{ fontSize: '0.7rem' }}>
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

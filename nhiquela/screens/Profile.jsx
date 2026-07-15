@@ -590,14 +590,14 @@ const Profile = () => {
             </TouchableOpacity>
 
             {/* Logout and Delete Buttons Wrap */}
-            <TouchableOpacity onPress={logout} activeOpacity={0.8} style={styles.logoutButton}>
-              <AntDesign name="logout" size={20} color="#EF4444" style={{ marginRight: 8 }} />
-              <Text style={styles.logoutButtonText}>Sair da Conta</Text>
+            <TouchableOpacity onPress={() => setShowDeleteModal(true)} activeOpacity={0.8} style={[styles.logoutButton, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]}>
+              <MaterialCommunityIcons name="delete-alert-outline" size={20} color="#DC2626" style={{ marginRight: 8 }} />
+              <Text style={[styles.logoutButtonText, { color: '#DC2626' }]}>Apagar Conta</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setShowDeleteModal(true)} activeOpacity={0.8} style={[styles.logoutButton, { marginTop: 15, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]}>
-              <MaterialCommunityIcons name="delete-alert-outline" size={20} color="#DC2626" style={{ marginRight: 8 }} />
-              <Text style={[styles.logoutButtonText, { color: '#DC2626' }]}>Apagar Conta Permanentemente</Text>
+            <TouchableOpacity onPress={logout} activeOpacity={0.8} style={[styles.logoutButton, { marginTop: 15 }]}>
+              <AntDesign name="logout" size={20} color="#EF4444" style={{ marginRight: 8 }} />
+              <Text style={styles.logoutButtonText}>Sair da Conta</Text>
             </TouchableOpacity>
           </View>
         ) : (

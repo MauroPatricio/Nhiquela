@@ -493,6 +493,69 @@ export default function MapScreen({ route, navigation }: any) {
         routeDrawn={routeDrawn}
       />
 
+      {/* 🔥 INFO CARD DO PEDIDO (FLUTUANTE NO TOPO) */}
+      {tripData && (
+        <View style={styles.floatingInfoCard}>
+          <View style={styles.infoRow}>
+            <Ionicons name="person-circle" size={28} color="#3B82F6" />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.name || tripData.user?.name || 'Cliente'}</Text>
+              <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.phoneNumber || tripData.user?.phone || 'Telefone não disponível'}</Text>
+            </View>
+            {(tripData.phoneNumber || tripData.user?.phone) && (
+              <TouchableOpacity 
+                style={styles.callButton}
+                onPress={() => {
+                  const phone = tripData.phoneNumber || tripData.user?.phone;
+                  if (phone) Linking.openURL(`tel:${phone}`);
+                }}
+              >
+                <Ionicons name="call" size={18} color="#FFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+          
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <Ionicons name="location" size={16} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
+              <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                <Text style={{ fontWeight: '600' }}>Recolha: </Text>
+                {tripData.origin || 'Não especificada'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <Ionicons name="flag" size={16} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
+              <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                <Text style={{ fontWeight: '600' }}>Destino: </Text>
+                {tripData.destination || 'Não especificado'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="card" size={16} color="#64748B" style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.paymentMethod || 'Dinheiro'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="cube" size={16} color="#64748B" style={{ marginRight: 6, marginLeft: 12 }} />
+              <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.goodType || tripData.service?.name || 'Serviço Padrão'}</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: '#1E293B', fontWeight: '700' }}>Preço Total:</Text>
+            <Text style={{ fontSize: 18, color: '#059669', fontWeight: '800' }}>{tripData.deliveryPrice || tripData.price || '0'} Mt</Text>
+          </View>
+        </View>
+      )}
+
       {/* 🔥 CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
       {(tripData?.stepStatus === 5 || tripData?.stepStatus === 6) && (
         <TripControls
@@ -712,6 +775,38 @@ export default function MapScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  floatingInfoCard: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 10,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  callButton: {
+    backgroundColor: '#10B981',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
   container: { 
     flex: 1, 
     backgroundColor: "#fff" 

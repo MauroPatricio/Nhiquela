@@ -379,15 +379,15 @@ export default function HomeScreen({ navigation }: any) {
           }
         });
 
-        // ðŸ”” LISTENER EM TEMPO REAL â€” Admin aprova/rejeita conta do motorista
+        // 🔔 LISTENER EM TEMPO REAL — Admin aprova/rejeita conta do motorista
         websocketService.on('driver_status_updated', (data: any) => {
           if (!isMounted.current) return;
-          console.log('ðŸ”” Estado atualizado pelo admin:', data);
+          console.log('🔔 Estado atualizado pelo admin:', data);
 
           const nowApproved = data.status === 'Disponível' || data.status === 'Em Entrega';
 
           if (nowApproved) {
-            // âœ… Conta aprovada: fecha o modal e carrega as ordens
+            // ✅ Conta aprovada: fecha o modal e carrega as ordens
             setIsDriverApproved(true);
             setShowApprovalModal(false);
             setShowApprovedSuccessModal(true);
@@ -1575,7 +1575,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </View>
 
             <Text style={{ fontSize: 26, fontWeight: '900', color: '#064E3B', marginBottom: 12, textAlign: 'center' }}>
-              Conta Aprovada! ðŸŽ‰
+              Conta Aprovada! 🎉
             </Text>
 
             <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 24, marginBottom: 8, fontWeight: '600' }}>

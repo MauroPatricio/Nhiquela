@@ -125,6 +125,21 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
 
     await sendAdminNotificationEmail(title, textHtml);
 
+    // [NOVO] Emissão global em tempo real via WebSocket para todos os administradores conectados
+    if (isManualDeposit) {
+      const io = req.app.get('io');
+      const users = req.app.get('users');
+      if (io && users) {
+        const admins = users.filter(u => u.isAdmin && u.socketId);
+        admins.forEach(admin => {
+          io.to(admin.socketId).emit('adminNotification', {
+            type: 'recharge',
+            message: `Novo pedido de recarga pendente: ${amount} MT de ${req.user.name || 'Utilizador'}`
+          });
+        });
+      }
+    }
+
     return res.json({ message: successMessage, balance });
   } catch (error) {
     console.error('Erro ao recarregar saldo:', error?.response?.data || error.message);

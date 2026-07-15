@@ -126,7 +126,7 @@ requestServiceer.post(
       serviceId: req.body.serviceId || null,
       user: req.user._id,
       code: generateCode(),
-      status: 'Pendente',
+      status: req.body.isScheduled ? 'SCHEDULED' : 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
       stepStatus: req.body.stepStatus,

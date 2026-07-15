@@ -194,7 +194,12 @@ class PricingService {
     if (providerId) {
       const provider = await User.findById(providerId);
       if (provider && provider.deliveryman) {
-        customBasePrice = provider.deliveryman.assigned_base_fee;
+        if (provider.deliveryman.allowCustomPrice && provider.deliveryman.customPrice) {
+          customBasePrice = provider.deliveryman.customPrice;
+        } else if (provider.deliveryman.assigned_base_fee) {
+          customBasePrice = provider.deliveryman.assigned_base_fee;
+        }
+        
         // Rating multiplier
         const rating = provider.rating || 5;
         if (rating >= 4.8) providerRatingMult = engineConfig.ratingMultipliers.fiveStar;
@@ -221,10 +226,16 @@ class PricingService {
     let serviceCost = 0;
     let overrideDistance = false;
 
-    // Se o cliente definiu um preço sugerido ou o provedor tem um fixo
+    // Se o cliente definiu um preo sugerido ou o provedor tem um fixo
     if (clientSuggestedPrice !== null && clientSuggestedPrice !== undefined && clientSuggestedPrice > 0) {
-      serviceCost = Number(clientSuggestedPrice);
-    } else if (service.pricingMode === 'PROVIDER_DEFINED') {
+      // IGNORAMOS o clientSuggestedPrice como serviceCost se houver providerId para evitar
+      // cobrar a distncia a dobrar (pois a App envia o valor j com deslocao).
+      if (!providerId) {
+        serviceCost = Number(clientSuggestedPrice);
+      }
+    } 
+    
+    if (service.pricingMode === 'PROVIDER_DEFINED' && !serviceCost) {
       serviceCost = service.serviceFee || 0;
     }
 
@@ -293,6 +304,20 @@ class PricingService {
 
     // Calcular subtotal final
     let subtotalFinal = distanceTotalPostMultipliers + serviceCost;
+    
+    // Se temos um motorista com preco customizado, aplicamos a logica para calcular o valor real (Base Motorista + Deslocacao Global)
+    if (customBasePrice !== null) {
+      // O valor global base seria a juncao do distance multipliers com o service fee
+      let globalPrice = distanceTotalPostMultipliers + (service.serviceFee || 0);
+      let serviceBase = service.baseFare || 0;
+      let deslocacao = globalPrice > serviceBase ? globalPrice - serviceBase : 0;
+      
+      subtotalFinal = customBasePrice + deslocacao;
+      actualBaseFare = customBasePrice; // Atualiza para refretir na breakdown
+      distanceCost = deslocacao; // A deslocacao cobrada em excesso ao base
+    } else if (clientSuggestedPrice !== null && clientSuggestedPrice > 0 && !providerId) {
+      subtotalFinal = Number(clientSuggestedPrice);
+    }
 
     // Arredondamento (apenas usar duas casas decimais)
     subtotalFinal = Math.round(subtotalFinal * 100) / 100; 

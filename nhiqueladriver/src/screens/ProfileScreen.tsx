@@ -539,17 +539,17 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
 
         {/* Botão de Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-          <Text style={styles.logoutText}>Sair da Conta</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity 
-          style={[styles.logoutButton, { marginTop: 15, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]} 
+          style={[styles.logoutButton, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]} 
           onPress={() => setShowDeleteModal(true)}
         >
           <Ionicons name="trash-outline" size={24} color="#DC2626" />
-          <Text style={[styles.logoutText, { color: '#DC2626' }]}>Apagar Conta Permanentemente</Text>
+          <Text style={[styles.logoutText, { color: '#DC2626' }]}>Apagar Conta</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.logoutButton, { marginTop: 15 }]} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+          <Text style={styles.logoutText}>Sair da Conta</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>

@@ -12,8 +12,19 @@ const replacements = [
   { bad: 'InformaA Ao', good: 'Informação' },
   { bad: 'atualizaA Ao', good: 'atualização' },
   { bad: 'notificaA Ao', good: 'notificação' },
-  { bad: 'A o', good: 'ão' },
-  { bad: 'A A', good: 'çã' },
+  { bad: 'DisponA-vel', good: 'Disponível' },
+  { bad: 'DisponA-veis', good: 'Disponíveis' },
+  { bad: 'AprovaA Ao', good: 'Aprovação' },
+  { bad: 'AprovaA Ao', good: 'Aprovação' },
+  { bad: 'serviA o', good: 'serviço' },
+  { bad: 'serviA os', good: 'serviços' },
+  { bad: 'alteraA Ao', good: 'alteração' },
+  { bad: 'preA o', good: 'preço' },
+  { bad: 'seguranA a', good: 'segurança' },
+  { bad: 'rApida', good: 'rápida' },
+  { bad: 'prA3ximos', good: 'próximos' },
+  { bad: 'contA-nua', good: 'contínua' },
+  { bad: 'necessAria', good: 'necessária' },
 ];
 
 function processDirectory(dir) {

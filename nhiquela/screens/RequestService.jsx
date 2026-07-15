@@ -584,6 +584,12 @@ export default function RequestServiceSimple() {
 
       if (response.data && response.data.requestService) {
         setCurrentRequestServiceId(response.data.requestService._id);
+        
+        if (isScheduled) {
+           Alert.alert("Agendado com sucesso", `O seu pedido foi agendado para ${scheduledDate.toLocaleString('pt-PT')}.`);
+           navigation.navigate('OrderDetailsScreen', { orderId: response.data.requestService._id, item: response.data.requestService });
+           return;
+        }
       }
       
       // We don't navigate yet, we wait for driver to accept/reject via socket
@@ -1458,11 +1464,14 @@ export default function RequestServiceSimple() {
                                   {driver.deliveryman?.rating || 'Novo'}
                                 </Text>
                               </View>
-                              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>â€¢</Text>
+                              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
                                 <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 2 }} numberOfLines={1}>
-                                  {service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido'}
+                                  {(() => {
+                                    const tType = service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido';
+                                    return /^[a-fA-F0-9]{24}$/.test(tType) ? 'Motorista' : tType;
+                                  })()}
                                 </Text>
                               </View>
                             </View>

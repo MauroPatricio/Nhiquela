@@ -36,7 +36,7 @@ const replacements = {
   'sessAAo': 'sessão',
   'DeixarAA': 'Deixará',
   'atAAc': 'até',
-  'DisponA-vel': 'Disponível'
+  'Disponível': 'Disponível'
 };
 
 for (const [key, value] of Object.entries(replacements)) {

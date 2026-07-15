@@ -58,6 +58,10 @@ import paymentRouterEmola from './routes/paymentEmolaRoutes.js';
 import walletRouter from './routes/walletRoutes.js';
 import trackingRoutes from './routes/trackingRoutes.js';
 import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
+
+// WORKERS (Intelligent Scheduling)
+import { startSchedulingEngine } from './workers/schedulingEngine.js';
+import { startTripValidator } from './workers/tripValidator.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
@@ -491,6 +495,11 @@ console.log('Port configuration: process.env.PORT =', process.env.PORT);
 if (process.env.NODE_ENV !== 'test') {
   httpServer.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);
+    
+    // Iniciar cron workers do Scheduling Engine
+    const appIo = app.get('io');
+    startSchedulingEngine(appIo, users);
+    startTripValidator(appIo, users);
     
     // Processar pedidos em fallback
     setInterval(async () => {

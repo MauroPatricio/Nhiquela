@@ -483,20 +483,21 @@ router.put(
     const driver = await User.findById(request.deliverymanId);
     if (driver) {
       if (decision === 'APPROVED') {
+        const fields = request.updatedFields instanceof Map ? Object.fromEntries(request.updatedFields) : (request.updatedFields || {});
         // Se houver transport_type pendente de alteracao, atualiza o perfil do motorista
-        if (request.updatedFields && request.updatedFields.transport_type) {
-          driver.deliveryman.transport_type = request.updatedFields.transport_type;
+        if (fields.transport_type) {
+          driver.deliveryman.transport_type = fields.transport_type;
           
-          if (request.updatedFields.assigned_base_fee !== undefined) {
-             driver.deliveryman.assigned_base_fee = request.updatedFields.assigned_base_fee;
+          if (fields.assigned_base_fee !== undefined) {
+             driver.deliveryman.assigned_base_fee = fields.assigned_base_fee;
              driver.providedServices = [{
-               serviceId: request.updatedFields.transport_type,
-               customBasePrice: request.updatedFields.assigned_base_fee
+               serviceId: fields.transport_type,
+               customBasePrice: fields.assigned_base_fee
              }];
           } else {
              // Caso não haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
              driver.providedServices = [{
-               serviceId: request.updatedFields.transport_type,
+               serviceId: fields.transport_type,
                customBasePrice: driver.deliveryman.assigned_base_fee
              }];
           }
@@ -506,6 +507,7 @@ router.put(
       } else {
         driver.deliveryman.docUpdateStatus = 'Nenhum';
       }
+      driver.markModified('deliveryman');
       await driver.save();
     }
 
