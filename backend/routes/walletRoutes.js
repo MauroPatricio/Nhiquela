@@ -125,6 +125,21 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
 
     await sendAdminNotificationEmail(title, textHtml);
 
+    // [NOVO] Emissão global em tempo real via WebSocket para todos os administradores conectados
+    if (isManualDeposit) {
+      const io = req.app.get('io');
+      const users = req.app.get('users');
+      if (io && users) {
+        const admins = users.filter(u => u.isAdmin && u.socketId);
+        admins.forEach(admin => {
+          io.to(admin.socketId).emit('adminNotification', {
+            type: 'recharge',
+            message: `Novo pedido de recarga pendente: ${amount} MT de ${req.user.name || 'Utilizador'}`
+          });
+        });
+      }
+    }
+
     return res.json({ message: successMessage, balance });
   } catch (error) {
     console.error('Erro ao recarregar saldo:', error?.response?.data || error.message);
@@ -239,7 +254,7 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
       saldo_operacional_minimo: config.minOperationalBalance,
       taxa_base_veículo: baseFare,
       taxa_minima_recarga: minVisibilityFee > 0 ? minVisibilityFee : config.minOperationalBalance,
-      nome_veiculo: vehicleName,
+      nome_veículo: vehicleName,
       nome_categoria: categoryName,
       saldo_disponivel: balance - limit,
       estado_atual: currentState,

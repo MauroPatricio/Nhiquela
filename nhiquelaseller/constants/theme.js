@@ -1,5 +1,5 @@
-// nhiquelaseller — Design System Tokens
-// Dark mode roxo/violeta — consistente com nhiqueladriver
+// nhiquelaseller â€” Design System Tokens
+// Dark mode roxo/violeta â€” consistente com nhiqueladriver
 
 export const COLORS = {
   // Fundos
@@ -113,7 +113,7 @@ export const getStatusColor = (status) => {
     case 'Cancelada': return COLORS.statusCancelado;
     case 'Aceite':
     case 'Aceite pelo vendedor':
-    case 'Aceite pelo entregador': return COLORS.statusAceite;
+    case 'Pedido aceite': return COLORS.statusAceite;
     default: return COLORS.primary;
   }
 };

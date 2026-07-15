@@ -19,6 +19,7 @@ import { loginUser, forgotPassword } from "../services/authService";
 import { Alert } from "react-native";
 import { useAuth } from '../context/AuthContext';
 import websocketService from '../services/websocketService';
+import { API_BASE_URL } from '../api/apiConfig';
 
 export default function LoginScreen({ navigation }: any) {
   const [phoneNumber, setPhoneNumber] = useState("");

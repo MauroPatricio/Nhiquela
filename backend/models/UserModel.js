@@ -140,6 +140,15 @@ const modelSchema = new mongoose.Schema({
         docUpdateStatus: { type: String, enum: ['Nenhum', 'Pendente', 'Aprovado'], default: 'Nenhum' },
         // Controlo de serviço ativo — impede receber novos pedidos até o cliente confirmar conclusão
         hasActiveService: { type: Boolean, default: false },
+        
+        // AGENDAMENTO INTELIGENTE
+        upcomingScheduledTrips: [{
+            tripId: { type: mongoose.Schema.Types.ObjectId, ref: 'RequestService' },
+            scheduledAt: { type: Date },
+            estimatedDurationMins: { type: Number, default: 30 }
+        }],
+        isBlockedForLongTrips: { type: Boolean, default: false }, // Ativado quando um agendamento está próximo
+        
         averageRating: { type: Number, default: 0 },
         totalRatings: { type: Number, default: 0 }
     }

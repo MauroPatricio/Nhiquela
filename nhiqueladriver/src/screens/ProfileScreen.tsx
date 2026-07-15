@@ -37,6 +37,7 @@ export default function ProfileScreen({ navigation }: Props) {
   const [driverStats, setDriverStats] = useState({ totalTrips: 0, rating: 4.8 });
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
 
   // ✅ HELPER PARA IMAGENS
@@ -164,6 +165,32 @@ export default function ProfileScreen({ navigation }: Props) {
       index: 0,
       routes: [{ name: 'Login' }],
     });
+  };
+
+  const confirmDeleteAccount = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const parsed = storedUserData ? JSON.parse(storedUserData) : null;
+      if (!parsed || !parsed.token) {
+        showMessage({ message: 'Erro de autenticação', type: 'danger' });
+        return;
+      }
+      
+      await api.delete('/users/profile', {
+        headers: { authorization: `Bearer ${parsed.token}` }
+      });
+      
+      setShowDeleteModal(false);
+      showMessage({ message: 'A sua conta foi eliminada com sucesso.', type: 'success' });
+      await logout();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Erro ao eliminar conta:', error);
+      showMessage({ message: 'Erro ao eliminar a conta. Tente novamente.', type: 'danger' });
+    }
   };
 
   // ✅ FUNÇÃO PARA OBTER FOTO DO PERFIL
@@ -512,8 +539,16 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
 
         {/* Botão de Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
+        <TouchableOpacity 
+          style={[styles.logoutButton, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]} 
+          onPress={() => setShowDeleteModal(true)}
+        >
+          <Ionicons name="trash-outline" size={24} color="#DC2626" />
+          <Text style={[styles.logoutText, { color: '#DC2626' }]}>Apagar Conta</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.logoutButton, { marginTop: 15 }]} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color="#EF4444" />
           <Text style={styles.logoutText}>Sair da Conta</Text>
         </TouchableOpacity>
 
@@ -521,6 +556,35 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.versionText}>Versão 1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* ✅ MODAL DE DELETAR CONTA */}
+      <Modal visible={showDeleteModal} transparent animationType="fade">
+        <View style={styles.logoutModalOverlay}>
+          <View style={styles.logoutModalContainer}>
+            <View style={[styles.logoutModalIconContainer, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="warning" size={32} color="#DC2626" />
+            </View>
+            <Text style={styles.logoutModalTitle}>Apagar Conta?</Text>
+            <Text style={styles.logoutModalText}>
+              Atenção: Esta ação é irreversível. O seu saldo e histórico serão eliminados permanentemente.
+            </Text>
+            <View style={styles.logoutModalButtons}>
+              <TouchableOpacity
+                style={[styles.logoutModalBtn, styles.logoutModalBtnCancel]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.logoutModalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.logoutModalBtn, { backgroundColor: '#DC2626' }]}
+                onPress={confirmDeleteAccount}
+              >
+                <Text style={styles.logoutModalBtnConfirmText}>Apagar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ✅ MODAL DE DOCUMENTOS */}
       <Modal
@@ -860,21 +924,21 @@ const styles = StyleSheet.create({
   // 🔥 ESTILOS PARA O MODAL DE LOGOUT PREMIUM
   logoutModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoutModalContainer: {
-    backgroundColor: '#FFF',
-    width: '85%',
-    borderRadius: 24,
-    padding: 24,
+    backgroundColor: '#FFFFFF',
+    width: '88%',
+    borderRadius: 28,
+    padding: 28,
     alignItems: 'center',
-    elevation: 10,
+    elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
   },
   logoutModalIconContainer: {
     width: 80,
@@ -903,36 +967,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
+    gap: 12,
   },
   logoutModalBtn: {
     flex: 1,
-    paddingVertical: 14,
+    height: 54,
     borderRadius: 16,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   logoutModalBtnCancel: {
-    backgroundColor: '#F2F3F4',
-    marginRight: 8,
+    backgroundColor: '#F1F5F9',
   },
   logoutModalBtnCancelText: {
-    color: '#555',
+    color: '#475569',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   logoutModalBtnConfirm: {
-    backgroundColor: '#E74C3C',
-    marginLeft: 8,
-    shadowColor: '#E74C3C',
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: '#EF4444',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 5,
   },
   logoutModalBtnConfirmText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   statTitle: {
     fontSize: 12,

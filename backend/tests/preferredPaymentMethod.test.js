@@ -60,7 +60,6 @@ describe('Preferred Payment Methods and Transfer Preferences', () => {
     // Delete the users created
     if(userId) await User.findByIdAndDelete(userId);
     if(driverId) await User.findByIdAndDelete(driverId);
-    await disconnectTestDB();
   });
 
   it('should save transfer preferences during driver registration', async () => {

@@ -30,7 +30,7 @@ export default function TripScreen({ navigation }: any) {
   const [isDriverApproved, setIsDriverApproved] = useState<boolean | null>(null);
   const { user } = useAuth();
 
-  // 🔍 Verificar aprovação do motorista
+  // ðŸ” Verificar aprovação do motorista
   const checkDriverApproval = async () => {
     try {
       const driverStatus = await AsyncStorage.getItem("driverApprovalStatus");
@@ -50,7 +50,7 @@ export default function TripScreen({ navigation }: any) {
     }
   };
 
-  // 🚀 Carregar histórico de viagens da API
+  // ðŸš€ Carregar histórico de viagens da API
   const loadTripsHistory = async () => {
     setLoading(true);
     try {
@@ -75,7 +75,7 @@ export default function TripScreen({ navigation }: any) {
         return;
       }
 
-      // 🔹 FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestServices)
+      // ðŸ”¹ FORMATAR HISTÓRICO DE VIAGENS (Misto de Orders e RequestServices)
       const hiddenTripsString = await AsyncStorage.getItem("hiddenTrips");
       const hiddenTrips = hiddenTripsString ? JSON.parse(hiddenTripsString) : [];
 
@@ -95,11 +95,11 @@ export default function TripScreen({ navigation }: any) {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "aceite pelo entregador") {
+        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "Pedido aceite") {
           status = "Em Andamento";
           statusColor = "#F39C12";
           statusIcon = "time";
-        } else if (trip.isDelivered || tripStatus === "concluído" || tripStatus === "concluido" || tripStatus === "delivered" || tripStatus === "concluida") {
+        } else if (trip.isDelivered || tripStatus === "concluído" || tripStatus === "concluído" || tripStatus === "delivered" || tripStatus === "concluída") {
           status = "Concluída";
           statusColor = "#27AE60";
           statusIcon = "checkmark-circle";
@@ -194,12 +194,12 @@ export default function TripScreen({ navigation }: any) {
     }
   };
 
-  // 🔹 VER DETALHES DA VIAGEM
+  // ðŸ”¹ VER DETALHES DA VIAGEM
   const viewTripDetails = (trip: any) => {
     setSelectedTrip(trip);
   };
 
-  // 🔹 COMPARTILHAR DETALHES DA VIAGEM
+  // ðŸ”¹ COMPARTILHAR DETALHES DA VIAGEM
   const shareTripDetails = (trip: any) => {
     Alert.alert(
       "Compartilhar Viagem",
@@ -208,7 +208,7 @@ export default function TripScreen({ navigation }: any) {
     );
   };
 
-  // 🔹 APAGAR REGISTO DA VIAGEM LOCALMENTE
+  // ðŸ”¹ APAGAR REGISTO DA VIAGEM LOCALMENTE
   const confirmDeleteTrip = (trip: any) => {
     setTripToDelete(trip);
   };
@@ -505,7 +505,7 @@ export default function TripScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🔥 PREMIUM ALERT MODAL PARA APAGAR VIAGEM */}
+      {/* 🔥 PREMIUM ALERT MODAL PARçãPAGAR VIAGEM */}
       <Modal visible={tripToDelete !== null} transparent animationType="fade">
         <View style={styles.alertOverlay}>
           <View style={styles.alertContainer}>

@@ -71,7 +71,7 @@ class WebsocketService {
       this.emit('new_order', data);
     });
 
-    // 🔥 STATUS DO MOTORISTA ATUALIZADO PELO ADMIN
+    // 🔥 STATUS DO MOTORISTçãTUALIZADO PELO ADMIN
     this.socket.on('driver_status_updated', (data) => {
       console.log('👤 Estado do motorista atualizado:', data);
       this.emit('driver_status_updated', data);

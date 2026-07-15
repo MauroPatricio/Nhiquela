@@ -34,6 +34,42 @@ export const getFinancialConfig = async () => {
   return financialEngine;
 };
 
+/** Helper: Calculate exact commission based on subcategory rules */
+export const calculateDynamicCommission = async (order) => {
+  const financialConfig = await getFinancialConfig();
+  let defaultCommissionRate = financialConfig?.driverCommissionRate || 0.15;
+  
+  let servicePrice = order.pricing?.breakdown?.servicePrice || order.servicePrice || 0;
+  let distancePrice = order.pricing?.breakdown?.distancePrice || order.distancePrice || 0;
+
+  // Se não existir o breakdown (por exemplo, pedidos antigos ou simples), fallback para usar o total
+  if (servicePrice === 0 && distancePrice === 0) {
+    servicePrice = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
+  }
+
+  if (order.subcategoryId) {
+    try {
+      const ProviderSubcategory = (await import('../models/ProviderSubcategoryModel.js')).default;
+      const subId = order.subcategoryId._id ? order.subcategoryId._id : order.subcategoryId;
+      const sub = await ProviderSubcategory.findById(subId);
+      
+      if (sub) {
+        let servComm = sub.serviceCommission !== undefined && sub.serviceCommission !== null ? sub.serviceCommission : defaultCommissionRate * 100;
+        
+        let sCommAmt = servicePrice * (servComm / 100);
+        let dCommAmt = distancePrice * defaultCommissionRate; // Sempre usa a global (ex: 15%)
+        
+        return sCommAmt + dCommAmt;
+      }
+    } catch(err) {
+      console.error('Error calculating dynamic commission for subcategory:', err);
+    }
+  }
+  
+  // Caso não tenha subcategoria, aplica a taxa global a tudo
+  return (servicePrice + distancePrice) * defaultCommissionRate;
+};
+
 /** Get or create a wallet for a user or partner */
 export const getWallet = async (userId) => {
   let wallet = await Wallet.findOne({ $or: [{ ownerId: userId }, { userId: userId }] });

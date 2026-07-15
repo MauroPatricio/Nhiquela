@@ -18,13 +18,14 @@ const ProviderSubcategorySchema = new Schema({
   // PRICING ENGINE CONFIGURATION
   // ==========================================
   pricingMode: { type: String, enum: ['AUTO', 'PROVIDER_DEFINED'], default: 'AUTO' }, // 'AUTO' (calculated by engine) or 'PROVIDER_DEFINED' (set by provider)
+  allowNegotiation: { type: Boolean, default: false }, // If true, supports price negotiation
   minProviderPrice: { type: Number, default: 0 }, // Minimum price allowed if PROVIDER_DEFINED
   maxProviderPrice: { type: Number, default: 0 }, // Maximum price allowed if PROVIDER_DEFINED
   hourlyRateEnabled: { type: Boolean, default: false }, // If true, supports hourly pricing
   materialFeeEnabled: { type: Boolean, default: false }, // If true, supports material cost addition
   baseFare: { type: Number, default: 0 },
   pricePerKm: { type: Number, default: 0 },
-  commission: { type: Number, default: 0 }, // % of commission for the platform
+  serviceCommission: { type: Number, default: 0 }, // % de comissão aplicada sobre o serviço
   serviceFee: { type: Number, default: 0 }, // Fixed fee for this service type
   percentageFee: { type: Number, default: 0 }, // Extra percentage fee applied
   requiresVehicleType: { type: Boolean, default: false }, // If true, requires user or system to select vehicle

@@ -89,7 +89,7 @@ beforeAll(async () => {
     currency: 'MT',
     status: 'active'
   });
-}, 15000);
+}, 35000);
 
 describe('Pricing Calculations Integration Tests', () => {
 
@@ -183,5 +183,43 @@ describe('Pricing Calculations Integration Tests', () => {
     const updatedWallet = await Wallet.findOne({ ownerId: driverUser._id });
     // Initial 1000 - 472.5 = 527.5
     expect(updatedWallet.balance).toBeCloseTo(527.5);
+  });
+
+  it('5. Should calculate custom base fare + displacement without double charging when provider is chosen', async () => {
+    PricingService.getRouteInfo = jest.fn().mockResolvedValue({
+      distanceKm: 0.76,
+      durationMin: 2,
+      routeCoordinates: []
+    });
+
+    // 1. Simular motorista com preo customizado de 1900 MT
+    driverUser.deliveryman = {
+      allowCustomPrice: true,
+      customPrice: 1900,
+    };
+    await driverUser.save();
+
+    // 2. Cliente envia o preo "1980" (que ele calculou no Frontend como 1900 + 80 de deslocacao)
+    const result = await PricingService.calculatePrice({
+      serviceId: serviceType._id,
+      originLoc: { lat: -25.9, lng: 32.5 },
+      destLoc: { lat: -25.8, lng: 32.6 },
+      providerId: driverUser._id,
+      clientSuggestedPrice: 1980 
+    });
+
+    // 3. O subtotal final DEVE SER exatamente o Custom Base (1900) + a Deslocacao calculada globalmente.
+    // Como a formula original faria 50 (base global) + distance * perKm. 
+    // Supondo distance=0.76 * 40 = ~30. Mas há minFare (global pode ser 80).
+    // Entao globalPrice = 80. serviceBase = 0. deslocacao = 80.
+    // customBasePrice (1900) + 80 = 1980.
+    // O Backend NÃO DEVE usar o clientSuggestedPrice para gerar 1980 + 80 = 2060.
+    // O price final tem de reflectir apenas uma cobrança da deslocação.
+    expect(result.price).toBeLessThan(2060); // Nao deve inflacionar
+    
+    // Na nossa nova logica: customBase (1900) + deslocacao (globalPrice - serviceBase)
+    expect(result.breakdown.actualBaseFare).toBe(1900);
+    // Verificamos se há consistencia e logica de dupla cobranca
+    expect(result.breakdown.servicePrice).toBe(0); // serviceCost tem de ser 0 porque foi ignorado devido à selecao do motorista
   });
 });

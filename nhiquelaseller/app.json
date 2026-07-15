@@ -48,7 +48,7 @@
 
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
+          "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
         }
       },
 
@@ -78,7 +78,7 @@
       },
 
       "config": {
-        "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
+        "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
       }
     },
 
@@ -120,7 +120,7 @@
     ],
 
     "extra": {
-      "googleMapsApiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA",
+      "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
 
       "firebase": {
         "apiKey": "AIzaSyCY-wvry4w6GAsMJQ4zD_e3LiMSVx3qoGU",
