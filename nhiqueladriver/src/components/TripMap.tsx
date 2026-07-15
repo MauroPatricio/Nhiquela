@@ -333,7 +333,7 @@ export default function TripMap({
   const handleConfirmTrip = () => {
     setShowConfirmationModal(false);
     
-    // 🔥 AGORA CHAMA A FUNÇÃO startTrip PASSADA COMO PROP
+    // 🔥 AGORA CHAMçã FUNÇÃO startTrip PASSADA COMO PROP
     if (onStartTrip && tripData) {
       onStartTrip(tripData);
     } else {
@@ -530,7 +530,7 @@ export default function TripMap({
           </View>
         )}
 
-        {/* BOTAO PARA CONCLUIR VIAGEM (ESTAGIO 6 - A AGUARDAR CONFIRMACAO) */}
+        {/* BOTAO PARA CONCLUIR VIAGEM (ESTAGIO 6 - çãGUARDAR CONFIRMACAO) */}
         {stepStatus === 6 && (
           <View style={[styles.startTripButtonContainer, { bottom: elapsedSeconds >= 300 ? 50 : 30 }]}>
             <TouchableOpacity 
@@ -575,7 +575,7 @@ export default function TripMap({
           <Ionicons name="stopwatch" size={18} color="#FFF" style={styles.stopwatchIcon} />
           <Text style={styles.stopwatchText}>{formatTime(elapsedSeconds)}</Text>
           <Text style={styles.stopwatchLabel}>
-            {stepStatus === 4 ? "Até Recolha" : stepStatus === 5 ? "Em Viagem" : stepStatus === 6 ? "A Aguardar Cliente" : "Viagem Concluída"}
+            {stepStatus === 4 ? "Até Recolha" : stepStatus === 5 ? "Em Viagem" : stepStatus === 6 ? "çãguardar Cliente" : "Viagem Concluída"}
           </Text>
         </View>
       )}

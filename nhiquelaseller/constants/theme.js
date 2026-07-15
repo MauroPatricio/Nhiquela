@@ -19,7 +19,7 @@ export const COLORS = {
   accent: '#00D4FF',
   accentGlow: 'rgba(0, 212, 255, 0.15)',
 
-  // SemÃ¢nticas
+  // Semânticas
   success: '#34C759',
   successBg: 'rgba(52, 199, 89, 0.12)',
   warning: '#FF9F0A',
@@ -104,8 +104,8 @@ export const RADIUS = {
 export const getStatusColor = (status) => {
   switch (status) {
     case 'Pendente': return COLORS.statusPendente;
-    case 'Em trÃ¢nsito':
-    case 'Em TrÃ¢nsito':
+    case 'Em trânsito':
+    case 'Em Trânsito':
     case 'A caminho': return COLORS.statusTransito;
     case 'Entregue':
     case 'Entregue com sucesso': return COLORS.statusEntregue;
@@ -121,8 +121,8 @@ export const getStatusColor = (status) => {
 export const getStatusBg = (status) => {
   switch (status) {
     case 'Pendente': return COLORS.warningBg;
-    case 'Em trÃ¢nsito':
-    case 'Em TrÃ¢nsito': return COLORS.infoBg;
+    case 'Em trânsito':
+    case 'Em Trânsito': return COLORS.infoBg;
     case 'Entregue': return COLORS.successBg;
     case 'Cancelado': return COLORS.errorBg;
     case 'Aceite':
@@ -131,7 +131,7 @@ export const getStatusBg = (status) => {
   }
 };
 
-// Estilos comuns reutilizÃ¡veis
+// Estilos comuns reutilizáveis
 export const COMMON_STYLES = {
   screen: {
     flex: 1,

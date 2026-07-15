@@ -41,7 +41,7 @@ type Props = {
   navigation: NativeStackNavigationProp<any>;
 };
 
-// ðŸ”¥ TIPOS PARA WEBSOCKET
+// 🔥 TIPOS PARA WEBSOCKET
 type WebSocketError = {
   message: string;
   code?: string;
@@ -138,7 +138,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const isMounted = useRef(true);
 
-  // ðŸ”¥ OBTER E COMPARTILHAR LOCALIZAÃ‡ÃƒO EM TEMPO REAL
+  // 🔥 OBTER E COMPARTILHAR LOCALIZAÇÃO EM TEMPO REAL
   const startLocationSharing = async () => {
     try {
       if (acceptedTrip) {
@@ -147,23 +147,23 @@ export default function HomeScreen({ navigation }: any) {
       await startBackgroundLocationUpdates();
       setIsSharingLocation(true);
     } catch (error: any) {
-      console.error("âŒ Erro ao iniciar compartilhamento de localizaÃ§Ã£o:", error.message);
-      Alert.alert("Erro", "NÃ£o foi possÃ­vel iniciar o compartilhamento de localizaÃ§Ã£o.");
+      console.error("❌ Erro ao iniciar compartilhamento de localização:", error.message);
+      Alert.alert("Erro", "Não foi possível iniciar o compartilhamento de localização.");
     }
   };
 
-  // ðŸ”¥ PARAR COMPARTILHAMENTO DE LOCALIZAÃ‡ÃƒO
+  // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
   const stopLocationSharing = async () => {
     try {
       await stopBackgroundLocationUpdates();
       await AsyncStorage.removeItem('currentOrderId');
       setIsSharingLocation(false);
     } catch (error: any) {
-      console.error("Erro ao parar compartilhamento de localizaÃ§Ã£o:", error.message);
+      console.error("❌ Erro ao parar compartilhamento de localização:", error.message);
     }
   };
 
-  // ðŸ”¥ VERIFICAR APROVAÃ‡ÃƒO DO MOTORISTA
+  // 🔥 VERIFICAR APROVAÇÃO DO MOTORISTA
   const checkDriverApproval = async () => {
     try {
       // Verifica os dois campos: status (novo) e register_conformance (legado)
@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation }: any) {
       const conformance = user?.deliveryman?.register_conformance;
 
       const isApproved =
-        driverStatus === 'DisponÃ­vel' ||
+        driverStatus === 'Disponível' ||
         driverStatus === 'Em Entrega' ||
         conformance === 'CONFORMANCE';
 
@@ -186,10 +186,10 @@ export default function HomeScreen({ navigation }: any) {
         await loadAllOrders();
         await setupWebSocket();
       } else {
-        // Pendente ou rejeitado â€” mostra modal de anÃ¡lise e conecta socket
-        // para receber notificaÃ§Ã£o em tempo real quando o admin aprovar
+        // Pendente ou rejeitado â€” mostra modal de análise e conecta socket
+        // para receber notificação em tempo real quando o admin aprovar
         setShowApprovalModal(true);
-        await setupWebSocket(); // MantÃ©m socket ativo para receber eventos do admin
+        await setupWebSocket(); // Mantém socket ativo para receber eventos do admin
       }
     } catch (error: any) {
       console.error('âŒ Erro ao verificar status do motorista:', error.message);
@@ -200,7 +200,7 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  // ðŸ”¥ CONFIGURAR WEBSOCKET PARA TEMPO REAL
+  // 🔥 CONFIGURAR WEBSOCKET PARA TEMPO REAL
   const setupWebSocket = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -209,7 +209,7 @@ export default function HomeScreen({ navigation }: any) {
 
         websocketService.connect(token, user);
 
-        // ðŸ”¥ Se o socket jÃ¡ estava ligado antes do connect event disparar,
+        // 🔥 Se o socket já estava ligado antes do connect event disparar,
         // emitir onLogin directamente para garantir entrada na sala driver_<id>
         if (websocketService.isConnected && user) {
           websocketService.socket?.emit('onLogin', user);
@@ -230,7 +230,7 @@ export default function HomeScreen({ navigation }: any) {
 
           const newFormattedOrder = formatOrder(data, currentPosition);
           
-          const isCancelled = data.status === 'Cancelado' || data.status === 'Motorista indisponÃ­vel' || data.isCanceled || data.deleted;
+          const isCancelled = data.status === 'Cancelado' || data.status === 'Motorista indisponível' || data.isCanceled || data.deleted;
           
           setAllTrips((prevTrips: any[]) => {
             let newTrips = [];
@@ -272,19 +272,19 @@ export default function HomeScreen({ navigation }: any) {
           setLastUpdate(new Date());
         };
 
-        // ðŸ”¥ LISTENER PARA ATUALIZAÃ‡Ã•ES DE PEDIDOS
+        // 🔥 LISTENER PARçãTUALIZAÇÕES DE PEDIDOS
         websocketService.on('order_updated', handleOrderWebSocketUpdate);
 
-        // ðŸ”¥ LISTENER PARA PEDIDOS ATRIBUÃDOS
+        // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
         websocketService.on('order_assigned', handleOrderWebSocketUpdate);
 
-        // ðŸ”¥ LISTENER PARA LIBERTAÃ‡ÃƒO DO MOTORISTA
+        // 🔥 LISTENER PARA LIBERTAÇÃO DO MOTORISTA
         websocketService.on('service_released', (data: any) => {
           if (!isMounted.current) return;
-          console.log('âœ… ServiÃ§o libertado:', data);
+          console.log('âœ… Serviço libertado:', data);
           
           Alert.alert(
-            "ServiÃ§o Terminado",
+            "Serviço Terminado",
             data.message || "Pode agora receber novos pedidos.",
             [{ text: "OK" }]
           );
@@ -295,14 +295,14 @@ export default function HomeScreen({ navigation }: any) {
           setIsTripStarted(false);
           setRouteSummary(null);
           
-          // Recarregar viagens disponÃ­veis
+          // Recarregar viagens disponíveis
           loadAllOrdersSilent();
         });
 
-        // ðŸ”¥ LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
+        // 🔥 LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
         websocketService.on('new_order', (data: any) => {
           if (!isMounted.current) return;
-          // Adicionar novo pedido Ã  lista se ainda nÃ£o estiver lÃ¡
+          // Adicionar novo pedido Ã  lista se ainda não estiver lá
           setAllTrips(prev => {
             const exists = prev.some(t => t.id === data._id);
             if (exists) return prev;
@@ -311,7 +311,7 @@ export default function HomeScreen({ navigation }: any) {
           });
         });
 
-        // ðŸ”¥ LISTENER PARA PEDIDOS AGENDADOS
+        // 🔥 LISTENER PARA PEDIDOS AGENDADOS
         websocketService.on('new_scheduled_order', (data: any) => {
           if (!isMounted.current) return;
           setAllTrips(prev => {
@@ -322,23 +322,23 @@ export default function HomeScreen({ navigation }: any) {
           });
         });
 
-        // ðŸ”¥ LISTENER PARA PEDIDO ACEITE POR OUTRO MOTORISTA
+        // 🔥 LISTENER PARA PEDIDO ACEITE POR OUTRO MOTORISTA
         websocketService.on('order_taken', (data: any) => {
           if (!isMounted.current) return;
           const { orderId, acceptedBy } = data;
-          // Verificar se este motorista nÃ£o Ã© o que aceitou
+          // Verificar se este motorista não é o que aceitou
           setAllTrips(prev => {
             const exists = prev.some(t => t.id === orderId);
             if (exists && acceptedBy !== user?._id) {
               setShowOrderTakenModal(true);
             }
-            // Remover o pedido da lista apenas se nÃ£o foi este motorista que o aceitou
+            // Remover o pedido da lista apenas se não foi este motorista que o aceitou
             if (acceptedBy === user?._id) return prev;
             return prev.filter(t => t.id !== orderId);
           });
         });
 
-        // ðŸ”¥ LISTENER PARA CANCELAMENTO DE PEDIDO PELO CLIENTE
+        // 🔥 LISTENER PARA CANCELAMENTO DE PEDIDO PELO CLIENTE
         websocketService.on('order_cancelled', async (data: any) => {
           if (!isMounted.current) return;
           const { orderId } = data;
@@ -370,7 +370,7 @@ export default function HomeScreen({ navigation }: any) {
           });
         });
 
-        // ðŸ”¥ LISTENER PARA REQUISIÃ‡Ã•ES DE LOCALIZAÃ‡ÃƒO
+        // 🔥 LISTENER PARA REQUISIÇÕES DE LOCALIZAÇÃO
         websocketService.on('request_location_update', (data: any) => {
           if (isMounted.current && acceptedTrip) {
             if (isSharingLocation) {
@@ -384,7 +384,7 @@ export default function HomeScreen({ navigation }: any) {
           if (!isMounted.current) return;
           console.log('ðŸ”” Estado atualizado pelo admin:', data);
 
-          const nowApproved = data.status === 'DisponÃ­vel' || data.status === 'Em Entrega';
+          const nowApproved = data.status === 'Disponível' || data.status === 'Em Entrega';
 
           if (nowApproved) {
             // âœ… Conta aprovada: fecha o modal e carrega as ordens
@@ -398,7 +398,7 @@ export default function HomeScreen({ navigation }: any) {
             setShowApprovalModal(true);
             Alert.alert(
               'âŒ Conta Suspensa',
-              'A sua conta foi suspensa. Contacte o suporte para mais informaÃ§Ãµes.',
+              'A sua conta foi suspensa. Contacte o suporte para mais informações.',
               [{ text: 'OK' }]
             );
           } else {
@@ -408,28 +408,28 @@ export default function HomeScreen({ navigation }: any) {
           }
         });
 
-        // ðŸ”¥ STATUS DA CONEXÃƒO
+        // 🔥 STATUS DA CONEXÃO
         websocketService.on('connect', () => {
           setIsConnected(true);
           setConnectionStatus("Conectado");
 
-          // ðŸ”¥ CARREGAR VIAGENS NOVAMENTE AO CONECTAR
+          // 🔥 CARREGAR VIAGENS NOVAMENTE AO CONECTAR
           loadAllOrdersSilent();
         });
 
-        // ðŸ”¥ STATUS DA DESCONEXÃƒO
+        // 🔥 STATUS DA DESCONEXÃO
         websocketService.on('disconnect', () => {
           setIsConnected(false);
           setConnectionStatus("Desconectado");
         });
 
-        // ðŸ”¥ ERRO DE CONEXÃƒO
+        // 🔥 ERRO DE CONEXÃO
         websocketService.on('error', (error: WebSocketError) => {
           console.error('âŒ Erro WebSocket:', error.message);
-          setConnectionStatus("Erro de conexÃ£o");
+          setConnectionStatus("Erro de conexão");
         });
 
-        // ðŸ”¥ CONEXÃƒO INICIAL - TENTAR CARREGAR DADOS MESMO SE WEBSOCKET FALHAR
+        // 🔥 CONEXÃO INICIAL - TENTAR CARREGAR DADOS MESMO SE WEBSOCKET FALHAR
         setTimeout(() => {
           if (!isConnected && isMounted.current) {
             loadAllOrdersSilent();
@@ -437,12 +437,12 @@ export default function HomeScreen({ navigation }: any) {
         }, 3000);
 
       } else {
-        console.error('âŒ Token nÃ£o encontrado para WebSocket');
-        setConnectionStatus("Erro - Token nÃ£o encontrado");
+        console.error('❌ Token não encontrado para WebSocket');
+        setConnectionStatus("Erro - Token não encontrado");
       }
     } catch (error: any) {
-      console.error('âŒ Erro ao configurar WebSocket:', error.message);
-      setConnectionStatus("Erro na conexÃ£o");
+      console.error('❌ Erro ao configurar WebSocket:', error.message);
+      setConnectionStatus("Erro na conexão");
       loadAllOrdersSilent();
     }
   };
@@ -454,7 +454,7 @@ export default function HomeScreen({ navigation }: any) {
 
     return () => {
       isMounted.current = false;
-      // Limpar listeners do WebSocket e localizaÃ§Ã£o
+      // Limpar listeners do WebSocket e localização
       websocketService.off('order_updated');
       websocketService.off('order_assigned');
       websocketService.off('service_released');
@@ -525,7 +525,7 @@ export default function HomeScreen({ navigation }: any) {
         
         showMessage({
           message: value ? "Conectado!" : "Modo Offline",
-          description: value ? "Pronto para receber pedidos." : "VocÃª nÃ£o receberÃ¡ pedidos.",
+          description: value ? "Pronto para receber pedidos." : "Você não receberá pedidos.",
           type: value ? "success" : "info",
           icon: "auto",
           style: {
@@ -546,7 +546,7 @@ export default function HomeScreen({ navigation }: any) {
           duration: 3500,
         });
         
-        // Se ficou offline, limpa a lista de viagens disponÃ­veis
+        // Se ficou offline, limpa a lista de viagens disponíveis
         if (!value) {
            setAllTrips([]);
         } else {
@@ -572,7 +572,7 @@ export default function HomeScreen({ navigation }: any) {
       } else {
         const data = await response.json().catch(() => ({}));
         showMessage({
-          message: "AtenÃ§Ã£o",
+          message: "Atenção",
           description: data.message || "Erro ao alterar disponibilidade.",
           type: "danger",
           icon: "auto",
@@ -594,7 +594,7 @@ export default function HomeScreen({ navigation }: any) {
           duration: 5000,
         });
         
-        // ForÃ§ar UI voltar para o estado anterior (rollback visual do toggle)
+        // Forçar UI voltar para o estado anterior (rollback visual do toggle)
         if (updateUser) {
           updateUser({ ...user }); 
         }
@@ -602,7 +602,7 @@ export default function HomeScreen({ navigation }: any) {
     } catch (error) {
       showMessage({
         message: "Erro",
-        description: "NÃ£o foi possÃ­vel alterar seu status de disponibilidade.",
+        description: "Não foi possível alterar seu status de disponibilidade.",
         type: "danger",
         icon: "auto"
       });
@@ -612,21 +612,21 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   useEffect(() => {
-    // Modal de aprovaÃ§Ã£o: sÃ³ reage a user.status quando temos certeza do estado
-    if (user?.status === 'DisponÃ­vel' || user?.status === 'Em Entrega') {
+    // Modal de aprovação: só reage a user.status quando temos certeza do estado
+    if (user?.status === 'Disponível' || user?.status === 'Em Entrega') {
       setIsDriverApproved(true);
       setShowApprovalModal(false);
     } else if (user?.status === 'Pendente' || user?.status === 'Inativo') {
-      // SÃ³ mostra modal se realmente Pendente/Inativo â€” nÃ£o quando status Ã© undefined
+      // Só mostra modal se realmente Pendente/Inativo â€” não quando status é undefined
       if (!isDriverApproved) {
         setShowApprovalModal(true);
       }
     }
   }, [user?.status]);
 
-  // ðŸ”„ POLLING DE SEGURANÃ‡A: a cada 8s enquanto Pendente, verifica o estado no servidor
+  // ðŸ”„ POLLING DE SEGURANÇA: a cada 8s enquanto Pendente, verifica o estado no servidor
   useEffect(() => {
-    // SÃ³ faz polling se o motorista ainda nÃ£o foi aprovado E estÃ¡ autenticado
+    // Só faz polling se o motorista ainda não foi aprovado E está autenticado
     if (isDriverApproved === true || !user?._id) return;
 
     const poll = async () => {
@@ -639,7 +639,7 @@ export default function HomeScreen({ navigation }: any) {
         if (!res.ok) return;
         const fresh = await res.json();
         console.log('[POLL] Status actual no servidor:', fresh.status);
-        const nowApproved = fresh.status === 'DisponÃ­vel' || fresh.status === 'Em Entrega';
+        const nowApproved = fresh.status === 'Disponível' || fresh.status === 'Em Entrega';
         if (nowApproved) {
           console.log('âœ… [POLL] Motorista aprovado detectado!');
           // Actualizar o user no AuthContext completo (incluindo deliveryman.register_conformance)
@@ -653,13 +653,13 @@ export default function HomeScreen({ navigation }: any) {
       }
     };
 
-    // Primeira verificaÃ§Ã£o imediata ao montar
+    // Primeira verificação imediata ao montar
     poll();
     const interval = setInterval(poll, 8000);
     return () => clearInterval(interval);
   }, [isDriverApproved, user?._id]);
 
-  // ðŸ”¥ ATUALIZAR COMPARTILHAMENTO DE LOCALIZAÃ‡ÃƒO QUANDO A VIAGEM MUDAR
+  // 🔥 ATUALIZAR COMPARTILHAMENTO DE LOCALIZAÇÃO QUANDO A VIAGEM MUDAR
   useEffect(() => {
     if (acceptedTrip) {
       // Pare o anterior se existir
@@ -682,10 +682,10 @@ export default function HomeScreen({ navigation }: any) {
     };
   }, [acceptedTrip]);
 
-  // ðŸ”¥ CARREGAMENTO SILENCIOSO (para WebSocket)
+  // 🔥 CARREGAMENTO SILENCIOSO (para WebSocket)
   const loadAllOrdersSilent = async () => {
     try {
-      // ðŸ”¥ NÃƒO CARREGAR PEDIDOS SE ESTIVER OFFLINE
+      // 🔥 NÃO CARREGAR PEDIDOS SE ESTIVER OFFLINE
       if (user?.availability !== 'active') {
         setAllTrips([]);
         setLastUpdate(new Date());
@@ -699,7 +699,7 @@ export default function HomeScreen({ navigation }: any) {
         ordersData = [];
       }
 
-      // ðŸ”¥ TENTAR OBTER LOCALIZAÃ‡ÃƒO, MAS CONTINUAR MESMO SE FALHAR
+      // 🔥 TENTAR OBTER LOCALIZAÇÃO, MAS CONTINUAR MESMO SE FALHAR
       let currentPosition = { latitude: 0, longitude: 0 };
       try {
         const location = await Location.getCurrentPositionAsync({
@@ -711,31 +711,31 @@ export default function HomeScreen({ navigation }: any) {
           longitude: location.coords.longitude,
         };
       } catch (locationError) {
-        console.warn('âš ï¸ Erro ao obter localizaÃ§Ã£o, continuando sem ela...');
+        console.warn('âš ï¸ Erro ao obter localização, continuando sem ela...');
       }
 
       const formattedOrders = ordersData
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluÃ­da" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponÃ­vel" || order.stepStatus === 6 || order.stepStatus === 7;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
           // Keep if not completed OR if it's currently marked as accepted/in transit by THIS driver (sanity check)
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
 
-      // ðŸ”¥ ATUALIZAÃ‡ÃƒO DIRETA SEM LOADING
+      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
       setAllTrips(formattedOrders);
       setLastUpdate(new Date());
 
-      // ðŸ”¥ CORREÃ‡ÃƒO CRÃTICA: BUSCAR PEDIDO ACEITO CORRETAMENTE
+      // 🔥 CORREÇÃO CRÍTICA: BUSCAR PEDIDO ACEITO CORRETAMENTE
       const accepted = formattedOrders.find((order: Trip) => {
         // Pedido aceito pelo entregador atual
         const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
         
-        // Pedido em trÃ¢nsito (status 5) - mesmo que nÃ£o esteja "aceito" no sentido tradicional
+        // Pedido em trânsito (status 5) - mesmo que não esteja "aceito" no sentido tradicional
         const isInTransit = order.stepStatus === 5;
         
-        // ðŸ”¥ SE ESTÃ EM TRÃ‚NSITO, CONSIDERAR COMO ACEITO MESMO QUE isAcceptedByDeliveryman SEJA FALSE
+        // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO MESMO QUE isAcceptedByDeliveryman SEJA FALSE
         return isAcceptedByCurrentUser || isInTransit;
       });
       
@@ -760,14 +760,14 @@ export default function HomeScreen({ navigation }: any) {
 
     } catch (error: any) {
       if (error.message !== 'Network Error') {
-        console.error("âŒ Erro na atualizaÃ§Ã£o silenciosa:", error.message);
+        console.error("âŒ Erro na atualização silenciosa:", error.message);
       }
     }
   };
 
   const loadAllOrders = async () => {
     try {
-      // ðŸ”¥ NÃƒO CARREGAR PEDIDOS SE ESTIVER OFFLINE
+      // 🔥 NÃO CARREGAR PEDIDOS SE ESTIVER OFFLINE
       if (user?.availability !== 'active') {
         setAllTrips([]);
         setLastUpdate(new Date());
@@ -777,12 +777,12 @@ export default function HomeScreen({ navigation }: any) {
 
       setLoadingOrders(true);
   
-      // ðŸ”¥ LIMPAR CACHE ANTES DE CARREGAR
+      // 🔥 LIMPAR CACHE ANTES DE CARREGAR
       await clearAllCacheAndReset();
   
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.warn("âš ï¸ PermissÃ£o de localizaÃ§Ã£o negada");
+        console.warn("âš ï¸ Permissão de localização negada");
       }
   
       const response = await getAllOrdersForDeliveryman();
@@ -792,7 +792,7 @@ export default function HomeScreen({ navigation }: any) {
         ordersData = [];
       }
   
-      // Obter localizaÃ§Ã£o
+      // Obter localização
       let currentPosition = { latitude: 0, longitude: 0 };
       try {
         const location = await Location.getCurrentPositionAsync({
@@ -804,30 +804,30 @@ export default function HomeScreen({ navigation }: any) {
           longitude: location.coords.longitude,
         };
       } catch (locationError) {
-        console.warn('âš ï¸ Erro ao obter localizaÃ§Ã£o');
+        console.warn('âš ï¸ Erro ao obter localização');
       }
   
       const formattedOrders = ordersData
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluÃ­da" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponÃ­vel" || order.stepStatus === 6 || order.stepStatus === 7;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
   
-      // ðŸ”¥ VERIFICAÃ‡ÃƒO CORRIGIDA DAS VIAGENS ACEITAS
+      // 🔥 VERIFICAÇÃO CORRIGIDA DAS VIAGENS ACEITAS
       const acceptedTrips = formattedOrders.filter((order: Trip) => {
         const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
         const isInTransit = order.stepStatus === 5;
         
-        // ðŸ”¥ SE ESTÃ EM TRÃ‚NSITO, CONSIDERAR COMO ACEITO
+        // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO
         return isAcceptedByCurrentUser || isInTransit;
       });
     
       setAllTrips(formattedOrders);
       setLastUpdate(new Date());
   
-      // ðŸ”¥ BUSCAR VIAGEM ACEITA APENAS SE HOUVER UMA REAL
+      // 🔥 BUSCAR VIAGEM ACEITçãPENAS SE HOUVER UMA REAL
       const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
       
       setAcceptedTrip(accepted || null);
@@ -836,7 +836,7 @@ export default function HomeScreen({ navigation }: any) {
         const tripStarted = accepted.stepStatus === 5;
         setIsTripStarted(tripStarted);
 
-        // ðŸ”¥ ATUALIZAR ROUTE SUMMARY APENAS SE ESTIVER EM TRÃ‚NSITO
+        // 🔥 ATUALIZAR ROUTE SUMMARY APENAS SE ESTIVER EM TRÂNSITO
         if (tripStarted) {
           setRouteSummary(accepted);
           startBlinkAnimation();
@@ -844,7 +844,7 @@ export default function HomeScreen({ navigation }: any) {
           setRouteSummary(null);
         }
   
-        // ðŸ”¥ SALVAR NO ASYNCSTORAGE INDEPENDENTE DO STATUS
+        // 🔥 SALVAR NO ASYNCSTORAGE INDEPENDENTE DO STATUS
         await AsyncStorage.setItem("acceptedTrip", JSON.stringify(accepted));
   
       } else {
@@ -855,7 +855,7 @@ export default function HomeScreen({ navigation }: any) {
   
     } catch (error: any) {
       console.error("âŒ Erro ao carregar pedidos:", error.message);
-      Alert.alert("Erro", "NÃ£o foi possÃ­vel carregar as viagens.");
+      Alert.alert("Erro", "Não foi possível carregar as viagens.");
     } finally {
       setLoadingOrders(false);
     }
@@ -891,12 +891,12 @@ export default function HomeScreen({ navigation }: any) {
       order.sellerInfo?.longitude || 
       order.longitude || 0;
 
-    // A origem do pedido (onde o motorista vai buscar o cliente/produto)
+    // ãorigem do pedido (onde o motorista vai buscar o cliente/produto)
     const originLat = order.originDetails?.lat || order.seller?.latitude || order.latitude || 0;
     const originLon = order.originDetails?.lng || order.seller?.longitude || order.longitude || 0;
   
     let distance = 0;
-    let timeStr = "Tempo nao disponvel";
+    let timeStr = "Tempo não disponvel";
 
     // 1. Tentar usar o distanceKm do pricing (calculado pelo backend via OSRM)
     if (order.pricing && order.pricing.distanceKm) {
@@ -920,7 +920,7 @@ export default function HomeScreen({ navigation }: any) {
       );
     }
 
-    if (distance > 0 && timeStr === "Tempo nao disponvel") {
+    if (distance > 0 && timeStr === "Tempo não disponvel") {
       timeStr = `${Math.round(distance / 40 * 60)} min`;
     }
   
@@ -943,7 +943,7 @@ export default function HomeScreen({ navigation }: any) {
       if (order.serviceId && order.serviceId.name) {
         serviceNameStr = order.serviceId.name;
       } else {
-        serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "ServiÃ§o");
+        serviceNameStr = (order.name && !order.name.match(/^[0-9a-fA-F]{24}$/)) ? order.name : (order.goodType || "Serviço");
       }
     }
 
@@ -954,11 +954,11 @@ export default function HomeScreen({ navigation }: any) {
       serviceMotive: order.reason || order.description || order.goodType || undefined,
       passenger: order.user?.name || order.clientName || "Cliente",
       passengerImage: order.user?.profileImage,
-      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Nao disponvel",
+      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Não disponvel",
       pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
-      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia nao disponvel",
+      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia não disponvel",
       time: timeStr,
       destinationLocation: {
         latitude: destinationLat,
@@ -983,24 +983,24 @@ export default function HomeScreen({ navigation }: any) {
     ).start();
   };
 
-// ðŸ”¥ AÃ‡ÃƒO COM FEEDBACK VISUAL INSTANTÃ‚NEO E COMPARTILHAMENTO DE LOCALIZAÃ‡ÃƒO
+// 🔥 AÇÃO COM FEEDBACK VISUAL INSTANTÂNEO E COMPARTILHAMENTO DE LOCALIZAÇÃO
 
 
   const acceptTrip = useCallback(async (tripId: string) => {
     try {
       setAcceptingTripId(tripId);
 
-      // ðŸ”¥ BLOQUEAR TODOS OS BOTÃ•ES ENQUANTO PROCESSANDO
+      // 🔥 BLOQUEAR TODOS OS BOTÕES ENQUANTO PROCESSANDO
       setAllTrips(prev => prev.map(trip => ({
         ...trip,
         isProcessing: trip.id === tripId ? true : trip.isProcessing
       })));
 
-      // ðŸ”¥ TENTAR OBTER LOCALIZAÃ‡ÃƒO
+      // 🔥 TENTAR OBTER LOCALIZAÇÃO
       let currentLocation = null;
       
       try {
-        // Usar um timeout para nÃ£o bloquear eternamente e usar Balanced (rÃ¡pido e suficiente para este step)
+        // Usar um timeout para não bloquear eternamente e usar Balanced (rápido e suficiente para este step)
         const location = await Promise.race([
           Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 7000))
@@ -1014,7 +1014,7 @@ export default function HomeScreen({ navigation }: any) {
         };
 
       } catch (error: any) {
-        // ðŸ”¥ FALLBACK: Se falhar ou der timeout, tenta usar a Ãºltima localizaÃ§Ã£o conhecida
+        // 🔥 FALLBACK: Se falhar ou der timeout, tenta usar a última localização conhecida
         try {
           const lastLocation = await Location.getLastKnownPositionAsync();
           if (lastLocation) {
@@ -1025,15 +1025,15 @@ export default function HomeScreen({ navigation }: any) {
               timestamp: new Date().toISOString()
             };
           } else {
-            throw new Error('Sem Ãºltima localizaÃ§Ã£o');
+            throw new Error('Sem última localização');
           }
         } catch (fallbackError) {
           setShowLocationRequiredModal(true);
-          throw new Error('LocalizaÃ§Ã£o nÃ£o disponÃ­vel');
+          throw new Error('Localização não disponível');
         }
       }
 
-      // ðŸ”¥ ACEITAR PEDIDO COM LOCALIZAÃ‡ÃƒO
+      // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
       // Usar o ID do servidor e detetar o tipo pelo originalData
       const trip = allTrips.find(t => t.id === tripId);
       const isReq = trip?.originalData?.type === 'requestService';
@@ -1045,16 +1045,16 @@ export default function HomeScreen({ navigation }: any) {
         setAcceptedTrip(updatedTrip);
       }
 
-      // ðŸ”¥ ATUALIZAR LISTA COMPLETA APÃ“S ACEITAR
+      // 🔥 ATUALIZAR LISTA COMPLETçãPÓS ACEITAR
       await loadAllOrdersSilent();
 
       setShowTripAcceptedModal(true);
       
     } catch (error: any) {
-      // ðŸ”¥ REVERTER MUDANÃ‡AS EM CASO DE ERRO
+      // 🔥 REVERTER MUDANÇAS EM CASO DE ERRO
       await loadAllOrdersSilent();
       
-      if (error.message !== 'LocalizaÃ§Ã£o nÃ£o disponÃ­vel') {
+      if (error.message !== 'Localização não disponível') {
         const errMsg = error?.response?.data?.message || error?.message || 'Tente novamente.';
         setErrorModal({ visible: true, message: errMsg });
       }
@@ -1063,7 +1063,7 @@ export default function HomeScreen({ navigation }: any) {
     }
   }, [allTrips]);
 
-// ðŸ”¥ ADICIONAR ESTA FUNÃ‡ÃƒO PARA RESETAR ESTADO INCORRETO
+// 🔥 ADICIONAR ESTA FUNÇÃO PARA RESETAR ESTADO INCORRETO
 const resetIncorrectAcceptedTrips = async () => {
   try {
     
@@ -1072,18 +1072,18 @@ const resetIncorrectAcceptedTrips = async () => {
     if (storedTrip) {
       const trip = JSON.parse(storedTrip);
       
-      // Verificar se a viagem ainda estÃ¡ realmente aceita
+      // Verificar se a viagem ainda está realmente aceita
       const response = await getAllOrdersForDeliveryman();
       let ordersData = response?.trips || response?.orders || response || [];
       
       if (Array.isArray(ordersData)) {
         const currentTrip = ordersData.find((order: any) => order._id === trip.id);
         
-        // Se a viagem nÃ£o estÃ¡ mais aceita, remover do storage
+        // Se a viagem não está mais aceita, remover do storage
         if (!currentTrip || 
             (currentTrip.deliveryman?._id !== user?._id && 
              currentTrip.status !== 'Pedido aceite' &&
-             currentTrip.stepStatus !== 5)) { // ðŸ”¥ ADICIONAR VERIFICAÃ‡ÃƒO DO STEP STATUS
+             currentTrip.stepStatus !== 5)) { // 🔥 ADICIONAR VERIFICAÇÃO DO STEP STATUS
           await AsyncStorage.removeItem("acceptedTrip");
         }
       }
@@ -1094,7 +1094,7 @@ const resetIncorrectAcceptedTrips = async () => {
 };
 
 
-// ðŸ”¥ ADICIONE ESTA FUNÃ‡ÃƒO PARA LIMPAR CACHE COMPLETO
+// 🔥 ADICIONE ESTA FUNÇÃO PARA LIMPAR CACHE COMPLETO
 const clearAllCacheAndReset = async () => {
   try {
     
@@ -1109,10 +1109,10 @@ const clearAllCacheAndReset = async () => {
     setRouteSummary(null);
     setIsTripStarted(false);
     
-    // Parar animaÃ§Ãµes
+    // Parar animações
     blinkAnim.stopAnimation();
     
-    // Parar compartilhamento de localizaÃ§Ã£o
+    // Parar compartilhamento de localização
     await stopLocationSharing();
     
     
@@ -1121,20 +1121,20 @@ const clearAllCacheAndReset = async () => {
   }
 };
 
-// ðŸ”¥ ATUALIZAR LOCALIZAÃ‡ÃƒO NO BACKEND VIA WEBSOCKET A CADA 10 SEGUNDOS (Otimizado)
+// 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND VIA WEBSOCKET A CADA 10 SEGUNDOS (Otimizado)
 const startLocationSharingToBackend = (orderId: string) => {
   let updateInterval: any = null;
   
   const updateLocationToBackend = async () => {
     try {
-      // ðŸ”¥ SEMPRE OBTER LOCALIZAÃ‡ÃƒO ATUAL
+      // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
 
-      // ðŸ”¥ VALIDAR LOCALIZAÃ‡ÃƒO ANTES DE ENVIAR
+      // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
       if (!location.coords.latitude || !location.coords.longitude) {
-        console.warn('âš ï¸ LocalizaÃ§Ã£o invÃ¡lida obtida, pulando atualizaÃ§Ã£o');
+        console.warn('âš ï¸ Localização inválida obtida, pulando atualização');
         return;
       }
 
@@ -1151,16 +1151,16 @@ const startLocationSharingToBackend = (orderId: string) => {
       }
 
     } catch (error) {
-      console.error('Erro ao atualizar localizaÃ§Ã£o via socket:');
+      console.error('Erro ao atualizar localização via socket:');
     }
   };
 
-  // ðŸ”¥ ATUALIZAR IMEDIATAMENTE E DEPOIS A CADA 10 SEGUNDOS
-  updateLocationToBackend(); // Primeira atualizaÃ§Ã£o
+  // 🔥 ATUALIZAR IMEDIATAMENTE E DEPOIS A CADA 10 SEGUNDOS
+  updateLocationToBackend(); // Primeira atualização
   
   updateInterval = setInterval(updateLocationToBackend, 10000); // 10 segundos para poupar servidor
 
-  // Retornar funÃ§Ã£o para parar
+  // Retornar função para parar
   return () => {
     if (updateInterval) {
       clearInterval(updateInterval);
@@ -1168,7 +1168,7 @@ const startLocationSharingToBackend = (orderId: string) => {
   };
 };
 
-// ðŸ”¥ ADICIONAR useRef PARA CONTROLAR O SHARING
+// 🔥 ADICIONAR useRef PARA CONTROLAR O SHARING
 const locationSharingRef = useRef<(() => void) | null>(null);
 
 const cancelTrip = useCallback(async (tripId: string) => {
@@ -1184,13 +1184,13 @@ const confirmCancelTrip = async () => {
     setCancelModalVisible(false);
     setCancelingTripId(tripId);
 
-    // ðŸ”¥ PARAR COMPARTILHAMENTO DE LOCALIZAÃ‡ÃƒO
+    // 🔥 PARAR COMPARTILHAMENTO DE LOCALIZAÇÃO
     if (locationSharingRef.current) {
       locationSharingRef.current();
       locationSharingRef.current = null;
     }
 
-    // Feedback visual instantÃ¢neo
+    // Feedback visual instantâneo
     setAllTrips(prev => prev.filter(t => t.id !== tripId));
 
     const trip = allTrips.find(t => t.id === tripId);
@@ -1204,7 +1204,7 @@ const confirmCancelTrip = async () => {
     await AsyncStorage.removeItem("acceptedTrip");
   } catch (error: any) {
     console.error("Erro ao cancelar viagem:", error.message);
-    Alert.alert("Erro", "NÃ£o foi possÃ­vel cancelar a viagem.");
+    Alert.alert("Erro", "Não foi possível cancelar a viagem.");
   } finally {
     setCancelingTripId(null);
     setTripToCancelId(null);
@@ -1219,14 +1219,14 @@ const proceedStartTrip = async (trip: Trip) => {
   try {
     setStartingTripId(trip.id);
 
-    // Feedback visual instantÃ¢neo
+    // Feedback visual instantâneo
     setAllTrips(prev => prev.map(t =>
       t.id === trip.id
-        ? { ...t, status: 'Em trÃ¢nsito', stepStatus: 5 }
+        ? { ...t, status: 'Em trânsito', stepStatus: 5 }
         : t
     ));
 
-    // ðŸ”¥ ATUALIZAR LOCALIZAÃ‡ÃƒO NO BACKEND AO INICIAR VIAGEM
+    // 🔥 ATUALIZAR LOCALIZAÇÃO NO BACKEND AO INICIAR VIAGEM
     try {
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${trip.id}/deliveryman-location`, {
@@ -1244,7 +1244,7 @@ const proceedStartTrip = async (trip: Trip) => {
         })
       });
     } catch (locationError) {
-      console.warn('Erro ao atualizar localizaÃ§Ã£o de inÃ­cio:');
+      console.warn('Erro ao atualizar localização de início:');
     }
 
     const isReq = trip?.originalData?.type === 'requestService';
@@ -1260,13 +1260,13 @@ const proceedStartTrip = async (trip: Trip) => {
     setShowTripStartedModal(true);
   } catch (error: any) {
     console.error("Erro ao iniciar viagem:", error.message);
-    // Reverter mudanÃ§a visual
+    // Reverter mudança visual
     setAllTrips(prev => prev.map(t =>
       t.id === trip.id
         ? { ...t, status: 'Pedido aceite', stepStatus: 4 }
         : t
     ));
-    Alert.alert("Erro", "NÃ£o foi possÃ­vel iniciar a viagem.");
+    Alert.alert("Erro", "Não foi possível iniciar a viagem.");
   } finally {
     setStartingTripId(null);
   }
@@ -1278,9 +1278,9 @@ const proceedStartTrip = async (trip: Trip) => {
     const diffInSeconds = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
 
     if (diffInSeconds < 60) {
-      return `Atualizado hÃ¡ ${diffInSeconds}s`;
+      return `Atualizado há ${diffInSeconds}s`;
     } else {
-      return `Atualizado hÃ¡ ${Math.floor(diffInSeconds / 60)}min`;
+      return `Atualizado há ${Math.floor(diffInSeconds / 60)}min`;
     }
   };
 
@@ -1289,7 +1289,7 @@ const proceedStartTrip = async (trip: Trip) => {
       case "Conectado": return "#2ECC71";
       case "Conectando...": return "#F39C12";
       case "Desconectado": return "#E74C3C";
-      case "Erro de conexÃ£o": return "#E74C3C";
+      case "Erro de conexão": return "#E74C3C";
       default: return "#95A5A6";
     }
   };
@@ -1297,20 +1297,20 @@ const proceedStartTrip = async (trip: Trip) => {
   const renderNotApprovedMessage = () => (
     <View style={styles.notApprovedContainer}>
       <Ionicons name="alert-circle-outline" size={64} color={COLORS.warning} />
-      <Text style={styles.notApprovedTitle}>Aguardando AprovaÃ§Ã£o</Text>
+      <Text style={styles.notApprovedTitle}>Aguardando Aprovação</Text>
       <Text style={styles.notApprovedSubtitle}>
-        Sua conta estÃ¡ em processo de anÃ¡lise. VocÃª poderÃ¡ visualizar solicitaÃ§Ãµes de entrega apÃ³s a aprovaÃ§Ã£o.
+        Sua conta está em processo de análise. Você poderá visualizar solicitações de entrega após a aprovação.
       </Text>
       <TouchableOpacity
         style={styles.contactSupportButton}
-        onPress={() => Alert.alert("Suporte", "Entre em contato com o suporte para mais informaÃ§Ãµes.")}
+        onPress={() => Alert.alert("Suporte", "Entre em contato com o suporte para mais informações.")}
       >
         <Text style={styles.contactSupportText}>Entrar em Contato com Suporte</Text>
       </TouchableOpacity>
     </View>
   );
 
-  // ðŸ”¥ RENDERIZAR CARD DE ROTA ATUAL (EM TRÃ‚NSITO)
+  // 🔥 RENDERIZAR CARD DE ROTçãTUAL (EM TRÂNSITO)
   const renderCurrentRouteCard = () => {
     if (!routeSummary || !isTripStarted) return null;
 
@@ -1353,7 +1353,7 @@ const proceedStartTrip = async (trip: Trip) => {
           </TouchableOpacity>
         </View>
         
-        {/* ðŸ”¥ STATUS DA ENTREGA */}
+        {/* 🔥 STATUS DA ENTREGA */}
         <View style={styles.deliveryStatus}>
           <Ionicons name="cube-outline" size={16} color="#FFF" />
           <Text style={styles.deliveryStatusText}>
@@ -1410,7 +1410,7 @@ const proceedStartTrip = async (trip: Trip) => {
         contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ðŸ”¥ STATUS DA CONEXÃƒO WEBSOCKET - SÃ“ MOSTRAR SE APROVADO */}
+        {/* 🔥 STATUS DA CONEXÃO WEBSOCKET - SÓ MOSTRAR SE APROVADO */}
         {false && isDriverApproved && connectionStatus !== "Conectado" && (
           <View style={[styles.connectionStatus, { backgroundColor: getConnectionStatusColor() }]}>
             <View style={styles.connectionInfo}>
@@ -1429,7 +1429,7 @@ const proceedStartTrip = async (trip: Trip) => {
           </View>
         )}
 
-        {/* ðŸ”¥ BOTÃƒO DE ONLINE/OFFLINE */}
+        {/* 🔥 BOTÃO DE ONLINE/OFFLINE */}
         {isDriverApproved && (
           <View style={styles.onlineToggleContainer}>
             <View style={styles.onlineToggleInfo}>
@@ -1440,7 +1440,7 @@ const proceedStartTrip = async (trip: Trip) => {
               />
               <View style={styles.onlineToggleTexts}>
                 <Text style={[styles.onlineToggleTitle, { color: user?.availability === 'active' ? COLORS.success : COLORS.gray }]}>
-                  {user?.availability === 'active' ? "VocÃª estÃ¡ Online" : "VocÃª estÃ¡ Offline"}
+                  {user?.availability === 'active' ? "Você está Online" : "Você está Offline"}
                 </Text>
                 <Text style={styles.onlineToggleSubtitle}>
                   {user?.availability === 'active' ? "Recebendo novas viagens" : "Pausado para novas viagens"}
@@ -1461,31 +1461,31 @@ const proceedStartTrip = async (trip: Trip) => {
           </View>
         )}
 
-        {/* ðŸ”¥ INDICADOR DE LOCALIZAÃ‡ÃƒO COMPARTILHADA */}
+        {/* 🔥 INDICADOR DE LOCALIZAÇÃO COMPARTILHADA */}
         {isSharingLocation && acceptedTrip && (
           <View style={styles.locationSharingContainer}>
             <Ionicons name="location" size={20} color="#2ECC71" />
             <Text style={styles.locationSharingInfo}>
-              Compartilhando localizaÃ§Ã£o em tempo real
+              Compartilhando localização em tempo real
             </Text>
           </View>
         )}
 
-        {/* ðŸ”¥ CARD DA ROTA ATUAL (EM TRÃ‚NSITO) */}
+        {/* 🔥 CARD DA ROTçãTUAL (EM TRÂNSITO) */}
         {renderCurrentRouteCard()}
 
-        {/* ðŸ”¥ CORREÃ‡ÃƒO: O modal de aprovaÃ§Ã£o substituiu a mensagem estÃ¡tica de bloqueio */}
+        {/* 🔥 CORREÇÃO: O modal de aprovação substituiu a mensagem estática de bloqueio */}
         <View>
           <>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>
-                  {acceptedTrip ? "Sua Viagem" : "SolicitaÃ§Ãµes de Viagem"}
+                  {acceptedTrip ? "Sua Viagem" : "Solicitações de Viagem"}
                 </Text>
                 <Text style={styles.sectionSubtitle}>
                   {allTrips.length === 0 
-                    ? "Nenhuma viagem disponÃ­vel no momento" 
-                    : `${allTrips.length} viagem${allTrips.length !== 1 ? 'ens' : ''} disponÃ­vel${allTrips.length !== 1 ? 'eis' : ''}`}
+                    ? "Nenhuma viagem disponível no momento" 
+                    : `${allTrips.length} viagem${allTrips.length !== 1 ? 'ens' : ''} disponível${allTrips.length !== 1 ? 'eis' : ''}`}
                 </Text>
               </View>
               <TouchableOpacity
@@ -1504,15 +1504,15 @@ const proceedStartTrip = async (trip: Trip) => {
             {loadingOrders ? (
               <View style={styles.loadingOrdersContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={styles.loadingOrdersText}>Carregando solicitaÃ§Ãµes...</Text>
+                <Text style={styles.loadingOrdersText}>Carregando solicitações...</Text>
               </View>
             ) : allTrips.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons name="car-outline" size={64} color={COLORS.gray} />
-                <Text style={styles.emptyText}>Nenhuma solicitaÃ§Ã£o disponÃ­vel</Text>
+                <Text style={styles.emptyText}>Nenhuma solicitação disponível</Text>
                 <Text style={styles.websocketInfo}>
                   {isConnected
-                    ? "Novas viagens aparecerÃ£o automaticamente aqui"
+                    ? "Novas viagens aparecerão automaticamente aqui"
                     : "Conectando ao servidor..."}
                 </Text>
                 <TouchableOpacity
@@ -1537,19 +1537,19 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </ScrollView>
 
-      {/* ðŸ”¥ MODAL PREMIUM "CONTA EM ANÃLISE" */}
+      {/* 🔥 MODAL PREMIUM "CONTA EM ANÁLISE" */}
       <Modal visible={showApprovalModal} transparent animationType="slide">
         <View style={styles.premiumModalOverlay}>
           <View style={styles.premiumModalContainer}>
             <View style={styles.premiumModalHeader}>
               <Ionicons name="time-outline" size={40} color="#F39C12" />
-              <Text style={styles.premiumModalTitle}>Conta em AnÃ¡lise</Text>
+              <Text style={styles.premiumModalTitle}>Conta em Análise</Text>
             </View>
             <Text style={styles.premiumModalText}>
-              O seu perfil de motorista encontra-se neste momento sob avaliaÃ§Ã£o pela nossa equipa.
+              O seu perfil de motorista encontra-se neste momento sob avaliação pela nossa equipa.
             </Text>
             <Text style={styles.premiumModalSubText}>
-              Aguarde pela aprovaÃ§Ã£o para comeÃ§ar a receber as solicitaÃ§Ãµes de entrega e poder realizar viagens!
+              Aguarde pela aprovação para começar a receber as solicitações de entrega e poder realizar viagens!
             </Text>
             <TouchableOpacity 
               style={styles.premiumModalCloseBtn}
@@ -1561,7 +1561,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* âœ… MODAL PREMIUM "CONTA APROVADA SUCESSO" */}
+      {/* âœ… MODAL PREMIUM "CONTçãPROVADA SUCESSO" */}
       <Modal visible={showApprovedSuccessModal} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
@@ -1579,11 +1579,11 @@ const proceedStartTrip = async (trip: Trip) => {
             </Text>
 
             <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 24, marginBottom: 8, fontWeight: '600' }}>
-              ParabÃ©ns! A sua documentaÃ§Ã£o foi validada.
+              Parabéns! A sua documentação foi validada.
             </Text>
             
             <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
-              A sua conta estÃ¡ ativa. JÃ¡ pode receber pedidos de entrega e comeÃ§ar a faturar.
+              A sua conta está ativa. Já pode receber pedidos de entrega e começar a faturar.
             </Text>
 
             <TouchableOpacity
@@ -1596,13 +1596,13 @@ const proceedStartTrip = async (trip: Trip) => {
               onPress={() => setShowApprovedSuccessModal(false)}
               activeOpacity={0.9}
             >
-              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>ComeÃ§ar Agora!</Text>
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>Começar Agora!</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* ðŸ”¥ MODAL DE NOVA VIAGEM (INCOMING TRIP) */}
+      {/* 🔥 MODAL DE NOVA VIAGEM (INCOMING TRIP) */}
       <Modal 
         visible={allTrips.some(t => t.status === 'Pendente')} 
         transparent 
@@ -1610,7 +1610,7 @@ const proceedStartTrip = async (trip: Trip) => {
       >
         <View style={styles.newTripModalOverlay}>
           <View style={styles.newTripModalContainer}>
-            <Text style={styles.newTripModalTitle}>Nova SolicitaÃ§Ã£o de Viagem</Text>
+            <Text style={styles.newTripModalTitle}>Nova Solicitação de Viagem</Text>
             {allTrips.filter(t => t.status === 'Pendente').map(trip => (
               <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
                 {renderTripCard({ item: trip })}
@@ -1639,7 +1639,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </Text>
 
             <Text style={{ fontSize: 14, color: '#374151', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
-              ParabÃ©ns! A viagem foi aceite com sucesso.
+              Parabéns! A viagem foi aceite com sucesso.
             </Text>
             <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 21, marginBottom: 28 }}>
               Dirija-se ao local de recolha e clique em{' '}
@@ -1683,11 +1683,11 @@ const proceedStartTrip = async (trip: Trip) => {
             </View>
 
             <Text style={{ fontSize: 21, fontWeight: '900', color: '#92400E', marginBottom: 10, textAlign: 'center' }}>
-              Pedido jÃ¡ foi aceite
+              Pedido já foi aceite
             </Text>
 
             <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
-              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitaÃ§Ãµes!{' '}ðŸš€
+              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitações!{' '}ðŸš€
             </Text>
 
             <TouchableOpacity
@@ -1706,7 +1706,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ðŸ”¥ MODAL DE CONFIRMAÃ‡ÃƒO PREMIUM - INICIAR VIAGEM */}
+      {/* 🔥 MODAL DE CONFIRMAÇÃO PREMIUM - INICIAR VIAGEM */}
       <Modal
         visible={tripToStart !== null}
         transparent={true}
@@ -1719,10 +1719,10 @@ const proceedStartTrip = async (trip: Trip) => {
               <Ionicons name="cube-outline" size={40} color="#9333ea" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>JÃ¡ estÃ¡ com a mercadoria?</Text>
+            <Text style={styles.premiumModalTitle}>Já está com a mercadoria?</Text>
             
             <Text style={styles.premiumModalMessage}>
-              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos inÃ­cio Ã  viagem.
+              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos início Ã  viagem.
             </Text>
 
             <View style={styles.premiumModalButtons}>
@@ -1731,7 +1731,7 @@ const proceedStartTrip = async (trip: Trip) => {
                 activeOpacity={0.8}
                 onPress={() => setTripToStart(null)}
               >
-                <Text style={styles.premiumCancelButtonText}>NÃ£o, Cancelar</Text>
+                <Text style={styles.premiumCancelButtonText}>Não, Cancelar</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -1759,7 +1759,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ðŸ”¥ MODAL PREMIUM â€” VIAGEM INICIADA COM SUCESSO */}
+      {/* 🔥 MODAL PREMIUM â€” VIAGEM INICIADA COM SUCESSO */}
       <Modal
         visible={showTripStartedModal}
         transparent={true}
@@ -1774,7 +1774,7 @@ const proceedStartTrip = async (trip: Trip) => {
             <Text style={styles.premiumModalTitle}>Viagem Iniciada! ðŸš€</Text>
             
             <Text style={styles.premiumModalMessage}>
-              A rota para a entrega foi traÃ§ada com sucesso. Conduza com cuidado e respeite as regras de trÃ¢nsito.
+              A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
             </Text>
 
             <TouchableOpacity 
@@ -1805,7 +1805,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÃ‡ÃƒO NECESSÃRIA */}
+      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÇÃO NECESSÁRIA */}
       <Modal
         visible={showLocationRequiredModal}
         transparent={true}
@@ -1818,10 +1818,10 @@ const proceedStartTrip = async (trip: Trip) => {
               <Ionicons name="location-outline" size={44} color="#D97706" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>LocalizaÃ§Ã£o NecessÃ¡ria</Text>
+            <Text style={styles.premiumModalTitle}>Localização Necessária</Text>
             
             <Text style={styles.premiumModalMessage}>
-              NÃ£o foi possÃ­vel obter sua localizaÃ§Ã£o. Ative a localizaÃ§Ã£o do dispositivo e tente novamente.
+              Não foi possível obter sua localização. Ative a localização do dispositivo e tente novamente.
             </Text>
 
             <TouchableOpacity 
@@ -1842,7 +1842,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ðŸ”¥ MODAL DE ERRO */}
+      {/* 🔥 MODAL DE ERRO */}
       <Modal
         visible={errorModal.visible}
         transparent={true}
@@ -1893,7 +1893,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </View>
             <Text style={styles.premiumModalTitle}>Cancelar Viagem?</Text>
             <Text style={styles.premiumModalMessage}>
-              Tem a certeza de que deseja cancelar esta viagem? Esta aÃ§Ã£o afetarÃ¡ as suas estatÃ­sticas e ganhos.
+              Tem a certeza de que deseja cancelar esta viagem? Esta ação afetará as suas estatísticas e ganhos.
             </Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 12, marginTop: 16 }}>
               <TouchableOpacity
@@ -1925,7 +1925,7 @@ const proceedStartTrip = async (trip: Trip) => {
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: COLORS.gray50 },
   container: { flex: 1, backgroundColor: "#F9FAFB", padding: 16 },
-  // ðŸ”¥ NOVOS ESTILOS PARA WEBSOCKET
+  // 🔥 NOVOS ESTILOS PARA WEBSOCKET
   connectionStatus: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1980,7 +1980,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.9,
   },
-  // ðŸ”¥ NOVOS ESTILOS PARA LOCALIZAÃ‡ÃƒO COMPARTILHADA
+  // 🔥 NOVOS ESTILOS PARA LOCALIZAÇÃO COMPARTILHADA
   locationSharingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2013,7 +2013,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 4,
   },
-  // ðŸ”¥ ESTILOS PARA CARD DE ROTA ATUAL (EM TRÃ‚NSITO)
+  // 🔥 ESTILOS PARA CARD DE ROTçãTUAL (EM TRÂNSITO)
   routeSummaryContainer: {
     borderRadius: 24,
     marginBottom: 24,
@@ -2092,7 +2092,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
   },
-  // ðŸ”¥ NOVO ESTILO PARA BADGE DE TRÃ‚NSITO
+  // 🔥 NOVO ESTILO PARA BADGE DE TRÂNSITO
   transitStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',

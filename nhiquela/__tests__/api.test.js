@@ -10,7 +10,7 @@ describe('API Configuration', () => {
   it('should fallback to correct URLs based on NODE_ENV', () => {
     const isDev = process.env.NODE_ENV !== 'production';
     if (isDev) {
-      expect(api.defaults.baseURL).toContain('192.168');
+      expect(api.defaults.baseURL).toMatch(/http:\/\/.*:5000\/api/);
     } else {
       expect(api.defaults.baseURL).toContain('api.nhiquelaservicos.com');
     }

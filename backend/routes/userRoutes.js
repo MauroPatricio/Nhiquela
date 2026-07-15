@@ -1317,6 +1317,35 @@ userRouter.post(
 );
 
 userRouter.delete(
+  '/profile',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      // Disable user's products if any
+      await Product.updateMany({ seller: user._id }, { $set: { isActive: false } });
+
+      const timestamp = Date.now();
+
+      if (!user.isDeleted) {
+        user.email = `deleted_${timestamp}_${user.email}`;
+        user.phoneNumber = -timestamp;
+      }
+
+      user.isDeleted = true;
+      user.isBanned = true;
+      user.isApproved = false;
+      await user.save();
+
+      res.send({ message: `Conta eliminada com sucesso` });
+    } else {
+      res.status(404).send({ message: 'Utilizador não encontrado' });
+    }
+  })
+);
+
+userRouter.delete(
   '/:id',
   isAuth,
   isAdmin,

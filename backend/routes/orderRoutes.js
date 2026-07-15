@@ -281,7 +281,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
     // Check for cancellation penalty block
     const currentUser = await User.findById(req.user._id);
     if (currentUser && currentUser.blockedUntil && currentUser.blockedUntil > new Date()) {
-      return res.status(403).send({ message: "Conta bloqueada por 30 dias devido a cancelamentos sucessivos sem justificaÃ§Ã£o vÃ¡lida." });
+      return res.status(403).send({ message: "Conta bloqueada por 30 dias devido a cancelamentos sucessivos sem justificação válida." });
     }
 
     const priceFromSeller = parseFloat(req.body.itemsPriceForSeller);
@@ -364,7 +364,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
             const product = await Product.findById(item._id);
             // Ensure product exists and quantity is valid
             if (!product) {
-              throw new Error(`Produto nÃ£o encontrado: ${item._id}`);
+              throw new Error(`Produto não encontrado: ${item._id}`);
             }
             if (typeof item.quantity !== 'number' || isNaN(item.quantity)) {
               throw new Error(`Quantidade Invalida para o produto: ${item.name}`);
@@ -735,7 +735,7 @@ orderRouter.put(
 
     if (sellerOfProduct) {
       //  Para envio de mensagens
-      let msgSeller = `OlÃ¡, a Nhiquela gostaria de lhe informar que possui um novo pedido com o cÃ³digo ${updatedOrder.code}.`;
+      let msgSeller = `Olá, a Nhiquela gostaria de lhe informar que possui um novo pedido com o código ${updatedOrder.code}.`;
       //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
     }
 
@@ -765,7 +765,7 @@ orderRouter.put(
     const updatedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
     //  Para envio de mensagens
-    const message = `OlÃ¡, o seu pedido nÂº ${order.code} foi aceite com sucesso pelo fornecedor.`;
+    const message = `Olá, o seu pedido nÂº ${order.code} foi aceite com sucesso pelo fornecedor.`;
 
     //  sendSMSToUSendIt(req, message);
     const sellerOfProduct = await User.findById(order.seller);
@@ -822,7 +822,7 @@ orderRouter.put(
     // Recarrega o pedido com o campo `user` populado
     const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
-    const message = `OlÃ¡, a Nhiquela lhe informa que o pedido nÂº ${order.code} esta pronto e disponivel para ser entregue.`;
+    const message = `Olá, a Nhiquela lhe informa que o pedido nÂº ${order.code} esta pronto e disponivel para ser entregue.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
@@ -876,7 +876,7 @@ orderRouter.put(
 
       const savedOrder = await order.save();
 
-      let message = `OlÃ¡, a Nhiquela lhe informa que o pedido nÂº ${order.code} esta pronto e disponivel para entrega.`;
+      let message = `Olá, a Nhiquela lhe informa que o pedido nÂº ${order.code} esta pronto e disponivel para entrega.`;
 
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
@@ -974,7 +974,7 @@ orderRouter.put(
       order.isSupplierPaid = true;
       const savedOrder = await order.save();
 
-      let message = `OlÃ¡, a Nhiquela lhe informa que o pagamento correspondente ao pedido nÂº ${order.code} foi pago com sucesso.`;
+      let message = `Olá, a Nhiquela lhe informa que o pagamento correspondente ao pedido nÂº ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,message, order, res);
 
@@ -1023,7 +1023,7 @@ orderRouter.put(
       order.isDeliverPaid = true;
       const savedOrder = await order.save();
 
-      let message = `OlÃ¡, a Nhiquela lhe informa que o pagamento correspondente ao pedido nÂº ${order.code} foi pago com sucesso.`;
+      let message = `Olá, a Nhiquela lhe informa que o pagamento correspondente ao pedido nÂº ${order.code} foi pago com sucesso.`;
 
       // sendEmailOrderStatus(req,message, order, res);
 
@@ -1056,7 +1056,7 @@ orderRouter.put(
       // sendSMSToUSendItAdmin(message);
       res.send({ order: savedOrder, message: `Entregador pago com sucesso` });
     } else {
-      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
+      res.status(404).send({ message: 'Pedido não encontrado' });
     }
   })
 );
@@ -1069,10 +1069,10 @@ orderRouter.put(
     const user_deliver = await User.findById(req.user._id);
 
     if (!user_deliver) {
-      return res.status(404).send({ message: 'Motorista nÃ£o encontrado na base de dados.' });
+      return res.status(404).send({ message: 'Motorista não encontrado na base de dados.' });
     }
 
-    // Usar uma transaÃ§Ã£o para garantir que dÃ©bito e aceite ocorrem de forma atÃ³mica
+    // Usar uma transação para garantir que débito e aceite ocorrem de forma atómica
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -1082,19 +1082,19 @@ orderRouter.put(
       if (!order) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(409).send({ message: 'Pedido jÃ¡ foi aceite por outro motorista ou nÃ£o estÃ¡ disponÃ­vel' });
+        return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
       }
 
       // Calcular comissão baseada nas configurações financeiras e subcategoria
       const { calculateDynamicCommission } = await import('../services/walletService.js');
       const commissionAmount = await calculateDynamicCommission(order);
 
-      // Apenas validar se o motorista tem saldo suficiente, mas NÃƒO debitar ainda.
+      // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
       const canAfford = await canAffordTripCommission(user_deliver._id, commissionAmount);
       if (!canAfford) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviÃ§o Ã© necessÃ¡rio possuir saldo suficiente na sua carteira digital para cobrir a comissÃ£o da Nhiquela. Efetue uma recarga e tente novamente.' });
+        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
       }
 
       let deliverymanData = {};
@@ -1126,7 +1126,7 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
 
       //  Para envio de mensagens
-      let message = `OlÃ¡, a Nhiquela informa que o entregador aceitou o pedido nÂº ${updateOrder.code}`;
+      let message = `Olá, a Nhiquela informa que o entregador aceitou o pedido nÂº ${updateOrder.code}`;
 
       //  sendSMSToSellerUSendIt(sellerOfProduct,message);
       //  sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
@@ -1150,7 +1150,7 @@ orderRouter.put(
         io.to(`driver_${user_deliver._id}`).emit('order_assigned', updateOrder);
         // Notificar o cliente que o pedido foi aceite
         io.to(`order_${order._id}`).emit('order_updated', updateOrder);
-        // ðŸ”¥ Notificar TODOS os outros motoristas que tinham este pedido que ele jÃ¡ foi aceite
+        // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
         io.emit('order_taken', { orderId: order._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
@@ -1207,7 +1207,7 @@ orderRouter.put(
       } else {
         await session.abortTransaction();
         session.endSession();
-        res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
+        res.status(404).send({ message: 'Pedido não encontrado' });
       }
     } catch (error) {
       await session.abortTransaction();
@@ -1363,7 +1363,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-      let message = `OlÃ¡, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nÂº ${updateOrder.code}`;
+      let message = `Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nÂº ${updateOrder.code}`;
 
       //  sendSMSToUSendIt(req,message);
 
@@ -1406,7 +1406,7 @@ orderRouter.put(
   })
 );
 
-// Motorista cancela viagem por "Cliente nÃ£o compareceu" (apÃ³s 5 minutos)
+// Motorista cancela viagem por "Cliente não compareceu" (após 5 minutos)
 orderRouter.put(
   '/:id/driver-no-show',
   isAuth,
@@ -1428,9 +1428,9 @@ orderRouter.put(
         }
       }
 
-      res.send({ message: `Viagem cancelada por nÃ£o comparÃªncia`, order: updateOrder });
+      res.send({ message: `Viagem cancelada por não comparência`, order: updateOrder });
     } else {
-      res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
+      res.status(404).send({ message: 'Pedido não encontrado' });
     }
   })
 );
@@ -1464,7 +1464,7 @@ orderRouter.put(
             await debitDriverCommissionWithSession(
               order.deliveryman.id,
               commissionAmount,
-              `ComissÃ£o de serviÃ§o para o pedido ${order.code}`,
+              `Comissão de serviço para o pedido ${order.code}`,
               'wallet',
               session
             );
@@ -1516,7 +1516,7 @@ orderRouter.put(
       } else {
         await session.abortTransaction();
         session.endSession();
-        res.status(404).send({ message: 'Pedido nÃ£o encontrado' });
+        res.status(404).send({ message: 'Pedido não encontrado' });
       }
     } catch (error) {
       await session.abortTransaction();
@@ -1555,7 +1555,7 @@ orderRouter.put(
 
       //  Para envio de mensagens
 
-      let message = `OlÃ¡, a Nhiquela lamenta lhe informar que o seu pedido nÂº ${order.code} foi cancelado. O motivo do cancelamento poderÃ¡ verificar pesquisando pelo cÃ³digo.`;
+      let message = `Olá, a Nhiquela lamenta lhe informar que o seu pedido nÂº ${order.code} foi cancelado. O motivo do cancelamento poderá verificar pesquisando pelo código.`;
 
       // sendSMSToUSendIt(req,message);    
 
@@ -1625,7 +1625,7 @@ orderRouter.put(
     // Buscar novamente o pedido com o campo user populado
     const savedOrder = await Order.findById(order._id).populate('user', 'name phoneNumber profileImage');
 
-    const message = `OlÃ¡, a Nhiquela lamenta lhe informar que o seu pedido nÂº ${order.code} foi cancelado. O motivo do cancelamento poderï¿½ verificar pesquisando pelo cï¿½digo.`;
+    const message = `Olá, a Nhiquela lamenta lhe informar que o seu pedido nÂº ${order.code} foi cancelado. O motivo do cancelamento poderï¿½ verificar pesquisando pelo cï¿½digo.`;
 
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
@@ -1761,7 +1761,7 @@ orderRouter.get(
         ]
       };
       if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Match exato com o veÃ­culo do motorista
+        availableCondition.transportType = driverTransportType; // Match exato com o veículo do motorista
       }
       requestServiceConditions.push(availableCondition);
     }

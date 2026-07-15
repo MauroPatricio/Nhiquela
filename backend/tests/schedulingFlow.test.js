@@ -1,9 +1,9 @@
 /**
  * schedulingFlow.test.js
  *
- * Testes de integraÃ§Ã£o para os dois fluxos de solicitaÃ§Ã£o de serviÃ§o:
+ * Testes de integração para os dois fluxos de solicitação de serviço:
  *   1. Fluxo Imediato  â€” isScheduled: false  â†’ dispatch inicia imediatamente
- *   2. Fluxo Agendado  â€” isScheduled: true   â†’ dispatch NÃƒO inicia; scheduledAt Ã© guardado
+ *   2. Fluxo Agendado  â€” isScheduled: true   â†’ dispatch NÃO inicia; scheduledAt é guardado
  *
  * Utiliza a app Express real + MongoDB Atlas de testes.
  */
@@ -29,7 +29,7 @@ const immediateOrderIds = [];
 const scheduledOrderIds = [];
 
 /**
- * Factory para criar um RequestService mÃ­nimo vÃ¡lido.
+ * Factory para criar um RequestService mínimo válido.
  * Inclui todos os campos required do schema para evitar ValidationError nos testes de BD.
  */
 const minimalOrder = (overrides = {}) => ({
@@ -51,7 +51,7 @@ const minimalOrder = (overrides = {}) => ({
 // â”€â”€â”€ Setup / Teardown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 beforeAll(async () => {
-  // Aguardar que a ligaÃ§Ã£o ao MongoDB do index.js fique pronta
+  // Aguardar que a ligação ao MongoDB do index.js fique pronta
   await new Promise(resolve => setTimeout(resolve, 6000));
 
   // Limpar dados residuais de testes anteriores
@@ -80,11 +80,11 @@ beforeAll(async () => {
       name: 'Scheduling Driver',
       phoneNumber: 847001002,
       hasActiveService: false,
-      status: 'DisponÃ­vel',
+      status: 'Disponível',
     },
   });
 
-  // Carteira com saldo suficiente para pagar comissÃµes
+  // Carteira com saldo suficiente para pagar comissões
   await Wallet.create({
     ownerType: 'driver',
     ownerId: testDriver._id,
@@ -115,7 +115,7 @@ afterAll(async () => {
 describe('Fluxo Imediato (isScheduled: false)', () => {
   let orderId;
 
-  // â”€â”€ 1.1 CriaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 1.1 Criação â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('POST /api/request-service â€” pedido imediato', () => {
     it('deve criar o pedido com status Pendente e isSearching=true', async () => {
       const res = await request(app)
@@ -153,7 +153,7 @@ describe('Fluxo Imediato (isScheduled: false)', () => {
       }
     }, 15000);
 
-    it('deve rejeitar criaÃ§Ã£o sem autenticaÃ§Ã£o (401)', async () => {
+    it('deve rejeitar criação sem autenticação (401)', async () => {
       const res = await request(app)
         .post('/api/request-service')
         .send({ origin: 'Teste sem token' });
@@ -161,10 +161,10 @@ describe('Fluxo Imediato (isScheduled: false)', () => {
       expect(res.status).toBe(401);
     }, 10000);
 
-    it('nÃ£o deve criar pedido se cliente jÃ¡ tem viagem ativa', async () => {
-      if (!orderId) return; // sÃ³ faz sentido se o pedido anterior foi criado
+    it('não deve criar pedido se cliente já tem viagem ativa', async () => {
+      if (!orderId) return; // só faz sentido se o pedido anterior foi criado
 
-      // Garantir que o pedido anterior estÃ¡ ativo
+      // Garantir que o pedido anterior está ativo
       await RequestService.updateOne(
         { _id: orderId },
         { $set: { status: 'Pendente', isCanceled: false } }
@@ -204,21 +204,21 @@ describe('Fluxo Imediato (isScheduled: false)', () => {
     }, 10000);
   });
 
-  // â”€â”€ 1.3 AceitaÃ§Ã£o pelo motorista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 1.3 Aceitação pelo motorista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('PUT /api/request-service/:id/acceptedByDeliveryman', () => {
     it('deve aceitar o pedido imediato e marcar hasActiveService=true no motorista', async () => {
       if (!orderId) return;
 
-      // Garantir que o pedido estÃ¡ pendente e nÃ£o cancelado
+      // Garantir que o pedido está pendente e não cancelado
       await RequestService.updateOne(
         { _id: orderId },
         { $set: { status: 'Pendente', isCanceled: false, isSearching: true } }
       );
 
-      // Garantir que o motorista estÃ¡ disponÃ­vel
+      // Garantir que o motorista está disponível
       await User.updateOne(
         { _id: testDriver._id },
-        { $set: { 'deliveryman.hasActiveService': false, 'deliveryman.status': 'DisponÃ­vel' } }
+        { $set: { 'deliveryman.hasActiveService': false, 'deliveryman.status': 'Disponível' } }
       );
 
       const res = await request(app)
@@ -290,10 +290,10 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
 
   const futureDate = new Date(Date.now() + 2 * 60 * 60 * 1000); // +2 horas
 
-  // â”€â”€ 2.1 CriaÃ§Ã£o de pedido agendado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 2.1 Criação de pedido agendado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('POST /api/request-service â€” pedido agendado', () => {
     it('deve criar pedido agendado com isScheduled=true, isSearching=false e scheduledAt correto', async () => {
-      // Garantir que o cliente nÃ£o tem viagem ativa
+      // Garantir que o cliente não tem viagem ativa
       await RequestService.updateMany(
         { user: testClient._id, status: { $in: ['Pendente', 'Pedido aceite'] } },
         { $set: { status: 'Cancelado', isCanceled: true } }
@@ -327,16 +327,16 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
         scheduledOrderIds.push(scheduledOrderId);
 
         expect(res.body.requestService.isScheduled).toBe(true);
-        expect(res.body.requestService.isSearching).toBe(false); // NÃƒO deve iniciar busca
+        expect(res.body.requestService.isSearching).toBe(false); // NÃO deve iniciar busca
         expect(res.body.requestService.scheduledAt).toBeDefined();
 
-        // Verificar que a data foi guardada correctamente (dentro de 1 minuto de tolerÃ¢ncia)
+        // Verificar que a data foi guardada correctamente (dentro de 1 minuto de tolerância)
         const savedDate = new Date(res.body.requestService.scheduledAt);
         expect(Math.abs(savedDate.getTime() - futureDate.getTime())).toBeLessThan(60000);
       }
     }, 15000);
 
-    it('deve rejeitar criaÃ§Ã£o de pedido agendado sem autenticaÃ§Ã£o (401)', async () => {
+    it('deve rejeitar criação de pedido agendado sem autenticação (401)', async () => {
       const res = await request(app)
         .post('/api/request-service')
         .send({
@@ -349,7 +349,7 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
     }, 10000);
   });
 
-  // â”€â”€ 2.2 ValidaÃ§Ã£o directa no modelo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 2.2 Validação directa no modelo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('BD â€” campos de agendamento guardados correctamente no modelo', () => {
     it('deve guardar isScheduled=true, scheduledAt e scheduledNotified=false', async () => {
       const scheduled = new RequestService(minimalOrder({
@@ -374,7 +374,7 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
       expect(diff).toBeLessThan(1000);
     }, 10000);
 
-    it('um pedido NÃƒO agendado nÃ£o deve ter scheduledAt definido', async () => {
+    it('um pedido NÃO agendado não deve ter scheduledAt definido', async () => {
       const immediate = new RequestService(minimalOrder({
         user: testClient._id,
         code: '999003',
@@ -392,9 +392,9 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
     }, 10000);
   });
 
-  // â”€â”€ 2.3 Pedido agendado NÃƒO deve ser despachado imediatamente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  describe('Comportamento de dispatch â€” pedido agendado nÃ£o inicia busca', () => {
-    it('pedido agendado recÃ©m-criado deve ter isSearching=false na BD', async () => {
+  // â”€â”€ 2.3 Pedido agendado NÃO deve ser despachado imediatamente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  describe('Comportamento de dispatch â€” pedido agendado não inicia busca', () => {
+    it('pedido agendado recém-criado deve ter isSearching=false na BD', async () => {
       const order = new RequestService(minimalOrder({
         user: testClient._id,
         code: '999004',
@@ -430,7 +430,7 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
   });
 
   // â”€â”€ 2.4 Motorista pode aceitar pedido agendado mesmo com viagem activa â”€â”€â”€â”€â”€â”€â”€
-  describe('AceitaÃ§Ã£o de pedido agendado com motorista ocupado', () => {
+  describe('Aceitação de pedido agendado com motorista ocupado', () => {
     it('motorista com hasActiveService=true pode ver pedidos agendados na lista', async () => {
       await User.updateOne(
         { _id: testDriver._id },
@@ -490,7 +490,7 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
     it('deve cancelar um pedido agendado antes de ser aceite', async () => {
       if (!scheduledOrderId) return;
 
-      // Garantir que estÃ¡ cancelÃ¡vel
+      // Garantir que está cancelável
       await RequestService.updateOne(
         { _id: scheduledOrderId },
         { $set: { status: 'Pendente', isCanceled: false } }
@@ -505,17 +505,17 @@ describe('Fluxo Agendado (isScheduled: true)', () => {
 
       if (res.status === 200) {
         expect(res.body.order.status).toBe('Cancelado');
-        expect(res.body.order.isScheduled).toBe(true); // Flag mantida para histÃ³rico
+        expect(res.body.order.isScheduled).toBe(true); // Flag mantida para histórico
       }
     }, 15000);
   });
 });
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// SUITE 3 â€” VALIDAÃ‡Ã•ES UNITÃRIAS DO MODELO (sem HTTP)
+// SUITE 3 â€” VALIDAÇÕES UNITÁRIAS DO MODELO (sem HTTP)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ValidaÃ§Ãµes unitÃ¡rias do modelo RequestService', () => {
+describe('Validações unitárias do modelo RequestService', () => {
   it('isScheduled tem default false', async () => {
     const order = new RequestService(minimalOrder({
       user: testClient._id,
@@ -548,9 +548,9 @@ describe('ValidaÃ§Ãµes unitÃ¡rias do modelo RequestService', () => {
     expect(order.scheduledNotified).toBe(false);
   }, 10000);
 
-  it('pedido com isScheduled=true deve ter scheduledAt obrigatÃ³rio (via lÃ³gica de app)', () => {
-    // Esta regra Ã© validada na rota/app, nÃ£o no schema do Mongoose
-    // O modelo aceita null, mas a lÃ³gica da rota sÃ³ guarda scheduledAt quando isScheduled=true
+  it('pedido com isScheduled=true deve ter scheduledAt obrigatório (via lógica de app)', () => {
+    // Esta regra é validada na rota/app, não no schema do Mongoose
+    // O modelo aceita null, mas a lógica da rota só guarda scheduledAt quando isScheduled=true
     const future = new Date(Date.now() + 3600 * 1000);
     const order = new RequestService({
       isScheduled: true,
@@ -559,7 +559,7 @@ describe('ValidaÃ§Ãµes unitÃ¡rias do modelo RequestService', () => {
     expect(order.scheduledAt).toEqual(future);
   });
 
-  it('diferenÃ§a entre pedido imediato e agendado: isSearching inicial', () => {
+  it('diferença entre pedido imediato e agendado: isSearching inicial', () => {
     const immediate = new RequestService({ isScheduled: false, isSearching: true });
     const scheduled = new RequestService({ isScheduled: true, isSearching: false });
 

@@ -239,7 +239,7 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
       saldo_operacional_minimo: config.minOperationalBalance,
       taxa_base_veículo: baseFare,
       taxa_minima_recarga: minVisibilityFee > 0 ? minVisibilityFee : config.minOperationalBalance,
-      nome_veiculo: vehicleName,
+      nome_veículo: vehicleName,
       nome_categoria: categoryName,
       saldo_disponivel: balance - limit,
       estado_atual: currentState,

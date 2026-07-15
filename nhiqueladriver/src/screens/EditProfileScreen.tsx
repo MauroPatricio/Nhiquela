@@ -114,7 +114,7 @@ export default function EditProfileScreen({ navigation, route }: Props) {
   const [vehicleInsuranceImage, setVehicleInsuranceImage] = useState(formatBase64Image(user?.deliveryman?.vihicle_Insurance) || "");
   const [proofOfAddressImage, setProofOfAddressImage] = useState(formatBase64Image(user?.deliveryman?.Proof_of_Address) || "");
 
-  // ✅ EFFECT PARA ATUALIZAR IMAGENS QUANDO USER MUDAR
+  // ✅ EFFECT PARçãTUALIZAR IMAGENS QUANDO USER MUDAR
   useEffect(() => {
     setProfileImage(formatBase64Image(user?.deliveryman?.photo) || "");
     setVehicleImage(formatBase64Image(user?.deliveryman?.vihicle_picture) || "");

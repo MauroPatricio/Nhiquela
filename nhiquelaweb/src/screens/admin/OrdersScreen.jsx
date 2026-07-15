@@ -11,7 +11,7 @@ import * as XLSX from '@e965/xlsx';
 
 const OrderTiming = ({ order }) => {
   const [elapsed, setElapsed] = useState('--');
-  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluido'].includes(order.status);
+  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluído'].includes(order.status);
 
   useEffect(() => {
     const calculateStaticDiff = () => {

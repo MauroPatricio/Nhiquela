@@ -1,15 +1,15 @@
 /**
  * tripLifecycleTracking.test.js
  *
- * Testa o rastreio e as mudanÃ§as de estado durante todo o ciclo de vida de uma viagem:
+ * Testa o rastreio e as mudanças de estado durante todo o ciclo de vida de uma viagem:
  * 1. Pendente
  * 2. Pedido aceite (A Caminho da Origem)
- * 3. Em trÃ¢nsito (A Caminho do Destino)
+ * 3. Em trânsito (A Caminho do Destino)
  * 4. No destino indicado
- * 5. ConcluÃ­do
+ * 5. Concluído
  *
- * O teste verifica as alteraÃ§Ãµes na BD e se os eventos Socket.IO de atualizaÃ§Ã£o (order_updated)
- * sÃ£o devidamente despoletados.
+ * O teste verifica as alterações na BD e se os eventos Socket.IO de atualização (order_updated)
+ * são devidamente despoletados.
  */
 
 import request from 'supertest';
@@ -57,7 +57,7 @@ beforeAll(async () => {
       name: 'Lifecycle Driver',
       phoneNumber: 846001002,
       hasActiveService: false,
-      status: 'DisponÃ­vel',
+      status: 'Disponível',
     },
   });
 
@@ -95,7 +95,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe('Fluxo Completo de Viagem com NotificaÃ§Ãµes de Rastreio (Socket.IO)', () => {
+describe('Fluxo Completo de Viagem com Notificações de Rastreio (Socket.IO)', () => {
   
   it('1. Criar pedido (stepStatus = Pendente)', async () => {
     const res = await request(app)
@@ -139,7 +139,7 @@ describe('Fluxo Completo de Viagem com NotificaÃ§Ãµes de Rastreio (Socket.IO
     expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'Pedido aceite' }));
   }, 10000);
 
-  it('3. Motorista arranca com o cliente/encomenda (stepStatus = 5 -> Em trÃ¢nsito)', async () => {
+  it('3. Motorista arranca com o cliente/encomenda (stepStatus = 5 -> Em trânsito)', async () => {
     const res = await request(app)
       .put(`/api/request-service/${orderId}/intransit`)
       .set('Authorization', `Bearer ${driverToken}`)
@@ -148,12 +148,12 @@ describe('Fluxo Completo de Viagem com NotificaÃ§Ãµes de Rastreio (Socket.IO
     expect(res.status).toBe(200);
 
     const checkOrder = await RequestService.findById(orderId);
-    expect(checkOrder.status).toBe('Em trÃ¢nsito');
+    expect(checkOrder.status).toBe('Em trânsito');
     expect(checkOrder.stepStatus).toBe(5);
     expect(checkOrder.isInTransit).toBe(true);
 
     expect(toMock).toHaveBeenCalledWith(`order_${orderId}`);
-    expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'Em trÃ¢nsito' }));
+    expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'Em trânsito' }));
   }, 10000);
 
   it('4. Motorista chega ao destino (stepStatus = 5 -> No destino indicado)', async () => {
@@ -171,14 +171,14 @@ describe('Fluxo Completo de Viagem com NotificaÃ§Ãµes de Rastreio (Socket.IO
     expect(checkOrder.status).toBe('No destino indicado');
     expect(checkOrder.stepStatus).toBe(5);
     
-    // Confirma que a Ãºltima localizaÃ§Ã£o de chegada foi registada
+    // Confirma que a última localização de chegada foi registada
     expect(checkOrder.arrivalLatitude).toBe(-25.9701);
 
     expect(toMock).toHaveBeenCalledWith(`order_${orderId}`);
     expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'No destino indicado' }));
   }, 10000);
 
-  it('5. Cliente finaliza/confirma receÃ§Ã£o (stepStatus = 6 -> ConcluÃ­do)', async () => {
+  it('5. Cliente finaliza/confirma receção (stepStatus = 6 -> Concluído)', async () => {
     const res = await request(app)
       .put(`/api/request-service/${orderId}/deliver`)
       .set('Authorization', `Bearer ${clientToken}`)
@@ -187,12 +187,12 @@ describe('Fluxo Completo de Viagem com NotificaÃ§Ãµes de Rastreio (Socket.IO
     expect(res.status).toBe(200);
 
     const checkOrder = await RequestService.findById(orderId);
-    expect(checkOrder.status).toBe('ConcluÃ­do');
+    expect(checkOrder.status).toBe('Concluído');
     expect(checkOrder.stepStatus).toBe(6);
     expect(checkOrder.isDelivered).toBe(true);
 
     expect(toMock).toHaveBeenCalledWith(`order_${orderId}`);
-    expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'ConcluÃ­do' }));
+    expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'Concluído' }));
   }, 10000);
 
 });

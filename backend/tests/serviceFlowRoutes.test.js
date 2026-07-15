@@ -70,7 +70,7 @@ afterAll(async () => {
 // 1. Criar Pedido (Cliente)
 // ============================================================
 describe('POST /api/request-service â€” Criar pedido', () => {
-  it('deve criar um pedido quando o cliente estÃ¡ autenticado', async () => {
+  it('deve criar um pedido quando o cliente está autenticado', async () => {
     const res = await request(app)
       .post('/api/request-service')
       .set('Authorization', `Bearer ${clientToken}`)
@@ -83,7 +83,7 @@ describe('POST /api/request-service â€” Criar pedido', () => {
         origin: 'Av. Julius Nyerere, Maputo',
         destination: 'Av. Eduardo Mondlane, Maputo',
         paymentOption: 'immediate',
-        description: 'Teste de fluxo de serviÃ§o',
+        description: 'Teste de fluxo de serviço',
         paymentMethod: 'cash',
         deliveryPrice: 200,
         targetDriverId: testDriver._id.toString(),
@@ -96,7 +96,7 @@ describe('POST /api/request-service â€” Criar pedido', () => {
     }
   }, 15000);
 
-  it('deve rejeitar criaÃ§Ã£o sem autenticaÃ§Ã£o (401)', async () => {
+  it('deve rejeitar criação sem autenticação (401)', async () => {
     const res = await request(app)
       .post('/api/request-service')
       .send({ origin: 'test' });
@@ -125,7 +125,7 @@ describe('PUT /api/request-service/:id/acceptedByDeliveryman', () => {
     }
   }, 15000);
 
-  it('deve rejeitar aceitaÃ§Ã£o sem autenticaÃ§Ã£o (401)', async () => {
+  it('deve rejeitar aceitação sem autenticação (401)', async () => {
     const fakeId = new mongoose.Types.ObjectId();
     const res = await request(app)
       .put(`/api/request-service/${fakeId}/acceptedByDeliveryman`)
@@ -135,10 +135,10 @@ describe('PUT /api/request-service/:id/acceptedByDeliveryman', () => {
 });
 
 // ============================================================
-// 3. Motorista com serviÃ§o ativo nÃ£o deve aparecer em /available
+// 3. Motorista com serviço ativo não deve aparecer em /available
 // ============================================================
-describe('GET /api/drivers/available â€” Motorista ocupado excluÃ­do', () => {
-  it('motorista com hasActiveService=true nÃ£o deve aparecer na lista', async () => {
+describe('GET /api/drivers/available â€” Motorista ocupado excluído', () => {
+  it('motorista com hasActiveService=true não deve aparecer na lista', async () => {
     // Garantir que o motorista tem hasActiveService=true
     await User.updateOne(
       { _id: testDriver._id },
@@ -153,7 +153,7 @@ describe('GET /api/drivers/available â€” Motorista ocupado excluÃ­do', ()
     if (res.status === 200) {
       const drivers = res.body.drivers || [];
       const foundOccupied = drivers.find(d => d._id.toString() === testDriver._id.toString());
-      // Motorista ocupado NÃƒO deve aparecer
+      // Motorista ocupado NÃO deve aparecer
       expect(foundOccupied).toBeUndefined();
     }
   }, 15000);
@@ -162,7 +162,7 @@ describe('GET /api/drivers/available â€” Motorista ocupado excluÃ­do', ()
 // ============================================================
 // 4. Cancelamento sem motivo deve ser rejeitado
 // ============================================================
-describe('PUT /api/request-service/:id/cancel â€” Motivo obrigatÃ³rio', () => {
+describe('PUT /api/request-service/:id/cancel â€” Motivo obrigatório', () => {
   it('deve rejeitar cancelamento sem motivo (400)', async () => {
     if (!createdOrderId) return;
 
@@ -174,10 +174,10 @@ describe('PUT /api/request-service/:id/cancel â€” Motivo obrigatÃ³rio', (
     expect(res.status).toBe(400);
   }, 15000);
 
-  it('deve aceitar cancelamento com motivo vÃ¡lido e libertar o motorista', async () => {
+  it('deve aceitar cancelamento com motivo válido e libertar o motorista', async () => {
     if (!createdOrderId) return;
 
-    // Primeiro garantir que a order estÃ¡ em estado cancelÃ¡vel
+    // Primeiro garantir que a order está em estado cancelável
     await RequestService.updateOne(
       { _id: createdOrderId },
       { $set: { status: 'Pedido aceite', isCanceled: false } }
@@ -186,12 +186,12 @@ describe('PUT /api/request-service/:id/cancel â€” Motivo obrigatÃ³rio', (
     const res = await request(app)
       .put(`/api/request-service/${createdOrderId}/cancel`)
       .set('Authorization', `Bearer ${clientToken}`)
-      .send({ message: 'O motorista estÃ¡ a demorar demasiado' });
+      .send({ message: 'O motorista está a demorar demasiado' });
 
     expect(res.status).toBeLessThan(500);
     if (res.status === 200) {
       expect(res.body.order.status).toBe('Cancelado');
-      expect(res.body.order.canceledReason).toBe('O motorista estÃ¡ a demorar demasiado');
+      expect(res.body.order.canceledReason).toBe('O motorista está a demorar demasiado');
 
       // Verificar que o motorista foi libertado
       const driver = await User.findById(testDriver._id);
@@ -201,9 +201,9 @@ describe('PUT /api/request-service/:id/cancel â€” Motivo obrigatÃ³rio', (
 });
 
 // ============================================================
-// 5. Bloquear motorista de ir online com serviÃ§o ativo
+// 5. Bloquear motorista de ir online com serviço ativo
 // ============================================================
-describe('PUT /api/drivers/availability â€” Bloquear se serviÃ§o ativo', () => {
+describe('PUT /api/drivers/availability â€” Bloquear se serviço ativo', () => {
   it('deve bloquear motorista com hasActiveService=true de ficar active', async () => {
     // Marcar o motorista como ocupado
     await User.updateOne(
@@ -216,7 +216,7 @@ describe('PUT /api/drivers/availability â€” Bloquear se serviÃ§o ativo', 
       .set('Authorization', `Bearer ${driverToken}`)
       .send({ availability: 'active' });
 
-    // Deve retornar 403 ou 402 (bloqueado por serviÃ§o ativo ou saldo)
+    // Deve retornar 403 ou 402 (bloqueado por serviço ativo ou saldo)
     expect([402, 403]).toContain(res.status);
   }, 15000);
 });

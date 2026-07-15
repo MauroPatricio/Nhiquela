@@ -40,7 +40,7 @@ export default function WalletScreen({ navigation, route }: any) {
     bloqueio_automatico: true,
     taxa_base_veículo: 0,
     taxa_minima_recarga: 0,
-    nome_veiculo: '',
+    nome_veículo: '',
     nome_categoria: '',
   });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
@@ -226,7 +226,7 @@ export default function WalletScreen({ navigation, route }: any) {
     }
 
     if (amountNum < taxaMinima) {
-      const vName = balanceSummary.nome_categoria || balanceSummary.nome_veiculo || transportTypeName || user?.deliveryman?.transport_type || 'registado';
+      const vName = balanceSummary.nome_categoria || balanceSummary.nome_veículo || transportTypeName || user?.deliveryman?.transport_type || 'registado';
       setInvalidValueMessage(`Atenção: O valor mínimo de recarga para a sua categoria (${vName}) é de ${taxaMinima} MT (Taxa Base).`);
       setInvalidValueModalVisible(true);
       return;

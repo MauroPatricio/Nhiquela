@@ -2,9 +2,9 @@
  * scheduledOrderService.js
  *
  * Servico que corre periodicamente em background (a cada minuto) para:
- * 1. Encontrar pedidos agendados cujo horario esta a 45 minutos de distancia
- * 2. Enviar notificacao push ao motorista que aceitou (ou a todos se ainda nao foi aceite)
- * 3. Aos 0 minutos, iniciar o dispatch normal se ainda nao tiver motorista atribuido
+ * 1. Encontrar pedidos agendados cujo horario esta a 45 minutos de distância
+ * 2. Enviar notificacao push ao motorista que aceitou (ou a todos se ainda não foi aceite)
+ * 3. Aos 0 minutos, iniciar o dispatch normal se ainda não tiver motorista atribuido
  */
 
 import RequestService from '../models/RequestServiceModel.js';

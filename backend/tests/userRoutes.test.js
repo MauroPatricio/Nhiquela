@@ -86,3 +86,26 @@ describe('POST /api/users/signin', () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
   }, 15000);
 });
+
+describe('DELETE /api/users/profile', () => {
+  it('should soft delete the user account and obfuscate email/phone', async () => {
+    // 1. Register a user
+    const registerRes = await request(app).post('/api/users/signup').send(baseUser);
+    const token = registerRes.body.token;
+
+    // 2. Delete the profile
+    const deleteRes = await request(app)
+      .delete('/api/users/profile')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.message).toMatch(/Conta eliminada com sucesso/);
+
+    // 3. Verify in DB
+    const deletedUser = await User.findById(registerRes.body._id);
+    expect(deletedUser.isDeleted).toBe(true);
+    expect(deletedUser.isBanned).toBe(true);
+    expect(deletedUser.email).toMatch(/^deleted_/);
+    expect(deletedUser.phoneNumber).toBeLessThan(0);
+  }, 15000);
+});

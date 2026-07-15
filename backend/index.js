@@ -14,6 +14,8 @@ import orderRouter from './routes/orderRoutes.js';
 import uploadRouter from './routes/uploadRoutes.js';
 import http from 'http';
 import { Server } from 'socket.io';
+import { createClient } from 'redis';
+import { createAdapter } from '@socket.io/redis-adapter';
 import categoryRouter from './routes/categoryRoutes.js';
 import subcategoryRouter from './routes/subcategoryRoutes.js';
 import path from 'path';
@@ -217,19 +219,36 @@ app.use((err, req, res, next) => {
   res.status(500).send({ message: err.message });
 });
 
+let users = [];
 const httpServer = http.Server(app);
 
-const users = [];
-
-const io = new Server(httpServer, { cors: { origin: '*' } });
-app.set('io', io);
-app.set('users', users); // ← expõe para routes poderem emitir por socketId
-
 // Iniciar serviço de agendamento automático de pedidos
-initScheduledOrderService(io);
+if (process.env.NODE_ENV !== 'test') {
+  const io = new Server(httpServer, { cors: { origin: '*' } });
+  app.set('io', io);
+  app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
+  // Redis Adapter Configuration
+  try {
+    const pubClient = createClient({ 
+      url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+      socket: { reconnectStrategy: false }
+    });
+    const subClient = pubClient.duplicate();
+    
+    pubClient.on('error', () => {}); // Mute errors to prevent console spam
+    subClient.on('error', () => {});
+    
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('✅ Redis Adapter for Socket.io initialized successfully.');
+  } catch (err) {
+    console.error('⚠️ Could not connect to Redis. Falling back to in-memory Socket.io', err.message);
+  }
 
-io.on('connection', (socket) => {
+  initScheduledOrderService(io);
+  
+  io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const user = users.find((x) => x.socketId === socket.id);
     if (user) {
@@ -351,6 +370,7 @@ io.on('connection', (socket) => {
     }
   });
 });
+}
 
 
 
