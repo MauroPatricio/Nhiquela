@@ -14,6 +14,8 @@ import orderRouter from './routes/orderRoutes.js';
 import uploadRouter from './routes/uploadRoutes.js';
 import http from 'http';
 import { Server } from 'socket.io';
+import { createClient } from 'redis';
+import { createAdapter } from '@socket.io/redis-adapter';
 import categoryRouter from './routes/categoryRoutes.js';
 import subcategoryRouter from './routes/subcategoryRoutes.js';
 import path from 'path';
@@ -56,9 +58,14 @@ import paymentRouterEmola from './routes/paymentEmolaRoutes.js';
 import walletRouter from './routes/walletRoutes.js';
 import trackingRoutes from './routes/trackingRoutes.js';
 import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
+
+// WORKERS (Intelligent Scheduling)
+import { startSchedulingEngine } from './workers/schedulingEngine.js';
+import { startTripValidator } from './workers/tripValidator.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
+import { initScheduledOrderService } from './services/scheduledOrderService.js';
 
 
 // Conectar ao MongoDB
@@ -216,16 +223,36 @@ app.use((err, req, res, next) => {
   res.status(500).send({ message: err.message });
 });
 
+let users = [];
 const httpServer = http.Server(app);
 
-const users = [];
+// Iniciar serviço de agendamento automático de pedidos
+if (process.env.NODE_ENV !== 'test') {
+  const io = new Server(httpServer, { cors: { origin: '*' } });
+  app.set('io', io);
+  app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
-const io = new Server(httpServer, { cors: { origin: '*' } });
-app.set('io', io);
-app.set('users', users); // ← expõe para routes poderem emitir por socketId
+  // Redis Adapter Configuration
+  try {
+    const pubClient = createClient({ 
+      url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+      socket: { reconnectStrategy: false }
+    });
+    const subClient = pubClient.duplicate();
+    
+    pubClient.on('error', () => {}); // Mute errors to prevent console spam
+    subClient.on('error', () => {});
+    
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('✅ Redis Adapter for Socket.io initialized successfully.');
+  } catch (err) {
+    console.error('⚠️ Could not connect to Redis. Falling back to in-memory Socket.io', err.message);
+  }
 
-
-io.on('connection', (socket) => {
+  initScheduledOrderService(io);
+  
+  io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const user = users.find((x) => x.socketId === socket.id);
     if (user) {
@@ -347,6 +374,7 @@ io.on('connection', (socket) => {
     }
   });
 });
+}
 
 
 
@@ -467,6 +495,11 @@ console.log('Port configuration: process.env.PORT =', process.env.PORT);
 if (process.env.NODE_ENV !== 'test') {
   httpServer.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);
+    
+    // Iniciar cron workers do Scheduling Engine
+    const appIo = app.get('io');
+    startSchedulingEngine(appIo, users);
+    startTripValidator(appIo, users);
     
     // Processar pedidos em fallback
     setInterval(async () => {

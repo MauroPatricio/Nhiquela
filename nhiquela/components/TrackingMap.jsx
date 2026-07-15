@@ -1,6 +1,6 @@
 // src/components/TrackingMap.jsx
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, Image } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import io from 'socket.io-client';
 import api from '../hooks/createConnectionApi';
@@ -19,9 +19,44 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
   const [connected, setConnected] = useState(false);
   const [activeVehicleType, setActiveVehicleType] = useState(vehicleType || '');
   const [activeVehicleColor, setActiveVehicleColor] = useState(vehicleColor || '');
+  const [heading, setHeading] = useState(0);
+  const headingRef = useRef(0);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const prevLocRef = useRef(null);
   const hasFittedInitial = useRef(false);
+
+  const getBearing = (startLat, startLng, destLat, destLng) => {
+    const toRad = deg => (deg * Math.PI) / 180;
+    const toDeg = rad => (rad * 180) / Math.PI;
+
+    const startLatRad = toRad(startLat);
+    const startLngRad = toRad(startLng);
+    const destLatRad = toRad(destLat);
+    const destLngRad = toRad(destLng);
+
+    const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
+    const x = Math.cos(startLatRad) * Math.sin(destLatRad) -
+      Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
+
+    const bearing = toDeg(Math.atan2(y, x));
+    return (bearing + 360) % 360;
+  };
+
+  useEffect(() => {
+    const loc = snappedDriverLocation || driverLocation;
+    if (loc) {
+      if (prevLocRef.current && (loc.latitude !== prevLocRef.current.latitude || loc.longitude !== prevLocRef.current.longitude)) {
+        const newHeading = getBearing(prevLocRef.current.latitude, prevLocRef.current.longitude, loc.latitude, loc.longitude);
+        // Só atualiza se a diferença for maior que 2 graus para evitar tremores
+        if (Math.abs(newHeading - heading) > 2) {
+          setHeading(newHeading);
+          headingRef.current = newHeading;
+        }
+      }
+      prevLocRef.current = loc;
+    }
+  }, [snappedDriverLocation, driverLocation]);
 
   // Fetch initial location of the driver on mount
   useEffect(() => {
@@ -36,12 +71,12 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
         const { data } = await api.get(`/tracking/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         if (data && data.latitude && data.longitude) {
           setDriverLocation({ latitude: data.latitude, longitude: data.longitude });
           if (data.vehicleType) setActiveVehicleType(data.vehicleType);
           if (data.vehicleColor) setActiveVehicleColor(data.vehicleColor);
-          
+
           if (onUpdateTracking) {
             onUpdateTracking({
               speed: data.speed || 0,
@@ -94,20 +129,21 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
   useEffect(() => {
     const fetchRoute = async () => {
       // Determine the target for the driver's route
-      const target = stepStatus === 4 ? origin : destination;
+      // The parent component already dynamically passes the correct target as 'destination' based on stepStatus.
+      const target = destination;
       if (!driverLocation || !target || !target.latitude || !target.longitude) return;
 
       try {
         const storedUserData = await AsyncStorage.getItem('userData');
         const token = storedUserData ? JSON.parse(storedUserData).token : '';
-        
+
         const { data: result } = await api.get('/routing/route', {
           headers: { Authorization: `Bearer ${token}` },
-          params: { 
-            originLat: driverLocation.latitude, 
-            originLng: driverLocation.longitude, 
-            destLat: target.latitude, 
-            destLng: target.longitude 
+          params: {
+            originLat: driverLocation.latitude,
+            originLng: driverLocation.longitude,
+            destLat: target.latitude,
+            destLng: target.longitude
           }
         });
 
@@ -132,26 +168,26 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
           // Acompanhar o motorista com zoom mais próximo (real time follow)
           if (mapRef.current) {
             if (!hasFittedInitial.current) {
-               // First time: show the whole route
-               mapRef.current.fitToCoordinates(
-                 [{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }, { latitude: target.latitude, longitude: target.longitude }],
-                 {
-                   edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
-                   animated: true,
-                 }
-               );
-               hasFittedInitial.current = true;
+              // First time: show the whole route
+              mapRef.current.fitToCoordinates(
+                [{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }, { latitude: target.latitude, longitude: target.longitude }],
+                {
+                  edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
+                  animated: true,
+                }
+              );
+              hasFittedInitial.current = true;
             } else if (route.length > 0) {
-               // Follow the driver closely, using snapped location
-               mapRef.current.animateCamera({
-                 center: {
-                   latitude: route[0].latitude,
-                   longitude: route[0].longitude,
-                 },
-                 pitch: 45,
-                 heading: driverLocation.heading || 0,
-                 zoom: 17 // Zoom in closely
-               }, { duration: 1000 });
+              // Follow the driver closely, using snapped location
+              mapRef.current.animateCamera({
+                center: {
+                  latitude: route[0].latitude,
+                  longitude: route[0].longitude,
+                },
+                pitch: 0,
+                heading: headingRef.current,
+                zoom: 18.5 // Zoom in closely
+              }, { duration: 1000 });
             }
           }
         }
@@ -166,7 +202,12 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
     }, 2000);
 
     return () => clearTimeout(timeoutId);
-  }, [driverLocation, destination]); // Removido onUpdateTracking para evitar re-renders infinitos e timeouts cancelados
+  }, [driverLocation, destination, origin, stepStatus]);
+
+  // Reset zoom behavior when stepStatus changes so the map can show the new full route
+  useEffect(() => {
+    hasFittedInitial.current = false;
+  }, [stepStatus]);
 
   // Fetch full trip route (Origin to Destination) - Useful for history and full context
   useEffect(() => {
@@ -176,14 +217,14 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
       try {
         const storedUserData = await AsyncStorage.getItem('userData');
         const token = storedUserData ? JSON.parse(storedUserData).token : '';
-        
+
         const { data: result } = await api.get('/routing/route', {
           headers: { Authorization: `Bearer ${token}` },
-          params: { 
-            originLat: origin.latitude, 
-            originLng: origin.longitude, 
-            destLat: destination.latitude, 
-            destLng: destination.longitude 
+          params: {
+            originLat: origin.latitude,
+            originLng: origin.longitude,
+            destLat: destination.latitude,
+            destLng: destination.longitude
           }
         });
 
@@ -193,17 +234,17 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
             longitude: coord[0],
           }));
           setTripRouteCoordinates(route);
-          
+
           // Fit map to show the whole trip if driver location is not yet available
           if (!driverLocation && mapRef.current && !hasFittedInitial.current) {
-             mapRef.current.fitToCoordinates(
-               [{ latitude: origin.latitude, longitude: origin.longitude }, { latitude: destination.latitude, longitude: destination.longitude }],
-               {
-                 edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
-                 animated: true,
-               }
-             );
-             hasFittedInitial.current = true;
+            mapRef.current.fitToCoordinates(
+              [{ latitude: origin.latitude, longitude: origin.longitude }, { latitude: destination.latitude, longitude: destination.longitude }],
+              {
+                edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
+                animated: true,
+              }
+            );
+            hasFittedInitial.current = true;
           }
         }
       } catch (error) {
@@ -214,21 +255,21 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
     fetchTripRoute();
   }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude]);
 
-  const getVehicleIcon = (type) => {
+  const getVehicleImage = (type) => {
     const t = (type || '').toLowerCase();
     if (t.includes('moto') || t.includes('motocicleta') || t.includes('motorcycle') || t.includes('motorbike')) {
-      return 'motorbike';
+      return require('../assets/vehicle/premium_moto.png');
     }
     if (t.includes('reboque') || t.includes('tow')) {
-      return 'tow-truck';
+      return require('../assets/vehicle/reboque.jpg');
     }
     if (t.includes('camia') || t.includes('camião') || t.includes('truck') || t.includes('muda')) {
-      return 'truck';
+      return require('../assets/vehicle/truck.png');
     }
     if (t.includes('bicicleta') || t.includes('bicycle') || t.includes('bike')) {
-      return 'bicycle';
+      return require('../assets/vehicle/bycicle.png');
     }
-    return 'car';
+    return require('../assets/vehicle/premium_car.png');
   };
 
   const getVehicleColor = (color) => {
@@ -261,7 +302,6 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
   };
 
   const activeColor = getVehicleColor(vehicleColor || activeVehicleColor);
-  const activeIcon = getVehicleIcon(vehicleType || activeVehicleType);
 
   return (
     <View style={styles.container}>
@@ -271,12 +311,18 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
         provider={PROVIDER_DEFAULT}
         initialRegion={initialRegion}
         showsUserLocation={false}
+        showsBuildings={true}
+        shows3DBuildings={true}
+        pitchEnabled={true}
+        customMapStyle={darkMode ? premiumDarkMapStyle : []}
       >
         {/* Marcador da Origem (Ponto de recolha) */}
         {origin && (
           <Marker coordinate={origin} title="Origem">
-            <View style={[styles.destinationMarker, { backgroundColor: '#10B981' }]}>
-              <Ionicons name="flag" size={24} color="#FFF" />
+            <View style={[styles.teardropPin, { backgroundColor: '#10B981' }]}>
+              <View style={styles.teardropIconContainer}>
+                <Ionicons name="flag" size={16} color="#FFF" />
+              </View>
             </View>
           </Marker>
         )}
@@ -284,8 +330,10 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
         {/* Marcador do Destino (Pode ser o cliente ou o destino final) */}
         {destination && (
           <Marker coordinate={destination} title="Destino">
-            <View style={styles.destinationMarker}>
-              <Ionicons name="location" size={24} color="#FFF" />
+            <View style={[styles.teardropPin, { backgroundColor: '#9333EA' }]}>
+              <View style={styles.teardropIconContainer}>
+                <Ionicons name="location" size={16} color="#FFF" />
+              </View>
             </View>
           </Marker>
         )}
@@ -293,16 +341,9 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
         {(snappedDriverLocation || driverLocation) && (
           <Marker
             coordinate={snappedDriverLocation || driverLocation}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
-            <View style={[styles.vehicleMarkerContainer, { borderColor: activeColor }]}>
-               <MaterialCommunityIcons 
-                 name={activeIcon} 
-                 size={22} 
-                 color={activeColor} 
-               />
-            </View>
-          </Marker>
+            title="Motorista"
+            pinColor={activeColor || "#3B82F6"}
+          />
         )}
 
         {/* 🔥 Full Trip Route (Origin -> Destination) for history and context */}
@@ -367,21 +408,42 @@ const styles = StyleSheet.create({
   darkText: {
     color: '#CCC',
   },
-  destinationMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+  teardropPin: {
+    width: 32,
+    height: 32,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 0,
+    transform: [{ rotate: '-45deg' }],
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#10B981',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
-  destinationInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#10B981',
+  teardropIconContainer: {
+    transform: [{ rotate: '45deg' }],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumVehicleArrowContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#fff',
+    borderWidth: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 8,
   },
   vehicleMarkerContainer: {
     width: 44,

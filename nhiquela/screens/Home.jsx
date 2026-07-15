@@ -381,7 +381,7 @@ const Home = () => {
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
       const { extraData } = response.notification.request.content.data;
       if (extraData) {
-        navigation.navigate('OrderDetail', { extraData });
+        navigation.navigate('OrderDetailsScreen', { extraData });
       }
     });
 

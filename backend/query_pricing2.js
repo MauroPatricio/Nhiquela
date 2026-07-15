@@ -17,7 +17,7 @@ import FinancialConfig from './models/FinancialConfigModel.js';
     const configs = await FinancialConfig.findOne({}).lean();
 
     console.log('=== SERVICO DELIVER ===');
-    console.log(deliverService ? { name: deliverService.name, basePrice: deliverService.basePrice, pricingModel: deliverService.pricingModel, pricePerKm: deliverService.pricePerKm } : 'Nao encontrado');
+    console.log(deliverService ? { name: deliverService.name, basePrice: deliverService.basePrice, pricingModel: deliverService.pricingModel, pricePerKm: deliverService.pricePerKm } : 'Não encontrado');
     
     console.log('\n=== SETTINGS (Configuracoes de entrega) ===');
     console.log(settings.length > 0 ? settings : 'Nenhuma configuracao especifica encontrada na collection settings');

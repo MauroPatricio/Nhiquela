@@ -34,7 +34,7 @@ type Props = {
   deliveryman?: DriverInfo;
 };
 
-const GOOGLE_API_KEY = "AIzaSyCcEJkIShYipbwcKBfDFKKkLR6QudOQG3Q";
+const GOOGLE_API_KEY = "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s";
 
 // Componente para otimizar a imagem base64
 const OptimizedDriverPhoto = React.memo(({ base64String }: { base64String: string }) => {

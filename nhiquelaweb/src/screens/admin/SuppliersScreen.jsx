@@ -167,7 +167,7 @@ export default function SuppliersScreen() {
       return toast.error('Geolocalização não � suportada neste navegador.');
     }
     
-    toast.info('A obter localização GPS...');
+    toast.info('ãobter localização GPS...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setFormData({

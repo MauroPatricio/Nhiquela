@@ -323,9 +323,7 @@ export default function DriversScreen() {
     if (/^[a-fA-F0-9]{24}$/.test(typeValue)) {
 
       const found = vehicleTypes.find(v => v._id === typeValue || v.id === typeValue);
-
-      return found ? found.name : typeValue;
-
+      return found ? found.name : 'Desconhecido';
     }
 
     return typeValue;

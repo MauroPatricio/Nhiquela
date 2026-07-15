@@ -8,7 +8,6 @@
     "orientation": "portrait",
     "icon": "./assets/nhiquela2.png",
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/nhiquela2.png",
       "resizeMode": "contain",
@@ -17,9 +16,13 @@
     "updates": {
       "url": "https://u.expo.dev/7467ac64-89c0-432d-ae88-f427f7c65da9"
     },
-    "assetBundlePatterns": ["**/*"],
-    "platforms": ["ios", "android"],
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "android": {
       "package": "com.mpatricio.nhiquelaa",
       "googleServicesFile": "./google-services.json",
@@ -28,7 +31,6 @@
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       },
-
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
@@ -43,14 +45,12 @@
         "FOREGROUND_SERVICE",
         "POST_NOTIFICATIONS"
       ],
-
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE"
+          "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
         }
       }
     },
-
     "notification": {
       "icon": "./assets/nhiquela2.png",
       "color": "#7F00FF",
@@ -59,7 +59,6 @@
       "androidGoogleServicesFile": "./google-services.json",
       "androidShowBadge": true
     },
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mpatricio.nhiquelaa",
@@ -67,15 +66,16 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Nhiquela precisa acessar sua câmera para permitir o envio de imagens.",
         "NSPhotoLibraryUsageDescription": "Nhiquela precisa acessar suas fotos para enviar imagens.",
-        "UIBackgroundModes": ["fetch", "remote-notification"],
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
         "NSUserTrackingUsageDescription": "Nhiquela usa notificações para mantê-lo atualizado sobre pedidos e entregas."
       }
     },
-
     "web": {
       "favicon": "./assets/nhiquela2.png"
     },
-
     "plugins": [
       [
         "expo-camera",
@@ -86,8 +86,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission":
-            "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
+          "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
         }
       ],
       "expo-notifications",
@@ -105,12 +104,11 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
-
     "extra": {
-      "googleMapsApiKey": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE",
-
+      "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
       "firebase": {
         "apiKey": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus",
         "authDomain": "nhiquela-4bfb5.firebaseapp.com",
@@ -120,12 +118,10 @@
         "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
         "measurementId": "G-FN5JGWV1S4"
       },
-
       "eas": {
         "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
       }
     },
-
     "runtimeVersion": "1.0.0"
   }
 }

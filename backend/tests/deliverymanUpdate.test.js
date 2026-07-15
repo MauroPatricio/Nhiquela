@@ -1,20 +1,26 @@
-const request = require('supertest');
-const mongoose = require('mongoose');
-const app = require('../index'); // Assuming index.js exports the express app
-const User = require('../models/UserModel');
-const DeliverymanUpdateRequest = require('../models/DeliverymanUpdateRequestModel');
-const { setupDB, teardownDB, clearDB } = require('./setup'); // Assuming setup helpers exist
+import request from 'supertest';
+import mongoose from 'mongoose';
+import app from '../index.js'; // Assuming index.js exports the express app
+import User from '../models/UserModel.js';
+import DeliverymanUpdateRequest from '../models/DeliverymanUpdateRequestModel.js';
+import { generateToken } from '../utils.js';
+
+const EMAIL_SUFFIX = '@delupdate.com';
 
 beforeAll(async () => {
-  await setupDB();
+  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nhiquela_test_db');
+  await User.deleteMany({ email: { $regex: EMAIL_SUFFIX + '$' } });
 });
 
 afterAll(async () => {
-  await teardownDB();
+  await User.deleteMany({ email: { $regex: EMAIL_SUFFIX + '$' } });
+  await DeliverymanUpdateRequest.deleteMany({});
+  await mongoose.connection.close();
 });
 
 afterEach(async () => {
-  await clearDB();
+  await User.deleteMany({ email: { $regex: EMAIL_SUFFIX + '$' } });
+  await DeliverymanUpdateRequest.deleteMany({});
 });
 
 describe('Deliveryman Profile Update', () => {
@@ -26,13 +32,14 @@ describe('Deliveryman Profile Update', () => {
     // Create driver
     const driver = new User({
       name: 'Driver Test',
-      email: 'driver@test.com',
-      password: 'password123',
+      email: `driver${EMAIL_SUFFIX}`,
+      password: 'password123', phoneNumber: 847000000 + Math.floor(Math.random() * 1000000),
       isDeliveryMan: true,
       deliveryman: {
         transport_type: '60d21b4667d0d8992e610c85', // dummy ID
         assigned_base_fee: 100,
-        docUpdateStatus: 'Nenhum'
+        docUpdateStatus: 'Nenhum',
+        transferPreferences: { mPesaNumber: '840000000', eMolaNumber: '860000000' }
       }
     });
     await driver.save();
@@ -41,23 +48,15 @@ describe('Deliveryman Profile Update', () => {
     // Create admin
     const admin = new User({
       name: 'Admin Test',
-      email: 'admin@test.com',
-      password: 'password123',
+      email: `admin${EMAIL_SUFFIX}`,
+      password: 'password123', phoneNumber: 847000000 + Math.floor(Math.random() * 1000000),
       isAdmin: true,
     });
     await admin.save();
 
-    // Authenticate driver (Assuming a token generation mechanism or login endpoint)
-    // For unit testing routes with isAuth, usually we mock the token or login
-    const driverLogin = await request(app)
-      .post('/api/users/signin')
-      .send({ email: 'driver@test.com', password: 'password123' });
-    driverToken = driverLogin.body.token;
-
-    const adminLogin = await request(app)
-      .post('/api/users/signin')
-      .send({ email: 'admin@test.com', password: 'password123' });
-    adminToken = adminLogin.body.token;
+    // Authenticate driver
+    driverToken = generateToken(driver);
+    adminToken = generateToken(admin);
   });
 
   it('should create a pending request when transport_type changes', async () => {
@@ -67,6 +66,7 @@ describe('Deliveryman Profile Update', () => {
       .send({
         transport_type: '60d21b4667d0d8992e610c86', // New ID
         assigned_base_fee: 200,
+        transferPreferences: { mPesaNumber: '840000000', eMolaNumber: '860000000' }
       });
 
     expect(res.statusCode).toEqual(200);
@@ -127,3 +127,5 @@ describe('Deliveryman Profile Update', () => {
     expect(driver.deliveryman.assigned_base_fee).toBe(300);
   });
 });
+
+

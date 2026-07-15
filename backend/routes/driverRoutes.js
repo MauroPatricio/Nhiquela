@@ -193,13 +193,13 @@ router.put(
         const activeTrip = await RequestService.findOne({
           'deliveryman.id': driver._id,
           deleted: false,
-          status: { $in: ['Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
+          status: { $in: ['Pedido aceite', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
         });
 
         const activeOrder = await Order.findOne({
           'deliveryman.id': driver._id,
           deleted: false,
-          status: { $in: ['Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
+          status: { $in: ['Pedido aceite', 'A Caminho', 'Em andamento', 'Chegou ao destino'] }
         });
 
         if (!activeTrip && !activeOrder) {
@@ -369,7 +369,7 @@ router.get(
 
     // Método 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
     const activeOrders = await RequestService.find({
-       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Concluido', 'Motorista indisponível', 'Rejeitado'] }
+       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
     }).select('deliveryman targetDriverId').lean();
     
     const busyDriverIds = new Set();
@@ -437,7 +437,7 @@ router.get(
   })
 );
 
-// GET /api/drivers/doc-update-requests — Admin lista pedidos de documentos
+// GET /api/drivers/doc-update-requests â€” Admin lista pedidos de documentos
 router.get(
   '/doc-update-requests',
   isAuth,
@@ -454,7 +454,7 @@ router.get(
   })
 );
 
-// PUT /api/drivers/doc-update-requests/:id/review — Admin aprova ou rejeita pedido de docs
+// PUT /api/drivers/doc-update-requests/:id/review â€” Admin aprova ou rejeita pedido de docs
 router.put(
   '/doc-update-requests/:id/review',
   isAuth,
@@ -483,20 +483,21 @@ router.put(
     const driver = await User.findById(request.deliverymanId);
     if (driver) {
       if (decision === 'APPROVED') {
+        const fields = request.updatedFields instanceof Map ? Object.fromEntries(request.updatedFields) : (request.updatedFields || {});
         // Se houver transport_type pendente de alteracao, atualiza o perfil do motorista
-        if (request.updatedFields && request.updatedFields.transport_type) {
-          driver.deliveryman.transport_type = request.updatedFields.transport_type;
+        if (fields.transport_type) {
+          driver.deliveryman.transport_type = fields.transport_type;
           
-          if (request.updatedFields.assigned_base_fee !== undefined) {
-             driver.deliveryman.assigned_base_fee = request.updatedFields.assigned_base_fee;
+          if (fields.assigned_base_fee !== undefined) {
+             driver.deliveryman.assigned_base_fee = fields.assigned_base_fee;
              driver.providedServices = [{
-               serviceId: request.updatedFields.transport_type,
-               customBasePrice: request.updatedFields.assigned_base_fee
+               serviceId: fields.transport_type,
+               customBasePrice: fields.assigned_base_fee
              }];
           } else {
-             // Caso nao haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
+             // Caso não haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
              driver.providedServices = [{
-               serviceId: request.updatedFields.transport_type,
+               serviceId: fields.transport_type,
                customBasePrice: driver.deliveryman.assigned_base_fee
              }];
           }
@@ -506,6 +507,7 @@ router.put(
       } else {
         driver.deliveryman.docUpdateStatus = 'Nenhum';
       }
+      driver.markModified('deliveryman');
       await driver.save();
     }
 
@@ -533,7 +535,7 @@ router.put(
 );
 
 // ============================================================
-// POST /api/drivers/price-request — Motorista submete pedido de alteração de preço
+// POST /api/drivers/price-request â€” Motorista submete pedido de alteração de preço
 router.post(
   '/price-request',
   isAuth,
@@ -572,7 +574,7 @@ router.post(
   })
 );
 
-// PUT /api/drivers/price-request/toggle — Motorista activa/desactiva preço personalizado
+// PUT /api/drivers/price-request/toggle â€” Motorista activa/desactiva preço personalizado
 router.put(
   '/price-request/toggle',
   isAuth,
@@ -588,7 +590,7 @@ router.put(
   })
 );
 
-// GET /api/drivers/price-requests — Admin lista pedidos de alteração de preço
+// GET /api/drivers/price-requests â€” Admin lista pedidos de alteração de preço
 router.get(
   '/price-requests',
   isAuth,
@@ -605,7 +607,7 @@ router.get(
   })
 );
 
-// PUT /api/drivers/price-requests/:id/review — Admin aprova ou rejeita
+// PUT /api/drivers/price-requests/:id/review â€” Admin aprova ou rejeita
 router.put(
   '/price-requests/:id/review',
   isAuth,
@@ -652,9 +654,9 @@ router.put(
         const { Expo } = await import('expo-server-sdk');
         const expo = new Expo();
         const msg = decision === 'APPROVED'
-          ? `✅ O seu preço de ${request.requestedPrice} MT foi aprovado!`
-          : `❌ O seu pedido de preço foi rejeitado. Motivo: ${rejectionReason || 'Não especificado'}`;
-        await expo.sendPushNotificationsAsync([{ to: driver.deviceToken, title: 'Nhiquela — Preço', body: msg }]);
+          ? `âœ… O seu preço de ${request.requestedPrice} MT foi aprovado!`
+          : `âŒ O seu pedido de preço foi rejeitado. Motivo: ${rejectionReason || 'Não especificado'}`;
+        await expo.sendPushNotificationsAsync([{ to: driver.deviceToken, title: 'Nhiquela â€” Preço', body: msg }]);
       } catch (e) { /* ignore push errors */ }
     }
 
@@ -751,7 +753,7 @@ router.put(
 
     await driver.save();
 
-    // 🔔 Notifica o motorista em tempo real via Socket.io (dupla estratégia)
+    // ðŸ”” Notifica o motorista em tempo real via Socket.io (dupla estratégia)
     try {
       const io = req.app.get('io');
       const users = req.app.get('users') || [];
@@ -761,25 +763,25 @@ router.put(
         register_conformance: driver.deliveryman?.register_conformance,
         isApproved: driver.status === 'Disponível',
         message: driver.status === 'Disponível'
-          ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
+          ? 'âœ… A sua conta foi aprovada! Já pode receber pedidos.'
           : driver.status === 'Inativo'
-          ? '❌ A sua conta foi suspensa. Contacte o suporte.'
-          : '⏳ A sua conta está em análise.',
+          ? 'âŒ A sua conta foi suspensa. Contacte o suporte.'
+          : 'â³ A sua conta está em análise.',
       };
 
       if (io && status) {
         // Estratégia 1: Emitir para a sala (room) do motorista
         const room = `driver_${driver._id}`;
         io.to(room).emit('driver_status_updated', payload);
-        console.log(`📡 [ROOM] driver_status_updated → ${room}: ${driver.status}`);
+        console.log(`ðŸ“¡ [ROOM] driver_status_updated â†’ ${room}: ${driver.status}`);
 
         // Estratégia 2: Emitir directamente para o socketId do motorista (mais fiável)
         const driverUser = users.find(u => u._id && u._id.toString() === driver._id.toString());
         if (driverUser?.socketId) {
           io.to(driverUser.socketId).emit('driver_status_updated', payload);
-          console.log(`📡 [DIRECT] driver_status_updated → socketId ${driverUser.socketId}: ${driver.status}`);
+          console.log(`ðŸ“¡ [DIRECT] driver_status_updated â†’ socketId ${driverUser.socketId}: ${driver.status}`);
         } else {
-          console.warn(`⚠️  Motorista ${driver._id} não encontrado nos sockets ligados. Sockets activos: ${users.map(u => u._id).join(', ')}`);
+          console.warn(`âš ï¸  Motorista ${driver._id} não encontrado nos sockets ligados. Sockets activos: ${users.map(u => u._id).join(', ')}`);
         }
       }
     } catch (socketError) {
@@ -817,7 +819,7 @@ export default router;
 // PEDIDOS DE ATUALIZAÇÃO DE DOCUMENTOS (DOC UPDATE)
 // ============================================================
 
-// POST /api/drivers/doc-update-request — Motorista submete pedido de alteração de documentos
+// POST /api/drivers/doc-update-request â€” Motorista submete pedido de alteração de documentos
 router.post(
   '/doc-update-request',
   isAuth,

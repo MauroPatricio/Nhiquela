@@ -68,8 +68,8 @@ function MainTabs() {
           newBalance = `MT ${parseFloat(balanceRes.value.data.available_balance || 0).toFixed(2)}`;
         }
         if (earningsRes.status === 'fulfilled') {
-          newTodayEarnings = parseFloat(earningsRes.value.data.today || 0);
-          newTrips = earningsRes.value.data.totalTrips ?? (earningsRes.value.data.tripsToday || 0);
+          newTodayEarnings = parseFloat(earningsRes.value.data.today || 0).toString();
+          newTrips = (earningsRes.value.data.totalTrips ?? (earningsRes.value.data.tripsToday || 0)).toString();
         }
 
         if (

@@ -32,6 +32,7 @@ import * as Location from "expo-location";
 import { startBackgroundLocationUpdates, stopBackgroundLocationUpdates } from '../services/LocationService';
 import { useAuth } from "../context/AuthContext";
 import TripCard from "../components/TripCard";
+import LocationConsentModal from "../components/LocationConsentModal";
 import { API_BASE_URL } from "../api/apiConfig";
 import { showMessage } from "react-native-flash-message";
 import { Trip, WebSocketOrderData, LocationData } from "../types";
@@ -81,6 +82,8 @@ export default function HomeScreen({ navigation }: any) {
   
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [tripToCancelId, setTripToCancelId] = useState<string | null>(null);
+  const [showLocationConsentModal, setShowLocationConsentModal] = useState(false);
+  const [pendingToggleValue, setPendingToggleValue] = useState<boolean | null>(null);
 
   // Load alert sound
   useEffect(() => {
@@ -156,7 +159,7 @@ export default function HomeScreen({ navigation }: any) {
       await AsyncStorage.removeItem('currentOrderId');
       setIsSharingLocation(false);
     } catch (error: any) {
-      console.error("Erro ao parar compartilhamento de localização:", error.message);
+      console.error("❌ Erro ao parar compartilhamento de localização:", error.message);
     }
   };
 
@@ -183,13 +186,13 @@ export default function HomeScreen({ navigation }: any) {
         await loadAllOrders();
         await setupWebSocket();
       } else {
-        // Pendente ou rejeitado — mostra modal de análise e conecta socket
+        // Pendente ou rejeitado â€” mostra modal de análise e conecta socket
         // para receber notificação em tempo real quando o admin aprovar
         setShowApprovalModal(true);
         await setupWebSocket(); // Mantém socket ativo para receber eventos do admin
       }
     } catch (error: any) {
-      console.error('❌ Erro ao verificar status do motorista:', error.message);
+      console.error('âŒ Erro ao verificar status do motorista:', error.message);
       setIsDriverApproved(false);
       setShowApprovalModal(true);
     } finally {
@@ -269,7 +272,7 @@ export default function HomeScreen({ navigation }: any) {
           setLastUpdate(new Date());
         };
 
-        // 🔥 LISTENER PARA ATUALIZAÇÕES DE PEDIDOS
+        // 🔥 LISTENER PARçãTUALIZAÇÕES DE PEDIDOS
         websocketService.on('order_updated', handleOrderWebSocketUpdate);
 
         // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
@@ -278,7 +281,7 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA LIBERTAÇÃO DO MOTORISTA
         websocketService.on('service_released', (data: any) => {
           if (!isMounted.current) return;
-          console.log('✅ Serviço libertado:', data);
+          console.log('âœ… Serviço libertado:', data);
           
           Alert.alert(
             "Serviço Terminado",
@@ -299,12 +302,23 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
         websocketService.on('new_order', (data: any) => {
           if (!isMounted.current) return;
-          // Adicionar novo pedido à lista se ainda não estiver lá
+          // Adicionar novo pedido Ã  lista se ainda não estiver lá
           setAllTrips(prev => {
             const exists = prev.some(t => t.id === data._id);
             if (exists) return prev;
             const newTrip = formatOrder(data);
             return newTrip ? [newTrip, ...prev] : prev;
+          });
+        });
+
+        // 🔥 LISTENER PARA PEDIDOS AGENDADOS
+        websocketService.on('new_scheduled_order', (data: any) => {
+          if (!isMounted.current) return;
+          setAllTrips(prev => {
+            const exists = prev.some(t => t.id === data._id);
+            if (exists) return prev;
+            const newTrip = formatOrder(data);
+            return newTrip ? [...prev, newTrip] : prev; // Agendados no final da lista
           });
         });
 
@@ -379,16 +393,16 @@ export default function HomeScreen({ navigation }: any) {
             setShowApprovedSuccessModal(true);
             loadAllOrders();
           } else if (data.status === 'Inativo') {
-            // ❌ Conta suspensa
+            // âŒ Conta suspensa
             setIsDriverApproved(false);
             setShowApprovalModal(true);
             Alert.alert(
-              '❌ Conta Suspensa',
+              'âŒ Conta Suspensa',
               'A sua conta foi suspensa. Contacte o suporte para mais informações.',
               [{ text: 'OK' }]
             );
           } else {
-            // ⏳ De volta a Pendente
+            // â³ De volta a Pendente
             setIsDriverApproved(false);
             setShowApprovalModal(true);
           }
@@ -411,7 +425,7 @@ export default function HomeScreen({ navigation }: any) {
 
         // 🔥 ERRO DE CONEXÃO
         websocketService.on('error', (error: WebSocketError) => {
-          console.error('❌ Erro WebSocket:', error.message);
+          console.error('âŒ Erro WebSocket:', error.message);
           setConnectionStatus("Erro de conexão");
         });
 
@@ -445,6 +459,7 @@ export default function HomeScreen({ navigation }: any) {
       websocketService.off('order_assigned');
       websocketService.off('service_released');
       websocketService.off('new_order');
+      websocketService.off('new_scheduled_order');
       websocketService.off('order_taken');
       websocketService.off('request_location_update');
       websocketService.off('connect');
@@ -457,6 +472,38 @@ export default function HomeScreen({ navigation }: any) {
 
   // 🔥 ATUALIZAR STATUS DE DISPONIBILIDADE LOCALMENTE NA HOME
   const handleToggleOnline = async (value: boolean) => {
+    if (value) {
+      const hasConsented = await AsyncStorage.getItem('hasAcceptedLocationConsent');
+      if (!hasConsented) {
+        setPendingToggleValue(value);
+        setShowLocationConsentModal(true);
+        return;
+      }
+    }
+    await processToggleOnline(value);
+  };
+
+  const handleAcceptLocationConsent = async () => {
+    await AsyncStorage.setItem('hasAcceptedLocationConsent', 'true');
+    setShowLocationConsentModal(false);
+    
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (pendingToggleValue !== null) {
+      if (status === 'granted') {
+        processToggleOnline(pendingToggleValue);
+      } else {
+        Alert.alert("Aviso", "Precisa permitir a localização para ficar Online.");
+      }
+      setPendingToggleValue(null);
+    }
+  };
+
+  const handleDeclineLocationConsent = () => {
+    setShowLocationConsentModal(false);
+    setPendingToggleValue(null);
+  };
+
+  const processToggleOnline = async (value: boolean) => {
     try {
       setIsToggling(true);
       const newStatus = value ? 'active' : 'paused';
@@ -570,14 +617,14 @@ export default function HomeScreen({ navigation }: any) {
       setIsDriverApproved(true);
       setShowApprovalModal(false);
     } else if (user?.status === 'Pendente' || user?.status === 'Inativo') {
-      // Só mostra modal se realmente Pendente/Inativo — não quando status é undefined
+      // Só mostra modal se realmente Pendente/Inativo â€” não quando status é undefined
       if (!isDriverApproved) {
         setShowApprovalModal(true);
       }
     }
   }, [user?.status]);
 
-  // 🔄 POLLING DE SEGURANÇA: a cada 8s enquanto Pendente, verifica o estado no servidor
+  // ðŸ”„ POLLING DE SEGURANÇA: a cada 8s enquanto Pendente, verifica o estado no servidor
   useEffect(() => {
     // Só faz polling se o motorista ainda não foi aprovado E está autenticado
     if (isDriverApproved === true || !user?._id) return;
@@ -594,7 +641,7 @@ export default function HomeScreen({ navigation }: any) {
         console.log('[POLL] Status actual no servidor:', fresh.status);
         const nowApproved = fresh.status === 'Disponível' || fresh.status === 'Em Entrega';
         if (nowApproved) {
-          console.log('✅ [POLL] Motorista aprovado detectado!');
+          console.log('âœ… [POLL] Motorista aprovado detectado!');
           // Actualizar o user no AuthContext completo (incluindo deliveryman.register_conformance)
           updateUser({ ...fresh, isApproved: true });
           setIsDriverApproved(true);
@@ -664,7 +711,7 @@ export default function HomeScreen({ navigation }: any) {
           longitude: location.coords.longitude,
         };
       } catch (locationError) {
-        console.warn('⚠️ Erro ao obter localização, continuando sem ela...');
+        console.warn('âš ï¸ Erro ao obter localização, continuando sem ela...');
       }
 
       const formattedOrders = ordersData
@@ -713,7 +760,7 @@ export default function HomeScreen({ navigation }: any) {
 
     } catch (error: any) {
       if (error.message !== 'Network Error') {
-        console.error("❌ Erro na atualização silenciosa:", error.message);
+        console.error("âŒ Erro na atualização silenciosa:", error.message);
       }
     }
   };
@@ -735,7 +782,7 @@ export default function HomeScreen({ navigation }: any) {
   
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.warn("⚠️ Permissão de localização negada");
+        console.warn("âš ï¸ Permissão de localização negada");
       }
   
       const response = await getAllOrdersForDeliveryman();
@@ -757,7 +804,7 @@ export default function HomeScreen({ navigation }: any) {
           longitude: location.coords.longitude,
         };
       } catch (locationError) {
-        console.warn('⚠️ Erro ao obter localização');
+        console.warn('âš ï¸ Erro ao obter localização');
       }
   
       const formattedOrders = ordersData
@@ -780,7 +827,7 @@ export default function HomeScreen({ navigation }: any) {
       setAllTrips(formattedOrders);
       setLastUpdate(new Date());
   
-      // 🔥 BUSCAR VIAGEM ACEITA APENAS SE HOUVER UMA REAL
+      // 🔥 BUSCAR VIAGEM ACEITçãPENAS SE HOUVER UMA REAL
       const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
       
       setAcceptedTrip(accepted || null);
@@ -807,7 +854,7 @@ export default function HomeScreen({ navigation }: any) {
       }
   
     } catch (error: any) {
-      console.error("❌ Erro ao carregar pedidos:", error.message);
+      console.error("âŒ Erro ao carregar pedidos:", error.message);
       Alert.alert("Erro", "Não foi possível carregar as viagens.");
     } finally {
       setLoadingOrders(false);
@@ -844,12 +891,12 @@ export default function HomeScreen({ navigation }: any) {
       order.sellerInfo?.longitude || 
       order.longitude || 0;
 
-    // A origem do pedido (onde o motorista vai buscar o cliente/produto)
+    // ãorigem do pedido (onde o motorista vai buscar o cliente/produto)
     const originLat = order.originDetails?.lat || order.seller?.latitude || order.latitude || 0;
     const originLon = order.originDetails?.lng || order.seller?.longitude || order.longitude || 0;
   
     let distance = 0;
-    let timeStr = "Tempo nao disponvel";
+    let timeStr = "Tempo não disponvel";
 
     // 1. Tentar usar o distanceKm do pricing (calculado pelo backend via OSRM)
     if (order.pricing && order.pricing.distanceKm) {
@@ -873,7 +920,7 @@ export default function HomeScreen({ navigation }: any) {
       );
     }
 
-    if (distance > 0 && timeStr === "Tempo nao disponvel") {
+    if (distance > 0 && timeStr === "Tempo não disponvel") {
       timeStr = `${Math.round(distance / 40 * 60)} min`;
     }
   
@@ -887,7 +934,7 @@ export default function HomeScreen({ navigation }: any) {
     const isInTransit = order.stepStatus === 5;
     const isAcceptedByDeliveryman = isInTransit || (
       orderDeliverymanId === currentUserId &&
-      order.status === 'Aceite pelo entregador' &&
+      order.status === 'Pedido aceite' &&
       order.stepStatus === 4  
     );
     const isReq = order.goodType !== undefined || order.type === 'requestService';
@@ -907,11 +954,11 @@ export default function HomeScreen({ navigation }: any) {
       serviceMotive: order.reason || order.description || order.goodType || undefined,
       passenger: order.user?.name || order.clientName || "Cliente",
       passengerImage: order.user?.profileImage,
-      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Nao disponvel",
+      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Não disponvel",
       pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
-      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia nao disponvel",
+      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia não disponvel",
       time: timeStr,
       destinationLocation: {
         latitude: destinationLat,
@@ -921,6 +968,8 @@ export default function HomeScreen({ navigation }: any) {
       status: order.status,
       isAcceptedByDeliveryman,
       paymentMethod: order.paymentMethod || 'Dinheiro',
+      isScheduled: order.isScheduled || false,
+      scheduledAt: order.scheduledAt || undefined,
       originalData: order
     };
   };
@@ -991,12 +1040,12 @@ export default function HomeScreen({ navigation }: any) {
       await acceptOrderByDeliveryman(tripId, currentLocation, isReq);
 
       if (trip) {
-        const updatedTrip = { ...trip, status: 'Aceite pelo entregador', stepStatus: 4 };
+        const updatedTrip = { ...trip, status: 'Pedido aceite', stepStatus: 4 };
         await AsyncStorage.setItem("acceptedTrip", JSON.stringify(updatedTrip));
         setAcceptedTrip(updatedTrip);
       }
 
-      // 🔥 ATUALIZAR LISTA COMPLETA APÓS ACEITAR
+      // 🔥 ATUALIZAR LISTA COMPLETçãPÓS ACEITAR
       await loadAllOrdersSilent();
 
       setShowTripAcceptedModal(true);
@@ -1033,7 +1082,7 @@ const resetIncorrectAcceptedTrips = async () => {
         // Se a viagem não está mais aceita, remover do storage
         if (!currentTrip || 
             (currentTrip.deliveryman?._id !== user?._id && 
-             currentTrip.status !== 'Aceite pelo entregador' &&
+             currentTrip.status !== 'Pedido aceite' &&
              currentTrip.stepStatus !== 5)) { // 🔥 ADICIONAR VERIFICAÇÃO DO STEP STATUS
           await AsyncStorage.removeItem("acceptedTrip");
         }
@@ -1085,7 +1134,7 @@ const startLocationSharingToBackend = (orderId: string) => {
 
       // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
       if (!location.coords.latitude || !location.coords.longitude) {
-        console.warn('⚠️ Localização inválida obtida, pulando atualização');
+        console.warn('âš ï¸ Localização inválida obtida, pulando atualização');
         return;
       }
 
@@ -1214,7 +1263,7 @@ const proceedStartTrip = async (trip: Trip) => {
     // Reverter mudança visual
     setAllTrips(prev => prev.map(t =>
       t.id === trip.id
-        ? { ...t, status: 'Aceite pelo entregador', stepStatus: 4 }
+        ? { ...t, status: 'Pedido aceite', stepStatus: 4 }
         : t
     ));
     Alert.alert("Erro", "Não foi possível iniciar a viagem.");
@@ -1261,7 +1310,7 @@ const proceedStartTrip = async (trip: Trip) => {
     </View>
   );
 
-  // 🔥 RENDERIZAR CARD DE ROTA ATUAL (EM TRÂNSITO)
+  // 🔥 RENDERIZAR CARD DE ROTçãTUAL (EM TRÂNSITO)
   const renderCurrentRouteCard = () => {
     if (!routeSummary || !isTripStarted) return null;
 
@@ -1282,12 +1331,12 @@ const proceedStartTrip = async (trip: Trip) => {
           <View style={styles.routeHeader}>
             <Ionicons name="navigate-outline" size={28} color="#FFF" />
             <View style={styles.routeText}>
-              <Text style={styles.routeLabel}>🎯 EM ACTIVIDADE</Text>
+              <Text style={styles.routeLabel}>ðŸŽ¯ EM ACTIVIDADE</Text>
               <Text style={styles.routeInfo}>
-                {routeSummary.pickup} → {routeSummary.destination}
+                {routeSummary.pickup} â†’ {routeSummary.destination}
               </Text>
               <Text style={styles.routeDetails}>
-                {routeSummary.distance} • {routeSummary.time} • {routeSummary.reward} • {routeSummary.paymentMethod}
+                {routeSummary.distance} â€¢ {routeSummary.time} â€¢ {routeSummary.reward} â€¢ {routeSummary.paymentMethod}
               </Text>
             </View>
           </View>
@@ -1422,7 +1471,7 @@ const proceedStartTrip = async (trip: Trip) => {
           </View>
         )}
 
-        {/* 🔥 CARD DA ROTA ATUAL (EM TRÂNSITO) */}
+        {/* 🔥 CARD DA ROTçãTUAL (EM TRÂNSITO) */}
         {renderCurrentRouteCard()}
 
         {/* 🔥 CORREÇÃO: O modal de aprovação substituiu a mensagem estática de bloqueio */}
@@ -1512,7 +1561,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ✅ MODAL PREMIUM "CONTA APROVADA SUCESSO" */}
+      {/* âœ… MODAL PREMIUM "CONTçãPROVADA SUCESSO" */}
       <Modal visible={showApprovedSuccessModal} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
@@ -1571,7 +1620,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ✅ MODAL PREMIUM — VIAGEM ACEITE */}
+      {/* âœ… MODAL PREMIUM â€” VIAGEM ACEITE */}
       <Modal visible={showTripAcceptedModal} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
@@ -1586,7 +1635,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </View>
 
             <Text style={{ fontSize: 22, fontWeight: '900', color: '#065F46', marginBottom: 10, textAlign: 'center' }}>
-              Viagem Aceite! 🎉
+              Viagem Aceite! ðŸŽ‰
             </Text>
 
             <Text style={{ fontSize: 14, color: '#374151', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
@@ -1619,7 +1668,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* 🚫 MODAL PREMIUM — PEDIDO ACEITE POR OUTRO MOTORISTA */}
+      {/* ðŸš« MODAL PREMIUM â€” PEDIDO ACEITE POR OUTRO MOTORISTA */}
       <Modal visible={showOrderTakenModal} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
@@ -1638,7 +1687,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </Text>
 
             <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
-              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitações!{' '}🚀
+              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitações!{' '}ðŸš€
             </Text>
 
             <TouchableOpacity
@@ -1673,7 +1722,7 @@ const proceedStartTrip = async (trip: Trip) => {
             <Text style={styles.premiumModalTitle}>Já está com a mercadoria?</Text>
             
             <Text style={styles.premiumModalMessage}>
-              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos início à viagem.
+              Confirme que recolheu a mercadoria com sucesso e que a mesma se encontra acomodada na sua viatura para darmos início Ã  viagem.
             </Text>
 
             <View style={styles.premiumModalButtons}>
@@ -1710,7 +1759,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* 🔥 MODAL PREMIUM — VIAGEM INICIADA COM SUCESSO */}
+      {/* 🔥 MODAL PREMIUM â€” VIAGEM INICIADA COM SUCESSO */}
       <Modal
         visible={showTripStartedModal}
         transparent={true}
@@ -1722,7 +1771,7 @@ const proceedStartTrip = async (trip: Trip) => {
               <Ionicons name="compass-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! ðŸš€</Text>
             
             <Text style={styles.premiumModalMessage}>
               A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
@@ -1756,7 +1805,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO NECESSÁRIA */}
+      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÇÃO NECESSÁRIA */}
       <Modal
         visible={showLocationRequiredModal}
         transparent={true}
@@ -1864,6 +1913,11 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
+      <LocationConsentModal
+        visible={showLocationConsentModal}
+        onAccept={handleAcceptLocationConsent}
+        onDecline={handleDeclineLocationConsent}
+      />
     </View>
   );
 }
@@ -1959,7 +2013,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 4,
   },
-  // 🔥 ESTILOS PARA CARD DE ROTA ATUAL (EM TRÂNSITO)
+  // 🔥 ESTILOS PARA CARD DE ROTçãTUAL (EM TRÂNSITO)
   routeSummaryContainer: {
     borderRadius: 24,
     marginBottom: 24,

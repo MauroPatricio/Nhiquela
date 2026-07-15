@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useToast } from 'react-native-toast-notifications';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import { EXPO_GOOGLE_MAPS_APIKEY } from '@env';
+import { EXPO_GOOGLE_MAPS_APIKEY, EXPO_PUBLIC_GOOGLE_PLACES_APIKEY } from '@env';
 import BottomSheetComponent from '../components/BottomSheetComponent';
 import MapView, { Marker } from 'react-native-maps';
 
@@ -32,6 +32,7 @@ const Profile = () => {
 
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -315,6 +316,26 @@ const Profile = () => {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      const { default: api } = await import('../hooks/createConnectionApi');
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const parsed = JSON.parse(storedUserData);
+      
+      await api.delete('/users/profile', {
+        headers: { authorization: `Bearer ${parsed.token}` }
+      });
+      
+      setShowDeleteModal(false);
+      toast.show("A sua conta foi eliminada.", { type: 'success' });
+      
+      await userLogout();
+    } catch (error) {
+      console.error('Erro ao eliminar conta:', error);
+      toast.show("Erro ao eliminar a conta. Tente novamente.", { type: 'danger' });
+    }
+  };
+
   const logout = () => {
     setShowLogoutModal(true);
   };
@@ -568,8 +589,13 @@ const Profile = () => {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Logout Button Wrap */}
-            <TouchableOpacity onPress={logout} activeOpacity={0.8} style={styles.logoutButton}>
+            {/* Logout and Delete Buttons Wrap */}
+            <TouchableOpacity onPress={() => setShowDeleteModal(true)} activeOpacity={0.8} style={[styles.logoutButton, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]}>
+              <MaterialCommunityIcons name="delete-alert-outline" size={20} color="#DC2626" style={{ marginRight: 8 }} />
+              <Text style={[styles.logoutButtonText, { color: '#DC2626' }]}>Apagar Conta</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={logout} activeOpacity={0.8} style={[styles.logoutButton, { marginTop: 15 }]}>
               <AntDesign name="logout" size={20} color="#EF4444" style={{ marginRight: 8 }} />
               <Text style={styles.logoutButtonText}>Sair da Conta</Text>
             </TouchableOpacity>
@@ -678,7 +704,7 @@ const Profile = () => {
                         }
                     }}
                     query={{
-                        key: EXPO_GOOGLE_MAPS_APIKEY,
+                        key: EXPO_PUBLIC_GOOGLE_PLACES_APIKEY,
                         language: 'pt',
                         components: 'country:mz'
                     }}
@@ -817,6 +843,39 @@ const Profile = () => {
           </ScrollView>
         </View>
       </BottomSheetComponent>
+
+      {/* DELETE ACCOUNT MODAL */}
+      <Modal visible={showDeleteModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.premiumModalContent}>
+            <View style={[styles.modalIconContainer, { backgroundColor: '#FEE2E2' }]}>
+              <MaterialCommunityIcons name="delete-alert" size={32} color="#DC2626" />
+            </View>
+            <Text style={styles.modalTitle}>Apagar Conta?</Text>
+            <Text style={styles.modalSubtitle}>
+              Atenção: Esta ação é irreversível. O seu saldo e histórico serão eliminados permanentemente.
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.modalBtn, { backgroundColor: '#DC2626', elevation: 3, shadowColor: '#DC2626', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }]}
+                onPress={deleteAccount}
+              >
+                <Text style={styles.modalBtnConfirmText}>Apagar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* PREMIUM LOGOUT MODAL */}
       <Modal visible={showLogoutModal} transparent animationType="fade">
@@ -1092,4 +1151,72 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 10,
   },
+  // Modal Premium Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumModalContent: {
+    width: '85%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 10,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBtnCancel: {
+    backgroundColor: '#F1F5F9',
+  },
+  modalBtnCancelText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  modalBtnConfirmText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  }
 });

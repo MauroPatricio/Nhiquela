@@ -42,7 +42,7 @@ export default [
   {
     "_id": "6a522b7df06d17ccc6854abf",
     "key": "google_maps_api_key",
-    "value": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA",
+    "value": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
     "description": "Chave de API do Google Maps para o Dashboard",
     "type": "string",
     "__v": 0,

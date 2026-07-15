@@ -18,7 +18,7 @@ import mongoose from 'mongoose';
     const configs = await Configs.find({}).toArray();
 
     console.log('=== SERVICO DELIVER ===');
-    console.log(deliverService ? { name: deliverService.name, basePrice: deliverService.basePrice, pricingModel: deliverService.pricingModel } : 'Nao encontrado');
+    console.log(deliverService ? { name: deliverService.name, basePrice: deliverService.basePrice, pricingModel: deliverService.pricingModel } : 'Não encontrado');
     
     console.log('\n=== SETTINGS (Configuracoes de entrega) ===');
     console.log(settings.length > 0 ? settings : 'Nenhuma configuracao especifica encontrada');

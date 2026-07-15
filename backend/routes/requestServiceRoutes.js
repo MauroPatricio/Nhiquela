@@ -73,7 +73,7 @@ requestServiceer.get(
     const activeTrip = await RequestService.findOne({
       user: req.user._id,
       deleted: false,
-      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Em trânsito'] }
+      status: { $in: ['Pendente', 'Pedido aceite', 'A Caminho', 'Em andamento', 'Em trânsito'] }
     }).populate('user', 'name phoneNumber profileImage');
 
     if (activeTrip) {
@@ -93,7 +93,7 @@ requestServiceer.post(
     const existingActiveTrip = await RequestService.findOne({
       user: req.user._id,
       deleted: false,
-      status: { $in: ['Pendente', 'Aceite pelo entregador', 'A Caminho', 'Em andamento', 'Em trânsito'] }
+      status: { $in: ['Pendente', 'Pedido aceite', 'A Caminho', 'Em andamento', 'Em trânsito'] }
     });
 
     if (existingActiveTrip) {
@@ -126,22 +126,25 @@ requestServiceer.post(
       serviceId: req.body.serviceId || null,
       user: req.user._id,
       code: generateCode(),
-      status: 'Pendente',
+      status: req.body.isScheduled ? 'SCHEDULED' : 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
       stepStatus: req.body.stepStatus,
       targetDriverId: req.body.targetDriverId,
       latitude: req.body.latitude,
       longitude: req.body.longitude,
-      isSearching: !req.body.targetDriverId,
+      isSearching: !req.body.targetDriverId && !req.body.isScheduled, // Não iniciar busca se for agendado
       searchRadius: 3000,
       contactedDrivers: [],
-      lastDispatchTime: new Date()
+      lastDispatchTime: new Date(),
+      // Agendamento
+      isScheduled: req.body.isScheduled || false,
+      scheduledAt: req.body.isScheduled && req.body.scheduledAt ? new Date(req.body.scheduledAt) : null,
     });
 
     // ============================================================
     // CÁLCULO AUTOMÁTICO DO PREÇO (server-side, imutável)
-    // Executado ANTES do save() — o backend nunca confia no preço do cliente
+    // Executado ANTES do save() â€” o backend nunca confia no preço do cliente
     // ============================================================
     const originDetails = req.body.originDetails;
     const destinationDetails = req.body.destinationDetails;
@@ -171,13 +174,13 @@ requestServiceer.post(
         // Substituir o deliveryPrice enviado pelo cliente pelo valor calculado pelo servidor
         newOrder.deliveryPrice = priceResult.price;
 
-        console.log(`[PricingService] ✅ Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
+        console.log(`[PricingService] âœ… Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
       } catch (pricingErr) {
-        // Não bloquear a criação do pedido — usar o preço do cliente como fallback
-        console.warn(`[PricingService] ⚠️ Falha no cálculo automático. A usar deliveryPrice do cliente (${req.body.deliveryPrice} MT). Erro: ${pricingErr.message}`);
+        // Não bloquear a criação do pedido â€” usar o preço do cliente como fallback
+        console.warn(`[PricingService] âš ï¸ Falha no cálculo automático. A usar deliveryPrice do cliente (${req.body.deliveryPrice} MT). Erro: ${pricingErr.message}`);
       }
     } else {
-      console.log(`[PricingService] ℹ️ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
+      console.log(`[PricingService] â„¹ï¸ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
     }
 
     let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
@@ -244,6 +247,43 @@ requestServiceer.post(
             console.error('[RequestService Timeout Error]', e);
           }
         }, 45000);
+      } else if (newOrder.isScheduled) {
+        // ============================================================
+        // PEDIDO AGENDADO â€” NÃO despachar agora.
+        // Notificar apenas o cliente com a confirmação do agendamento.
+        // ============================================================
+        const orderPayload = { ...requestService.toObject(), type: 'requestService' };
+
+        // Notificar o cliente via socket (confirmação de agendamento)
+        const users = req.app.get('users') || [];
+        const orderUser = users.find((x) => x._id === req.user._id.toString());
+        if (orderUser) {
+          io.to(orderUser.socketId).emit('order_scheduled', orderPayload);
+        }
+
+        // Buscar todos os motoristas disponíveis e notificá-los do novo serviço agendado
+        const availableDrivers = await User.find({
+          role: 'deliveryman',
+          'deliveryman.status': { $in: ['Disponível', 'Em Entrega'] },
+          pushToken: { $exists: true, $ne: null }
+        }).select('_id pushToken deliveryman');
+
+        const scheduledDateStr = requestService.scheduledAt
+          ? new Date(requestService.scheduledAt).toLocaleString('pt-PT', { timeZone: 'Africa/Maputo', dateStyle: 'short', timeStyle: 'short' })
+          : 'hora não definida';
+
+        for (const driver of availableDrivers) {
+          io.to(`driver_${driver._id}`).emit('new_scheduled_order', orderPayload);
+          if (driver.pushToken) {
+            await createNotification({
+              message: `â° Serviço agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedência.`,
+              receiver_id: driver._id,
+              pushToken: driver.pushToken
+            });
+          }
+        }
+
+        console.log(`[Scheduling] Pedido agendado ${requestService.code} para ${scheduledDateStr}. Notificados ${availableDrivers.length} motoristas.`);
       } else {
         // Intelligent Dispatch engine will handle emitting to nearest drivers
         import('../services/dispatchService.js').then((module) => {
@@ -410,11 +450,9 @@ requestServiceer.put(
         return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
       }
 
-      // Calcular comissão baseada nas configurações financeiras dinâmicas (default 15%)
-      const financialConfig = await getFinancialConfig();
-      const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-      const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
-      const commissionmount = serviceValue * commissionRate;
+      // Calcular comissão baseada nas configurações financeiras e subcategoria
+      const { calculateDynamicCommission } = await import('../services/walletService.js');
+      const commissionmount = await calculateDynamicCommission(order);
 
       // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
       const canAfford = await canAffordTripCommission(user_deliver._id, commissionmount);
@@ -438,7 +476,7 @@ requestServiceer.put(
       }
 
       // 🔥 ATOMIC UPDATE manually on the document
-      order.status = 'Aceite pelo entregador';
+      order.status = 'Pedido aceite';
       order.stepStatus = 4;
       order.isAccepted = true;
       order.acceptedAt = new Date();
@@ -447,7 +485,7 @@ requestServiceer.put(
 
       await order.save({ session });
 
-      // Marcar motorista como ocupado — não deve receber novos pedidos até o cliente confirmar
+      // Marcar motorista como ocupado â€” não deve receber novos pedidos até o cliente confirmar
       await User.updateOne(
         { _id: user_deliver._id },
         { $set: { 'deliveryman.hasActiveService': true } },
@@ -490,7 +528,7 @@ requestServiceer.put(
         io.emit('order_taken', { orderId: updateOrder._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
-      res.send({ message: `Aceite pelo entregador`, order: updateOrder });
+      res.send({ message: `Pedido aceite`, order: updateOrder });
 
     } catch (error) {
       await session.abortTransaction();
@@ -674,10 +712,9 @@ requestServiceer.put(
         }
 
         if (order.deliveryman && order.deliveryman.id) {
-          const financialConfig = await getFinancialConfig();
-          const commissionRate = financialConfig?.driverCommissionRate || 0.15;
-          const serviceValue = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
-          const commissionAmount = serviceValue * commissionRate;
+          // Calcular comissão baseada nas configurações financeiras e subcategoria
+          const { calculateDynamicCommission } = await import('../services/walletService.js');
+          const commissionAmount = await calculateDynamicCommission(order);
 
           try {
             await debitDriverCommissionWithSession(
@@ -696,7 +733,7 @@ requestServiceer.put(
 
         await order.save({ session });
 
-        // Libertar motorista — pode agora receber novos pedidos
+        // Libertar motorista â€” pode agora receber novos pedidos
         if (order.deliveryman && order.deliveryman.id) {
           await User.updateOne(
             { _id: order.deliveryman.id },
@@ -718,7 +755,7 @@ requestServiceer.put(
 
         sendEmailOrderStatus(req, mailText, order, res);
 
-        // WebSocket Optimization — notificar cliente e motorista
+        // WebSocket Optimization â€” notificar cliente e motorista
         const io = req.app.get('io');
         if (io) {
           io.to(`order_${order._id}`).emit('order_updated', order);

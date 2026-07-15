@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Province from '../models/ProvinceModel.js';
 import User from '../models/UserModel.js';
@@ -132,6 +132,26 @@ statsRouter.get(
       clientesAtivos,
       rankingMotoristas: ranking,
       receitaPorServico: servicos
+    });
+  })
+);
+statsRouter.get(
+  '/admin-badges',
+  expressAsyncHandler(async (req, res) => {
+    // 1. Pending Recharges (Transactions with type credit/deposit and status pendente)
+    // Considering all 'pendente' transactions might be enough, or specifically 'credit'
+    const pendingRecharges = await Transaction.countDocuments({ status: 'pendente', type: 'credit' });
+    
+    // 2. Pending Drivers
+    const pendingDrivers = await User.countDocuments({ isDeliveryMan: true, status: 'Pendente' });
+    
+    // 3. Pending Orders (status: Pendente or Nova)
+    const pendingOrders = await Order.countDocuments({ status: 'Pendente', deleted: false });
+
+    res.send({
+      pendingRecharges,
+      pendingDrivers,
+      pendingOrders
     });
   })
 );

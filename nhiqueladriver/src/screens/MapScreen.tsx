@@ -104,7 +104,7 @@ export default function MapScreen({ route, navigation }: any) {
           setCurrentLocation(location);
           setLocationError(null);
         } catch (locationError: any) {
-          console.warn("⚠️ Não foi possível obter localização, usando fallback:", locationError.message);
+          console.warn("âš ï¸ Não foi possível obter localização, usando fallback:", locationError.message);
           setCurrentLocation(FALLBACK_LOCATION);
           setLocationError(locationError.message);
         }
@@ -131,9 +131,9 @@ export default function MapScreen({ route, navigation }: any) {
         // 🔥 Definir destino baseado no stepStatus
         if (storedTrip) {  
           if (storedTrip.stepStatus === 4) {
-            // STEP 4 → destino = local do VENDEDOR/COLETA (originLocation ou seller)
-            const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
-            const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
+            // STEP 4 â†’ destino = local do VENDEDOR/COLETA (originLocation ou seller)
+            const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
+            const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
   
             if (vendorLat && vendorLng) {
               const vendorLocation = {
@@ -147,7 +147,7 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else if (storedTrip.stepStatus === 5) {
-            // STEP 5 → destino = local do CLIENTE (destinationLocation ou deliveryAddress)
+            // STEP 5 â†’ destino = local do CLIENTE (destinationLocation ou deliveryAddress)
             const clientLat = Number(storedTrip.originalData?.destinationDetails?.lat || storedTrip.originalData?.destinationLocation?.latitude || storedTrip.originalData?.deliveryAddress?.latitude || storedTrip.originalData?.latitude);
             const clientLng = Number(storedTrip.originalData?.destinationDetails?.lng || storedTrip.originalData?.destinationLocation?.longitude || storedTrip.originalData?.deliveryAddress?.longitude || storedTrip.originalData?.longitude);
   
@@ -163,8 +163,8 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else {
-            // STEP PENDENTE / ACEITE MAS NÃO INICIADO → destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
-            // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
+            // STEP PENDENTE / ACEITE MAS NÃO INICIADO â†’ destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
+            // Permite ao motorista ver a distância e rota até Ã  coleta ANTES de aceitar/iniciar.
             const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
             const pickupLatLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
             const pickupLng = pickupLatLng; // Aliasing since previous name was pickupLng
@@ -258,7 +258,7 @@ export default function MapScreen({ route, navigation }: any) {
       // Reverter mudança visual em caso de erro
       const revertedTrip = {
         ...trip,
-        status: 'Aceite pelo entregador',
+        status: 'Pedido aceite',
         stepStatus: 4
       };
       
@@ -274,7 +274,7 @@ export default function MapScreen({ route, navigation }: any) {
   const handleCancelTrip = () => {
     if (routeDrawn) {
       Alert.alert(
-        "❌ Cancelamento não permitido",
+        "âŒ Cancelamento não permitido",
         "Não é possível cancelar a viagem após a rota estar desenhada. Complete a entrega do produto.",
         [{ text: "OK" }]
       );
@@ -412,7 +412,7 @@ export default function MapScreen({ route, navigation }: any) {
       setCurrentLocation(location);
       setLocationError(null);
     } catch (error: any) {
-      console.error("❌ Falha ao tentar obter localização novamente:", error.message);
+      console.error("âŒ Falha ao tentar obter localização novamente:", error.message);
       setLocationError(error.message);
     } finally {
       setLoading(false);
@@ -457,7 +457,7 @@ export default function MapScreen({ route, navigation }: any) {
       {locationError && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
-            ⚠️ Usando localização aproximada: {locationError}
+            âš ï¸ Usando localização aproximada: {locationError}
           </Text>
           <TouchableOpacity onPress={handleRetryLocation}>
             <Text style={styles.retryLinkText}>Tentar novamente</Text>
@@ -493,6 +493,69 @@ export default function MapScreen({ route, navigation }: any) {
         routeDrawn={routeDrawn}
       />
 
+      {/* 🔥 INFO CARD DO PEDIDO (FLUTUANTE NO TOPO) */}
+      {tripData && (
+        <View style={styles.floatingInfoCard}>
+          <View style={styles.infoRow}>
+            <Ionicons name="person-circle" size={28} color="#3B82F6" />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.name || tripData.user?.name || 'Cliente'}</Text>
+              <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.phoneNumber || tripData.user?.phone || 'Telefone não disponível'}</Text>
+            </View>
+            {(tripData.phoneNumber || tripData.user?.phone) && (
+              <TouchableOpacity 
+                style={styles.callButton}
+                onPress={() => {
+                  const phone = tripData.phoneNumber || tripData.user?.phone;
+                  if (phone) Linking.openURL(`tel:${phone}`);
+                }}
+              >
+                <Ionicons name="call" size={18} color="#FFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+          
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <Ionicons name="location" size={16} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
+              <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                <Text style={{ fontWeight: '600' }}>Recolha: </Text>
+                {tripData.origin || 'Não especificada'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <Ionicons name="flag" size={16} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
+              <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                <Text style={{ fontWeight: '600' }}>Destino: </Text>
+                {tripData.destination || 'Não especificado'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="card" size={16} color="#64748B" style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.paymentMethod || 'Dinheiro'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="cube" size={16} color="#64748B" style={{ marginRight: 6, marginLeft: 12 }} />
+              <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.goodType || tripData.service?.name || 'Serviço Padrão'}</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: '#1E293B', fontWeight: '700' }}>Preço Total:</Text>
+            <Text style={{ fontSize: 18, color: '#059669', fontWeight: '800' }}>{tripData.deliveryPrice || tripData.price || '0'} Mt</Text>
+          </View>
+        </View>
+      )}
+
       {/* 🔥 CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
       {(tripData?.stepStatus === 5 || tripData?.stepStatus === 6) && (
         <TripControls
@@ -504,7 +567,7 @@ export default function MapScreen({ route, navigation }: any) {
         />
       )}
 
-      {/* 🔥 MODAL PREMIUM — VIAGEM INICIADA COM SUCESSO */}
+      {/* 🔥 MODAL PREMIUM â€” VIAGEM INICIADA COM SUCESSO */}
       <Modal
         visible={showTripStartedModal}
         transparent={true}
@@ -516,7 +579,7 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="compass-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! ðŸš€</Text>
             
             <Text style={styles.premiumModalMessage}>
               A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
@@ -540,7 +603,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO INDISPONÍVEL */}
+      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÇÃO INDISPONÍVEL */}
       <Modal
         visible={showNoLocationModal}
         transparent={true}
@@ -577,7 +640,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🏁 MODAL PREMIUM — CONFIRMAR ENTREGA */}
+      {/* ðŸ MODAL PREMIUM â€” CONFIRMAR ENTREGA */}
       <Modal
         visible={showFinishConfirmationModal}
         transparent={true}
@@ -624,7 +687,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* ⚠️ MODAL PREMIUM — NÃO PODE FINALIZAR */}
+      {/* âš ï¸ MODAL PREMIUM â€” NÃO PODE FINALIZAR */}
       <Modal
         visible={showCannotFinishModal}
         transparent={true}
@@ -664,7 +727,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* 🎉 MODAL PREMIUM — ENTREGA CONCLUÍDA COM SUCESSO */}
+      {/* ðŸŽ‰ MODAL PREMIUM â€” ENTREGA CONCLUÍDA COM SUCESSO */}
       <Modal
         visible={showFinishSuccessModal}
         transparent={true}
@@ -676,7 +739,7 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="trophy-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Entrega Concluída! 🎉</Text>
+            <Text style={styles.premiumModalTitle}>Entrega Concluída! ðŸŽ‰</Text>
             
             <Text style={styles.premiumModalMessage}>
               Parabéns! Completou a sua entrega com sucesso. O seu saldo e estatísticas foram atualizados.
@@ -712,6 +775,38 @@ export default function MapScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  floatingInfoCard: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 10,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  callButton: {
+    backgroundColor: '#10B981',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
   container: { 
     flex: 1, 
     backgroundColor: "#fff" 

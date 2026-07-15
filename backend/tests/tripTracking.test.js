@@ -67,12 +67,12 @@ describe('Rastreio em Tempo Real e Partilha de Viagem', () => {
 
   it('2. Motorista aceita a viagem e o status passa para "accepted"', async () => {
     order.status = 'accepted';
-    order.driver = driver._id;
+    order.deliveryman = { id: driver._id };
     await order.save();
 
     const updatedOrder = await Order.findById(order._id);
     expect(updatedOrder.status).toBe('accepted');
-    expect(updatedOrder.driver.toString()).toBe(driver._id.toString());
+    expect(updatedOrder.deliveryman.id.toString()).toBe(driver._id.toString());
   });
 
   it('3. Rastreio: A localização do motorista é emitida continuamente para a sala do pedido', () => {

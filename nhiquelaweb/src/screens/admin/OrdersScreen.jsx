@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch, faTrash, faTag, faTruck, faSync } from '@fortawesome/free-solid-svg-icons';
+import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch, faTrash, faTag, faTruck, faSync, faBolt, faCalendarAlt, faCreditCard, faUserFriends, faInfoCircle, faRoad, faPhone, faCar } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -11,7 +11,7 @@ import * as XLSX from '@e965/xlsx';
 
 const OrderTiming = ({ order }) => {
   const [elapsed, setElapsed] = useState('--');
-  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluido'].includes(order.status);
+  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluído'].includes(order.status);
 
   useEffect(() => {
     const calculateStaticDiff = () => {
@@ -43,17 +43,9 @@ const OrderTiming = ({ order }) => {
   }, [order.createdAt, order.status, order.updatedAt, order.deliveryDate, isCompleted]);
 
   return (
-    <>
-      <div className="text-muted small mt-1">
-        <span className="fw-bold">Solicitação:</span> {new Date(order.createdAt).toLocaleString('pt-PT')}
-      </div>
-      <div className="text-muted small mt-1">
-        <span className="fw-bold">Conclusão:</span> {isCompleted ? new Date(order.deliveryDate || order.updatedAt || order.createdAt).toLocaleString('pt-PT') : 'A decorrer...'}
-      </div>
-      <div className="small mt-1">
-        <span className="fw-bold text-dark">Duração:</span> <span className={isCompleted ? "text-success fw-bold" : "text-danger fw-bold"}><FontAwesomeIcon icon={faClock} className="me-1"/>{elapsed}</span>
-      </div>
-    </>
+    <span className={isCompleted ? "text-success fw-bold" : "text-danger fw-bold"}>
+      <FontAwesomeIcon icon={faClock} className="me-1" /> {elapsed}
+    </span>
   );
 };
 
@@ -97,12 +89,13 @@ export default function OrdersScreen() {
   const fetchOrdersAndRelatedData = async () => {
     setLoading(true);
     try {
-      const [ordersRes, requestsRes, custRes, driversRes, subcatRes] = await Promise.all([
+      const [ordersRes, requestsRes, custRes, driversRes, subcatRes, vehicleTypesRes] = await Promise.all([
         api.get('/orders'),
         api.get('/request-service/admin'),
         api.get('/customers'),
         api.get('/drivers'),
-        api.get('/provider-subcategories')
+        api.get('/provider-subcategories'),
+        api.get('/vehicle-types')
       ]);
 
       // Create maps for quick lookup O(1)
@@ -119,6 +112,14 @@ export default function OrdersScreen() {
       const sMap = {};
       const subcatArray = Array.isArray(subcatRes.data) ? subcatRes.data : [];
       subcatArray.forEach(s => sMap[s._id] = s.name);
+
+      const vehicleTypesArray = Array.isArray(vehicleTypesRes.data) ? vehicleTypesRes.data : (vehicleTypesRes.data.vehicleTypes || vehicleTypesRes.data.vehicles || vehicleTypesRes.data.data || vehicleTypesRes.data || []);
+      vehicleTypesArray.forEach(v => {
+        if(v._id && v.name) sMap[v._id] = v.name;
+        // fallback to type mapping if structure is different
+        if(v._id && v.type) sMap[v._id] = v.type;
+      });
+
       setSubcategoriesMap(sMap);
 
       // Sort by newest first
@@ -359,41 +360,54 @@ export default function OrdersScreen() {
                 ) : currentOrders.map(order => (
                   <tr key={order._id}>
                     <td className="px-4">
-                      <div className="fw-bold text-dark text-uppercase bg-light d-inline-block px-2 py-1 rounded border mb-1">
-                        #{order.code || order._id.slice(-6)}
-                      </div>
-                      <span className={`badge ms-2 ${order.orderType === 'Pedido' ? 'bg-primary-custom' : 'bg-warning text-dark'}`}>
-                        {order.orderType}
-                      </span>
-                      {order.goodType && (
-                        <span className="badge ms-2 bg-info text-dark">
-                          {order.goodType}
+                      <div className="d-flex flex-wrap align-items-center mb-1">
+                        <div className="fw-bold text-dark text-uppercase bg-light px-2 py-1 rounded border me-2">
+                          #{order.code || order._id.slice(-6)}
+                        </div>
+                        <span className={`badge me-2 ${order.orderType === 'Pedido' ? 'bg-primary-custom' : 'bg-warning text-dark'}`}>
+                          {order.orderType}
                         </span>
-                      )}
-                      {order.transportType && (
-                        <span className="badge ms-2 bg-secondary">
-                          <FontAwesomeIcon icon={faTruck} className="me-1" />
-                          {subcategoriesMap[order.transportType] || order.transportType}
-                        </span>
-                      )}
-                      <OrderTiming order={order} />
-                    </td>
-                    <td>
-                      <div className="fw-bold text-dark mb-2"><FontAwesomeIcon icon={faUser} className="text-muted me-2" />{order.user?.name || order.name || customersMap[order.user]?.name || customersMap[order.customerId]?.name || 'Cliente Desconhecido'}</div>
-                      <div className="text-muted small mb-1">
-                        <span className="fw-bold text-dark">Origem:</span> {order.pickupAddress?.address || order.origin || 'Não definida'}
+                        {order.goodType && (
+                          <span className="badge me-2 bg-info text-dark">
+                            {order.goodType}
+                          </span>
+                        )}
+                        {order.transportType && (
+                          <span className="badge me-2 bg-secondary">
+                            <FontAwesomeIcon icon={faTruck} className="me-1" />
+                            {subcategoriesMap[order.transportType] || order.transportType}
+                          </span>
+                        )}
+                        {order.isScheduled ? (
+                          <span className="badge bg-warning text-dark"><FontAwesomeIcon icon={faCalendarAlt} className="me-1"/>Agendado</span>
+                        ) : (
+                          <span className="badge bg-info text-dark"><FontAwesomeIcon icon={faBolt} className="me-1"/>Agora</span>
+                        )}
                       </div>
                       <div className="text-muted small">
-                        <span className="fw-bold text-dark">Destino:</span> {order.deliveryAddress?.address || order.destination || 'Não definida'}
+                        {new Date(order.createdAt).toLocaleString('pt-PT')}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="fw-bold text-dark mb-1 text-truncate" style={{maxWidth: '200px'}}>
+                        <FontAwesomeIcon icon={faUser} className="text-muted me-2" />
+                        {order.user?.name || order.name || customersMap[order.user]?.name || customersMap[order.customerId]?.name || 'Cliente Desconhecido'}
+                      </div>
+                      <div className="text-muted small text-truncate" style={{maxWidth: '220px'}} title={`${order.pickupAddress?.address || order.origin} -> ${order.deliveryAddress?.address || order.destination}`}>
+                        {(order.pickupAddress?.address || order.origin || 'N/A').split(',')[0]} <FontAwesomeIcon icon={faMapMarkerAlt} className="mx-1 text-primary-custom"/> {(order.deliveryAddress?.address || order.destination || 'N/A').split(',')[0]}
                       </div>
                     </td>
                     <td>
                       {order.deliveryman && order.deliveryman.name ? (
-                        <div>
-                          <div className="fw-bold text-primary-custom"><FontAwesomeIcon icon={faMotorcycle} className="me-2" />{order.deliveryman.name}</div>
-                        </div>
+                        <>
+                          <div className="fw-bold text-primary-custom mb-1"><FontAwesomeIcon icon={faMotorcycle} className="me-2" />{order.deliveryman.name}</div>
+                          <div className="text-muted small"><OrderTiming order={order} /></div>
+                        </>
                       ) : (
-                        <span className="badge bg-light text-muted border text-uppercase">Sem Motorista</span>
+                        <>
+                          <div className="mb-1"><span className="badge bg-light text-muted border text-uppercase">Sem Motorista</span></div>
+                          <div className="text-muted small"><OrderTiming order={order} /></div>
+                        </>
                       )}
                     </td>
                     <td>
@@ -444,71 +458,200 @@ export default function OrdersScreen() {
       {/* Modal Ver Detalhes da Encomenda */}
       {selectedOrder && (
         <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-centered modal-lg">
             <div className="modal-content rounded-4 border-0 shadow">
               <div className="modal-header border-bottom-0 pb-0">
-                <h5 className="modal-title fw-bold text-dark">Detalhes da Encomenda <span className="text-primary-custom">#{selectedOrder.code || selectedOrder._id.slice(-6).toUpperCase()}</span></h5>
+                <h5 className="modal-title fw-bold text-dark">
+                  Detalhes d{selectedOrder.orderType === 'Pedido' ? 'o Pedido' : 'a Encomenda/Serviço'} <span className="text-primary-custom">#{selectedOrder.code || selectedOrder._id.slice(-6).toUpperCase()}</span>
+                </h5>
                 <button type="button" className="btn-close" onClick={() => setSelectedOrder(null)}></button>
               </div>
-              <div className="modal-body p-4">
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                  <div className="text-muted small"><FontAwesomeIcon icon={faClock} className="me-1" /> {new Date(selectedOrder.createdAt).toLocaleString('pt-PT')}</div>
+              <div className="modal-body p-4" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                  <div className="d-flex gap-3">
+                    <div className="text-muted small">
+                      <FontAwesomeIcon icon={faClock} className="me-1" /> {new Date(selectedOrder.createdAt).toLocaleString('pt-PT')}
+                    </div>
+                    {selectedOrder.isScheduled ? (
+                      <span className="badge bg-warning text-dark"><FontAwesomeIcon icon={faCalendarAlt} className="me-1"/>Agendado para {new Date(selectedOrder.scheduledAt).toLocaleString('pt-PT')}</span>
+                    ) : (
+                      <span className="badge bg-info text-dark"><FontAwesomeIcon icon={faBolt} className="me-1"/>Para agora</span>
+                    )}
+                  </div>
                   <span className={`badge rounded-pill px-3 py-2 fw-bold ${getStatusBadgeClass(selectedOrder.status)}`}>
                     <FontAwesomeIcon icon={getStatusIcon(selectedOrder.status)} className="me-2" />
                     {selectedOrder.status}
                   </span>
                 </div>
 
-                <div className="bg-light rounded-4 p-3 mb-3 border">
-                  <div className="d-flex align-items-center mb-3 pb-3 border-bottom">
-                    <img 
-                      src={selectedOrder.user?.profileImage || customersMap[selectedOrder.user]?.profileImage || customersMap[selectedOrder.customerId]?.profileImage || 'https://via.placeholder.com/60'} 
-                      alt="User" 
-                      className="rounded-circle me-3 border" 
-                      style={{ width: '60px', height: '60px', objectFit: 'cover' }} 
-                    />
+                <div className="row g-4 mb-4">
+                  {/* Cliente */}
+                  <div className="col-md-6">
+                    <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faUser} className="me-2"/>Dados do Cliente</h6>
+                    <div className="bg-light rounded-4 p-3 border h-100">
+                      <div className="d-flex align-items-center">
+                        <img 
+                          src={selectedOrder.user?.profileImage || customersMap[selectedOrder.user]?.profileImage || customersMap[selectedOrder.customerId]?.profileImage || 'https://via.placeholder.com/60'} 
+                          alt="User" 
+                          className="rounded-circle me-3 border" 
+                          style={{ width: '50px', height: '50px', objectFit: 'cover' }} 
+                        />
+                        <div>
+                          <div className="fw-bold text-dark">{selectedOrder.user?.name || selectedOrder.name || customersMap[selectedOrder.user]?.name || customersMap[selectedOrder.customerId]?.name || 'Cliente Desconhecido'}</div>
+                          <div className="text-muted small"><FontAwesomeIcon icon={faPhone} className="me-1"/>{selectedOrder.user?.phoneNumber || selectedOrder.phoneNumber || customersMap[selectedOrder.user]?.phoneNumber || customersMap[selectedOrder.customerId]?.phoneNumber || 'Sem número'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Motorista */}
+                  <div className="col-md-6">
+                    <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faMotorcycle} className="me-2"/>Motorista Atribuído</h6>
+                    <div className="bg-light rounded-4 p-3 border h-100">
+                      {selectedOrder.deliveryman?.name || selectedOrder.driverId ? (
+                        <div className="d-flex align-items-center">
+                          <img 
+                            src={selectedOrder.deliveryman?.profileImage || 'https://via.placeholder.com/60'} 
+                            alt="Driver" 
+                            className="rounded-circle me-3 border" 
+                            style={{ width: '50px', height: '50px', objectFit: 'cover' }} 
+                          />
+                          <div>
+                            <div className="fw-bold text-dark">{selectedOrder.deliveryman?.name || driversMap[selectedOrder.driverId]}</div>
+                            {selectedOrder.deliveryman?.phoneNumber && (
+                              <div className="text-muted small"><FontAwesomeIcon icon={faPhone} className="me-1"/>{selectedOrder.deliveryman.phoneNumber}</div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-muted text-center pt-2">Ainda sem Motorista atribuído</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info do Serviço */}
+                <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faInfoCircle} className="me-2"/>Detalhes do Serviço</h6>
+                <div className="bg-light rounded-4 p-3 border mb-4">
+                  <div className="row g-3">
+                    <div className="col-sm-6">
+                      <div className="text-muted small">Província</div>
+                      <div className="fw-bold text-dark">{selectedOrder.province || 'Maputo Cidade'}</div>
+                    </div>
+                    {selectedOrder.orderType && (
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Classificação</div>
+                        <div className="fw-bold text-primary-custom">{selectedOrder.orderType}</div>
+                      </div>
+                    )}
+                    {selectedOrder.goodType && (
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Tipo de Serviço/Bem</div>
+                        <div className="fw-bold text-primary-custom">{selectedOrder.goodType}</div>
+                      </div>
+                    )}
+                    {selectedOrder.transportType && (
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Tipo de Transporte</div>
+                        <div className="fw-bold text-primary-custom">{subcategoriesMap[selectedOrder.transportType] || selectedOrder.transportType}</div>
+                      </div>
+                    )}
+                    {selectedOrder.distance && (
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Distância Estimada</div>
+                        <div className="fw-bold text-dark">{selectedOrder.distance}</div>
+                      </div>
+                    )}
+                    {selectedOrder.duration && (
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Duração Estimada</div>
+                        <div className="fw-bold text-dark">{selectedOrder.duration}</div>
+                      </div>
+                    )}
+                    {selectedOrder.paymentMethod && (
+                      <div className="col-sm-6">
+                        <div className="text-muted small">Método de Pagamento</div>
+                        <div className="fw-bold text-dark"><FontAwesomeIcon icon={faCreditCard} className="me-1"/>{selectedOrder.paymentMethod}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedOrder.notes && (
+                    <div className="mt-3 pt-3 border-top">
+                      <div className="text-muted small">Observações / Notas</div>
+                      <div className="text-dark bg-white p-2 rounded border mt-1 small">{selectedOrder.notes}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Moradas e Destinatário */}
+                <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faRoute} className="me-2"/>Rotas e Contatos</h6>
+                <div className="bg-light rounded-4 p-3 border mb-4">
+                  <div className="d-flex mb-3 pb-3 border-bottom">
+                    <div className="text-primary-custom me-3 mt-1"><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
                     <div>
-                      <div className="fw-bold text-dark fs-5">{selectedOrder.user?.name || selectedOrder.name || customersMap[selectedOrder.user]?.name || customersMap[selectedOrder.customerId]?.name || 'Cliente Desconhecido'}</div>
-                      <div className="text-muted small">{selectedOrder.user?.phoneNumber || selectedOrder.phoneNumber || customersMap[selectedOrder.user]?.phoneNumber || customersMap[selectedOrder.customerId]?.phoneNumber || 'Sem número de telefone'}</div>
+                      <div className="text-muted small fw-bold">Origem</div>
+                      <div className="text-dark">{selectedOrder.pickupAddress?.address || selectedOrder.origin || 'Não definida'}</div>
                     </div>
                   </div>
                   
-                  {selectedOrder.goodType && (
-                    <div className="d-flex mb-2">
-                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faTag} /></div>
-                      <div className="fw-bold text-dark">Tipo: <span className="text-primary-custom">{selectedOrder.goodType}</span></div>
+                  <div className="d-flex mb-3 pb-3 border-bottom">
+                    <div className="text-success me-3 mt-1"><FontAwesomeIcon icon={faCheckCircle} /></div>
+                    <div>
+                      <div className="text-muted small fw-bold">Destino</div>
+                      <div className="text-dark">{selectedOrder.deliveryAddress?.address || selectedOrder.destination || 'Não definida'}</div>
+                    </div>
+                  </div>
+
+                  {selectedOrder.recipientName && (
+                    <div className="d-flex">
+                      <div className="text-secondary me-3 mt-1"><FontAwesomeIcon icon={faUserFriends} /></div>
+                      <div>
+                        <div className="text-muted small fw-bold">Destinatário</div>
+                        <div className="text-dark">{selectedOrder.recipientName} {selectedOrder.recipientPhone ? `(${selectedOrder.recipientPhone})` : ''}</div>
+                      </div>
                     </div>
                   )}
-                  {selectedOrder.transportType && (
-                    <div className="d-flex mb-2">
-                      <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faTruck} /></div>
-                      <div className="fw-bold text-dark">Transporte: <span className="text-primary-custom">{subcategoriesMap[selectedOrder.transportType] || selectedOrder.transportType}</span></div>
+                </div>
+
+                {/* Produtos (Se existirem) */}
+                {selectedOrder.products && selectedOrder.products.length > 0 && (
+                  <>
+                    <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faBoxOpen} className="me-2"/>Itens do Pedido</h6>
+                    <div className="bg-light rounded-4 p-3 border mb-4">
+                      <ul className="list-group list-group-flush rounded border">
+                        {selectedOrder.products.map((p, idx) => (
+                          <li key={idx} className="list-group-item d-flex justify-content-between align-items-center bg-white">
+                            <div>
+                              <span className="fw-bold">{p.name || p.product?.name || 'Produto'}</span>
+                              {p.variant && <span className="text-muted small ms-2">({p.variant})</span>}
+                            </div>
+                            <span className="badge bg-secondary rounded-pill">x{p.quantity || 1}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  )}
-                  <div className="d-flex mb-2">
-                    <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMotorcycle} /></div>
-                    <div className="fw-bold text-dark">{selectedOrder.deliveryman?.name || (selectedOrder.driverId ? driversMap[selectedOrder.driverId] : null) || 'Ainda sem Motorista'}</div>
+                  </>
+                )}
+
+                {/* Resumo Financeiro */}
+                <div className="border rounded-4 p-3 bg-white mb-4 shadow-sm">
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted">Custo dos Produtos/Serviço:</span>
+                    <span className="fw-bold text-dark">{Number(selectedOrder.itemsPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
                   </div>
-                  <div className="d-flex mb-2">
-                    <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMap} /></div>
-                    <div className="fw-bold text-dark">Província: <span className="text-primary-custom">{selectedOrder.province || 'Maputo Cidade'}</span></div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted">Taxa de Entrega:</span>
+                    <span className="fw-bold text-dark">{Number(selectedOrder.deliveryPrice || selectedOrder.taxPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
                   </div>
-                  <div className="d-flex mb-2">
-                    <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
-                    <div className="fw-bold text-dark">Origem: <span className="text-muted fw-normal">{selectedOrder.pickupAddress?.address || selectedOrder.origin || 'Não definida'}</span></div>
-                  </div>
-                  <div className="d-flex">
-                    <div className="text-muted" style={{width: '30px'}}><FontAwesomeIcon icon={faMapMarkerAlt} /></div>
-                    <div className="fw-bold text-dark">Destino: <span className="text-muted fw-normal">{selectedOrder.deliveryAddress?.address || selectedOrder.destination || 'Não definida'}</span></div>
+                  <hr/>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted fw-bold">Total a Pagar:</span>
+                    <h3 className="fw-bold m-0 text-success"><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />{Number(selectedOrder.totalPrice || selectedOrder.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
                   </div>
                 </div>
 
-                <div className="border rounded-3 p-3 text-center bg-white mb-4">
-                  <div className="text-muted small fw-bold mb-1">Valor Total a Pagar</div>
-                  <h3 className="fw-bold m-0 text-success"><FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />{Number(selectedOrder.totalPrice || selectedOrder.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
-                </div>
-
-                <button type="button" className="btn btn-light w-100 fw-bold border py-2" onClick={() => setSelectedOrder(null)}>
+                <button type="button" className="btn btn-primary w-100 fw-bold rounded-pill py-3 shadow-sm" onClick={() => setSelectedOrder(null)}>
                   Fechar Detalhes
                 </button>
               </div>
