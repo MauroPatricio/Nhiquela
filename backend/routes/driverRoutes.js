@@ -850,3 +850,20 @@ router.post(
     res.send({ message: 'Pedido de atualização enviado com sucesso.', docRequest });
   })
 );
+
+router.post(
+  '/appeal-ban',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const { justification } = req.body;
+    if (!justification) return res.status(400).send({ message: 'Justificação obrigatória.' });
+    
+    const driver = await User.findById(req.user._id);
+    if (!driver || !driver.isBanned) return res.status(400).send({ message: 'Apenas motoristas bloqueados podem recorrer.' });
+    
+    driver.banAppealJustification = justification;
+    await driver.save();
+    
+    res.send({ message: 'Justificação submetida com sucesso.', driver });
+  })
+);

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faMotorcycle, faUser, faClock, faCheckCircle, faSpinner, faMapMarkerAlt, faExchangeAlt, faMoneyBillWave, faRoute, faTimes, faEye, faMap, faSearch, faTrash, faTag, faTruck, faSync, faBolt, faCalendarAlt, faCreditCard, faUserFriends, faInfoCircle, faRoad, faPhone, faCar } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faMotorcycle, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
+import TripChatPanel from './TripChatPanel';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from '@e965/xlsx';
@@ -172,6 +173,20 @@ export default function OrdersScreen() {
         console.error("Erro ao apagar:", error);
         toast.error("Erro ao apagar o pedido.");
       }
+    }
+  };
+
+  const handleForceCancel = async (orderId) => {
+    const reason = window.prompt("Motivo para o cancelamento forçado e reembolso?");
+    if (!reason) return;
+    
+    try {
+      await api.post(`/admin-ops/trip/${orderId}/force-cancel`, { reason });
+      setOrders(orders.map(o => o._id === orderId ? { ...o, status: 'Cancelada', paymentStatus: 'Reembolsado (Admin)' } : o));
+      setSelectedOrder(null);
+      toast.success("Pedido cancelado e reembolso emitido!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Erro ao forçar cancelamento.');
     }
   };
 
@@ -651,9 +666,27 @@ export default function OrdersScreen() {
                   </div>
                 </div>
 
-                <button type="button" className="btn btn-primary w-100 fw-bold rounded-pill py-3 shadow-sm" onClick={() => setSelectedOrder(null)}>
+                {/* Chat Panel Integrado */}
+                {!['Cancelada', 'Cancelado', 'Entregue', 'Finalizado'].includes(selectedOrder.status) && (
+                  <div className="mb-4">
+                    <TripChatPanel tripId={selectedOrder._id} />
+                  </div>
+                )}
+
+                <button type="button" className="btn btn-primary w-100 fw-bold rounded-pill py-3 shadow-sm mb-3" onClick={() => setSelectedOrder(null)}>
                   Fechar Detalhes
                 </button>
+                
+                {!['Cancelada', 'Cancelado', 'Entregue', 'Finalizado'].includes(selectedOrder.status) && (
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-danger w-100 fw-bold rounded-pill py-3 shadow-sm" 
+                    onClick={() => handleForceCancel(selectedOrder._id)}
+                  >
+                    <FontAwesomeIcon icon={faTimes} className="me-2" />
+                    Forçar Cancelamento & Reembolso
+                  </button>
+                )}
               </div>
             </div>
           </div>

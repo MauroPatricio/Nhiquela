@@ -50,6 +50,9 @@ import SupplierDashboardScreen from './screens/supplier/SupplierDashboardScreen'
 import SupplierProductsScreen from './screens/supplier/SupplierProductsScreen';
 import ProviderSubcategoriesScreen from './screens/admin/ProviderSubcategoriesScreen.jsx';
 import StatsScreen from './screens/admin/StatsScreen';
+import LiveMapScreen from './screens/admin/LiveMapScreen';
+import AdminKYC from './screens/admin/AdminKYC';
+import AdminSupport from './screens/admin/AdminSupport';
 
 function App() {
   return (
@@ -115,6 +118,9 @@ function App() {
           <Route path="push-notifications" element={<PushNotificationsScreen />} />
           <Route path="marketing" element={<MarketingScreen />} />
           <Route path="stats" element={<StatsScreen />} />
+          <Route path="kyc" element={<AdminKYC />} />
+          <Route path="support" element={<AdminSupport />} />
+          <Route path="live-map" element={<LiveMapScreen />} />
           <Route path="settings" element={<SettingsScreen />} />
           <Route path="provider-subcategories" element={<ProviderSubcategoriesScreen />} />
           <Route path="users" element={<UsersScreen />} />

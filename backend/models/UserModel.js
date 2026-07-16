@@ -26,6 +26,8 @@ const modelSchema = new mongoose.Schema({
     blockedUntil: { type: Date }, // New for 30-day penalty
     rating: { type: String, default: 'Excelente' },
     isBanned: { type: Boolean, default: false },
+    banReason: { type: String, default: '' },
+    banAppealJustification: { type: String, default: '' },
     isApproved: { type: Boolean, default: false },
     requirePasswordChange: { type: Boolean, default: false },
     location: { type: String },

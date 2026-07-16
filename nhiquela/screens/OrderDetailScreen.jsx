@@ -376,7 +376,14 @@ const OrderDetailsScreen = () => {
     );
   }
 
-  const renderContent = () => (
+  const renderContent = () => {
+    // Mostrar o botão de Chat apenas quando o motorista já aceitou a viagem
+    const ACTIVE_CHAT_STATUSES = ['Aceite', 'A Caminho', 'Em trânsito', 'No destino indicado', 'CONFIRMED'];
+    const isChatActive = ACTIVE_CHAT_STATUSES.includes(currentOrder?.status);
+    const isTripEnded = ['Entregue', 'Finalizado', 'Cancelado', 'Cancelado pelo motorista'].includes(currentOrder?.status);
+    const showChatBtn = isChatActive || isTripEnded; // histórico visível mesmo após
+
+    return (
     <View style={styles.sheetContent}>
       {/* Resumo Rápido para a aba inicial (15%) */}
       {currentOrder.status === 'No destino indicado' && (
@@ -422,7 +429,7 @@ const OrderDetailsScreen = () => {
             <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
           </View>
         </View>
-        {currentOrder.totalPrice ? <Text style={styles.totalPrice}>{currentOrder.totalPrice} Mt</Text> : null}
+        {currentOrder.totalPrice ? <Text style={styles.totalPrice}>{currentOrder.totalPrice} MT</Text> : null}
       </View>
 
       <View style={styles.divider} />
@@ -534,6 +541,27 @@ const OrderDetailsScreen = () => {
               </View>
             )}
           </View>
+
+          {/* 💬 Botão de Chat — só activo quando motorista aceitou */}
+          {showChatBtn && (
+            <TouchableOpacity
+              style={[
+                styles.chatBtn,
+                !isChatActive && styles.chatBtnDisabled,
+              ]}
+              onPress={() => navigation.navigate('TripChatScreen', {
+                tripId: currentOrder._id,
+                tripRef: currentOrder.reference || currentOrder._id?.slice(-6)?.toUpperCase(),
+                isActive: isChatActive,
+              })}
+            >
+              <Ionicons name="chatbubble-ellipses" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.chatBtnText}>
+                {isChatActive ? 'Chat com o Motorista' : 'Ver Histórico de Chat'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
         </View>
       )}
 
@@ -600,7 +628,7 @@ const OrderDetailsScreen = () => {
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Taxa de Serviço:</Text>
-          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} Mt</Text>
+          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} MT</Text>
         </View>
       </View>
 
@@ -614,7 +642,7 @@ const OrderDetailsScreen = () => {
               <View style={styles.productDetails}>
                 <Text style={styles.productName}>{item.nome}</Text>
                 <Text style={styles.productQty}>Qtd: {item.quantity}</Text>
-                <Text style={styles.productPriceItem}>{item.price} Mt</Text>
+                <Text style={styles.productPriceItem}>{item.price} MT</Text>
               </View>
             </View>
           ))}
@@ -719,6 +747,7 @@ const OrderDetailsScreen = () => {
       </View>
     </View>
   );
+  };
 
   return (
     <View style={styles.container}>
@@ -1395,6 +1424,31 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontWeight: '800',
     fontSize: 16,
+  },
+  chatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#7F00FF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 16,
+    shadowColor: '#7F00FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chatBtnDisabled: {
+    backgroundColor: '#6B7280',
+    shadowColor: '#6B7280',
+    shadowOpacity: 0.15,
+  },
+  chatBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   }
 });
 

@@ -6,6 +6,7 @@ const walletSchema = new mongoose.Schema({
   ownerType: { type: String, enum: ['driver', 'partner', 'admin', 'User'], required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Legacy field to satisfy MongoDB unique index
   balance: { type: Number, default: 0 },
+  negativeSince: { type: Date, default: null },
   updatedAt: { type: Date, default: Date.now }
 });
 

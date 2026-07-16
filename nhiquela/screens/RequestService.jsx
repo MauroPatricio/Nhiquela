@@ -1167,21 +1167,25 @@ export default function RequestServiceSimple() {
             <View style={{ marginTop: 16 }}>
 
               {/* Toggle Imediato / Agendar */}
-              <Text style={[styles.label, { marginBottom: 8 }]}>Quando pretende o servico?</Text>
-              <View style={{ flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#A855F7', marginBottom: 16 }}>
-                <TouchableOpacity
-                  style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, !isScheduled && { backgroundColor: '#7F00FF' }]}
-                  onPress={() => { setIsScheduled(false); setScheduledConfirmed(false); }}
-                >
-                  <Text style={{ color: !isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Imediato</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, isScheduled && { backgroundColor: '#7F00FF' }]}
-                  onPress={() => setIsScheduled(true)}
-                >
-                  <Text style={{ color: isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Agendar</Text>
-                </TouchableOpacity>
-              </View>
+              {false && (
+                <>
+                  <Text style={[styles.label, { marginBottom: 8 }]}>Quando pretende o servico?</Text>
+                  <View style={{ flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#A855F7', marginBottom: 16 }}>
+                    <TouchableOpacity
+                      style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, !isScheduled && { backgroundColor: '#7F00FF' }]}
+                      onPress={() => { setIsScheduled(false); setScheduledConfirmed(false); }}
+                    >
+                      <Text style={{ color: !isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Imediato</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, isScheduled && { backgroundColor: '#7F00FF' }]}
+                      onPress={() => setIsScheduled(true)}
+                    >
+                      <Text style={{ color: isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Agendar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
 
               {/* Seletor de Data e Hora (apenas quando Agendar selecionado) */}
               {isScheduled && (

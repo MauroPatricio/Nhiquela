@@ -49,6 +49,7 @@ import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import TripChatScreen from './screens/TripChatScreen';
 
 // --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
@@ -322,6 +323,11 @@ export default function App() {
                 <Stack.Screen name="RequestService" component={RequestServiceScreen} />
                 <Stack.Screen name="Favorite" component={Favorite} />
                 <Stack.Screen name="DocumentUploadScreen" component={DocumentUploadScreen} />
+                <Stack.Screen
+                  name="TripChatScreen"
+                  component={TripChatScreen}
+                  options={{ headerShown: true, title: 'Chat da Viagem', headerBackTitle: 'Voltar' }}
+                />
               </Stack.Navigator>
             </NavigationContainer>
 

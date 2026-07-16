@@ -1,5 +1,5 @@
 // navigation/AppNavigator.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES, RootStackParamList } from "./routes";
@@ -7,8 +7,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRef } from "react";
+import { useRef as useImportedRef } from "react";
 import api from "../api/apiConfig";
+import websocketService from "../services/websocketService";
 
 import HomeScreen from "../screens/HomeScreen";
 import TripsScreen from "../screens/TripScreen";
@@ -18,6 +19,8 @@ import LoginScreen from "../screens/LoginScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
 import WalletScreen from "../screens/WalletScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
+import BanAppealScreen from "../screens/BanAppealScreen";
+import TripChatScreen from "../screens/TripChatScreen";
 
 import BottomMenu from "../components/BottomMenu";
 import RegisterDriverScreen from "../screens/RegisterDriverScreen";
@@ -175,9 +178,25 @@ function LoadingScreen() {
 }
 
 export default function AppNavigator() {
-  const { isAuthenticated, isLoadingSession } = useAuth();
+  const { isAuthenticated, isLoadingSession, user, logout } = useAuth();
   const [hasAcceptedPolicies, setHasAcceptedPolicies] = useState<boolean | null>(null);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const navigationRef = useRef<any>(null);
+
+  // 🚫 Ouvir evento de ban em tempo real e forçar logout
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleBan = async (data: any) => {
+      console.log('🚫 [AppNavigator] Conta banida:', data);
+      await logout(); // Apaga sessão local completamente
+    };
+
+    websocketService.on('account_banned', handleBan);
+    return () => {
+      websocketService.off('account_banned', handleBan);
+    };
+  }, [isAuthenticated, logout]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -231,6 +250,20 @@ export default function AppNavigator() {
 
       {/* Registo de conta — acessível antes do login */}
       <Stack.Screen name={ROUTES.REGISTER_USER} component={RegisterDriverScreen} />
+
+      {/* Apelo de bloqueio — acessível pós-login para motoristas banidos */}
+      <Stack.Screen
+        name={ROUTES.BAN_APPEAL}
+        component={BanAppealScreen}
+        options={{ headerShown: true, title: 'Justificação de Conta', headerBackVisible: false }}
+      />
+
+      {/* Chat de Viagem — acessível durante viagem ativa */}
+      <Stack.Screen
+        name={ROUTES.TRIP_CHAT}
+        component={TripChatScreen}
+        options={{ headerShown: true, title: 'Chat da Viagem' }}
+      />
     </Stack.Navigator>
   );
 }

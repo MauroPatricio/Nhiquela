@@ -34,11 +34,13 @@ import { dirname } from 'path';
 import { readFile } from 'fs/promises';
 import './firebase.js';
 
-// **Nova importa��o**
+// **Nova importao**
 import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
 import serviceRouter from './routes/serviceRoutes.js';
 import homeRouter from './routes/homeRoutes.js';
 import statsRouter from './routes/statsRoutes.js';
+import adminOpsRoutes from './routes/adminOpsRoutes.js';
+import NotificationRoutesNhabanga from './routes/notificationRoutesNhabanga.js';
 import providerRouter from './routes/providerRoutes.js';
 import User from './models/UserModel.js';
 import providerTypeRoutes from './routes/providerTypeRoutes.js';
@@ -62,7 +64,9 @@ import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 // WORKERS (Intelligent Scheduling)
 import { startSchedulingEngine } from './workers/schedulingEngine.js';
 import { startTripValidator } from './workers/tripValidator.js';
+import { startFraudEngine } from './workers/fraudEngine.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
+import tripChatRouter from './routes/tripChatRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
 import { initScheduledOrderService } from './services/scheduledOrderService.js';
@@ -87,11 +91,11 @@ mongoose
   });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('?? MongoDB desconectado. O Mongoose tentar� reconectar automaticamente...');
+  console.log('?? MongoDB desconectado. O Mongoose tentar reconectar automaticamente...');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.log('? ERRO MongoDB na conex�o ativa:', err.message);
+  console.log('? ERRO MongoDB na conexo ativa:', err.message);
 });
 
 // **Inicializando Express**
@@ -104,7 +108,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Prote��es b�sicas de seguran�a (Helmet)
+// Protees bsicas de segurana (Helmet)
 // Protees bsicas de segurana (Helmet)
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domnios
@@ -135,6 +139,7 @@ import pricingRoutes from './routes/pricingRoutes.js';
 import serviceCatalogRoutes from './routes/serviceCatalogRoutes.js';
 import serviceRequestRoutes from './routes/serviceRequestRoutes.js';
 import roleRouter from './routes/roleRoutes.js';
+import supportRouter from './routes/supportRoutes.js';
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -154,6 +159,7 @@ app.use('/api/service-requests', requestServiceRoutes);
 app.use('/api/providers', providerRouter);
 
 app.use('/api/provinces', provinceRoutes);
+app.use('/api/admin-ops', adminOpsRoutes);
 app.use('/api/document-types', documentTypeRoutes);
 app.use('/api/quality-types', qualityTypeRouter);
 app.use('/api/condition-status', conditionStatusRouter);
@@ -167,6 +173,7 @@ app.use('/api/request-service', requestServiceRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
 app.use('/api/establishment-types', establishmentTypeRoutes);
+app.use('/api/trip-chat', tripChatRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/payments-emola', paymentRouterEmola);
 app.use('/api/wallet', walletRouter);
@@ -186,8 +193,9 @@ app.use('/api/incidents', incidentRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/pricing', pricingRoutes);
-app.use('/api/roles', roleRouter);
 app.use('/api/routing', routingRoutes);
+app.use('/api/support', supportRouter);
+app.use('/api/roles', roleRouter);
 app.use('/api/system/app-config', appConfigRouter);
 
 // 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
@@ -309,13 +317,21 @@ if (process.env.NODE_ENV !== 'test') {
   });
 
   // Tracking Rooms
-  socket.on('joinRoom', (data) => {
-    if (data && data.orderId) {
-      const roomName = `order_${data.orderId}`;
-      socket.join(roomName);
-      console.log(`Socket ${socket.id} joined room ${roomName}`);
-    }
-  });
+    socket.on('joinRoom', (data) => {
+      if (data && data.orderId) {
+        const roomName = `order_${data.orderId}`;
+        socket.join(roomName);
+        console.log(`Socket ${socket.id} joined room ${roomName}`);
+      }
+    });
+    
+    socket.on('join_trip_chat', (data) => {
+      if (data && data.tripId) {
+        const roomName = `trip_${data.tripId}`;
+        socket.join(roomName);
+        console.log(`Socket ${socket.id} joined trip chat ${roomName}`);
+      }
+    });
 
   socket.on('leaveRoom', (data) => {
     if (data && data.orderId) {
@@ -498,8 +514,10 @@ if (process.env.NODE_ENV !== 'test') {
     
     // Iniciar cron workers do Scheduling Engine
     const appIo = app.get('io');
+    // Iniciar serviços em background
     startSchedulingEngine(appIo, users);
     startTripValidator(appIo, users);
+    startFraudEngine();
     
     // Processar pedidos em fallback
     setInterval(async () => {
