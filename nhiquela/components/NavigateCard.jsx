@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";
+import { EXPO_GOOGLE_MAPS_APIKEY, EXPO_PUBLIC_GOOGLE_PLACES_APIKEY } from "@env";
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { TextInput } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
@@ -25,7 +25,7 @@ const NavigateCard = () => {
        minLength={2}
        enablePoweredByContainer={false}
        query={{
-        key: EXPO_GOOGLE_MAPS_APIKEY,
+        key: EXPO_PUBLIC_GOOGLE_PLACES_APIKEY,
         language: 'pt'
        }}
        onPress={(data, details=null)=>{

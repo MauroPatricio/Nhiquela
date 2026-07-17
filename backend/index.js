@@ -100,6 +100,10 @@ mongoose.connection.on('error', (err) => {
 
 // **Inicializando Express**
 const app = express();
+
+// Confia no proxy para que express-rate-limit funcione corretamente
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
@@ -231,18 +235,17 @@ app.use((err, req, res, next) => {
   res.status(500).send({ message: err.message });
 });
 
-let users = [];
 const httpServer = http.Server(app);
+let pubClient;
 
 // Iniciar serviço de agendamento automático de pedidos
 if (process.env.NODE_ENV !== 'test') {
   const io = new Server(httpServer, { cors: { origin: '*' } });
   app.set('io', io);
-  app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
   // Redis Adapter Configuration
   try {
-    const pubClient = createClient({ 
+    pubClient = createClient({ 
       url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
       socket: { reconnectStrategy: false }
     });
@@ -261,58 +264,61 @@ if (process.env.NODE_ENV !== 'test') {
   initScheduledOrderService(io);
   
   io.on('connection', (socket) => {
-  socket.on('disconnect', () => {
-    const user = users.find((x) => x.socketId === socket.id);
-    if (user) {
-      user.online = false;
-      console.log('Offline', user.name);
-      // PREVENT MEMORY LEAK: Remove user from global array after 5 mins if not reconnected
-      setTimeout(() => {
-        const checkUser = users.find((x) => x.socketId === socket.id);
-        if (checkUser && !checkUser.online) {
-          const index = users.findIndex((x) => x.socketId === socket.id);
-          if (index !== -1) users.splice(index, 1);
+  socket.on('disconnect', async () => {
+    try {
+      if (pubClient && pubClient.isOpen) {
+        const userStr = await pubClient.hGet('active_users', socket.id);
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          console.log('Offline', user.name);
+          await pubClient.hDel('active_users', socket.id);
+          
+          const allUsersObj = await pubClient.hGetAll('active_users');
+          const admin = Object.values(allUsersObj).map(u => JSON.parse(u)).find(x => x.isAdmin);
+          if (admin) {
+            io.to(admin.socketId).emit('updateUser', { ...user, online: false });
+          }
         }
-      }, 300000);
-      const admin = users.find((x) => x.isAdmin && x.online);
-      if (admin) {
-        io.to(admin.socketId).emit('updateUser', user);
       }
+    } catch(err) {
+      console.log('Redis disconnect error', err);
     }
   });
 
-  socket.on('onLogin', (user) => {
-    const updatedUser = {
-      ...user,
-      online: true,
-      socketId: socket.id,
-      messages: [],
-    };
-    const existUser = users.find((x) => x._id === updatedUser._id);
-    if (existUser) {
-      existUser.socketId = socket.id;
-      existUser.online = true;
-    } else {
-      users.push(updatedUser);
-    }
-    console.log('Online', user.name);
+  socket.on('onLogin', async (user) => {
+    try {
+      const updatedUser = {
+        ...user,
+        online: true,
+        socketId: socket.id,
+        messages: [],
+      };
+      console.log('Online', user.name);
 
-    // ?? Motoristas entram automaticamente na sua sala pessoal
-    // Isso permite que o admin envie notifica��es direcionadas (ex: aprova��o de conta)
-    if (user._id && user.isDeliveryMan) {
-      const driverRoom = `driver_${user._id}`;
-      socket.join(driverRoom);
-      console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
-    } else {
-      console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
-    }
+      if (user._id && user.isDeliveryMan) {
+        const driverRoom = `driver_${user._id}`;
+        socket.join(driverRoom);
+        console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
+      } else {
+        console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
+      }
 
-    const admin = users.find((x) => x.isAdmin && x.online);
-    if (admin) {
-      io.to(admin.socketId).emit('updateUser', updatedUser);
-    }
-    if (updatedUser.isAdmin) {
-      io.to(updatedUser.socketId).emit('listUsers', users);
+      if (pubClient && pubClient.isOpen) {
+        await pubClient.hSet('active_users', socket.id, JSON.stringify(updatedUser));
+        
+        const allUsersObj = await pubClient.hGetAll('active_users');
+        const activeUsers = Object.values(allUsersObj).map(u => JSON.parse(u));
+        const admin = activeUsers.find(x => x.isAdmin);
+        
+        if (admin) {
+          io.to(admin.socketId).emit('updateUser', updatedUser);
+        }
+        if (updatedUser.isAdmin) {
+          io.to(updatedUser.socketId).emit('listUsers', activeUsers);
+        }
+      }
+    } catch(err) {
+      console.log('Redis onLogin error', err);
     }
   });
 
@@ -347,11 +353,14 @@ if (process.env.NODE_ENV !== 'test') {
   // Alta Performance: Receber localizacao do motorista via WebSocket
   socket.on('update_location', async (data) => {
     try {
-      console.log('update_location recebido:', data);
       const { driverId, orderId, latitude, longitude, heading, speed } = data;
       if (driverId && latitude && longitude) {
         const now = Date.now();
         const lastUpdate = locationUpdateCache.get(driverId) || 0;
+
+        if (pubClient && pubClient.isOpen) {
+           await pubClient.set(`driver_location:${driverId}`, JSON.stringify(data), { EX: 300 });
+        }
         
         // Debounce: Apenas escreve na Base de Dados a cada 15 segundos
         if (now - lastUpdate > 15000) {

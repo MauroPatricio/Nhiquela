@@ -10,17 +10,14 @@ import { jest } from '@jest/globals';
 dotenv.config();
 
 // Mocks
-jest.mock('node-cron', () => {
-  return {
-    schedule: jest.fn(),
-  };
-});
+jest.spyOn(cron, 'schedule').mockImplementation(() => ({ start: jest.fn(), stop: jest.fn() }));
 
 describe('Fluxo de Pedidos Agendados (Cliente -> Motorista)', () => {
   let mockIo;
   let mockEmit;
   let testClient;
   let testScheduledRequest;
+  let cronCallback;
 
   beforeAll(async () => {
     await connectTestDB();
@@ -66,6 +63,12 @@ describe('Fluxo de Pedidos Agendados (Cliente -> Motorista)', () => {
         name: testClient.name,
         phoneNumber: testClient.phoneNumber,
       },
+      origin: 'Ponto A',
+      destination: 'Ponto B',
+      deliverCity: 'Maputo',
+      transportType: 'Carro',
+      name: testClient.name,
+      phoneNumber: testClient.phoneNumber,
       pickupAddress: { address: 'Ponto A', lat: -25.969, lng: 32.573 },
       deliveryAddress: { address: 'Ponto B', lat: -25.970, lng: 32.574 },
     });
@@ -81,7 +84,7 @@ describe('Fluxo de Pedidos Agendados (Cliente -> Motorista)', () => {
     startSchedulingEngine(mockIo, []);
 
     // Apanhar a callback que foi passada para o cron.schedule
-    const cronCallback = cron.schedule.mock.calls[0][1];
+    cronCallback = cron.schedule.mock.calls[0][1];
     
     // Correr a lógica da cron 1 vez (como se passasse um minuto)
     await cronCallback();
@@ -114,8 +117,7 @@ describe('Fluxo de Pedidos Agendados (Cliente -> Motorista)', () => {
     };
     global.Date.now = () => mockNow.getTime();
 
-    // Obter o cron callback e executar
-    const cronCallback = cron.schedule.mock.calls[0][1];
+    // Executar a callback gravada anteriormente
     await cronCallback();
 
     // Restaurar Data
