@@ -19,7 +19,7 @@ export default function AdminLayout() {
     if (userInfo && userInfo.isAdmin) {
       const fetchBadges = async () => {
         try {
-          const { data } = await api.get('/api/stats/admin-badges', {
+          const { data } = await api.get('/stats/admin-badges', {
             headers: { Authorization: `Bearer ${userInfo.token}` }
           });
           setBadges(data);
@@ -106,11 +106,13 @@ export default function AdminLayout() {
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
+    // { name: 'Live Map Ops', path: '/admin/live-map', icon: faMapMarkerAlt },
     { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog },
     { name: 'Papéis (Roles)', path: '/admin/roles', icon: faShieldAlt },
     { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart, badge: badges.pendingOrders },
     { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
     { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
+    { name: 'Validação KYC', path: '/admin/kyc', icon: faShieldAlt },
     { name: 'Tipos Estabel.', path: '/admin/establishment-types', icon: faBuilding },
     { name: 'Classificações Prestador', path: '/admin/provider-classifications', icon: faTags },
     { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
@@ -128,6 +130,7 @@ export default function AdminLayout() {
     { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },
     { name: 'Cores de Veículos', path: '/admin/vehicle-colors', icon: faPalette },
     { name: 'Incidentes', path: '/admin/incidents', icon: faExclamationTriangle },
+    { name: 'Suporte & Tickets', path: '/admin/support', icon: faFileAlt },
     { name: 'Subscrições', path: '/admin/subscriptions', icon: faCrown },
     { name: 'Push Notificações', path: '/admin/push-notifications', icon: faBell },
     { name: 'Banners & Marketing', path: '/admin/marketing', icon: faBullhorn },

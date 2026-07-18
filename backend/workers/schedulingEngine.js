@@ -16,7 +16,7 @@ const getSearchWindowMinutes = (goodType) => {
   if (type.includes('mototáxi') || type.includes('mototaxi')) return 10; // 10 minutos
   
   // Deliver e Padrão
-  return 15; // 15 minutos
+  return 45; // 45 minutos
 };
 
 export const startSchedulingEngine = (io, users) => {

@@ -96,6 +96,18 @@ class WebSocketService {
       this.emit('no_driver_found', data);
     });
 
+    // 🚫 Admin bloqueou esta conta instantaneamente
+    this.socket.on('account_banned', (data) => {
+      console.log('🚫 [WebSocket] Conta banida pelo Admin:', data);
+      this.emit('account_banned', data);
+    });
+
+    // ✅ Admin desbloqueou a conta
+    this.socket.on('account_unbanned', (data) => {
+      console.log('✅ [WebSocket] Conta desbloqueada pelo Admin:', data);
+      this.emit('account_unbanned', data);
+    });
+
     this.socket.on('error', (error) => {
       console.error('❌ Erro WebSocket:', error);
       this.emit('error', error);

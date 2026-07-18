@@ -11,6 +11,33 @@ const api = axios.create({
   baseURL,
 });
 
+// ────────────────────────────────────────────────────────────
+// Request Interceptor: Injectar token automaticamente
+// ────────────────────────────────────────────────────────────
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      // O cliente guarda o utilizador em 'userData'
+      const userDataString = await AsyncStorage.getItem('userData');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        const token = userData?.token;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (e) {
+      // Silencioso — não bloquear a chamada
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ────────────────────────────────────────────────────────────
+// Response Interceptor: Gestão global de erros
+// ────────────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {

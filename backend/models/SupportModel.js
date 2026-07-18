@@ -1,4 +1,4 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 const supportSchema = new mongoose.Schema(
   {
@@ -26,6 +26,14 @@ const supportSchema = new mongoose.Schema(
       enum: ['low', 'medium', 'high', 'urgent'],
       default: 'medium',
     },
+
+    replies: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        message: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
 
     resolutionNotes: { type: String },
     resolvedAt: { type: Date },

@@ -23,11 +23,19 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const userInfoString = await AsyncStorage.getItem('userInfo');
+      // AuthContext guarda o utilizador em '@app:user' — ler a partir da chave correcta
+      const userInfoString = await AsyncStorage.getItem('@app:user');
       if (userInfoString) {
         const userInfo = JSON.parse(userInfoString);
         if (userInfo.token) {
           config.headers.Authorization = `Bearer ${userInfo.token}`;
+        }
+      }
+      // Fallback: tentar chave legada 'authToken' usada nalguns fluxos
+      if (!config.headers.Authorization) {
+        const legacyToken = await AsyncStorage.getItem('authToken');
+        if (legacyToken) {
+          config.headers.Authorization = `Bearer ${legacyToken}`;
         }
       }
     } catch (error) {

@@ -374,6 +374,35 @@ export default function DriversScreen() {
 
   };
 
+  const handleInstantBan = async () => {
+    if (!selectedDriver) return;
+    const reason = window.prompt("Motivo do bloqueio instantâneo?");
+    if (!reason) return;
+
+    try {
+      await api.post(`/admin-ops/driver/${selectedDriver._id || selectedDriver.id}/instant-ban`, { reason });
+      toast.success('Motorista bloqueado com sucesso!');
+      setShowDetailsModal(false);
+      fetchDrivers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Erro ao bloquear motorista.');
+    }
+  };
+
+  const handleUnban = async () => {
+    if (!selectedDriver) return;
+    if (window.confirm("Pretende aceitar a justificação e readmitir o motorista?")) {
+      try {
+        await api.post(`/admin-ops/driver/${selectedDriver._id || selectedDriver.id}/unban`);
+        toast.success('Motorista readmitido com sucesso!');
+        setShowDetailsModal(false);
+        fetchDrivers();
+      } catch (error) {
+        toast.error('Erro ao readmitir motorista.');
+      }
+    }
+  };
+
 
 
   return (
@@ -530,16 +559,35 @@ export default function DriversScreen() {
 
                       <div className="d-flex flex-column align-items-start">
 
-                        <span className={`badge rounded-pill px-3 py-2 mb-1 ${(driver.status || 'Pendente') === 'Disponível' ? 'bg-success' : (driver.status || 'Pendente') === 'Em Entrega' ? 'bg-info' : (driver.status || 'Pendente') === 'Pendente' ? 'bg-warning text-dark' : (driver.status || 'Pendente') === 'Rejeitado' ? 'bg-danger' : 'bg-secondary'}`}>
+                        {/* Badge de BANIDO — destaque máximo para ação imediata */}
+                        {driver.isBanned && (
+                          <span className="badge rounded-pill px-3 py-2 mb-1 bg-danger d-flex align-items-center gap-1" title={driver.banReason || 'Conta bloqueada'}>
+                            <FontAwesomeIcon icon={faExclamationTriangle} />
+                            &nbsp;BANIDO
+                          </span>
+                        )}
+
+                        {/* Badge de Status Normal */}
+                        {!driver.isBanned && (
+                          <span className={`badge rounded-pill px-3 py-2 mb-1 ${(driver.status || 'Pendente') === 'Disponível' ? 'bg-success' : (driver.status || 'Pendente') === 'Em Entrega' ? 'bg-info' : (driver.status || 'Pendente') === 'Pendente' ? 'bg-warning text-dark' : (driver.status || 'Pendente') === 'Rejeitado' ? 'bg-danger' : 'bg-secondary'}`}>
 
                           {driver.status || 'Pendente'}
 
                         </span>
+                        )}
 
-                        {(!driver.status || driver.status === 'Pendente') && (
+                        {(!driver.status || driver.status === 'Pendente') && !driver.isBanned && (
 
                           <small className="text-danger fw-bold"><FontAwesomeIcon icon={faExclamationTriangle} className="me-1" /> Docs pendentes</small>
 
+                        )}
+
+                        {/* Indicador de justificação pendente */}
+                        {driver.isBanned && driver.banAppealJustification && (
+                          <small className="text-warning fw-bold mt-1">
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="me-1" />
+                            Justificação recebida
+                          </small>
                         )}
 
                       </div>
@@ -1018,6 +1066,23 @@ export default function DriversScreen() {
 
 
 
+              </div>
+
+            {selectedDriver.isBanned && (
+              <div className="mb-4 p-3 rounded-4 border border-danger bg-danger bg-opacity-10">
+                <h6 className="fw-bold text-danger mb-2"><FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />Motorista Bloqueado (Instant Ban)</h6>
+                <div className="mb-2"><strong>Motivo do Bloqueio:</strong> {selectedDriver.banReason}</div>
+                {selectedDriver.banAppealJustification ? (
+                  <div className="p-3 bg-white rounded border border-warning shadow-sm">
+                    <div className="fw-bold text-warning mb-1">Justificação do Motorista (Apelo):</div>
+                    <div className="fst-italic">"{selectedDriver.banAppealJustification}"</div>
+                  </div>
+                ) : (
+                  <div className="text-muted small fst-italic">O motorista ainda não submeteu justificação.</div>
+                )}
+              </div>
+            )}
+
               <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">Galeria de Documentos Submetidos (App)</h6>
 
               <div className="row g-3">
@@ -1200,6 +1265,22 @@ export default function DriversScreen() {
 
                   )}
 
+                  {!selectedDriver.isBanned ? (
+                    <button
+                      className="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm"
+                      onClick={handleInstantBan}
+                    >
+                      <FontAwesomeIcon icon={faShieldAlt} className="me-2" /> Instant Ban
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm"
+                      onClick={handleUnban}
+                    >
+                      <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Readmitir (Aceitar Justificação)
+                    </button>
+                  )}
+
                 </div>
 
               </div>
@@ -1207,8 +1288,6 @@ export default function DriversScreen() {
             </div>
 
           </div>
-
-        </div>
 
       )}
 
