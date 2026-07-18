@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity, Modal } from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity, Modal, Linking, Image } from "react-native";
 import TripMap from "../components/TripMap";
 import TripControls from "../components/TripControls";
 import { getCurrentLocation, updateDeliverymanLocation } from "../services/driverLocationService";
@@ -27,6 +27,7 @@ export default function MapScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [startingTrip, setStartingTrip] = useState(false);
+  const [showInfoCard, setShowInfoCard] = useState(true);
   const [showTripStartedModal, setShowTripStartedModal] = useState(false);
   const [showNoLocationModal, setShowNoLocationModal] = useState(false);
   const [showFinishConfirmationModal, setShowFinishConfirmationModal] = useState(false);
@@ -495,64 +496,78 @@ export default function MapScreen({ route, navigation }: any) {
 
       {/* 🔥 INFO CARD DO PEDIDO (FLUTUANTE NO TOPO) */}
       {tripData && (
-        <View style={styles.floatingInfoCard}>
-          <View style={styles.infoRow}>
-            <Ionicons name="person-circle" size={28} color="#3B82F6" />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.name || tripData.user?.name || 'Cliente'}</Text>
-              <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.phoneNumber || tripData.user?.phone || 'Telefone não disponível'}</Text>
-            </View>
-            {(tripData.phoneNumber || tripData.user?.phone) && (
-              <TouchableOpacity 
-                style={styles.callButton}
-                onPress={() => {
-                  const phone = tripData.phoneNumber || tripData.user?.phone;
-                  if (phone) Linking.openURL(`tel:${phone}`);
-                }}
-              >
-                <Ionicons name="call" size={18} color="#FFF" />
-              </TouchableOpacity>
-            )}
-          </View>
+        <View style={showInfoCard ? [styles.floatingInfoCard, { paddingBottom: 10 }] : styles.hiddenInfoCardButton}>
+          <TouchableOpacity 
+            onPress={() => setShowInfoCard(!showInfoCard)}
+            style={showInfoCard ? { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 4 } : {}}
+          >
+            <Ionicons name={showInfoCard ? "eye-off" : "eye"} size={26} color="#64748B" />
+          </TouchableOpacity>
           
-          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
-          
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              <Ionicons name="location" size={16} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
-              <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
-                <Text style={{ fontWeight: '600' }}>Recolha: </Text>
-                {tripData.origin || 'Não especificada'}
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              <Ionicons name="flag" size={16} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
-              <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
-                <Text style={{ fontWeight: '600' }}>Destino: </Text>
-                {tripData.destination || 'Não especificado'}
-              </Text>
-            </View>
-          </View>
+          {showInfoCard && (
+            <>
+              <View style={styles.infoRow}>
+                {tripData.passengerImage ? (
+                  <Image source={{ uri: tripData.passengerImage }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                ) : (
+                  <Ionicons name="person-circle" size={44} color="#3B82F6" />
+                )}
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.passenger || 'Cliente'}</Text>
+                  <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.passengerPhone || 'Telefone não disponível'}</Text>
+                </View>
+                {tripData.passengerPhone && tripData.passengerPhone !== "Não disponível" && (
+                  <TouchableOpacity 
+                    style={styles.callButton}
+                    onPress={() => {
+                      if (tripData.passengerPhone) Linking.openURL(`tel:${tripData.passengerPhone}`);
+                    }}
+                  >
+                    <Ionicons name="call" size={18} color="#FFF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+              
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Ionicons name="location" size={16} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
+                  <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                    <Text style={{ fontWeight: '600' }}>Recolha: </Text>
+                    {tripData.pickup || 'Não especificada'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Ionicons name="flag" size={16} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
+                  <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                    <Text style={{ fontWeight: '600' }}>Destino: </Text>
+                    {tripData.destination || 'Não especificado'}
+                  </Text>
+                </View>
+              </View>
 
-          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+              <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="card" size={16} color="#64748B" style={{ marginRight: 6 }} />
-              <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.paymentMethod || 'Dinheiro'}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="cube" size={16} color="#64748B" style={{ marginRight: 6, marginLeft: 12 }} />
-              <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.goodType || tripData.service?.name || 'Serviço Padrão'}</Text>
-            </View>
-          </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="card" size={16} color="#64748B" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.paymentMethod || 'Dinheiro'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="cube" size={16} color="#64748B" style={{ marginRight: 6, marginLeft: 12 }} />
+                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.goodType || tripData.service?.name || 'Serviço Padrão'}</Text>
+                </View>
+              </View>
 
-          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
-          
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 16, color: '#1E293B', fontWeight: '700' }}>Preço Total:</Text>
-            <Text style={{ fontSize: 18, color: '#059669', fontWeight: '800' }}>{tripData.deliveryPrice || tripData.price || '0'} Mt</Text>
-          </View>
+              <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: '#1E293B', fontWeight: '700' }}>Preço Total:</Text>
+                <Text style={{ fontSize: 18, color: '#059669', fontWeight: '800' }}>{tripData.reward ? tripData.reward.replace('MZN ', '') : '0'} MT</Text>
+              </View>
+            </>
+          )}
         </View>
       )}
 
@@ -787,8 +802,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
-    elevation: 8,
-    zIndex: 10,
+    elevation: 6,
+    zIndex: 99,
+  },
+  hiddenInfoCardButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    padding: 12,
+    zIndex: 99,
   },
   infoRow: {
     flexDirection: 'row',

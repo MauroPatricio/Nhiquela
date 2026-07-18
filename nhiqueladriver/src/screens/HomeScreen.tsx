@@ -1331,12 +1331,12 @@ const proceedStartTrip = async (trip: Trip) => {
           <View style={styles.routeHeader}>
             <Ionicons name="navigate-outline" size={28} color="#FFF" />
             <View style={styles.routeText}>
-              <Text style={styles.routeLabel}>ðŸŽ¯ EM ACTIVIDADE</Text>
+              <Text style={styles.routeLabel}>🎯 EM ACTIVIDADE</Text>
               <Text style={styles.routeInfo}>
-                {routeSummary.pickup} â†’ {routeSummary.destination}
+                {routeSummary.pickup} ➔ {routeSummary.destination}
               </Text>
               <Text style={styles.routeDetails}>
-                {routeSummary.distance} â€¢ {routeSummary.time} â€¢ {routeSummary.reward} â€¢ {routeSummary.paymentMethod}
+                {routeSummary.distance} • {routeSummary.time} • {routeSummary.reward} • {routeSummary.paymentMethod}
               </Text>
             </View>
           </View>
@@ -1635,7 +1635,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </View>
 
             <Text style={{ fontSize: 22, fontWeight: '900', color: '#065F46', marginBottom: 10, textAlign: 'center' }}>
-              Viagem Aceite! ðŸŽ‰
+              Viagem Aceite! 🎉
             </Text>
 
             <Text style={{ fontSize: 14, color: '#374151', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
@@ -1668,7 +1668,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ðŸš« MODAL PREMIUM â€” PEDIDO ACEITE POR OUTRO MOTORISTA */}
+      {/* 🚫 MODAL PREMIUM — PEDIDO ACEITE POR OUTRO MOTORISTA */}
       <Modal visible={showOrderTakenModal} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(17,24,39,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
@@ -1687,7 +1687,7 @@ const proceedStartTrip = async (trip: Trip) => {
             </Text>
 
             <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
-              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitações!{' '}ðŸš€
+              Outro motorista aceitou este pedido antes de si. O pedido foi removido da sua lista.{'\n\n'}Fique atento para novas solicitações!{' '}🚀
             </Text>
 
             <TouchableOpacity
@@ -1771,7 +1771,7 @@ const proceedStartTrip = async (trip: Trip) => {
               <Ionicons name="compass-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Viagem Iniciada! ðŸš€</Text>
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
             
             <Text style={styles.premiumModalMessage}>
               A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
@@ -1805,7 +1805,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÇÃO NECESSÁRIA */}
+      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO NECESSÁRIA */}
       <Modal
         visible={showLocationRequiredModal}
         transparent={true}

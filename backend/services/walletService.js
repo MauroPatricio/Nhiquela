@@ -91,6 +91,12 @@ export const debitCommission = async (driverId, amount) => {
     wallet.balance = Math.max(0, wallet.balance - amount);
   }
   
+  if (wallet.balance < 0 && !wallet.negativeSince) {
+    wallet.negativeSince = new Date();
+  } else if (wallet.balance >= 0) {
+    wallet.negativeSince = null;
+  }
+  
   await wallet.save();
 
   // If balance falls below the credit limit (or min balance if no credit allowed), suspend driver
@@ -115,6 +121,9 @@ export const creditWallet = async (driverId, amount) => {
   const config = await getFinancialConfig();
 
   wallet.balance += amount;
+  if (wallet.balance >= 0) {
+    wallet.negativeSince = null;
+  }
   await wallet.save();
 
   // Reactivate driver if balance is now sufficient
@@ -271,6 +280,11 @@ export const debitDriverCommissionWithSession = async (driverId, amount, descrip
 
   // Deduct amount (allow negative balance)
   wallet.balance -= amount;
+  if (wallet.balance < 0 && !wallet.negativeSince) {
+    wallet.negativeSince = new Date();
+  } else if (wallet.balance >= 0) {
+    wallet.negativeSince = null;
+  }
   await wallet.save({ session });
 
   // Record transaction
@@ -310,6 +324,9 @@ export const refundDriverCommissionWithSession = async (driverId, amount, descri
 
   // Add amount back to wallet
   wallet.balance += amount;
+  if (wallet.balance >= 0) {
+    wallet.negativeSince = null;
+  }
   await wallet.save({ session });
 
   // Record transaction

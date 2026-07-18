@@ -34,11 +34,13 @@ import { dirname } from 'path';
 import { readFile } from 'fs/promises';
 import './firebase.js';
 
-// **Nova importa��o**
+// **Nova importao**
 import tipoEstabelecimentoRoutes from './routes/tipoEstabelecimentoRoutes.js';
 import serviceRouter from './routes/serviceRoutes.js';
 import homeRouter from './routes/homeRoutes.js';
 import statsRouter from './routes/statsRoutes.js';
+import adminOpsRoutes from './routes/adminOpsRoutes.js';
+import NotificationRoutesNhabanga from './routes/notificationRoutesNhabanga.js';
 import providerRouter from './routes/providerRoutes.js';
 import User from './models/UserModel.js';
 import providerTypeRoutes from './routes/providerTypeRoutes.js';
@@ -62,7 +64,9 @@ import paymentMethodRoutes from './routes/paymentMethodRoutes.js';
 // WORKERS (Intelligent Scheduling)
 import { startSchedulingEngine } from './workers/schedulingEngine.js';
 import { startTripValidator } from './workers/tripValidator.js';
+import { startFraudEngine } from './workers/fraudEngine.js';
 import processingFeeRoutes from './routes/processingFeeRoutes.js';
+import tripChatRouter from './routes/tripChatRoutes.js';
 import routingRoutes from './routes/routingRoutes.js';
 import appConfigRouter from './routes/appConfigRoutes.js';
 import { initScheduledOrderService } from './services/scheduledOrderService.js';
@@ -87,15 +91,19 @@ mongoose
   });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('?? MongoDB desconectado. O Mongoose tentar� reconectar automaticamente...');
+  console.log('?? MongoDB desconectado. O Mongoose tentar reconectar automaticamente...');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.log('? ERRO MongoDB na conex�o ativa:', err.message);
+  console.log('? ERRO MongoDB na conexo ativa:', err.message);
 });
 
 // **Inicializando Express**
 const app = express();
+
+// Confia no proxy para que express-rate-limit funcione corretamente
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
@@ -104,7 +112,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Prote��es b�sicas de seguran�a (Helmet)
+// Protees bsicas de segurana (Helmet)
 // Protees bsicas de segurana (Helmet)
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domnios
@@ -135,6 +143,7 @@ import pricingRoutes from './routes/pricingRoutes.js';
 import serviceCatalogRoutes from './routes/serviceCatalogRoutes.js';
 import serviceRequestRoutes from './routes/serviceRequestRoutes.js';
 import roleRouter from './routes/roleRoutes.js';
+import supportRouter from './routes/supportRoutes.js';
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -154,6 +163,7 @@ app.use('/api/service-requests', requestServiceRoutes);
 app.use('/api/providers', providerRouter);
 
 app.use('/api/provinces', provinceRoutes);
+app.use('/api/admin-ops', adminOpsRoutes);
 app.use('/api/document-types', documentTypeRoutes);
 app.use('/api/quality-types', qualityTypeRouter);
 app.use('/api/condition-status', conditionStatusRouter);
@@ -167,6 +177,7 @@ app.use('/api/request-service', requestServiceRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
 app.use('/api/establishment-types', establishmentTypeRoutes);
+app.use('/api/trip-chat', tripChatRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/payments-emola', paymentRouterEmola);
 app.use('/api/wallet', walletRouter);
@@ -186,8 +197,9 @@ app.use('/api/incidents', incidentRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/pricing', pricingRoutes);
-app.use('/api/roles', roleRouter);
 app.use('/api/routing', routingRoutes);
+app.use('/api/support', supportRouter);
+app.use('/api/roles', roleRouter);
 app.use('/api/system/app-config', appConfigRouter);
 
 // 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
@@ -223,18 +235,17 @@ app.use((err, req, res, next) => {
   res.status(500).send({ message: err.message });
 });
 
-let users = [];
 const httpServer = http.Server(app);
+let pubClient;
 
 // Iniciar serviço de agendamento automático de pedidos
 if (process.env.NODE_ENV !== 'test') {
   const io = new Server(httpServer, { cors: { origin: '*' } });
   app.set('io', io);
-  app.set('users', users); // ← expõe para routes poderem emitir por socketId
 
   // Redis Adapter Configuration
   try {
-    const pubClient = createClient({ 
+    pubClient = createClient({ 
       url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
       socket: { reconnectStrategy: false }
     });
@@ -253,69 +264,80 @@ if (process.env.NODE_ENV !== 'test') {
   initScheduledOrderService(io);
   
   io.on('connection', (socket) => {
-  socket.on('disconnect', () => {
-    const user = users.find((x) => x.socketId === socket.id);
-    if (user) {
-      user.online = false;
-      console.log('Offline', user.name);
-      // PREVENT MEMORY LEAK: Remove user from global array after 5 mins if not reconnected
-      setTimeout(() => {
-        const checkUser = users.find((x) => x.socketId === socket.id);
-        if (checkUser && !checkUser.online) {
-          const index = users.findIndex((x) => x.socketId === socket.id);
-          if (index !== -1) users.splice(index, 1);
+  socket.on('disconnect', async () => {
+    try {
+      if (pubClient && pubClient.isOpen) {
+        const userStr = await pubClient.hGet('active_users', socket.id);
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          console.log('Offline', user.name);
+          await pubClient.hDel('active_users', socket.id);
+          
+          const allUsersObj = await pubClient.hGetAll('active_users');
+          const admin = Object.values(allUsersObj).map(u => JSON.parse(u)).find(x => x.isAdmin);
+          if (admin) {
+            io.to(admin.socketId).emit('updateUser', { ...user, online: false });
+          }
         }
-      }, 300000);
-      const admin = users.find((x) => x.isAdmin && x.online);
-      if (admin) {
-        io.to(admin.socketId).emit('updateUser', user);
       }
+    } catch(err) {
+      console.log('Redis disconnect error', err);
     }
   });
 
-  socket.on('onLogin', (user) => {
-    const updatedUser = {
-      ...user,
-      online: true,
-      socketId: socket.id,
-      messages: [],
-    };
-    const existUser = users.find((x) => x._id === updatedUser._id);
-    if (existUser) {
-      existUser.socketId = socket.id;
-      existUser.online = true;
-    } else {
-      users.push(updatedUser);
-    }
-    console.log('Online', user.name);
+  socket.on('onLogin', async (user) => {
+    try {
+      const updatedUser = {
+        ...user,
+        online: true,
+        socketId: socket.id,
+        messages: [],
+      };
+      console.log('Online', user.name);
 
-    // ?? Motoristas entram automaticamente na sua sala pessoal
-    // Isso permite que o admin envie notifica��es direcionadas (ex: aprova��o de conta)
-    if (user._id && user.isDeliveryMan) {
-      const driverRoom = `driver_${user._id}`;
-      socket.join(driverRoom);
-      console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
-    } else {
-      console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
-    }
+      if (user._id && user.isDeliveryMan) {
+        const driverRoom = `driver_${user._id}`;
+        socket.join(driverRoom);
+        console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
+      } else {
+        console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
+      }
 
-    const admin = users.find((x) => x.isAdmin && x.online);
-    if (admin) {
-      io.to(admin.socketId).emit('updateUser', updatedUser);
-    }
-    if (updatedUser.isAdmin) {
-      io.to(updatedUser.socketId).emit('listUsers', users);
+      if (pubClient && pubClient.isOpen) {
+        await pubClient.hSet('active_users', socket.id, JSON.stringify(updatedUser));
+        
+        const allUsersObj = await pubClient.hGetAll('active_users');
+        const activeUsers = Object.values(allUsersObj).map(u => JSON.parse(u));
+        const admin = activeUsers.find(x => x.isAdmin);
+        
+        if (admin) {
+          io.to(admin.socketId).emit('updateUser', updatedUser);
+        }
+        if (updatedUser.isAdmin) {
+          io.to(updatedUser.socketId).emit('listUsers', activeUsers);
+        }
+      }
+    } catch(err) {
+      console.log('Redis onLogin error', err);
     }
   });
 
   // Tracking Rooms
-  socket.on('joinRoom', (data) => {
-    if (data && data.orderId) {
-      const roomName = `order_${data.orderId}`;
-      socket.join(roomName);
-      console.log(`Socket ${socket.id} joined room ${roomName}`);
-    }
-  });
+    socket.on('joinRoom', (data) => {
+      if (data && data.orderId) {
+        const roomName = `order_${data.orderId}`;
+        socket.join(roomName);
+        console.log(`Socket ${socket.id} joined room ${roomName}`);
+      }
+    });
+    
+    socket.on('join_trip_chat', (data) => {
+      if (data && data.tripId) {
+        const roomName = `trip_${data.tripId}`;
+        socket.join(roomName);
+        console.log(`Socket ${socket.id} joined trip chat ${roomName}`);
+      }
+    });
 
   socket.on('leaveRoom', (data) => {
     if (data && data.orderId) {
@@ -331,11 +353,14 @@ if (process.env.NODE_ENV !== 'test') {
   // Alta Performance: Receber localizacao do motorista via WebSocket
   socket.on('update_location', async (data) => {
     try {
-      console.log('update_location recebido:', data);
       const { driverId, orderId, latitude, longitude, heading, speed } = data;
       if (driverId && latitude && longitude) {
         const now = Date.now();
         const lastUpdate = locationUpdateCache.get(driverId) || 0;
+
+        if (pubClient && pubClient.isOpen) {
+           await pubClient.set(`driver_location:${driverId}`, JSON.stringify(data), { EX: 300 });
+        }
         
         // Debounce: Apenas escreve na Base de Dados a cada 15 segundos
         if (now - lastUpdate > 15000) {
@@ -498,8 +523,10 @@ if (process.env.NODE_ENV !== 'test') {
     
     // Iniciar cron workers do Scheduling Engine
     const appIo = app.get('io');
+    // Iniciar serviços em background
     startSchedulingEngine(appIo, users);
     startTripValidator(appIo, users);
+    startFraudEngine();
     
     // Processar pedidos em fallback
     setInterval(async () => {
