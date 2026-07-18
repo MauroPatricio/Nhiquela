@@ -24,8 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import FlashMessage from "react-native-flash-message";
 import api from "./src/api/apiConfig";
-
-
+import "./src/services/LocationService"; // Define as tarefas de background no escopo global
 
 // 🔗 Referência global de navegação
 export const navigationRef = createNavigationContainerRef();
