@@ -524,8 +524,8 @@ if (process.env.NODE_ENV !== 'test') {
     // Iniciar cron workers do Scheduling Engine
     const appIo = app.get('io');
     // Iniciar serviços em background
-    startSchedulingEngine(appIo, users);
-    startTripValidator(appIo, users);
+    startSchedulingEngine(appIo);
+    startTripValidator(appIo);
     startFraudEngine();
     
     // Processar pedidos em fallback
