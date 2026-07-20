@@ -23,6 +23,18 @@ function generateCode() {
   return code.toString();
 }
 
+orderRouter.get('/debug/driver/:id', async (req, res) => {
+  try {
+    const User = (await import('../models/UserModel.js')).default;
+    const Wallet = (await import('../models/WalletModel.js')).default;
+    const NotificationToken = (await import('../models/NotificationToken.js')).default;
+    const driver = await User.findById(req.params.id);
+    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.params.id }, { userId: req.params.id }] });
+    const token = await NotificationToken.findOne({ user: req.params.id }).sort({ createdAt: -1 });
+    res.json({ driver, wallet, token });
+  } catch(e) { res.status(500).json({error: e.message}) }
+});
+
 // All Orders
 orderRouter.get(
   '/',
