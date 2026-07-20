@@ -7,40 +7,46 @@ import { sendNotification } from '../utils/sendNotification.js';
 const notificationRouter = express.Router();
 const expo = new Expo();
 
-// ? Rota para salvar ou atualizar token
+// Rota para salvar ou atualizar token do dispositivo
 notificationRouter.post(
   '/savedevicetoken',
   expressAsyncHandler(async (req, res) => {
     const { deviceToken, userId, platform } = req.body;
 
     if (!deviceToken || deviceToken === 'null' || deviceToken === null) {
-      return res.status(400).json({ message: 'Token invlido ou ausente.' });
+      return res.status(400).json({ message: 'Token inválido ou ausente.' });
     }
 
+    // 1. Atualizar/criar na coleção NotificationToken
     const existing = await NotificationToken.findOne({ deviceToken });
     if (existing) {
-      // Se o token já existe mas tem um utilizador diferente (ex: login diferente no mesmo dispositivo)
       if (userId && String(existing.user) !== String(userId)) {
         existing.user = userId;
         await existing.save();
-        return res.status(200).json({ message: 'Token atualizado com o novo utilizador.' });
       }
-      return res.status(200).json({ message: 'Token j registrado.' });
+    } else {
+      const newToken = new NotificationToken({
+        deviceToken,
+        user: userId || null,
+        platform: platform || 'android',
+      });
+      await newToken.save();
     }
 
-    const newToken = new NotificationToken({
-      deviceToken,
-      user: userId || null,
-      platform: platform || 'android',
-    });
+    // 2. CRÍTICO: Sincronizar também o campo User.deviceToken no documento do utilizador
+    // Isto garante que a lookup direta via User.findById().deviceToken funciona
+    if (userId) {
+      const User = (await import('../models/UserModel.js')).default;
+      await User.updateOne({ _id: userId }, { $set: { deviceToken } });
+      console.log(`[SaveToken] ✅ Token FCM sincronizado para userId=${userId}`);
+    }
 
-    await newToken.save();
-    res.status(201).json({ message: 'Token salvo com sucesso.' });
+    res.status(200).json({ message: 'Token salvo e sincronizado com sucesso.' });
   })
 );
 
 
-// ? Rota para enviar notifica��o
+// ? Rota para enviar notificao
 notificationRouter.post('/send', async (req, res) => {
   const { deviceToken, title, body, data } = req.body;
 
