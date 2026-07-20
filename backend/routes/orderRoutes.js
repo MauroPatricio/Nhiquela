@@ -1744,10 +1744,11 @@ orderRouter.get(
       .lean();
 
     // Buscar RequestServices de servios (reboque, etc)
-    // Buscar RequestServices de servios (reboque, etc)
+    // Buscar RequestServices de serviços (reboque, etc)
     const requestServiceConditions = [
       { 'deliveryman.id': deliverymanId },
-      { 'deliveryman._id': deliverymanId }  // compatibilidade
+      { 'deliveryman._id': deliverymanId },  // compatibilidade
+      { targetDriverId: deliverymanId.toString(), stepStatus: 3 } // SEMPRE mostrar pedidos que foram direcionados a este motorista
     ];
     if (canAcceptNewTrips) {
       const availableCondition = { 
@@ -1755,20 +1756,11 @@ orderRouter.get(
         $or: [
           { targetDriverId: { $exists: false } },
           { targetDriverId: null },
-          { targetDriverId: '' },
-          { targetDriverId: deliverymanId.toString() }
+          { targetDriverId: '' }
         ]
       };
       if (driverTransportType) {
-        availableCondition.$or = [
-          { targetDriverId: deliverymanId.toString() }, // Se for diretamente para este motorista, ignora o tipo de veículo
-          {
-            $and: [
-              { $or: [{ targetDriverId: { $exists: false } }, { targetDriverId: null }, { targetDriverId: '' }] },
-              { transportType: driverTransportType } // Se for público, obriga a ter o mesmo tipo de veículo
-            ]
-          }
-        ];
+        availableCondition.transportType = driverTransportType; // Se for público, obriga a ter o mesmo tipo de veículo
       }
       requestServiceConditions.push(availableCondition);
     }
