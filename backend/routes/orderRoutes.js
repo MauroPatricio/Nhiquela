@@ -413,13 +413,13 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
 
       //toSeller
 
-      if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+      if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
         await createNotification({
           message: mensagem,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -428,7 +428,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -714,14 +714,14 @@ orderRouter.put(
     let message = `Olï¿½! ?? O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para vocï¿½. Obrigado por confiar na Nhiquela!`;
     // sendEmailOrderToSeller(req,message, sellerOfProduct, updatedOrder, res);
 
-    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
         receiver_id: updatedOrder.seller,
         sender_id: updatedOrder.user,
         orderID: updatedOrder._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
       });
       //toOrderClient
       await createNotification({
@@ -729,7 +729,7 @@ orderRouter.put(
         receiver_id: updatedOrder.user,
         sender_id: updatedOrder.seller,
         orderID: updatedOrder._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
     }
 
@@ -771,14 +771,14 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
       });
       //toOrderClient
       await createNotification({
@@ -786,7 +786,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
     }
 
@@ -827,14 +827,14 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
       });
       //toOrderClient
       await createNotification({
@@ -842,7 +842,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
     }
 
@@ -881,7 +881,7 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
+      if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
 
         //toSeller
         await createNotification({
@@ -889,7 +889,7 @@ orderRouter.put(
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -898,7 +898,7 @@ orderRouter.put(
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -981,7 +981,7 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
+      if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
 
         //toSeller
         await createNotification({
@@ -989,7 +989,7 @@ orderRouter.put(
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -998,7 +998,7 @@ orderRouter.put(
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -1030,14 +1030,14 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
+      if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
         //toSeller
         await createNotification({
           message: message,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -1046,7 +1046,7 @@ orderRouter.put(
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
 
       }
@@ -1133,13 +1133,13 @@ orderRouter.put(
 
       const clientOfProduct = await User.findById(order.user);
 
-      if (clientOfProduct && clientOfProduct.pushToken) {
+      if (clientOfProduct && clientOfProduct.deviceToken) {
         await createNotification({
           message: message,
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -1268,7 +1268,7 @@ orderRouter.put(
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
 
       });
       //toOrderClient
@@ -1277,7 +1277,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
 
       //     sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
@@ -1387,7 +1387,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
 
       // WebSocket Optimization
@@ -1484,23 +1484,23 @@ orderRouter.put(
         const sellerOfProduct = await User.findById(order.seller);
         const clientOfProduct = await User.findById(order.user);
 
-        if (sellerOfProduct && sellerOfProduct.pushToken) {
+        if (sellerOfProduct && sellerOfProduct.deviceToken) {
           await createNotification({
             message: message,
             receiver_id: order.seller,
             sender_id: order.user,
             orderID: order._id,
-            pushToken: sellerOfProduct.pushToken,
+            pushToken: sellerOfProduct.deviceToken,
           });
         }
 
-        if (clientOfProduct && clientOfProduct.pushToken) {
+        if (clientOfProduct && clientOfProduct.deviceToken) {
           await createNotification({
             message: message,
             receiver_id: order.user,
             sender_id: order.seller,
             orderID: order._id,
-            pushToken: clientOfProduct.pushToken
+            pushToken: clientOfProduct.deviceToken
           });
         }
 
@@ -1568,7 +1568,7 @@ orderRouter.put(
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
 
       });
       //toOrderClient
@@ -1577,7 +1577,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
 
 
