@@ -26,7 +26,7 @@ class DispatchService {
       const availableDrivers = await User.find({
         isDeliveryMan: true,
         availability: 'active', // Motorista online
-        status: 'Active',
+        status: { $in: ['Active', 'Disponível', 'Ativo', 'Activo'] },
         'deliveryman.hasActiveService': false, // Não está em viagem
         locationGeo: {
           $near: {
