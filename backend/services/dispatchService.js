@@ -25,7 +25,7 @@ class DispatchService {
       // Busca geospacial dos motoristas disponíveis e livres
       const availableDrivers = await User.find({
         isDeliveryMan: true,
-        availability: true, // Motorista online
+        availability: 'active', // Motorista online
         status: 'Active',
         'deliveryman.hasActiveService': false, // Não está em viagem
         locationGeo: {
@@ -76,8 +76,9 @@ class DispatchService {
       io.to(`driver_${driver._id}`).emit('new_order', orderPayload);
 
       if (driver.pushToken) {
+        const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
         await createNotification({
-          message: `Novo pedido de viagem perto de si! Clique para aceitar.`,
+          message: `📍 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
           receiver_id: driver._id,
           pushToken: driver.pushToken
         });
