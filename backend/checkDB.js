@@ -3,10 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 mongoose.connect(process.env.MONGODB_URI).then(async () => {
-  const tokens = await mongoose.connection.db.collection('notificationtokens').find({user: new mongoose.Types.ObjectId('6a5de54b8ae7f2fc22513554')}).toArray(); 
-  console.log('Tokens Mz:', tokens); 
-  const mz = await mongoose.connection.db.collection('users').findOne({_id: new mongoose.Types.ObjectId('6a5de54b8ae7f2fc22513554')}); 
-  console.log('Mz object deviceToken:', mz.deviceToken); 
-  
+  const user = await mongoose.connection.db.collection('users').findOne({_id: new mongoose.Types.ObjectId('6a5e01ead01ee0c3a00faafe')}); 
+  console.log('Driver user ID:', user ? user.name : 'Not found', 'deviceToken:', user?.deviceToken); 
   process.exit(0);
 });

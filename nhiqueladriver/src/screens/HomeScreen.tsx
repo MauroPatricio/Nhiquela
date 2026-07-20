@@ -302,11 +302,18 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
         websocketService.on('new_order', (data: any) => {
           if (!isMounted.current) return;
-          // Adicionar novo pedido Ã  lista se ainda não estiver lá
+          
+          const newTrip = formatOrder(data);
+          
+          // Tocar ringtone imediatamente se for um pedido pendente
+          if (newTrip && newTrip.stepStatus === 3) {
+             startRingtone(newTrip);
+          }
+
+          // Adicionar novo pedido à lista se ainda não estiver lá
           setAllTrips(prev => {
             const exists = prev.some(t => t.id === data._id);
             if (exists) return prev;
-            const newTrip = formatOrder(data);
             return newTrip ? [newTrip, ...prev] : prev;
           });
         });
