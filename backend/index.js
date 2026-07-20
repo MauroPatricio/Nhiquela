@@ -293,7 +293,7 @@ if (process.env.NODE_ENV !== 'test') {
         socketId: socket.id,
         messages: [],
       };
-      console.log('Online', user.name);
+      console.log('Online', user.name || 'Desconhecido');
 
       if (user._id) {
         const dbUser = await User.findById(user._id).select('isDeliveryMan name');
@@ -305,7 +305,8 @@ if (process.env.NODE_ENV !== 'test') {
           user.isDeliveryMan = true;
           user.name = dbUser.name || user.name;
         } else {
-          console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
+          const userName = dbUser ? dbUser.name : (user.name || 'Desconhecido');
+          console.log(`ℹ️  onLogin recebido de ${userName} — isDeliveryMan: ${user.isDeliveryMan || false}, _id: ${user._id}`);
         }
       }
 
