@@ -403,10 +403,12 @@ router.get(
     const nearbyDrivers = [];
     drivers.forEach(driver => {
       let dLat, dLng;
-      if (driver.locationGeo && driver.locationGeo.coordinates && driver.locationGeo.coordinates[0] !== 0) {
+      if (driver.locationGeo && driver.locationGeo.coordinates &&
+          driver.locationGeo.coordinates[0] !== 0 && driver.locationGeo.coordinates[1] !== 0) {
         dLng = driver.locationGeo.coordinates[0];
         dLat = driver.locationGeo.coordinates[1];
-      } else if (driver.latitude && driver.longitude && parseFloat(driver.latitude) !== 0) {
+      } else if (driver.latitude && driver.longitude &&
+                 parseFloat(driver.latitude) !== 0 && parseFloat(driver.longitude) !== 0) {
         dLat = parseFloat(driver.latitude);
         dLng = parseFloat(driver.longitude);
       }
@@ -417,7 +419,11 @@ router.get(
         if (dist <= radius) {
           driver.distance = dist;
           nearbyDrivers.push(driver);
+        } else {
+          console.log(`[/available] ⚠️ Motorista ${driver.name} (${driver._id}) excluído: ${dist.toFixed(2)}km > raio ${radius}km`);
         }
+      } else {
+        console.log(`[/available] ⚠️ Motorista ${driver.name} (${driver._id}) sem GPS válido — locationGeo: ${JSON.stringify(driver.locationGeo?.coordinates)}`);
       }
     });
 

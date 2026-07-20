@@ -11,6 +11,7 @@ export const ENDPOINTS = {
   UPDATE_DRIVER_PROFILE: "/drivers/update",
   PROVIDER_SUBCATEGORIES: "/provider-subcategories",
   VEHICLE_COLORS: "/vehicle-colors",
+  PING: "/drivers/ping",
 
   GET_ORDERS_STATUS: (status: string) => `/orders/statusDelivery/${status}`,
   GET_TRIPS: (status: string) => `/orders/status/${status}`,

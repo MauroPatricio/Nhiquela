@@ -112,7 +112,7 @@ requestServiceer.post(
       name: req.body.name,
       phoneNumber: req.body.phoneNumber,
       goodType: req.body.goodType,
-      transportType: req.body.transportType,
+      transportType: req.body.transportType, // Guarda o valor tal como vem (ObjectId string ou nome)
       deliverCity: req.body.deliverCity,
       reason: req.body.reason,
       origin: req.body.origin,
@@ -123,7 +123,7 @@ requestServiceer.post(
       paymentOption: req.body.paymentOption,
       description: req.body.description,
       paymentMethod: req.body.paymentMethod,
-      deliveryPrice: req.body.deliveryPrice, // Will be overridden below by server-side calculation
+      deliveryPrice: req.body.deliveryPrice,
       serviceId: req.body.serviceId || null,
       user: req.user._id,
       code: generateCode(),
@@ -134,14 +134,20 @@ requestServiceer.post(
       targetDriverId: req.body.targetDriverId,
       latitude: req.body.latitude,
       longitude: req.body.longitude,
-      isSearching: !req.body.targetDriverId && !req.body.isScheduled, // Não iniciar busca se for agendado
+      isSearching: !req.body.targetDriverId && !req.body.isScheduled,
       searchRadius: 3000,
       contactedDrivers: [],
       lastDispatchTime: new Date(),
-      // Agendamento
       isScheduled: req.body.isScheduled || false,
       scheduledAt: req.body.isScheduled && req.body.scheduledAt ? new Date(req.body.scheduledAt) : null,
     });
+
+    // Normalizar transportTypeId: se transportType for um ObjectId válido, guardar como ref
+    const rawTransport = req.body.transportType;
+    if (rawTransport && mongoose.Types.ObjectId.isValid(rawTransport) && rawTransport.length === 24) {
+      newOrder.transportTypeId = new mongoose.Types.ObjectId(rawTransport);
+    }
+
 
     // ============================================================
     // CÁLCULO AUTOMÁTICO DO PREÇO (server-side, imutável)

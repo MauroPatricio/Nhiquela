@@ -1730,13 +1730,41 @@ orderRouter.get(
 
     const driver = await User.findById(deliverymanId);
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista no encontrado' });
+      return res.status(404).send({ message: 'Motorista não encontrado' });
     }
 
     const isDriverActive = driver.availability === 'active';
     const hasBalance = await hasSufficientBalance(deliverymanId, driver);
     const canAcceptNewTrips = isDriverActive && hasBalance;
-    const driverTransportType = driver.deliveryman?.transport_type;
+    const rawTransportType = driver.deliveryman?.transport_type;
+
+    // Se transport_type for um ObjectId, resolver para o nome (string)
+    // Os pedidos guardam transportType como string (ex: "Mota"), não como ObjectId
+    let driverTransportTypeName = null;
+    if (rawTransportType) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(rawTransportType.toString()) &&
+                         rawTransportType.toString().length === 24;
+      if (isObjectId) {
+        try {
+          // Tentar como VehicleType
+          const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
+          const vType = await VehicleType.findById(rawTransportType);
+          if (vType) {
+            driverTransportTypeName = vType.name;
+          } else {
+            // Tentar como ProviderSubcategory
+            const ProviderSubcategory = (await import('../models/ProviderSubcategoryModel.js')).default;
+            const subcat = await ProviderSubcategory.findById(rawTransportType);
+            if (subcat) driverTransportTypeName = subcat.name;
+          }
+        } catch(e) {
+          console.error('[deliveryman/all] Erro ao resolver transport_type:', e.message);
+        }
+      } else {
+        // Já é uma string (ex: "Mota")
+        driverTransportTypeName = rawTransportType;
+      }
+    }
 
     // Buscar Orders normais
     const orderConditions = [
@@ -1744,7 +1772,7 @@ orderRouter.get(
       { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
     ];
     if (canAcceptNewTrips) {
-      orderConditions.push({ stepStatus: 3 }); // Disponiveis para aceitar se ativo
+      orderConditions.push({ stepStatus: 3 }); // Disponíveis para aceitar se ativo
     }
 
     const ordersPromise = Order.find({
@@ -1755,15 +1783,14 @@ orderRouter.get(
       .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestServices de servios (reboque, etc)
-    // Buscar RequestServices de serviços (reboque, etc)
+    // Buscar RequestServices de serviços (reboque, mota, etc)
     const requestServiceConditions = [
       { 'deliveryman.id': deliverymanId },
       { 'deliveryman._id': deliverymanId },  // compatibilidade
-      { targetDriverId: deliverymanId.toString(), stepStatus: 3 } // SEMPRE mostrar pedidos que foram direcionados a este motorista
+      { targetDriverId: deliverymanId.toString(), stepStatus: 3 } // SEMPRE mostrar pedidos direcionados a este motorista
     ];
     if (canAcceptNewTrips) {
-      const availableCondition = { 
+      const availableCondition = {
         stepStatus: 3,
         $or: [
           { targetDriverId: { $exists: false } },
@@ -1771,8 +1798,25 @@ orderRouter.get(
           { targetDriverId: '' }
         ]
       };
-      if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Se for público, obriga a ter o mesmo tipo de veículo
+
+      // COMPARAÇÃO CORRECTA: sempre por ObjectId quando o motorista tem um ID de veículo
+      // O pedido guarda transportType como string (pode ser o ObjectId em string ou o nome)
+      // O pedido guarda transportTypeId como ObjectId (novo campo)
+      if (rawTransportType) {
+        const isObjectId = mongoose.Types.ObjectId.isValid(rawTransportType.toString()) &&
+                           rawTransportType.toString().length === 24;
+        if (isObjectId) {
+          // Comparar pelo ID: tanto no campo transportType (string) como no transportTypeId (ObjectId)
+          availableCondition.$and = [{
+            $or: [
+              { transportType: rawTransportType.toString() },      // Valor guardado como string do ObjectId
+              { transportTypeId: new mongoose.Types.ObjectId(rawTransportType.toString()) } // Ou como ObjectId ref
+            ]
+          }];
+        } else if (driverTransportTypeName) {
+          // Comparar pelo nome (ex: "Mota")
+          availableCondition.transportType = driverTransportTypeName;
+        }
       }
       requestServiceConditions.push(availableCondition);
     }
@@ -1789,9 +1833,11 @@ orderRouter.get(
 
     console.log("============== DEBUG /deliveryman/all ==============");
     console.log("Driver ID:", deliverymanId.toString());
-    console.log("canAcceptNewTrips:", canAcceptNewTrips);
+    console.log("canAcceptNewTrips:", canAcceptNewTrips, "| availability:", driver.availability, "| hasBalance:", hasBalance);
+    console.log("transport_type (raw):", rawTransportType, "→ resolved name:", driverTransportTypeName || '(sem tipo)');
+    console.log("GPS:", driver.locationGeo?.coordinates, "| lat:", driver.latitude, "lng:", driver.longitude);
     console.log("requestServiceConditions:", JSON.stringify(requestServiceConditions, null, 2));
-    console.log("Total RequestServices Found:", requestServicesResult.length);
+    console.log("Total Orders Found:", ordersResult.length, "| Total RequestServices Found:", requestServicesResult.length);
     console.log("====================================================");
 
     // Format orders

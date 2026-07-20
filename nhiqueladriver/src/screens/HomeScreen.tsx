@@ -34,6 +34,8 @@ import { useAuth } from "../context/AuthContext";
 import TripCard from "../components/TripCard";
 import LocationConsentModal from "../components/LocationConsentModal";
 import { API_BASE_URL } from "../api/apiConfig";
+import api from "../api/apiConfig";
+import { ENDPOINTS } from "../api/endpoints";
 import { showMessage } from "react-native-flash-message";
 import { Trip, WebSocketOrderData, LocationData } from "../types";
 
@@ -307,7 +309,7 @@ export default function HomeScreen({ navigation }: any) {
           
           // Tocar ringtone imediatamente se for um pedido pendente
           if (newTrip && newTrip.stepStatus === 3) {
-             startRingtone(newTrip);
+             console.log("🔔 Novo pedido recebido via socket!");
           }
 
           // Adicionar novo pedido à lista se ainda não estiver lá
@@ -630,6 +632,40 @@ export default function HomeScreen({ navigation }: any) {
       }
     }
   }, [user?.status]);
+
+  // 🔥 PING DE LOCALIZAÇÃO A CADA 10 SEGUNDOS QUANDO ONLINE
+  useEffect(() => {
+    let pingInterval: any = null;
+
+    if (user?.availability === 'active') {
+      const sendPing = async () => {
+        try {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          if (loc && loc.coords) {
+            await api.put(ENDPOINTS.PING, {
+              lat: loc.coords.latitude,
+              lng: loc.coords.longitude
+            });
+            console.log('✅ Localização (Ping) atualizada no backend');
+          }
+        } catch (error) {
+          console.warn('❌ Erro no ping de localização:', error);
+        }
+      };
+      
+      // Ping inicial
+      sendPing();
+      
+      // Ping a cada 10s
+      pingInterval = setInterval(sendPing, 10000);
+    }
+
+    return () => {
+      if (pingInterval) clearInterval(pingInterval);
+    };
+  }, [user?.availability]);
 
   // ðŸ”„ POLLING DE SEGURANÇA: a cada 8s enquanto Pendente, verifica o estado no servidor
   useEffect(() => {
