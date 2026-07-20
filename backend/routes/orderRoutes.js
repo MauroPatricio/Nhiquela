@@ -1829,6 +1829,13 @@ orderRouter.get(
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
 
+    console.log("============== DEBUG /deliveryman/all ==============");
+    console.log("Driver ID:", deliverymanId.toString());
+    console.log("canAcceptNewTrips:", canAcceptNewTrips);
+    console.log("requestServiceConditions:", JSON.stringify(requestServiceConditions, null, 2));
+    console.log("Total RequestServices Found:", requestServicesResult.length);
+    console.log("====================================================");
+
     // Identificar de onde veio para o Frontend saber renderizar (caso precise)
     const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
     const formattedRequests = requestServicesResult.map(r => ({ ...r, type: 'requestService' }));
