@@ -27,6 +27,7 @@
   "dependencies": {
     "@notifee/react-native": "^9.0.2",
     "@socket.io/redis-adapter": "^8.3.0",
+    "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.35.0",
     "cors": "^2.8.5",

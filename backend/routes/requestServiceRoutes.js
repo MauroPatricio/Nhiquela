@@ -402,12 +402,24 @@ requestServiceer.delete(
       requestService.status = 'Cancelado';
       requestService.targetDriverId = null;
       if (requestService.deliveryman && requestService.deliveryman.id) {
+        const driverIdToNotify = requestService.deliveryman.id;
         // 🔥 CORREÇÃO: Libertar o motorista ao apagar o pedido
         await User.updateOne(
           { _id: requestService.deliveryman.id },
           { $set: { 'deliveryman.hasActiveService': false } }
         );
         requestService.deliveryman.id = null;
+
+        // Avisar o motorista que a viagem foi cancelada pelo cliente
+        const targetDriver = await User.findById(driverIdToNotify);
+        if (targetDriver && targetDriver.pushToken) {
+          await createNotification({
+            message: `Atenção: O cliente cancelou a viagem. O seu veículo está livre para novos pedidos.`,
+            receiver_id: targetDriver._id,
+            pushToken: targetDriver.pushToken,
+            title: 'Viagem Cancelada'
+          });
+        }
       }
 
       await requestService.save();

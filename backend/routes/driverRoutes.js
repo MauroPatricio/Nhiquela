@@ -50,7 +50,7 @@ router.get(
 
     const nearbyDrivers = await User.find({
       isDeliveryMan: true,
-      availability: true,
+      availability: 'active',
       status: 'Active',
       locationGeo: {
         $near: {
