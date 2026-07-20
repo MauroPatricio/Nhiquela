@@ -33,6 +33,11 @@ export async function createNotification({
       }
     }
 
+    // Se continuar sem token, definir como 'none' para evitar erro de validação (tokenID is required)
+    if (!finalPushToken) {
+      finalPushToken = 'none';
+    }
+
     // Create notification in database
     const NotificationModel = (await import('../models/NotificationModel.js')).default;
     const notification = new NotificationModel({
@@ -50,7 +55,7 @@ export async function createNotification({
     await notification.save();
 
     // Send push notification if token is valid
-    if (finalPushToken && finalPushToken !== 'null') {
+    if (finalPushToken && finalPushToken !== 'null' && finalPushToken !== 'none') {
       const { sendNotification } = await import('./sendNotification.js');
       await sendNotification(finalPushToken, title, message, {
         orderId: orderID,
