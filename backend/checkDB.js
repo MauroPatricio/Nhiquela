@@ -3,13 +3,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 mongoose.connect(process.env.MONGODB_URI).then(async () => {
-  const req = await mongoose.connection.db.collection('requestservices').find().sort({_id:-1}).limit(1).toArray();
-  console.log('Ultimo Pedido:', req.map(r=>({id:r._id, status:r.status, driver:r.targetDriverId})));
-  const notif = await mongoose.connection.db.collection('notifications').find({}).sort({_id:-1}).limit(1).toArray();
-  console.log('Ultima Notificacao:', notif);
-  
-  const tokens = await mongoose.connection.db.collection('notificationtokens').find({}).sort({_id:-1}).limit(2).toArray();
-  console.log('Ultimos Tokens:', tokens);
+  const tokens = await mongoose.connection.db.collection('notificationtokens').find({user: new mongoose.Types.ObjectId('6a5de54b8ae7f2fc22513554')}).toArray(); 
+  console.log('Tokens Mz:', tokens); 
+  const mz = await mongoose.connection.db.collection('users').findOne({_id: new mongoose.Types.ObjectId('6a5de54b8ae7f2fc22513554')}); 
+  console.log('Mz object deviceToken:', mz.deviceToken); 
   
   process.exit(0);
 });

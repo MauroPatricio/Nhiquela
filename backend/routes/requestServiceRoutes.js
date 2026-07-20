@@ -9,6 +9,7 @@ import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import PricingService from '../services/PricingService.js';
 import createNotification from '../utils/createNotification.js';
+import DispatchService from '../services/dispatchService.js';
 
 const requestServiceer = express.Router();
 
@@ -208,7 +209,9 @@ requestServiceer.post(
 
     const io = req.app.get('io');
     if (io) {
+      console.log(`[Dispatch Flow] targetDriverId: ${newOrder.targetDriverId}, isScheduled: ${newOrder.isScheduled}`);
       if (newOrder.targetDriverId) {
+        console.log('[Dispatch Flow] Branch: targetDriverId provided');
         const orderPayload = { ...requestService.toObject(), type: 'requestService' };
         io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
 
@@ -286,10 +289,11 @@ requestServiceer.post(
         console.log(`[Scheduling] Pedido agendado ${requestService.code} para ${scheduledDateStr}. Notificados ${availableDrivers.length} motoristas.`);
       } else {
         // Intelligent Dispatch engine will handle emitting to nearest drivers
-        import('../services/dispatchService.js').then((module) => {
-          const DispatchService = module.default;
+        try {
           DispatchService.startDispatch(requestService, io);
-        }).catch(err => console.error('Falha ao carregar DispatchService', err));
+        } catch (err) {
+          console.error('Falha ao executar DispatchService:', err);
+        }
       }
     }
 

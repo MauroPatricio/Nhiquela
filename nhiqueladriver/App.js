@@ -16,7 +16,7 @@ import {
 } from "@react-navigation/native";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { LoadingProvider, useLoadingContext } from "./src/context/LoadingContext";
-import { AuthProvider } from "./src/context/AuthContext";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
@@ -81,6 +81,7 @@ async function registerForPushNotificationsAsync() {
 function AppContent() {
   const [loading, setLoading] = useState(true);
   const { showLoading, hideLoading } = useLoadingContext();
+  const { user, isAuthenticated } = useAuth();
   const notificationListener = useRef();
   const responseListener = useRef();
 
@@ -110,7 +111,9 @@ function AppContent() {
       }
     };
 
-    registerToken();
+    if (isAuthenticated && user) {
+      registerToken();
+    }
 
     // 📨 Listener para notificações em foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(
@@ -156,7 +159,7 @@ function AppContent() {
         responseListener.current.remove();
       }
     };
-  }, []);
+  }, [isAuthenticated, user]);
 
   const [appConfig, setAppConfig] = useState(null);
   const [configLoading, setConfigLoading] = useState(true);
