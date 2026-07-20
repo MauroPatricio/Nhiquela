@@ -214,11 +214,11 @@ requestServiceer.post(
 
         // Push notification para o motorista alvo
         const targetDriver = await User.findById(newOrder.targetDriverId);
-        if (targetDriver && targetDriver.pushToken) {
+        if (targetDriver && targetDriver.deviceToken) {
           await createNotification({
             message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
             receiver_id: targetDriver._id,
-            pushToken: targetDriver.pushToken
+            pushToken: targetDriver.deviceToken
           });
         }
 
@@ -274,11 +274,11 @@ requestServiceer.post(
 
         for (const driver of availableDrivers) {
           io.to(`driver_${driver._id}`).emit('new_scheduled_order', orderPayload);
-          if (driver.pushToken) {
+          if (driver.deviceToken) {
             await createNotification({
               message: `â° Serviço agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedência.`,
               receiver_id: driver._id,
-              pushToken: driver.pushToken
+              pushToken: driver.deviceToken
             });
           }
         }
@@ -412,11 +412,11 @@ requestServiceer.delete(
 
         // Avisar o motorista que a viagem foi cancelada pelo cliente
         const targetDriver = await User.findById(driverIdToNotify);
-        if (targetDriver && targetDriver.pushToken) {
+        if (targetDriver && targetDriver.deviceToken) {
           await createNotification({
             message: `Atenção: O cliente cancelou a viagem. O seu veículo está livre para novos pedidos.`,
             receiver_id: targetDriver._id,
-            pushToken: targetDriver.pushToken,
+            pushToken: targetDriver.deviceToken,
             title: 'Viagem Cancelada'
           });
         }
@@ -1066,11 +1066,11 @@ requestServiceer.post(
 
           // Push notification para o motorista alvo
           const targetDriverUser = await User.findById(targetDriverId);
-          if (targetDriverUser && targetDriverUser.pushToken) {
+          if (targetDriverUser && targetDriverUser.deviceToken) {
             await createNotification({
               message: `Novo pedido de viagem! Origem: ${order.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
               receiver_id: targetDriverUser._id,
-              pushToken: targetDriverUser.pushToken
+              pushToken: targetDriverUser.deviceToken
             });
           }
           // Atualiza também o ecrã do cliente para refletir o estado 'Pendente' e apagar a mensagem de erro

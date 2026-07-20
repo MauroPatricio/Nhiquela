@@ -1417,10 +1417,10 @@ userRouter.put('/updateDeviceToken/:id', async (req, res) => {
 // Backend: routes/users.js ou semelhante
 userRouter.patch('/updatePushToken/:id', async (req, res) => {
   const { id } = req.params;
-  const { pushToken } = req.body;
+  const { deviceToken } = req.body;
 
   try {
-    const user = await User.findByIdAndUpdate(id, { pushToken }, { new: true });
+    const user = await User.findByIdAndUpdate(id, { deviceToken }, { new: true });
     if (!user) {
       return res.status(404).json({ message: 'Usu�rio n�o encontrado.' });
     }

@@ -75,14 +75,13 @@ class DispatchService {
       const orderPayload = { ...currentOrderState.toObject(), type: 'requestService' };
       io.to(`driver_${driver._id}`).emit('new_order', orderPayload);
 
-      if (driver.pushToken) {
-        const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
-        await createNotification({
-          message: `📍 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
-          receiver_id: driver._id,
-          pushToken: driver.pushToken
-        });
-      }
+      // Send Push Notification
+      const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
+      await createNotification({
+        message: `📍 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
+        receiver_id: driver._id,
+        pushToken: driver.deviceToken // Utiliza deviceToken correto
+      });
 
       // 3. Esperar 30 segundos usando uma Promise
       await new Promise(resolve => setTimeout(resolve, 30000));
