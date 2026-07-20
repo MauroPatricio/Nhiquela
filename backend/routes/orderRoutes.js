@@ -11,7 +11,7 @@ import Partner from '../models/PartnerModel.js';
 import partnerService from '../services/partnerService.js';
 import reputationTracker from '../utils/reputationTracker.js';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, hasSufficientBalance } from '../services/walletService.js';
 
 
 const orderRouter = express.Router();
@@ -1722,7 +1722,6 @@ orderRouter.get(
     }
 
     const isDriverActive = driver.availability === 'active';
-    const { hasSufficientBalance } = await import('../services/walletService.js');
     const hasBalance = await hasSufficientBalance(deliverymanId, driver);
     const canAcceptNewTrips = isDriverActive && hasBalance;
     const driverTransportType = driver.deliveryman?.transport_type;
