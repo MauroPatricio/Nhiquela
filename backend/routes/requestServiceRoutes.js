@@ -217,11 +217,11 @@ requestServiceer.post(
 
         // Push notification para o motorista alvo
         const targetDriver = await User.findById(newOrder.targetDriverId);
-        if (targetDriver && targetDriver.deviceToken) {
+        if (targetDriver) {
           await createNotification({
             message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
             receiver_id: targetDriver._id,
-            pushToken: targetDriver.deviceToken
+            pushToken: targetDriver.deviceToken || null
           });
         }
 

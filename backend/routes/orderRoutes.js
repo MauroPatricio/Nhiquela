@@ -1760,7 +1760,15 @@ orderRouter.get(
         ]
       };
       if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Match exato com o veículo do motorista
+        availableCondition.$or = [
+          { targetDriverId: deliverymanId.toString() }, // Se for diretamente para este motorista, ignora o tipo de veículo
+          {
+            $and: [
+              { $or: [{ targetDriverId: { $exists: false } }, { targetDriverId: null }, { targetDriverId: '' }] },
+              { transportType: driverTransportType } // Se for público, obriga a ter o mesmo tipo de veículo
+            ]
+          }
+        ];
       }
       requestServiceConditions.push(availableCondition);
     }
