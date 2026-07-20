@@ -357,57 +357,47 @@ router.get(
       }
     }
 
-    // Try to find drivers. Since geoPosition index might not be created, we'll do an initial find
-    // and filter by Haversine distance in Javascript to be safe and avoid index errors.
-    
-    // Try to find drivers
     let drivers = await User.find(filter).lean();
-    
-    // EXCLUIR MOTORISTAS OCUPADOS (com serviço ativo aguardando confirmação do cliente)
-    // Método 1: campo hasActiveService no modelo do motorista (mais rápido)
+
+    // EXCLUIR MOTORISTAS OCUPADOS (Método 1: flag hasActiveService)
     drivers = drivers.filter(d => !(d.deliveryman && d.deliveryman.hasActiveService));
 
-    // Método 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
+    // EXCLUIR MOTORISTAS OCUPADOS (Método 2: pedidos ativos na BD)
     const activeOrders = await RequestService.find({
-       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
+       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
     }).select('deliveryman targetDriverId').lean();
-    
+
     const busyDriverIds = new Set();
     activeOrders.forEach(order => {
-       if (order.deliveryman && order.deliveryman.id) {
-          busyDriverIds.add(order.deliveryman.id.toString());
-       }
-       if (order.targetDriverId) {
-          busyDriverIds.add(order.targetDriverId.toString());
-       }
+       if (order.deliveryman && order.deliveryman.id) busyDriverIds.add(order.deliveryman.id.toString());
+       if (order.targetDriverId) busyDriverIds.add(order.targetDriverId.toString());
     });
-
     drivers = drivers.filter(d => !busyDriverIds.has(d._id.toString()));
-  
+
     // EXCLUIR MOTORISTAS SEM SALDO SUFICIENTE
     const { hasSufficientBalance } = await import('../services/walletService.js');
     const driversWithBalance = [];
     for (const d of drivers) {
-      if (await hasSufficientBalance(d._id, d)) {
-        driversWithBalance.push(d);
-      }
+      if (await hasSufficientBalance(d._id, d)) driversWithBalance.push(d);
     }
     drivers = driversWithBalance;
-    if (!lat || !lng) {
+
+    // Se não foram fornecidas coordenadas, retornar todos os motoristas disponíveis
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
       return res.send({ drivers });
     }
 
+    // Calcular distância de Haversine e filtrar APENAS motoristas dentro do raio
     const toRad = (value) => (value * Math.PI) / 180;
     const calcDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371; // km
+      const R = 6371;
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
       const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
     const nearbyDrivers = [];
@@ -420,18 +410,21 @@ router.get(
         dLat = parseFloat(driver.latitude);
         dLng = parseFloat(driver.longitude);
       }
-      
+
       if (dLat && dLng) {
         const dist = calcDistance(lat, lng, dLat, dLng);
-        driver.calculatedDistance = dist;
+        // APENAS incluir motoristas dentro do raio solicitado
         if (dist <= radius) {
           driver.distance = dist;
           nearbyDrivers.push(driver);
-        } else {
-          nearbyDrivers.push({ _id: driver._id, name: driver.name, excludedByRadius: true, distance: dist, radius: radius, dLat, dLng, lat, lng });
         }
       }
     });
+
+    // Ordenar pelo mais próximo primeiro
+    nearbyDrivers.sort((a, b) => a.distance - b.distance);
+
+    console.log(`[/available] lat=${lat} lng=${lng} radius=${radius}km → ${nearbyDrivers.length}/${drivers.length} motoristas dentro do raio`);
 
     res.send({ drivers: nearbyDrivers });
   })

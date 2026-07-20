@@ -23,11 +23,12 @@ class DispatchService {
       const MAX_DISTANCE_METERS = 10000; // 10km radius
 
       // Busca geospacial dos motoristas disponíveis e livres
+      // status pode ser 'Disponível' (aprovado) ou outros valores - não filtrar por status
+      // para não excluir motoristas válidos com nomes de status diferentes
       const availableDrivers = await User.find({
         isDeliveryMan: true,
-        availability: 'active', // Motorista online
-        status: { $in: ['Active', 'Disponível', 'Ativo', 'Activo'] },
-        'deliveryman.hasActiveService': false, // Não está em viagem
+        availability: 'active', // Motorista marcado como online
+        'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
         locationGeo: {
           $near: {
             $geometry: {
@@ -37,7 +38,7 @@ class DispatchService {
             $maxDistance: MAX_DISTANCE_METERS
           }
         }
-      }).select('_id name pushToken locationGeo').limit(5); // Tenta os 5 mais próximos
+      }).select('_id name deviceToken locationGeo').limit(5); // usa deviceToken (campo real no UserModel)
 
       if (availableDrivers.length === 0) {
         console.log(`[DispatchService] Nenhum motorista disponível num raio de 10km para o pedido ${order.code}`);
@@ -77,10 +78,11 @@ class DispatchService {
 
       // Send Push Notification
       const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
+      console.log(`[DispatchService] 📲 Enviando push para motorista ${driver.name} (token: ${driver.deviceToken ? '✓' : 'sem token'})`);
       await createNotification({
         message: `📍 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
         receiver_id: driver._id,
-        pushToken: driver.deviceToken // Utiliza deviceToken correto
+        pushToken: driver.deviceToken || null // deviceToken é o campo correto no UserModel
       });
 
       // 3. Esperar 30 segundos usando uma Promise

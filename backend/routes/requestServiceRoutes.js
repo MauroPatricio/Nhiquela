@@ -216,13 +216,16 @@ requestServiceer.post(
         io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
 
         // Push notification para o motorista alvo
-        const targetDriver = await User.findById(newOrder.targetDriverId);
+        const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
         if (targetDriver) {
+          console.log(`[Dispatch Flow] 📲 Push para motorista ${targetDriver.name} - token: ${targetDriver.deviceToken ? '✓ válido' : '✗ sem token'}`);
           await createNotification({
             message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
             receiver_id: targetDriver._id,
             pushToken: targetDriver.deviceToken || null
           });
+        } else {
+          console.warn(`[Dispatch Flow] ⚠️ Motorista ${newOrder.targetDriverId} não encontrado para push notification`);
         }
 
         // 45s timeout logic
