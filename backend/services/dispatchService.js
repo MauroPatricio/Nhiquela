@@ -29,6 +29,9 @@ class DispatchService {
         isDeliveryMan: true,
         availability: 'active', // Motorista marcado como online
         'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
+        // Excluir motoristas com GPS inválido (0,0)
+        'locationGeo.coordinates.0': { $ne: 0 },
+        'locationGeo.coordinates.1': { $ne: 0 },
         locationGeo: {
           $near: {
             $geometry: {
@@ -39,6 +42,7 @@ class DispatchService {
           }
         }
       }).select('_id name deviceToken locationGeo').limit(5); // usa deviceToken (campo real no UserModel)
+
 
       if (availableDrivers.length === 0) {
         console.log(`[DispatchService] Nenhum motorista disponível num raio de 10km para o pedido ${order.code}`);
