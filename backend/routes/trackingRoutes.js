@@ -20,11 +20,16 @@ router.post('/start', isAuth, expressAsyncHandler(async (req, res) => {
 const updateTrackingHandler = expressAsyncHandler(async (req, res) => {
   const { orderId, latitude, longitude, speed, heading } = req.body;
   const driverId = req.user._id;
-  await Tracking.findOneAndUpdate(
-    { orderId, driverId },
-    { latitude, longitude, speed: Number(speed) || 0, heading: Number(heading) || 0, timestamp: Date.now() },
-    { upsert: true }
-  );
+
+  // Só tentamos guardar o rastro (Tracking) se houver um orderId válido. 
+  // Um motorista pode estar apenas "Online" à espera de pedidos (sem orderId).
+  if (orderId && orderId !== 'null' && orderId !== 'undefined') {
+    await Tracking.findOneAndUpdate(
+      { orderId, driverId },
+      { latitude, longitude, speed: Number(speed) || 0, heading: Number(heading) || 0, timestamp: Date.now() },
+      { upsert: true }
+    );
+  }
 
   await User.updateOne(
     { _id: driverId },

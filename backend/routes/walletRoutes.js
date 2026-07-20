@@ -587,7 +587,7 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
     // Emit socket event to notify the driver to refresh wallet/status
     try {
       const io = req.app.get('io');
-      if (io) {
+      if (io && wallet && wallet.user) {
         const userId = wallet.user.toString();
         io.to(userId).emit('userStatusChanged', {
           userId: userId,
