@@ -1,14 +1,10 @@
-import admin from '../firebase.js';
+ï»¿import admin from '../firebase.js';
 
-/**
- * Envia notificação nativa para um único token Firebase (FCM)
- */
 export async function sendNotification(deviceToken, title, body, data = {}) {
   if (!deviceToken || deviceToken === 'null') {
-    return { success: false, error: 'Token inválido' };
+    return { success: false, error: 'Token invalido' };
   }
 
-  // O Firebase apenas aceita strings dentro do objeto "data"
   const stringifiedData = {};
   for (const key in data) {
     if (data[key] !== null && data[key] !== undefined) {
@@ -20,6 +16,15 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
     notification: {
       title,
       body,
+    },
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'default',
+        sound: 'default',
+        priority: 'max',
+        defaultVibrateTimings: true,
+      }
     },
     data: stringifiedData,
     token: deviceToken,
