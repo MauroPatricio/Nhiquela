@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import NotificationToken from '../models/NotificationToken.js';
 import { Expo } from 'expo-server-sdk';
@@ -14,12 +14,18 @@ notificationRouter.post(
     const { deviceToken, userId, platform } = req.body;
 
     if (!deviceToken || deviceToken === 'null' || deviceToken === null) {
-      return res.status(400).json({ message: 'Token inv�lido ou ausente.' });
+      return res.status(400).json({ message: 'Token invlido ou ausente.' });
     }
 
     const existing = await NotificationToken.findOne({ deviceToken });
     if (existing) {
-      return res.status(200).json({ message: 'Token j� registrado.' });
+      // Se o token já existe mas tem um utilizador diferente (ex: login diferente no mesmo dispositivo)
+      if (userId && String(existing.user) !== String(userId)) {
+        existing.user = userId;
+        await existing.save();
+        return res.status(200).json({ message: 'Token atualizado com o novo utilizador.' });
+      }
+      return res.status(200).json({ message: 'Token j registrado.' });
     }
 
     const newToken = new NotificationToken({
