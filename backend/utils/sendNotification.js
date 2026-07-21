@@ -21,7 +21,7 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
       priority: 'high',
       notification: {
         channelId: 'driver_alerts',
-        sound: 'calldriver.mp3',
+        sound: 'calldriver',
         priority: 'max',
         defaultVibrateTimings: true,
       }
