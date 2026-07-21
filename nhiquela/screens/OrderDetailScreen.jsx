@@ -401,6 +401,7 @@ const OrderDetailsScreen = () => {
             </View>
           </View>
           
+
           <View style={{ marginTop: 10, marginBottom: 16 }}>
             <TouchableOpacity 
               onPress={() => confirmDeliveryOrder(currentOrder._id)}
@@ -567,26 +568,7 @@ const OrderDetailsScreen = () => {
             )}
           </View>
 
-          {/* 💬 Botão de Chat — só activo quando motorista aceitou */}
-          {showChatBtn && (
-            <TouchableOpacity
-              style={[
-                styles.chatBtn,
-                { backgroundColor: '#7F00FF', marginTop: 15, height: 48, borderRadius: 24, justifyContent: 'center' },
-                !isChatActive && styles.chatBtnDisabled,
-              ]}
-              onPress={() => navigation.navigate('TripChatScreen', {
-                tripId: currentOrder._id,
-                tripRef: currentOrder.reference || currentOrder._id?.slice(-6)?.toUpperCase(),
-                isActive: isChatActive,
-              })}
-            >
-              <Ionicons name="chatbubble-ellipses" size={22} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={[styles.chatBtnText, { fontSize: 16, fontWeight: 'bold' }]}>
-                {isChatActive ? '💬 Conversar' : 'Histórico de Chat'}
-              </Text>
-            </TouchableOpacity>
-          )}
+
 
         </View>
       )}
@@ -751,23 +733,7 @@ const OrderDetailsScreen = () => {
           </View>
         )}
 
-        {['Aceite', 'A Caminho', 'No destino indicado'].includes(currentOrder.status) && (
-          <TouchableOpacity onPress={handleShareTrip} style={[styles.actionBtn, { marginBottom: 12 }]}>
-            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.gradientBtn}>
-              <Ionicons name="share-social" size={20} color="#FFF" />
-              <Text style={styles.actionBtnText}>Partilhar Viagem ao Vivo</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
 
-        {currentOrder.status === 'No destino indicado' && (
-          <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
-            <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
-              <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-              <Text style={styles.actionBtnText}>Confirmar Receção</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
         {currentOrder.status === 'Entregue' && (
           <TouchableOpacity onPress={() => confirmDeleteOrder(currentOrder._id)} style={styles.actionBtn}>
             <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.gradientBtn}>

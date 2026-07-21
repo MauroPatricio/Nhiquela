@@ -474,20 +474,7 @@ export default function TripScreen({ navigation }: any) {
                         <Text style={styles.modalLocationText}>{selectedTrip.destination}</Text>
                       </View>
                       
-                      <TouchableOpacity 
-                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}
-                        onPress={() => {
-                          if (selectedTrip.originLat && selectedTrip.destLat) {
-                            const url = `https://www.openstreetmap.org/directions?engine=osrm_car&route=${selectedTrip.originLat}%2C${selectedTrip.originLng}%3B${selectedTrip.destLat}%2C${selectedTrip.destLng}`;
-                            Linking.openURL(url);
-                          } else {
-                            Alert.alert("Mapa Indisponível", "As coordenadas exatas desta viagem não estão disponíveis no histórico.");
-                          }
-                        }}
-                      >
-                        <Ionicons name="map-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                        <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Ver Pontos no Mapa</Text>
-                      </TouchableOpacity>
+
                     </View>
                   </View>
 
