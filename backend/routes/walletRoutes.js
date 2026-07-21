@@ -21,7 +21,7 @@ const walletRouter = express.Router();
 /**
  * Função genérica para atualizar saldo e registrar transação com segurança (MongoDB transaction)
  */
-async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver') {
+async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver', referenceId = null) {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -29,6 +29,16 @@ async function updateWallet(ownerId, amount, type, method, description, status =
     if (!wallet) {
       wallet = await Wallet.create([{ ownerId, ownerType, balance: 0 }], { session });
       wallet = wallet[0]; // create retorna array no modo transacional
+    }
+
+    // Idempotency Check: Previne duplo crédito ou ataque replay
+    if (referenceId) {
+      const existingTx = await Transaction.findOne({ referenceId }).session(session);
+      if (existingTx) {
+        await session.abortTransaction();
+        session.endSession();
+        return wallet.balance; // Transação já processada, retorna saldo atual silenciosamente
+      }
     }
 
     if (type === 'debit' && wallet.balance < amount) {
@@ -40,7 +50,7 @@ async function updateWallet(ownerId, amount, type, method, description, status =
     const shouldUpdateBalance = !(type === 'credit' && status === 'pendente');
     
     if (shouldUpdateBalance) {
-      wallet.balance += (type === 'credit' ? amount : -amount);
+      wallet.balance = Math.round((wallet.balance + (type === 'credit' ? amount : -amount)) * 100) / 100;
       await wallet.save({ session });
     }
 
@@ -51,7 +61,8 @@ async function updateWallet(ownerId, amount, type, method, description, status =
       amount,
       method,
       description,
-      status
+      status,
+      referenceId
     }], { session });
 
     await session.commitTransaction();
