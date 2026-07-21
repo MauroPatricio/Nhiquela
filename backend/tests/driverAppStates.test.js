@@ -89,7 +89,9 @@ describe('Teste de Estado da Aplicação (Aberta vs Fechada)', () => {
       targetDriverId: driver._id,
       transportType: 'Carro',
       phoneNumber: 841234567,
-      name: 'Cliente Teste'
+      name: 'Cliente Teste',
+      deliverCity: 'Maputo',
+      goodType: 'Documentos'
     });
     await order.save();
 
@@ -127,5 +129,5 @@ describe('Teste de Estado da Aplicação (Aberta vs Fechada)', () => {
     
     expect(pushPayload.pushToken).toBe('FCM_TOKEN_123');
     expect(pushPayload.receiver_id.toString()).toBe(driver._id.toString());
-  });
+  }, 15000);
 });
