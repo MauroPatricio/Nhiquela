@@ -387,18 +387,44 @@ const OrderDetailsScreen = () => {
     <View style={styles.sheetContent}>
       {/* Resumo Rápido para a aba inicial (15%) */}
       {currentOrder.status === 'No destino indicado' && (
-        <View style={{ backgroundColor: '#DCFCE7', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="checkmark-circle" size={28} color="#16A34A" style={{ marginRight: 12 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>O motorista chegou!</Text>
-            <Text style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>Encontre-se com ele no local indicado para confirmar a receção.</Text>
-            {driverWaitTime > 0 && (
-              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#EF4444', marginTop: 6 }}>
-                Tempo de espera: {Math.floor(driverWaitTime / 60).toString().padStart(2, '0')}:{(driverWaitTime % 60).toString().padStart(2, '0')}
-              </Text>
-            )}
+        <>
+          <View style={{ backgroundColor: '#DCFCE7', padding: 16, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="checkmark-circle" size={28} color="#16A34A" style={{ marginRight: 12 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>O motorista chegou!</Text>
+              <Text style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>Encontre-se com ele no local indicado para confirmar a receção.</Text>
+              {driverWaitTime > 0 && (
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#EF4444', marginTop: 6 }}>
+                  Tempo de espera: {Math.floor(driverWaitTime / 60).toString().padStart(2, '0')}:{(driverWaitTime % 60).toString().padStart(2, '0')}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
+          
+
+          <View style={{ marginTop: 10, marginBottom: 16 }}>
+            <TouchableOpacity 
+              onPress={() => confirmDeliveryOrder(currentOrder._id)}
+              style={{
+                backgroundColor: '#10B981',
+                paddingVertical: 14,
+                borderRadius: 12,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                shadowColor: '#10B981',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark-done-circle" size={24} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Confirmar Receção da Viagem</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
       
       {currentOrder.status === 'SCHEDULED' && (
@@ -542,25 +568,7 @@ const OrderDetailsScreen = () => {
             )}
           </View>
 
-          {/* 💬 Botão de Chat — só activo quando motorista aceitou */}
-          {showChatBtn && (
-            <TouchableOpacity
-              style={[
-                styles.chatBtn,
-                !isChatActive && styles.chatBtnDisabled,
-              ]}
-              onPress={() => navigation.navigate('TripChatScreen', {
-                tripId: currentOrder._id,
-                tripRef: currentOrder.reference || currentOrder._id?.slice(-6)?.toUpperCase(),
-                isActive: isChatActive,
-              })}
-            >
-              <Ionicons name="chatbubble-ellipses" size={20} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.chatBtnText}>
-                {isChatActive ? 'Chat com o Motorista' : 'Ver Histórico de Chat'}
-              </Text>
-            </TouchableOpacity>
-          )}
+
 
         </View>
       )}
@@ -691,7 +699,13 @@ const OrderDetailsScreen = () => {
                           selectedService: { 
                             _id: currentOrder.serviceId, 
                             name: currentOrder.name || currentOrder.goodType || 'Serviço' 
-                          } 
+                          },
+                          retrySearch: true,
+                          originText: currentOrder.pickup?.address || currentOrder.pickupAddress || '',
+                          destText: currentOrder.delivery?.address || currentOrder.deliveryAddress || '',
+                          originCoord: currentOrder.pickup?.coordinates ? { lat: currentOrder.pickup.coordinates[1], lng: currentOrder.pickup.coordinates[0] } : null,
+                          destCoord: currentOrder.delivery?.coordinates ? { lat: currentOrder.delivery.coordinates[1], lng: currentOrder.delivery.coordinates[0] } : null,
+                          reason: currentOrder.goodType || currentOrder.reason || currentOrder.motive || ''
                         } 
                       }
                     ] 
@@ -719,23 +733,7 @@ const OrderDetailsScreen = () => {
           </View>
         )}
 
-        {['Aceite', 'A Caminho', 'No destino indicado'].includes(currentOrder.status) && (
-          <TouchableOpacity onPress={handleShareTrip} style={[styles.actionBtn, { marginBottom: 12 }]}>
-            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.gradientBtn}>
-              <Ionicons name="share-social" size={20} color="#FFF" />
-              <Text style={styles.actionBtnText}>Partilhar Viagem ao Vivo</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
 
-        {currentOrder.status === 'No destino indicado' && (
-          <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={styles.actionBtn}>
-            <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
-              <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-              <Text style={styles.actionBtnText}>Confirmar Receção</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
         {currentOrder.status === 'Entregue' && (
           <TouchableOpacity onPress={() => confirmDeleteOrder(currentOrder._id)} style={styles.actionBtn}>
             <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.gradientBtn}>

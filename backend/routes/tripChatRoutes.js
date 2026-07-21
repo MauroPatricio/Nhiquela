@@ -22,14 +22,27 @@ tripChatRouter.get(
     }
     
     // Verify authorization: must be the client, driver or admin
-    if (!req.user.isAdmin && trip.userId?.toString() !== req.user._id.toString() && trip.driverId?.toString() !== req.user._id.toString()) {
+    const isClient = trip.user?.toString() === req.user._id.toString();
+    const isDriver = trip.targetDriverId === req.user._id.toString() || trip.deliveryman?.id?.toString() === req.user._id.toString();
+    
+    if (!req.user.isAdmin && !isClient && !isDriver) {
        return res.status(403).send({ message: 'Acesso negado ao chat desta viagem' });
+    }
+
+    const isSearching = !trip.deliveryman?.id || ['Aguardando confirmação', 'Procurando motorista'].includes(trip.status);
+    if (isSearching) {
+       return res.status(403).send({ message: 'O chat apenas está disponível quando a viagem for aceite pelo motorista.' });
     }
 
     let chat = await TripChat.findOne({ tripId }).populate('messages.senderId', 'name');
     
+    const isFinished = ['Finalizada', 'Cancelada', 'Recusada', 'Expirada'].includes(trip.status) || trip.stepStatus >= 6;
+
     if (!chat) {
-      chat = new TripChat({ tripId, messages: [] });
+      chat = new TripChat({ tripId, messages: [], isActive: !isFinished });
+      await chat.save();
+    } else if (isFinished && chat.isActive) {
+      chat.isActive = false;
       await chat.save();
     }
     
@@ -45,10 +58,10 @@ tripChatRouter.post(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const { tripId } = req.params;
-    const { message } = req.body;
+    const { message, fileUrl, fileType } = req.body;
     
-    if (!message) {
-       return res.status(400).send({ message: 'A mensagem não pode estar vazia' });
+    if (!message && !fileUrl) {
+       return res.status(400).send({ message: 'A mensagem ou anexo não pode estar vazio' });
     }
 
     const trip = await RequestService.findById(tripId);
@@ -58,10 +71,13 @@ tripChatRouter.post(
     
     // Verify authorization
     let senderType = 'admin';
+    const isClient = trip.user?.toString() === req.user._id.toString();
+    const isDriver = trip.targetDriverId === req.user._id.toString() || trip.deliveryman?.id?.toString() === req.user._id.toString();
+    
     if (!req.user.isAdmin) {
-       if (trip.userId?.toString() === req.user._id.toString()) {
+       if (isClient) {
          senderType = 'client';
-       } else if (trip.driverId?.toString() === req.user._id.toString()) {
+       } else if (isDriver) {
          senderType = 'driver';
        } else {
          return res.status(403).send({ message: 'Acesso negado' });
@@ -73,10 +89,16 @@ tripChatRouter.post(
       chat = new TripChat({ tripId, messages: [] });
     }
     
+    if (chat.isActive === false) {
+       return res.status(403).send({ message: 'Este chat foi encerrado.' });
+    }
+    
     const newMessage = {
       senderId: req.user._id,
       senderType,
-      message,
+      message: message || '',
+      fileUrl,
+      fileType,
       createdAt: new Date()
     };
     

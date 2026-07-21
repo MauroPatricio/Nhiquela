@@ -10,6 +10,7 @@ const getImageUrl = (path?: string) => {
 };
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from "../styles/colors";
 import { Trip } from "../types";
 
@@ -44,6 +45,7 @@ const TripCard = React.memo(function TripCard({
   onViewRoute,
   onExpire
 }: Props) {
+  const navigation = useNavigation<any>();
   const isCurrentAcceptedTrip = acceptedTrip?.id === item.id;
   const isAccepted = item.isAcceptedByDeliveryman || isCurrentAcceptedTrip;
   const isAccepting = acceptingTripId === item.id;
@@ -93,21 +95,26 @@ const TripCard = React.memo(function TripCard({
           {/* Header Profile / Status */}
           <View style={styles.header}>
         <View style={styles.profileSection}>
-          <View style={[styles.avatar, isAccepted && styles.avatarAccepted]}>
+          <View style={styles.avatar}>
             {imageUrl ? (
               <Image source={{ uri: imageUrl }} style={styles.avatarImage} />
             ) : (
               <Ionicons
-                name={isAccepted ? "checkmark" : "person"}
+                name="person"
                 size={22}
-                color={isAccepted ? "#FFF" : COLORS.primary}
+                color={COLORS.primary}
               />
             )}
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.passengerName} numberOfLines={1}>
-              {item.serviceName ? `${item.serviceName} - ${item.passenger}` : item.passenger}
+              {item.passenger || 'Cliente'}
             </Text>
+            {item.serviceName && (
+              <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
+                Serviço: {item.serviceName}
+              </Text>
+            )}
             {item.serviceMotive && (
               <Text style={styles.serviceMotive} numberOfLines={1}>
                 Motivo: {item.serviceMotive}
@@ -145,15 +152,31 @@ const TripCard = React.memo(function TripCard({
         </View>
 
         {isAccepted && item.passengerPhone && (
-          <TouchableOpacity 
-            style={styles.callButton}
-            onPress={() => {
-              const phoneStr = typeof item.passengerPhone === 'string' ? item.passengerPhone.replace(/\D/g, '') : '';
-              if (phoneStr) Linking.openURL(`tel:${phoneStr}`).catch(() => {});
-            }}
-          >
-            <Ionicons name="call" size={18} color="#FFF" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity 
+              style={[styles.callButton, { backgroundColor: '#8a2be2' }]}
+              onPress={() => {
+                navigation.navigate('TripChat', { 
+                  tripId: item.id || item._id,
+                  passenger: item.passenger,
+                  passengerImage: item.passengerImage,
+                  serviceMotive: item.serviceMotive || item.goodType || 'Serviço Padrão'
+                });
+              }}
+            >
+              <Ionicons name="chatbubble-ellipses" size={18} color="#FFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.callButton}
+              onPress={() => {
+                const phoneStr = typeof item.passengerPhone === 'string' ? item.passengerPhone.replace(/\D/g, '') : '';
+                if (phoneStr) Linking.openURL(`tel:${phoneStr}`).catch(() => {});
+              }}
+            >
+              <Ionicons name="call" size={18} color="#FFF" />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 

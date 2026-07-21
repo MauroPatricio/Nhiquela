@@ -807,12 +807,8 @@ export default function HomeScreen({ navigation }: any) {
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
 
-      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
-      setAllTrips(formattedOrders);
-      setLastUpdate(new Date());
-
       // 🔥 CORREÇÃO CRÍTICA: BUSCAR PEDIDO ACEITO CORRETAMENTE
-      const accepted = formattedOrders.find((order: Trip) => {
+      const acceptedTrips = formattedOrders.filter((order: Trip) => {
         // Pedido aceito pelo entregador atual
         const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
         
@@ -823,7 +819,23 @@ export default function HomeScreen({ navigation }: any) {
         return isAcceptedByCurrentUser || isInTransit;
       });
       
-      setAcceptedTrip(accepted || null);
+      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
+
+      // 🔥 CORREÇÃO: MOSTRAR APENAS 1 VIAGEM DE CADA VEZ
+      let finalTripsToDisplay: Trip[] = [];
+      if (accepted) {
+        finalTripsToDisplay = [accepted];
+      } else {
+        const pendingTrips = formattedOrders.filter((o: Trip) => o.status === 'Pendente');
+        if (pendingTrips.length > 0) {
+          finalTripsToDisplay = [pendingTrips[0]];
+        }
+      }
+
+      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
+      setAllTrips(finalTripsToDisplay);
+      setLastUpdate(new Date());
+      setAcceptedTrip(accepted);
 
       if (accepted) {
         const tripStarted = accepted.stepStatus === 5;
@@ -907,14 +919,24 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO
         return isAcceptedByCurrentUser || isInTransit;
       });
+
+      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
+
+      // 🔥 CORREÇÃO: MOSTRAR APENAS 1 VIAGEM DE CADA VEZ
+      let finalTripsToDisplay: Trip[] = [];
+      if (accepted) {
+        finalTripsToDisplay = [accepted];
+      } else {
+        const pendingTrips = formattedOrders.filter((o: Trip) => o.status === 'Pendente');
+        if (pendingTrips.length > 0) {
+          finalTripsToDisplay = [pendingTrips[0]];
+        }
+      }
     
-      setAllTrips(formattedOrders);
+      setAllTrips(finalTripsToDisplay);
       setLastUpdate(new Date());
   
-      // 🔥 BUSCAR VIAGEM ACEITçãPENAS SE HOUVER UMA REAL
-      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
-      
-      setAcceptedTrip(accepted || null);
+      setAcceptedTrip(accepted);
   
       if (accepted) {
         const tripStarted = accepted.stepStatus === 5;
@@ -1036,9 +1058,9 @@ export default function HomeScreen({ navigation }: any) {
       passengerId: order.user?._id || order.user?.id || order.userId || "0",
       serviceName: serviceNameStr,
       serviceMotive: order.reason || order.description || order.goodType || undefined,
-      passenger: order.user?.name || order.clientName || "Cliente",
-      passengerImage: order.user?.profileImage,
-      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Não disponvel",
+      passenger: order.user?.name || order.name || order.clientName || "Cliente",
+      passengerImage: order.user?.profileImage || order.user?.photo || null,
+      passengerPhone: order.phoneNumber || order.user?.phoneNumber || "Não disponvel",
       pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
@@ -1080,41 +1102,36 @@ export default function HomeScreen({ navigation }: any) {
         isProcessing: trip.id === tripId ? true : trip.isProcessing
       })));
 
-      // 🔥 TENTAR OBTER LOCALIZAÇÃO
+      // 🔥 TENTAR OBTER LOCALIZAÇÃO RÁPIDA
       let currentLocation = null;
       
       try {
-        // Usar um timeout para não bloquear eternamente e usar Balanced (rápido e suficiente para este step)
-        const location = await Promise.race([
-          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 7000))
-        ]) as Location.LocationObject;
-        
-        currentLocation = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          accuracy: location.coords.accuracy ?? undefined,
-          timestamp: new Date().toISOString()
-        };
-
-      } catch (error: any) {
-        // 🔥 FALLBACK: Se falhar ou der timeout, tenta usar a última localização conhecida
-        try {
-          const lastLocation = await Location.getLastKnownPositionAsync();
-          if (lastLocation) {
-            currentLocation = {
-              latitude: lastLocation.coords.latitude,
-              longitude: lastLocation.coords.longitude,
-              accuracy: lastLocation.coords.accuracy ?? undefined,
-              timestamp: new Date().toISOString()
-            };
-          } else {
-            throw new Error('Sem última localização');
-          }
-        } catch (fallbackError) {
-          setShowLocationRequiredModal(true);
-          throw new Error('Localização não disponível');
+        // 1. Tentar a última localização conhecida PRIMEIRO para ser instantâneo
+        const lastLocation = await Location.getLastKnownPositionAsync();
+        if (lastLocation) {
+          currentLocation = {
+            latitude: lastLocation.coords.latitude,
+            longitude: lastLocation.coords.longitude,
+            accuracy: lastLocation.coords.accuracy ?? undefined,
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          // 2. Fallback para obter a posição atual com timeout muito baixo (2 segundos)
+          const location = await Promise.race([
+            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+          ]) as Location.LocationObject;
+          
+          currentLocation = {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            accuracy: location.coords.accuracy ?? undefined,
+            timestamp: new Date().toISOString()
+          };
         }
+      } catch (error: any) {
+        setShowLocationRequiredModal(true);
+        throw new Error('Localização não disponível');
       }
 
       // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
@@ -1211,21 +1228,28 @@ const startLocationSharingToBackend = (orderId: string) => {
   
   const updateLocationToBackend = async () => {
     try {
-      // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL COM TIMEOUT E FALLBACK
+      let location: Location.LocationObject | null = null;
+      try {
+        location = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ]) as Location.LocationObject;
+      } catch (e) {
+        location = await Location.getLastKnownPositionAsync();
+      }
 
       // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
-      if (!location.coords.latitude || !location.coords.longitude) {
-        console.warn('âš ï¸ Localização inválida obtida, pulando atualização');
+      if (!location || !location.coords || !location.coords.latitude || !location.coords.longitude) {
+        console.warn('⚠️ Localização inválida obtida, pulando atualização');
         return;
       }
 
       // Envia via WebSocket em vez de HTTP request
-      if (user?._id) {
+      const driverId = user?._id || (user as any)?.id;
+      if (driverId) {
         websocketService.sendLocation({
-          driverId: user._id,
+          driverId: driverId,
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
           speed: location.coords.speed || 0,

@@ -364,6 +364,37 @@ if (process.env.NODE_ENV !== 'test') {
       }
     });
 
+    socket.on('typing_trip_chat', (data) => {
+      if (data && data.tripId && data.senderId) {
+        const roomName = `trip_${data.tripId}`;
+        socket.to(roomName).emit('user_typing_trip_chat', data);
+      }
+    });
+
+    socket.on('stop_typing_trip_chat', (data) => {
+      if (data && data.tripId && data.senderId) {
+        const roomName = `trip_${data.tripId}`;
+        socket.to(roomName).emit('user_stop_typing_trip_chat', data);
+      }
+    });
+
+    socket.on('mark_read_trip_chat', async (data) => {
+      if (data && data.tripId && data.userId) {
+        const roomName = `trip_${data.tripId}`;
+        try {
+          const TripChat = (await import('./models/TripChatModel.js')).default;
+          await TripChat.updateMany(
+            { tripId: data.tripId },
+            { $set: { "messages.$[elem].status": "read" } },
+            { arrayFilters: [{ "elem.senderId": { $ne: data.userId }, "elem.status": { $ne: "read" } }] }
+          );
+          io.to(roomName).emit('messages_read_trip_chat', { tripId: data.tripId, readBy: data.userId });
+        } catch (err) {
+          console.error("Erro ao marcar como lido", err);
+        }
+      }
+    });
+
   socket.on('leaveRoom', (data) => {
     if (data && data.orderId) {
       const roomName = `order_${data.orderId}`;
