@@ -65,7 +65,12 @@
           "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas."
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./src/assets/sounds/calldriver.mp3"]
+        }
+      ],
       [
         "expo-build-properties",
         {

@@ -1,4 +1,4 @@
-﻿import admin from '../firebase.js';
+import admin from '../firebase.js';
 
 export async function sendNotification(deviceToken, title, body, data = {}) {
   if (!deviceToken || deviceToken === 'null') {
@@ -20,8 +20,8 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
     android: {
       priority: 'high',
       notification: {
-        channelId: 'default',
-        sound: 'default',
+        channelId: 'driver_alerts',
+        sound: 'calldriver.mp3',
         priority: 'max',
         defaultVibrateTimings: true,
       }

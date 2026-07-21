@@ -244,13 +244,23 @@ if (process.env.NODE_ENV !== 'test') {
   app.set('io', io);
 
   // Redis Adapter Configuration
+  let subClient;
   try {
+    let isConnectedOnce = false;
     pubClient = createClient({ 
       url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-      socket: { reconnectStrategy: false }
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (!isConnectedOnce) {
+            return new Error('No retries on initial connection');
+          }
+          return Math.min(retries * 100, 3000); // Retry up to every 3 seconds
+        }
+      }
     });
-    const subClient = pubClient.duplicate();
+    subClient = pubClient.duplicate();
     
+    pubClient.on('ready', () => { isConnectedOnce = true; });
     pubClient.on('error', () => {}); // Mute errors to prevent console spam
     subClient.on('error', () => {});
     
@@ -259,6 +269,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('✅ Redis Adapter for Socket.io initialized successfully.');
   } catch (err) {
     console.error('⚠️ Could not connect to Redis. Falling back to in-memory Socket.io', err.message);
+    if (pubClient) {
+      pubClient.disconnect().catch(() => {});
+      pubClient = null;
+    }
+    if (subClient) {
+      subClient.disconnect().catch(() => {});
+    }
   }
 
   initScheduledOrderService(io);

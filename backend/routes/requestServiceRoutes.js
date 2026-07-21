@@ -130,7 +130,7 @@ requestServiceer.post(
       status: req.body.isScheduled ? 'SCHEDULED' : 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
-      stepStatus: req.body.stepStatus,
+      stepStatus: req.body.stepStatus !== undefined ? req.body.stepStatus : (req.body.isScheduled ? 1 : 3),
       targetDriverId: req.body.targetDriverId,
       latitude: req.body.latitude,
       longitude: req.body.longitude,
@@ -1075,7 +1075,7 @@ requestServiceer.post(
 
         const io = req.app.get('io');
         if (io) {
-          io.to(`driver_${targetDriverId}`).emit('new_order', order);
+          io.to(`driver_${targetDriverId}`).emit('new_order', { ...order.toObject(), type: 'requestService' });
 
           // Push notification para o motorista alvo
           const targetDriverUser = await User.findById(targetDriverId);
