@@ -151,7 +151,7 @@ requestServiceer.post(
 
     // ============================================================
     // CÁLCULO AUTOMÁTICO DO PREÇO (server-side, imutável)
-    // Executado ANTES do save() â€” o backend nunca confia no preço do cliente
+    // Executado ANTES do save() — o backend nunca confia no preço do cliente
     // ============================================================
     const originDetails = req.body.originDetails;
     const destinationDetails = req.body.destinationDetails;
@@ -181,13 +181,19 @@ requestServiceer.post(
         // Substituir o deliveryPrice enviado pelo cliente pelo valor calculado pelo servidor
         newOrder.deliveryPrice = priceResult.price;
 
-        console.log(`[PricingService] âœ… Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
+        console.log(`[PricingService] ✅ Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
       } catch (pricingErr) {
-        // Não bloquear a criação do pedido â€” usar o preço do cliente como fallback
-        console.warn(`[PricingService] âš ï¸ Falha no cálculo automático. A usar deliveryPrice do cliente (${req.body.deliveryPrice} MT). Erro: ${pricingErr.message}`);
+        console.error(`[PricingService] ❌ Falha no cálculo automático:`, pricingErr);
+        return res.status(503).send({ 
+          message: 'Falha temporária ao calcular o preço exato da viagem (Erro de GPS/OSRM). Por favor, tente novamente.'
+        });
       }
     } else {
-      console.log(`[PricingService] â„¹ï¸ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
+      // Se não vierem coordenadas (pedidos legados ou web), valida se pelo menos o deliveryPrice não é suspeito.
+      if (!req.body.deliveryPrice || req.body.deliveryPrice < 0) {
+        return res.status(400).send({ message: 'Preço de viagem inválido ou em falta.' });
+      }
+      console.log(`[PricingService] ℹ️  Campos insuficientes para cálculo OSRM. A usar fallback do cliente.`);
     }
 
     let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
@@ -514,19 +520,32 @@ requestServiceer.put(
         };
       }
 
-      // 🔥 ATOMIC UPDATE manually on the document
-      order.status = 'Pedido aceite';
-      order.stepStatus = 4;
-      order.isAccepted = true;
-      order.acceptedAt = new Date();
-      order.isSearching = false;
-      order.deliveryman = deliverymanData;
+      // 🔥 ATOMIC UPDATE to strictly prevent race conditions
+      const updatedOrder = await RequestService.findOneAndUpdate(
+        { _id: req.params.id, status: 'Pendente' },
+        {
+          $set: {
+            status: 'Pedido aceite',
+            stepStatus: 4,
+            isAccepted: true,
+            acceptedAt: new Date(),
+            isSearching: false,
+            deliveryman: deliverymanData
+          }
+        },
+        { new: true, session }
+      );
+
+      if (!updatedOrder) {
+        // Alguém aceitou entre a leitura e o update
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
+      }
 
       console.log(`\n====================================================`);
-      console.log(`[Dispatch Flow] ✅ SUCESSO: O motorista ${user_deliver.name} ACEITOU o pedido ${order.code || order._id}!`);
+      console.log(`[Dispatch Flow] ✅ SUCESSO: O motorista ${user_deliver.name} ACEITOU o pedido ${updatedOrder.code || updatedOrder._id}!`);
       console.log(`====================================================\n`);
-
-      await order.save({ session });
 
       // Marcar motorista como ocupado â€” não deve receber novos pedidos até o cliente confirmar
       await User.updateOne(
@@ -538,7 +557,7 @@ requestServiceer.put(
       await session.commitTransaction();
       session.endSession();
 
-      const updateOrder = order;
+      const updateOrder = updatedOrder;
 
       //  Para envio de mensagens
       const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
@@ -683,6 +702,50 @@ requestServiceer.put(
       }
 
       res.send({ message: `No destino indicado`, order: updateOrder });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+// Motorista rejeita (Pendente) ou cancela (Aceite) a viagem
+requestServiceer.put(
+  '/:id/cancel',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+
+    if (order) {
+      if (order.status === 'Pendente') {
+        // Rejeição do pedido Pendente: passa para o próximo motorista
+        order.status = 'Motorista indisponível'; // Para ser capturado pelo dispatch se necessário, ou apenas rejeitado
+        order.targetDriverId = null;
+        order.canceledReason = req.body.message || 'Motorista recusou a viagem';
+      } else {
+        // Cancelamento após aceitar
+        order.status = 'Cancelado';
+        order.stepStatus = 7;
+        order.canceledReason = req.body.message || 'Motorista cancelou a viagem';
+        
+        // Libertar o motorista
+        if (order.deliveryman && order.deliveryman.id) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } }
+          );
+        }
+      }
+
+      const updateOrder = await order.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        // Notifica motorista para retirar a viagem do ecrã
+        io.to(`driver_${req.user._id}`).emit('order_updated', updateOrder);
+      }
+
+      res.send({ message: 'Viagem rejeitada/cancelada com sucesso', order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }

@@ -22,15 +22,13 @@ class DispatchService {
 
       const MAX_DISTANCE_METERS = 10000; // 10km radius
 
-      // Busca geospacial dos motoristas disponíveis e livres
-      // status pode ser 'Disponível' (aprovado) ou outros valores - não filtrar por status
-      // para não excluir motoristas válidos com nomes de status diferentes
-      const availableDrivers = await User.find({
+      // Montar a query base de pesquisa de motoristas
+      const query = {
         isDeliveryMan: true,
-        availability: 'active', // Motorista marcado como online
+        status: { $nin: ['Inativo', 'Pendente'] }, // Garantir que não está bloqueado ou pendente de aprovação
+        availability: 'active', // Motorista marcou-se como online na app
         'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
-        // Excluir motoristas com GPS inválido (0,0)
-        'locationGeo.coordinates.0': { $ne: 0 },
+        'locationGeo.coordinates.0': { $ne: 0 }, // Tem GPS válido
         'locationGeo.coordinates.1': { $ne: 0 },
         locationGeo: {
           $near: {
@@ -41,7 +39,15 @@ class DispatchService {
             $maxDistance: MAX_DISTANCE_METERS
           }
         }
-      }).select('_id name deviceToken locationGeo').limit(5); // usa deviceToken (campo real no UserModel)
+      };
+
+      // Se a viagem exige um tipo de veículo específico (Carro, Mota, Reboque)
+      if (order.transportTypeId) {
+        query['deliveryman.transportType'] = order.transportTypeId;
+      }
+
+      // Busca geospacial dos motoristas disponíveis
+      const availableDrivers = await User.find(query).select('_id name deviceToken locationGeo').limit(5);
 
 
       if (availableDrivers.length === 0) {

@@ -86,9 +86,9 @@ export const debitCommission = async (driverId, amount) => {
 
   // Allow negative balance if configured
   if (config.allowNegativeBalance) {
-    wallet.balance -= amount;
+    wallet.balance = Math.round((wallet.balance - amount) * 100) / 100;
   } else {
-    wallet.balance = Math.max(0, wallet.balance - amount);
+    wallet.balance = Math.max(0, Math.round((wallet.balance - amount) * 100) / 100);
   }
   
   if (wallet.balance < 0 && !wallet.negativeSince) {

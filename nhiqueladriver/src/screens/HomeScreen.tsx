@@ -12,6 +12,7 @@ import {
   Modal,
   Switch,
   Vibration,
+  AppState,
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -205,7 +206,7 @@ export default function HomeScreen({ navigation }: any) {
   // 🔥 CONFIGURAR WEBSOCKET PARA TEMPO REAL
   const setupWebSocket = async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = (await AsyncStorage.getItem('authToken')) || user?.token;
       if (token) {
         setConnectionStatus("Conectando...");
 
@@ -485,6 +486,25 @@ export default function HomeScreen({ navigation }: any) {
     };
   }, []);
 
+  // 🔥 RECUPERAÇÃO DE ESTADO QUANDO A APP VOLTA A FICAR ATIVA
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        console.log('🔄 App regressou ao Foreground - Verificando estado...');
+        // Se a ligação socket caiu, tenta religar. Se não, recarrega só por segurança.
+        if (!websocketService.isConnected) {
+          setupWebSocket();
+        } else {
+          loadAllOrdersSilent();
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // 🔥 ATUALIZAR STATUS DE DISPONIBILIDADE LOCALMENTE NA HOME
   const handleToggleOnline = async (value: boolean) => {
     if (value) {
@@ -646,9 +666,12 @@ export default function HomeScreen({ navigation }: any) {
     if (user?.availability === 'active') {
       const sendPing = async () => {
         try {
-          const loc = await Location.getCurrentPositionAsync({
+          let loc = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
           });
+          if (!loc) {
+            loc = await Location.getLastKnownPositionAsync();
+          }
           if (loc && loc.coords) {
             await api.put(ENDPOINTS.PING, {
               lat: loc.coords.latitude,
@@ -657,7 +680,19 @@ export default function HomeScreen({ navigation }: any) {
             console.log('✅ Localização (Ping) atualizada no backend');
           }
         } catch (error) {
-          console.warn('❌ Erro no ping de localização:', error);
+          console.warn('❌ Erro no ping de localização (tentando última conhecida):', error);
+          try {
+            const lastLoc = await Location.getLastKnownPositionAsync();
+            if (lastLoc && lastLoc.coords) {
+              await api.put(ENDPOINTS.PING, {
+                lat: lastLoc.coords.latitude,
+                lng: lastLoc.coords.longitude
+              });
+              console.log('✅ Localização (Ping) recuperada via cache');
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback de localização falhou também.', fallbackError);
+          }
         }
       };
       
