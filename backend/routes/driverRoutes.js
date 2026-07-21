@@ -62,8 +62,8 @@ router.get(
         }
       }
     })
-    .select('_id name deliveryman.transport_type locationGeo heading speed')
-    .lean();
+      .select('_id name deliveryman.transport_type locationGeo heading speed')
+      .lean();
 
     // Map para enviar apenas dados essenciais e formatar
     const safeDriversData = nearbyDrivers.map(d => ({
@@ -87,7 +87,7 @@ router.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const { lat, lng } = req.body;
-    
+
     if (!lat || !lng) {
       return res.status(400).send({ message: 'Coordenadas (lat, lng) são obrigatórias' });
     }
@@ -131,13 +131,13 @@ router.get(
     if (driver.deliveryman) {
       const Order = (await import('../models/OrderModel.js')).default;
       const RequestService = (await import('../models/RequestServiceModel.js')).default;
-      
+
       const orders = await Order.find({ 'deliveryman.id': driver._id, isDelivered: true });
       const requests = await RequestService.find({ 'deliveryman.id': driver._id, isDelivered: true });
-      
+
       const allTrips = [...orders, ...requests];
       driver.deliveryman.totalTrips = allTrips.length;
-      
+
       let todayEarnings = 0;
       let totalEarnings = 0;
       const now = new Date();
@@ -154,7 +154,7 @@ router.get(
           todayEarnings += price;
         }
       });
-      
+
       driver.deliveryman.todayEarnings = todayEarnings;
       driver.deliveryman.totalEarnings = totalEarnings;
     }
@@ -169,7 +169,7 @@ router.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const { availability } = req.body;
-    
+
     if (!['active', 'paused', 'inactive'].includes(availability)) {
       return res.status(400).send({ message: 'Status de disponibilidade inválido.' });
     }
@@ -219,7 +219,7 @@ router.put(
 
     // Otimização: usar updateOne em vez de driver.save() para evitar carregar e validar documentos grandes
     await User.updateOne({ _id: driver._id }, { $set: { availability: availability } });
-    
+
     res.send({ message: 'Disponibilidade atualizada com sucesso', availability: availability });
   })
 );
@@ -264,11 +264,11 @@ router.post(
     if (exists) {
       return res.status(400).send({ message: 'Email ou telefone já registado' });
     }
-    
+
     // Process VehicleType to get baseFee
     let assigned_base_fee = 0;
     let final_transport_type = transport_type;
-    
+
     if (vehicle_type_id) {
       const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
       const vType = await VehicleType.findById(vehicle_type_id);
@@ -278,8 +278,8 @@ router.post(
       }
     }
 
-    const driverServices = Array.isArray(providedServices) 
-      ? providedServices.map(id => ({ serviceId: id, isAvailable: true })) 
+    const driverServices = Array.isArray(providedServices)
+      ? providedServices.map(id => ({ serviceId: id, isAvailable: true }))
       : [];
 
     if (!driverServices || driverServices.length === 0) {
@@ -364,13 +364,13 @@ router.get(
 
     // EXCLUIR MOTORISTAS OCUPADOS (Método 2: pedidos ativos na BD)
     const activeOrders = await RequestService.find({
-       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
+      status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
     }).select('deliveryman targetDriverId').lean();
 
     const busyDriverIds = new Set();
     activeOrders.forEach(order => {
-       if (order.deliveryman && order.deliveryman.id) busyDriverIds.add(order.deliveryman.id.toString());
-       if (order.targetDriverId) busyDriverIds.add(order.targetDriverId.toString());
+      if (order.deliveryman && order.deliveryman.id) busyDriverIds.add(order.deliveryman.id.toString());
+      if (order.targetDriverId) busyDriverIds.add(order.targetDriverId.toString());
     });
     drivers = drivers.filter(d => !busyDriverIds.has(d._id.toString()));
 
@@ -404,11 +404,11 @@ router.get(
     drivers.forEach(driver => {
       let dLat, dLng;
       if (driver.locationGeo && driver.locationGeo.coordinates &&
-          driver.locationGeo.coordinates[0] !== 0 && driver.locationGeo.coordinates[1] !== 0) {
+        driver.locationGeo.coordinates[0] !== 0 && driver.locationGeo.coordinates[1] !== 0) {
         dLng = driver.locationGeo.coordinates[0];
         dLat = driver.locationGeo.coordinates[1];
       } else if (driver.latitude && driver.longitude &&
-                 parseFloat(driver.latitude) !== 0 && parseFloat(driver.longitude) !== 0) {
+        parseFloat(driver.latitude) !== 0 && parseFloat(driver.longitude) !== 0) {
         dLat = parseFloat(driver.latitude);
         dLng = parseFloat(driver.longitude);
       }
@@ -486,19 +486,19 @@ router.put(
         // Se houver transport_type pendente de alteracao, atualiza o perfil do motorista
         if (fields.transport_type) {
           driver.deliveryman.transport_type = fields.transport_type;
-          
+
           if (fields.assigned_base_fee !== undefined) {
-             driver.deliveryman.assigned_base_fee = fields.assigned_base_fee;
-             driver.providedServices = [{
-               serviceId: fields.transport_type,
-               customBasePrice: fields.assigned_base_fee
-             }];
+            driver.deliveryman.assigned_base_fee = fields.assigned_base_fee;
+            driver.providedServices = [{
+              serviceId: fields.transport_type,
+              customBasePrice: fields.assigned_base_fee
+            }];
           } else {
-             // Caso não haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
-             driver.providedServices = [{
-               serviceId: fields.transport_type,
-               customBasePrice: driver.deliveryman.assigned_base_fee
-             }];
+            // Caso não haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
+            driver.providedServices = [{
+              serviceId: fields.transport_type,
+              customBasePrice: driver.deliveryman.assigned_base_fee
+            }];
           }
         } else {
           driver.deliveryman.docUpdateStatus = 'Aprovado';
@@ -725,7 +725,7 @@ router.put(
     // Process VehicleType
     if (vehicle_type_id || transport_type || transport_color || plate || licenseNumber || idNumber || document_type || providedServices) {
       driver.deliveryman = driver.deliveryman || {};
-      
+
       if (name) driver.deliveryman.name = name;
       if (phoneNumber) driver.deliveryman.phoneNumber = phoneNumber;
       if (transport_type) driver.deliveryman.transport_type = transport_type;
@@ -734,11 +734,11 @@ router.put(
       if (licenseNumber) driver.deliveryman.license_front = licenseNumber;
       if (document_type) driver.deliveryman.document_type = document_type;
       if (idNumber) driver.deliveryman.document_front = idNumber;
-      
+
       if (Array.isArray(providedServices)) {
         driver.deliveryman.providedServices = providedServices.map(id => ({ serviceId: id, isAvailable: true }));
       }
-      
+
       if (vehicle_type_id && (!driver.deliveryman.vehicle_type_id || driver.deliveryman.vehicle_type_id.toString() !== vehicle_type_id.toString())) {
         const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
         const vType = await VehicleType.findById(vehicle_type_id);
@@ -764,8 +764,8 @@ router.put(
         message: driver.status === 'Disponível'
           ? 'âœ… A sua conta foi aprovada! Já pode receber pedidos.'
           : driver.status === 'Inativo'
-          ? 'âŒ A sua conta foi suspensa. Contacte o suporte.'
-          : 'â³ A sua conta está em análise.',
+            ? 'âŒ A sua conta foi suspensa. Contacte o suporte.'
+            : 'â³ A sua conta está em análise.',
       };
 
       if (io && status) {
@@ -856,13 +856,13 @@ router.post(
   expressAsyncHandler(async (req, res) => {
     const { justification } = req.body;
     if (!justification) return res.status(400).send({ message: 'Justificação obrigatória.' });
-    
+
     const driver = await User.findById(req.user._id);
     if (!driver || !driver.isBanned) return res.status(400).send({ message: 'Apenas motoristas bloqueados podem recorrer.' });
-    
+
     driver.banAppealJustification = justification;
     await driver.save();
-    
+
     res.send({ message: 'Justificação submetida com sucesso.', driver });
   })
 );

@@ -1928,34 +1928,43 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* MODAL PREMIUM PARA CANCELAR VIAGEM */}
+      {/* MODAL PREMIUM PARA CANCELAR VIAGEM (BOTTOM SHEET STYLE) */}
       <Modal
         visible={cancelModalVisible}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setCancelModalVisible(false)}
       >
-        <View style={styles.premiumModalOverlay}>
-          <View style={styles.premiumModalContainer}>
-            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="warning" size={40} color="#EF4444" />
+        <View style={styles.premiumCancelOverlay}>
+          <View style={styles.premiumCancelSheet}>
+            <View style={styles.premiumCancelDragIndicator} />
+            
+            <View style={styles.premiumCancelHeader}>
+              <View style={styles.premiumCancelIconWrapper}>
+                <Ionicons name="alert-circle" size={44} color="#EF4444" />
+              </View>
+              <Text style={styles.premiumCancelTitle}>Cancelar Viagem?</Text>
             </View>
-            <Text style={styles.premiumModalTitle}>Cancelar Viagem?</Text>
-            <Text style={styles.premiumModalMessage}>
-              Tem a certeza de que deseja cancelar esta viagem? Esta ação afetará as suas estatísticas e ganhos.
+
+            <Text style={styles.premiumCancelMessage}>
+              Tem a certeza de que deseja cancelar esta viagem? {"\n"}Esta acção <Text style={{fontWeight: 'bold', color: '#EF4444'}}>afectará negativamente</Text> as suas estatísticas de desempenho e os seus ganhos.
             </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 12, marginTop: 16 }}>
+
+            <View style={styles.premiumCancelButtonContainer}>
               <TouchableOpacity
-                style={[styles.premiumConfirmButton, { flex: 1, backgroundColor: '#F3F4F6' }]}
+                style={styles.premiumCancelBtnKeep}
                 onPress={() => setCancelModalVisible(false)}
+                activeOpacity={0.8}
               >
-                <Text style={{ color: '#4B5563', fontWeight: '700', fontSize: 16 }}>Manter Viagem</Text>
+                <Text style={styles.premiumCancelBtnKeepText}>Não, Manter Viagem</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={[styles.premiumConfirmButton, { flex: 1, backgroundColor: '#EF4444', shadowColor: '#EF4444' }]}
+                style={styles.premiumCancelBtnConfirm}
                 onPress={confirmCancelTrip}
+                activeOpacity={0.8}
               >
-                <Text style={styles.premiumConfirmButtonText}>Sim, Cancelar</Text>
+                <Text style={styles.premiumCancelBtnConfirmText}>Sim, Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2476,6 +2485,97 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   premiumConfirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  premiumCancelOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  premiumCancelSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 24,
+  },
+  premiumCancelDragIndicator: {
+    width: 48,
+    height: 5,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  premiumCancelHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  premiumCancelIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 6,
+    borderColor: '#FEE2E2',
+  },
+  premiumCancelTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  premiumCancelMessage: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 10,
+  },
+  premiumCancelButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  premiumCancelBtnKeep: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelBtnKeepText: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  premiumCancelBtnConfirm: {
+    flex: 1,
+    backgroundColor: '#EF4444',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  premiumCancelBtnConfirmText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15,
