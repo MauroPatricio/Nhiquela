@@ -65,12 +65,12 @@ async function registerForPushNotificationsAsync() {
   console.log("📩 FCM / Device Push Token:", token);
 
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
+    await Notifications.setNotificationChannelAsync("driver_alerts", {
+      name: "Alertas de Pedido",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: [0, 500, 250, 500],
       lightColor: "#FF231F7C",
-      sound: "default",
+      sound: "calldriver.mp3",
     });
   }
 
