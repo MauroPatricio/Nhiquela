@@ -277,8 +277,8 @@ requestServiceer.post(
         const availableDrivers = await User.find({
           role: 'deliveryman',
           'deliveryman.status': { $in: ['Disponível', 'Em Entrega'] },
-          pushToken: { $exists: true, $ne: null }
-        }).select('_id pushToken deliveryman');
+          deviceToken: { $exists: true, $ne: null }
+        }).select('_id deviceToken deliveryman');
 
         const scheduledDateStr = requestService.scheduledAt
           ? new Date(requestService.scheduledAt).toLocaleString('pt-PT', { timeZone: 'Africa/Maputo', dateStyle: 'short', timeStyle: 'short' })
