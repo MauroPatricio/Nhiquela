@@ -205,7 +205,7 @@ export default function HomeScreen({ navigation }: any) {
   // 🔥 CONFIGURAR WEBSOCKET PARA TEMPO REAL
   const setupWebSocket = async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = (await AsyncStorage.getItem('authToken')) || user?.token;
       if (token) {
         setConnectionStatus("Conectando...");
 

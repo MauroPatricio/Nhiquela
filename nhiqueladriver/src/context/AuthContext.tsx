@@ -107,6 +107,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = useCallback(async (userData: User) => {
     setUser(userData);
     await AsyncStorage.setItem('@app:user', JSON.stringify(userData));
+    if (userData.token) {
+      await AsyncStorage.setItem('authToken', userData.token);
+    }
   }, []);
 
   const logout = useCallback(async () => {
