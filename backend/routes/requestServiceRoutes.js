@@ -217,21 +217,31 @@ requestServiceer.post(
     if (io) {
       console.log(`[Dispatch Flow] targetDriverId: ${newOrder.targetDriverId}, isScheduled: ${newOrder.isScheduled}`);
       if (newOrder.targetDriverId) {
-        console.log('[Dispatch Flow] Branch: targetDriverId provided');
+        const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
+        
+        const driverRoom = `driver_${newOrder.targetDriverId}`;
+        const room = io.sockets.adapter.rooms.get(driverRoom);
+        const isSocketConnected = room && room.size > 0;
+        
+        console.log(`\n====================================================`);
+        console.log(`[Dispatch Flow] 🚀 Pedido #${newOrder.code} enviado pelo cliente!`);
+        console.log(`[Dispatch Flow] 🎯 Motorista Alvo: ${targetDriver ? targetDriver.name : newOrder.targetDriverId}`);
+        console.log(`[Dispatch Flow] 📡 WebSocket Status: ${isSocketConnected ? 'ONLINE ✅ (O motorista RECEBEU o popup na app aberta)' : 'OFFLINE ❌ (A app do motorista está fechada, vai tentar via Push)'}`);
+        console.log(`====================================================\n`);
+
         const orderPayload = { ...requestService.toObject(), type: 'requestService' };
-        io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
+        io.to(driverRoom).emit('new_order', orderPayload);
 
         // Push notification para o motorista alvo
-        const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
         if (targetDriver) {
-          console.log(`[Dispatch Flow] 📲 Push para motorista ${targetDriver.name} - token: ${targetDriver.deviceToken ? '✓ válido' : '✗ sem token'}`);
+          console.log(`[Dispatch Flow] 📲 Tentativa Push Notification (FCM) - token: ${targetDriver.deviceToken ? '✓ VÁLIDO' : '✗ SEM TOKEN (Não vai receber push)'}`);
           await createNotification({
             message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
             receiver_id: targetDriver._id,
             pushToken: targetDriver.deviceToken || null
           });
         } else {
-          console.warn(`[Dispatch Flow] ⚠️ Motorista ${newOrder.targetDriverId} não encontrado para push notification`);
+          console.warn(`[Dispatch Flow] ⚠️ Motorista ${newOrder.targetDriverId} não encontrado na BD.`);
         }
 
         // 45s timeout logic
@@ -243,6 +253,10 @@ requestServiceer.post(
               checkOrder.targetDriverId = null;
               checkOrder.canceledReason = 'Tempo esgotado (45s)';
               await checkOrder.save();
+
+              console.log(`\n====================================================`);
+              console.log(`[Dispatch Flow] ⚠️ TEMPO ESGOTADO (45s): O motorista ignorou ou rejeitou o pedido ${checkOrder.code || checkOrder._id}.`);
+              console.log(`====================================================\n`);
 
               // Notify driver to remove order from their screen
               io.to(`driver_${newOrder.targetDriverId}`).emit('order_updated', checkOrder);
@@ -507,6 +521,10 @@ requestServiceer.put(
       order.acceptedAt = new Date();
       order.isSearching = false;
       order.deliveryman = deliverymanData;
+
+      console.log(`\n====================================================`);
+      console.log(`[Dispatch Flow] ✅ SUCESSO: O motorista ${user_deliver.name} ACEITOU o pedido ${order.code || order._id}!`);
+      console.log(`====================================================\n`);
 
       await order.save({ session });
 
