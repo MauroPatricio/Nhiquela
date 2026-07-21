@@ -18,6 +18,13 @@ const FALLBACK_LOCATION = {
   longitude: 32.5109306
 };
 
+const getImageUrl = (path?: string) => {
+  if (!path) return null;
+  if (path.startsWith('http') || path.startsWith('data:image')) return path;
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  return path.startsWith('/') ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+};
+
 export default function MapScreen({ route, navigation }: any) {
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const [destination, setDestination] = useState<any>(null);
@@ -390,20 +397,32 @@ export default function MapScreen({ route, navigation }: any) {
       return;
     }
 
-    try {
-      const tripId = tripData?.id || tripData?._id;
-      if (tripId) {
-        const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
-        await finalizeOrder(tripId, isRequestService);
-        // Atualiza o estado local para parar o cronómetro no TripMap (que apenas conta em 4, 5, ou 6)
-        setTripData(prev => prev ? { ...prev, stepStatus: 7 } : null);
-      }
-      await AsyncStorage.removeItem("acceptedTrip");
-      setShowFinishSuccessModal(true);
-    } catch(err) {
-      console.warn(err);
-      Alert.alert("Erro", "Falha ao tentar finalizar a viagem.");
-    }
+    Alert.alert(
+      "Concluir Serviço",
+      "Tem a certeza que deseja confirmar a entrega e concluir este serviço?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Confirmar", 
+          onPress: async () => {
+            try {
+              const tripId = tripData?.id || tripData?._id;
+              if (tripId) {
+                const isRequestService = tripData?.originalData?.goodType !== undefined || tripData?.originalData?.type === 'requestService';
+                await finalizeOrder(tripId, isRequestService);
+                // Atualiza o estado local para parar o cronómetro no TripMap (que apenas conta em 4, 5, ou 6)
+                setTripData(prev => prev ? { ...prev, stepStatus: 7 } : null);
+              }
+              await AsyncStorage.removeItem("acceptedTrip");
+              setShowFinishSuccessModal(true);
+            } catch(err) {
+              console.warn(err);
+              Alert.alert("Erro", "Falha ao tentar finalizar a viagem.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleRetryLocation = async () => {
@@ -508,24 +527,45 @@ export default function MapScreen({ route, navigation }: any) {
             <>
               <View style={styles.infoRow}>
                 {tripData.passengerImage ? (
-                  <Image source={{ uri: tripData.passengerImage }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                  <Image source={{ uri: getImageUrl(tripData.passengerImage) || tripData.passengerImage }} style={{ width: 44, height: 44, borderRadius: 22 }} />
                 ) : (
                   <Ionicons name="person-circle" size={44} color="#3B82F6" />
                 )}
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.passenger || 'Cliente'}</Text>
                   <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.passengerPhone || 'Telefone não disponível'}</Text>
+                  {tripData.serviceMotive && (
+                    <Text style={{ fontSize: 13, color: '#3B82F6', marginTop: 2, fontWeight: '500' }}>
+                      Motivo: {tripData.serviceMotive}
+                    </Text>
+                  )}
                 </View>
-                {tripData.passengerPhone && tripData.passengerPhone !== "Não disponível" && (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity 
-                    style={styles.callButton}
+                    style={[styles.callButton, { backgroundColor: '#8a2be2' }]}
                     onPress={() => {
-                      if (tripData.passengerPhone) Linking.openURL(`tel:${tripData.passengerPhone}`);
+                      navigation.navigate('TripChat', { 
+                        tripId: tripData.id || tripData._id,
+                        passenger: tripData.passenger,
+                        passengerImage: tripData.passengerImage,
+                        serviceMotive: tripData.serviceMotive || tripData.goodType || 'Serviço Padrão'
+                      });
                     }}
                   >
-                    <Ionicons name="call" size={18} color="#FFF" />
+                    <Ionicons name="chatbubble-ellipses" size={18} color="#FFF" />
                   </TouchableOpacity>
-                )}
+                  
+                  {tripData.passengerPhone && tripData.passengerPhone !== "Não disponível" && (
+                    <TouchableOpacity 
+                      style={styles.callButton}
+                      onPress={() => {
+                        if (tripData.passengerPhone) Linking.openURL(`tel:${tripData.passengerPhone}`);
+                      }}
+                    >
+                      <Ionicons name="call" size={18} color="#FFF" />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
               
               <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 }} />
@@ -556,7 +596,7 @@ export default function MapScreen({ route, navigation }: any) {
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="cube" size={16} color="#64748B" style={{ marginRight: 6, marginLeft: 12 }} />
-                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.goodType || tripData.service?.name || 'Serviço Padrão'}</Text>
+                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '500' }}>{tripData.serviceMotive || tripData.serviceName || tripData.goodType || tripData.service?.name || 'Serviço Padrão'}</Text>
                 </View>
               </View>
 
@@ -674,17 +714,9 @@ export default function MapScreen({ route, navigation }: any) {
               Confirme que entregou a mercadoria ao cliente com sucesso para concluir esta viagem e atualizar o seu saldo.
             </Text>
 
-            <View style={styles.premiumModalButtons}>
+            <View style={[styles.premiumModalButtons, { flexDirection: 'column' }]}>
               <TouchableOpacity 
-                style={styles.premiumCancelButton}
-                activeOpacity={0.8}
-                onPress={() => setShowFinishConfirmationModal(false)}
-              >
-                <Text style={styles.premiumCancelButtonText}>Voltar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.premiumConfirmButton}
+                style={[styles.premiumConfirmButton, { width: '100%', marginBottom: 12 }]}
                 activeOpacity={0.85}
                 onPress={proceedFinishTrip}
               >
@@ -696,6 +728,14 @@ export default function MapScreen({ route, navigation }: any) {
                 >
                   <Text style={styles.premiumConfirmButtonText}>Confirmar</Text>
                 </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.premiumCancelButton, { width: '100%' }]}
+                activeOpacity={0.8}
+                onPress={() => setShowFinishConfirmationModal(false)}
+              >
+                <Text style={styles.premiumCancelButtonText}>Voltar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1021,7 +1061,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   premiumCancelButton: {
-    flex: 1,
     paddingVertical: 15,
     borderRadius: 16,
     backgroundColor: '#F3F4F6',

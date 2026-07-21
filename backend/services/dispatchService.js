@@ -70,7 +70,7 @@ class DispatchService {
       const driver = drivers[i];
       
       // Verificar se o pedido ainda está "Pendente" antes de contactar o próximo
-      const currentOrderState = await RequestService.findById(order._id);
+      const currentOrderState = await RequestService.findById(order._id).populate('user', 'name profileImage photo phoneNumber');
       if (!currentOrderState || currentOrderState.status !== 'Pendente') {
         console.log(`[DispatchService] Pedido ${order.code} já foi aceite ou cancelado. Terminando dispatch.`);
         return;

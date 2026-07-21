@@ -149,14 +149,29 @@ export default function TripScreen({ navigation }: any) {
         if (trip.originDetails?.lat && trip.originDetails?.lng) {
           originLat = trip.originDetails.lat;
           originLng = trip.originDetails.lng;
+        } else if (trip.originLocation?.latitude && trip.originLocation?.longitude) {
+          originLat = trip.originLocation.latitude;
+          originLng = trip.originLocation.longitude;
         } else if (trip.latitude && trip.longitude) {
           originLat = trip.latitude;
           originLng = trip.longitude;
+        } else if (trip.sellers?.[0]?.latitude && trip.sellers?.[0]?.longitude) {
+          originLat = trip.sellers[0].latitude;
+          originLng = trip.sellers[0].longitude;
+        } else if (trip.seller?.latitude && trip.seller?.longitude) {
+          originLat = trip.seller.latitude;
+          originLng = trip.seller.longitude;
         }
 
         if (trip.destinationDetails?.lat && trip.destinationDetails?.lng) {
           destLat = trip.destinationDetails.lat;
           destLng = trip.destinationDetails.lng;
+        } else if (trip.destinationLocation?.latitude && trip.destinationLocation?.longitude) {
+          destLat = trip.destinationLocation.latitude;
+          destLng = trip.destinationLocation.longitude;
+        } else if (trip.deliveryAddress?.latitude && trip.deliveryAddress?.longitude) {
+          destLat = trip.deliveryAddress.latitude;
+          destLng = trip.deliveryAddress.longitude;
         } else if (trip.deliveryAddress?.lat && trip.deliveryAddress?.lng) {
           destLat = trip.deliveryAddress.lat;
           destLng = trip.deliveryAddress.lng;
@@ -328,13 +343,15 @@ export default function TripScreen({ navigation }: any) {
             <Text style={styles.detailButtonText}>Detalhes</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => confirmDeleteTrip(item)}
-          >
-            <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
-            <Text style={styles.deleteButtonText}>Apagar</Text>
-          </TouchableOpacity>
+          {item.status !== "Em Andamento" && (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => confirmDeleteTrip(item)}
+            >
+              <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
+              <Text style={styles.deleteButtonText}>Apagar</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -461,7 +478,7 @@ export default function TripScreen({ navigation }: any) {
                         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}
                         onPress={() => {
                           if (selectedTrip.originLat && selectedTrip.destLat) {
-                            const url = `https://www.google.com/maps/dir/?api=1&origin=${selectedTrip.originLat},${selectedTrip.originLng}&destination=${selectedTrip.destLat},${selectedTrip.destLng}`;
+                            const url = `https://www.openstreetmap.org/directions?engine=osrm_car&route=${selectedTrip.originLat}%2C${selectedTrip.originLng}%3B${selectedTrip.destLat}%2C${selectedTrip.destLng}`;
                             Linking.openURL(url);
                           } else {
                             Alert.alert("Mapa Indisponível", "As coordenadas exatas desta viagem não estão disponíveis no histórico.");

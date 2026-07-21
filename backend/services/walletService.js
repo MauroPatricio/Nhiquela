@@ -39,18 +39,21 @@ export const calculateDynamicCommission = async (order) => {
   const financialConfig = await getFinancialConfig();
   let defaultCommissionRate = financialConfig?.driverCommissionRate || 0.15;
   
-  let servicePrice = order.pricing?.breakdown?.servicePrice || order.servicePrice || 0;
-  let distancePrice = order.pricing?.breakdown?.distancePrice || order.distancePrice || 0;
+  // Para serviços (RequestService), o preço do serviço é pricetopay ou costServico, e o deslocamento é deliveryPrice ou costDeslocacao
+  let servicePrice = order.pricing?.breakdown?.servicePrice || order.pricing?.costServico || order.servicePrice || order.pricetopay || 0;
+  let distancePrice = order.pricing?.breakdown?.distancePrice || order.pricing?.costDeslocacao || order.distancePrice || order.deliveryPrice || 0;
 
-  // Se não existir o breakdown (por exemplo, pedidos antigos ou simples), fallback para usar o total
+  // Se não existir o breakdown (por exemplo, pedidos antigos de loja ou simples), fallback para usar o total
   if (servicePrice === 0 && distancePrice === 0) {
-    servicePrice = order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || 0;
+    servicePrice = order.pricing?.totalPrice || order.totalPrice || 0;
   }
 
-  if (order.subcategoryId) {
+  const categoryRefId = order.subcategoryId || order.serviceId;
+
+  if (categoryRefId) {
     try {
       const ProviderSubcategory = (await import('../models/ProviderSubcategoryModel.js')).default;
-      const subId = order.subcategoryId._id ? order.subcategoryId._id : order.subcategoryId;
+      const subId = categoryRefId._id ? categoryRefId._id : categoryRefId;
       const sub = await ProviderSubcategory.findById(subId);
       
       if (sub) {

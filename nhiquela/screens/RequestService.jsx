@@ -129,6 +129,30 @@ export default function RequestServiceSimple() {
     }).start();
   };
 
+  useEffect(() => {
+    if (route.params?.retrySearch) {
+      const p = route.params;
+      if (p.originText) {
+        setOrigin(p.originText);
+        setOriginText(p.originText);
+      }
+      if (p.destText) {
+        setDestination(p.destText);
+        setDestText(p.destText);
+      }
+      if (p.originCoord) setOriginCoord(p.originCoord);
+      if (p.destCoord) setDestCoord(p.destCoord);
+      if (p.reason) setReason(p.reason);
+      
+      setStep(2);
+      
+      setTimeout(() => {
+        setIsSearching(true);
+        startPulse();
+      }, 500);
+    }
+  }, [route.params?.retrySearch]);
+
   const panResponder = React.useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
