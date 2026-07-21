@@ -312,18 +312,19 @@ if (process.env.NODE_ENV !== 'test') {
       };
       console.log('Online', user.name || 'Desconhecido');
 
-      if (user._id) {
-        const dbUser = await User.findById(user._id).select('isDeliveryMan name');
+      const userId = user._id || user.id;
+      if (userId) {
+        const dbUser = await User.findById(userId).select('isDeliveryMan name');
         if (dbUser && dbUser.isDeliveryMan) {
-          const driverRoom = `driver_${user._id}`;
+          const driverRoom = `driver_${userId}`;
           socket.join(driverRoom);
-          console.log(`✅ Motorista ${dbUser.name} (${user._id}) entrou na sala ${driverRoom}`);
+          console.log(`✅ Motorista ${dbUser.name} (${userId}) entrou na sala ${driverRoom}`);
           // Garantir que a variavel user reflete o estado real para o resto do codigo
           user.isDeliveryMan = true;
           user.name = dbUser.name || user.name;
         } else {
           const userName = dbUser ? dbUser.name : (user.name || 'Desconhecido');
-          console.log(`ℹ️  onLogin recebido de ${userName} — isDeliveryMan: ${user.isDeliveryMan || false}, _id: ${user._id}`);
+          console.log(`ℹ️  onLogin recebido de ${userName} — isDeliveryMan: ${user.isDeliveryMan || false}, _id: ${userId}`);
         }
       }
 

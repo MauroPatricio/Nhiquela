@@ -274,8 +274,14 @@ export default function HomeScreen({ navigation }: any) {
           setLastUpdate(new Date());
         };
 
-        // 🔥 LISTENER PARçãTUALIZAÇÕES DE PEDIDOS
+        // 🔥 LISTENER PARA PEDIDOS ATUALIZADOS
         websocketService.on('order_updated', handleOrderWebSocketUpdate);
+
+        // 🔥 LISTENER PARA PEDIDO EXPIRADO PARA ESTE MOTORISTA
+        websocketService.on('order_expired', (data: any) => {
+          if (!isMounted.current) return;
+          setAllTrips(prev => prev.filter(t => t.id !== (data._id || data.id)));
+        });
 
         // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
         websocketService.on('order_assigned', handleOrderWebSocketUpdate);
