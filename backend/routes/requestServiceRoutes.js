@@ -226,8 +226,8 @@ requestServiceer.post(
         const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
         
         const driverRoom = `driver_${newOrder.targetDriverId}`;
-        const room = io.sockets.adapter.rooms.get(driverRoom);
-        const isSocketConnected = room && room.size > 0;
+        const sockets = await io.in(driverRoom).fetchSockets();
+        const isSocketConnected = sockets && sockets.length > 0;
         
         console.log(`\n====================================================`);
         console.log(`[Dispatch Flow] 🚀 Pedido #${newOrder.code} enviado pelo cliente!`);

@@ -790,14 +790,41 @@ const OrderDetailsScreen = () => {
               <Ionicons name="close-circle" size={44} color="#EF4444" />
             </View>
             <Text style={styles.premiumModalTitle}>Cancelar Pedido</Text>
-            <Text style={styles.premiumModalMessage}>Descreva o motivo do cancelamento</Text>
-            <TextInput
-              style={[styles.modalInput, { width: '100%' }]}
-              placeholder="Descreva o motivo..."
-              value={message}
-              onChangeText={setMessage}
-              multiline
-            />
+            <Text style={styles.premiumModalMessage}>Por favor, indique o motivo do cancelamento:</Text>
+            
+            <View style={{ width: '100%', marginVertical: 10 }}>
+              {['Demora muito tempo', 'Motorista pediu para cancelar', 'Mudança de planos', 'Outro'].map((reason) => (
+                <TouchableOpacity 
+                  key={reason}
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: message === reason || (reason === 'Outro' && !['Demora muito tempo', 'Motorista pediu para cancelar', 'Mudança de planos', ''].includes(message)) ? '#EF4444' : '#E5E7EB',
+                    backgroundColor: message === reason || (reason === 'Outro' && !['Demora muito tempo', 'Motorista pediu para cancelar', 'Mudança de planos', ''].includes(message)) ? '#FEF2F2' : '#FFF',
+                    marginBottom: 8
+                  }}
+                  onPress={() => setMessage(reason === 'Outro' ? 'Outro motivo' : reason)}
+                >
+                  <Text style={{ 
+                    color: message === reason || (reason === 'Outro' && !['Demora muito tempo', 'Motorista pediu para cancelar', 'Mudança de planos', ''].includes(message)) ? '#B91C1C' : '#4B5563',
+                    fontWeight: message === reason || (reason === 'Outro' && !['Demora muito tempo', 'Motorista pediu para cancelar', 'Mudança de planos', ''].includes(message)) ? 'bold' : '500'
+                  }}>
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {(!['Demora muito tempo', 'Motorista pediu para cancelar', 'Mudança de planos', ''].includes(message)) && (
+              <TextInput
+                style={[styles.modalInput, { width: '100%', marginTop: 5 }]}
+                placeholder="Descreva o motivo detalhado..."
+                value={message === 'Outro motivo' ? '' : message}
+                onChangeText={setMessage}
+                multiline
+              />
+            )}
             <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
               <TouchableOpacity
                 style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center' }}
