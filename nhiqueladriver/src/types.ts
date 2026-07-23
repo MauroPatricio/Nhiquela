@@ -20,6 +20,8 @@ export type Trip = {
   status: string;
   isAcceptedByDeliveryman: boolean;
   originalData: any;
+  originLat?: number;
+  originLng?: number;
   isProcessing?: boolean;
   serviceMotive?: string;
   paymentMethod?: string;

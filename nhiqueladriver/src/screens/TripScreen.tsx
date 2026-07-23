@@ -86,23 +86,47 @@ export default function TripScreen({ navigation }: any) {
         
         const distance = trip.distance || 0;
         
-        let status = "Concluída";
-        let statusColor = "#27AE60";
-        let statusIcon = "checkmark-circle";
-        
-        const tripStatus = trip.status ? trip.status.toLowerCase() : "";
-        if (trip.isCanceled || tripStatus === "cancelado" || tripStatus === "cancelled" || tripStatus === "rejected") {
+        let status = "Desconhecido";
+        let statusColor = "#95A5A6";
+        let statusIcon = "help-circle";
+
+        // Priorizar validação via `stepStatus` (mais robusto)
+        if (trip.stepStatus === 7 || trip.isCanceled) {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "Pedido aceite") {
-          status = "Em Andamento";
-          statusColor = "#F39C12";
-          statusIcon = "time";
-        } else if (trip.isDelivered || tripStatus === "concluído" || tripStatus === "concluído" || tripStatus === "delivered" || tripStatus === "concluída") {
+        } else if (trip.stepStatus === 6 || trip.isDelivered) {
           status = "Concluída";
           statusColor = "#27AE60";
           statusIcon = "checkmark-circle";
+        } else if (trip.stepStatus >= 3 && trip.stepStatus <= 5 || trip.isInTransit) {
+          status = "Em Andamento";
+          statusColor = "#F39C12";
+          statusIcon = "time";
+        } else if (trip.stepStatus === 1 || trip.stepStatus === 2) {
+          status = "Pendente";
+          statusColor = "#F39C12";
+          statusIcon = "time";
+        } else {
+          // Fallback para string match caso stepStatus falhe (ex: legados)
+          const tripStatus = trip.status ? trip.status.toLowerCase() : "";
+          if (tripStatus === "cancelado" || tripStatus === "cancelled" || tripStatus === "rejected") {
+            status = "Cancelada";
+            statusColor = "#FF4E4E";
+            statusIcon = "close-circle";
+          } else if (tripStatus === "pendente" || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "pedido aceite") {
+            status = "Em Andamento";
+            statusColor = "#F39C12";
+            statusIcon = "time";
+          } else if (tripStatus === "concluído" || tripStatus === "concluido" || tripStatus === "delivered" || tripStatus === "concluída") {
+            status = "Concluída";
+            statusColor = "#27AE60";
+            statusIcon = "checkmark-circle";
+          } else {
+            status = "Concluída";
+            statusColor = "#27AE60";
+            statusIcon = "checkmark-circle";
+          }
         }
 
         let tripDate = "Data não disponível";

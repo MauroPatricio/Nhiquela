@@ -783,6 +783,7 @@ const handleSave = async (values: any) => {
                       <Text style={[styles.label, { marginBottom: 0 }]}>Definir o meu próprio preço</Text>
                       <Switch
                         value={allowCustomPrice}
+                        disabled={subcategories.find(s => s.label === values.transport_type || s.value === values.transport_type)?.pricingMode !== 'PROVIDER_DEFINED'}
                         onValueChange={async (val) => {
                           setAllowCustomPrice(val);
                           try {
@@ -800,7 +801,7 @@ const handleSave = async (values: any) => {
                       />
                     </View>
 
-                    {allowCustomPrice ? (
+                    {allowCustomPrice && subcategories.find(s => s.label === values.transport_type || s.value === values.transport_type)?.pricingMode === 'PROVIDER_DEFINED' ? (
                       <View>
                         {/* Estado do pedido */}
                         {priceStatus === 'Pendente' && (
@@ -881,11 +882,12 @@ const handleSave = async (values: any) => {
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Cor</Text>
-                    <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, overflow: 'hidden' }}>
+                    <View style={{ borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, overflow: 'hidden', backgroundColor: '#F8FAFC' }}>
                       <Picker
                         selectedValue={values.transport_color}
                         onValueChange={handleChange('transport_color')}
-                        style={{ height: 50, width: '100%' }}
+                        style={{ height: 50, width: '100%', color: '#0F172A' }}
+                        dropdownIconColor="#0F172A"
                       >
                         <Picker.Item label="Selecione a cor" value="" />
                         <Picker.Item label="Branco" value="Branco" />

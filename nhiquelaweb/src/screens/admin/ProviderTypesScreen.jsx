@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserTie, faEdit, faTrash, faPlus, faSave, faTimes, faSearch, faUpload, faPowerOff, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
-import api from '../../api';
+import api, { SOCKET_URL } from '../../api';
+import { io } from 'socket.io-client';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
 import { 
@@ -63,6 +64,13 @@ export default function ProviderTypesScreen() {
   useEffect(() => {
     fetchTypes();
     fetchClassifications();
+
+    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    socket.on('catalogUpdated', () => {
+      fetchTypes();
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   const fetchClassifications = async () => {

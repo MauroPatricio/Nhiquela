@@ -142,7 +142,10 @@ function AppContent() {
         const data = response.notification.request.content.data;
 
         if (navigationRef.isReady() && data?.orderId) {
-          navigationRef.navigate("OrderDetailsScreen", { orderId: data.orderId });
+          navigationRef.navigate("MainTabs", {
+            screen: "Home",
+            params: { orderId: data.orderId }
+          });
         }
       }
     );

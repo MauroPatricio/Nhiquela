@@ -171,11 +171,10 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else {
-            // STEP PENDENTE / ACEITE MAS NÃO INICIADO â†’ destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
-            // Permite ao motorista ver a distância e rota até Ã  coleta ANTES de aceitar/iniciar.
-            const pickupLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
-            const pickupLatLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
-            const pickupLng = pickupLatLng; // Aliasing since previous name was pickupLng
+            // STEP PENDENTE / ACEITE MAS NÃO INICIADO 👉 destino = local da COLETA (VENDEDOR/CLIENTE ORIGEM)
+            // Permite ao motorista ver a distância e rota até à coleta ANTES de aceitar/iniciar.
+            const pickupLat = Number(storedTrip.originLat || storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
+            const pickupLng = Number(storedTrip.originLng || storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
             
             if (pickupLat && pickupLng) {
               const pickupLocation = {
@@ -782,7 +781,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* ðŸŽ‰ MODAL PREMIUM â€” ENTREGA CONCLUÍDA COM SUCESSO */}
+      {/* 🎉 MODAL PREMIUM — ENTREGA CONCLUÍDA COM SUCESSO */}
       <Modal
         visible={showFinishSuccessModal}
         transparent={true}
@@ -791,14 +790,20 @@ export default function MapScreen({ route, navigation }: any) {
         <View style={styles.premiumModalOverlay}>
           <View style={styles.premiumModalContainer}>
             <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#D1FAE5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-              <Ionicons name="trophy-outline" size={44} color="#059669" />
+              <Ionicons name="wallet-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Entrega Concluída! ðŸŽ‰</Text>
+            <Text style={styles.premiumModalTitle}>Valor em Processamento! 🎉</Text>
             
             <Text style={styles.premiumModalMessage}>
-              Parabéns! Completou a sua entrega com sucesso. O seu saldo e estatísticas foram atualizados.
+              Completou a sua viagem com sucesso. Assim que o pagamento for confirmado, o saldo ficará disponível para si.
             </Text>
+            
+            <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, marginBottom: 20 }}>
+              <Text style={{ fontSize: 13, color: '#4B5563', textAlign: 'center', fontStyle: 'italic' }}>
+                A sua carteira digital reflete o valor imediatamente para garantir a máxima transparência dos seus ganhos, ficando o saldo disponível para uso ou levantamento logo após a confirmação final.
+              </Text>
+            </View>
 
             <TouchableOpacity 
               style={{

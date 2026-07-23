@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTags, faEdit, faTrash, faPlus, faSave, faTimes, faSearch, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
-import api from '../../api';
+import api, { SOCKET_URL } from '../../api';
+import { io } from 'socket.io-client';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
 import { 
@@ -109,6 +110,18 @@ export default function ProviderSubcategoriesScreen() {
     fetchSubcategories();
     fetchProviderTypes();
     fetchVehicleTypes();
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket'],
+    });
+
+    socket.on('catalogUpdated', () => {
+      fetchSubcategories();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchSubcategories = async () => {
