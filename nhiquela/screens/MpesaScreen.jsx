@@ -1,15 +1,6 @@
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  Image,
-  TouchableOpacity,
-  Modal,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
-import React, { useState, useEffect } from 'react';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, Modal, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, ScrollView, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
@@ -26,10 +17,12 @@ import {
   selectIva,
   selectDeliverPrice,
   clearBasket,
-  selectTotalPriceFromSeller,
+  selectSellerEarningsAfterDiscount,
+  selectAddress,
 } from '../features/basketSlice';
-import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
+import { sendOrderNotificationToUser } from '../utils/notificationUtils';
+import { Animated, Easing } from 'react-native';
 
 const validationSchema = Yup.object().shape({
   customerNumber: Yup.string()
@@ -42,304 +35,239 @@ const MpesaScreen = () => {
   const [userData, setUserData] = useState(null);
   const [loader, setLoader] = useState(false);
   const [isUserWantDelivery, setIsUserWantDelivery] = useState(true);
+
   const totalToPay = useSelector(selectTotalToPay);
-  const amount = parseFloat(totalToPay);
-  const navigation = useNavigation();
+  const address = useSelector(selectAddress);
   const items = useSelector(selectBasketItems);
   const itemsPrice = useSelector(selectBasketTotal);
-  const totalPriceFromSeller = useSelector(selectTotalPriceFromSeller);
+  const totalSellerEarningsAfterDiscount = useSelector(selectSellerEarningsAfterDiscount);
   const iva = useSelector(selectIva);
   const deliveryPrice = useSelector(selectDeliverPrice);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
+
+  // --- Animated Keyboard Offset ---
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const configurarNotificacoes = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') {
-        await Notifications.requestPermissionsAsync();
-      }
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration || 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
     };
-    configurarNotificacoes();
   }, []);
 
-  const mostrarNotificacao = (response) => {
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Pedido criado com sucesso',
-        body: `O seu pedido com o código ${response.order.code} foi criado com sucesso.`,
-        sound: true,
-      },
-      trigger: null,
-    });
-  };
-
+  // --- Verificar usuário ---
   const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
-    const currentUser = await AsyncStorage.getItem(userId);
-    if (currentUser !== null) {
-      setUserData(JSON.parse(currentUser));
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
+      if (storedUserData && storedUserId) {
+        const parsedUserData = JSON.parse(storedUserData);
+        if (parsedUserData._id === storedUserId) setUserData(parsedUserData);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar usuário:', error);
     }
   };
 
-  useEffect(() => {
-    checkIfUserExist();
-  }, []);
+  useEffect(() => { checkIfUserExist(); }, []);
+
+  const showAlert = (title, message, onConfirm) => {
+    Alert.alert(title, message, [
+      { text: 'OK', onPress: onConfirm ? onConfirm : () => {}, style: 'default' }
+    ], { cancelable: false });
+  };
+
+  const checkStockBeforeOrder = (items) => {
+    for (let item of items) {
+      if (!item.countInStock || item.quantity > item.countInStock) {
+        return { ok: false, message: `Produto "${item.name}" tem estoque insuficiente`, item };
+      }
+    }
+    return { ok: true };
+  };
 
   const makeThePayment = async (values) => {
     if (!userData) {
-      Toast.show({
-        type: 'error',
-        text1: 'Atenção!',
-        text2: 'Por favor, faça o login para continuar.',
-        position: 'top',
-        visibilityTime: 6000,
-        autoHide: true,
-        topOffset: 50,
-        bottomOffset: 40,
-        onPress: () => navigation.navigate('Login'),
-        style: {
-          backgroundColor: '#FF5733',
-          borderLeftWidth: 10,
-          borderLeftColor: '#C70039',
-          borderRadius: 10,
-          padding: 10,
-        },
-        text1Style: {
-          fontSize: 15,
-          fontWeight: 'bold',
-          color: 'black',
-        },
-        text2Style: {
-          fontSize: 16,
-          color: 'black',
-        },
-        renderLeftIcon: () => (
-          <MaterialCommunityIcons name="alert-circle" size={40} color="yellow" />
-        ),
-      });
+      Alert.alert(
+        '⚠️ Usuário não autenticado',
+        'Para realizar o pagamento, você precisa estar logado. Deseja ir para a tela de login agora?',
+        [
+          { text: 'Sim', onPress: () => navigation.replace('Login') },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
+      );
       return;
     }
 
+    setLoader(true);
+
     try {
-      setLoader(true);
-
-      const headers = {
-        authorization: `Bearer ${userData.token}`,
-      };
-      const customerNumber = `258${values.customerNumber}`;
-
-      const { data: paymentData } = await api.post(
-        `payments/mpesa/c2b`,
-        { customerNumber, amount },
-        { headers }
-      );
-
-      if (!paymentData.paid) {
-        navigation.replace('FailedPayment', paymentData);
+      const stockCheck = checkStockBeforeOrder(items);
+      if (!stockCheck.ok) {
+        showAlert('❌ Estoque insuficiente', `O produto "${stockCheck.item.name}" está com estoque insuficiente.`);
+        setLoader(false);
         return;
       }
 
+      const customerNumber = `258${values.customerNumber}`;
+      const amount = parseFloat(totalToPay);
+      await api.post('payments/mpesa/c2b', { customerNumber, amount }, { headers: { authorization: `Bearer ${userData.token}` } });
+
       const orderPayload = {
         orderItems: items,
-        address: '',
+        address,
         paymentMethod: 'Mpesa',
+        totalPrice: totalToPay,
         itemsPrice,
         ivaTax: iva,
-        siteTax: 0,
-        taxPrice: 0,
-        totalPrice: totalToPay,
         addressPrice: deliveryPrice,
-        itemsPriceForSeller: totalPriceFromSeller,
+        itemsPriceForSeller: totalSellerEarningsAfterDiscount + deliveryPrice,
         isPaid: true,
         paidAt: Date.now(),
-        stepStatus: 1,
         user: userData,
         customerId: userData,
         isUserWantDelivery,
+        stepStatus: 1,
       };
 
-      const { data: orderResponse } = await api.post('orders', orderPayload, {
-        headers,
+      const { data } = await api.post('orders', orderPayload, { headers: { authorization: `Bearer ${userData.token}` } });
+
+      await sendOrderNotificationToUser({
+        userId: data.order.seller._id,
+        orderId: data.order._id,
+        orderCode: data.order.code,
+        title: '📦 Novo pedido!',
+        body: `Pedido nº ${data.order.code} solicitado pelo cliente.`,
+        status: 'Pendente',
       });
 
-      if (orderResponse?.order?.isPaid) {
-        const sellerNumber = orderResponse.order.seller?.seller?.phoneNumberAccount;
-        const formattedNumber =
-          sellerNumber?.toString().length === 9
-            ? Number('258' + sellerNumber)
-            : sellerNumber;
-
-        if (formattedNumber) {
-          await api.post(
-            `payments/mpesa/b2c`,
-            { sellerNumber: formattedNumber, priceForSeller: orderResponse.order.itemsPriceForSeller },
-            { headers }
-          );
-        }
-      }
-
       dispatch(clearBasket());
-      mostrarNotificacao(orderResponse);
-      navigation.replace('SuccessPayment');
+      navigation.replace('SuccessPayment', { orderCode: data.order.code });
+
     } catch (error) {
       console.error('Erro no pagamento:', error);
-
-      let errorData = {
-        message: 'Erro desconhecido. Tente novamente.',
-      };
-
-      if (error.response && error.response.data) {
-        errorData = error.response.data;
-      }
-
-      navigation.replace('FailedPayment', errorData);
+      showAlert('❌ Erro inesperado', `Erro: ${error.message || 'Desconhecido'}`);
     } finally {
       setLoader(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Modal visible={loader} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ActivityIndicator size="large" color="#7F00FF" />
-            <Text style={styles.loadingText}>Processando pagamento...</Text>
-          </View>
-        </View>
-      </Modal>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: 'white' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <>
+        <SafeAreaView style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Modal visible={loader} animationType="fade" transparent>
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <ActivityIndicator size="large" color="#7F00FF" />
+                  <Text style={styles.loadingText}>Processando pagamento...</Text>
+                </View>
+              </View>
+            </Modal>
 
-      <View style={styles.icons}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
-        </TouchableOpacity>
-      </View>
+            <Animated.View style={{ flex: 1, paddingBottom: keyboardOffset }}>
+              <View style={styles.icons}>
+                <TouchableOpacity onPress={() => navigation.replace('PaymentMethod')}>
+                  <Ionicons name="chevron-back-circle" size={35} style={styles.back} />
+                </TouchableOpacity>
+              </View>
 
-      <Formik
-        initialValues={{ customerNumber: '' }}
-        validationSchema={validationSchema}
-        onSubmit={(values) => makeThePayment(values)}
-      >
-        {({ handleChange, handleBlur, touched, handleSubmit, values, errors, isValid }) => (
-          <View style={styles.container}>
-            <Image source={require('../assets/Mpesa.png')} style={styles.cover} />
+              <Formik
+                initialValues={{ customerNumber: '' }}
+                validationSchema={validationSchema}
+                onSubmit={(values) => makeThePayment(values)}
+              >
+                {({ handleChange, handleBlur, touched, handleSubmit, values, errors, isValid }) => (
+                  <View style={styles.container}>
+                    <Image source={require('../assets/Mpesa.png')} style={styles.cover} />
 
-            <Text style={styles.label}>
-              <MaterialCommunityIcons name="cellphone" size={20} color="grey" /> Número de telefone:
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={values.customerNumber}
-              onChangeText={handleChange('customerNumber')}
-              onBlur={handleBlur('customerNumber')}
-              placeholder="Informe o número para o pagamento"
-              keyboardType="numeric"
-            />
-            {touched.customerNumber && errors.customerNumber && (
-              <Text style={styles.errorMessage}>{errors.customerNumber}</Text>
-            )}
+                    <Text style={styles.label}>
+                      <MaterialCommunityIcons name="cellphone" size={18} color="#9CA3AF" /> NÚMERO DE TELEFONE
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={values.customerNumber}
+                      onChangeText={handleChange('customerNumber')}
+                      onBlur={handleBlur('customerNumber')}
+                      placeholder="Ex: 841234567"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="numeric"
+                    />
+                    {touched.customerNumber && errors.customerNumber && (
+                      <Text style={styles.errorMessage}>{errors.customerNumber}</Text>
+                    )}
 
-            <Text style={styles.label}>Total a pagar:</Text>
-            <Text style={styles.amount}>
-              {isUserWantDelivery ? totalToPay.toFixed(2) : (totalToPay - deliveryPrice).toFixed(2)} MT
-            </Text>
+                    <Text style={styles.label}>TOTAL A PAGAR</Text>
+                    <Text style={styles.amount}>
+                      {isUserWantDelivery ? totalToPay.toFixed(2) : (totalToPay - deliveryPrice).toFixed(2)} MT
+                    </Text>
 
-            <Button
-              loader={loader}
-              title="Pagar"
-              onPress={handleSubmit}
-              isValid={isValid ? '#7F00FF' : 'red'}
-            />
-          </View>
-        )}
-      </Formik>
-    </SafeAreaView>
+                    <Button loader={loader} title="Confirmar Pagamento" onPress={handleSubmit} isValid={isValid ? '#9333EA' : '#EF4444'} />
+                  </View>
+                )}
+              </Formik>
+            </Animated.View>
+          </ScrollView>
+        </SafeAreaView>
+      </>
+    </KeyboardAvoidingView>
   );
 };
 
 export default MpesaScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: 'white',
-    paddingTop: 100,
-  },
-  icons: {
-    position: 'absolute',
-    top: 50,
-    left: 25,
-    zIndex: 10,
-  },
-  back: {
-    color: '#7F00FF',
-  },
-  cover: {
-    width: 300,
-    height: 200,
-    marginBottom: 20,
-    alignSelf: 'center',
-    borderRadius: 20,
-  },
+  safeArea: { flex: 1, backgroundColor: '#F9FAFB' },
+  icons: { position: 'absolute', top: 15, left: 25, zIndex: 10 },
+  back: { color: '#9333EA' },
+  cover: { width: '100%', height: 180, marginBottom: 25, alignSelf: 'center', borderRadius: 24 },
   container: {
-    paddingHorizontal: 20,
-    paddingVertical: 50,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 30,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     marginHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 5,
+    marginTop: 60,
   },
-  label: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
-    fontWeight: '600',
-  },
-  input: {
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-    elevation: 1,
-  },
-  errorMessage: {
-    color: 'red',
-    fontSize: 14,
-    marginBottom: 10,
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginTop: 5,
-    marginBottom: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  modalContent: {
-    width: Dimensions.get('window').width * 0.8,
-    backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 20,
-    alignItems: 'center',
-    elevation: 10,
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#7F00FF',
-  },
+  label: { fontSize: 13, color: '#6B7280', marginBottom: 8, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 16, marginBottom: 8, backgroundColor: '#F3F4F6', color: '#1F2937', fontWeight: '700' },
+  errorMessage: { color: '#EF4444', fontSize: 13, marginBottom: 16, fontWeight: '600', marginLeft: 4 },
+  amount: { fontSize: 32, fontWeight: '900', color: '#10B981', marginTop: 4, marginBottom: 30 },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { width: Dimensions.get('window').width * 0.85, backgroundColor: 'white', padding: 35, borderRadius: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  loadingText: { marginTop: 24, fontSize: 16, fontWeight: '800', color: '#9333EA' },
 });

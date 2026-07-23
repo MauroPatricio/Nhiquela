@@ -1,9 +1,10 @@
-import { View, Text, TextInput, FlatList, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from './search.style';
 import api from '../hooks/createConnectionApi';
 import SearchTile from '../components/SearchTile';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 const Search = () => {
   const [searchKey, setSearchKey] = useState('');
@@ -14,16 +15,17 @@ const Search = () => {
     setIsLoading(true);
     try {
       const response = await api.get(`/products/search?query=${query}`);
-      setSearchResults(response.data.products);
+      setSearchResults(response.data.products || []);
     } catch (error) {
       console.log('Failed to get Products', error);
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (searchKey.length > 0) {
+    if (searchKey.trim().length > 0) {
       handleSearch(searchKey);
     } else {
       setSearchResults([]);
@@ -31,40 +33,63 @@ const Search = () => {
   }, [searchKey]);
 
   return (
-    <SafeAreaView style={{backgroundColor: 'white', flex:1}}>
+    <SafeAreaView style={{ backgroundColor: 'white', flex: 1 }}>
+      {/* Search Input Bar */}
       <View style={styles.searchContainer}>
+        <Feather name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
         <View style={styles.searchWrapper}>
           <TextInput
-            style={[styles.searchInput, {borderWidth: 0, padding: 5, borderRadius: 15, backgroundColor: '#7F00FF', color: '#ffffff' }]}
+            style={styles.searchInput}
             value={searchKey}
-            placeholderTextColor={'#ffffff'}
+            placeholderTextColor="#9CA3AF"
             onChangeText={setSearchKey}
-            placeholder='O que deseja para hoje?'
+            placeholder="O que procura hoje?"
           />
-          {/* <Feather name="search" size={24} style={styles.searchIcon} /> */}
+          {searchKey.length > 0 && (
+            <TouchableOpacity 
+              style={styles.clearButton} 
+              onPress={() => setSearchKey('')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
+      {/* Main Content Areas */}
       {isLoading ? (
-        <ActivityIndicator size={'large'} color={'#7F00FF'} />
-      ) : searchKey.length === 0 ? (
-        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Image
-            source={require('../assets/search.png')}
-            style={styles.searchImage }
-          />
-          <Text >Inicie sua pesquisa</Text>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#7F00FF" />
+        </View>
+      ) : searchKey.trim().length === 0 ? (
+        <View style={styles.centerContainer}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="search-outline" size={44} color="#7F00FF" />
+          </View>
+          <Text style={styles.emptyTitle}>O que procuras hoje?</Text>
+          <Text style={styles.emptySubtitle}>
+            Pesquise por marcas, produtos ou categorias de forma rápida e simples.
+          </Text>
         </View>
       ) : searchResults.length === 0 ? (
-        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={styles.noDataText}>Nenhum resultado encontrado</Text>
+        <View style={styles.centerContainer}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="alert-circle-outline" size={44} color="#6B7280" />
+          </View>
+          <Text style={styles.emptyTitle}>Nenhum resultado</Text>
+          <Text style={styles.emptySubtitle}>
+            Não encontramos nenhum produto correspondente. Tente usar outros termos de pesquisa.
+          </Text>
         </View>
       ) : (
         <FlatList
-          style={{ marginHorizontal: 12 }}
+          style={{ marginTop: 8 }}
           data={searchResults}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => <SearchTile item={item} />}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>

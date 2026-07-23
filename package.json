@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node backend/index.js",
     "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest -c jest.config.cjs",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -19,6 +21,25 @@
   },
   "homepage": "https://github.com/MauroPatricio/ecommerce#readme",
   "dependencies": {
-    "react-native-open-maps": "^0.4.3"
+    "@google-cloud/firestore": "^8.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.1",
+    "react-native-open-maps": "^0.4.3",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^29.5.14",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "lint-staged": "^15.5.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.1.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.0"
   }
 }

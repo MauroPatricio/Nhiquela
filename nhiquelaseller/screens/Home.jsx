@@ -1,423 +1,646 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import api from '../hooks/createConnectionApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
-
 import * as Notifications from 'expo-notifications';
-import axios from 'axios';
+import { COLORS, SIZES, RADIUS, SHADOWS, getStatusColor } from '../constants/theme';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: true,
+    shouldSetBadge: false,
   }),
 });
 
 const Home = () => {
   const [expoPushToken, setExpoPushToken] = useState('');
-  const [notification, setNotification] = useState(false);
-  const notificationListener = useRef();
-  const responseListener = useRef();
   const [userData, setUserData] = useState(null);
   const [orders, setOrders] = useState([]);
   const [availableStatuses, setAvailableStatuses] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const pollingRef = useRef(null);
+  const ordersRef = useRef([]);
   const navigation = useNavigation();
+  const notificationListener = useRef();
+  const responseListener = useRef();
 
-  const updatePushToken = async (userId, newPushToken) => {
+  const updatePushToken = useCallback(async (userId, newPushToken) => {
+    if (!userId || !newPushToken) return;
     try {
-      if (!userId) return;
       await api.patch(`/users/updatePushToken/${userId}`, { pushToken: newPushToken });
     } catch (error) {
-      console.error('Erro ao atualizar o PushToken:', error.message);
+      console.log('Erro ao atualizar PushToken:', error.message);
     }
-  };
+  }, []);
 
-  const registerForPushNotificationsAsync = async () => {
-    if (!userData) return;
-    let token;
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+  const registerForPushNotificationsAsync = useCallback(async (user) => {
+    if (!user) return;
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') return;
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      setExpoPushToken(token);
+      await updatePushToken(user._id, token);
+    } catch (error) {
+      console.log("Erro ao registrar notificações:", error.message);
     }
+  }, [updatePushToken]);
 
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notifications!');
-      return;
-    }
-
-    const projectId = "92c183ff-d0ca-4dc4-a4ce-e7c112be9ee0";
-    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    await updatePushToken(userData._id, token);
-    setExpoPushToken(token);
-  };
-
-  const checkPendingNotifications = async () => {
-    const pendingNotifications = await Notifications.getPresentedNotificationsAsync();
-    if (pendingNotifications.length > 0) {
-      pendingNotifications.forEach(notification => {
-        showMessage({
-          message: "Pedido pendente",
-          description: notification.request.content.body,
-          type: "info",
-          icon: "auto",
-          duration: 3000,
-        });
+  const fetchWalletBalance = useCallback(async (user) => {
+    if (!user) return;
+    try {
+      const response = await api.get('/wallet/balance', {
+        headers: { authorization: `Bearer ${user.token}` },
       });
+      setWalletBalance(Number(response.data?.balance) || 0);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        stopPolling();
+      } else {
+        console.log("⚠️ Erro ao buscar saldo:", error.message);
+      }
     }
-  };
+  }, [stopPolling]);
+
+  const fetchData = useCallback(async (user, showNotification = false) => {
+    if (!user) return;
+    try {
+      const response = await api.get(`/orders/sellerview?seller=${user._id}`, {
+        headers: { authorization: `Bearer ${user.token}` },
+      });
+      if (response.status === 200) {
+        const newOrders = response.data.orders;
+        if (showNotification && newOrders.length > ordersRef.current.length) {
+          const newOrdersCount = newOrders.length - ordersRef.current.length;
+          showMessage({
+            message: `🛒 ${newOrdersCount} novo(s) pedido(s)`,
+            description: "Atualizando lista...",
+            type: "success",
+            icon: "auto",
+            duration: 2000,
+          });
+        }
+        ordersRef.current = newOrders;
+        setOrders(newOrders);
+        setAvailableStatuses([...new Set(newOrders.map(o => o.status))]);
+        setLastUpdate(new Date());
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        stopPolling();
+      } else {
+        console.log("⚠️ Erro ao buscar pedidos:", error.message);
+      }
+    }
+  }, [stopPolling]);
+
+  const startPolling = useCallback((user) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      if (user) {
+        await fetchData(user, true);
+        await fetchWalletBalance(user);
+      }
+    }, 20000);
+  }, [fetchData, fetchWalletBalance]);
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const validateAndSetUser = useCallback(async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const storedUserId = await AsyncStorage.getItem('id');
+      if (!storedUserData || !storedUserId) throw new Error("Usuário não encontrado");
+      const parsedUserData = JSON.parse(storedUserData);
+      setUserData(parsedUserData);
+      return parsedUserData;
+    } catch (error) {
+      navigation.navigate('Login');
+      return null;
+    }
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const initialize = async () => {
+        const user = await validateAndSetUser();
+        if (!user || !active) return;
+        await registerForPushNotificationsAsync(user);
+        await Promise.all([fetchData(user), fetchWalletBalance(user)]);
+        startPolling(user);
+      };
+      initialize();
+      return () => {
+        active = false;
+        stopPolling();
+      };
+    }, [validateAndSetUser, registerForPushNotificationsAsync, fetchData, fetchWalletBalance, startPolling, stopPolling])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const user = await validateAndSetUser();
+    if (user) {
+      await Promise.all([fetchData(user), fetchWalletBalance(user)]);
+    }
+    setRefreshing(false);
+  }, [validateAndSetUser, fetchData, fetchWalletBalance]);
 
   useEffect(() => {
-    registerForPushNotificationsAsync();
-
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    notificationListener.current = Notifications.addNotificationReceivedListener(async (notification) => {
       showMessage({
-        message: "Novo pedido recebido",
+        message: "🛒 Novo pedido recebido",
         description: notification.request.content.body,
         type: "success",
         icon: "auto",
         duration: 3000,
       });
-      setNotification(notification);
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const { extraData } = response.notification.request.content.data;
-      if (extraData) {
-        navigation.navigate('OrderDetail', { extraData });
+      const user = await validateAndSetUser();
+      if (user) {
+        await fetchData(user);
+        await fetchWalletBalance(user);
       }
     });
 
-    // Check for pending notifications when the app comes back online
-    const unsubscribe = NetInfo.addEventListener(state => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      const extraData = response.notification.request.content.data?.extraData;
+      const user = await validateAndSetUser();
+      if (user) {
+        await fetchData(user);
+        await fetchWalletBalance(user);
+      }
+      if (extraData) navigation.navigate('OrderDetail', { extraData });
+    });
+
+    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       if (state.isConnected) {
-        checkPendingNotifications();
+        validateAndSetUser().then(user => {
+          if (user) {
+            fetchData(user);
+            fetchWalletBalance(user);
+          }
+        });
       }
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
-      unsubscribe();
+      if (notificationListener.current) notificationListener.current.remove();
+      if (responseListener.current) responseListener.current.remove();
+      unsubscribeNetInfo();
+      stopPolling();
     };
-  }, []);
+  }, [navigation, validateAndSetUser, fetchData, fetchWalletBalance, stopPolling]);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    if (!id) {
-      navigation.navigate('Login');
-      return;
-    }
-
-    const userId = `user${JSON.parse(id)}`;
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        setUserData(JSON.parse(currentUser));
-      } else {
-        navigation.navigate('Login');
-      }
-    } catch (error) {
-      console.error(error);
-      navigation.navigate('Login');
-    }
-  };
-
-  const fetchData = async () => {
-    if (!userData) return;
-    try {
-      const response = await api.get(`/orders/sellerview?seller=${userData._id}`, {
-        headers: { authorization: `Bearer ${userData.token}` },
-      });
-      if (response.status === 200) {
-        setOrders(response.data.orders);
-        setAvailableStatuses(Array.from(new Set(response.data.orders.map(order => order.status))));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      checkIfUserExist().then(() => {
-        if (userData) {
-          fetchData();
-        }
-      });
-    }, [userData])
+  const filteredOrders = useMemo(
+    () => (selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders),
+    [orders, selectedStatus]
   );
-
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     checkIfUserExist().then(() => {
-  //       if (userData) {
-  //         if (!userData.isApproved) {
-  //           showMessage({
-  //             message: "Acesso negado",
-  //             description: "Você não está aprovado como vendedor.",
-  //             type: "danger",
-  //             icon: "auto",
-  //             duration: 3000,
-  //           });
-  //           navigation.navigate('NewProduct'); // Ou redirecione para uma tela específica
-  //         } else {
-  //           fetchData();
-  //         }
-  //       }
-  //     });
-  //   }, [userData])
-  // );
-
-  const handleStatusSelect = (status) => setSelectedStatus(status);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
-  const filteredOrders = selectedStatus ? orders.filter(order => order.status === selectedStatus) : orders;
+  const formatLastUpdate = (date) => {
+    if (!date) return '';
+    return `Actualizado às ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const pendingCount = orders.filter(o => o.status === 'Pendente').length;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.appBarWrapper}>
-        <Text style={styles.welcomeText('black', 30, 0)}><Text style={{ color: '#7F00FF' }}>Nhiquela+</Text></Text>
-        <View style={styles.appBar}>
-          <Image source={require('../assets/default1.jpg')} style={styles.cover} />
-          <Text style={styles.greetingText}>{userData ? `Olá, ${userData?.name}` : 'Faça login'}</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>Olá, {userData?.name?.split(' ')[0] || 'Vendedor'} 👋</Text>
+              <Text style={styles.subGreeting}>
+                {userData?.seller?.name || 'Nhiquela Partner'}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.avatarBtn} onPress={() => navigation.navigate('Profile')}>
+              <Image source={require('../assets/default1.jpg')} style={styles.avatar} />
+              {userData?.seller?.openstore && <View style={styles.onlineDot} />}
+            </TouchableOpacity>
+          </View>
+
+          {/* Saldo Card */}
+          <View style={styles.balanceCard}>
+            <View>
+              <Text style={styles.balanceLabel}>Saldo da Carteira</Text>
+              <Text style={styles.balanceValue}>{walletBalance.toFixed(2)} MT</Text>
+            </View>
+            <TouchableOpacity style={styles.rechargeBtn} onPress={() => navigation.navigate('Wallet')}>
+              <Ionicons name="wallet-outline" size={16} color="#fff" />
+              <Text style={styles.rechargeBtnText}>Ver Carteira</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{orders.length}</Text>
+              <Text style={styles.statLabel}>Total</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: COLORS.warning }]}>{pendingCount}</Text>
+              <Text style={styles.statLabel}>Pendentes</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: COLORS.success }]}>
+                {orders.filter(o => o.status === 'Entregue').length}
+              </Text>
+              <Text style={styles.statLabel}>Entregues</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={[styles.statItem, {
+              backgroundColor: userData?.seller?.openstore ? COLORS.successBg : COLORS.errorBg,
+              borderRadius: RADIUS.sm,
+              paddingHorizontal: 10,
+            }]}>
+              <View style={[styles.storeDot, { backgroundColor: userData?.seller?.openstore ? COLORS.success : COLORS.error }]} />
+              <Text style={[styles.statLabel, { color: userData?.seller?.openstore ? COLORS.success : COLORS.error, fontWeight: '600' }]}>
+                {userData?.seller?.openstore ? 'Aberta' : 'Fechada'}
+              </Text>
+            </View>
+          </View>
         </View>
-        
-        {userData?.seller && (
-          <View style={styles.storeStatusContainer}>
-            <View
-              style={[
-                styles.storeStatusIndicator,
-                { backgroundColor: userData.seller.openstore ? '#4CAF50' : '#F44336' },
-              ]}
-            />
-            <Text style={styles.storeStatusText}>
-              {userData.seller.openstore ? 'Loja Aberta' : 'Loja Fechada'} - <Text style={styles.sellerName}>{userData?.seller?.name || ''}</Text>
-            </Text>
+
+        {/* Filtros */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pedidos</Text>
+            {lastUpdate && (
+              <Text style={styles.lastUpdate}>{formatLastUpdate(lastUpdate)}</Text>
+            )}
           </View>
-        )}
-      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.sectionTitle}>Pedidos</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusScrollContainer}>
-          {availableStatuses.map((status) => (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             <TouchableOpacity
-              key={status}
-              style={[styles.statusButton, selectedStatus === status && styles.selectedStatusButton]}
-              onPress={() => handleStatusSelect(status)}
+              style={[styles.filterChip, !selectedStatus && styles.filterChipActive]}
+              onPress={() => setSelectedStatus(null)}
             >
-              <Text style={styles.statusButtonText}>{status}</Text>
+              <Text style={[styles.filterChipText, !selectedStatus && styles.filterChipTextActive]}>
+                Todos ({orders.length})
+              </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+            {availableStatuses.map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={[styles.filterChip, selectedStatus === status && styles.filterChipActive,
+                  selectedStatus === status && { borderColor: getStatusColor(status), backgroundColor: getStatusColor(status) + '20' }
+                ]}
+                onPress={() => setSelectedStatus(selectedStatus === status ? null : status)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: getStatusColor(status) }]} />
+                <Text style={[styles.filterChipText, selectedStatus === status && { color: getStatusColor(status), fontWeight: '700' }]}>
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-        {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => (
-            <TouchableOpacity
-              key={order._id}
-              style={styles.orderCard}
-              onPress={() => navigation.navigate('OrderDetail', { order })}
-            >
-              <View style={styles.orderIconContainer}>
-                <Ionicons name="cart-outline" size={25} style={styles.cartIcon} />
-              </View>
-              <View style={styles.orderDetails}>
-                <Text style={styles.orderCode}>{order.code}</Text>
-                <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
-                <Text style={styles.orderPrice}>{order.totalPrice} MT</Text>
-                <Text style={styles.orderStatus}>{order.status}</Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.emptyMessageContainer}>
-            <Text style={styles.emptyMessage}>Não possui nenhum pedido de momento.</Text>
-          </View>
-        )}
+        {/* Lista de Pedidos */}
+        <View style={styles.ordersList}>
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <TouchableOpacity
+                key={order._id}
+                style={styles.orderCard}
+                onPress={() => navigation.navigate('OrderDetail', { order })}
+                activeOpacity={0.85}
+              >
+                {/* Barra de status */}
+                <View style={[styles.statusStripe, { backgroundColor: getStatusColor(order.status) }]} />
 
-        <FlashMessage position="top" />
-        <View style={{ marginBottom: 250 }} />
+                <View style={styles.orderCardContent}>
+                  <View style={styles.orderIconBox}>
+                    <Ionicons name="cart-outline" size={22} color={COLORS.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.orderRow}>
+                      <Text style={styles.orderCode}>#{order.code}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) + '20', borderColor: getStatusColor(order.status) }]}>
+                        <Text style={[styles.statusBadgeText, { color: getStatusColor(order.status) }]}>{order.status}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.orderClient}>👤 {order.user?.name || 'Cliente'}</Text>
+                    <View style={styles.orderRow}>
+                      <Text style={styles.orderPrice}>{order.totalPrice} MT</Text>
+                      <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} style={{ marginLeft: 8 }} />
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="cart-off" size={60} color={COLORS.textMuted} />
+              <Text style={styles.emptyTitle}>Nenhum pedido</Text>
+              <Text style={styles.emptySubtitle}>Os pedidos aparecerão aqui quando chegarem</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      <FlashMessage position="top" />
     </SafeAreaView>
   );
 };
 
-export default Home;
-
-const styles = StyleSheet.create({ 
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: '#F9FAFB',
-  },
-  appBarWrapper: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    backgroundColor: 'white',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 5,
-    marginBottom: 20,
-  },
-  appBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  cover: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
-    borderWidth: 3,
-    borderColor: '#7F00FF',
-  },
-  greetingText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#334155',
-  },
-  storeStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    marginLeft: 10,
-  },
-  storeStatusIndicator: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  storeStatusText: {
-    fontSize: 15,
-    color: '#334155',
-    fontWeight: '500',
-  },
-  scrollContainer: {
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#7F00FF',
-    marginBottom: 20,
-    marginLeft: 20,
-  },
-  statusScrollContainer: {
-    paddingBottom: 20,
-    paddingLeft: 20,
-  },
-  statusButton: {
-    backgroundColor: '#E9D9FF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    marginRight: 10,
-  },
-  selectedStatusButton: {
-    backgroundColor: '#7F00FF',
-  },
-  statusButtonText: {
-    color: '#334155',
-    fontWeight: '500',
-  },
-  orderCard: {
-    backgroundColor: 'white',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginHorizontal: 20,
-  },
-  orderIconContainer: {
-    backgroundColor: '#7F00FF',
-    borderRadius: 18,
-    padding: 15,
-    marginRight: 20,
-  },
-  cartIcon: {
-    color: 'white',
-    fontSize: 30,
-  },
-  orderDetails: {
+const styles = StyleSheet.create({
+  container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
-  orderCode: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#334155',
+  header: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  greeting: {
+    fontSize: SIZES.xl,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  subGreeting: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  avatarBtn: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.success,
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+  },
+  balanceCard: {
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.md,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    ...SHADOWS.md,
+  },
+  balanceLabel: {
+    fontSize: SIZES.sm,
+    color: 'rgba(255,255,255,0.75)',
     marginBottom: 4,
   },
-  orderDate: {
-    fontSize: 14,
-    color: '#64748B',
+  balanceValue: {
+    fontSize: SIZES.xxl,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  rechargeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    gap: 6,
+  },
+  rechargeBtnText: {
+    color: '#fff',
+    fontSize: SIZES.sm,
+    fontWeight: '600',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    alignItems: 'center',
+    padding: 6,
+  },
+  statNumber: {
+    fontSize: SIZES.xl,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  statLabel: {
+    fontSize: SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: COLORS.border,
+  },
+  storeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  lastUpdate: {
+    fontSize: SIZES.xs,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+  },
+  filterScroll: {
+    marginBottom: 4,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 6,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primaryGlow,
+    borderColor: COLORS.primary,
+  },
+  filterChipText: {
+    color: COLORS.textSecondary,
+    fontSize: SIZES.sm,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: COLORS.primaryLight,
+    fontWeight: '700',
+  },
+  filterDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  ordersList: {
+    paddingHorizontal: 16,
+  },
+  orderCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.md,
+    marginBottom: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  statusStripe: {
+    width: 5,
+  },
+  orderCardContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  orderIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.primaryGlow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  orderCode: {
+    fontSize: SIZES.base,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  orderClient: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
     marginBottom: 4,
   },
   orderPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#7F00FF',
-    marginBottom: 4,
+    fontSize: SIZES.sm,
+    color: COLORS.primaryLight,
+    fontWeight: '700',
   },
-  orderStatus: {
-    fontSize: 14,
-    color: '#334155',
-    fontWeight: '500',
-    marginBottom: 4,
+  orderDate: {
+    fontSize: 11,
+    color: COLORS.textMuted,
   },
-  emptyMessageContainer: {
-    marginTop: 100,
+  emptyState: {
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    marginHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    paddingVertical: 60,
   },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#64748B',
-    fontWeight: '500',
+  emptyTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginTop: 16,
   },
-  welcomeText: (color, size, top) => ({
-    fontWeight: 'bold',
-    fontSize: size,
-    marginTop: top,
-    paddingBottom: 10,
-    color: color,
-  })
+  emptySubtitle: {
+    fontSize: SIZES.sm,
+    color: COLORS.textMuted,
+    marginTop: 6,
+    textAlign: 'center',
+  },
 });
+
+export default Home;
