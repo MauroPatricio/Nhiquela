@@ -631,12 +631,12 @@ userRouter.put(
 );
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
-  port: 587,
-  secure: false,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: process.env.EMAIL_PORT || 587,
+  secure: process.env.EMAIL_PORT == 465,
   auth: {
-    user: 'mauro.patricio1@gmail.com',      // Your email address
-    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+    user: process.env.EMAIL_USER || 'mauro.patricio1@gmail.com',
+    pass: process.env.EMAIL_PASSWORD || 'kfgg cmdk hvsp ctil',
   },
   tls: {
     rejectUnauthorized: false

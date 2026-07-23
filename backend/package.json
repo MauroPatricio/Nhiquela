@@ -10,6 +10,8 @@
   },
   "scripts": {
     "start": "nodemon index.js",
+    "start:dev": "cross-env NODE_ENV=development nodemon index.js",
+    "start:prod": "cross-env NODE_ENV=production node index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles --forceExit --testTimeout=30000"
   },
   "jest": {
@@ -31,6 +33,7 @@
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.35.0",
     "cors": "^2.8.5",
+    "cross-env": "^10.1.0",
     "dotenv": "^16.0.3",
     "expo": "^51.0.32",
     "expo-server-sdk": "^3.11.0",

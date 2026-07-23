@@ -20,10 +20,11 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
     android: {
       priority: 'high',
       notification: {
-        channelId: 'driver_alerts',
-        sound: 'calldriver',
+        channelId: 'driver_alerts_urgent',
+        sound: 'calldriver', // Para o Android (FCM), o nome sem extensão muitas vezes funciona melhor
         priority: 'max',
         defaultVibrateTimings: true,
+        visibility: 'public', // Ajuda a mostrar no lock screen
       }
     },
     data: stringifiedData,

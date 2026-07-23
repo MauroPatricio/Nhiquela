@@ -10,12 +10,12 @@ export const baseUrl = () => process.env.BASE_URL ? process.env.BASE_URL : proce
 
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
-  port: 587,
-  secure: false,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: process.env.EMAIL_PORT || 587,
+  secure: process.env.EMAIL_PORT == 465,
   auth: {
-    user: process.env.EMAIL_USER || 'nhiquelaservicos@gmail.com',      // Your email address
-    pass: process.env.EMAIL_PASSWORD || 'kuzw tvds iikq elkx',         // Your email password (fallback from commented code)
+    user: process.env.EMAIL_USER || 'nhiquelaservicos@gmail.com',
+    pass: process.env.EMAIL_PASSWORD || 'kuzw tvds iikq elkx',
   },
   tls: {
     rejectUnauthorized: false
