@@ -30,6 +30,7 @@ export default function MainTabs() {
         totalPassengers={driverTrips}
         credit={driverBalance ? String(driverBalance) : "MT 0,00"}
         currentLocation="Maputo, Moçambique"
+        userRating={Number(user?.deliveryman?.averageRating ? user.deliveryman.averageRating.toFixed(1) : (user?.deliveryman?.rating || 5.0))}
         batteryLevel={92}
         online={true}
       />

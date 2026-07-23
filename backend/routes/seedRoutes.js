@@ -30,6 +30,9 @@ import colorsData from '../seeds/colors.js';
 const seedRoutes = express.Router();
 
 seedRoutes.get('/', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ message: 'Acesso negado. A rota de seed não está disponível em produção.' });
+  }
   try {
     const messages = [];
 

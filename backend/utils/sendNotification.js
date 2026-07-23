@@ -1,14 +1,10 @@
 import admin from '../firebase.js';
 
-/**
- * Envia notifica��o nativa para um �nico token Firebase (FCM)
- */
 export async function sendNotification(deviceToken, title, body, data = {}) {
   if (!deviceToken || deviceToken === 'null') {
-    return { success: false, error: 'Token inv�lido' };
+    return { success: false, error: 'Token invalido' };
   }
 
-  // O Firebase apenas aceita strings dentro do objeto "data"
   const stringifiedData = {};
   for (const key in data) {
     if (data[key] !== null && data[key] !== undefined) {
@@ -21,15 +17,29 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
       title,
       body,
     },
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'driver_alerts',
+        sound: 'calldriver',
+        priority: 'max',
+        defaultVibrateTimings: true,
+      }
+    },
     data: stringifiedData,
     token: deviceToken,
   };
 
   try {
+    console.log(`[FCM-SEND-START] 🚀 A tentar comunicar com os servidores da Google Firebase...`);
     const response = await admin.messaging().send(message);
+    console.log(`[FCM-SEND-SUCCESS] ✅ Notificação enviada com sucesso para a Google! Resposta:`, response);
     return { success: true, tickets: [response] };
   } catch (error) {
-    console.error('Erro ao enviar pelo Firebase:', error);
+    console.error(`[FCM-SEND-ERROR] ❌ O Firebase REJEITOU a notificação. Motivo:`, error.message);
+    if (error.code) {
+       console.error(`[FCM-SEND-ERROR] ❌ Código de Erro Firebase:`, error.code);
+    }
     return { success: false, error: error.message };
   }
 }

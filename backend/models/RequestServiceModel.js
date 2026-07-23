@@ -5,7 +5,9 @@ const requestServiceSchema = new mongoose.Schema(
     name: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     goodType: { type: String, required: true },
-    transportType: { type: String, required: true },
+    transportType: { type: String, required: true }, // Guarda sempre como string (nome OU ObjectId em string)
+    transportTypeId: { type: mongoose.Schema.Types.ObjectId, ref: 'VehicleType', required: false }, // Referência ao VehicleType (se disponível)
+
     deliverCity:{ type: String, required: true },
     reason: { type: String, required: false }, // Motivo do servico, ex: Pneu furado, Acidente, etc.
     origin: { type: String, required: true },

@@ -16,7 +16,7 @@ import {
 } from "@react-navigation/native";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { LoadingProvider, useLoadingContext } from "./src/context/LoadingContext";
-import { AuthProvider } from "./src/context/AuthContext";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
@@ -24,8 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import FlashMessage from "react-native-flash-message";
 import api from "./src/api/apiConfig";
-
-
+import "./src/services/LocationService"; // Define as tarefas de background no escopo global
 
 // 🔗 Referência global de navegação
 export const navigationRef = createNavigationContainerRef();
@@ -66,12 +65,12 @@ async function registerForPushNotificationsAsync() {
   console.log("📩 FCM / Device Push Token:", token);
 
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
+    await Notifications.setNotificationChannelAsync("driver_alerts", {
+      name: "Alertas de Pedido",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: [0, 500, 250, 500],
       lightColor: "#FF231F7C",
-      sound: "default",
+      sound: "calldriver.mp3",
     });
   }
 
@@ -82,6 +81,7 @@ async function registerForPushNotificationsAsync() {
 function AppContent() {
   const [loading, setLoading] = useState(true);
   const { showLoading, hideLoading } = useLoadingContext();
+  const { user, isAuthenticated } = useAuth();
   const notificationListener = useRef();
   const responseListener = useRef();
 
@@ -111,7 +111,9 @@ function AppContent() {
       }
     };
 
-    registerToken();
+    if (isAuthenticated && user) {
+      registerToken();
+    }
 
     // 📨 Listener para notificações em foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(
@@ -140,7 +142,10 @@ function AppContent() {
         const data = response.notification.request.content.data;
 
         if (navigationRef.isReady() && data?.orderId) {
-          navigationRef.navigate("OrderDetailsScreen", { orderId: data.orderId });
+          navigationRef.navigate("MainTabs", {
+            screen: "Home",
+            params: { orderId: data.orderId }
+          });
         }
       }
     );
@@ -157,7 +162,7 @@ function AppContent() {
         responseListener.current.remove();
       }
     };
-  }, []);
+  }, [isAuthenticated, user]);
 
   const [appConfig, setAppConfig] = useState(null);
   const [configLoading, setConfigLoading] = useState(true);

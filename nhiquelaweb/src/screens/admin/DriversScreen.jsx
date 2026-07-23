@@ -405,6 +405,33 @@ export default function DriversScreen() {
 
 
 
+  // KPI Calculations
+  const totalDrivers = drivers.length;
+  const onlineDrivers = drivers.filter(d => d.availability === 'active').length;
+  const inDelivery = drivers.filter(d => d.status === 'Em Entrega').length;
+  const pendingDocs = drivers.filter(d => !d.status || d.status === 'Pendente').length;
+  
+  const driversByVehicleType = drivers.reduce((acc, curr) => {
+    const typeId = curr.deliveryman?.transport_type;
+    const typeName = getVehicleName(typeId);
+    if (typeName && typeName !== 'N/A' && typeName !== 'Desconhecido') {
+      acc[typeName] = (acc[typeName] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const driversBySubcategory = drivers.reduce((acc, curr) => {
+    const services = curr.deliveryman?.providedServices || [];
+    const subCatIds = [...new Set(services.map(s => s.serviceId?._id || s.serviceId).filter(Boolean))];
+    subCatIds.forEach(id => {
+      const name = getVehicleName(id);
+      if (name && name !== 'N/A' && name !== 'Desconhecido') {
+        acc[name] = (acc[name] || 0) + 1;
+      }
+    });
+    return acc;
+  }, {});
+
   return (
 
     <div className="animation-fade-in pb-5">
@@ -446,18 +473,98 @@ export default function DriversScreen() {
           </div>
 
           <button className="btn bg-primary-custom text-white rounded-pill px-4 py-2 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
-
             <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Motorista
-
           </button>
-
         </div>
-
       </div>
 
+      {/* KPI Cards */}
+      <div className="row mb-4 g-3">
+        <div className="col-md-3">
+          <div className="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-muted fw-bold small text-uppercase">Total Motoristas</span>
+              <div className="bg-primary bg-opacity-10 rounded-circle d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px' }}>
+                <FontAwesomeIcon icon={faIdCard} className="text-primary" />
+              </div>
+            </div>
+            <h3 className="fw-bold m-0 text-dark">{totalDrivers}</h3>
+          </div>
+        </div>
 
+        <div className="col-md-3">
+          <div className="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-muted fw-bold small text-uppercase">Online / Trabalhar</span>
+              <div className="bg-success bg-opacity-10 rounded-circle d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px' }}>
+                <FontAwesomeIcon icon={faCheckCircle} className="text-success" />
+              </div>
+            </div>
+            <div className="d-flex align-items-end gap-2">
+              <h3 className="fw-bold m-0 text-success">{onlineDrivers}</h3>
+              <small className="text-muted fw-bold mb-1">online</small>
+            </div>
+          </div>
+        </div>
 
-      <div className="card shadow-sm-custom border-0 rounded-4">
+        <div className="col-md-3">
+          <div className="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-muted fw-bold small text-uppercase">Em Entrega</span>
+              <div className="bg-info bg-opacity-10 rounded-circle d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px' }}>
+                <FontAwesomeIcon icon={faBoxOpen} className="text-info" />
+              </div>
+            </div>
+            <h3 className="fw-bold m-0 text-info">{inDelivery}</h3>
+          </div>
+        </div>
+
+        <div className="col-md-3">
+          <div className="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-muted fw-bold small text-uppercase">Pendentes Docs</span>
+              <div className="bg-warning bg-opacity-10 rounded-circle d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px' }}>
+                <FontAwesomeIcon icon={faExclamationTriangle} className="text-warning text-dark" />
+              </div>
+            </div>
+            <h3 className="fw-bold m-0 text-warning text-dark">{pendingDocs}</h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicadores de Veículos e Subcategorias */}
+      <div className="row mb-4">
+        {Object.keys(driversByVehicleType).length > 0 && (
+          <div className="col-12 col-md-6 mb-3 mb-md-0">
+            <h6 className="fw-bold text-muted small text-uppercase mb-3"><FontAwesomeIcon icon={faCar} className="me-2"/> Por Tipo de Veículo</h6>
+            <div className="d-flex flex-wrap gap-2">
+              {Object.entries(driversByVehicleType).map(([typeName, count]) => (
+                <div className="bg-white rounded-pill px-3 py-2 border border-primary-subtle shadow-sm d-flex align-items-center gap-2" key={typeName}>
+                  <span className="fw-bold text-dark text-capitalize small">{typeName}</span>
+                  <span className="badge bg-primary rounded-pill">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {Object.keys(driversBySubcategory).length > 0 && (
+          <div className="col-12 col-md-6">
+            <h6 className="fw-bold text-muted small text-uppercase mb-3"><FontAwesomeIcon icon={faStar} className="me-2"/> Por Subcategoria (Serviço)</h6>
+            <div className="d-flex flex-wrap gap-2">
+              {Object.entries(driversBySubcategory).map(([subName, count]) => (
+                <div className="bg-white rounded-pill px-3 py-2 border border-success-subtle shadow-sm d-flex align-items-center gap-2" key={subName}>
+                  <span className="fw-bold text-dark text-capitalize small">{subName}</span>
+                  <span className="badge bg-success rounded-pill">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabela de Motoristas */}
+      <div className="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
 
         <div className="card-body p-0">
 

@@ -1,5 +1,8 @@
 export type Trip = {
   id: string;
+  _id?: string;
+  goodType?: string;
+  serviceName?: string;
   passengerId: string;
   passenger: string;
   passengerImage?: string;
@@ -17,8 +20,9 @@ export type Trip = {
   status: string;
   isAcceptedByDeliveryman: boolean;
   originalData: any;
+  originLat?: number;
+  originLng?: number;
   isProcessing?: boolean;
-  serviceName?: string;
   serviceMotive?: string;
   paymentMethod?: string;
   isScheduled?: boolean;

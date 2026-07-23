@@ -20,11 +20,16 @@ router.post('/start', isAuth, expressAsyncHandler(async (req, res) => {
 const updateTrackingHandler = expressAsyncHandler(async (req, res) => {
   const { orderId, latitude, longitude, speed, heading } = req.body;
   const driverId = req.user._id;
-  await Tracking.findOneAndUpdate(
-    { orderId, driverId },
-    { latitude, longitude, speed: Number(speed) || 0, heading: Number(heading) || 0, timestamp: Date.now() },
-    { upsert: true }
-  );
+
+  // Só tentamos guardar o rastro (Tracking) se houver um orderId válido. 
+  // Um motorista pode estar apenas "Online" à espera de pedidos (sem orderId).
+  if (orderId && orderId !== 'null' && orderId !== 'undefined') {
+    await Tracking.findOneAndUpdate(
+      { orderId, driverId },
+      { latitude, longitude, speed: Number(speed) || 0, heading: Number(heading) || 0, timestamp: Date.now() },
+      { upsert: true }
+    );
+  }
 
   await User.updateOne(
     { _id: driverId },
@@ -54,9 +59,25 @@ const updateTrackingHandler = expressAsyncHandler(async (req, res) => {
   // Calculate and emit ETA
   try {
     const order = await Order.findById(orderId) || await RequestService.findById(orderId);
-    if (order && order.deliveryAddress) {
+    
+    let destLng = null;
+    let destLat = null;
+
+    if (order) {
+      if (order.destinationDetails && order.destinationDetails.lat) {
+        // Formato do RequestService (Viagens)
+        destLng = order.destinationDetails.lng;
+        destLat = order.destinationDetails.lat;
+      } else if (order.deliveryAddress && order.deliveryAddress.latitude) {
+        // Formato do Order (Lojas/Produtos)
+        destLng = order.deliveryAddress.longitude;
+        destLat = order.deliveryAddress.latitude;
+      }
+    }
+
+    if (destLng && destLat) {
       const origin = `${longitude},${latitude}`;
-      const destination = `${order.deliveryAddress.longitude},${order.deliveryAddress.latitude}`;
+      const destination = `${destLng},${destLat}`;
       const eta = await calculateETA(origin, destination);
       if (eta) {
         io.to(`order_${orderId}`).emit('etaUpdate', { eta });
@@ -77,12 +98,29 @@ router.put('/update', isAuth, updateTrackingHandler);
 router.get('/eta', isAuth, expressAsyncHandler(async (req, res) => {
   const { orderId } = req.query;
   const tracking = await Tracking.findOne({ orderId }).sort({ timestamp: -1 });
-  const order = await Order.findById(orderId);
+  const order = await Order.findById(orderId) || await RequestService.findById(orderId);
+  
   if (!tracking || !order) return res.status(404).send({ message: 'Tracking not found' });
-  const origin = `${tracking.longitude},${tracking.latitude}`;
-  const destination = `${order.deliveryLocation.lng},${order.deliveryLocation.lat}`;
-  const eta = await calculateETA(origin, destination);
-  res.send({ eta });
+  
+  let destLng = null;
+  let destLat = null;
+
+  if (order.destinationDetails && order.destinationDetails.lat) {
+    destLng = order.destinationDetails.lng;
+    destLat = order.destinationDetails.lat;
+  } else if (order.deliveryLocation && order.deliveryLocation.lat) {
+    destLng = order.deliveryLocation.lng;
+    destLat = order.deliveryLocation.lat;
+  }
+
+  if (destLng && destLat) {
+    const origin = `${tracking.longitude},${tracking.latitude}`;
+    const destination = `${destLng},${destLat}`;
+    const eta = await calculateETA(origin, destination);
+    res.send({ eta });
+  } else {
+    res.status(400).send({ message: 'Destino não configurado' });
+  }
 }));
 
 // Consumer asks for driver's current position for a given order (with fallback)

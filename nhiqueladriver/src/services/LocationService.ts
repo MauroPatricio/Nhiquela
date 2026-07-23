@@ -16,9 +16,10 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     
     if (loc) {
       try {
-        const userInfoStr = await AsyncStorage.getItem('userInfo');
+        const userInfoStr = await AsyncStorage.getItem('@app:user');
         if (userInfoStr) {
           const userInfo = JSON.parse(userInfoStr);
+          // If the user object structure is { token: '...' }, use userInfo.token
           if (userInfo && userInfo.token) {
             // Fetch acceptedTrip from local storage if possible, or omit orderId if your tracking logic doesn't require it
             const orderIdStr = await AsyncStorage.getItem('currentOrderId');

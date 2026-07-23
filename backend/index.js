@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-dotenv.config({ path: '.env' });
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 import mongoose from 'mongoose';
 import seedRoutes from './routes/seedRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -104,7 +105,8 @@ const app = express();
 // Confia no proxy para que express-rate-limit funcione corretamente
 app.set('trust proxy', 1);
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.BASE_URL, 'https://nhiquelaservicos.com', 'https://www.nhiquelaservicos.com'] 
@@ -244,13 +246,23 @@ if (process.env.NODE_ENV !== 'test') {
   app.set('io', io);
 
   // Redis Adapter Configuration
+  let subClient;
   try {
+    let isConnectedOnce = false;
     pubClient = createClient({ 
       url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-      socket: { reconnectStrategy: false }
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (!isConnectedOnce) {
+            return new Error('No retries on initial connection');
+          }
+          return Math.min(retries * 100, 3000); // Retry up to every 3 seconds
+        }
+      }
     });
-    const subClient = pubClient.duplicate();
+    subClient = pubClient.duplicate();
     
+    pubClient.on('ready', () => { isConnectedOnce = true; });
     pubClient.on('error', () => {}); // Mute errors to prevent console spam
     subClient.on('error', () => {});
     
@@ -259,6 +271,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('✅ Redis Adapter for Socket.io initialized successfully.');
   } catch (err) {
     console.error('⚠️ Could not connect to Redis. Falling back to in-memory Socket.io', err.message);
+    if (pubClient) {
+      pubClient.disconnect().catch(() => {});
+      pubClient = null;
+    }
+    if (subClient) {
+      subClient.disconnect().catch(() => {});
+    }
   }
 
   initScheduledOrderService(io);
@@ -293,14 +312,22 @@ if (process.env.NODE_ENV !== 'test') {
         socketId: socket.id,
         messages: [],
       };
-      console.log('Online', user.name);
+      console.log('Online', user.name || 'Desconhecido');
 
-      if (user._id && user.isDeliveryMan) {
-        const driverRoom = `driver_${user._id}`;
-        socket.join(driverRoom);
-        console.log(`✅ Motorista ${user.name} (${user._id}) entrou na sala ${driverRoom}`);
-      } else {
-        console.log(`ℹ️  onLogin recebido de ${user.name} — isDeliveryMan: ${user.isDeliveryMan}, _id: ${user._id}`);
+      const userId = user._id || user.id;
+      if (userId) {
+        const dbUser = await User.findById(userId).select('isDeliveryMan name');
+        if (dbUser && dbUser.isDeliveryMan) {
+          const driverRoom = `driver_${userId}`;
+          socket.join(driverRoom);
+          console.log(`✅ Motorista ${dbUser.name} (${userId}) entrou na sala ${driverRoom}`);
+          // Garantir que a variavel user reflete o estado real para o resto do codigo
+          user.isDeliveryMan = true;
+          user.name = dbUser.name || user.name;
+        } else {
+          const userName = dbUser ? dbUser.name : (user.name || 'Desconhecido');
+          console.log(`ℹ️  onLogin recebido de ${userName} — isDeliveryMan: ${user.isDeliveryMan || false}, _id: ${userId}`);
+        }
       }
 
       if (pubClient && pubClient.isOpen) {
@@ -336,6 +363,37 @@ if (process.env.NODE_ENV !== 'test') {
         const roomName = `trip_${data.tripId}`;
         socket.join(roomName);
         console.log(`Socket ${socket.id} joined trip chat ${roomName}`);
+      }
+    });
+
+    socket.on('typing_trip_chat', (data) => {
+      if (data && data.tripId && data.senderId) {
+        const roomName = `trip_${data.tripId}`;
+        socket.to(roomName).emit('user_typing_trip_chat', data);
+      }
+    });
+
+    socket.on('stop_typing_trip_chat', (data) => {
+      if (data && data.tripId && data.senderId) {
+        const roomName = `trip_${data.tripId}`;
+        socket.to(roomName).emit('user_stop_typing_trip_chat', data);
+      }
+    });
+
+    socket.on('mark_read_trip_chat', async (data) => {
+      if (data && data.tripId && data.userId) {
+        const roomName = `trip_${data.tripId}`;
+        try {
+          const TripChat = (await import('./models/TripChatModel.js')).default;
+          await TripChat.updateMany(
+            { tripId: data.tripId },
+            { $set: { "messages.$[elem].status": "read" } },
+            { arrayFilters: [{ "elem.senderId": { $ne: data.userId }, "elem.status": { $ne: "read" } }] }
+          );
+          io.to(roomName).emit('messages_read_trip_chat', { tripId: data.tripId, readBy: data.userId });
+        } catch (err) {
+          console.error("Erro ao marcar como lido", err);
+        }
       }
     });
 

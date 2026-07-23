@@ -49,11 +49,11 @@ async function runScheduledCheck() {
 
       if (order.deliveryman && order.deliveryman.id) {
         const driver = await User.findById(order.deliveryman.id).select('pushToken _id');
-        if (driver && driver.pushToken) {
+        if (driver && driver.deviceToken) {
           await createNotification({
             message: 'Lembrete! Tem um servico agendado para daqui a 45 minutos (' + scheduledDateStr + '). Local: ' + order.origin + '.',
             receiver_id: driver._id,
-            pushToken: driver.pushToken
+            pushToken: driver.deviceToken
           });
         }
         if (io) {
@@ -70,7 +70,7 @@ async function runScheduledCheck() {
           await createNotification({
             message: 'Servico agendado para daqui a 45 min (' + scheduledDateStr + ')! Origem: ' + order.origin + '. Aceite agora.',
             receiver_id: driver._id,
-            pushToken: driver.pushToken
+            pushToken: driver.deviceToken
           });
           if (io) {
             io.to('driver_' + driver._id).emit('scheduled_reminder', { order, minutesLeft: 45 });

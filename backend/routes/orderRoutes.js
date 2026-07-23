@@ -11,7 +11,7 @@ import Partner from '../models/PartnerModel.js';
 import partnerService from '../services/partnerService.js';
 import reputationTracker from '../utils/reputationTracker.js';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, hasSufficientBalance } from '../services/walletService.js';
 
 
 const orderRouter = express.Router();
@@ -22,6 +22,18 @@ function generateCode() {
   let code = Math.floor(Math.random() * 900000) + 100000;
   return code.toString();
 }
+
+orderRouter.get('/debug/driver/:id', async (req, res) => {
+  try {
+    const User = (await import('../models/UserModel.js')).default;
+    const Wallet = (await import('../models/WalletModel.js')).default;
+    const NotificationToken = (await import('../models/NotificationToken.js')).default;
+    const driver = await User.findById(req.params.id);
+    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.params.id }, { userId: req.params.id }] });
+    const token = await NotificationToken.findOne({ user: req.params.id }).sort({ createdAt: -1 });
+    res.json({ driver, wallet, token });
+  } catch(e) { res.status(500).json({error: e.message}) }
+});
 
 // All Orders
 orderRouter.get(
@@ -413,13 +425,13 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
 
       //toSeller
 
-      if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+      if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
         await createNotification({
           message: mensagem,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -428,7 +440,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -714,14 +726,14 @@ orderRouter.put(
     let message = `Olï¿½! ?? O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para vocï¿½. Obrigado por confiar na Nhiquela!`;
     // sendEmailOrderToSeller(req,message, sellerOfProduct, updatedOrder, res);
 
-    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
         receiver_id: updatedOrder.seller,
         sender_id: updatedOrder.user,
         orderID: updatedOrder._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
       });
       //toOrderClient
       await createNotification({
@@ -729,7 +741,7 @@ orderRouter.put(
         receiver_id: updatedOrder.user,
         sender_id: updatedOrder.seller,
         orderID: updatedOrder._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
     }
 
@@ -771,14 +783,14 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
       });
       //toOrderClient
       await createNotification({
@@ -786,7 +798,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
     }
 
@@ -827,14 +839,14 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if (sellerOfProduct?.pushToken && clientOfProduct?.pushToken) {
+    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
       });
       //toOrderClient
       await createNotification({
@@ -842,7 +854,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
     }
 
@@ -881,7 +893,7 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
+      if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
 
         //toSeller
         await createNotification({
@@ -889,7 +901,7 @@ orderRouter.put(
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -898,7 +910,7 @@ orderRouter.put(
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -981,7 +993,7 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
+      if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
 
         //toSeller
         await createNotification({
@@ -989,7 +1001,7 @@ orderRouter.put(
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -998,7 +1010,7 @@ orderRouter.put(
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -1030,14 +1042,14 @@ orderRouter.put(
       const sellerOfProduct = await User.findById(order.seller);
       const clientOfProduct = await User.findById(order.user);
 
-      if (sellerOfProduct.pushToken && clientOfProduct.pushToken) {
+      if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
         //toSeller
         await createNotification({
           message: message,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
-          pushToken: sellerOfProduct.pushToken,
+          pushToken: sellerOfProduct.deviceToken,
 
         });
         //toOrderClient
@@ -1046,7 +1058,7 @@ orderRouter.put(
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
 
       }
@@ -1133,13 +1145,13 @@ orderRouter.put(
 
       const clientOfProduct = await User.findById(order.user);
 
-      if (clientOfProduct && clientOfProduct.pushToken) {
+      if (clientOfProduct && clientOfProduct.deviceToken) {
         await createNotification({
           message: message,
           receiver_id: order.user,
           sender_id: order.seller,
           orderID: order._id,
-          pushToken: clientOfProduct.pushToken
+          pushToken: clientOfProduct.deviceToken
         });
       }
 
@@ -1268,7 +1280,7 @@ orderRouter.put(
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
 
       });
       //toOrderClient
@@ -1277,7 +1289,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
 
       //     sendEmailOrderToSeller(req,message, sellerOfProduct, order, res);
@@ -1387,7 +1399,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
 
       // WebSocket Optimization
@@ -1484,23 +1496,23 @@ orderRouter.put(
         const sellerOfProduct = await User.findById(order.seller);
         const clientOfProduct = await User.findById(order.user);
 
-        if (sellerOfProduct && sellerOfProduct.pushToken) {
+        if (sellerOfProduct && sellerOfProduct.deviceToken) {
           await createNotification({
             message: message,
             receiver_id: order.seller,
             sender_id: order.user,
             orderID: order._id,
-            pushToken: sellerOfProduct.pushToken,
+            pushToken: sellerOfProduct.deviceToken,
           });
         }
 
-        if (clientOfProduct && clientOfProduct.pushToken) {
+        if (clientOfProduct && clientOfProduct.deviceToken) {
           await createNotification({
             message: message,
             receiver_id: order.user,
             sender_id: order.seller,
             orderID: order._id,
-            pushToken: clientOfProduct.pushToken
+            pushToken: clientOfProduct.deviceToken
           });
         }
 
@@ -1568,7 +1580,7 @@ orderRouter.put(
         receiver_id: order.seller,
         sender_id: order.user,
         orderID: order._id,
-        pushToken: sellerOfProduct.pushToken,
+        pushToken: sellerOfProduct.deviceToken,
 
       });
       //toOrderClient
@@ -1577,7 +1589,7 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        pushToken: clientOfProduct.pushToken
+        pushToken: clientOfProduct.deviceToken
       });
 
 
@@ -1718,14 +1730,41 @@ orderRouter.get(
 
     const driver = await User.findById(deliverymanId);
     if (!driver) {
-      return res.status(404).send({ message: 'Motorista no encontrado' });
+      return res.status(404).send({ message: 'Motorista não encontrado' });
     }
 
     const isDriverActive = driver.availability === 'active';
-    const { hasSufficientBalance } = await import('../services/walletService.js');
     const hasBalance = await hasSufficientBalance(deliverymanId, driver);
     const canAcceptNewTrips = isDriverActive && hasBalance;
-    const driverTransportType = driver.deliveryman?.transport_type;
+    const rawTransportType = driver.deliveryman?.transport_type;
+
+    // Se transport_type for um ObjectId, resolver para o nome (string)
+    // Os pedidos guardam transportType como string (ex: "Mota"), não como ObjectId
+    let driverTransportTypeName = null;
+    if (rawTransportType) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(rawTransportType.toString()) &&
+                         rawTransportType.toString().length === 24;
+      if (isObjectId) {
+        try {
+          // Tentar como VehicleType
+          const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
+          const vType = await VehicleType.findById(rawTransportType);
+          if (vType) {
+            driverTransportTypeName = vType.name;
+          } else {
+            // Tentar como ProviderSubcategory
+            const ProviderSubcategory = (await import('../models/ProviderSubcategoryModel.js')).default;
+            const subcat = await ProviderSubcategory.findById(rawTransportType);
+            if (subcat) driverTransportTypeName = subcat.name;
+          }
+        } catch(e) {
+          console.error('[deliveryman/all] Erro ao resolver transport_type:', e.message);
+        }
+      } else {
+        // Já é uma string (ex: "Mota")
+        driverTransportTypeName = rawTransportType;
+      }
+    }
 
     // Buscar Orders normais
     const orderConditions = [
@@ -1733,7 +1772,7 @@ orderRouter.get(
       { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
     ];
     if (canAcceptNewTrips) {
-      orderConditions.push({ stepStatus: 3 }); // Disponiveis para aceitar se ativo
+      orderConditions.push({ stepStatus: 3 }); // Disponíveis para aceitar se ativo
     }
 
     const ordersPromise = Order.find({
@@ -1744,24 +1783,40 @@ orderRouter.get(
       .populate('seller', 'name')
       .lean();
 
-    // Buscar RequestServices de servios (reboque, etc)
-    // Buscar RequestServices de servios (reboque, etc)
+    // Buscar RequestServices de serviços (reboque, mota, etc)
     const requestServiceConditions = [
       { 'deliveryman.id': deliverymanId },
-      { 'deliveryman._id': deliverymanId }  // compatibilidade
+      { 'deliveryman._id': deliverymanId },  // compatibilidade
+      { targetDriverId: deliverymanId.toString(), stepStatus: 3 } // SEMPRE mostrar pedidos direcionados a este motorista
     ];
     if (canAcceptNewTrips) {
-      const availableCondition = { 
+      const availableCondition = {
         stepStatus: 3,
         $or: [
           { targetDriverId: { $exists: false } },
           { targetDriverId: null },
-          { targetDriverId: '' },
-          { targetDriverId: deliverymanId.toString() }
+          { targetDriverId: '' }
         ]
       };
-      if (driverTransportType) {
-        availableCondition.transportType = driverTransportType; // Match exato com o veículo do motorista
+
+      // COMPARAÇÃO CORRECTA: sempre por ObjectId quando o motorista tem um ID de veículo
+      // O pedido guarda transportType como string (pode ser o ObjectId em string ou o nome)
+      // O pedido guarda transportTypeId como ObjectId (novo campo)
+      if (rawTransportType) {
+        const isObjectId = mongoose.Types.ObjectId.isValid(rawTransportType.toString()) &&
+                           rawTransportType.toString().length === 24;
+        if (isObjectId) {
+          // Comparar pelo ID: tanto no campo transportType (string) como no transportTypeId (ObjectId)
+          availableCondition.$and = [{
+            $or: [
+              { transportType: rawTransportType.toString() },      // Valor guardado como string do ObjectId
+              { transportTypeId: new mongoose.Types.ObjectId(rawTransportType.toString()) } // Ou como ObjectId ref
+            ]
+          }];
+        } else if (driverTransportTypeName) {
+          // Comparar pelo nome (ex: "Mota")
+          availableCondition.transportType = driverTransportTypeName;
+        }
       }
       requestServiceConditions.push(availableCondition);
     }
@@ -1775,6 +1830,15 @@ orderRouter.get(
       .lean();
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
+
+    console.log("============== DEBUG /deliveryman/all ==============");
+    console.log("Driver ID:", deliverymanId.toString());
+    console.log("canAcceptNewTrips:", canAcceptNewTrips, "| availability:", driver.availability, "| hasBalance:", hasBalance);
+    console.log("transport_type (raw):", rawTransportType, "→ resolved name:", driverTransportTypeName || '(sem tipo)');
+    console.log("GPS:", driver.locationGeo?.coordinates, "| lat:", driver.latitude, "lng:", driver.longitude);
+    console.log("requestServiceConditions:", JSON.stringify(requestServiceConditions, null, 2));
+    console.log("Total Orders Found:", ordersResult.length, "| Total RequestServices Found:", requestServicesResult.length);
+    console.log("====================================================");
 
     // Format orders
     const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
@@ -1840,3 +1904,5 @@ orderRouter.get(
 
 
 export default orderRouter;
+
+

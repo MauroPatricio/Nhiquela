@@ -530,36 +530,7 @@ export default function TripMap({
           </View>
         )}
 
-        {/* BOTAO PARA CONCLUIR VIAGEM (ESTAGIO 6 - çãGUARDAR CONFIRMACAO) */}
-        {stepStatus === 6 && (
-          <View style={[styles.startTripButtonContainer, { bottom: elapsedSeconds >= 300 ? 50 : 30 }]}>
-            <TouchableOpacity 
-              style={styles.startTripButtonOuter}
-              activeOpacity={0.85}
-              onPress={() => onCompleteService && onCompleteService()}
-            >
-              <LinearGradient
-                colors={['#3B82F6', '#2563EB', '#1D4ED8']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.startTripButtonGradient}
-              >
-                <View style={styles.startTripButtonGlow} />
-                <Ionicons name="shield-checkmark" size={32} color="#FFF" style={styles.startTripButtonIcon} />
-                <Text style={styles.startTripButtonText}>Concluir Serviço</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            {elapsedSeconds >= 300 && (
-              <TouchableOpacity
-                style={{ marginTop: 16, backgroundColor: '#EF4444', paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
-                onPress={() => onNoShow && onNoShow()}
-              >
-                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Cliente não compareceu</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+
 
       {/* 🔥 DURAÇÃO (APENAS SE TEM ROTA) */}
       {(duration !== null && duration > 0) && shouldDrawRoute && (

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMotorcycle, faCar, faTruck, faEdit, faTrash, faPlus, faSave, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
-import api from '../../api';
+import api, { SOCKET_URL } from '../../api';
+import { io } from 'socket.io-client';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
 
@@ -12,6 +13,13 @@ export default function VehicleTypesScreen() {
 
   useEffect(() => {
     fetchVehicleTypes();
+
+    const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    socket.on('catalogUpdated', () => {
+      fetchVehicleTypes();
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   const fetchVehicleTypes = async () => {

@@ -12,6 +12,7 @@ import {
   Modal,
   Switch,
   Vibration,
+  AppState,
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -34,6 +35,8 @@ import { useAuth } from "../context/AuthContext";
 import TripCard from "../components/TripCard";
 import LocationConsentModal from "../components/LocationConsentModal";
 import { API_BASE_URL } from "../api/apiConfig";
+import api from "../api/apiConfig";
+import { ENDPOINTS } from "../api/endpoints";
 import { showMessage } from "react-native-flash-message";
 import { Trip, WebSocketOrderData, LocationData } from "../types";
 
@@ -119,7 +122,7 @@ export default function HomeScreen({ navigation }: any) {
   // Play/Stop sound depending on pending trips
   useEffect(() => {
     if (alertSound) {
-      const hasPending = allTrips.some(t => t.status === 'Pendente');
+      const hasPending = allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3));
       if (hasPending && user?.availability === 'active') {
         alertSound.playAsync();
         // Vibrate repeatedly (Wait 500ms, Vibrate 1000ms, Wait 500ms)
@@ -203,7 +206,7 @@ export default function HomeScreen({ navigation }: any) {
   // 🔥 CONFIGURAR WEBSOCKET PARA TEMPO REAL
   const setupWebSocket = async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = (await AsyncStorage.getItem('authToken')) || user?.token;
       if (token) {
         setConnectionStatus("Conectando...");
 
@@ -272,8 +275,14 @@ export default function HomeScreen({ navigation }: any) {
           setLastUpdate(new Date());
         };
 
-        // 🔥 LISTENER PARçãTUALIZAÇÕES DE PEDIDOS
+        // 🔥 LISTENER PARA PEDIDOS ATUALIZADOS
         websocketService.on('order_updated', handleOrderWebSocketUpdate);
+
+        // 🔥 LISTENER PARA PEDIDO EXPIRADO PARA ESTE MOTORISTA
+        websocketService.on('order_expired', (data: any) => {
+          if (!isMounted.current) return;
+          setAllTrips(prev => prev.filter(t => t.id !== (data._id || data.id)));
+        });
 
         // 🔥 LISTENER PARA PEDIDOS ATRIBUÍDOS
         websocketService.on('order_assigned', handleOrderWebSocketUpdate);
@@ -302,11 +311,18 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 LISTENER PARA NOVOS PEDIDOS (Despacho Inteligente)
         websocketService.on('new_order', (data: any) => {
           if (!isMounted.current) return;
-          // Adicionar novo pedido Ã  lista se ainda não estiver lá
+          
+          const newTrip = formatOrder(data);
+          
+          // Tocar ringtone imediatamente se for um pedido pendente
+          if (newTrip && newTrip.stepStatus === 3) {
+             console.log("🔔 Novo pedido recebido via socket!");
+          }
+
+          // Adicionar novo pedido à lista se ainda não estiver lá
           setAllTrips(prev => {
             const exists = prev.some(t => t.id === data._id);
             if (exists) return prev;
-            const newTrip = formatOrder(data);
             return newTrip ? [newTrip, ...prev] : prev;
           });
         });
@@ -470,6 +486,25 @@ export default function HomeScreen({ navigation }: any) {
     };
   }, []);
 
+  // 🔥 RECUPERAÇÃO DE ESTADO QUANDO A APP VOLTA A FICAR ATIVA
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        console.log('🔄 App regressou ao Foreground - Verificando estado...');
+        // Se a ligação socket caiu, tenta religar. Se não, recarrega só por segurança.
+        if (!websocketService.isConnected) {
+          setupWebSocket();
+        } else {
+          loadAllOrdersSilent();
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // 🔥 ATUALIZAR STATUS DE DISPONIBILIDADE LOCALMENTE NA HOME
   const handleToggleOnline = async (value: boolean) => {
     if (value) {
@@ -624,6 +659,55 @@ export default function HomeScreen({ navigation }: any) {
     }
   }, [user?.status]);
 
+  // 🔥 PING DE LOCALIZAÇÃO A CADA 10 SEGUNDOS QUANDO ONLINE
+  useEffect(() => {
+    let pingInterval: any = null;
+
+    if (user?.availability === 'active') {
+      const sendPing = async () => {
+        try {
+          let loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          if (!loc) {
+            loc = await Location.getLastKnownPositionAsync();
+          }
+          if (loc && loc.coords) {
+            await api.put(ENDPOINTS.PING, {
+              lat: loc.coords.latitude,
+              lng: loc.coords.longitude
+            });
+            console.log('✅ Localização (Ping) atualizada no backend');
+          }
+        } catch (error) {
+          console.warn('❌ Erro no ping de localização (tentando última conhecida):', error);
+          try {
+            const lastLoc = await Location.getLastKnownPositionAsync();
+            if (lastLoc && lastLoc.coords) {
+              await api.put(ENDPOINTS.PING, {
+                lat: lastLoc.coords.latitude,
+                lng: lastLoc.coords.longitude
+              });
+              console.log('✅ Localização (Ping) recuperada via cache');
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback de localização falhou também.', fallbackError);
+          }
+        }
+      };
+      
+      // Ping inicial
+      sendPing();
+      
+      // Ping a cada 10s
+      pingInterval = setInterval(sendPing, 10000);
+    }
+
+    return () => {
+      if (pingInterval) clearInterval(pingInterval);
+    };
+  }, [user?.availability]);
+
   // ðŸ”„ POLLING DE SEGURANÇA: a cada 8s enquanto Pendente, verifica o estado no servidor
   useEffect(() => {
     // Só faz polling se o motorista ainda não foi aprovado E está autenticado
@@ -723,12 +807,8 @@ export default function HomeScreen({ navigation }: any) {
           return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
         });
 
-      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
-      setAllTrips(formattedOrders);
-      setLastUpdate(new Date());
-
       // 🔥 CORREÇÃO CRÍTICA: BUSCAR PEDIDO ACEITO CORRETAMENTE
-      const accepted = formattedOrders.find((order: Trip) => {
+      const acceptedTrips = formattedOrders.filter((order: Trip) => {
         // Pedido aceito pelo entregador atual
         const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
         
@@ -739,7 +819,23 @@ export default function HomeScreen({ navigation }: any) {
         return isAcceptedByCurrentUser || isInTransit;
       });
       
-      setAcceptedTrip(accepted || null);
+      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
+
+      // 🔥 CORREÇÃO: MOSTRAR APENAS 1 VIAGEM DE CADA VEZ
+      let finalTripsToDisplay: Trip[] = [];
+      if (accepted) {
+        finalTripsToDisplay = [accepted];
+      } else {
+        const pendingTrips = formattedOrders.filter((o: Trip) => (o.stepStatus === 1 || o.stepStatus === 3));
+        if (pendingTrips.length > 0) {
+          finalTripsToDisplay = [pendingTrips[0]];
+        }
+      }
+
+      // 🔥 ATUALIZAÇÃO DIRETA SEM LOADING
+      setAllTrips(finalTripsToDisplay);
+      setLastUpdate(new Date());
+      setAcceptedTrip(accepted);
 
       if (accepted) {
         const tripStarted = accepted.stepStatus === 5;
@@ -823,14 +919,24 @@ export default function HomeScreen({ navigation }: any) {
         // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO
         return isAcceptedByCurrentUser || isInTransit;
       });
+
+      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
+
+      // 🔥 CORREÇÃO: MOSTRAR APENAS 1 VIAGEM DE CADA VEZ
+      let finalTripsToDisplay: Trip[] = [];
+      if (accepted) {
+        finalTripsToDisplay = [accepted];
+      } else {
+        const pendingTrips = formattedOrders.filter((o: Trip) => (o.stepStatus === 1 || o.stepStatus === 3));
+        if (pendingTrips.length > 0) {
+          finalTripsToDisplay = [pendingTrips[0]];
+        }
+      }
     
-      setAllTrips(formattedOrders);
+      setAllTrips(finalTripsToDisplay);
       setLastUpdate(new Date());
   
-      // 🔥 BUSCAR VIAGEM ACEITçãPENAS SE HOUVER UMA REAL
-      const accepted = acceptedTrips.length > 0 ? acceptedTrips[0] : null;
-      
-      setAcceptedTrip(accepted || null);
+      setAcceptedTrip(accepted);
   
       if (accepted) {
         const tripStarted = accepted.stepStatus === 5;
@@ -934,7 +1040,6 @@ export default function HomeScreen({ navigation }: any) {
     const isInTransit = order.stepStatus === 5;
     const isAcceptedByDeliveryman = isInTransit || (
       orderDeliverymanId === currentUserId &&
-      order.status === 'Pedido aceite' &&
       order.stepStatus === 4  
     );
     const isReq = order.goodType !== undefined || order.type === 'requestService';
@@ -952,9 +1057,9 @@ export default function HomeScreen({ navigation }: any) {
       passengerId: order.user?._id || order.user?.id || order.userId || "0",
       serviceName: serviceNameStr,
       serviceMotive: order.reason || order.description || order.goodType || undefined,
-      passenger: order.user?.name || order.clientName || "Cliente",
-      passengerImage: order.user?.profileImage,
-      passengerPhone: order.user?.phoneNumber || order.phoneNumber || "Não disponvel",
+      passenger: order.user?.name || order.name || order.clientName || "Cliente",
+      passengerImage: order.user?.profileImage || order.user?.photo || null,
+      passengerPhone: order.phoneNumber || order.user?.phoneNumber || "Não disponvel",
       pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
@@ -996,41 +1101,30 @@ export default function HomeScreen({ navigation }: any) {
         isProcessing: trip.id === tripId ? true : trip.isProcessing
       })));
 
-      // 🔥 TENTAR OBTER LOCALIZAÇÃO
+      // 🔥 TENTAR OBTER LOCALIZAÇÃO RÁPIDA
       let currentLocation = null;
       
       try {
-        // Usar um timeout para não bloquear eternamente e usar Balanced (rápido e suficiente para este step)
-        const location = await Promise.race([
-          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 7000))
-        ]) as Location.LocationObject;
-        
-        currentLocation = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          accuracy: location.coords.accuracy ?? undefined,
-          timestamp: new Date().toISOString()
-        };
-
-      } catch (error: any) {
-        // 🔥 FALLBACK: Se falhar ou der timeout, tenta usar a última localização conhecida
-        try {
-          const lastLocation = await Location.getLastKnownPositionAsync();
-          if (lastLocation) {
-            currentLocation = {
-              latitude: lastLocation.coords.latitude,
-              longitude: lastLocation.coords.longitude,
-              accuracy: lastLocation.coords.accuracy ?? undefined,
-              timestamp: new Date().toISOString()
-            };
-          } else {
-            throw new Error('Sem última localização');
-          }
-        } catch (fallbackError) {
-          setShowLocationRequiredModal(true);
-          throw new Error('Localização não disponível');
+        // 1. Tentar a última localização conhecida PRIMEIRO para ser instantâneo
+        const lastLocation = await Location.getLastKnownPositionAsync();
+        if (lastLocation) {
+          currentLocation = {
+            latitude: lastLocation.coords.latitude,
+            longitude: lastLocation.coords.longitude,
+            accuracy: lastLocation.coords.accuracy ?? undefined,
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          // Se não houver última conhecida, usamos 0,0 para não bloquear a UI (o backend nem sequer usa isto!)
+          currentLocation = {
+            latitude: 0,
+            longitude: 0,
+            timestamp: new Date().toISOString()
+          };
         }
+      } catch (error: any) {
+        // Fallback silencioso para não interromper a aceitação da viagem
+        currentLocation = { latitude: 0, longitude: 0, timestamp: new Date().toISOString() };
       }
 
       // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
@@ -1127,21 +1221,28 @@ const startLocationSharingToBackend = (orderId: string) => {
   
   const updateLocationToBackend = async () => {
     try {
-      // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      // 🔥 SEMPRE OBTER LOCALIZAÇÃO ATUAL COM TIMEOUT E FALLBACK
+      let location: Location.LocationObject | null = null;
+      try {
+        location = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ]) as Location.LocationObject;
+      } catch (e) {
+        location = await Location.getLastKnownPositionAsync();
+      }
 
       // 🔥 VALIDAR LOCALIZAÇÃO ANTES DE ENVIAR
-      if (!location.coords.latitude || !location.coords.longitude) {
-        console.warn('âš ï¸ Localização inválida obtida, pulando atualização');
+      if (!location || !location.coords || !location.coords.latitude || !location.coords.longitude) {
+        console.warn('⚠️ Localização inválida obtida, pulando atualização');
         return;
       }
 
       // Envia via WebSocket em vez de HTTP request
-      if (user?._id) {
+      const driverId = user?._id || (user as any)?.id;
+      if (driverId) {
         websocketService.sendLocation({
-          driverId: user._id,
+          driverId: driverId,
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
           speed: location.coords.speed || 0,
@@ -1602,23 +1703,17 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* 🔥 MODAL DE NOVA VIAGEM (INCOMING TRIP) */}
-      <Modal 
-        visible={allTrips.some(t => t.status === 'Pendente')} 
-        transparent 
-        animationType="slide"
-      >
-        <View style={styles.newTripModalOverlay}>
-          <View style={styles.newTripModalContainer}>
-            <Text style={styles.newTripModalTitle}>Nova Solicitação de Viagem</Text>
-            {allTrips.filter(t => t.status === 'Pendente').map(trip => (
-              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
-                {renderTripCard({ item: trip })}
-              </View>
-            ))}
-          </View>
+      {/* 🚀 HEADS-UP INTENT DE NOVA VIAGEM (INCOMING TRIP) */}
+      {allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3)) && (
+        <View style={styles.headsUpContainer}>
+          <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
+          {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
+            <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
+              {renderTripCard({ item: trip })}
+            </View>
+          ))}
         </View>
-      </Modal>
+      )}
 
       {/* âœ… MODAL PREMIUM â€” VIAGEM ACEITE */}
       <Modal visible={showTripAcceptedModal} transparent animationType="fade">
@@ -1879,34 +1974,43 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* MODAL PREMIUM PARA CANCELAR VIAGEM */}
+      {/* MODAL PREMIUM PARA CANCELAR VIAGEM (BOTTOM SHEET STYLE) */}
       <Modal
         visible={cancelModalVisible}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setCancelModalVisible(false)}
       >
-        <View style={styles.premiumModalOverlay}>
-          <View style={styles.premiumModalContainer}>
-            <View style={[styles.premiumIconContainer, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="warning" size={40} color="#EF4444" />
+        <View style={styles.premiumCancelOverlay}>
+          <View style={styles.premiumCancelSheet}>
+            <View style={styles.premiumCancelDragIndicator} />
+            
+            <View style={styles.premiumCancelHeader}>
+              <View style={styles.premiumCancelIconWrapper}>
+                <Ionicons name="alert-circle" size={44} color="#EF4444" />
+              </View>
+              <Text style={styles.premiumCancelTitle}>Cancelar Viagem?</Text>
             </View>
-            <Text style={styles.premiumModalTitle}>Cancelar Viagem?</Text>
-            <Text style={styles.premiumModalMessage}>
-              Tem a certeza de que deseja cancelar esta viagem? Esta ação afetará as suas estatísticas e ganhos.
+
+            <Text style={styles.premiumCancelMessage}>
+              Tem a certeza de que deseja cancelar esta viagem? {"\n"}Esta acção <Text style={{fontWeight: 'bold', color: '#EF4444'}}>afectará negativamente</Text> as suas estatísticas de desempenho e os seus ganhos.
             </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 12, marginTop: 16 }}>
+
+            <View style={styles.premiumCancelButtonContainer}>
               <TouchableOpacity
-                style={[styles.premiumConfirmButton, { flex: 1, backgroundColor: '#F3F4F6' }]}
+                style={styles.premiumCancelBtnKeep}
                 onPress={() => setCancelModalVisible(false)}
+                activeOpacity={0.8}
               >
-                <Text style={{ color: '#4B5563', fontWeight: '700', fontSize: 16 }}>Manter Viagem</Text>
+                <Text style={styles.premiumCancelBtnKeepText}>Não, Manter Viagem</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={[styles.premiumConfirmButton, { flex: 1, backgroundColor: '#EF4444', shadowColor: '#EF4444' }]}
+                style={styles.premiumCancelBtnConfirm}
                 onPress={confirmCancelTrip}
+                activeOpacity={0.8}
               >
-                <Text style={styles.premiumConfirmButtonText}>Sim, Cancelar</Text>
+                <Text style={styles.premiumCancelBtnConfirmText}>Sim, Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2324,6 +2428,31 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
+  headsUpContainer: {
+    position: 'absolute',
+    top: 60,
+    left: '5%',
+    right: '5%',
+    width: '90%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 24,
+    padding: 16,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 25,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  headsUpTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
   premiumModalText: {
     fontSize: 16,
     color: '#444',
@@ -2351,33 +2480,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "bold",
     fontSize: 16,
-  },
-  newTripModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  newTripModalContainer: {
-    width: "100%",
-    backgroundColor: "#F9FAFB",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 20,
-  },
-  newTripModalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1E293B",
-    marginBottom: 20,
-    textAlign: "center",
   },
   premiumIconContainer: {
     width: 80,
@@ -2430,5 +2532,99 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15,
+  },
+  premiumCancelOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  premiumCancelSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 24,
+  },
+  premiumCancelDragIndicator: {
+    width: 48,
+    height: 5,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  premiumCancelHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  premiumCancelIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 6,
+    borderColor: '#FEE2E2',
+  },
+  premiumCancelTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  premiumCancelMessage: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 10,
+  },
+  premiumCancelButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  premiumCancelBtnKeep: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumCancelBtnKeepText: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  premiumCancelBtnConfirm: {
+    flex: 1,
+    backgroundColor: '#EF4444',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  premiumCancelBtnConfirmText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
   }
 });
+
+
+

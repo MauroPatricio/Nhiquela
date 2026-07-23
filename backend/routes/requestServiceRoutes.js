@@ -4,11 +4,12 @@ import User from '../models/UserModel.js';
 import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, calculateDynamicCommission } from '../services/walletService.js';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import PricingService from '../services/PricingService.js';
 import createNotification from '../utils/createNotification.js';
+import DispatchService from '../services/dispatchService.js';
 
 const requestServiceer = express.Router();
 
@@ -111,7 +112,7 @@ requestServiceer.post(
       name: req.body.name,
       phoneNumber: req.body.phoneNumber,
       goodType: req.body.goodType,
-      transportType: req.body.transportType,
+      transportType: req.body.transportType, // Guarda o valor tal como vem (ObjectId string ou nome)
       deliverCity: req.body.deliverCity,
       reason: req.body.reason,
       origin: req.body.origin,
@@ -122,29 +123,35 @@ requestServiceer.post(
       paymentOption: req.body.paymentOption,
       description: req.body.description,
       paymentMethod: req.body.paymentMethod,
-      deliveryPrice: req.body.deliveryPrice, // Will be overridden below by server-side calculation
+      deliveryPrice: req.body.deliveryPrice,
       serviceId: req.body.serviceId || null,
       user: req.user._id,
       code: generateCode(),
       status: req.body.isScheduled ? 'SCHEDULED' : 'Pendente',
       isPaid: req.body.isPaid,
       paidAt: req.body.paidAt,
-      stepStatus: req.body.stepStatus,
+      stepStatus: req.body.stepStatus !== undefined ? req.body.stepStatus : (req.body.isScheduled ? 1 : 3),
       targetDriverId: req.body.targetDriverId,
       latitude: req.body.latitude,
       longitude: req.body.longitude,
-      isSearching: !req.body.targetDriverId && !req.body.isScheduled, // Não iniciar busca se for agendado
+      isSearching: !req.body.targetDriverId && !req.body.isScheduled,
       searchRadius: 3000,
       contactedDrivers: [],
       lastDispatchTime: new Date(),
-      // Agendamento
       isScheduled: req.body.isScheduled || false,
       scheduledAt: req.body.isScheduled && req.body.scheduledAt ? new Date(req.body.scheduledAt) : null,
     });
 
+    // Normalizar transportTypeId: se transportType for um ObjectId válido, guardar como ref
+    const rawTransport = req.body.transportType;
+    if (rawTransport && mongoose.Types.ObjectId.isValid(rawTransport) && rawTransport.length === 24) {
+      newOrder.transportTypeId = new mongoose.Types.ObjectId(rawTransport);
+    }
+
+
     // ============================================================
     // CÁLCULO AUTOMÁTICO DO PREÇO (server-side, imutável)
-    // Executado ANTES do save() â€” o backend nunca confia no preço do cliente
+    // Executado ANTES do save() — o backend nunca confia no preço do cliente
     // ============================================================
     const originDetails = req.body.originDetails;
     const destinationDetails = req.body.destinationDetails;
@@ -174,13 +181,19 @@ requestServiceer.post(
         // Substituir o deliveryPrice enviado pelo cliente pelo valor calculado pelo servidor
         newOrder.deliveryPrice = priceResult.price;
 
-        console.log(`[PricingService] âœ… Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
+        console.log(`[PricingService] ✅ Preço calculado: ${priceResult.price} MT (distância: ${priceResult.breakdown.distanceKm?.toFixed(2)} km)`);
       } catch (pricingErr) {
-        // Não bloquear a criação do pedido â€” usar o preço do cliente como fallback
-        console.warn(`[PricingService] âš ï¸ Falha no cálculo automático. A usar deliveryPrice do cliente (${req.body.deliveryPrice} MT). Erro: ${pricingErr.message}`);
+        console.error(`[PricingService] ❌ Falha no cálculo automático:`, pricingErr);
+        return res.status(503).send({ 
+          message: 'Falha temporária ao calcular o preço exato da viagem (Erro de GPS/OSRM). Por favor, tente novamente.'
+        });
       }
     } else {
-      console.log(`[PricingService] â„¹ï¸ Campos inósuficientes para cálculo (serviceId=${serviceId}, origin lat=${originDetails?.lat}, dest lat=${destinationDetails?.lat}). A usar deliveryPrice do cliente.`);
+      // Se não vierem coordenadas (pedidos legados ou web), valida se pelo menos o deliveryPrice não é suspeito.
+      if (!req.body.deliveryPrice || req.body.deliveryPrice < 0) {
+        return res.status(400).send({ message: 'Preço de viagem inválido ou em falta.' });
+      }
+      console.log(`[PricingService] ℹ️  Campos insuficientes para cálculo OSRM. A usar fallback do cliente.`);
     }
 
     let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
@@ -208,18 +221,33 @@ requestServiceer.post(
 
     const io = req.app.get('io');
     if (io) {
+      console.log(`[Dispatch Flow] targetDriverId: ${newOrder.targetDriverId}, isScheduled: ${newOrder.isScheduled}`);
       if (newOrder.targetDriverId) {
+        const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
+        
+        const driverRoom = `driver_${newOrder.targetDriverId}`;
+        const sockets = await io.in(driverRoom).fetchSockets();
+        const isSocketConnected = sockets && sockets.length > 0;
+        
+        console.log(`\n====================================================`);
+        console.log(`[Dispatch Flow] 🚀 Pedido #${newOrder.code} enviado pelo cliente!`);
+        console.log(`[Dispatch Flow] 🎯 Motorista Alvo: ${targetDriver ? targetDriver.name : newOrder.targetDriverId}`);
+        console.log(`[Dispatch Flow] 📡 WebSocket Status: ${isSocketConnected ? 'ONLINE ✅ (O motorista RECEBEU o popup na app aberta)' : 'OFFLINE ❌ (A app do motorista está fechada, vai tentar via Push)'}`);
+        console.log(`====================================================\n`);
+
         const orderPayload = { ...requestService.toObject(), type: 'requestService' };
-        io.to(`driver_${newOrder.targetDriverId}`).emit('new_order', orderPayload);
+        io.to(driverRoom).emit('new_order', orderPayload);
 
         // Push notification para o motorista alvo
-        const targetDriver = await User.findById(newOrder.targetDriverId);
-        if (targetDriver && targetDriver.pushToken) {
-          await createNotification({
+        if (targetDriver) {
+          console.log(`[Dispatch Flow] 📲 Tentativa Push Notification (FCM) - token: ${targetDriver.deviceToken ? '✓ VÁLIDO' : '✗ SEM TOKEN (Não vai receber push)'}`);
+          createNotification({
             message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
             receiver_id: targetDriver._id,
-            pushToken: targetDriver.pushToken
+            pushToken: targetDriver.deviceToken || null
           });
+        } else {
+          console.warn(`[Dispatch Flow] ⚠️ Motorista ${newOrder.targetDriverId} não encontrado na BD.`);
         }
 
         // 45s timeout logic
@@ -231,6 +259,10 @@ requestServiceer.post(
               checkOrder.targetDriverId = null;
               checkOrder.canceledReason = 'Tempo esgotado (45s)';
               await checkOrder.save();
+
+              console.log(`\n====================================================`);
+              console.log(`[Dispatch Flow] ⚠️ TEMPO ESGOTADO (45s): O motorista ignorou ou rejeitou o pedido ${checkOrder.code || checkOrder._id}.`);
+              console.log(`====================================================\n`);
 
               // Notify driver to remove order from their screen
               io.to(`driver_${newOrder.targetDriverId}`).emit('order_updated', checkOrder);
@@ -265,8 +297,8 @@ requestServiceer.post(
         const availableDrivers = await User.find({
           role: 'deliveryman',
           'deliveryman.status': { $in: ['Disponível', 'Em Entrega'] },
-          pushToken: { $exists: true, $ne: null }
-        }).select('_id pushToken deliveryman');
+          deviceToken: { $exists: true, $ne: null }
+        }).select('_id deviceToken deliveryman');
 
         const scheduledDateStr = requestService.scheduledAt
           ? new Date(requestService.scheduledAt).toLocaleString('pt-PT', { timeZone: 'Africa/Maputo', dateStyle: 'short', timeStyle: 'short' })
@@ -274,11 +306,11 @@ requestServiceer.post(
 
         for (const driver of availableDrivers) {
           io.to(`driver_${driver._id}`).emit('new_scheduled_order', orderPayload);
-          if (driver.pushToken) {
-            await createNotification({
+          if (driver.deviceToken) {
+            createNotification({
               message: `â° Serviço agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedência.`,
               receiver_id: driver._id,
-              pushToken: driver.pushToken
+              pushToken: driver.deviceToken
             });
           }
         }
@@ -286,10 +318,11 @@ requestServiceer.post(
         console.log(`[Scheduling] Pedido agendado ${requestService.code} para ${scheduledDateStr}. Notificados ${availableDrivers.length} motoristas.`);
       } else {
         // Intelligent Dispatch engine will handle emitting to nearest drivers
-        import('../services/dispatchService.js').then((module) => {
-          const DispatchService = module.default;
+        try {
           DispatchService.startDispatch(requestService, io);
-        }).catch(err => console.error('Falha ao carregar DispatchService', err));
+        } catch (err) {
+          console.error('Falha ao executar DispatchService:', err);
+        }
       }
     }
 
@@ -402,12 +435,24 @@ requestServiceer.delete(
       requestService.status = 'Cancelado';
       requestService.targetDriverId = null;
       if (requestService.deliveryman && requestService.deliveryman.id) {
+        const driverIdToNotify = requestService.deliveryman.id;
         // 🔥 CORREÇÃO: Libertar o motorista ao apagar o pedido
         await User.updateOne(
           { _id: requestService.deliveryman.id },
           { $set: { 'deliveryman.hasActiveService': false } }
         );
         requestService.deliveryman.id = null;
+
+        // Avisar o motorista que a viagem foi cancelada pelo cliente
+        const targetDriver = await User.findById(driverIdToNotify);
+        if (targetDriver && targetDriver.deviceToken) {
+          createNotification({
+            message: `Atenção: O cliente cancelou a viagem. O seu veículo está livre para novos pedidos.`,
+            receiver_id: targetDriver._id,
+            pushToken: targetDriver.deviceToken,
+            title: 'Viagem Cancelada'
+          });
+        }
       }
 
       await requestService.save();
@@ -451,7 +496,7 @@ requestServiceer.put(
       }
 
       // Calcular comissão baseada nas configurações financeiras e subcategoria
-      const { calculateDynamicCommission } = await import('../services/walletService.js');
+      
       const commissionmount = await calculateDynamicCommission(order);
 
       // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
@@ -475,15 +520,32 @@ requestServiceer.put(
         };
       }
 
-      // 🔥 ATOMIC UPDATE manually on the document
-      order.status = 'Pedido aceite';
-      order.stepStatus = 4;
-      order.isAccepted = true;
-      order.acceptedAt = new Date();
-      order.isSearching = false;
-      order.deliveryman = deliverymanData;
+      // 🔥 ATOMIC UPDATE to strictly prevent race conditions
+      const updatedOrder = await RequestService.findOneAndUpdate(
+        { _id: req.params.id, status: 'Pendente' },
+        {
+          $set: {
+            status: 'Pedido aceite',
+            stepStatus: 4,
+            isAccepted: true,
+            acceptedAt: new Date(),
+            isSearching: false,
+            deliveryman: deliverymanData
+          }
+        },
+        { new: true, session }
+      );
 
-      await order.save({ session });
+      if (!updatedOrder) {
+        // Alguém aceitou entre a leitura e o update
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
+      }
+
+      console.log(`\n====================================================`);
+      console.log(`[Dispatch Flow] ✅ SUCESSO: O motorista ${user_deliver.name} ACEITOU o pedido ${updatedOrder.code || updatedOrder._id}!`);
+      console.log(`====================================================\n`);
 
       // Marcar motorista como ocupado â€” não deve receber novos pedidos até o cliente confirmar
       await User.updateOne(
@@ -495,20 +557,42 @@ requestServiceer.put(
       await session.commitTransaction();
       session.endSession();
 
-      const updateOrder = order;
+      const updateOrder = updatedOrder;
 
       //  Para envio de mensagens
       const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
       let msg = `Olá, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
 
-      sendSMSToUSendIt(req, msg);
+      try {
+        sendSMSToUSendIt(req, msg);
+      } catch (smsErr) {
+        console.error('[SMS] Erro ao enviar SMS:', smsErr.message);
+      }
 
       let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n nhiquela`;
 
-      sendEmailOrderStatus(req, mailText, updateOrder, res);
+      try {
+        sendEmailOrderStatus(req, mailText, updateOrder, res);
+      } catch (mailErr) {
+        console.error('[Email] Erro ao enviar email:', mailErr.message);
+      }
 
       // WebSocket Optimization
-      await updateOrder.populate('user', 'name phoneNumber profileImage');
+      try {
+        await updateOrder.populate('user', 'name phoneNumber profileImage');
+        // Garantir que as coordenadas estão diretamente na raiz para o Frontend (MapScreen)
+        if (updateOrder.originDetails && updateOrder.originDetails.lat && updateOrder.originDetails.lng) {
+          updateOrder.originLat = updateOrder.originDetails.lat;
+          updateOrder.originLng = updateOrder.originDetails.lng;
+        }
+        if (updateOrder.destinationDetails && updateOrder.destinationDetails.lat && updateOrder.destinationDetails.lng) {
+          updateOrder.destLat = updateOrder.destinationDetails.lat;
+          updateOrder.destLng = updateOrder.destinationDetails.lng;
+        }
+      } catch (popErr) {
+        console.error('[Populate] Erro ao popular dados do cliente:', popErr.message);
+      }
+
       const io = req.app.get('io');
       if (io) {
         // Notificar o motorista que aceitou
@@ -516,25 +600,27 @@ requestServiceer.put(
         // Notificar o cliente que o pedido foi aceite
         io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
         
-        await createNotification({
+        createNotification({
           message: `O seu pedido foi aceite por ${user_deliver.deliveryman?.name || 'um motorista'} e está a caminho!`,
-          receiver_id: updateOrder.user,
+          receiver_id: updateOrder.user?._id || updateOrder.user, // Handle populate
           sender_id: user_deliver._id,
           orderID: updateOrder._id,
           title: 'Pedido Aceite!'
-        });
+        }).catch(err => console.error('[Notification] Falha background:', err.message));
         
         // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
         io.emit('order_taken', { orderId: updateOrder._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
-      res.send({ message: `Pedido aceite`, order: updateOrder });
+      res.status(200).send({ message: `Pedido aceite`, order: updateOrder });
 
     } catch (error) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       session.endSession();
       console.error('Erro ao aceitar pedido direto:', error);
-      res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.' });
+      res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.', error: error.message });
     }
   })
 );
@@ -574,7 +660,7 @@ requestServiceer.put(
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
         }
 
-        await createNotification({
+        createNotification({
           message: `O motorista chegou ao local e a viagem foi iniciada.`,
           receiver_id: order.user,
           sender_id: order.deliveryman?.id,
@@ -630,7 +716,7 @@ requestServiceer.put(
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
 
-        await createNotification({
+        createNotification({
           message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
           receiver_id: updateOrder.user,
           sender_id: updateOrder.deliveryman?.id,
@@ -640,6 +726,50 @@ requestServiceer.put(
       }
 
       res.send({ message: `No destino indicado`, order: updateOrder });
+    } else {
+      res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+  })
+);
+
+// Motorista rejeita (Pendente) ou cancela (Aceite) a viagem
+requestServiceer.put(
+  '/:id/cancel',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+
+    if (order) {
+      if (order.status === 'Pendente') {
+        // Rejeição do pedido Pendente: passa para o próximo motorista
+        order.status = 'Motorista indisponível'; // Para ser capturado pelo dispatch se necessário, ou apenas rejeitado
+        order.targetDriverId = null;
+        order.canceledReason = req.body.message || 'Motorista recusou a viagem';
+      } else {
+        // Cancelamento após aceitar
+        order.status = 'Cancelado';
+        order.stepStatus = 7;
+        order.canceledReason = req.body.message || 'Motorista cancelou a viagem';
+        
+        // Libertar o motorista
+        if (order.deliveryman && order.deliveryman.id) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } }
+          );
+        }
+      }
+
+      const updateOrder = await order.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
+        // Notifica motorista para retirar a viagem do ecrã
+        io.to(`driver_${req.user._id}`).emit('order_updated', updateOrder);
+      }
+
+      res.send({ message: 'Viagem rejeitada/cancelada com sucesso', order: updateOrder });
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
@@ -667,7 +797,7 @@ requestServiceer.put(
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
 
-        await createNotification({
+        createNotification({
           message: `O seu pedido foi cancelado pelo motorista pelo motivo: Não comparência.`,
           receiver_id: updateOrder.user,
           sender_id: updateOrder.deliveryman?.id,
@@ -713,7 +843,7 @@ requestServiceer.put(
 
         if (order.deliveryman && order.deliveryman.id) {
           // Calcular comissão baseada nas configurações financeiras e subcategoria
-          const { calculateDynamicCommission } = await import('../services/walletService.js');
+          
           const commissionAmount = await calculateDynamicCommission(order);
 
           try {
@@ -765,7 +895,7 @@ requestServiceer.put(
             io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
           }
 
-          await createNotification({
+          createNotification({
             message: `A sua viagem foi entregue com sucesso! Obrigado por viajar com a Nhiquela.`,
             receiver_id: order.user,
             sender_id: order.deliveryman?.id,
@@ -929,7 +1059,7 @@ requestServiceer.put(
             io.emit('order_updated', order); // broadcast to all
           }
           
-          await createNotification({
+          createNotification({
             message: `A sua viagem foi cancelada pelo motorista. Motivo: ${req.body.message}`,
             receiver_id: order.user,
             sender_id: order.deliveryman?.id,
@@ -1050,15 +1180,15 @@ requestServiceer.post(
 
         const io = req.app.get('io');
         if (io) {
-          io.to(`driver_${targetDriverId}`).emit('new_order', order);
+          io.to(`driver_${targetDriverId}`).emit('new_order', { ...order.toObject(), type: 'requestService' });
 
           // Push notification para o motorista alvo
           const targetDriverUser = await User.findById(targetDriverId);
-          if (targetDriverUser && targetDriverUser.pushToken) {
-            await createNotification({
+          if (targetDriverUser && targetDriverUser.deviceToken) {
+            createNotification({
               message: `Novo pedido de viagem! Origem: ${order.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
               receiver_id: targetDriverUser._id,
-              pushToken: targetDriverUser.pushToken
+              pushToken: targetDriverUser.deviceToken
             });
           }
           // Atualiza também o ecrã do cliente para refletir o estado 'Pendente' e apagar a mensagem de erro
@@ -1097,7 +1227,7 @@ requestServiceer.delete(
           }
           
           if (order.targetDriverId) {
-            await createNotification({
+            createNotification({
               message: `O cliente cancelou a busca pela viagem.`,
               receiver_id: order.targetDriverId,
               sender_id: order.user,
@@ -1144,7 +1274,7 @@ requestServiceer.put(
             const User = require('../models/UserModel.js').default || require('../models/UserModel.js');
             await User.updateOne({ _id: order.deliveryman.id }, { $set: { 'deliveryman.hasActiveService': false } });
             
-            await createNotification({
+            createNotification({
               message: `O cliente cancelou a viagem. O seu estado foi libertado para receber novos pedidos.`,
               receiver_id: order.deliveryman.id,
               sender_id: order.user,
@@ -1165,3 +1295,5 @@ requestServiceer.put(
 );
 
 export default requestServiceer;
+
+

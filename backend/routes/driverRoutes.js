@@ -32,7 +32,24 @@ router.get(
         .lean(),
       User.countDocuments(filter),
     ]);
-    res.send({ drivers, page, pages: Math.ceil(total / pageSize), total });
+
+    // Calcular contagem de encomendas para cada motorista
+    const driversWithStats = await Promise.all(
+      drivers.map(async (driver) => {
+        try {
+          const ordersCount = await Order.countDocuments({ 'deliveryman.id': driver._id, isDelivered: true });
+          const requestsCount = await RequestService.countDocuments({ 'deliveryman.id': driver._id, isDelivered: true });
+          driver.totalDeliveries = ordersCount + requestsCount;
+          // Set rating from deliveryman profile if available
+          driver.rating = driver.deliveryman?.averageRating || driver.rating || 0;
+        } catch (err) {
+          driver.totalDeliveries = 0;
+        }
+        return driver;
+      })
+    );
+
+    res.send({ drivers: driversWithStats, page, pages: Math.ceil(total / pageSize), total });
   })
 );
 
@@ -50,8 +67,8 @@ router.get(
 
     const nearbyDrivers = await User.find({
       isDeliveryMan: true,
-      availability: true,
-      status: 'Active',
+      availability: 'active',
+      status: { $in: ['Active', 'Disponível', 'Ativo', 'Activo'] },
       locationGeo: {
         $near: {
           $geometry: {
@@ -62,8 +79,8 @@ router.get(
         }
       }
     })
-    .select('_id name deliveryman.transport_type locationGeo heading speed')
-    .lean();
+      .select('_id name deliveryman.transport_type locationGeo heading speed')
+      .lean();
 
     // Map para enviar apenas dados essenciais e formatar
     const safeDriversData = nearbyDrivers.map(d => ({
@@ -87,7 +104,7 @@ router.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const { lat, lng } = req.body;
-    
+
     if (!lat || !lng) {
       return res.status(400).send({ message: 'Coordenadas (lat, lng) são obrigatórias' });
     }
@@ -131,13 +148,13 @@ router.get(
     if (driver.deliveryman) {
       const Order = (await import('../models/OrderModel.js')).default;
       const RequestService = (await import('../models/RequestServiceModel.js')).default;
-      
+
       const orders = await Order.find({ 'deliveryman.id': driver._id, isDelivered: true });
       const requests = await RequestService.find({ 'deliveryman.id': driver._id, isDelivered: true });
-      
+
       const allTrips = [...orders, ...requests];
       driver.deliveryman.totalTrips = allTrips.length;
-      
+
       let todayEarnings = 0;
       let totalEarnings = 0;
       const now = new Date();
@@ -154,7 +171,7 @@ router.get(
           todayEarnings += price;
         }
       });
-      
+
       driver.deliveryman.todayEarnings = todayEarnings;
       driver.deliveryman.totalEarnings = totalEarnings;
     }
@@ -169,7 +186,7 @@ router.put(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     const { availability } = req.body;
-    
+
     if (!['active', 'paused', 'inactive'].includes(availability)) {
       return res.status(400).send({ message: 'Status de disponibilidade inválido.' });
     }
@@ -219,7 +236,7 @@ router.put(
 
     // Otimização: usar updateOne em vez de driver.save() para evitar carregar e validar documentos grandes
     await User.updateOne({ _id: driver._id }, { $set: { availability: availability } });
-    
+
     res.send({ message: 'Disponibilidade atualizada com sucesso', availability: availability });
   })
 );
@@ -235,10 +252,10 @@ router.get(
       isDelivered: true
     });
 
-    // Rating fixo para já (4.8), no futuro virá da média das avaliações das ordens
+    // Rating fixo removido, usando média real
     res.send({
       totalTrips: totalTrips || 0,
-      rating: 4.8
+      rating: req.user.deliveryman?.averageRating || req.user.rating || 4.8
     });
   })
 );
@@ -264,11 +281,11 @@ router.post(
     if (exists) {
       return res.status(400).send({ message: 'Email ou telefone já registado' });
     }
-    
+
     // Process VehicleType to get baseFee
     let assigned_base_fee = 0;
     let final_transport_type = transport_type;
-    
+
     if (vehicle_type_id) {
       const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
       const vType = await VehicleType.findById(vehicle_type_id);
@@ -278,8 +295,8 @@ router.post(
       }
     }
 
-    const driverServices = Array.isArray(providedServices) 
-      ? providedServices.map(id => ({ serviceId: id, isAvailable: true })) 
+    const driverServices = Array.isArray(providedServices)
+      ? providedServices.map(id => ({ serviceId: id, isAvailable: true }))
       : [];
 
     if (!driverServices || driverServices.length === 0) {
@@ -357,81 +374,80 @@ router.get(
       }
     }
 
-    // Try to find drivers. Since geoPosition index might not be created, we'll do an initial find
-    // and filter by Haversine distance in Javascript to be safe and avoid index errors.
-    
-    // Try to find drivers
     let drivers = await User.find(filter).lean();
-    
-    // EXCLUIR MOTORISTAS OCUPADOS (com serviço ativo aguardando confirmação do cliente)
-    // Método 1: campo hasActiveService no modelo do motorista (mais rápido)
+
+    // EXCLUIR MOTORISTAS OCUPADOS (Método 1: flag hasActiveService)
     drivers = drivers.filter(d => !(d.deliveryman && d.deliveryman.hasActiveService));
 
-    // Método 2 (fallback): verificar pedidos ativos na DB para motoristas sem hasActiveService
+    // EXCLUIR MOTORISTAS OCUPADOS (Método 2: pedidos ativos na BD)
     const activeOrders = await RequestService.find({
-       status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
+      status: { $nin: ['Finalizado', 'Cancelado', 'Concluído', 'Motorista indisponível', 'Rejeitado'] }
     }).select('deliveryman targetDriverId').lean();
-    
+
     const busyDriverIds = new Set();
     activeOrders.forEach(order => {
-       if (order.deliveryman && order.deliveryman.id) {
-          busyDriverIds.add(order.deliveryman.id.toString());
-       }
-       if (order.targetDriverId) {
-          busyDriverIds.add(order.targetDriverId.toString());
-       }
+      if (order.deliveryman && order.deliveryman.id) busyDriverIds.add(order.deliveryman.id.toString());
+      if (order.targetDriverId) busyDriverIds.add(order.targetDriverId.toString());
     });
-
     drivers = drivers.filter(d => !busyDriverIds.has(d._id.toString()));
-  
+
     // EXCLUIR MOTORISTAS SEM SALDO SUFICIENTE
     const { hasSufficientBalance } = await import('../services/walletService.js');
     const driversWithBalance = [];
     for (const d of drivers) {
-      if (await hasSufficientBalance(d._id, d)) {
-        driversWithBalance.push(d);
-      }
+      if (await hasSufficientBalance(d._id, d)) driversWithBalance.push(d);
     }
     drivers = driversWithBalance;
-    if (!lat || !lng) {
+
+    // Se não foram fornecidas coordenadas, retornar todos os motoristas disponíveis
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
       return res.send({ drivers });
     }
 
+    // Calcular distância de Haversine e filtrar APENAS motoristas dentro do raio
     const toRad = (value) => (value * Math.PI) / 180;
     const calcDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371; // km
+      const R = 6371;
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
       const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
     const nearbyDrivers = [];
     drivers.forEach(driver => {
       let dLat, dLng;
-      if (driver.locationGeo && driver.locationGeo.coordinates && driver.locationGeo.coordinates[0] !== 0) {
+      if (driver.locationGeo && driver.locationGeo.coordinates &&
+        driver.locationGeo.coordinates[0] !== 0 && driver.locationGeo.coordinates[1] !== 0) {
         dLng = driver.locationGeo.coordinates[0];
         dLat = driver.locationGeo.coordinates[1];
-      } else if (driver.latitude && driver.longitude && parseFloat(driver.latitude) !== 0) {
+      } else if (driver.latitude && driver.longitude &&
+        parseFloat(driver.latitude) !== 0 && parseFloat(driver.longitude) !== 0) {
         dLat = parseFloat(driver.latitude);
         dLng = parseFloat(driver.longitude);
       }
-      
+
       if (dLat && dLng) {
         const dist = calcDistance(lat, lng, dLat, dLng);
-        driver.calculatedDistance = dist;
+        // APENAS incluir motoristas dentro do raio solicitado
         if (dist <= radius) {
           driver.distance = dist;
           nearbyDrivers.push(driver);
         } else {
-          nearbyDrivers.push({ _id: driver._id, name: driver.name, excludedByRadius: true, distance: dist, radius: radius, dLat, dLng, lat, lng });
+          console.log(`[/available] ⚠️ Motorista ${driver.name} (${driver._id}) excluído: ${dist.toFixed(2)}km > raio ${radius}km`);
         }
+      } else {
+        console.log(`[/available] ⚠️ Motorista ${driver.name} (${driver._id}) sem GPS válido — locationGeo: ${JSON.stringify(driver.locationGeo?.coordinates)}`);
       }
     });
+
+    // Ordenar pelo mais próximo primeiro
+    nearbyDrivers.sort((a, b) => a.distance - b.distance);
+
+    console.log(`[/available] lat=${lat} lng=${lng} radius=${radius}km → ${nearbyDrivers.length}/${drivers.length} motoristas dentro do raio`);
 
     res.send({ drivers: nearbyDrivers });
   })
@@ -487,19 +503,19 @@ router.put(
         // Se houver transport_type pendente de alteracao, atualiza o perfil do motorista
         if (fields.transport_type) {
           driver.deliveryman.transport_type = fields.transport_type;
-          
+
           if (fields.assigned_base_fee !== undefined) {
-             driver.deliveryman.assigned_base_fee = fields.assigned_base_fee;
-             driver.providedServices = [{
-               serviceId: fields.transport_type,
-               customBasePrice: fields.assigned_base_fee
-             }];
+            driver.deliveryman.assigned_base_fee = fields.assigned_base_fee;
+            driver.providedServices = [{
+              serviceId: fields.transport_type,
+              customBasePrice: fields.assigned_base_fee
+            }];
           } else {
-             // Caso não haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
-             driver.providedServices = [{
-               serviceId: fields.transport_type,
-               customBasePrice: driver.deliveryman.assigned_base_fee
-             }];
+            // Caso não haja base fee atualizada, pelo menos altera o servico mantendo a fee anterior ou null
+            driver.providedServices = [{
+              serviceId: fields.transport_type,
+              customBasePrice: driver.deliveryman.assigned_base_fee
+            }];
           }
         } else {
           driver.deliveryman.docUpdateStatus = 'Aprovado';
@@ -726,7 +742,7 @@ router.put(
     // Process VehicleType
     if (vehicle_type_id || transport_type || transport_color || plate || licenseNumber || idNumber || document_type || providedServices) {
       driver.deliveryman = driver.deliveryman || {};
-      
+
       if (name) driver.deliveryman.name = name;
       if (phoneNumber) driver.deliveryman.phoneNumber = phoneNumber;
       if (transport_type) driver.deliveryman.transport_type = transport_type;
@@ -735,11 +751,11 @@ router.put(
       if (licenseNumber) driver.deliveryman.license_front = licenseNumber;
       if (document_type) driver.deliveryman.document_type = document_type;
       if (idNumber) driver.deliveryman.document_front = idNumber;
-      
+
       if (Array.isArray(providedServices)) {
         driver.deliveryman.providedServices = providedServices.map(id => ({ serviceId: id, isAvailable: true }));
       }
-      
+
       if (vehicle_type_id && (!driver.deliveryman.vehicle_type_id || driver.deliveryman.vehicle_type_id.toString() !== vehicle_type_id.toString())) {
         const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
         const vType = await VehicleType.findById(vehicle_type_id);
@@ -765,8 +781,8 @@ router.put(
         message: driver.status === 'Disponível'
           ? 'âœ… A sua conta foi aprovada! Já pode receber pedidos.'
           : driver.status === 'Inativo'
-          ? 'âŒ A sua conta foi suspensa. Contacte o suporte.'
-          : 'â³ A sua conta está em análise.',
+            ? 'âŒ A sua conta foi suspensa. Contacte o suporte.'
+            : 'â³ A sua conta está em análise.',
       };
 
       if (io && status) {
@@ -857,13 +873,13 @@ router.post(
   expressAsyncHandler(async (req, res) => {
     const { justification } = req.body;
     if (!justification) return res.status(400).send({ message: 'Justificação obrigatória.' });
-    
+
     const driver = await User.findById(req.user._id);
     if (!driver || !driver.isBanned) return res.status(400).send({ message: 'Apenas motoristas bloqueados podem recorrer.' });
-    
+
     driver.banAppealJustification = justification;
     await driver.save();
-    
+
     res.send({ message: 'Justificação submetida com sucesso.', driver });
   })
 );

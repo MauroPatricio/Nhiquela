@@ -8,6 +8,7 @@ import { Formik } from 'formik';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Yup from 'yup';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import api from '../hooks/createConnectionApi';
 import { useToast } from 'react-native-toast-notifications';
 
@@ -75,12 +76,20 @@ const SignUp = ({ navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
-        base64: true,
+        quality: 0.3, // reduz qualidade original
+        base64: false, // Manipulator vai gerar o base64
       });
       if (!result.canceled && result.assets?.length > 0) {
         const asset = result.assets[0];
-        const base64 = `data:image/jpeg;base64,${asset.base64}`;
+        
+        // Comprimir com Manipulator
+        const manipResult = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 500 } }], // Redimensiona para 500px max
+          { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        );
+
+        const base64 = `data:image/jpeg;base64,${manipResult.base64}`;
         setProfileImage(base64);
       }
     } catch (e) {

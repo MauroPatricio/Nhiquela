@@ -22,12 +22,14 @@ class DispatchService {
 
       const MAX_DISTANCE_METERS = 10000; // 10km radius
 
-      // Busca geospacial dos motoristas disponíveis e livres
-      const availableDrivers = await User.find({
+      // Montar a query base de pesquisa de motoristas
+      const query = {
         isDeliveryMan: true,
-        availability: true, // Motorista online
-        status: 'Active',
-        'deliveryman.hasActiveService': false, // Não está em viagem
+        status: { $nin: ['Inativo', 'Pendente'] }, // Garantir que não está bloqueado ou pendente de aprovação
+        availability: 'active', // Motorista marcou-se como online na app
+        'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
+        'locationGeo.coordinates.0': { $ne: 0 }, // Tem GPS válido
+        'locationGeo.coordinates.1': { $ne: 0 },
         locationGeo: {
           $near: {
             $geometry: {
@@ -37,7 +39,16 @@ class DispatchService {
             $maxDistance: MAX_DISTANCE_METERS
           }
         }
-      }).select('_id name pushToken locationGeo').limit(5); // Tenta os 5 mais próximos
+      };
+
+      // Se a viagem exige um tipo de veículo específico (Carro, Mota, Reboque)
+      if (order.transportTypeId) {
+        query['deliveryman.transportType'] = order.transportTypeId;
+      }
+
+      // Busca geospacial dos motoristas disponíveis
+      const availableDrivers = await User.find(query).select('_id name deviceToken locationGeo').limit(5);
+
 
       if (availableDrivers.length === 0) {
         console.log(`[DispatchService] Nenhum motorista disponível num raio de 10km para o pedido ${order.code}`);
@@ -59,13 +70,23 @@ class DispatchService {
       const driver = drivers[i];
       
       // Verificar se o pedido ainda está "Pendente" antes de contactar o próximo
-      const currentOrderState = await RequestService.findById(order._id);
+      const currentOrderState = await RequestService.findById(order._id).populate('user', 'name profileImage photo phoneNumber');
       if (!currentOrderState || currentOrderState.status !== 'Pendente') {
         console.log(`[DispatchService] Pedido ${order.code} já foi aceite ou cancelado. Terminando dispatch.`);
         return;
       }
 
-      console.log(`[DispatchService] ⏳ Pingando motorista ${i+1}/${drivers.length} (${driver.name}). Aguardando 30s...`);
+      console.log(`[Dispatch Flow] 🎯 Motorista Alvo: ${driver.name}`);
+      console.log(`[Dispatch Flow] 🔑 Token extraído do UserModel: ${driver.deviceToken ? driver.deviceToken.substring(0, 15) + '...' : 'NENHUM TOKEN/UNDEFINED'}`);
+      
+      const driverSocketId = io.sockets.adapter.rooms.get(`driver_${driver._id}`);
+      if (driverSocketId && driverSocketId.size > 0) {
+        console.log(`[Dispatch Flow] 📡 WebSocket Status: ONLINE ✅`);
+      } else {
+        console.log(`[Dispatch Flow] 📡 WebSocket Status: OFFLINE ❌ (A app do motorista está fechada, vai tentar via Push)`);
+      }
+
+      console.log(`====================================================`);
 
       // 1. Atualizar o pedido para apontar para este targetTemporario
       currentOrderState.targetDriverId = driver._id;
@@ -75,13 +96,14 @@ class DispatchService {
       const orderPayload = { ...currentOrderState.toObject(), type: 'requestService' };
       io.to(`driver_${driver._id}`).emit('new_order', orderPayload);
 
-      if (driver.pushToken) {
-        await createNotification({
-          message: `Novo pedido de viagem perto de si! Clique para aceitar.`,
-          receiver_id: driver._id,
-          pushToken: driver.pushToken
-        });
-      }
+      // Send Push Notification
+      const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
+      console.log(`[DispatchService] 📲 Enviando push para motorista ${driver.name} (token: ${driver.deviceToken ? '✓' : 'sem token'})`);
+      await createNotification({
+        message: `📍 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
+        receiver_id: driver._id,
+        pushToken: driver.deviceToken || null // deviceToken é o campo correto no UserModel
+      });
 
       // 3. Esperar 30 segundos usando uma Promise
       await new Promise(resolve => setTimeout(resolve, 30000));

@@ -86,23 +86,47 @@ export default function TripScreen({ navigation }: any) {
         
         const distance = trip.distance || 0;
         
-        let status = "Concluída";
-        let statusColor = "#27AE60";
-        let statusIcon = "checkmark-circle";
-        
-        const tripStatus = trip.status ? trip.status.toLowerCase() : "";
-        if (trip.isCanceled || tripStatus === "cancelado" || tripStatus === "cancelled" || tripStatus === "rejected") {
+        let status = "Desconhecido";
+        let statusColor = "#95A5A6";
+        let statusIcon = "help-circle";
+
+        // Priorizar validação via `stepStatus` (mais robusto)
+        if (trip.stepStatus === 7 || trip.isCanceled) {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.isInTransit || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "Pedido aceite") {
-          status = "Em Andamento";
-          statusColor = "#F39C12";
-          statusIcon = "time";
-        } else if (trip.isDelivered || tripStatus === "concluído" || tripStatus === "concluído" || tripStatus === "delivered" || tripStatus === "concluída") {
+        } else if (trip.stepStatus === 6 || trip.isDelivered) {
           status = "Concluída";
           statusColor = "#27AE60";
           statusIcon = "checkmark-circle";
+        } else if (trip.stepStatus >= 3 && trip.stepStatus <= 5 || trip.isInTransit) {
+          status = "Em Andamento";
+          statusColor = "#F39C12";
+          statusIcon = "time";
+        } else if (trip.stepStatus === 1 || trip.stepStatus === 2) {
+          status = "Pendente";
+          statusColor = "#F39C12";
+          statusIcon = "time";
+        } else {
+          // Fallback para string match caso stepStatus falhe (ex: legados)
+          const tripStatus = trip.status ? trip.status.toLowerCase() : "";
+          if (tripStatus === "cancelado" || tripStatus === "cancelled" || tripStatus === "rejected") {
+            status = "Cancelada";
+            statusColor = "#FF4E4E";
+            statusIcon = "close-circle";
+          } else if (tripStatus === "pendente" || tripStatus === "em andamento" || tripStatus === "pending" || tripStatus === "accepted" || tripStatus === "pedido aceite") {
+            status = "Em Andamento";
+            statusColor = "#F39C12";
+            statusIcon = "time";
+          } else if (tripStatus === "concluído" || tripStatus === "concluido" || tripStatus === "delivered" || tripStatus === "concluída") {
+            status = "Concluída";
+            statusColor = "#27AE60";
+            statusIcon = "checkmark-circle";
+          } else {
+            status = "Concluída";
+            statusColor = "#27AE60";
+            statusIcon = "checkmark-circle";
+          }
         }
 
         let tripDate = "Data não disponível";
@@ -149,14 +173,29 @@ export default function TripScreen({ navigation }: any) {
         if (trip.originDetails?.lat && trip.originDetails?.lng) {
           originLat = trip.originDetails.lat;
           originLng = trip.originDetails.lng;
+        } else if (trip.originLocation?.latitude && trip.originLocation?.longitude) {
+          originLat = trip.originLocation.latitude;
+          originLng = trip.originLocation.longitude;
         } else if (trip.latitude && trip.longitude) {
           originLat = trip.latitude;
           originLng = trip.longitude;
+        } else if (trip.sellers?.[0]?.latitude && trip.sellers?.[0]?.longitude) {
+          originLat = trip.sellers[0].latitude;
+          originLng = trip.sellers[0].longitude;
+        } else if (trip.seller?.latitude && trip.seller?.longitude) {
+          originLat = trip.seller.latitude;
+          originLng = trip.seller.longitude;
         }
 
         if (trip.destinationDetails?.lat && trip.destinationDetails?.lng) {
           destLat = trip.destinationDetails.lat;
           destLng = trip.destinationDetails.lng;
+        } else if (trip.destinationLocation?.latitude && trip.destinationLocation?.longitude) {
+          destLat = trip.destinationLocation.latitude;
+          destLng = trip.destinationLocation.longitude;
+        } else if (trip.deliveryAddress?.latitude && trip.deliveryAddress?.longitude) {
+          destLat = trip.deliveryAddress.latitude;
+          destLng = trip.deliveryAddress.longitude;
         } else if (trip.deliveryAddress?.lat && trip.deliveryAddress?.lng) {
           destLat = trip.deliveryAddress.lat;
           destLng = trip.deliveryAddress.lng;
@@ -328,13 +367,15 @@ export default function TripScreen({ navigation }: any) {
             <Text style={styles.detailButtonText}>Detalhes</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => confirmDeleteTrip(item)}
-          >
-            <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
-            <Text style={styles.deleteButtonText}>Apagar</Text>
-          </TouchableOpacity>
+          {item.status !== "Em Andamento" && (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => confirmDeleteTrip(item)}
+            >
+              <Ionicons name="trash-outline" size={16} color="#FF4E4E" />
+              <Text style={styles.deleteButtonText}>Apagar</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -457,20 +498,7 @@ export default function TripScreen({ navigation }: any) {
                         <Text style={styles.modalLocationText}>{selectedTrip.destination}</Text>
                       </View>
                       
-                      <TouchableOpacity 
-                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}
-                        onPress={() => {
-                          if (selectedTrip.originLat && selectedTrip.destLat) {
-                            const url = `https://www.google.com/maps/dir/?api=1&origin=${selectedTrip.originLat},${selectedTrip.originLng}&destination=${selectedTrip.destLat},${selectedTrip.destLng}`;
-                            Linking.openURL(url);
-                          } else {
-                            Alert.alert("Mapa Indisponível", "As coordenadas exatas desta viagem não estão disponíveis no histórico.");
-                          }
-                        }}
-                      >
-                        <Ionicons name="map-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                        <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Ver Pontos no Mapa</Text>
-                      </TouchableOpacity>
+
                     </View>
                   </View>
 

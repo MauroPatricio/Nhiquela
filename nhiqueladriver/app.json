@@ -32,13 +32,20 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "NOTIFICATIONS",
+        "CAMERA",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
-        "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
       ]
     },
     "ios": {
@@ -58,7 +65,12 @@
           "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas."
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./src/assets/sounds/calldriver.mp3"]
+        }
+      ],
       [
         "expo-build-properties",
         {
@@ -72,13 +84,13 @@
     ],
     "extra": {
       "firebase": {
-       "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
-        "authDomain": "nhiqueladriver.firebaseapp.com",
-        "projectId": "nhiqueladriver",
-        "storageBucket": "nhiqueladriver.firebasestorage.app",
-        "messagingSenderId": "70873895337",
-        "appId": "1:70873895337:web:ee31dd9615c900dd4db4b8",
-        "measurementId": "G-QZ9T2YJF4C"
+        "apiKey": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus",
+        "authDomain": "nhiquela-4bfb5.firebaseapp.com",
+        "projectId": "nhiquela-4bfb5",
+        "storageBucket": "nhiquela-4bfb5.appspot.com",
+        "messagingSenderId": "127489638441",
+        "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
+        "measurementId": "G-FN5JGWV1S4"
       },
       "eas": {
         "projectId": "5c146d00-4349-41b9-8b42-a41e24f11743"

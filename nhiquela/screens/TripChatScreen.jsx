@@ -9,13 +9,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
+  ActivityIndicator,
+  LayoutAnimation,
+  UIManager
 } from 'react-native';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import io from 'socket.io-client';
 import api from '../hooks/createConnectionApi';
+import * as ImagePicker from 'expo-image-picker';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL
   ? process.env.EXPO_PUBLIC_API_URL.replace('/api', '')
@@ -43,7 +52,10 @@ export default function TripChatScreen() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isChatActive, setIsChatActive] = useState(isActive !== false);
   const [userData, setUserData] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
   const socketRef = useRef(null);
   const flatListRef = useRef(null);
 
@@ -83,12 +95,42 @@ export default function TripChatScreen() {
       socket.emit('join_trip_chat', { tripId });
 
       socket.on('receive_trip_message', (message) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setMessages((prev) => [...prev, message]);
-        // Scroll para baixo
+        // Se a mensagem não é minha, marcar como lida e emitir read
+        if (userDataStr) {
+           const parsedUser = JSON.parse(userDataStr);
+           const myId = parsedUser?._id || parsedUser?.id;
+           if (message.senderId !== myId) {
+              socket.emit('mark_read_trip_chat', { tripId, userId: myId });
+           }
+        }
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       });
 
+      socket.on('user_typing_trip_chat', (data) => {
+         setIsTyping(true);
+      });
+
+      socket.on('user_stop_typing_trip_chat', (data) => {
+         setIsTyping(false);
+      });
+
+      socket.on('messages_read_trip_chat', (data) => {
+         setMessages((prev) => prev.map(m => {
+            if (m.senderId === data.readBy || m.senderId?._id === data.readBy) return m; // As deles continuam iguais
+            return { ...m, status: 'read' }; // As minhas ficam lidas
+         }));
+      });
+
       socketRef.current = socket;
+      
+      // Quando abrir o chat, marcar tudo como lido
+      const parsedUser = userDataStr ? JSON.parse(userDataStr) : null;
+      const myId = parsedUser?._id || parsedUser?.id;
+      if (myId) {
+         socket.emit('mark_read_trip_chat', { tripId, userId: myId });
+      }
     };
 
     setupSocket();
@@ -101,8 +143,9 @@ export default function TripChatScreen() {
   const fetchChat = async () => {
     try {
       const { data } = await api.get(`/trip-chat/${tripId}`);
-      if (data && data.messages) {
-        setMessages(data.messages);
+      if (data) {
+        if (data.messages) setMessages(data.messages);
+        if (data.isActive !== undefined) setIsChatActive(data.isActive);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 200);
       }
     } catch (error) {
@@ -117,10 +160,68 @@ export default function TripChatScreen() {
     if (!sanitized) return;
 
     try {
+      if (socketRef.current) {
+        socketRef.current.emit('stop_typing_trip_chat', { tripId, senderId: userData?._id || userData?.id });
+      }
       await api.post(`/trip-chat/${tripId}/message`, { message: sanitized });
       setNewMessage('');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível enviar a mensagem.');
+    }
+  };
+
+  const handleTyping = (text) => {
+    setNewMessage(text);
+    if (!socketRef.current) return;
+    
+    const myId = userData?._id || userData?.id;
+    socketRef.current.emit('typing_trip_chat', { tripId, senderId: myId });
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+       socketRef.current.emit('stop_typing_trip_chat', { tripId, senderId: myId });
+    }, 2000);
+  };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      uploadAndSendMessage(result.assets[0]);
+    }
+  };
+
+  const uploadAndSendMessage = async (asset) => {
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('file', {
+        uri: asset.uri,
+        name: `chat_img_${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      });
+      formData.append('type', 'client');
+
+      const uploadRes = await api.post('/upload/local', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const fileUrl = uploadRes.data.secure_url;
+      
+      await api.post(`/trip-chat/${tripId}/message`, { 
+        message: '', 
+        fileUrl, 
+        fileType: 'image' 
+      });
+      
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível enviar a imagem.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -142,10 +243,23 @@ export default function TripChatScreen() {
               {isAdmin ? 'Suporte Nhiquela' : 'Motorista'}
             </Text>
           )}
-          <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.message}</Text>
-          <Text style={[styles.timeText, isMe && styles.myTimeText]}>
-            {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
+          {item.fileUrl && item.fileType === 'image' && (
+            <Image source={{ uri: item.fileUrl }} style={{ width: 180, height: 180, borderRadius: 8, marginBottom: 5 }} resizeMode="cover" />
+          )}
+          {!!item.message && <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.message}</Text>}
+          <View style={styles.timeRow}>
+            <Text style={[styles.timeText, isMe && styles.myTimeText]}>
+              {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            {isMe && (
+              <Ionicons 
+                name={item.status === 'read' ? 'checkmark-done' : 'checkmark'} 
+                size={14} 
+                color={item.status === 'read' ? '#60A5FA' : '#E5E7EB'} 
+                style={{ marginLeft: 4 }}
+              />
+            )}
+          </View>
         </View>
       </View>
     );
@@ -153,6 +267,11 @@ export default function TripChatScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
+      >
       {/* Aviso de segurança */}
       <View style={styles.securityBanner}>
         <Ionicons name="shield-checkmark" size={14} color="#6B7280" />
@@ -160,8 +279,6 @@ export default function TripChatScreen() {
           Chat seguro — contactos protegidos. Histórico disponível após a viagem.
         </Text>
       </View>
-
-      {/* Lista de mensagens */}
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -169,6 +286,14 @@ export default function TripChatScreen() {
         renderItem={renderMessage}
         contentContainerStyle={styles.messageList}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={() => (
+           isTyping ? (
+             <View style={styles.typingIndicator}>
+                <ActivityIndicator size="small" color="#7F00FF" />
+                <Text style={styles.typingText}>Motorista a escrever...</Text>
+             </View>
+           ) : null
+        )}
         ListEmptyComponent={
           loading ? (
             <Text style={styles.emptyText}>A carregar...</Text>
@@ -179,25 +304,23 @@ export default function TripChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
-      {/* Input — só activo se a viagem estiver activa */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
-      >
-        {isActive !== false ? (
+      {loading && <ActivityIndicator size="small" color="#7F00FF" style={{ padding: 10 }} />}
+        
+        {isChatActive ? (
           <View style={styles.inputContainer}>
+            <TouchableOpacity style={styles.attachBtn} onPress={handlePickImage} disabled={loading}>
+              <Ionicons name="camera-outline" size={24} color="#6B7280" />
+            </TouchableOpacity>
             <TextInput
               style={styles.input}
-              placeholder="Escrever mensagem..."
+              placeholder="Escreva uma mensagem..."
+              placeholderTextColor="#9CA3AF"
               value={newMessage}
-              onChangeText={setNewMessage}
+              onChangeText={handleTyping}
               multiline
               maxLength={500}
-              returnKeyType="send"
-              onSubmitEditing={handleSend}
-              blurOnSubmit={false}
             />
-            <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={!newMessage.trim()}>
+            <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={!newMessage.trim() && !loading}>
               <Ionicons name="send" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -240,8 +363,11 @@ const styles = StyleSheet.create({
   adminLabel: { color: '#6D28D9' },
   messageText: { fontSize: 15, color: '#1F2937', lineHeight: 21 },
   myMessageText: { color: '#fff' },
-  timeText: { fontSize: 10, color: '#9CA3AF', marginTop: 4, textAlign: 'right' },
-  myTimeText: { color: '#C4B5FD' },
+  timeRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 4 },
+  timeText: { fontSize: 10, color: '#9CA3AF' },
+  myTimeText: { color: '#E5E7EB' },
+  typingIndicator: { flexDirection: 'row', alignItems: 'center', padding: 10, gap: 8, marginBottom: 10 },
+  typingText: { fontSize: 12, color: '#6B7280', fontStyle: 'italic' },
   emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 60, fontSize: 15 },
   inputContainer: {
     flexDirection: 'row',
@@ -268,6 +394,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attachBtn: {
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },

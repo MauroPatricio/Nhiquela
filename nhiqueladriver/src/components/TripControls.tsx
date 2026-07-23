@@ -31,7 +31,7 @@ export default function TripControls({
           colors={canFinishTrip || isWaitingClient ? ["#27AE60", "#2ECC71"] : ["#ccc", "#aaa"]}
           style={styles.finishButton}
         >
-          <Text style={styles.text}>{isWaitingClient ? "Concluir Serviço" : "Cheguei ao Destino"}</Text>
+          <Text style={styles.text}>Cheguei ao Destino</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>
