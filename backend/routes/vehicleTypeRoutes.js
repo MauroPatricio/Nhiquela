@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import VehicleType from '../models/VehicleTypeModel.js';
 import { isAuth, isAdmin } from '../utils.js';
@@ -29,6 +29,12 @@ vehicleTypeRouter.post(
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     });
     const createdType = await newType.save();
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('catalogUpdated');
+    }
+    
     res.status(201).send({ message: 'Tipo de Veículo criado', vehicleType: createdType });
   })
 );
@@ -50,6 +56,12 @@ vehicleTypeRouter.put(
       type.isActive = req.body.isActive !== undefined ? req.body.isActive : type.isActive;
       
       const updatedType = await type.save();
+      
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('catalogUpdated');
+      }
+
       res.send({ message: 'Tipo de Veículo atualizado', vehicleType: updatedType });
     } else {
       res.status(404).send({ message: 'Tipo não encontrado' });
@@ -65,6 +77,12 @@ vehicleTypeRouter.delete(
     const type = await VehicleType.findById(req.params.id);
     if (type) {
       await type.deleteOne();
+      
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('catalogUpdated');
+      }
+
       res.send({ message: 'Tipo de veículo apagado' });
     } else {
       res.status(404).send({ message: 'Tipo não encontrado' });

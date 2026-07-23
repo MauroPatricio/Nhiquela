@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-dotenv.config({ path: '.env' });
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 import mongoose from 'mongoose';
 import seedRoutes from './routes/seedRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -104,7 +105,8 @@ const app = express();
 // Confia no proxy para que express-rate-limit funcione corretamente
 app.set('trust proxy', 1);
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.BASE_URL, 'https://nhiquelaservicos.com', 'https://www.nhiquelaservicos.com'] 

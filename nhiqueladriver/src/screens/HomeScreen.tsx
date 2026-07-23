@@ -122,7 +122,7 @@ export default function HomeScreen({ navigation }: any) {
   // Play/Stop sound depending on pending trips
   useEffect(() => {
     if (alertSound) {
-      const hasPending = allTrips.some(t => t.status === 'Pendente');
+      const hasPending = allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3));
       if (hasPending && user?.availability === 'active') {
         alertSound.playAsync();
         // Vibrate repeatedly (Wait 500ms, Vibrate 1000ms, Wait 500ms)
@@ -826,7 +826,7 @@ export default function HomeScreen({ navigation }: any) {
       if (accepted) {
         finalTripsToDisplay = [accepted];
       } else {
-        const pendingTrips = formattedOrders.filter((o: Trip) => o.status === 'Pendente');
+        const pendingTrips = formattedOrders.filter((o: Trip) => (o.stepStatus === 1 || o.stepStatus === 3));
         if (pendingTrips.length > 0) {
           finalTripsToDisplay = [pendingTrips[0]];
         }
@@ -927,7 +927,7 @@ export default function HomeScreen({ navigation }: any) {
       if (accepted) {
         finalTripsToDisplay = [accepted];
       } else {
-        const pendingTrips = formattedOrders.filter((o: Trip) => o.status === 'Pendente');
+        const pendingTrips = formattedOrders.filter((o: Trip) => (o.stepStatus === 1 || o.stepStatus === 3));
         if (pendingTrips.length > 0) {
           finalTripsToDisplay = [pendingTrips[0]];
         }
@@ -1040,7 +1040,6 @@ export default function HomeScreen({ navigation }: any) {
     const isInTransit = order.stepStatus === 5;
     const isAcceptedByDeliveryman = isInTransit || (
       orderDeliverymanId === currentUserId &&
-      order.status === 'Pedido aceite' &&
       order.stepStatus === 4  
     );
     const isReq = order.goodType !== undefined || order.type === 'requestService';
@@ -1116,22 +1115,16 @@ export default function HomeScreen({ navigation }: any) {
             timestamp: new Date().toISOString()
           };
         } else {
-          // 2. Fallback para obter a posição atual com timeout muito baixo (2 segundos)
-          const location = await Promise.race([
-            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
-          ]) as Location.LocationObject;
-          
+          // Se não houver última conhecida, usamos 0,0 para não bloquear a UI (o backend nem sequer usa isto!)
           currentLocation = {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            accuracy: location.coords.accuracy ?? undefined,
+            latitude: 0,
+            longitude: 0,
             timestamp: new Date().toISOString()
           };
         }
       } catch (error: any) {
-        setShowLocationRequiredModal(true);
-        throw new Error('Localização não disponível');
+        // Fallback silencioso para não interromper a aceitação da viagem
+        currentLocation = { latitude: 0, longitude: 0, timestamp: new Date().toISOString() };
       }
 
       // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
@@ -1710,23 +1703,17 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* 🔥 MODAL DE NOVA VIAGEM (INCOMING TRIP) */}
-      <Modal 
-        visible={allTrips.some(t => t.status === 'Pendente')} 
-        transparent 
-        animationType="slide"
-      >
-        <View style={styles.newTripModalOverlay}>
-          <View style={styles.newTripModalContainer}>
-            <Text style={styles.newTripModalTitle}>Nova Solicitação de Viagem</Text>
-            {allTrips.filter(t => t.status === 'Pendente').map(trip => (
-              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
-                {renderTripCard({ item: trip })}
-              </View>
-            ))}
-          </View>
+      {/* 🚀 HEADS-UP INTENT DE NOVA VIAGEM (INCOMING TRIP) */}
+      {allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3)) && (
+        <View style={styles.headsUpContainer}>
+          <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
+          {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
+            <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
+              {renderTripCard({ item: trip })}
+            </View>
+          ))}
         </View>
-      </Modal>
+      )}
 
       {/* âœ… MODAL PREMIUM â€” VIAGEM ACEITE */}
       <Modal visible={showTripAcceptedModal} transparent animationType="fade">
@@ -2441,6 +2428,31 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
+  headsUpContainer: {
+    position: 'absolute',
+    top: 60,
+    left: '5%',
+    right: '5%',
+    width: '90%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 24,
+    padding: 16,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 25,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  headsUpTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
   premiumModalText: {
     fontSize: 16,
     color: '#444',
@@ -2468,33 +2480,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "bold",
     fontSize: 16,
-  },
-  newTripModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  newTripModalContainer: {
-    width: "100%",
-    backgroundColor: "#F9FAFB",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 20,
-  },
-  newTripModalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1E293B",
-    marginBottom: 20,
-    textAlign: "center",
   },
   premiumIconContainer: {
     width: 80,
@@ -2640,3 +2625,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   }
 });
+
+
+

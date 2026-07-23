@@ -32,7 +32,24 @@ router.get(
         .lean(),
       User.countDocuments(filter),
     ]);
-    res.send({ drivers, page, pages: Math.ceil(total / pageSize), total });
+
+    // Calcular contagem de encomendas para cada motorista
+    const driversWithStats = await Promise.all(
+      drivers.map(async (driver) => {
+        try {
+          const ordersCount = await Order.countDocuments({ 'deliveryman.id': driver._id, isDelivered: true });
+          const requestsCount = await RequestService.countDocuments({ 'deliveryman.id': driver._id, isDelivered: true });
+          driver.totalDeliveries = ordersCount + requestsCount;
+          // Set rating from deliveryman profile if available
+          driver.rating = driver.deliveryman?.averageRating || driver.rating || 0;
+        } catch (err) {
+          driver.totalDeliveries = 0;
+        }
+        return driver;
+      })
+    );
+
+    res.send({ drivers: driversWithStats, page, pages: Math.ceil(total / pageSize), total });
   })
 );
 
@@ -235,10 +252,10 @@ router.get(
       isDelivered: true
     });
 
-    // Rating fixo para já (4.8), no futuro virá da média das avaliações das ordens
+    // Rating fixo removido, usando média real
     res.send({
       totalTrips: totalTrips || 0,
-      rating: 4.8
+      rating: req.user.deliveryman?.averageRating || req.user.rating || 4.8
     });
   })
 );

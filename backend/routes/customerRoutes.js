@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import User from '../models/UserModel.js';
 
@@ -12,12 +12,43 @@ router.get(
   isAuth,
   isAdmin,
   expressAsyncHandler(async (req, res) => {
-    const customers = await User.find({ 
-      isAdmin: { $ne: true }, 
-      isSeller: { $ne: true }, 
-      isDeliveryMan: { $ne: true },
-      isDeleted: { $ne: true }
-    });
+    const customers = await User.aggregate([
+      {
+        $match: {
+          isAdmin: { $ne: true },
+          isSeller: { $ne: true },
+          isDeliveryMan: { $ne: true },
+          isDeleted: { $ne: true }
+        }
+      },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'regularOrders'
+        }
+      },
+      {
+        $lookup: {
+          from: 'servicerequests',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'serviceOrders'
+        }
+      },
+      {
+        $addFields: {
+          totalOrders: { $add: [{ $size: '$regularOrders' }, { $size: '$serviceOrders' }] }
+        }
+      },
+      {
+        $project: {
+          regularOrders: 0,
+          serviceOrders: 0
+        }
+      }
+    ]);
     // Return array directly to avoid frontend .map issues
     res.send(customers);
   })

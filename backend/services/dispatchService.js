@@ -76,7 +76,17 @@ class DispatchService {
         return;
       }
 
-      console.log(`[DispatchService] ⏳ Pingando motorista ${i+1}/${drivers.length} (${driver.name}). Aguardando 30s...`);
+      console.log(`[Dispatch Flow] 🎯 Motorista Alvo: ${driver.name}`);
+      console.log(`[Dispatch Flow] 🔑 Token extraído do UserModel: ${driver.deviceToken ? driver.deviceToken.substring(0, 15) + '...' : 'NENHUM TOKEN/UNDEFINED'}`);
+      
+      const driverSocketId = io.sockets.adapter.rooms.get(`driver_${driver._id}`);
+      if (driverSocketId && driverSocketId.size > 0) {
+        console.log(`[Dispatch Flow] 📡 WebSocket Status: ONLINE ✅`);
+      } else {
+        console.log(`[Dispatch Flow] 📡 WebSocket Status: OFFLINE ❌ (A app do motorista está fechada, vai tentar via Push)`);
+      }
+
+      console.log(`====================================================`);
 
       // 1. Atualizar o pedido para apontar para este targetTemporario
       currentOrderState.targetDriverId = driver._id;

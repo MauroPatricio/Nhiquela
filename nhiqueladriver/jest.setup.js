@@ -108,3 +108,4 @@ jest.mock('socket.io-client', () => {
     default: jest.fn(() => mSocket)
   };
 });
+jest.mock('expo-task-manager', () => ({ defineTask: jest.fn(), isTaskRegisteredAsync: jest.fn(() => Promise.resolve(false)) }));

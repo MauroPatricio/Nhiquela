@@ -4,7 +4,7 @@ import User from '../models/UserModel.js';
 import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, calculateDynamicCommission } from '../services/walletService.js';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import PricingService from '../services/PricingService.js';
@@ -241,7 +241,7 @@ requestServiceer.post(
         // Push notification para o motorista alvo
         if (targetDriver) {
           console.log(`[Dispatch Flow] 📲 Tentativa Push Notification (FCM) - token: ${targetDriver.deviceToken ? '✓ VÁLIDO' : '✗ SEM TOKEN (Não vai receber push)'}`);
-          await createNotification({
+          createNotification({
             message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
             receiver_id: targetDriver._id,
             pushToken: targetDriver.deviceToken || null
@@ -307,7 +307,7 @@ requestServiceer.post(
         for (const driver of availableDrivers) {
           io.to(`driver_${driver._id}`).emit('new_scheduled_order', orderPayload);
           if (driver.deviceToken) {
-            await createNotification({
+            createNotification({
               message: `â° Serviço agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedência.`,
               receiver_id: driver._id,
               pushToken: driver.deviceToken
@@ -446,7 +446,7 @@ requestServiceer.delete(
         // Avisar o motorista que a viagem foi cancelada pelo cliente
         const targetDriver = await User.findById(driverIdToNotify);
         if (targetDriver && targetDriver.deviceToken) {
-          await createNotification({
+          createNotification({
             message: `Atenção: O cliente cancelou a viagem. O seu veículo está livre para novos pedidos.`,
             receiver_id: targetDriver._id,
             pushToken: targetDriver.deviceToken,
@@ -496,7 +496,7 @@ requestServiceer.put(
       }
 
       // Calcular comissão baseada nas configurações financeiras e subcategoria
-      const { calculateDynamicCommission } = await import('../services/walletService.js');
+      
       const commissionmount = await calculateDynamicCommission(order);
 
       // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
@@ -563,14 +563,36 @@ requestServiceer.put(
       const orderCode = updateOrder.code || updateOrder._id.toString().substring(0, 8);
       let msg = `Olá, a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}`;
 
-      sendSMSToUSendIt(req, msg);
+      try {
+        sendSMSToUSendIt(req, msg);
+      } catch (smsErr) {
+        console.error('[SMS] Erro ao enviar SMS:', smsErr.message);
+      }
 
       let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador aceitou o pedido n ${orderCode}. \n \n Atenciosamente, \n nhiquela`;
 
-      sendEmailOrderStatus(req, mailText, updateOrder, res);
+      try {
+        sendEmailOrderStatus(req, mailText, updateOrder, res);
+      } catch (mailErr) {
+        console.error('[Email] Erro ao enviar email:', mailErr.message);
+      }
 
       // WebSocket Optimization
-      await updateOrder.populate('user', 'name phoneNumber profileImage');
+      try {
+        await updateOrder.populate('user', 'name phoneNumber profileImage');
+        // Garantir que as coordenadas estão diretamente na raiz para o Frontend (MapScreen)
+        if (updateOrder.originDetails && updateOrder.originDetails.lat && updateOrder.originDetails.lng) {
+          updateOrder.originLat = updateOrder.originDetails.lat;
+          updateOrder.originLng = updateOrder.originDetails.lng;
+        }
+        if (updateOrder.destinationDetails && updateOrder.destinationDetails.lat && updateOrder.destinationDetails.lng) {
+          updateOrder.destLat = updateOrder.destinationDetails.lat;
+          updateOrder.destLng = updateOrder.destinationDetails.lng;
+        }
+      } catch (popErr) {
+        console.error('[Populate] Erro ao popular dados do cliente:', popErr.message);
+      }
+
       const io = req.app.get('io');
       if (io) {
         // Notificar o motorista que aceitou
@@ -578,25 +600,27 @@ requestServiceer.put(
         // Notificar o cliente que o pedido foi aceite
         io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
         
-        await createNotification({
+        createNotification({
           message: `O seu pedido foi aceite por ${user_deliver.deliveryman?.name || 'um motorista'} e está a caminho!`,
-          receiver_id: updateOrder.user,
+          receiver_id: updateOrder.user?._id || updateOrder.user, // Handle populate
           sender_id: user_deliver._id,
           orderID: updateOrder._id,
           title: 'Pedido Aceite!'
-        });
+        }).catch(err => console.error('[Notification] Falha background:', err.message));
         
         // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
         io.emit('order_taken', { orderId: updateOrder._id.toString(), acceptedBy: user_deliver._id.toString() });
       }
 
-      res.send({ message: `Pedido aceite`, order: updateOrder });
+      res.status(200).send({ message: `Pedido aceite`, order: updateOrder });
 
     } catch (error) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       session.endSession();
       console.error('Erro ao aceitar pedido direto:', error);
-      res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.' });
+      res.status(500).send({ message: 'Erro ao aceitar o pedido. Tente novamente.', error: error.message });
     }
   })
 );
@@ -636,7 +660,7 @@ requestServiceer.put(
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
         }
 
-        await createNotification({
+        createNotification({
           message: `O motorista chegou ao local e a viagem foi iniciada.`,
           receiver_id: order.user,
           sender_id: order.deliveryman?.id,
@@ -692,7 +716,7 @@ requestServiceer.put(
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
 
-        await createNotification({
+        createNotification({
           message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
           receiver_id: updateOrder.user,
           sender_id: updateOrder.deliveryman?.id,
@@ -773,7 +797,7 @@ requestServiceer.put(
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
 
-        await createNotification({
+        createNotification({
           message: `O seu pedido foi cancelado pelo motorista pelo motivo: Não comparência.`,
           receiver_id: updateOrder.user,
           sender_id: updateOrder.deliveryman?.id,
@@ -819,7 +843,7 @@ requestServiceer.put(
 
         if (order.deliveryman && order.deliveryman.id) {
           // Calcular comissão baseada nas configurações financeiras e subcategoria
-          const { calculateDynamicCommission } = await import('../services/walletService.js');
+          
           const commissionAmount = await calculateDynamicCommission(order);
 
           try {
@@ -871,7 +895,7 @@ requestServiceer.put(
             io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
           }
 
-          await createNotification({
+          createNotification({
             message: `A sua viagem foi entregue com sucesso! Obrigado por viajar com a Nhiquela.`,
             receiver_id: order.user,
             sender_id: order.deliveryman?.id,
@@ -1035,7 +1059,7 @@ requestServiceer.put(
             io.emit('order_updated', order); // broadcast to all
           }
           
-          await createNotification({
+          createNotification({
             message: `A sua viagem foi cancelada pelo motorista. Motivo: ${req.body.message}`,
             receiver_id: order.user,
             sender_id: order.deliveryman?.id,
@@ -1161,7 +1185,7 @@ requestServiceer.post(
           // Push notification para o motorista alvo
           const targetDriverUser = await User.findById(targetDriverId);
           if (targetDriverUser && targetDriverUser.deviceToken) {
-            await createNotification({
+            createNotification({
               message: `Novo pedido de viagem! Origem: ${order.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
               receiver_id: targetDriverUser._id,
               pushToken: targetDriverUser.deviceToken
@@ -1203,7 +1227,7 @@ requestServiceer.delete(
           }
           
           if (order.targetDriverId) {
-            await createNotification({
+            createNotification({
               message: `O cliente cancelou a busca pela viagem.`,
               receiver_id: order.targetDriverId,
               sender_id: order.user,
@@ -1250,7 +1274,7 @@ requestServiceer.put(
             const User = require('../models/UserModel.js').default || require('../models/UserModel.js');
             await User.updateOne({ _id: order.deliveryman.id }, { $set: { 'deliveryman.hasActiveService': false } });
             
-            await createNotification({
+            createNotification({
               message: `O cliente cancelou a viagem. O seu estado foi libertado para receber novos pedidos.`,
               receiver_id: order.deliveryman.id,
               sender_id: order.user,
@@ -1271,3 +1295,5 @@ requestServiceer.put(
 );
 
 export default requestServiceer;
+
+

@@ -31,10 +31,15 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
   };
 
   try {
+    console.log(`[FCM-SEND-START] 🚀 A tentar comunicar com os servidores da Google Firebase...`);
     const response = await admin.messaging().send(message);
+    console.log(`[FCM-SEND-SUCCESS] ✅ Notificação enviada com sucesso para a Google! Resposta:`, response);
     return { success: true, tickets: [response] };
   } catch (error) {
-    console.error('Erro ao enviar pelo Firebase:', error);
+    console.error(`[FCM-SEND-ERROR] ❌ O Firebase REJEITOU a notificação. Motivo:`, error.message);
+    if (error.code) {
+       console.error(`[FCM-SEND-ERROR] ❌ Código de Erro Firebase:`, error.code);
+    }
     return { success: false, error: error.message };
   }
 }
