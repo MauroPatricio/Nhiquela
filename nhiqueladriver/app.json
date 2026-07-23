@@ -1,0 +1,101 @@
+{
+  "expo": {
+    "name": "nhiqueladriver",
+    "slug": "nhiqueladriver",
+    "scheme": "nhiqueladriver",
+    "platforms": ["ios", "android"],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/nhiquela2-square.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/nhiquela2-square.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5c146d00-4349-41b9-8b42-a41e24f11743"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.nhiquela.driver",
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
+        }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/nhiquela2-square.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.nhiquela.driver",
+      "supportsTablet": true,
+      "usesAppleSignIn": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["location", "remote-notification"],
+        "NSUserTrackingUsageDescription": "O Nhiquela Driver usa notificações para atualizações de pedidos e entregas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Precisamos da sua localização em segundo plano para que os clientes saibam onde está."
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./src/assets/sounds/calldriver.mp3"]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "firebase": {
+        "apiKey": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus",
+        "authDomain": "nhiquela-4bfb5.firebaseapp.com",
+        "projectId": "nhiquela-4bfb5",
+        "storageBucket": "nhiquela-4bfb5.appspot.com",
+        "messagingSenderId": "127489638441",
+        "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
+        "measurementId": "G-FN5JGWV1S4"
+      },
+      "eas": {
+        "projectId": "5c146d00-4349-41b9-8b42-a41e24f11743"
+      }
+    },
+    "runtimeVersion": "1.0.0"
+  }
+}

@@ -1,224 +1,194 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native'
-import React, { useEffect, useMemo, useState } from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import {useNavigation} from '@react-navigation/native'
-import { useDispatch, useSelector } from 'react-redux'
-import { selectSeller } from '../features/sellerSlice'
-import { removeFromBasket, selectBasketItems } from '../features/basketSlice'
-import { XCircleIcon } from 'react-native-heroicons/outline'
-import CartDetails from '../components/CartDetails'
-import BottomSheetComponent from '../components/BottomSheetComponent';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectSeller } from '../features/sellerSlice';
+import { removeFromBasket, selectBasketItems } from '../features/basketSlice';
+import { Ionicons } from '@expo/vector-icons';
+import CartDetails from '../components/CartDetails';
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
 
 const Cart = () => {
-
   const navigation = useNavigation();
-  const seller = useSelector(selectSeller);
   const items = useSelector(selectBasketItems);
   const dispatch = useDispatch();
-  const [groupedItemsInTheCart,setGroupedItemsInTheCart] = useState([]);
+  const [groupedItems, setGroupedItems] = useState({});
 
+  useEffect(() => {
+    const grouped = items.reduce((results, item) => {
+      (results[item.id] = results[item.id] || []).push(item);
+      return results;
+    }, {});
+    setGroupedItems(grouped);
+  }, [items]);
 
- 
-
-
-
-
-  useEffect(()=>{
-    const groupedItems = items.reduce((results, item)=>{
-      (results[item.id] = results[item.id]|| []).push(item);
-      return results
-    },{});
-
-    setGroupedItemsInTheCart(groupedItems)
-
-  }, [items])
-
-  const removeItems=(item)=>{
-    dispatch(removeFromBasket({id: item.id}))
-    dispatch(removeSeller( item.seller._id ));
-  }
+  const removeItems = (item) => {
+    dispatch(removeFromBasket({ id: item.id }));
+  };
 
   return (
-<>
+    <>
+      <CartDetails />
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="close" size={24} color={COLORS.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.title}>Carrinho</Text>
+            <Text style={styles.subtitle}>{items.length} produto(s) no carrinho</Text>
+          </View>
+          <View style={{ width: 38 }} />
+        </View>
 
-  
-<CartDetails/>
-    <SafeAreaView style={styles.container}>
- <View style={styles.cart}>
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.title}>Carrinha</Text>
-        <Text style={styles.subtitle}>Produtos</Text>
-      </View>
-      <TouchableOpacity onPress={()=>navigation.goBack()} style={styles.closeButton}>
-          <XCircleIcon style={styles.icon} height={35} width={35}/>
-      </TouchableOpacity>
-    </View>
-   
-    <ScrollView >
-      <Text style={styles.itemsLength}>{items.length} produto(s) na carrinha</Text>
-      {Object.entries(groupedItemsInTheCart).map(([key, items])=>(
-        <>
-        
-    
-  <Text style={styles.sellerName}>Fornecedor: {items[0].name.length<50?items[0].seller: items[0].seller.substring(0, 25)+`...`}</Text>
-        <View  key={key} style={styles.itemLine} >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {Object.entries(groupedItems).map(([key, itemsGroup]) => {
+            const item = itemsGroup[0];
+            return (
+              <View key={key} style={styles.itemCard}>
+                <View style={styles.sellerHeader}>
+                  <Ionicons name="storefront-outline" size={16} color={COLORS.textSecondary} />
+                  <Text style={styles.sellerName} numberOfLines={1}>
+                    {item.seller?.name || item.seller}
+                  </Text>
+                </View>
 
-                    <Text style={{color: 'grey', marginTop: 15}}>{items.length}x</Text>
-              <Image
-              source={{uri: items[0].image, height:50, width:50}}
+                <View style={styles.itemContent}>
+                  <View style={styles.qtyBadge}>
+                    <Text style={styles.qtyText}>{itemsGroup.length}x</Text>
+                  </View>
+                  
+                  <Image source={{ uri: item.image }} style={styles.itemImage} />
 
-              />
-              <Text style={styles.itemName}>{items[0].name.length<20?items[0].name: items[0].name.substring(0, 25)+`...`}</Text>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.itemPrice}>{item.price} MT</Text>
+                  </View>
 
-              <Text style={styles.price}>{items[0].price} MT</Text>
-              <TouchableOpacity onPress={() => removeItems(items[0])} >
-                <Text style={styles.remove}>Remover</Text>
-              </TouchableOpacity>
-            </View>
-        </>
-      ))}
-    </ScrollView>
-</View>
+                  <TouchableOpacity style={styles.removeBtn} onPress={() => removeItems(item)}>
+                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
+    </>
+  );
+};
 
-</SafeAreaView>
-</>
-  )
-}
-
-export default Cart
+export default Cart;
 
 const styles = StyleSheet.create({
-    container:{
-    flex:1,
-    backgroundColor: 'white',
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-    header:{
-    borderWidth:1 ,
-    borderTopColor: 'white',
-    borderLeftColor: 'white',
-    borderRightColor:'white',
-    borderBottomColor: '#7F00FF',
-    padding:20,
-    marginBottom: 10,
-},
-  footer: {
-    position: 'absolute',
-    alignContent: 'center',
-    bottom: 0,
-    fontWeight: '500',
-    width: '100%',
-    zIndex: 500,
-    padding:10,
-    bottom: 0,
-    width: '100%',
-    backgroundColor: 'white',
-    marginTop: 10,
-    // padding: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#e7e7e7',
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
     justifyContent: 'space-between',
-    borderWidth:3 ,
-    borderTopColor: '#7F00FF',
-    borderLeftColor: 'white',
-    borderRightColor:'white',
-    borderBottomColor: 'white',
-    borderRadius: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  itemsLength:{
-        textAlign: 'center',
-        fontWeight: '400',
-        fontSize: 18,
-        marginTop: 10,
-        marginBottom: 15
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  itemLine:{
-        flexDirection: 'row',
-        justifyContent:'space-between',
-        flexDirection: 'row',
-        padding: 10,
-        backgroundColor: '#fff',
-        borderRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 5,
-        marginBottom: 10,
+  headerTitleContainer: {
+    alignItems: 'center',
   },
-  itemName:{
-        width:80,
-        marginTop:2
-  },
-
-  
-
-
-  cart:{
-    paddingBottom: 250
-  },
-
   title: {
-      fontWeight: '500',
-      textAlign: 'center',
-      fontSize: 18,
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   subtitle: {
-    fontWeight: '500',
-    textAlign: 'center',
-    color: 'grey'
+    fontSize: SIZES.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
-  closeButton:{
-    position: 'absolute',
-    top: 9,
-    right:40,
-    backgroundColor: '#7F00FF',
-    borderRadius: 50,
-    marginTop: 10
-
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 250,
+    gap: 16,
   },
-  icon: {
-    color: 'white',
-    // marginTop: 10
+  itemCard: {
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    ...SHADOWS.sm,
   },
-  image:{
-    marginLeft: 20
-  },
-  sellerDescription:{
+  sellerHeader: {
     flexDirection: 'row',
-    textAlign: 'center',
-    justifyContent: 'space-between',
-    padding: 4,
-    backgroundColor: '#F5F5F5'
+    alignItems: 'center',
+    backgroundColor: COLORS.surface2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    gap: 6,
   },
-  price:{
-    marginTop: 15
+  sellerName: {
+    fontSize: SIZES.xs,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    flex: 1,
   },
-  sellerName:{
-    // top: 12,
-    bottom: 5,
-    fontWeight: '500'
-  },
-  remove:{
-    color: '#7F00FF',
-    fontWeight: '500',
-    marginTop: 15
-
-  },
-
-  componentFooter: {
+  itemContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop:10,
-    marginLeft: 5,
-    marginRight: 5
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
   },
-  footerName:{
-    fontWeight: '500'
+  qtyBadge: {
+    backgroundColor: COLORS.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
   },
-  footerPrice:{
-    fontWeight: '500'
-  }
-})
+  qtyText: {
+    color: COLORS.primaryLight,
+    fontWeight: '700',
+    fontSize: SIZES.xs,
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface2,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: SIZES.sm,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  itemPrice: {
+    fontSize: SIZES.base,
+    fontWeight: '700',
+    color: COLORS.primaryLight,
+  },
+  removeBtn: {
+    padding: 8,
+    backgroundColor: COLORS.error + '10',
+    borderRadius: RADIUS.sm,
+  },
+});

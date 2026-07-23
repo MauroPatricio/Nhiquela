@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "70873895337",
+    "project_id": "nhiqueladriver",
+    "storage_bucket": "nhiqueladriver.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70873895337:android:526900a8e1217b3e4db4b8",
+        "android_client_info": {
+          "package_name": "com.nhiquela.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

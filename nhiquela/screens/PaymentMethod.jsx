@@ -4,66 +4,114 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../hooks/createConnectionApi';
 import Radio from '../components/Radio';
 import SubmitPaymentButton from '../components/SubmitPaymentButton';
-import {Ionicons } from '@expo/vector-icons'
-import {useNavigation} from '@react-navigation/native'
+import { Ionicons } from '@expo/vector-icons'
+import { useNavigation, useRoute } from '@react-navigation/native'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PaymentMethod = () => {
-
   const navigation = useNavigation();
+  const route = useRoute();
+  const { tipoEstabelecimentoId } = route.params || {};
 
   const [selectedPayment, setSelectedPayment] = useState("");
   const [payments, setPayments] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fechtData = async () => {
-
-    try{
+    try {
       setLoading(true);
-
-      const response = await api.get(`payments`);
-
-      if(response.status==200){
-        setLoading(false);
-        setPayments(response.data)
+      if (tipoEstabelecimentoId) {
+        const response = await api.get(`tipo-estabelecimento/${tipoEstabelecimentoId}`);
+        if (response.status === 200 && response.data.paymentMethods?.length > 0) {
+          const formattedPayments = response.data.paymentMethods.map(pm => ({
+             ...pm,
+             shortName: pm.name 
+          }));
+          setPayments(formattedPayments);
+          loadPreferredPayment(formattedPayments);
+          return;
+        }
       }
-    }catch(error){
+      
+      const response = await api.get(`payment-methods`);
+      if (response.status === 200) {
+        const formattedPayments = response.data.map(pm => ({
+             ...pm,
+             shortName: pm.name
+        }));
+        setPayments(formattedPayments);
+        loadPreferredPayment(formattedPayments);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
       setLoading(false);
     }
-}
+  }
 
-useEffect(()=>{
+  const loadPreferredPayment = async (paymentsList) => {
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      if (storedUserData) {
+        const parsed = JSON.parse(storedUserData);
+        if (parsed.preferredPaymentMethod) {
+          const pref = paymentsList.find(p => p._id === parsed.preferredPaymentMethod);
+          if (pref) {
+            setSelectedPayment(pref.shortName);
+            return;
+          }
+        }
+      }
+      // If no preference found, default to 'Em dinheiro' if available
+      const cashMethod = paymentsList.find(p => p.shortName.toLowerCase().includes('dinheiro') || p.name.toLowerCase().includes('dinheiro'));
+      if (cashMethod) {
+        setSelectedPayment(cashMethod.shortName);
+      } else if (paymentsList.length > 0) {
+        setSelectedPayment(paymentsList[0].shortName); // Default to first
+      }
+    } catch (e) {
+      console.log('Error loading preferred payment', e);
+    }
+  };
 
-  fechtData()
-
-}, [])
-
+  useEffect(() => {
+    fechtData()
+  }, [])
 
   return (
-    <SafeAreaView >
-    <View style={styles.icons}>
-        <TouchableOpacity onPress={()=>navigation.goBack()}>
-        <Ionicons name='chevron-back-circle' size={35} style={styles.back}/>
-    </TouchableOpacity>
-    </View>
-    <View style={styles.container} >
-      <Ionicons name='card' size={100} style={{textAlign: 'center', marginBottom: 10,  }}/>
-      <Ionicons name='checkmark-circle' size={40} style={{textAlign: 'center',color: 'green', position:'absolute', top:0,marginLeft: 200}}/>
-
-      <Text style={styles.mainHeader}>Selecione a forma de pagamento</Text>
-      {payments && payments.map((payment)=>
-      <View key={payment._id}>
-       <Radio 
-       key={payment._id}
-       options={[{label:payment.shortName, value: payment.shortName}]}
-       checkedValue={selectedPayment}
-       onChange={setSelectedPayment}
-       style={{marginBottom: 15}}
-       />
+    <SafeAreaView style={styles.safeArea}>
+      {/* Botão voltar */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name='chevron-back-circle' size={35} color="#7F00FF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pagamento</Text>
       </View>
-      )}
 
-      <SubmitPaymentButton Confirmar='Confirmar' selectedPayment={selectedPayment}/>
-    </View>
+      <View style={styles.container}>
+        <Ionicons name='card' size={100} style={styles.cardIcon} />
+        <Ionicons
+          name='checkmark-circle'
+          size={50}
+      
+          style={styles.checkIcon}
+        />
+
+        <Text style={styles.mainHeader}>Seleccione a forma de pagamento</Text>
+
+        {payments && payments.map((payment) => (
+          <View key={payment._id} style={{ backgroundColor: '#FFFFFF', padding: 15, borderRadius: 16, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F3F4F6' }}>
+            <Radio
+              key={payment._id}
+              options={[{ label: payment.shortName, value: payment.shortName }]}
+              checkedValue={selectedPayment}
+              onChange={setSelectedPayment}
+            />
+          </View>
+        ))}
+
+        <SubmitPaymentButton Confirmar='Confirmar' selectedPayment={selectedPayment} />
+      </View>
     </SafeAreaView>
   )
 }
@@ -71,62 +119,52 @@ useEffect(()=>{
 export default PaymentMethod
 
 const styles = StyleSheet.create({
-  icons:{
-    position: 'absolute',
-    top: 50,
-    marginLeft: 25,
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+  header: {
     flexDirection: "row",
-    justifyContent: 'space-between', // Distributes space between the icons
-    alignItems: 'center',
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginLeft: 12,
+    color: "#1F2937",
   },
   container: {
-    // flex: 1,
+    flex: 1,
     paddingHorizontal: 25,
-    // backgroundColor: 'red',
-    justifyContent: 'center',
-    marginTop: 150
-
+    justifyContent: 'flex-start',
+    marginTop: 20,
   },
-
+  cardIcon: {
+    textAlign: 'center',
+    marginBottom: 5,
+    color: "#9333EA",
+    textShadowColor: 'rgba(147, 51, 234, 0.2)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
+  },
+  checkIcon: {
+    textAlign: 'center',
+    color: '#10B981',
+    position: 'absolute',
+    top: -10,
+    right: 120,
+    backgroundColor: '#FFF',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
   mainHeader: {
-    marginBottom: 15,
-    fontSize: 19,
-    fontWeight: 'bold',
-    textAlign:'center',
-    marginBottom: 20,
-  },
-  option: {
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  selectedOption: {
-    backgroundColor: '#007bff',
-    borderColor: '#007bff',
-  },
-  optionText: {
-    fontSize: 16,
-  },
-  selectedOptionText: {
-    color: '#fff',
-  },
-  paymentMethod:{
-    margin:10
-  },
-  radio: {
-    height: 20,
-    width: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#000',
-    marginRight: 10,
-  },
-  selected: {
-    backgroundColor: '#000',
-  },
-  label: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#374151',
+    marginTop: 10,
   },
 })

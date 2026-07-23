@@ -1,8 +1,10 @@
 {
   "expo": {
-    "name": "Nhiquela+",
+    "name": "nhiquela",
     "slug": "nhiquelaa",
+    "scheme": "nhiquela",
     "version": "1.0.0",
+    "owner": "mpatricio",
     "orientation": "portrait",
     "icon": "./assets/nhiquela2.png",
     "userInterfaceStyle": "light",
@@ -11,44 +13,115 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "url": "https://u.expo.dev/7467ac64-89c0-432d-ae88-f427f7c65da9"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true,
-      "icon": "./assets/nhiquela2.png",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para calcular a distância até o fornecedor."
-      }
-    },
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBCd2afNAEQpZLZzRvTKAC7t-aQQEyMxNA"
-        }
-      },
+      "package": "com.mpatricio.nhiquelaa",
+      "googleServicesFile": "./google-services.json",
       "icon": "./assets/nhiquela2.png",
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
-      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mpatricio.nhiquelaa"
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
+        }
+      }
+    },
+    "notification": {
+      "icon": "./assets/nhiquela2.png",
+      "color": "#7F00FF",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Nhiquela",
+      "androidGoogleServicesFile": "./google-services.json",
+      "androidShowBadge": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mpatricio.nhiquelaa",
+      "icon": "./assets/nhiquela2.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Nhiquela precisa acessar sua câmera para permitir o envio de imagens.",
+        "NSPhotoLibraryUsageDescription": "Nhiquela precisa acessar suas fotos para enviar imagens.",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
+        "NSUserTrackingUsageDescription": "Nhiquela usa notificações para mantê-lo atualizado sobre pedidos e entregas."
+      }
     },
     "web": {
       "favicon": "./assets/nhiquela2.png"
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que Nhiquela acesse a câmera para tirar fotos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permita que Nhiquela acesse sua localização para encontrar entregadores próximos."
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "softwareKeyboardLayoutMode": "pan",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker"
+    ],
     "extra": {
+      "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
+      "firebase": {
+        "apiKey": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus",
+        "authDomain": "nhiquela-4bfb5.firebaseapp.com",
+        "projectId": "nhiquela-4bfb5",
+        "storageBucket": "nhiquela-4bfb5.appspot.com",
+        "messagingSenderId": "127489638441",
+        "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
+        "measurementId": "G-FN5JGWV1S4"
+      },
       "eas": {
         "projectId": "7467ac64-89c0-432d-ae88-f427f7c65da9"
       }
     },
-    "owner": "mpatricio"
+    "runtimeVersion": "1.0.0"
   }
 }

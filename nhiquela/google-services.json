@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "270534563392",
-    "project_id": "reactnativepushnotificat-a322b",
-    "storage_bucket": "reactnativepushnotificat-a322b.appspot.com"
+    "project_number": "127489638441",
+    "project_id": "nhiquela-4bfb5",
+    "storage_bucket": "nhiquela-4bfb5.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:270534563392:android:a5099f1979073d4a8cb1a5",
+        "mobilesdk_app_id": "1:127489638441:android:a49a3e372cd26357ca9c38",
         "android_client_info": {
-          "package_name": "com.anonymous.mobile"
+          "package_name": "com.mpatricio.nhiquelaa"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD0g0s4avMQgMVlq8X5jdb_vOsEFDSg9c0"
+          "current_key": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus"
         }
       ],
       "services": {
