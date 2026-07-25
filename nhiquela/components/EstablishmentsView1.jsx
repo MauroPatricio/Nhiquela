@@ -16,12 +16,12 @@ export default function EstablishmentsView1({ categoryId, title }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/provider-types');
+      const response = await api.get('/provider-subcategories');
 
       if (response.status === 200) {
         // Filtrar apenas os que são do tipo 'Business' (Estabelecimentos) e que estão ativos
         const businessTypes = response.data.filter(
-          (tipo) => tipo.isActive !== false && (tipo.classificationId?.name === 'Business' || tipo.classificationId?.name?.toLowerCase() === 'business')
+          (tipo) => tipo.isActive !== false && (tipo.providerTypeId?.classificationId?.name === 'Business' || tipo.providerTypeId?.classificationId?.name?.toLowerCase() === 'business')
         );
         setTipoestabelecimentos(businessTypes);
       }

@@ -75,7 +75,14 @@ describe('Integração de Notificações no DispatchService', () => {
     // 3. Mock do Socket.io
     const ioMock = {
       to: jest.fn().mockReturnThis(),
-      emit: jest.fn()
+      emit: jest.fn(),
+      sockets: {
+        adapter: {
+          rooms: {
+            get: jest.fn().mockReturnValue(new Set(['fake-socket-id']))
+          }
+        }
+      }
     };
 
     // 4. Executar uma chamada interna parcial do dispatch

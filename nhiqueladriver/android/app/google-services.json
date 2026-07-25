@@ -1,13 +1,32 @@
 {
   "project_info": {
-    "project_number": "70873895337",
-    "project_id": "nhiqueladriver",
-    "storage_bucket": "nhiqueladriver.firebasestorage.app"
+    "project_number": "127489638441",
+    "project_id": "nhiquela-4bfb5",
+    "storage_bucket": "nhiquela-4bfb5.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:70873895337:android:526900a8e1217b3e4db4b8",
+        "mobilesdk_app_id": "1:127489638441:android:a49a3e372cd26357ca9c38",
+        "android_client_info": {
+          "package_name": "com.mpatricio.nhiquelaa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127489638441:android:34799f6a6c57acd2ca9c38",
         "android_client_info": {
           "package_name": "com.nhiquela.driver"
         }
@@ -15,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBAy0m_iw47ZF9NcH31AGaE3lfuEhrlKlE"
+          "current_key": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus"
         }
       ],
       "services": {

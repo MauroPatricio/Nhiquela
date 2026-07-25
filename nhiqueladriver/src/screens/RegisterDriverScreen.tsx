@@ -437,10 +437,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                     />
                                 </View>
                             </View>
-                            {/* Preferências de Transferência */}
-                            <Text style={[styles.sectionTitle, {marginTop: 15, marginBottom: 15}]}>Preferências de Transferência (Opcional)</Text>
-                            {renderInput("Número M-Pesa", "mPesaNumber", "phone-portrait-outline", { placeholder: "Ex: 84...", keyboardType: "phone-pad" })}
-                            {renderInput("Número e-Mola", "eMolaNumber", "phone-portrait-outline", { placeholder: "Ex: 86...", keyboardType: "phone-pad" })}
+
                         </View>
                     )}
 

@@ -60,6 +60,10 @@ function AppContent() {
   const notificationResponseListener = useRef();
   const toast = useToast(); // ✔️ Hook para usar o toast
   const [isFirstLaunch, setIsFirstLaunch] = React.useState(null);
+  
+  // Importação local para o hook do socket evitar circular dependencies se houver
+  const useSocket = require('./hooks/useSocket').default;
+  useSocket();
 
   useEffect(() => {
     const checkOnboarding = async () => {

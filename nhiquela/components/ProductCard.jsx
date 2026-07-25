@@ -75,22 +75,26 @@ export default ProductCard;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
     margin: 6,
     overflow: 'hidden',
     width: 150,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   imageContainer: {
     position: 'relative',
+    backgroundColor: '#F8FAFC',
   },
   image: {
     width: '100%',
-    height: 120,
-    contentFit: 'cover',
+    height: 110,
+    contentFit: 'contain',
   },
   promoBadge: {
     position: 'absolute',

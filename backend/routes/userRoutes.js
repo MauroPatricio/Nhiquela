@@ -340,9 +340,9 @@ userRouter.put(
 
           try {
             const Provider = mongoose.model('Provider');
-            let provider = await Provider.findOne({ ownerId: user._id, providerType: 'BUSINESS' });
+            let provider = await Provider.findOne({ userId: user._id, providerType: 'BUSINESS' });
             if (!provider) {
-              provider = new Provider({ ownerId: user._id, providerType: 'BUSINESS', status: 'active' });
+              provider = new Provider({ userId: user._id, providerType: 'BUSINESS', status: 'active' });
             }
             provider.name = user.seller.name;
             provider.categoryId = user.seller.tipoEstabelecimento;
@@ -477,6 +477,37 @@ userRouter.put(
       }
 
       await user.save();
+
+      if (user.isSeller) {
+        try {
+          const Provider = mongoose.model('Provider');
+          let provider = await Provider.findOne({ userId: user._id, providerType: 'BUSINESS' });
+          if (!provider) {
+            provider = new Provider({ userId: user._id, providerType: 'BUSINESS', status: 'active' });
+          }
+          provider.name = user.seller.name;
+          provider.categoryId = user.seller.tipoEstabelecimento;
+          provider.location = {
+            lat: user.seller.latitude,
+            lng: user.seller.longitude,
+            address: user.seller.address,
+            province: user.seller.province
+          };
+          provider.businessData = {
+            logo: user.seller.logo,
+            description: user.seller.description,
+            openTime: user.seller.opentime,
+            closeTime: user.seller.closetime,
+            isOpen: user.seller.openstore
+          };
+          // Se for Inativo, suspended
+          provider.status = user.isBanned ? 'suspended' : 'active';
+          
+          await provider.save();
+        } catch (e) {
+          console.log('Erro ao sincronizar Provider no admin: ', e);
+        }
+      }
 
       // Emitir evento pelo socket para real-time reload na app (ex: aprovação de motorista)
       const io = req.app.get('io');
@@ -631,12 +662,12 @@ userRouter.put(
 );
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Example: 'Gmail', 'Yahoo', 'Outlook'
-  port: 587,
-  secure: false,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: process.env.EMAIL_PORT || 587,
+  secure: process.env.EMAIL_PORT == 465,
   auth: {
-    user: 'mauro.patricio1@gmail.com',      // Your email address
-    pass: 'kfgg cmdk hvsp ctil',         // Your email password
+    user: process.env.EMAIL_USER || 'mauro.patricio1@gmail.com',
+    pass: process.env.EMAIL_PASSWORD || 'kfgg cmdk hvsp ctil',
   },
   tls: {
     rejectUnauthorized: false
@@ -1187,8 +1218,8 @@ userRouter.post(
             if (mongoose.Types.ObjectId.isValid(tipoEstInput)) {
               tipoEstId = tipoEstInput;
             } else {
-              const EstablishmentType = mongoose.model('EstablishmentType');
-              const foundType = await EstablishmentType.findOne({ name: { $regex: new RegExp(`^${tipoEstInput}$`, 'i') } });
+              const ProviderSubcategory = mongoose.model('ProviderSubcategory');
+              const foundType = await ProviderSubcategory.findOne({ name: { $regex: new RegExp(`^${tipoEstInput}$`, 'i') } });
               if (foundType) tipoEstId = foundType._id;
             }
           }
@@ -1283,7 +1314,7 @@ userRouter.post(
         if (user.isSeller) {
           const Provider = mongoose.model('Provider');
           const provider = new Provider({
-            ownerId: user._id,
+            userId: user._id,
             providerType: 'BUSINESS',
             status: 'active',
             name: user.seller.name,
@@ -1417,10 +1448,11 @@ userRouter.put('/updateDeviceToken/:id', async (req, res) => {
 // Backend: routes/users.js ou semelhante
 userRouter.patch('/updatePushToken/:id', async (req, res) => {
   const { id } = req.params;
-  const { deviceToken } = req.body;
+  const { deviceToken, pushToken } = req.body;
+  const finalToken = deviceToken || pushToken;
 
   try {
-    const user = await User.findByIdAndUpdate(id, { deviceToken }, { new: true });
+    const user = await User.findByIdAndUpdate(id, { deviceToken: finalToken }, { new: true });
     if (!user) {
       return res.status(404).json({ message: 'Usu�rio n�o encontrado.' });
     }

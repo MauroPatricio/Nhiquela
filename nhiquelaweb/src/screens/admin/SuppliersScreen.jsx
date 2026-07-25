@@ -10,8 +10,13 @@ export default function SuppliersScreen() {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [provinces, setProvinces] = useState([]);
+  const [establishmentTypes, setEstablishmentTypes] = useState([]);
+
   useEffect(() => {
     fetchSuppliers();
+    fetchProvinces();
+    fetchEstablishmentTypes();
   }, []);
 
   const fetchSuppliers = async () => {
@@ -25,15 +30,27 @@ export default function SuppliersScreen() {
     }
   };
 
-  const [provinces] = useState([
-    'Maputo Cidade', 'Maputo Província', 'Gaza', 'Inhambane', 
-    'Sofala', 'Manica', 'Tete', 'Zambézia', 
-    'Nampula', 'Cabo Delgado', 'Niassa'
-  ]);
-  
-  const [establishmentTypes] = useState([
-    'Supermercado', 'Mercearia', 'Farmácia', 'Restaurante', 'Loja de Conveniência', 'Talho'
-  ]);
+  const fetchProvinces = async () => {
+    try {
+      const { data } = await api.get('/provinces');
+      setProvinces(data.provinces || []);
+    } catch (error) {
+      console.error('Erro ao buscar províncias:', error);
+    }
+  };
+
+  const fetchEstablishmentTypes = async () => {
+    try {
+      const { data } = await api.get('/provider-subcategories');
+      const businessSubcategories = data.filter(c => 
+        c.providerTypeId?.classificationId?.name === 'Business' || 
+        c.providerTypeId?.classificationId?.name?.toLowerCase() === 'business'
+      );
+      setEstablishmentTypes(businessSubcategories);
+    } catch (error) {
+      console.error('Erro ao buscar subcategorias de fornecedores:', error);
+    }
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -82,8 +99,8 @@ export default function SuppliersScreen() {
         password: '',
         phoneNumberAccount: supplier.seller?.phoneNumberAccount || '', 
         alternativePhoneNumberAccount: supplier.seller?.alternativePhoneNumberAccount || '', 
-        province: supplier.seller?.province || '', 
-        tipoEstabelecimento: supplier.seller?.tipoEstabelecimento || '', 
+        province: supplier.seller?.province?._id || supplier.seller?.province || '', 
+        tipoEstabelecimento: supplier.seller?.tipoEstabelecimento?._id || supplier.seller?.tipoEstabelecimento || '', 
         address: supplier.seller?.address || '', 
         description: supplier.seller?.description || '', 
         logo: supplier.seller?.logo || '',
@@ -241,12 +258,12 @@ export default function SuppliersScreen() {
                         )}
                         <div>
                           <span className="fw-bold text-dark d-block">{supplier.seller?.name || 'Sem nome empresarial'}</span>
-                          <span className="text-muted small">{supplier._id || supplier.id}</span>
+                          <span className="text-muted small d-block mt-1"><FontAwesomeIcon icon={faEnvelope} className="me-1"/>{supplier.email || 'N/A'}</span>
                         </div>
                       </div>
                     </td>
-                    <td><span className="badge bg-light text-dark border">{supplier.seller?.tipoEstabelecimento || 'N/A'}</span></td>
-                    <td><span className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>{supplier.seller?.province || 'N/A'}</span></td>
+                    <td><span className="badge bg-light text-dark border">{supplier.seller?.tipoEstabelecimento?.name || (typeof supplier.seller?.tipoEstabelecimento === 'string' ? supplier.seller?.tipoEstabelecimento : 'N/A')}</span></td>
+                    <td><span className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>{supplier.seller?.province?.name || (typeof supplier.seller?.province === 'string' ? supplier.seller?.province : 'N/A')}</span></td>
                     <td>
                       <span className="text-dark small d-block fw-bold">{supplier.name}</span>
                       <span className="text-muted" style={{fontSize: '11px'}}>{supplier.phoneNumber}</span>
@@ -323,7 +340,7 @@ export default function SuppliersScreen() {
                     <label className="form-label fw-bold small text-muted mb-1">Tipo de Estabelecimento</label>
                     <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.tipoEstabelecimento} onChange={(e) => setFormData({...formData, tipoEstabelecimento: e.target.value})} required>
                       <option value="">Selecione...</option>
-                      {establishmentTypes.map(c => <option key={c} value={c}>{c}</option>)}
+                      {establishmentTypes.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
                   <div className="col-md-12">
@@ -338,7 +355,7 @@ export default function SuppliersScreen() {
                     <label className="form-label fw-bold small text-muted mb-1">Província / Localização</label>
                     <select className="form-select bg-light border-0 py-2 rounded-3" value={formData.province} onChange={(e) => setFormData({...formData, province: e.target.value})} required>
                       <option value="">Selecione...</option>
-                      {provinces.map(p => <option key={p} value={p}>{p}</option>)}
+                      {provinces.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
                     </select>
                   </div>
                   <div className="col-md-8">

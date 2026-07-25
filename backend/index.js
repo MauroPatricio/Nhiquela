@@ -316,17 +316,25 @@ if (process.env.NODE_ENV !== 'test') {
 
       const userId = user._id || user.id;
       if (userId) {
-        const dbUser = await User.findById(userId).select('isDeliveryMan name');
+        // Universal room for this specific user
+        socket.join(`user_${userId}`);
+        
+        const dbUser = await User.findById(userId).select('isDeliveryMan isSeller name');
         if (dbUser && dbUser.isDeliveryMan) {
           const driverRoom = `driver_${userId}`;
           socket.join(driverRoom);
           console.log(`✅ Motorista ${dbUser.name} (${userId}) entrou na sala ${driverRoom}`);
-          // Garantir que a variavel user reflete o estado real para o resto do codigo
           user.isDeliveryMan = true;
+          user.name = dbUser.name || user.name;
+        } else if (dbUser && dbUser.isSeller) {
+          const sellerRoom = `seller_${userId}`;
+          socket.join(sellerRoom);
+          console.log(`✅ Fornecedor ${dbUser.name} (${userId}) entrou na sala ${sellerRoom}`);
+          user.isSeller = true;
           user.name = dbUser.name || user.name;
         } else {
           const userName = dbUser ? dbUser.name : (user.name || 'Desconhecido');
-          console.log(`ℹ️  onLogin recebido de ${userName} — isDeliveryMan: ${user.isDeliveryMan || false}, _id: ${userId}`);
+          console.log(`ℹ️ onLogin recebido de ${userName} — _id: ${userId}`);
         }
       }
 

@@ -147,6 +147,8 @@ export default function RequestServiceSimple() {
       setStep(2);
       
       setTimeout(() => {
+        setRejectedDriverIds([]);
+        setAvailableDriversList([]);
         setIsSearching(true);
         startPulse();
       }, 500);
@@ -1793,6 +1795,8 @@ export default function RequestServiceSimple() {
                 style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%' }]} 
                 onPress={() => {
                   setShowUnavailableAlert(false);
+                  setRejectedDriverIds([]);
+                  setAvailableDriversList([]);
                   setIsSearching(true);
                   startPulse();
                 }}

@@ -65,12 +65,14 @@ async function registerForPushNotificationsAsync() {
   console.log("📩 FCM / Device Push Token:", token);
 
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("driver_alerts", {
-      name: "Alertas de Pedido",
+    await Notifications.setNotificationChannelAsync("driver_alerts_urgent", {
+      name: "Alertas de Pedido Urgente",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 500, 250, 500],
+      vibrationPattern: [0, 500, 250, 500, 250, 500],
       lightColor: "#FF231F7C",
       sound: "calldriver.mp3",
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true, // Força a notificação a tocar mesmo se não perturbar ativo (depende de permissões em alguns Androids)
     });
   }
 

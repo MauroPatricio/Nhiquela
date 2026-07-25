@@ -203,19 +203,32 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   // 🔥 CONFIGURAR WEBSOCKET PARA TEMPO REAL
   const setupWebSocket = async () => {
     try {
-      const token = (await AsyncStorage.getItem('authToken')) || user?.token;
+      const currentUser = userRef.current;
+      const token = (await AsyncStorage.getItem('authToken')) || currentUser?.token;
       if (token) {
         setConnectionStatus("Conectando...");
 
-        websocketService.connect(token, user);
+        const minimalUser = currentUser ? {
+          _id: currentUser._id || (currentUser as any).id,
+          name: currentUser.name,
+          isDeliveryMan: true,
+          token: token
+        } : null;
+
+        websocketService.connect(token, minimalUser);
 
         // 🔥 Se o socket já estava ligado antes do connect event disparar,
         // emitir onLogin directamente para garantir entrada na sala driver_<id>
-        if (websocketService.isConnected && user) {
-          websocketService.socket?.emit('onLogin', user);
+        if (websocketService.isConnected && minimalUser) {
+          websocketService.socket?.emit('onLogin', minimalUser);
         }
 
 
@@ -1707,11 +1720,13 @@ const proceedStartTrip = async (trip: Trip) => {
       {allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3)) && (
         <View style={styles.headsUpContainer}>
           <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
-          {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
-            <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
-              {renderTripCard({ item: trip })}
-            </View>
-          ))}
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
+              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
+                {renderTripCard({ item: trip })}
+              </View>
+            ))}
+          </ScrollView>
         </View>
       )}
 
@@ -2431,6 +2446,7 @@ const styles = StyleSheet.create({
   headsUpContainer: {
     position: 'absolute',
     top: 60,
+    bottom: 90, // Impede que o card desça até ao tab bar
     left: '5%',
     right: '5%',
     width: '90%',

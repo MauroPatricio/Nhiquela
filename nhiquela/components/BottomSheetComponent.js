@@ -1,70 +1,70 @@
-import React from 'react';
-import { useColorScheme, TouchableOpacity, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect } from 'react';
+import { Modal, useColorScheme, TouchableOpacity, StyleSheet, View, useWindowDimensions, TouchableWithoutFeedback } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 
-export default function BottomSheetComponent({ isOpen, toggleSheet, children, duration = 300 }) {
+export default function BottomSheetComponent({ isOpen, toggleSheet, children, duration = 300, height }) {
   const colorScheme = useColorScheme();
   const { height: windowHeight } = useWindowDimensions();
   const translateY = useSharedValue(windowHeight);
+  const [visible, setVisible] = React.useState(isOpen);
+  const finalHeight = height || windowHeight * 0.8;
 
-  // Atualiza a posição com animação
-  React.useEffect(() => {
-    translateY.value = withTiming(isOpen ? 0 : windowHeight, { duration });
+  useEffect(() => {
+    if (isOpen) {
+      setVisible(true);
+      translateY.value = withTiming(0, { duration });
+    } else {
+      translateY.value = withTiming(windowHeight, { duration }, (finished) => {
+        if (finished) {
+          runOnJS(setVisible)(false);
+        }
+      });
+    }
   }, [isOpen]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [0, windowHeight], [0.5, 0]),
-    zIndex: isOpen ? 1 : -1,
-  }));
+  if (!visible && !isOpen) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <Animated.View style={[sheetStyles.backdrop, backdropStyle]}>
-        <TouchableOpacity style={sheetStyles.flex} onPress={toggleSheet} />
-      </Animated.View>
-
-      {/* Bottom Sheet */}
-      <Animated.View
-        style={[
-          sheetStyles.sheet,
-          sheetStyle,
-          { backgroundColor: colorScheme === 'light' ? '#fff' : '#272B3C', maxHeight: windowHeight * 0.9 },
-        ]}
-      >
-        {/* Conteúdo */}
-        {children}
-      </Animated.View>
-    </>
+    <Modal visible={visible} transparent={true} animationType="none" onRequestClose={toggleSheet}>
+      <View style={sheetStyles.overlay}>
+        <TouchableWithoutFeedback onPress={toggleSheet}>
+          <View style={sheetStyles.backdrop} />
+        </TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            sheetStyles.sheet,
+            sheetStyle,
+            { backgroundColor: colorScheme === 'light' ? '#fff' : '#272B3C', height: finalHeight },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const sheetStyles = StyleSheet.create({
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    zIndex: 10,
-    padding: 20,
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  flex: {
-    flex: 1,
-  },
-  closeButtonContainer: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 20,
+  sheet: {
+    width: '100%',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
 });

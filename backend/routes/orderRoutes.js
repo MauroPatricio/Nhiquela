@@ -424,24 +424,32 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
       const clientOfProduct = await User.findById(order.user);
 
       //toSeller
-
-      if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
+      if (sellerOfProduct?.deviceToken) {
         await createNotification({
           message: mensagem,
           receiver_id: order.seller,
           sender_id: order.user,
           orderID: order._id,
           pushToken: sellerOfProduct.deviceToken,
-
         });
-        //toOrderClient
+      }
+      
+      //toOrderClient
+      if (clientOfProduct?.deviceToken) {
         await createNotification({
           message: mensagem,
-          receiver_id: order.seller,
-          sender_id: order.user,
+          receiver_id: order.user,
+          sender_id: order.seller,
           orderID: order._id,
           pushToken: clientOfProduct.deviceToken
         });
+      }
+
+      // Emit realtime socket event
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`seller_${order.seller}`).emit('new_order', { order: order });
+        io.to(`user_${order.user}`).emit('order_created', { order: order });
       }
 
       // Respond with success message
@@ -726,7 +734,7 @@ orderRouter.put(
     let message = `Olï¿½! ?? O pagamento referente ao pedido ${updatedOrder.code} no valor de ${updatedOrder.totalPrice} foi confirmado com sucesso! Agora, estamos preparando tudo para vocï¿½. Obrigado por confiar na Nhiquela!`;
     // sendEmailOrderToSeller(req,message, sellerOfProduct, updatedOrder, res);
 
-    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
+    if (sellerOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
@@ -735,6 +743,9 @@ orderRouter.put(
         orderID: updatedOrder._id,
         pushToken: sellerOfProduct.deviceToken,
       });
+    }
+
+    if (clientOfProduct?.deviceToken) {
       //toOrderClient
       await createNotification({
         message: message,
@@ -749,6 +760,14 @@ orderRouter.put(
       //  Para envio de mensagens
       let msgSeller = `Olá, a Nhiquela gostaria de lhe informar que possui um novo pedido com o código ${updatedOrder.code}.`;
       //  sendSMSToSellerUSendIt(sellerOfProduct, msgSeller);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`seller_${updatedOrder.seller}`).emit('order_paid', { order: updatedOrder });
+      io.to(`user_${updatedOrder.user}`).emit('order_paid', { order: updatedOrder });
+      // update room
+      io.to(`order_${updatedOrder._id}`).emit('order_updated', { order: updatedOrder });
     }
 
     res.send({ message: `Pedido Pago`, order: updatedOrder });
@@ -783,7 +802,7 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
+    if (sellerOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
@@ -792,6 +811,9 @@ orderRouter.put(
         orderID: order._id,
         pushToken: sellerOfProduct.deviceToken,
       });
+    }
+
+    if (clientOfProduct?.deviceToken) {
       //toOrderClient
       await createNotification({
         message: message,
@@ -839,7 +861,7 @@ orderRouter.put(
     const sellerOfProduct = await User.findById(order.seller);
     const clientOfProduct = await User.findById(order.user);
 
-    if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
+    if (sellerOfProduct?.deviceToken) {
       //toSeller
       await createNotification({
         message: message,
@@ -848,6 +870,9 @@ orderRouter.put(
         orderID: order._id,
         pushToken: sellerOfProduct.deviceToken,
       });
+    }
+
+    if (clientOfProduct?.deviceToken) {
       //toOrderClient
       await createNotification({
         message: message,

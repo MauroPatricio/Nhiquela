@@ -483,13 +483,13 @@ const Orders = () => {
 
   const renderDashboard = () => (
     <View style={{ marginBottom: 16 }}>
-      <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 12 }}>Resumo (KPIs)</Text>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 12 }}>Resumo</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         
         <View style={{ width: '48%', backgroundColor: '#FFF', padding: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <Ionicons name="documents-outline" size={18} color="#3B82F6" />
-            <Text style={{ fontSize: 12, color: '#64748B', marginLeft: 6, fontWeight: '600' }}>Total</Text>
+            <Text style={{ fontSize: 12, color: '#64748B', marginLeft: 6, fontWeight: '600' }}>Total de pedidos</Text>
           </View>
           <Text style={{ fontSize: 20, fontWeight: '800', color: '#1E293B' }}>{totalOrders}</Text>
         </View>
@@ -508,14 +508,6 @@ const Orders = () => {
             <Text style={{ fontSize: 12, color: '#64748B', marginLeft: 6, fontWeight: '600' }}>Cancelados</Text>
           </View>
           <Text style={{ fontSize: 20, fontWeight: '800', color: '#1E293B' }}>{canceledOrders}</Text>
-        </View>
-
-        <View style={{ width: '48%', backgroundColor: '#FFF', padding: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Ionicons name="wallet-outline" size={18} color="#9333EA" />
-            <Text style={{ fontSize: 12, color: '#64748B', marginLeft: 6, fontWeight: '600' }}>Gasto (MT)</Text>
-          </View>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: '#1E293B' }}>{totalSpent.toFixed(2)}</Text>
         </View>
 
       </View>

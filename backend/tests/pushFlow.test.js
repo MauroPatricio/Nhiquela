@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { createNotification } from '../utils/createNotification.js';
+import { jest } from '@jest/globals';
 
 // Mock dependencies
 jest.mock('../utils/sendNotification.js', () => {
