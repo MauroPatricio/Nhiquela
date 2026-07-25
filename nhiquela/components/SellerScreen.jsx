@@ -140,13 +140,13 @@ const SellerScreen = () => {
 
       <View style={styles.view}>
         <Text style={styles.sellerName}>{name}</Text>
-        <Text style={styles.establish}>{tipoEstabelecimento?.nome}</Text>
+        <Text style={styles.establish}>{tipoEstabelecimento?.name || tipoEstabelecimento?.nome}</Text>
 
         <View style={styles.ratingRowTop}>
           <View style={styles.ratingBadge}>
             <StarIcon color="#F59E0B" size={16} />
-            <Text style={styles.ratingText}>{rating}</Text>
-            <Text style={styles.reviewsText}>({numReviews} comentários)</Text>
+            <Text style={styles.ratingText}>{rating || 0}</Text>
+            <Text style={styles.reviewsText}>({numReviews || 0} comentários)</Text>
           </View>
         </View>
 
@@ -166,7 +166,10 @@ const SellerScreen = () => {
         <View style={styles.details}>
           <Ionicons name='location-outline' color="#9333EA" size={22} />
           <Text style={styles.addressText}>
-            <Text style={{ fontWeight: '600', color: '#1F2937' }}>{province?.name}</Text> - {address}
+            {province?.name ? (
+              <><Text style={{ fontWeight: '600', color: '#1F2937' }}>{province.name}</Text> - </>
+            ) : null}
+            {address}
           </Text>
         </View>
 
@@ -241,7 +244,8 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: 280,
-    contentFit: 'cover',
+    contentFit: 'contain',
+    backgroundColor: '#F8FAFC',
   },
   icons: {
     position: 'absolute',
@@ -265,15 +269,15 @@ const styles = StyleSheet.create({
   },
   view: {
     backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 24,
-    marginTop: -30, // Sobrepõe a imagem
-    marginHorizontal: 10,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
+    padding: 24,
+    borderRadius: 32,
+    marginTop: -40, // Sobrepõe a imagem
+    marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 8,
   },
   sellerName: {
     fontSize: 26,

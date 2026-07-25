@@ -65,7 +65,7 @@ const modelSchema = new mongoose.Schema({
         rating: { type: Number, default: 0, },
         numReviews: { type: Number, default: 0, },
         province: { type: mongoose.Schema.Types.ObjectId, ref: 'Province', default: null },
-        tipoEstabelecimento: { type: mongoose.Schema.Types.ObjectId, ref: 'EstablishmentType', default: null },
+        tipoEstabelecimento: { type: mongoose.Schema.Types.ObjectId, ref: 'ProviderSubcategory', default: null },
         address: { type: String },
         latitude: { type: String },
         longitude: { type: String },

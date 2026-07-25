@@ -637,11 +637,12 @@ export default function ProviderSubcategoriesScreen() {
                 </div>
 
                   <div className="mb-4">
-                    <label className="form-label fw-bold small text-muted mb-2">Modo de Preço</label>
-                    <div className="d-flex gap-3">
-                      <div className="form-check">
+                    <label className="form-label fw-bold small text-muted mb-3">Modo de Preço</label>
+                    <div className="d-flex flex-column gap-3">
+                      
+                      <div className="form-check custom-radio-box border p-3 rounded-3 bg-white shadow-sm cursor-pointer" onClick={() => setFormData({ ...formData, pricingMode: 'AUTO' })}>
                         <input
-                          className="form-check-input"
+                          className="form-check-input mt-1"
                           type="radio"
                           name="pricingMode"
                           id="pricingModeAuto"
@@ -649,13 +650,15 @@ export default function ProviderSubcategoriesScreen() {
                           checked={formData.pricingMode === 'AUTO'}
                           onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
                         />
-                        <label className="form-check-label" htmlFor="pricingModeAuto">
-                          Calculado pela Plataforma
+                        <label className="form-check-label ms-2 w-100 cursor-pointer" htmlFor="pricingModeAuto">
+                          <span className="fw-bold d-block text-dark">Calculado pela Plataforma</span>
+                          <span className="small text-muted d-block mt-1">O valor é calculado automaticamente e não inclui o valor do prestador.</span>
                         </label>
                       </div>
-                      <div className="form-check">
+
+                      <div className="form-check custom-radio-box border p-3 rounded-3 bg-white shadow-sm cursor-pointer" onClick={() => setFormData({ ...formData, pricingMode: 'PROVIDER_DEFINED' })}>
                         <input
-                          className="form-check-input"
+                          className="form-check-input mt-1"
                           type="radio"
                           name="pricingMode"
                           id="pricingModeProvider"
@@ -663,10 +666,28 @@ export default function ProviderSubcategoriesScreen() {
                           checked={formData.pricingMode === 'PROVIDER_DEFINED'}
                           onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
                         />
-                        <label className="form-check-label" htmlFor="pricingModeProvider">
-                          Definido pelo Prestador
+                        <label className="form-check-label ms-2 w-100 cursor-pointer" htmlFor="pricingModeProvider">
+                          <span className="fw-bold d-block text-dark">Definido pelo Prestador</span>
+                          <span className="small text-muted d-block mt-1">Cálculo da deslocação por percentagem + valor definido pelo prestador (aqui calcula o valor da deslocação+15% e o valor do prestador +10%).</span>
                         </label>
                       </div>
+
+                      <div className="form-check custom-radio-box border p-3 rounded-3 bg-white shadow-sm cursor-pointer" onClick={() => setFormData({ ...formData, pricingMode: 'AUTO_PLUS_PROVIDER' })}>
+                        <input
+                          className="form-check-input mt-1"
+                          type="radio"
+                          name="pricingMode"
+                          id="pricingModeAutoPlusProvider"
+                          value="AUTO_PLUS_PROVIDER"
+                          checked={formData.pricingMode === 'AUTO_PLUS_PROVIDER'}
+                          onChange={e => setFormData({ ...formData, pricingMode: e.target.value })}
+                        />
+                        <label className="form-check-label ms-2 w-100 cursor-pointer" htmlFor="pricingModeAutoPlusProvider">
+                          <span className="fw-bold d-block text-dark">Calculado + Prestador</span>
+                          <span className="small text-muted d-block mt-1">Valor da deslocação calculado automaticamente + valor definido pelo prestador (o valor final é multiplicado pela comissão definida na plataforma).</span>
+                        </label>
+                      </div>
+
                     </div>
                   </div>
 

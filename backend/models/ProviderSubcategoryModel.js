@@ -17,7 +17,7 @@ const ProviderSubcategorySchema = new Schema({
   // ==========================================
   // PRICING ENGINE CONFIGURATION
   // ==========================================
-  pricingMode: { type: String, enum: ['AUTO', 'PROVIDER_DEFINED'], default: 'AUTO' }, // 'AUTO' (calculated by engine) or 'PROVIDER_DEFINED' (set by provider)
+  pricingMode: { type: String, enum: ['AUTO', 'PROVIDER_DEFINED', 'AUTO_PLUS_PROVIDER'], default: 'AUTO' }, // 'AUTO' (calculated by engine), 'PROVIDER_DEFINED' (set by provider), or 'AUTO_PLUS_PROVIDER' (both)
   allowNegotiation: { type: Boolean, default: false }, // If true, supports price negotiation
   minProviderPrice: { type: Number, default: 0 }, // Minimum price allowed if PROVIDER_DEFINED
   maxProviderPrice: { type: Number, default: 0 }, // Maximum price allowed if PROVIDER_DEFINED

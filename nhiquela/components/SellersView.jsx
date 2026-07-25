@@ -17,7 +17,7 @@ const SellersView = ({ title, description }) => {
       setLoading(true);
       const response = await api.get('/providers?type=Business');
       if (response.status === 200) {
-        setSellers(response.data.providers);
+        setSellers(response.data.providers.slice(0, 10)); // Limit to 10
       }
     } catch (error) {
       console.error('Erro ao buscar vendedores:', error);
@@ -48,7 +48,7 @@ const SellersView = ({ title, description }) => {
 
       <ScrollView 
         horizontal
-        contentContainerStyle={{ paddingHorizontal: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 10 }}
         showsHorizontalScrollIndicator={false}
       >
         {sellers && sellers.length > 0 ? (
@@ -62,6 +62,7 @@ const SellersView = ({ title, description }) => {
               rating={seller.rating}
               numReviews={seller.numReviews}
               province={seller.location?.province}
+              tipoEstabelecimento={seller.categoryId}
               address={seller.location?.address}
               latitude={seller.location?.lat}
               longitude={seller.location?.lng}
@@ -89,38 +90,44 @@ export default SellersView;
 
 const styles = StyleSheet.create({
   sellerWrapper: {
-    marginTop: 15,
+    marginTop: 20,
     justifyContent: 'space-between',
+    alignItems: 'center',
     flexDirection: "row",
-    marginLeft: 15,
-    marginRight: 15,
+    paddingHorizontal: 18,
   },
   title: {
-    fontWeight: "500",
-    fontSize: 19
+    fontWeight: "800",
+    fontSize: 22,
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   text: {
-    fontSize: 13,
-    marginLeft: 15,
-    letterSpacing: 1.2
+    fontSize: 14,
+    color: '#64748B',
+    paddingHorizontal: 18,
+    marginTop: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   emptyCard: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    paddingVertical: 18,
+    borderColor: '#F1F5F9',
+    paddingVertical: 30,
     paddingHorizontal: 20,
-    marginHorizontal: 15,
+    marginHorizontal: 18,
     marginVertical: 10,
     width: 320,
   },
   emptyCardText: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#94A3B8',
     fontWeight: '600',
+    marginTop: 10,
   }
 });

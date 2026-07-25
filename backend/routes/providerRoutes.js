@@ -17,7 +17,14 @@ providerRouter.get(
         query.providerType = { $regex: new RegExp(`^${type}$`, 'i') };
       }
       if (categoryId) query.categoryId = categoryId;
-      if (status) query.status = status; // e.g., 'active'
+      
+      if (status) {
+        if (status !== 'all') {
+          query.status = status;
+        }
+      } else {
+        query.status = 'active'; // Default to only active providers
+      }
 
       const providers = await Provider.find(query)
         .populate('userId', 'name email phoneNumber')

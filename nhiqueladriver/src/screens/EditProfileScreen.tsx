@@ -705,34 +705,7 @@ const handleSave = async (values: any) => {
             {/* ✅ SECÇÃO APENAS PARA MOTORISTAS */}
             {user?.isDeliveryMan && (
               <>
-                {/* Preferências de Transferência */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Preferências de Transferência (Opcional)</Text>
-                  
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Número M-Pesa</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Ex: 84..."
-                      keyboardType="phone-pad"
-                      value={values.mPesaNumber}
-                      onChangeText={handleChange('mPesaNumber')}
-                      onBlur={handleBlur('mPesaNumber')}
-                    />
-                  </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Número e-Mola</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Ex: 86..."
-                      keyboardType="phone-pad"
-                      value={values.eMolaNumber}
-                      onChangeText={handleChange('eMolaNumber')}
-                      onBlur={handleBlur('eMolaNumber')}
-                    />
-                  </View>
-                </View>
 
                 {/* Informações do Veículo */}
                 <View style={styles.section}>

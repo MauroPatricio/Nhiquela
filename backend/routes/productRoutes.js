@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import Product from '../models/ProductModel.js';
 import expressAsyncHandler from 'express-async-handler';
 import { isAuth, isSellerOrAdmin } from '../utils.js';
@@ -76,7 +76,8 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
 
   const [products, countProducts] = await Promise.all([
     Product.find(filters)
-      .populate('seller category province conditionStatus qualityType size color')
+      .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+      .populate('category province conditionStatus qualityType size color')
       .sort(sortOrder)
       .skip(pageSize * (page - 1))
       .limit(pageSize)
@@ -192,7 +193,8 @@ productRoutes.get('/bycategory/:id', async (req, res) => {
 
     const [products, totalProducts] = await Promise.all([
       Product.find(filter)
-        .populate('seller category province')
+        .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+        .populate('category province')
         .sort({ createdAt: -1 })
         .skip((page - 1) * pageSize)
         .limit(pageSize)
@@ -339,7 +341,8 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
 productRoutes.get('/slug/:slug', async (req, res) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug })
-      .populate('seller category conditionStatus qualityType size color')
+      .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+      .populate('category conditionStatus qualityType size color')
       .lean();
 
     if (!product) return res.status(404).send({ message: 'Produto n�o encontrado' });
@@ -440,7 +443,8 @@ productRoutes.get('/search', expressAsyncHandler(async (req, res) => {
 productRoutes.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('seller color size category province qualityType conditionStatus')
+      .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+      .populate('color size category province qualityType conditionStatus')
       .lean();
 
     if (!product) return res.status(404).send({ message: 'Produto n�o encontrado' });

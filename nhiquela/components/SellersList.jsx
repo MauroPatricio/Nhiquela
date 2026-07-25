@@ -120,7 +120,9 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
           address,
           latitude,
           longitude,
-          openstore: isOpen
+          openstore: isOpen,
+          tipoEstabelecimento: item.categoryId,
+          province: item.location?.province
         });
       }}
     >
@@ -206,24 +208,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    elevation: 3,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    borderRadius: 24,
+    marginVertical: 10,
+    marginHorizontal: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#F1F5F9',
   },
   sellerLogo: {
     width: 65,
     height: 65,
-    borderRadius: 32.5,
+    borderRadius: 16,
     marginRight: 16,
-    borderWidth: 1.5,
-    borderColor: '#9333EA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
   },
   sellerInfo: {
     flex: 1,

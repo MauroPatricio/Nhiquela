@@ -235,7 +235,7 @@ class PricingService {
       }
     } 
     
-    if (service.pricingMode === 'PROVIDER_DEFINED' && !serviceCost) {
+    if ((service.pricingMode === 'PROVIDER_DEFINED' || service.pricingMode === 'AUTO_PLUS_PROVIDER') && !serviceCost) {
       serviceCost = service.serviceFee || 0;
     }
 
