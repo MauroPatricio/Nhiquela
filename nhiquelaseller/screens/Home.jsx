@@ -53,7 +53,7 @@ const Home = () => {
         finalStatus = status;
       }
       if (finalStatus !== 'granted') return;
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      const token = (await Notifications.getDevicePushTokenAsync()).data;
       setExpoPushToken(token);
       await updatePushToken(user._id, token);
     } catch (error) {

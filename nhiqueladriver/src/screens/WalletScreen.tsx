@@ -380,10 +380,15 @@ export default function WalletScreen({ navigation, route }: any) {
 
               {/* Saldo Pendente Box */}
               {balance.pending > 0 && (
-                <View style={styles.pendingBox}>
-                  <Ionicons name="time-outline" size={18} color="#FF9800" style={{ marginRight: 6 }} />
-                  <Text style={styles.pendingText}>
-                    Saldo Pendente: <Text style={{ fontWeight: 'bold' }}>{formatCurrency(balance.pending)}</Text>
+                <View style={[styles.pendingBox, { flexDirection: 'column', alignItems: 'flex-start', padding: 12 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <Ionicons name="time-outline" size={18} color="#FF9800" style={{ marginRight: 6 }} />
+                    <Text style={styles.pendingText}>
+                      Saldo Pendente: <Text style={{ fontWeight: 'bold' }}>{formatCurrency(balance.pending)}</Text>
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 13, color: '#666', lineHeight: 18 }}>
+                    O seu saldo está a ser analisado pela equipa financeira. Dentro de até 30 minutos será validada a sua recarga.
                   </Text>
                 </View>
               )}

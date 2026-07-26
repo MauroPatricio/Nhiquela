@@ -11,6 +11,7 @@ import { showMessage } from "react-native-flash-message";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { API_BASE_URL } from '../api/apiConfig';
+import websocketService from "../services/websocketService";
 
 // 🔥 LOCALIZAÇÃO FALLBACK (caso não consiga obter a real)
 const FALLBACK_LOCATION = {
@@ -86,7 +87,17 @@ export default function MapScreen({ route, navigation }: any) {
             console.log("Erro ao capturar GPS para socket", err);
           }
         }, 10000);
-  
+        
+        socket.on('order_updated', async (data) => {
+          if (data && (data._id === orderId || data.id === orderId)) {
+            const status = data.status || "";
+            if (status === 'Entregue' || status === 'Finalizado' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
+              await AsyncStorage.removeItem("acceptedTrip");
+              navigation.goBack();
+            }
+          }
+        });
+
       } catch (error) {
         console.error("Erro ao iniciar atualização automática da localização:", error);
       }
@@ -198,6 +209,42 @@ export default function MapScreen({ route, navigation }: any) {
   
     loadTripData();
   }, []);
+
+  // 🔥 LISTENER PARA ATUALIZAÇÕES DO BACKEND (CANCELAMENTO / ENTREGUE)
+  useEffect(() => {
+    const handleOrderCancelled = async (data: any) => {
+      if (data && (data.orderId === tripData?.id || data._id === tripData?.id || data.id === tripData?.id)) {
+        await AsyncStorage.removeItem("acceptedTrip");
+        setTripData(null);
+        Alert.alert("Viagem Cancelada", "O cliente cancelou esta viagem.");
+        navigation.goBack();
+      }
+    };
+
+    const handleOrderUpdated = async (data: any) => {
+      if (data && (data._id === tripData?.id || data.id === tripData?.id)) {
+        const status = data.status || "";
+        if (status === 'Entregue' || status === 'Finalizado' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
+          await AsyncStorage.removeItem("acceptedTrip");
+          setTripData(null);
+          
+          if (status === 'Cancelado') {
+             Alert.alert("Viagem Cancelada", "Esta viagem foi cancelada pelo cliente.");
+          }
+          
+          navigation.goBack();
+        }
+      }
+    };
+
+    websocketService.on('order_cancelled', handleOrderCancelled);
+    websocketService.on('order_updated', handleOrderUpdated);
+
+    return () => {
+      websocketService.off('order_cancelled');
+      websocketService.off('order_updated');
+    };
+  }, [tripData]);
   
   // 🔥 FUNÇÃO startTrip ATUALIZADA
   const startTrip = async (trip: any) => {
@@ -830,6 +877,24 @@ export default function MapScreen({ route, navigation }: any) {
           </View>
         </View>
       </Modal>
+      {/* 🔥 MODAL BLOQUEADOR QUANDO MOTORISTA CHEGA AO DESTINO */}
+      <Modal
+        visible={tripData?.stepStatus === 6}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={{ flex: 1, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+           <Ionicons name="location" size={80} color="#FFF" style={{ marginBottom: 24 }} />
+           <Text style={{ color: '#FFF', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
+             Você chegou ao destino!
+           </Text>
+           <Text style={{ color: '#FFF', fontSize: 18, textAlign: 'center', lineHeight: 28, opacity: 0.9 }}>
+             Aguarde a confirmação da recepção do cliente para se libertar deste pedido e receber mais pedidos.
+           </Text>
+           <ActivityIndicator size="large" color="#FFF" style={{ marginTop: 40 }} />
+        </View>
+      </Modal>
+
     </View>
   );
 }
