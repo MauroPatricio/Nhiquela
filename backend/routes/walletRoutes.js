@@ -624,7 +624,7 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
       if (providerUser && providerUser.deviceToken) {
          const { createNotification } = await import('../utils/createNotification.js');
          await createNotification({
-           message: 'A sua recarga foi aprovada com sucesso!',
+           message: 'A sua recarga foi validada e ja pode fazer viagens',
            receiver_id: providerUser._id,
            sender_id: req.user._id,
            pushToken: providerUser.deviceToken
