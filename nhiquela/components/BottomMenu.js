@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Dimensions
+  Dimensions,
+  Text
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import api from "../hooks/createConnectionApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +23,40 @@ const menuItems = [
 
 export default function BottomMenu({ state, navigation }) {
   const currentRoute = state.routes[state.index].name;
+  const [hasDriverArrived, setHasDriverArrived] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    let interval;
+
+    const checkOrdersStatus = async () => {
+      try {
+        const userInfo = await AsyncStorage.getItem("userInfo");
+        if (userInfo) {
+          const { data } = await api.get('/orders/mine');
+          if (data && data.length > 0) {
+            // Verifica se há algum pedido pendente com status de que o motorista chegou
+            const arrived = data.some(order => order.status === 'No destino indicado');
+            if (isMounted) {
+              setHasDriverArrived(arrived);
+            }
+          } else {
+             if (isMounted) setHasDriverArrived(false);
+          }
+        }
+      } catch (error) {
+        // Ignora erros de polling silenciosamente
+      }
+    };
+
+    checkOrdersStatus();
+    interval = setInterval(checkOrdersStatus, 15000); // Polling a cada 15 segundos
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const goTo = (route) => {
     try {
@@ -67,6 +104,13 @@ export default function BottomMenu({ state, navigation }) {
                   size={24}
                   color={isActive ? "#FFFFFF" : "#7F00FF"}
                 />
+                
+                {/* Badge para Pedidos */}
+                {item.name === "Pedidos" && hasDriverArrived && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>!</Text>
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -143,5 +187,23 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     transform: [{ scale: 1.08 }],
     shadowColor: "#5900B3",
+  },
+  badge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#EF4444',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: 'bold',
   }
 });

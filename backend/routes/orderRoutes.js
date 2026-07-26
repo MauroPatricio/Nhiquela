@@ -1396,18 +1396,14 @@ orderRouter.put(
       const updateOrder = await order.save();
 
 
-      const sellerOfProduct = await User.findById(order.seller);
+      const clientOfProduct = await User.findById(order.user);
 
       //  Para envio de mensagens
-
-      let message = `Olá, a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido nÂº ${updateOrder.code}`;
+      let message = `O driver já chegou no destino, vá a aba meus pedidos`;
 
       //  sendSMSToUSendIt(req,message);
 
       // sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
-
-
-      const clientOfProduct = await User.findById(order.user);
 
       //toSeller
       // await createNotification({

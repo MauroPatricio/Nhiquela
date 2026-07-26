@@ -618,8 +618,20 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
           message: 'A sua recarga foi aprovada!'
         });
       }
+      
+      const User = mongoose.model('User');
+      const providerUser = await User.findById(wallet.user);
+      if (providerUser && providerUser.deviceToken) {
+         const { createNotification } = await import('../utils/createNotification.js');
+         await createNotification({
+           message: 'A sua recarga foi aprovada com sucesso!',
+           receiver_id: providerUser._id,
+           sender_id: req.user._id,
+           pushToken: providerUser.deviceToken
+         });
+      }
     } catch (socketErr) {
-      console.log('Socket error emitting:', socketErr.message);
+      console.log('Socket/Notification error emitting:', socketErr.message);
     }
 
     res.status(200).json({ message: 'Recarga autorizada com sucesso!' });
@@ -640,6 +652,26 @@ walletRouter.put('/:id/reject-topup', isAuth, async (req, res) => {
     }
     tx.status = 'falhado';
     await tx.save();
+
+    try {
+       const wallet = await Wallet.findById(tx.walletId);
+       if (wallet && wallet.user) {
+         const User = mongoose.model('User');
+         const providerUser = await User.findById(wallet.user);
+         if (providerUser && providerUser.deviceToken) {
+            const { createNotification } = await import('../utils/createNotification.js');
+            await createNotification({
+              message: 'A sua solicitação de recarga foi rejeitada.',
+              receiver_id: providerUser._id,
+              sender_id: req.user._id,
+              pushToken: providerUser.deviceToken
+            });
+         }
+       }
+    } catch (notifyErr) {
+       console.log('Notification error:', notifyErr.message);
+    }
+
     res.status(200).json({ message: 'Recarga rejeitada com sucesso!' });
   } catch (err) {
     res.status(500).json({ message: err.message || 'Erro ao rejeitar recarga' });
