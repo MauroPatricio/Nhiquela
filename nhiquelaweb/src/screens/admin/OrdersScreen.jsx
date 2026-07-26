@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faMotorcycle, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faMotorcycle, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute, faCreditCard } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
