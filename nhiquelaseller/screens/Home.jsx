@@ -8,6 +8,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import NetInfo from '@react-native-community/netinfo';
 import * as Notifications from 'expo-notifications';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SIZES, RADIUS, SHADOWS, getStatusColor } from '../constants/theme';
 
 Notifications.setNotificationHandler({
@@ -261,17 +262,22 @@ const Home = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Saldo Card */}
-          <View style={styles.balanceCard}>
+          {/* Saldo Card Premium */}
+          <LinearGradient
+            colors={[COLORS.primaryLight, COLORS.primary, COLORS.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.balanceCard}
+          >
             <View>
               <Text style={styles.balanceLabel}>Saldo da Carteira</Text>
               <Text style={styles.balanceValue}>{walletBalance.toFixed(2)} MT</Text>
             </View>
-            <TouchableOpacity style={styles.rechargeBtn} onPress={() => navigation.navigate('Wallet')}>
-              <Ionicons name="wallet-outline" size={16} color="#fff" />
-              <Text style={styles.rechargeBtnText}>Ver Carteira</Text>
+            <TouchableOpacity style={styles.rechargeBtn} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.8}>
+              <Ionicons name="wallet-outline" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
+              <Text style={[styles.rechargeBtnText, { color: COLORS.primary, fontWeight: '700' }]}>Ver Carteira</Text>
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           {/* Stats Row */}
           <View style={styles.statsRow}>

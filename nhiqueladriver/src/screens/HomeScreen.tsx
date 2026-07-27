@@ -1651,6 +1651,20 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </ScrollView>
 
+      {/* 🚀 HEADS-UP INTENT DE NOVA VIAGEM (INCOMING TRIP) */}
+      {allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3)) && (
+        <View style={styles.headsUpContainer}>
+          <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
+              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
+                {renderTripCard({ item: trip })}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* 🔥 MODAL PREMIUM "CONTA EM ANÁLISE" */}
       <Modal visible={showApprovalModal} transparent animationType="slide">
         <View style={styles.premiumModalOverlay}>
@@ -1716,19 +1730,7 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </Modal>
 
-      {/* 🚀 HEADS-UP INTENT DE NOVA VIAGEM (INCOMING TRIP) */}
-      {allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3)) && (
-        <View style={styles.headsUpContainer}>
-          <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-            {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
-              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
-                {renderTripCard({ item: trip })}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+
 
       {/* âœ… MODAL PREMIUM â€” VIAGEM ACEITE */}
       <Modal visible={showTripAcceptedModal} transparent animationType="fade">

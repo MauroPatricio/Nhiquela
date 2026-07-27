@@ -26,6 +26,25 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:127489638441:android:5ad80d31dca7c1c2ca9c38",
+        "android_client_info": {
+          "package_name": "com.mpatricio.nhiquelap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:127489638441:android:34799f6a6c57acd2ca9c38",
         "android_client_info": {
           "package_name": "com.nhiquela.driver"

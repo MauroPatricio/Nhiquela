@@ -1,98 +1,93 @@
 {
   "expo": {
-    "name": "NhiquelaPRO",
+    "name": "nhiquelaseller",
     "slug": "nhiquelap",
     "version": "1.0.0",
     "owner": "mpatricio",
     "orientation": "portrait",
     "icon": "./assets/nhiquela3.png",
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/nhiquela3.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
-    "assetBundlePatterns": ["**/*"],
-    "platforms": ["ios", "android", "web"],
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "android": {
       "package": "com.mpatricio.nhiquelap",
       "googleServicesFile": "./google-services.json",
-
       "icon": "./assets/nhiquela3.png",
-
       "adaptiveIcon": {
         "foregroundImage": "./assets/nhiquela3.png",
         "backgroundColor": "#ffffff"
       },
-
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "FOREGROUND_SERVICE",
         "POST_NOTIFICATIONS",
         "VIBRATE",
         "WAKE_LOCK"
       ],
-
       "notification": {
         "icon": "./assets/nhiquela3.png",
         "color": "#7F00FF",
         "androidCollapsedTitle": "NhiquelaPRO"
       },
-
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
         }
       },
-
       "buildProperties": {
         "enableProguardInReleaseBuilds": true
       },
-
-      "blocklistPatterns": ["*.so"],
-
-      "abiFilters": ["arm64-v8a"],
-
+      "blocklistPatterns": [
+        "*.so"
+      ],
+      "abiFilters": [
+        "arm64-v8a"
+      ],
       "enableDangerousExperimentalMemory16KbPageSupport": true
     },
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mpatricio.nhiquelap",
       "icon": "./assets/nhiquela3.png",
-
       "infoPlist": {
         "NSCameraUsageDescription": "NhiquelaPRO precisa acessar sua câmera para upload de imagens.",
         "NSPhotoLibraryUsageDescription": "NhiquelaPRO precisa acessar sua galeria para upload de fotos.",
         "NSLocationWhenInUseUsageDescription": "Nhiquela usa sua localização para entregas e mapas.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Nhiquela precisa da sua localização para rastreamento.",
-        "UIBackgroundModes": ["fetch", "remote-notification"],
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
         "NSUserTrackingUsageDescription": "O app utiliza dados para melhorar a experiência."
       },
-
       "config": {
         "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
       }
     },
-
     "web": {
       "favicon": "./assets/nhiquela3.png"
     },
-
     "plugins": [
       [
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 23,
             "ndkVersion": "26.1.10909125",
             "softwareKeyboardLayoutMode": "pan",
@@ -118,10 +113,8 @@
       "expo-notifications",
       "expo-font"
     ],
-
     "extra": {
       "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
-
       "firebase": {
         "apiKey": "AIzaSyCY-wvry4w6GAsMJQ4zD_e3LiMSVx3qoGU",
         "authDomain": "nhiquela-pro.firebaseapp.com",
@@ -131,12 +124,10 @@
         "appId": "1:321336552110:web:2883153d447c5abe96db3f",
         "measurementId": "G-2HJXSQN0Z7"
       },
-
       "eas": {
         "projectId": "3955dd7f-ad17-497a-966b-33dfae1b0b18"
       }
     },
-
     "runtimeVersion": "1.0.0"
   }
 }

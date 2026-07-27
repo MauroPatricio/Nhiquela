@@ -42,7 +42,6 @@
         "WAKE_LOCK",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED",
-        "FOREGROUND_SERVICE",
         "POST_NOTIFICATIONS"
       ],
       "config": {
@@ -95,9 +94,9 @@
         {
           "android": {
             "softwareKeyboardLayoutMode": "pan",
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
           },
           "ios": {
             "deploymentTarget": "15.1"
