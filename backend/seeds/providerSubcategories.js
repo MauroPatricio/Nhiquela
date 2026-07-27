@@ -6,12 +6,13 @@ export default [
     "providerTypeId": "6a536333c55cef36ed55108a",
     "description": "Estabelecimento comercial de pequena ou média dimensão que oferece produtos essenciais para o consumo diário, proporcionando conveniência e rapidez aos clientes.",
     "iconUrl": "",
-    "isActive": true,
+    "isActive": false,
     "motives": [],
     "originFloors": [],
     "loadingHelpOptions": [],
     "requiresPhotos": false,
     "pricingMode": "PROVIDER_DEFINED",
+    "allowNegotiation": false,
     "minProviderPrice": 0,
     "maxProviderPrice": 0,
     "hourlyRateEnabled": false,
@@ -25,13 +26,13 @@ export default [
     "supportsHelpers": false,
     "vehicleTypes": [],
     "createdAt": "2026-07-12T11:09:34.450Z",
-    "updatedAt": "2026-07-12T11:09:34.450Z",
+    "updatedAt": "2026-07-27T11:33:56.802Z",
     "__v": 0
   },
   {
     "_id": "6a537d74c55cef36ed551114",
     "name": "Reboque",
-    "order": 1,
+    "order": 2,
     "providerTypeId": "6a537593c55cef36ed5510b7",
     "description": "Transporte e assistência para veículos avariados, acidentados ou impossibilitados de circular, com atendimento rápido e seguro até ao destino solicitado.",
     "iconUrl": "car-crash",
@@ -48,6 +49,7 @@ export default [
     "loadingHelpOptions": [],
     "requiresPhotos": false,
     "pricingMode": "PROVIDER_DEFINED",
+    "allowNegotiation": false,
     "minProviderPrice": 0,
     "maxProviderPrice": 0,
     "hourlyRateEnabled": false,
@@ -63,17 +65,17 @@ export default [
       "6a523939419f4828d30fff00"
     ],
     "createdAt": "2026-07-12T11:41:40.566Z",
-    "updatedAt": "2026-07-12T12:43:36.553Z",
+    "updatedAt": "2026-07-27T11:33:42.933Z",
     "__v": 0
   },
   {
     "_id": "6a538617c55cef36ed551142",
     "name": "Gás ao Domicílio",
-    "order": 0,
+    "order": 1,
     "providerTypeId": "6a537593c55cef36ed5510b7",
     "description": "Entrega de gás de cozinha de forma rápida, segura e conveniente onde estiver",
     "iconUrl": "",
-    "isActive": true,
+    "isActive": false,
     "motives": [
       "Galp - 10KG"
     ],
@@ -81,6 +83,7 @@ export default [
     "loadingHelpOptions": [],
     "requiresPhotos": false,
     "pricingMode": "PROVIDER_DEFINED",
+    "allowNegotiation": false,
     "minProviderPrice": 0,
     "maxProviderPrice": 0,
     "hourlyRateEnabled": false,
@@ -96,13 +99,13 @@ export default [
       "6a53611bc55cef36ed550fed"
     ],
     "createdAt": "2026-07-12T12:18:31.233Z",
-    "updatedAt": "2026-07-13T11:55:49.423Z",
+    "updatedAt": "2026-07-27T11:33:42.933Z",
     "__v": 0
   },
   {
     "_id": "6a538776af6f6071bc5060c4",
-    "name": "Mudanças",
-    "order": 2,
+    "name": "Mudanças e Cargas",
+    "order": 3,
     "providerTypeId": "6a537593c55cef36ed5510b7",
     "description": "Serviços de mudanças para transporte de pertences com segurança e acompanhamento durante todo o percurso.",
     "iconUrl": "dolly",
@@ -112,7 +115,10 @@ export default [
       "Mudança de escritórios",
       "Mudança de armazéns",
       "Transporte de Cargas",
-      "Carregamento e descarregamento"
+      "Carregamento e descarregamento",
+      "Transporte de Material de Construção ",
+      "Entulho",
+      "Outro"
     ],
     "originFloors": [],
     "loadingHelpOptions": [
@@ -120,7 +126,8 @@ export default [
       "Transporte + Carregamento"
     ],
     "requiresPhotos": false,
-    "pricingMode": "PROVIDER_DEFINED",
+    "pricingMode": "AUTO_PLUS_PROVIDER",
+    "allowNegotiation": false,
     "minProviderPrice": 0,
     "maxProviderPrice": 0,
     "hourlyRateEnabled": false,
@@ -136,22 +143,28 @@ export default [
       "6a53611bc55cef36ed550fed"
     ],
     "createdAt": "2026-07-12T12:24:22.188Z",
-    "updatedAt": "2026-07-13T12:01:40.888Z",
+    "updatedAt": "2026-07-27T11:33:42.933Z",
     "__v": 0
   },
   {
     "_id": "6a5388b398c76935d0190efd",
-    "name": "Cargas e encomendas",
-    "order": 3,
+    "name": "Carro",
+    "order": 4,
     "providerTypeId": "6a537593c55cef36ed5510b7",
     "description": "Compras de supermercados (rancho), entrega de  compras em lojas, cargas pesadas entre outros",
     "iconUrl": "truck-loading",
     "isActive": true,
-    "motives": [],
+    "motives": [
+      "Compras de supermercado ",
+      "Transporte de carga",
+      "Rancho",
+      "Motorista Particular"
+    ],
     "originFloors": [],
     "loadingHelpOptions": [],
     "requiresPhotos": false,
     "pricingMode": "AUTO",
+    "allowNegotiation": false,
     "minProviderPrice": 0,
     "maxProviderPrice": 0,
     "hourlyRateEnabled": false,
@@ -164,19 +177,18 @@ export default [
     "requiresVehicleType": false,
     "supportsHelpers": false,
     "vehicleTypes": [
-      "6a523938419f4828d30ffefc",
       "6a523938419f4828d30ffefe"
     ],
     "createdAt": "2026-07-12T12:29:39.277Z",
-    "updatedAt": "2026-07-13T12:03:06.892Z",
+    "updatedAt": "2026-07-27T11:33:42.933Z",
     "__v": 0
   },
   {
     "_id": "6a538ad098c76935d0190f19",
-    "name": "Deliver e Mototaxistas",
-    "order": 0,
+    "name": "Mototaxistas e Delivers",
+    "order": 1,
     "providerTypeId": "6a537593c55cef36ed5510b7",
-    "description": "Transporte de produtos, documentos e encomendas de forma rapida e com comodidade.",
+    "description": "Transporte de produtos, documentos, encomendas  e pessoas de forma rapida e com comodidade.",
     "iconUrl": "",
     "isActive": true,
     "motives": [
@@ -184,12 +196,13 @@ export default [
       "Entrega de compras de supermercados",
       "Entrega de medicamentos",
       "Entrega de documentos",
-      "Transporte de passageiro"
+      "Transporte de passageiro (Mototaxi)"
     ],
     "originFloors": [],
     "loadingHelpOptions": [],
     "requiresPhotos": false,
     "pricingMode": "AUTO",
+    "allowNegotiation": false,
     "minProviderPrice": 0,
     "maxProviderPrice": 0,
     "hourlyRateEnabled": false,
@@ -205,7 +218,39 @@ export default [
       "6a523938419f4828d30ffefc"
     ],
     "createdAt": "2026-07-12T12:38:40.401Z",
-    "updatedAt": "2026-07-13T12:00:46.074Z",
+    "updatedAt": "2026-07-27T11:33:42.933Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a6742178b04d814a3bf95ea",
+    "name": "Camião de Limpeza de Fossas",
+    "order": 0,
+    "providerTypeId": "6a537593c55cef36ed5510b7",
+    "description": "Resolva rapidamente problemas de fossas cheias, entupidas ou com mau cheiro.",
+    "iconUrl": "truck",
+    "isActive": true,
+    "motives": [],
+    "originFloors": [],
+    "loadingHelpOptions": [],
+    "requiresPhotos": false,
+    "pricingMode": "AUTO_PLUS_PROVIDER",
+    "allowNegotiation": false,
+    "minProviderPrice": 0,
+    "maxProviderPrice": 0,
+    "hourlyRateEnabled": false,
+    "materialFeeEnabled": false,
+    "baseFare": 0,
+    "pricePerKm": 0,
+    "serviceCommission": 0,
+    "serviceFee": 0,
+    "percentageFee": 0,
+    "requiresVehicleType": false,
+    "supportsHelpers": false,
+    "vehicleTypes": [
+      "6a53611bc55cef36ed550fed"
+    ],
+    "createdAt": "2026-07-27T11:33:43.074Z",
+    "updatedAt": "2026-07-27T11:33:43.074Z",
     "__v": 0
   }
 ];

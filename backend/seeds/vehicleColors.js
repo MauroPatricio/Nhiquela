@@ -6,9 +6,9 @@ export default [
     "rgbCode": "RGB(0,0,0)",
     "isActive": true,
     "sortOrder": 1,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.739Z",
-    "updatedAt": "2026-07-11T11:27:53.739Z"
+    "updatedAt": "2026-07-11T11:27:53.739Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b61b",
@@ -17,9 +17,9 @@ export default [
     "rgbCode": "RGB(255,255,255)",
     "isActive": true,
     "sortOrder": 2,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b61c",
@@ -28,9 +28,9 @@ export default [
     "rgbCode": "RGB(255,0,0)",
     "isActive": true,
     "sortOrder": 3,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b61d",
@@ -39,9 +39,9 @@ export default [
     "rgbCode": "RGB(0,128,0)",
     "isActive": true,
     "sortOrder": 4,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b61e",
@@ -50,9 +50,9 @@ export default [
     "rgbCode": "RGB(0,0,255)",
     "isActive": true,
     "sortOrder": 5,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b61f",
@@ -61,9 +61,9 @@ export default [
     "rgbCode": "RGB(255,255,0)",
     "isActive": true,
     "sortOrder": 6,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b620",
@@ -72,9 +72,9 @@ export default [
     "rgbCode": "RGB(128,128,128)",
     "isActive": true,
     "sortOrder": 7,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b621",
@@ -83,9 +83,9 @@ export default [
     "rgbCode": "RGB(192,192,192)",
     "isActive": true,
     "sortOrder": 8,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b622",
@@ -94,9 +94,9 @@ export default [
     "rgbCode": "RGB(255,215,0)",
     "isActive": true,
     "sortOrder": 9,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b623",
@@ -105,9 +105,9 @@ export default [
     "rgbCode": "RGB(139,69,19)",
     "isActive": true,
     "sortOrder": 10,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b624",
@@ -116,9 +116,9 @@ export default [
     "rgbCode": "RGB(245,245,220)",
     "isActive": true,
     "sortOrder": 11,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b625",
@@ -127,9 +127,9 @@ export default [
     "rgbCode": "RGB(255,165,0)",
     "isActive": true,
     "sortOrder": 12,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b626",
@@ -138,9 +138,9 @@ export default [
     "rgbCode": "RGB(128,0,128)",
     "isActive": true,
     "sortOrder": 13,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b627",
@@ -149,9 +149,9 @@ export default [
     "rgbCode": "RGB(255,192,203)",
     "isActive": true,
     "sortOrder": 14,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b628",
@@ -160,9 +160,9 @@ export default [
     "rgbCode": "RGB(128,0,0)",
     "isActive": true,
     "sortOrder": 15,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b629",
@@ -171,9 +171,9 @@ export default [
     "rgbCode": "RGB(0,0,128)",
     "isActive": true,
     "sortOrder": 16,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b62a",
@@ -182,9 +182,9 @@ export default [
     "rgbCode": "RGB(0,100,0)",
     "isActive": true,
     "sortOrder": 17,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.740Z",
-    "updatedAt": "2026-07-11T11:27:53.740Z"
+    "updatedAt": "2026-07-11T11:27:53.740Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b62b",
@@ -193,9 +193,9 @@ export default [
     "rgbCode": "RGB(28,28,28)",
     "isActive": true,
     "sortOrder": 18,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.741Z",
-    "updatedAt": "2026-07-11T11:27:53.741Z"
+    "updatedAt": "2026-07-11T11:27:53.741Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b62c",
@@ -204,9 +204,9 @@ export default [
     "rgbCode": "RGB(191,193,194)",
     "isActive": true,
     "sortOrder": 19,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.741Z",
-    "updatedAt": "2026-07-11T11:27:53.741Z"
+    "updatedAt": "2026-07-11T11:27:53.741Z",
+    "__v": 0
   },
   {
     "_id": "6a5228b9daf294badb95b62d",
@@ -215,8 +215,8 @@ export default [
     "rgbCode": "RGB(248,248,255)",
     "isActive": true,
     "sortOrder": 20,
-    "__v": 0,
     "createdAt": "2026-07-11T11:27:53.741Z",
-    "updatedAt": "2026-07-11T11:27:53.741Z"
+    "updatedAt": "2026-07-11T11:27:53.741Z",
+    "__v": 0
   }
 ];

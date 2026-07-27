@@ -3,6 +3,7 @@ export default [
     "_id": "6a523938419f4828d30ffefc",
     "name": "Mota",
     "category": "leve",
+    "capacityKg": 20,
     "isActive": true,
     "basePrice": 500,
     "baseFare": 50,
@@ -18,13 +19,13 @@ export default [
     "loadingFee": 0,
     "createdAt": "2026-07-11T12:38:16.648Z",
     "updatedAt": "2026-07-12T09:36:59.701Z",
-    "__v": 0,
-    "capacityKg": 20
+    "__v": 0
   },
   {
     "_id": "6a523938419f4828d30ffefe",
     "name": "Carro",
     "category": "ligeiro",
+    "capacityKg": 50,
     "isActive": true,
     "basePrice": 500,
     "baseFare": 100,
@@ -40,13 +41,13 @@ export default [
     "loadingFee": 0,
     "createdAt": "2026-07-11T12:38:16.968Z",
     "updatedAt": "2026-07-12T09:38:53.646Z",
-    "__v": 0,
-    "capacityKg": 50
+    "__v": 0
   },
   {
     "_id": "6a523939419f4828d30fff00",
     "name": "Reboque",
     "category": "pesado",
+    "capacityKg": 750,
     "isActive": true,
     "basePrice": 1000,
     "baseFare": 1500,
@@ -62,13 +63,13 @@ export default [
     "loadingFee": 0,
     "createdAt": "2026-07-11T12:38:17.247Z",
     "updatedAt": "2026-07-12T09:39:26.866Z",
-    "__v": 0,
-    "capacityKg": 750
+    "__v": 0
   },
   {
     "_id": "6a53611bc55cef36ed550fed",
     "name": "Camião",
     "category": "ligeiro",
+    "capacityKg": 750,
     "isActive": true,
     "basePrice": 1000,
     "baseFare": 0,
@@ -84,7 +85,6 @@ export default [
     "loadingFee": 0,
     "createdAt": "2026-07-12T09:40:43.564Z",
     "updatedAt": "2026-07-12T09:41:10.677Z",
-    "__v": 0,
-    "capacityKg": 750
+    "__v": 0
   }
 ];

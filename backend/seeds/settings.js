@@ -5,9 +5,9 @@ export default [
     "value": "45",
     "description": "Taxa Base de entrega (MZN)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T12:19:46.361Z"
+    "updatedAt": "2026-07-11T12:19:46.361Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854abc",
@@ -15,9 +15,9 @@ export default [
     "value": "15",
     "description": "Valor cobrado por Quilómetro (MZN)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T12:05:54.449Z"
+    "updatedAt": "2026-07-11T12:05:54.449Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854abd",
@@ -25,9 +25,9 @@ export default [
     "value": "0",
     "description": "Taxa Fixa de Serviço da Plataforma (MZN)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T12:05:55.755Z"
+    "updatedAt": "2026-07-11T12:05:55.755Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854abe",
@@ -35,9 +35,9 @@ export default [
     "value": "15",
     "description": "Comissão da Nhiquela (%) descontada ao prestador",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854abf",
@@ -45,9 +45,9 @@ export default [
     "value": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
     "description": "Chave de API do Google Maps para o Dashboard",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T12:01:53.506Z"
+    "updatedAt": "2026-07-11T12:01:53.506Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac0",
@@ -55,9 +55,9 @@ export default [
     "value": "80",
     "description": "Tarifa mínima (MT): Entregas e Táxi",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac1",
@@ -65,9 +65,9 @@ export default [
     "value": "100",
     "description": "Tarifa mínima (MT): Serviços (ex: Eletricista)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac2",
@@ -75,9 +75,9 @@ export default [
     "value": "1.20",
     "description": "Multiplicador de Preço: Quando chove (ex: 1.20 = +20%)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac3",
@@ -85,9 +85,9 @@ export default [
     "value": "1.15",
     "description": "Multiplicador de Preço: Viagens de Noite (20h às 02h)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac4",
@@ -95,9 +95,9 @@ export default [
     "value": "1.25",
     "description": "Multiplicador de Preço: Viagens de Madrugada (02h às 06h)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac5",
@@ -105,9 +105,9 @@ export default [
     "value": "1.10",
     "description": "Multiplicador de Preço: Viagens aos Sábados",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.606Z",
-    "updatedAt": "2026-07-11T11:39:41.606Z"
+    "updatedAt": "2026-07-11T11:39:41.606Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac6",
@@ -115,9 +115,9 @@ export default [
     "value": "1.15",
     "description": "Multiplicador de Preço: Viagens aos Domingos",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.607Z",
-    "updatedAt": "2026-07-11T11:39:41.607Z"
+    "updatedAt": "2026-07-11T11:39:41.607Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac7",
@@ -125,9 +125,9 @@ export default [
     "value": "1.20",
     "description": "Multiplicador de Preço: Alta Procura de viaturas (Surge)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.607Z",
-    "updatedAt": "2026-07-11T11:39:41.607Z"
+    "updatedAt": "2026-07-11T11:39:41.607Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac8",
@@ -135,9 +135,9 @@ export default [
     "value": "1.35",
     "description": "Multiplicador de Preço: Trânsito Intenso / Hora de Ponta",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.607Z",
-    "updatedAt": "2026-07-11T11:39:41.607Z"
+    "updatedAt": "2026-07-11T11:39:41.607Z",
+    "__v": 0
   },
   {
     "_id": "6a522b7df06d17ccc6854ac9",
@@ -145,9 +145,9 @@ export default [
     "value": "mauro.patricio1@gmail.com,nhiquelaservicos@gmail.com",
     "description": "Emails que recebem alertas de novos motoristas, recargas e suporte (separados por vírgula)",
     "type": "string",
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:41.607Z",
-    "updatedAt": "2026-07-11T11:39:41.607Z"
+    "updatedAt": "2026-07-11T11:39:41.607Z",
+    "__v": 0
   },
   {
     "_id": "6a5231a47c747a546f4bf316",
