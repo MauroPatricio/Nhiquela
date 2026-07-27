@@ -3,7 +3,10 @@
     "name": "nhiqueladriver",
     "slug": "nhiqueladriver",
     "scheme": "nhiqueladriver",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/nhiquela2-square.png",
@@ -53,7 +56,10 @@
       "supportsTablet": true,
       "usesAppleSignIn": false,
       "infoPlist": {
-        "UIBackgroundModes": ["location", "remote-notification"],
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ],
         "NSUserTrackingUsageDescription": "O Nhiquela Driver usa notificações para atualizações de pedidos e entregas.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Precisamos da sua localização em segundo plano para que os clientes saibam onde está."
       }
@@ -62,22 +68,26 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas."
+          "locationAlwaysAndWhenInUsePermission": "Precisamos da sua localização em segundo plano para o rastreamento das entregas.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [
         "expo-notifications",
         {
-          "sounds": ["./src/assets/sounds/calldriver.mp3"]
+          "sounds": [
+            "./src/assets/sounds/calldriver.mp3"
+          ]
         }
       ],
       [
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
           }
         }
       ]

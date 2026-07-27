@@ -417,50 +417,42 @@ const NewProduct = () => {
                     {/* Cores */}
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Cores Disponíveis *</Text>
-                      <View style={[styles.pickerContainer, errorColor && { borderColor: COLORS.error }]}>
-                        <Picker
-                          selectedValue=""
-                          onValueChange={(val) => handleColorSelect(val)}
-                          style={styles.picker}
-                          dropdownIconColor={COLORS.text}
-                        >
-                          <Picker.Item label="Adicionar uma cor" value="" color={COLORS.textMuted} />
-                          {colors.map(c => <Picker.Item key={c._id} label={c.nome} value={c} color="#000" />)}
-                        </Picker>
-                      </View>
-                      <View style={styles.chipRow}>
-                        {selectedColors.map(c => (
-                          <TouchableOpacity key={c._id} style={styles.chip} onPress={() => removeColor(c._id)}>
-                            <Text style={styles.chipText}>{c.nome}</Text>
-                            <Ionicons name="close-circle" size={16} color={COLORS.textSecondary} />
-                          </TouchableOpacity>
-                        ))}
-                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsScroll}>
+                        {colors.map(c => {
+                          const isSelected = selectedColors.some(sc => sc._id === c._id);
+                          return (
+                            <TouchableOpacity
+                              key={c._id}
+                              style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                              onPress={() => isSelected ? removeColor(c._id) : handleColorSelect(c)}
+                            >
+                              <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{c.nome}</Text>
+                              {isSelected && <Ionicons name="checkmark-circle" size={16} color={COLORS.primaryLight} style={{ marginLeft: 4 }} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
                       {errorColor && <Text style={styles.errorText}>{errorColor}</Text>}
                     </View>
 
                     {/* Tamanhos */}
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Tamanhos Disponíveis *</Text>
-                      <View style={[styles.pickerContainer, errorSize && { borderColor: COLORS.error }]}>
-                        <Picker
-                          selectedValue=""
-                          onValueChange={(val) => handleSizeSelect(val)}
-                          style={styles.picker}
-                          dropdownIconColor={COLORS.text}
-                        >
-                          <Picker.Item label="Adicionar um tamanho" value="" color={COLORS.textMuted} />
-                          {sizes.map(s => <Picker.Item key={s._id} label={s.nome} value={s} color="#000" />)}
-                        </Picker>
-                      </View>
-                      <View style={styles.chipRow}>
-                        {selectedSizes.map(s => (
-                          <TouchableOpacity key={s._id} style={styles.chip} onPress={() => removeSize(s._id)}>
-                            <Text style={styles.chipText}>{s.nome}</Text>
-                            <Ionicons name="close-circle" size={16} color={COLORS.textSecondary} />
-                          </TouchableOpacity>
-                        ))}
-                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsScroll}>
+                        {sizes.map(s => {
+                          const isSelected = selectedSizes.some(ss => ss._id === s._id);
+                          return (
+                            <TouchableOpacity
+                              key={s._id}
+                              style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                              onPress={() => isSelected ? removeSize(s._id) : handleSizeSelect(s)}
+                            >
+                              <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{s.nome}</Text>
+                              {isSelected && <Ionicons name="checkmark-circle" size={16} color={COLORS.primaryLight} style={{ marginLeft: 4 }} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
                       {errorSize && <Text style={styles.errorText}>{errorSize}</Text>}
                     </View>
 
@@ -754,6 +746,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
+  },
+  optionsScroll: {
+    marginTop: 4,
+  },
+  optionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.full,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  optionPillActive: {
+    backgroundColor: COLORS.primaryGlow,
+    borderColor: COLORS.primary,
+  },
+  optionPillText: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.sm,
+    fontWeight: '500',
+  },
+  optionPillTextActive: {
+    color: COLORS.primaryLight,
+    fontWeight: '700',
   },
   chip: {
     flexDirection: 'row',
