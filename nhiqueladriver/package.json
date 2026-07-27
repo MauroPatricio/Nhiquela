@@ -2,7 +2,7 @@
   "name": "nhiqueladriver",
   "version": "0.0.1",
   "private": true,
-  "main": "index.js",
+  "main": "expo/AppEntry.js",
   "scripts": {
     "android": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo run:android",
     "ios": "cross-env NODE_OPTIONS=\"--require ./polyfill.js\" expo run:ios",

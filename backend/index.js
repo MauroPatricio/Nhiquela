@@ -272,11 +272,15 @@ if (process.env.NODE_ENV !== 'test') {
   } catch (err) {
     console.error('⚠️ Could not connect to Redis. Falling back to in-memory Socket.io', err.message);
     if (pubClient) {
-      pubClient.disconnect().catch(() => {});
+      try {
+        if (pubClient.isOpen) await pubClient.disconnect();
+      } catch (e) {}
       pubClient = null;
     }
     if (subClient) {
-      subClient.disconnect().catch(() => {});
+      try {
+        if (subClient.isOpen) await subClient.disconnect();
+      } catch (e) {}
     }
   }
 

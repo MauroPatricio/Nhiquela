@@ -20,6 +20,7 @@ import * as Location from "expo-location";
 import { COLORS } from "../styles/colors";
 import { getTripsHistory } from "../services/tripService";
 import { useAuth } from '../context/AuthContext';
+import websocketService from "../services/websocketService";
 
 export default function TripScreen({ navigation }: any) {
   const [trips, setTrips] = useState<any[]>([]);
@@ -91,15 +92,15 @@ export default function TripScreen({ navigation }: any) {
         let statusIcon = "help-circle";
 
         // Priorizar validação via `stepStatus` (mais robusto)
-        if (trip.stepStatus === 7 || trip.isCanceled) {
+        if (trip.stepStatus === 8 || trip.isCanceled) {
           status = "Cancelada";
           statusColor = "#FF4E4E";
           statusIcon = "close-circle";
-        } else if (trip.stepStatus === 6 || trip.isDelivered) {
+        } else if (trip.stepStatus === 7 || trip.isDelivered) {
           status = "Concluída";
           statusColor = "#27AE60";
           statusIcon = "checkmark-circle";
-        } else if (trip.stepStatus >= 3 && trip.stepStatus <= 5 || trip.isInTransit) {
+        } else if (trip.stepStatus >= 3 && trip.stepStatus <= 6 || trip.isInTransit) {
           status = "Em Andamento";
           statusColor = "#F39C12";
           statusIcon = "time";
@@ -282,6 +283,17 @@ export default function TripScreen({ navigation }: any) {
 
   useEffect(() => {
     loadTripsHistory();
+
+    const handleOrderUpdate = (data: any) => {
+      // Quando houver atualização de um pedido, recarrega o histórico
+      loadTripsHistory();
+    };
+
+    websocketService.on('order_updated', handleOrderUpdate);
+
+    return () => {
+      websocketService.off('order_updated', handleOrderUpdate);
+    };
   }, [isDriverApproved]);
 
   const renderNotApprovedMessage = () => (

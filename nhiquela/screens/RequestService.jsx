@@ -21,6 +21,7 @@ import {
   Image,
   Share
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
 
@@ -752,6 +753,14 @@ export default function RequestServiceSimple() {
                 setIsSearching(false);
                 setActiveTripData(updatedOrder);
                 setCurrentRequestServiceId(null);
+                Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: "Pedido Aceite!",
+                    body: `O motorista ${updatedOrder.deliveryman?.name || ''} aceitou o seu pedido e está a caminho!`,
+                    sound: true,
+                  },
+                  trigger: null,
+                });
             }
          }
       });
@@ -785,6 +794,14 @@ export default function RequestServiceSimple() {
                  "O motorista chegou!", 
                  `O motorista ${updatedOrder.deliveryman?.name || ''} acaba de chegar ao local indicado.`
                );
+               Notifications.scheduleNotificationAsync({
+                 content: {
+                   title: "Motorista Chegou!",
+                   body: `O motorista ${updatedOrder.deliveryman?.name || ''} chegou ao local. Vá ao encontro dele.`,
+                   sound: true,
+                 },
+                 trigger: null,
+               });
             } else if (updatedOrder.status === 'Cancelado') {
                Alert.alert(
                  "Viagem Cancelada", 
@@ -968,6 +985,26 @@ export default function RequestServiceSimple() {
           </Marker>
         ))}
       </MapView>
+
+      {destCoord && step === 1 && (
+        <View style={{
+          position: 'absolute',
+          top: 80,
+          left: 20,
+          right: 20,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          padding: 12,
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+          zIndex: 5
+        }}>
+          <Ionicons name="information-circle" size={24} color="#FFF" style={{ marginRight: 8 }} />
+          <Text style={{ color: '#FFF', fontSize: 13, flex: 1, fontWeight: '500' }}>
+            Para ajustar o destino, pressione e segure o pino vermelho no mapa e arraste-o para onde desejar.
+          </Text>
+        </View>
+      )}
 
       <TouchableOpacity 
         style={styles.floatingBackBtn} 
@@ -1496,13 +1533,33 @@ export default function RequestServiceSimple() {
                               </View>
                               <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <MaterialCommunityIcons name="car-side" size={14} color="#6B7280" />
-                                <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 2 }} numberOfLines={1}>
-                                  {(() => {
-                                    const tType = service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido';
-                                    return /^[a-fA-F0-9]{24}$/.test(tType) ? 'Motorista' : tType;
-                                  })()}
-                                </Text>
+                                {(() => {
+                                  const tType = service?.name || driver.transport_type || driver.deliveryman?.transport_type || 'Desconhecido';
+                                  let tName = /^[a-fA-F0-9]{24}$/.test(String(tType)) ? 'Motorista' : tType;
+                                  if (typeof tName === 'object' && tName.name) tName = tName.name;
+                                  tName = String(tName);
+                                  const isCar = tName.toLowerCase().includes('carro') || tName.toLowerCase().includes('reboque') || tName.toLowerCase().includes('motorista');
+                                  
+                                  return (
+                                    <View style={{ 
+                                      flexDirection: 'row', 
+                                      alignItems: 'center', 
+                                      backgroundColor: isCar ? '#DBEAFE' : '#F3F4F6',
+                                      paddingHorizontal: 6,
+                                      paddingVertical: 2,
+                                      borderRadius: 6
+                                    }}>
+                                      <MaterialCommunityIcons 
+                                        name={isCar ? "car" : "car-side"} 
+                                        size={14} 
+                                        color={isCar ? "#1D4ED8" : "#6B7280"} 
+                                      />
+                                      <Text style={{ fontSize: 13, color: isCar ? '#1D4ED8' : '#6B7280', marginLeft: 4, fontWeight: '500' }} numberOfLines={1}>
+                                        {tName}
+                                      </Text>
+                                    </View>
+                                  );
+                                })()}
                               </View>
                             </View>
                           </View>

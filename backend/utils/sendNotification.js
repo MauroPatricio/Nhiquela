@@ -1,6 +1,6 @@
 import admin from '../firebase.js';
 
-export async function sendNotification(deviceToken, title, body, data = {}) {
+export async function sendNotification(deviceToken, title, body, data = {}, type = 'default') {
   if (!deviceToken || deviceToken === 'null') {
     return { success: false, error: 'Token invalido' };
   }
@@ -12,6 +12,14 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
     }
   }
 
+  let channelId = 'default';
+  let sound = 'default';
+  
+  if (type === 'new_order') {
+     channelId = 'driver_alerts_urgent';
+     sound = 'calldriver';
+  }
+
   const message = {
     notification: {
       title,
@@ -20,8 +28,8 @@ export async function sendNotification(deviceToken, title, body, data = {}) {
     android: {
       priority: 'high',
       notification: {
-        channelId: 'driver_alerts_urgent',
-        sound: 'calldriver', // Para o Android (FCM), o nome sem extensão muitas vezes funciona melhor
+        channelId: channelId,
+        sound: sound,
         priority: 'max',
         defaultVibrateTimings: true,
         visibility: 'public', // Ajuda a mostrar no lock screen

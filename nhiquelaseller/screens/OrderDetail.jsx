@@ -194,7 +194,7 @@ const OrderDetail = ({ navigation }) => {
         </View>
 
         {/* Timeline */}
-        {currentOrder.stepStatus < 7 && (
+        {currentOrder.stepStatus < 8 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Progresso</Text>
             <View style={styles.timeline}>
@@ -228,7 +228,7 @@ const OrderDetail = ({ navigation }) => {
           {currentOrder.isPaid && <InfoRow label="Data de pagamento" value={formatDate(currentOrder.paidAt)} />}
           <InfoRow label="Taxa de entrega" value={`${currentOrder.addressPrice} MT`} />
           <InfoRow label="Valor recebido" value={`${currentOrder.itemsPriceForSeller} MT`} highlight />
-          {currentOrder.stepStatus === 7 && currentOrder.canceledReason && (
+          {currentOrder.stepStatus === 8 && currentOrder.canceledReason && (
             <InfoRow label="Motivo de cancelamento" value={currentOrder.canceledReason} />
           )}
         </View>

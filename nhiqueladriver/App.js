@@ -1,4 +1,5 @@
 // App.tsx
+import './appPolyfills';
 import React, { useState, useEffect, useRef } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
@@ -25,14 +26,13 @@ import Toast from "react-native-toast-message";
 import FlashMessage from "react-native-flash-message";
 import api from "./src/api/apiConfig";
 import "./src/services/LocationService"; // Define as tarefas de background no escopo global
-
+import websocketService from "./src/services/websocketService";
 // 🔗 Referência global de navegação
 export const navigationRef = createNavigationContainerRef();
 
 // ⚙️ Configuração de comportamento das notificações
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
@@ -74,6 +74,13 @@ async function registerForPushNotificationsAsync() {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: true, // Força a notificação a tocar mesmo se não perturbar ativo (depende de permissões em alguns Androids)
     });
+  }
+
+  try {
+    await Notifications.registerTaskAsync('BACKGROUND-NOTIFICATION-TASK');
+    console.log("✅ Background notification task registered successfully");
+  } catch (err) {
+    console.log("❌ Failed to register background task", err);
   }
 
   return token;
@@ -152,6 +159,19 @@ function AppContent() {
       }
     );
 
+    // 🔥 OUVINTE GLOBAL DO WEBSOCKET PARA REDIRECIONAR EM NOVOS PEDIDOS
+    const handleGlobalNewOrder = (data) => {
+      console.log("🌐 App.js - Novo pedido detectado globalmente, forçando redirecionamento para a tela inicial...");
+      if (navigationRef.isReady()) {
+        navigationRef.navigate("MainTabs", {
+          screen: "Home",
+          params: { orderId: data._id || data.id }
+        });
+      }
+    };
+    
+    websocketService.on('new_order', handleGlobalNewOrder);
+
     // Simular carregamento inicial
     const timer = setTimeout(() => setLoading(false), 1000);
 
@@ -163,6 +183,7 @@ function AppContent() {
       if (responseListener.current) {
         responseListener.current.remove();
       }
+      websocketService.off('new_order', handleGlobalNewOrder);
     };
   }, [isAuthenticated, user]);
 

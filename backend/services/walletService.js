@@ -300,22 +300,39 @@ export const debitDriverCommissionWithSession = async (driverId, amount, descrip
     status: 'confirmado'
   }], { session });
 
-  // Suspend driver if balance falls below required minimum after this debit
-  const config = await getFinancialConfig();
-  const limit = await getDriverMinimumBalance(driverId, config, session);
-  if (config.autoDisableOnLowBalance && wallet.balance < limit) {
-    const driver = await User.findById(driverId).session(session);
-    if (driver) {
-      driver.status = 'Inativo'; // Suspenso por falta de saldo
-      if (!driver.deliveryman) driver.deliveryman = {};
-      driver.deliveryman.register_conformance = 'INCONFORMANCE';
-      await driver.save({ session });
-    }
-  }
-
+  // ✅ Auto-disable check é feito FORA da transação (em background) para evitar dynamic imports dentro de session
+  // O chamador deve invocar checkAndDisableDriverIfLowBalance(driverId) após commitTransaction()
   // Note: we don't commit the session here, the route controller does it
   return wallet;
 };
+
+/**
+ * ✅ Verificar e suspender motorista se saldo baixo — chamar FORA de qualquer transação
+ */
+export const checkAndDisableDriverIfLowBalance = async (driverId) => {
+  try {
+    const config = await getFinancialConfig();
+    const limit = await getDriverMinimumBalance(driverId, config);
+    const wallet = await Wallet.findOne({ $or: [{ ownerId: driverId }, { userId: driverId }] });
+    if (!wallet) return;
+
+    if (config.autoDisableOnLowBalance && wallet.balance < limit) {
+      await User.updateOne(
+        { _id: driverId },
+        {
+          $set: {
+            status: 'Inativo',
+            'deliveryman.register_conformance': 'INCONFORMANCE'
+          }
+        }
+      );
+      console.log(`[Wallet] ⚠️ Motorista ${driverId} suspenso por saldo insuficiente (${wallet.balance} < ${limit})`);
+    }
+  } catch (err) {
+    console.error('[Wallet] Erro ao verificar saldo do motorista:', err.message);
+  }
+};
+
 
 /** Refund driver commission using MongoDB Sessions for atomicity */
 export const refundDriverCommissionWithSession = async (driverId, amount, description, method, session) => {

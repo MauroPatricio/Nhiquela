@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity, Modal, Linking, Image } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import TripMap from "../components/TripMap";
 import TripControls from "../components/TripControls";
 import { getCurrentLocation, updateDeliverymanLocation } from "../services/driverLocationService";
@@ -21,9 +22,10 @@ const FALLBACK_LOCATION = {
 
 const getImageUrl = (path?: string) => {
   if (!path) return null;
-  if (path.startsWith('http') || path.startsWith('data:image')) return path;
+  const normalizedPath = path.replace(/\\/g, '/');
+  if (normalizedPath.startsWith('http') || normalizedPath.startsWith('data:image')) return normalizedPath;
   const baseUrl = API_BASE_URL.replace('/api', '');
-  return path.startsWith('/') ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+  return normalizedPath.startsWith('/') ? `${baseUrl}${normalizedPath}` : `${baseUrl}/${normalizedPath}`;
 };
 
 export default function MapScreen({ route, navigation }: any) {
@@ -91,9 +93,9 @@ export default function MapScreen({ route, navigation }: any) {
         socket.on('order_updated', async (data) => {
           if (data && (data._id === orderId || data.id === orderId)) {
             const status = data.status || "";
-            if (status === 'Entregue' || status === 'Finalizado' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
+            if (status === 'Entregue' || status === 'Finalizado' || status === 'Concluído' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
               await AsyncStorage.removeItem("acceptedTrip");
-              navigation.goBack();
+              navigation.navigate('Home');
             }
           }
         });
@@ -111,22 +113,38 @@ export default function MapScreen({ route, navigation }: any) {
     };
   }, []);
   
-
-  useEffect(() => {
-    const loadTripData = async () => {
-      try {
-        setLoading(true);
-
-        // 🔥 Obter localização atual com fallback PRIMEIRO
+  useFocusEffect(
+    useCallback(() => {
+      const loadTripData = async () => {
         try {
-          const location = await getCurrentLocation();
+          setLoading(true);
+
+        // 🔥 Acelerar carregamento usando a última localização conhecida (Instantâneo)
+        try {
+          const lastLocation = await Location.getLastKnownPositionAsync();
+          if (lastLocation) {
+            setCurrentLocation({
+              latitude: lastLocation.coords.latitude,
+              longitude: lastLocation.coords.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+              accuracy: lastLocation.coords.accuracy,
+            });
+            setLocationError(null);
+          } else {
+            setCurrentLocation(FALLBACK_LOCATION);
+          }
+        } catch (err) {
+          setCurrentLocation(FALLBACK_LOCATION);
+        }
+
+        // 🔥 Disparar a busca de alta precisão em background sem bloquear o render
+        getCurrentLocation().then(location => {
           setCurrentLocation(location);
           setLocationError(null);
-        } catch (locationError: any) {
-          console.warn("âš ï¸ Não foi possível obter localização, usando fallback:", locationError.message);
-          setCurrentLocation(FALLBACK_LOCATION);
-          setLocationError(locationError.message);
-        }
+        }).catch(err => {
+          console.warn("Falha no GPS de alta precisão em background", err.message);
+        });
 
         let storedTripString = await AsyncStorage.getItem("acceptedTrip");
         let storedTrip = null;
@@ -150,9 +168,9 @@ export default function MapScreen({ route, navigation }: any) {
         // 🔥 Definir destino baseado no stepStatus
         if (storedTrip) {  
           if (storedTrip.stepStatus === 4) {
-            // STEP 4 â†’ destino = local do VENDEDOR/COLETA (originLocation ou seller)
-            const vendorLat = Number(storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
-            const vendorLng = Number(storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
+            // STEP 4 → destino = local do VENDEDOR/COLETA (originLocation ou seller)
+            const vendorLat = Number(storedTrip.originLat || storedTrip.originalData?.originLocation?.latitude || storedTrip.originalData?.seller?.location?.lat || storedTrip.originalData?.seller?.latitude || storedTrip.originalData?.originDetails?.lat || storedTrip.originalData?.latitude);
+            const vendorLng = Number(storedTrip.originLng || storedTrip.originalData?.originLocation?.longitude || storedTrip.originalData?.seller?.location?.lng || storedTrip.originalData?.seller?.longitude || storedTrip.originalData?.originDetails?.lng || storedTrip.originalData?.longitude);
   
             if (vendorLat && vendorLng) {
               const vendorLocation = {
@@ -166,7 +184,7 @@ export default function MapScreen({ route, navigation }: any) {
             }
   
           } else if (storedTrip.stepStatus === 5) {
-            // STEP 5 â†’ destino = local do CLIENTE (destinationLocation ou deliveryAddress)
+            // STEP 5 → destino = local do CLIENTE (destinationLocation ou deliveryAddress)
             const clientLat = Number(storedTrip.originalData?.destinationDetails?.lat || storedTrip.originalData?.destinationLocation?.latitude || storedTrip.originalData?.deliveryAddress?.latitude || storedTrip.originalData?.latitude);
             const clientLng = Number(storedTrip.originalData?.destinationDetails?.lng || storedTrip.originalData?.destinationLocation?.longitude || storedTrip.originalData?.deliveryAddress?.longitude || storedTrip.originalData?.longitude);
   
@@ -208,7 +226,8 @@ export default function MapScreen({ route, navigation }: any) {
     };
   
     loadTripData();
-  }, []);
+  }, [route.params])
+  );
 
   // 🔥 LISTENER PARA ATUALIZAÇÕES DO BACKEND (CANCELAMENTO / ENTREGUE)
   useEffect(() => {
@@ -217,14 +236,14 @@ export default function MapScreen({ route, navigation }: any) {
         await AsyncStorage.removeItem("acceptedTrip");
         setTripData(null);
         Alert.alert("Viagem Cancelada", "O cliente cancelou esta viagem.");
-        navigation.goBack();
+        navigation.navigate('Home');
       }
     };
 
     const handleOrderUpdated = async (data: any) => {
       if (data && (data._id === tripData?.id || data.id === tripData?.id)) {
         const status = data.status || "";
-        if (status === 'Entregue' || status === 'Finalizado' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
+        if (status === 'Entregue' || status === 'Finalizado' || status === 'Concluído' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
           await AsyncStorage.removeItem("acceptedTrip");
           setTripData(null);
           
@@ -232,7 +251,7 @@ export default function MapScreen({ route, navigation }: any) {
              Alert.alert("Viagem Cancelada", "Esta viagem foi cancelada pelo cliente.");
           }
           
-          navigation.goBack();
+          navigation.navigate('Home');
         }
       }
     };
@@ -335,7 +354,7 @@ export default function MapScreen({ route, navigation }: any) {
     } else {
       Alert.alert("Viagem cancelada", "Você cancelou a viagem.");
       AsyncStorage.removeItem("acceptedTrip");
-      navigation.goBack();
+      navigation.navigate('Home');
     }
   };
 
@@ -358,7 +377,7 @@ export default function MapScreen({ route, navigation }: any) {
               await AsyncStorage.removeItem("acceptedTrip");
               setTripData(null);
               Alert.alert("Sucesso", "Viagem cancelada por não comparecimento.");
-              navigation.goBack();
+              navigation.navigate('Home');
             } catch (error) {
               console.error("Erro ao cancelar:", error);
               Alert.alert("Erro", "Não foi possível cancelar a viagem.");
@@ -478,7 +497,7 @@ export default function MapScreen({ route, navigation }: any) {
       setCurrentLocation(location);
       setLocationError(null);
     } catch (error: any) {
-      console.error("âŒ Falha ao tentar obter localização novamente:", error.message);
+      console.error("❌ Falha ao tentar obter localização novamente:", error.message);
       setLocationError(error.message);
     } finally {
       setLoading(false);
@@ -509,7 +528,7 @@ export default function MapScreen({ route, navigation }: any) {
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate('Home')}
         >
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
@@ -523,7 +542,7 @@ export default function MapScreen({ route, navigation }: any) {
       {locationError && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
-            âš ï¸ Usando localização aproximada: {locationError}
+            ⚠️ Usando localização aproximada: {locationError}
           </Text>
           <TouchableOpacity onPress={handleRetryLocation}>
             <Text style={styles.retryLinkText}>Tentar novamente</Text>
@@ -548,7 +567,7 @@ export default function MapScreen({ route, navigation }: any) {
           setRouteDrawn(true);
           setCanFinishTrip(true);
         }}
-        shouldDrawRoute={tripData?.stepStatus === 4 || tripData?.stepStatus === 5}
+        shouldDrawRoute={tripData?.stepStatus === 4 || tripData?.stepStatus === 5 || tripData?.stepStatus === 6}
         tripData={tripData}
         onStartTrip={startTrip}
         onCancelTrip={handleCancelTrip}
@@ -572,14 +591,14 @@ export default function MapScreen({ route, navigation }: any) {
           {showInfoCard && (
             <>
               <View style={styles.infoRow}>
-                {tripData.passengerImage ? (
-                  <Image source={{ uri: getImageUrl(tripData.passengerImage) || tripData.passengerImage }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                {(tripData.passengerImage || tripData.originalData?.user?.profileImage || tripData.originalData?.user?.photo) ? (
+                  <Image source={{ uri: getImageUrl(tripData.passengerImage || tripData.originalData?.user?.profileImage || tripData.originalData?.user?.photo) || '' }} style={{ width: 44, height: 44, borderRadius: 22 }} />
                 ) : (
                   <Ionicons name="person-circle" size={44} color="#3B82F6" />
                 )}
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.passenger || 'Cliente'}</Text>
-                  <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.passengerPhone || 'Telefone não disponível'}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B' }}>{tripData.passengerName || tripData.passenger || tripData.originalData?.user?.name || tripData.originalData?.name || 'Cliente'}</Text>
+                  {/* <Text style={{ fontSize: 14, color: '#64748B' }}>{tripData.passengerPhone || 'Telefone não disponível'}</Text> */}
                   {tripData.serviceMotive && (
                     <Text style={{ fontSize: 13, color: '#3B82F6', marginTop: 2, fontWeight: '500' }}>
                       Motivo: {tripData.serviceMotive}
@@ -587,19 +606,6 @@ export default function MapScreen({ route, navigation }: any) {
                   )}
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity 
-                    style={[styles.callButton, { backgroundColor: '#8a2be2' }]}
-                    onPress={() => {
-                      navigation.navigate('TripChat', { 
-                        tripId: tripData.id || tripData._id,
-                        passenger: tripData.passenger,
-                        passengerImage: tripData.passengerImage,
-                        serviceMotive: tripData.serviceMotive || tripData.goodType || 'Serviço Padrão'
-                      });
-                    }}
-                  >
-                    <Ionicons name="chatbubble-ellipses" size={18} color="#FFF" />
-                  </TouchableOpacity>
                   
                   {tripData.passengerPhone && tripData.passengerPhone !== "Não disponível" && (
                     <TouchableOpacity 
@@ -621,7 +627,7 @@ export default function MapScreen({ route, navigation }: any) {
                   <Ionicons name="location" size={16} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
                   <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
                     <Text style={{ fontWeight: '600' }}>Recolha: </Text>
-                    {tripData.pickup || 'Não especificada'}
+                    {tripData.pickup || tripData.originalData?.originDetails?.address || tripData.originalData?.origin || 'Não especificada'}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
@@ -658,17 +664,27 @@ export default function MapScreen({ route, navigation }: any) {
       )}
 
       {/* 🔥 CONTROLES DA VIAGEM (CANCELAR / FINALIZAR) NO MAPA */}
-      {(tripData?.stepStatus === 5 || tripData?.stepStatus === 6) && (
+      {(tripData?.stepStatus === 5) && (
+          <TripControls
+            onCancelTrip={handleCancelTrip}
+            onFinishTrip={handleFinishTrip}
+            canFinishTrip={canFinishTrip}
+            routeDrawn={routeDrawn}
+            isWaitingClient={false}
+          />
+        )}
+      
+      {(tripData?.stepStatus === 6) && (
         <TripControls
           onCancelTrip={handleCancelTrip}
-          onFinishTrip={tripData?.stepStatus === 5 ? handleFinishTrip : completeService}
+          onFinishTrip={completeService}
           canFinishTrip={canFinishTrip}
           routeDrawn={routeDrawn}
-          isWaitingClient={tripData?.stepStatus === 6}
+          isWaitingClient={true}
         />
       )}
 
-      {/* 🔥 MODAL PREMIUM â€” VIAGEM INICIADA COM SUCESSO */}
+      {/* 🔥 MODAL PREMIUM — VIAGEM INICIADA COM SUCESSO */}
       <Modal
         visible={showTripStartedModal}
         transparent={true}
@@ -680,7 +696,7 @@ export default function MapScreen({ route, navigation }: any) {
               <Ionicons name="compass-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Viagem Iniciada! ðŸš€</Text>
+            <Text style={styles.premiumModalTitle}>Viagem Iniciada! 🚀</Text>
             
             <Text style={styles.premiumModalMessage}>
               A rota para a entrega foi traçada com sucesso. Conduza com cuidado e respeite as regras de trânsito.
@@ -704,7 +720,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* ðŸš« MODAL PREMIUM â€” LOCALIZAÇÃO INDISPONÍVEL */}
+      {/* 🚫 MODAL PREMIUM — LOCALIZAÇÃO INDISPONÍVEL */}
       <Modal
         visible={showNoLocationModal}
         transparent={true}
@@ -741,7 +757,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* ðŸ MODAL PREMIUM â€” CONFIRMAR ENTREGA */}
+      {/* 🚩 MODAL PREMIUM — CONFIRMAR ENTREGA */}
       <Modal
         visible={showFinishConfirmationModal}
         transparent={true}
@@ -788,7 +804,7 @@ export default function MapScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* âš ï¸ MODAL PREMIUM â€” NÃO PODE FINALIZAR */}
+      {/* ⚠️ MODAL PREMIUM — NÃO PODE FINALIZAR */}
       <Modal
         visible={showCannotFinishModal}
         transparent={true}
@@ -883,7 +899,7 @@ export default function MapScreen({ route, navigation }: any) {
         transparent={true}
         animationType="slide"
       >
-        <View style={{ flex: 1, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <View style={{ flex: 1, backgroundColor: '#7F00FF', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
            <Ionicons name="location" size={80} color="#FFF" style={{ marginBottom: 24 }} />
            <Text style={{ color: '#FFF', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
              Você chegou ao destino!
