@@ -146,7 +146,7 @@ export default function LandingPage() {
                     "Fiquei sem gás a meio de um jantar importante. Em menos de 20 minutos, um motorista da Nhiquela entregou uma botija nova na minha porta. Foi super rápido e salvou-me a noite!"
                   </p>
                   <div className="d-flex align-items-center">
-                    <img src="https://randomuser.me/api/portraits/women/46.jpg" alt="Aida Macuácua" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    <img src="https://ui-avatars.com/api/?name=Aida+Macuácua&background=ea4e1b&color=fff&bold=true" alt="Aida Macuácua" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                     <div>
                       <h6 className="fw-bold m-0 text-dark">Aida Macuácua</h6>
                       <small className="text-muted">Cliente em Maputo</small>
@@ -167,7 +167,7 @@ export default function LandingPage() {
                     "Com o meu serviço de reboque na Nhiquela, o trabalho nunca para. O aplicativo encaminha clientes que precisam de ajuda urgente e os pagamentos caem na hora."
                   </p>
                   <div className="d-flex align-items-center">
-                    <img src="https://randomuser.me/api/portraits/men/33.jpg" alt="Carlos Mondlane" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    <img src="https://ui-avatars.com/api/?name=Carlos+Mondlane&background=ea4e1b&color=fff&bold=true" alt="Carlos Mondlane" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                     <div>
                       <h6 className="fw-bold m-0 text-dark">Carlos Mondlane</h6>
                       <small className="text-muted">Motorista</small>
@@ -188,7 +188,7 @@ export default function LandingPage() {
                     "A nossa empresa de mudanças cresceu imenso. Os clientes agora encontram e solicitam os nossos serviços com um clique, e o nosso volume de negócios duplicou."
                   </p>
                   <div className="d-flex align-items-center">
-                    <img src="https://randomuser.me/api/portraits/women/27.jpg" alt="Lúcia Tembe" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                    <img src="https://ui-avatars.com/api/?name=Lúcia+Tembe&background=ea4e1b&color=fff&bold=true" alt="Lúcia Tembe" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                     <div>
                       <h6 className="fw-bold m-0 text-dark">Lúcia Tembe</h6>
                       <small className="text-muted">Fornecedora</small>
