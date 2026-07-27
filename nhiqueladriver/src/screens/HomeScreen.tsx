@@ -33,6 +33,7 @@ import * as Location from "expo-location";
 import { startBackgroundLocationUpdates, stopBackgroundLocationUpdates } from '../services/LocationService';
 import { useAuth } from "../context/AuthContext";
 import TripCard from "../components/TripCard";
+import * as Notifications from 'expo-notifications';
 import LocationConsentModal from "../components/LocationConsentModal";
 import { API_BASE_URL } from "../api/apiConfig";
 import api from "../api/apiConfig";
@@ -55,6 +56,7 @@ export default function HomeScreen({ navigation }: any) {
   const [acceptedTrip, setAcceptedTrip] = useState<Trip | null>(null);
   const [routeSummary, setRouteSummary] = useState<Trip | null>(null);
   const [alertSound, setAlertSound] = useState<Audio.Sound | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   const [blinkAnim] = useState(new Animated.Value(0));
   const [isTripStarted, setIsTripStarted] = useState(false);
@@ -108,6 +110,7 @@ export default function HomeScreen({ navigation }: any) {
         await sound.setVolumeAsync(1.0);
         await sound.setIsLoopingAsync(true);
         soundObj = sound;
+        soundRef.current = sound;
         setAlertSound(sound);
       } catch (e) {
         console.log("Erro ao carregar som de alerta:", e);
@@ -232,19 +235,11 @@ export default function HomeScreen({ navigation }: any) {
         }
 
 
-        const handleOrderWebSocketUpdate = async (data: any) => {
+        const handleOrderWebSocketUpdate = (data: any) => {
           if (!isMounted.current || !data || (!data._id && !data.id)) return;
-          
-          let currentPosition = { latitude: 0, longitude: 0 };
-          try {
-            const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            currentPosition = {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            };
-          } catch (e) {}
 
-          const newFormattedOrder = formatOrder(data, currentPosition);
+          // ✅ Sem GPS — usar {0,0} como fallback neutro (o formatOrder usa dados do pedido, não posição do motorista)
+          const newFormattedOrder = formatOrder(data, { latitude: 0, longitude: 0 });
           
           const isCancelled = data.status === 'Cancelado' || data.status === 'Motorista indisponível' || data.isCanceled || data.deleted;
           
@@ -264,13 +259,13 @@ export default function HomeScreen({ navigation }: any) {
             // Re-evaluate acceptedTrip
             const accepted = newTrips.find((order: any) => {
               const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
-              const isInTransit = order.stepStatus === 5;
+              const isInTransit = order.stepStatus === 5 || order.stepStatus === 6;
               return isAcceptedByCurrentUser || isInTransit;
             });
             
             setAcceptedTrip(accepted || null);
             if (accepted) {
-              const tripStarted = accepted.stepStatus === 5;
+              const tripStarted = accepted.stepStatus === 5 || accepted.stepStatus === 6;
               setIsTripStarted(tripStarted);
               if (tripStarted) {
                 setRouteSummary(accepted);
@@ -330,6 +325,27 @@ export default function HomeScreen({ navigation }: any) {
           // Tocar ringtone imediatamente se for um pedido pendente
           if (newTrip && newTrip.stepStatus === 3) {
              console.log("🔔 Novo pedido recebido via socket!");
+
+             // Tocar som instantaneamente via ref (replayAsync garante que reinicia do início)
+             if (soundRef.current) {
+               soundRef.current.stopAsync().then(() => soundRef.current?.playAsync()).catch(() => {
+                 // Se falhar, tentar playAsync direto
+                 soundRef.current?.playAsync().catch(() => {});
+               });
+               Vibration.vibrate([500, 1000, 500], true); // true for looping
+             }
+
+             // Disparar notificação local para "acender a tela / mostrar heads-up"
+             Notifications.scheduleNotificationAsync({
+               content: {
+                 title: "Novo Pedido de Viagem!",
+                 body: `Tem um novo pedido. Origem: ${newTrip.originalData?.originLocationName || newTrip.originalData?.origin || 'Local de Partida'}`,
+               },
+               trigger: null, // dispara imediatamente
+             });
+
+             // REDIRECIONAR IMEDIATAMENTE PARA A TELA INICIAL
+             navigation.navigate('Home');
           }
 
           // Adicionar novo pedido à lista se ainda não estiver lá
@@ -679,33 +695,16 @@ export default function HomeScreen({ navigation }: any) {
     if (user?.availability === 'active') {
       const sendPing = async () => {
         try {
-          let loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          if (!loc) {
-            loc = await Location.getLastKnownPositionAsync();
-          }
+          // ✅ Usar última posição conhecida — instantâneo, sem bloquear thread
+          const loc = await Location.getLastKnownPositionAsync();
           if (loc && loc.coords) {
             await api.put(ENDPOINTS.PING, {
               lat: loc.coords.latitude,
               lng: loc.coords.longitude
             });
-            console.log('✅ Localização (Ping) atualizada no backend');
           }
         } catch (error) {
-          console.warn('❌ Erro no ping de localização (tentando última conhecida):', error);
-          try {
-            const lastLoc = await Location.getLastKnownPositionAsync();
-            if (lastLoc && lastLoc.coords) {
-              await api.put(ENDPOINTS.PING, {
-                lat: lastLoc.coords.latitude,
-                lng: lastLoc.coords.longitude
-              });
-              console.log('✅ Localização (Ping) recuperada via cache');
-            }
-          } catch (fallbackError) {
-            console.error('❌ Fallback de localização falhou também.', fallbackError);
-          }
+          // Silencioso — ping não é crítico
         }
       };
       
@@ -796,28 +795,27 @@ export default function HomeScreen({ navigation }: any) {
         ordersData = [];
       }
 
-      // 🔥 TENTAR OBTER LOCALIZAÇÃO, MAS CONTINUAR MESMO SE FALHAR
+      // 🔥 USAR ÚLTIMA POSIÇÃO CONHECIDA (INSTANTÂNEO) — NÃO BLOQUEAR A THREAD
       let currentPosition = { latitude: 0, longitude: 0 };
       try {
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-          // timeout removed
-        });
-        currentPosition = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        };
+        const lastLoc = await Location.getLastKnownPositionAsync();
+        if (lastLoc) {
+          currentPosition = {
+            latitude: lastLoc.coords.latitude,
+            longitude: lastLoc.coords.longitude,
+          };
+        }
       } catch (locationError) {
-        console.warn('âš ï¸ Erro ao obter localização, continuando sem ela...');
+        console.warn('⚠️ Erro ao obter localização, continuando sem ela...');
       }
 
       const formattedOrders = ordersData
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
-          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
+          const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 7 || order.stepStatus === 8;
           // Keep if not completed OR if it's currently marked as accepted/in transit by THIS driver (sanity check)
-          return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
+          return !isCompleted || order.stepStatus === 5 || order.stepStatus === 6 || order.isAcceptedByDeliveryman;
         });
 
       // 🔥 CORREÇÃO CRÍTICA: BUSCAR PEDIDO ACEITO CORRETAMENTE
@@ -826,7 +824,7 @@ export default function HomeScreen({ navigation }: any) {
         const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
         
         // Pedido em trânsito (status 5) - mesmo que não esteja "aceito" no sentido tradicional
-        const isInTransit = order.stepStatus === 5;
+        const isInTransit = order.stepStatus === 5 || order.stepStatus === 6;
         
         // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO MESMO QUE isAcceptedByDeliveryman SEJA FALSE
         return isAcceptedByCurrentUser || isInTransit;
@@ -851,7 +849,7 @@ export default function HomeScreen({ navigation }: any) {
       setAcceptedTrip(accepted);
 
       if (accepted) {
-        const tripStarted = accepted.stepStatus === 5;
+        const tripStarted = accepted.stepStatus === 5 || accepted.stepStatus === 6;
         setIsTripStarted(tripStarted);
 
         if (tripStarted) {
@@ -869,7 +867,7 @@ export default function HomeScreen({ navigation }: any) {
 
     } catch (error: any) {
       if (error.message !== 'Network Error') {
-        console.error("âŒ Erro na atualização silenciosa:", error.message);
+        console.error("❌ Erro na atualização silenciosa:", error.message);
       }
     }
   };
@@ -890,8 +888,8 @@ export default function HomeScreen({ navigation }: any) {
       await clearAllCacheAndReset();
   
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.warn("âš ï¸ Permissão de localização negada");
+      if (status !== 'granted') {
+        console.warn('⚠️ Permissão de localização negada');
       }
   
       const response = await getAllOrdersForDeliveryman();
@@ -901,19 +899,18 @@ export default function HomeScreen({ navigation }: any) {
         ordersData = [];
       }
   
-      // Obter localização
+      // ✅ Usar última posição conhecida (instantâneo) — não bloquear o carregamento
       let currentPosition = { latitude: 0, longitude: 0 };
       try {
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-          // timeout removed
-        });
-        currentPosition = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        };
-      } catch (locationError) {
-        console.warn('âš ï¸ Erro ao obter localização');
+        const lastLoc = await Location.getLastKnownPositionAsync();
+        if (lastLoc) {
+          currentPosition = {
+            latitude: lastLoc.coords.latitude,
+            longitude: lastLoc.coords.longitude,
+          };
+        }
+      } catch {
+        // Sem localização
       }
   
       const formattedOrders = ordersData
@@ -921,15 +918,13 @@ export default function HomeScreen({ navigation }: any) {
         .filter((order: any) => {
           const tripStatus = order.status ? order.status.toLowerCase() : "";
           const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
-          return !isCompleted || order.stepStatus === 5 || order.isAcceptedByDeliveryman;
+          return !isCompleted || order.stepStatus === 5 || order.stepStatus === 6 || order.isAcceptedByDeliveryman;
         });
   
       // 🔥 VERIFICAÇÃO CORRIGIDA DAS VIAGENS ACEITAS
       const acceptedTrips = formattedOrders.filter((order: Trip) => {
         const isAcceptedByCurrentUser = order.isAcceptedByDeliveryman;
-        const isInTransit = order.stepStatus === 5;
-        
-        // 🔥 SE ESTÁ EM TRÂNSITO, CONSIDERAR COMO ACEITO
+        const isInTransit = order.stepStatus === 5 || order.stepStatus === 6;
         return isAcceptedByCurrentUser || isInTransit;
       });
 
@@ -952,10 +947,9 @@ export default function HomeScreen({ navigation }: any) {
       setAcceptedTrip(accepted);
   
       if (accepted) {
-        const tripStarted = accepted.stepStatus === 5;
+        const tripStarted = accepted.stepStatus === 5 || accepted.stepStatus === 6;
         setIsTripStarted(tripStarted);
 
-        // 🔥 ATUALIZAR ROUTE SUMMARY APENAS SE ESTIVER EM TRÂNSITO
         if (tripStarted) {
           setRouteSummary(accepted);
           startBlinkAnimation();
@@ -963,7 +957,6 @@ export default function HomeScreen({ navigation }: any) {
           setRouteSummary(null);
         }
   
-        // 🔥 SALVAR NO ASYNCSTORAGE INDEPENDENTE DO STATUS
         await AsyncStorage.setItem("acceptedTrip", JSON.stringify(accepted));
   
       } else {
@@ -973,7 +966,7 @@ export default function HomeScreen({ navigation }: any) {
       }
   
     } catch (error: any) {
-      console.error("âŒ Erro ao carregar pedidos:", error.message);
+      console.error("❌ Erro ao carregar pedidos:", error.message);
       Alert.alert("Erro", "Não foi possível carregar as viagens.");
     } finally {
       setLoadingOrders(false);
@@ -996,23 +989,29 @@ export default function HomeScreen({ navigation }: any) {
   
   const formatOrder = (order: any, currentPosition?: any): Trip => {
     // Para requestService, usar destinationDetails. Se nao, os outros.
-    const destinationLat = order.destinationDetails?.lat ||
-      order.deliveryAddress?.latitude ||
+    const destinationLat = order.destinationDetails?.lat || 
+      order.deliveryAddress?.latitude || 
+      order.deliveryAddress?.location?.lat ||
       order.destinationLocation?.latitude ||
+      order.seller?.location?.lat ||
+      order.sellerInfo?.location?.lat ||
       order.seller?.latitude ||
       order.sellerInfo?.latitude || 
       order.latitude || 0;
-  
-    const destinationLon = order.destinationDetails?.lng ||
-      order.deliveryAddress?.longitude ||
+
+    const destinationLon = order.destinationDetails?.lng || 
+      order.deliveryAddress?.longitude || 
+      order.deliveryAddress?.location?.lng ||
       order.destinationLocation?.longitude ||
+      order.seller?.location?.lng ||
+      order.sellerInfo?.location?.lng ||
       order.seller?.longitude ||
       order.sellerInfo?.longitude || 
       order.longitude || 0;
 
-    // ãorigem do pedido (onde o motorista vai buscar o cliente/produto)
-    const originLat = order.originDetails?.lat || order.seller?.latitude || order.latitude || 0;
-    const originLon = order.originDetails?.lng || order.seller?.longitude || order.longitude || 0;
+    // 📍 origem do pedido (onde o motorista vai buscar o cliente/produto)
+    const originLat = order.originDetails?.lat || order.seller?.location?.lat || order.seller?.latitude || order.latitude || 0;
+    const originLon = order.originDetails?.lng || order.seller?.location?.lng || order.seller?.longitude || order.longitude || 0;
   
     let distance = 0;
     let timeStr = "Tempo não disponvel";
@@ -1050,7 +1049,7 @@ export default function HomeScreen({ navigation }: any) {
     // ?? LOGICA CORRIGIDA: 
     // - Se stepStatus  5 (em trnsito), considerar como "aceito" independente do deliveryman
     // - Caso contrrio, verificar se foi aceito pelo entregador atual
-    const isInTransit = order.stepStatus === 5;
+    const isInTransit = order.stepStatus === 5 || order.stepStatus === 6;
     const isAcceptedByDeliveryman = isInTransit || (
       orderDeliverymanId === currentUserId &&
       order.stepStatus === 4  
@@ -1070,9 +1069,9 @@ export default function HomeScreen({ navigation }: any) {
       passengerId: order.user?._id || order.user?.id || order.userId || "0",
       serviceName: serviceNameStr,
       serviceMotive: order.reason || order.description || order.goodType || undefined,
-      passenger: order.user?.name || order.name || order.clientName || "Cliente",
-      passengerImage: order.user?.profileImage || order.user?.photo || null,
-      passengerPhone: order.phoneNumber || order.user?.phoneNumber || "Não disponvel",
+      passenger: order.passengerName || order.user?.name || order.deliveryAddress?.fullName || order.clientName || "Cliente",
+      passengerImage: order.passengerImage || order.user?.profileImage || order.user?.photo || null,
+      passengerPhone: order.passengerPhone || order.phoneNumber || order.user?.phoneNumber || "Não disponível",
       pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
       destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
       reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
@@ -1082,6 +1081,8 @@ export default function HomeScreen({ navigation }: any) {
         latitude: destinationLat,
         longitude: destinationLon,
       },
+      originLat: originLat,
+      originLng: originLon,
       stepStatus: order.stepStatus,
       status: order.status,
       isAcceptedByDeliveryman,
@@ -1105,20 +1106,27 @@ export default function HomeScreen({ navigation }: any) {
 
 
   const acceptTrip = useCallback(async (tripId: string) => {
+    // ✅ STEP 1: Actualizar UI IMEDIATAMENTE (Optimistic Update) — sem esperar rede
+    const trip = allTrips.find(t => t.id === tripId) || (acceptedTrip?.id === tripId ? acceptedTrip : undefined);
+    
+    if (trip) {
+      const optimisticTrip = { ...trip, status: 'Pedido aceite', stepStatus: 4, isAcceptedByDeliveryman: true };
+      setAcceptedTrip(optimisticTrip);
+      setAllTrips([optimisticTrip]);
+      setShowTripAcceptedModal(true);
+      // Parar alarme imediatamente
+      soundRef.current?.stopAsync().catch(() => {});
+      Vibration.cancel();
+      AsyncStorage.setItem("acceptedTrip", JSON.stringify(optimisticTrip));
+    }
+
+    setAcceptingTripId(tripId);
+
+    // ✅ STEP 2: Fazer a chamada à API em background (não bloqueia a UI)
     try {
-      setAcceptingTripId(tripId);
-
-      // 🔥 BLOQUEAR TODOS OS BOTÕES ENQUANTO PROCESSANDO
-      setAllTrips(prev => prev.map(trip => ({
-        ...trip,
-        isProcessing: trip.id === tripId ? true : trip.isProcessing
-      })));
-
-      // 🔥 TENTAR OBTER LOCALIZAÇÃO RÁPIDA
-      let currentLocation = null;
-      
+      // Localização instantânea (última conhecida)
+      let currentLocation: any = { latitude: 0, longitude: 0, timestamp: new Date().toISOString() };
       try {
-        // 1. Tentar a última localização conhecida PRIMEIRO para ser instantâneo
         const lastLocation = await Location.getLastKnownPositionAsync();
         if (lastLocation) {
           currentLocation = {
@@ -1127,38 +1135,18 @@ export default function HomeScreen({ navigation }: any) {
             accuracy: lastLocation.coords.accuracy ?? undefined,
             timestamp: new Date().toISOString()
           };
-        } else {
-          // Se não houver última conhecida, usamos 0,0 para não bloquear a UI (o backend nem sequer usa isto!)
-          currentLocation = {
-            latitude: 0,
-            longitude: 0,
-            timestamp: new Date().toISOString()
-          };
         }
-      } catch (error: any) {
-        // Fallback silencioso para não interromper a aceitação da viagem
-        currentLocation = { latitude: 0, longitude: 0, timestamp: new Date().toISOString() };
-      }
+      } catch { /* sem localização — não bloquear */ }
 
-      // 🔥 ACEITAR PEDIDO COM LOCALIZAÇÃO
-      // Usar o ID do servidor e detetar o tipo pelo originalData
-      const trip = allTrips.find(t => t.id === tripId);
       const isReq = trip?.originalData?.type === 'requestService';
       await acceptOrderByDeliveryman(tripId, currentLocation, isReq);
 
-      if (trip) {
-        const updatedTrip = { ...trip, status: 'Pedido aceite', stepStatus: 4 };
-        await AsyncStorage.setItem("acceptedTrip", JSON.stringify(updatedTrip));
-        setAcceptedTrip(updatedTrip);
-      }
+      // ✅ STEP 3: Sincronizar silenciosamente com o servidor
+      loadAllOrdersSilent();
 
-      // 🔥 ATUALIZAR LISTA COMPLETçãPÓS ACEITAR
-      await loadAllOrdersSilent();
-
-      setShowTripAcceptedModal(true);
-      
     } catch (error: any) {
-      // 🔥 REVERTER MUDANÇAS EM CASO DE ERRO
+      // ✅ STEP 4: Reverter optimistic update se API falhou
+      setShowTripAcceptedModal(false);
       await loadAllOrdersSilent();
       
       if (error.message !== 'Localização não disponível') {
@@ -1168,7 +1156,7 @@ export default function HomeScreen({ navigation }: any) {
     } finally {
       setAcceptingTripId(null);
     }
-  }, [allTrips]);
+  }, [allTrips, acceptedTrip]);
 
 // 🔥 ADICIONAR ESTA FUNÇÃO PARA RESETAR ESTADO INCORRETO
 const resetIncorrectAcceptedTrips = async () => {
@@ -1364,13 +1352,15 @@ const proceedStartTrip = async (trip: Trip) => {
     const isReq = trip?.originalData?.type === 'requestService';
     await startOrderInTransit(trip.id, isReq);
 
+    const updatedTrip = { ...trip, status: 'Em trânsito', stepStatus: 5 };
+
     setIsTripStarted(true);
-    setRouteSummary(trip);
-    await AsyncStorage.setItem("acceptedTrip", JSON.stringify(trip));
+    setRouteSummary(updatedTrip);
+    await AsyncStorage.setItem("acceptedTrip", JSON.stringify(updatedTrip));
     startBlinkAnimation();
 
     // Mostrar modal premium de sucesso
-    setStartedTripData(trip);
+    setStartedTripData(updatedTrip);
     setShowTripStartedModal(true);
   } catch (error: any) {
     console.error("Erro ao iniciar viagem:", error.message);
@@ -2447,28 +2437,25 @@ const styles = StyleSheet.create({
   },
   headsUpContainer: {
     position: 'absolute',
-    top: 60,
-    bottom: 90, // Impede que o card desça até ao tab bar
-    left: '5%',
-    right: '5%',
-    width: '90%',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#F9FAFB',
-    borderRadius: 24,
-    padding: 16,
+    paddingTop: 60,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
     zIndex: 9999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
     elevation: 25,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   headsUpTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
     color: '#1E293B',
-    marginBottom: 12,
+    marginBottom: 20,
+    marginTop: 20,
     textAlign: 'center',
   },
   premiumModalText: {

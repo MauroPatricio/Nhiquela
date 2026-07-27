@@ -9,7 +9,8 @@ import {
   TextInput,
   Dimensions,
   ActivityIndicator,
-  Share
+  Share,
+  Linking
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +25,7 @@ import io from 'socket.io-client';
 import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
+import * as Notifications from 'expo-notifications';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,6 +50,7 @@ const OrderDetailsScreen = () => {
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState('');
+  const [isConfirming, setIsConfirming] = useState(false);
   const navigation = useNavigation();
   const toast = useToast();
 
@@ -146,11 +149,31 @@ const OrderDetailsScreen = () => {
     socket.emit('joinRoom', { orderId: orderIdParam });
 
     socket.on('order_updated', (updatedOrder) => {
-      if (updatedOrder && updatedOrder._id === orderIdParam) {
-        setCurrentOrder(updatedOrder);
-        toast.show(`Estado atualizado: ${updatedOrder.status}`, { type: 'info', placement: 'top', duration: 4000 });
-      }
-    });
+        if (updatedOrder && updatedOrder._id === orderIdParam) {
+          setCurrentOrder(updatedOrder);
+          toast.show(`Estado atualizado: ${updatedOrder.status}`, { type: 'info', placement: 'top', duration: 4000 });
+          
+          if (updatedOrder.stepStatus === 4 && currentOrder?.stepStatus !== 4) {
+             Notifications.scheduleNotificationAsync({
+               content: {
+                 title: "Pedido Aceite!",
+                 body: `O motorista ${updatedOrder.deliveryman?.name || ''} aceitou o pedido e está a caminho.`,
+                 sound: true,
+               },
+               trigger: null,
+             });
+          } else if (updatedOrder.stepStatus === 6 && currentOrder?.stepStatus !== 6) {
+             Notifications.scheduleNotificationAsync({
+               content: {
+                 title: "Motorista Chegou!",
+                 body: `O motorista chegou ao destino indicado. Vá ao encontro dele.`,
+                 sound: true,
+               },
+               trigger: null,
+             });
+          }
+        }
+      });
 
     return () => {
       socket.emit('leaveRoom', { orderId: orderIdParam });
@@ -207,17 +230,23 @@ const OrderDetailsScreen = () => {
 
   const checkIfUserExist = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        toast.show('Permissão para acessar localização é necessária.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
-        return;
+      // ✅ Usar última posição conhecida (instantâneo) em vez de getCurrentPositionAsync (pode demorar 10-30s)
+      try {
+        const lastLocation = await Location.getLastKnownPositionAsync();
+        if (lastLocation) {
+          setCurrentLocation({
+            latitude: lastLocation.coords.latitude,
+            longitude: lastLocation.coords.longitude,
+          });
+        } else {
+          // Tentar obter em background sem bloquear
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest })
+            .then(loc => setCurrentLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }))
+            .catch(() => {});
+        }
+      } catch {
+        // Sem localização não bloquear o ecrã
       }
-
-      const location = await Location.getCurrentPositionAsync({});
-      setCurrentLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
 
       const storedUserData = await AsyncStorage.getItem('userData');
 
@@ -268,42 +297,56 @@ const OrderDetailsScreen = () => {
   };
 
   const confirmDelivery = async (orderId) => {
+    if (isConfirming) return; // Evitar duplo clique
     try {
+      setIsConfirming(true);
       if (!userData) throw new Error('User is not logged in');
 
       const endpoint = isRequestService 
         ? `/request-service/${orderId}/deliver` 
         : `/orders/${orderId}/deliver`;
 
-      const { data } = await api.put(endpoint, {}, {
-        headers: { Authorization: `Bearer ${userData.token}` },
-      });
-
-      const finalOrder = data.order || {
+      // ✅ Atualizar UI imediatamente (otimismo) sem esperar a resposta do servidor
+      const optimisticOrder = {
         ...currentOrder,
-        status: 'Finalizado',
-        stepStatus: 6,
+        status: 'Concluído',
+        stepStatus: 7,
         isDelivered: true,
         deliveredAt: Date.now()
       };
-
-      setCurrentOrder(finalOrder);
-
-      if (finalOrder.seller?._id) {
-        await sendOrderNotificationToUser({
-          userId: finalOrder.seller._id,
-          orderId: finalOrder._id,
-          orderCode: finalOrder.code,
-          title: 'Pedido entregue com sucesso!',
-          body: `O cliente confirmou a recepção do pedido nº ${finalOrder.code}.`,
-          status: 'Confirmado',
-        });
-      }
-
+      setCurrentOrder(optimisticOrder);
       setShowFinishSuccessModal(true);
+
+      // Chamar API e notificações em background
+      api.put(endpoint, {}, {
+        headers: { Authorization: `Bearer ${userData.token}` },
+      }).then(({ data }) => {
+        const finalOrder = data.order || optimisticOrder;
+        setCurrentOrder(finalOrder);
+        
+        // Notificação ao vendedor em background
+        if (finalOrder.seller?._id) {
+          sendOrderNotificationToUser({
+            userId: finalOrder.seller._id,
+            orderId: finalOrder._id,
+            orderCode: finalOrder.code,
+            title: 'Pedido entregue com sucesso!',
+            body: `O cliente confirmou a recepção do pedido nº ${finalOrder.code}.`,
+            status: 'Confirmado',
+          }).catch(() => {});
+        }
+      }).catch((error) => {
+        console.error('Erro ao confirmar entrega', error);
+        // Reverter estado otimista em caso de erro
+        setCurrentOrder(currentOrder);
+        setShowFinishSuccessModal(false);
+        toast.show('Não foi possível confirmar a entrega.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
+      });
     } catch (error) {
       console.error('Erro ao confirmar entrega', error);
       toast.show('Não foi possível confirmar a entrega.', { type: 'danger', placement: 'top', duration: 4000, animationType: 'slide-in' });
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -334,14 +377,20 @@ const OrderDetailsScreen = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pendente': return '#F59E0B';
-      case 'SCHEDULED': return '#8B5CF6'; // Roxo claro
-      case 'SEARCHING': return '#F59E0B'; // Laranja
-      case 'Aceite': return '#FCD34D';
-      case 'CONFIRMED': return '#10B981'; // Verde
+      case 'SCHEDULED': return '#8B5CF6';
+      case 'SEARCHING': return '#F59E0B';
+      case 'Aceite': 
+      case 'Pedido aceite':
+      case 'Motorista indisponível':
+        return '#8B5CF6';
+      case 'CONFIRMED': return '#10B981';
       case 'Em trânsito': return '#3B82F6';
       case 'No destino indicado': return '#8B5CF6';
-      case 'Entregue': return '#10B981';
-      case 'Finalizado': return '#10B981';
+      case 'Entregue': 
+      case 'Finalizado': 
+      case 'Concluído': 
+      case 'Concluido': 
+        return '#059669';
       case 'Cancelado': return '#EF4444';
       default: return '#6B7280';
     }
@@ -404,9 +453,10 @@ const OrderDetailsScreen = () => {
 
           <View style={{ marginTop: 10, marginBottom: 16 }}>
             <TouchableOpacity 
-              onPress={() => confirmDeliveryOrder(currentOrder._id)}
+              onPress={() => setShowFinishConfirmationModal(true)}
+              disabled={isConfirming}
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: isConfirming ? '#6B7280' : '#10B981',
                 paddingVertical: 14,
                 borderRadius: 12,
                 flexDirection: 'row',
@@ -421,7 +471,7 @@ const OrderDetailsScreen = () => {
               activeOpacity={0.8}
             >
               <Ionicons name="checkmark-done-circle" size={24} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Confirmar Receção da Viagem</Text>
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Confirmar Viagem</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -451,7 +501,14 @@ const OrderDetailsScreen = () => {
           <Text style={styles.storeName}>
             {currentOrder.seller?.seller?.name || currentOrder.name || currentOrder.goodType || 'Serviço'}
           </Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentOrder.status) + '20' }]}>
+          <View style={[
+              styles.statusBadge, 
+              { 
+                backgroundColor: getStatusColor(currentOrder.status) + '15',
+                borderColor: getStatusColor(currentOrder.status) + '30',
+                borderWidth: 1
+              }
+            ]}>
             <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
           </View>
         </View>
@@ -510,15 +567,29 @@ const OrderDetailsScreen = () => {
               <View style={styles.driverInfo}>
                 <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
-                  {currentOrder.deliveryman.transport_type && (
-                    <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>
-                      🚗 {(() => {
-                        const tType = currentOrder.deliveryman.transport_type;
-                        const subcat = subcategories.find(s => s._id === tType || s.id === tType);
-                        return subcat ? subcat.name : tType;
-                      })()}
-                    </Text>
-                  )}
+                  {currentOrder.deliveryman.transport_type && (() => {
+                    const tType = currentOrder.deliveryman.transport_type;
+                    const subcat = subcategories.find(s => s._id === tType || s.id === tType);
+                    let name = subcat ? subcat.name : tType;
+                    if (typeof name === 'object' && name.name) name = name.name;
+                    name = String(name);
+                    const isCar = name.toLowerCase().includes('carro') || name.toLowerCase().includes('reboque');
+                    
+                    if (isCar) {
+                      return (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#DBEAFE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                           <MaterialCommunityIcons name="car" size={14} color="#1D4ED8" style={{ marginRight: 4 }} />
+                           <Text style={{ fontSize: 12, color: '#1D4ED8', fontWeight: '600' }}>{name}</Text>
+                        </View>
+                      );
+                    }
+                    
+                    return (
+                      <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>
+                        🛵 {name}
+                      </Text>
+                    );
+                  })()}
                   {currentOrder.deliveryman.transport_color && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
                       <View style={{
@@ -540,6 +611,14 @@ const OrderDetailsScreen = () => {
                     </View>
                   )}
                 </View>
+                {(currentOrder.deliveryman.phoneNumber || currentOrder.deliveryman.phone) && (
+                  <TouchableOpacity 
+                    style={{ backgroundColor: '#10B981', padding: 10, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginLeft: 10 }}
+                    onPress={() => Linking.openURL(`tel:${currentOrder.deliveryman.phoneNumber || currentOrder.deliveryman.phone}`)}
+                  >
+                    <Ionicons name="call" size={22} color="#FFF" />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -890,10 +969,10 @@ const OrderDetailsScreen = () => {
               <Ionicons name="checkmark-done-circle-outline" size={44} color="#059669" />
             </View>
             
-            <Text style={styles.premiumModalTitle}>Confirmar Receção?</Text>
+            <Text style={styles.premiumModalTitle}>Confirmar Pedido?</Text>
             
             <Text style={styles.premiumModalMessage}>
-              Confirma que recebeu o seu pedido em conformidade? Esta ação finalizará a entrega e notificará o fornecedor.
+              Confirma que recebeu o seu pedido em conformidade? Esta acção finalizará a viagem.
             </Text>
 
             <View style={styles.premiumModalButtons}>
@@ -1108,21 +1187,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
     marginLeft: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   statusText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   totalPrice: {
     fontSize: 28,

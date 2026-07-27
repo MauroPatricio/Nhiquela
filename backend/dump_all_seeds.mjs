@@ -4,6 +4,8 @@ import fs from 'fs';
 
 const modelsToDump = [
   { modelFile: 'ProviderTypeModel.js', exportName: 'providerTypesData' },
+  { modelFile: 'ProviderSubcategoryModel.js', exportName: 'providerSubcategoriesData' },
+  { modelFile: 'PaymentMethod.js', exportName: 'paymentMethodsData' },
   { modelFile: 'VehicleTypeModel.js', exportName: 'vehicleTypesData' },
   { modelFile: 'ProvinceModel.js', exportName: 'provincesData' },
   { modelFile: 'SettingsModel.js', exportName: 'settingsData' },

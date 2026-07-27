@@ -88,7 +88,11 @@ const Orders = () => {
     switch (status) {
       case 'Pendente': return '#F59E0B'; // Amber
       case 'Em trânsito': return '#3B82F6'; // Blue
-      case 'Entregue': return '#10B981'; // Green
+      case 'Entregue': 
+      case 'Finalizado':
+      case 'Concluído':
+      case 'Concluido':
+        return '#10B981'; // Green
       case 'Cancelado': return '#EF4444'; // Red
       default: return '#9333EA'; // Purple
     }
@@ -219,7 +223,7 @@ const Orders = () => {
           const isTripActive = order.status === 'No destino indicado' || 
                                order.status === 'Em Trânsito' || 
                                order.status === 'A Caminho do Destino' ||
-                               order.stepStatus === 5;
+                               order.stepStatus === 5 || order.stepStatus === 6;
           if (isTripActive && order.updatedAt) {
             const startTime = new Date(order.updatedAt).getTime();
             const diffInSeconds = Math.floor((now - startTime) / 1000);
@@ -257,6 +261,14 @@ const Orders = () => {
 
     const serviceInfo = getServiceIcon(item.name);
 
+    // Verificação de motorista atribuído
+    const driverName = item?.deliveryman?.name;
+    let driverPhoto = item?.deliveryman?.photo;
+    
+    if (typeof driverPhoto === 'string' && !driverPhoto.startsWith('http') && !driverPhoto.startsWith('data:image')) {
+       driverPhoto = `https://api.nhiquelaservicos.com/${driverPhoto.startsWith('/') ? driverPhoto.substring(1) : driverPhoto}`;
+    }
+
     return (
       <TouchableOpacity
         style={styles.cardContainer}
@@ -270,28 +282,42 @@ const Orders = () => {
       >
         <View style={styles.cardHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            {/* Service Icon Badge */}
-            <View style={{
-              width: 48, height: 48, borderRadius: 16,
-              backgroundColor: serviceInfo.bg,
-              justifyContent: 'center', alignItems: 'center',
-              marginRight: 12,
-              shadowColor: serviceInfo.color,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 6,
-              elevation: 3,
-            }}>
-              <MaterialCommunityIcons name={serviceInfo.icon} size={26} color={serviceInfo.color} />
-            </View>
+            {/* Driver Image or Service Icon Badge */}
+            {driverName ? (
+              <Image 
+                source={{ uri: driverPhoto || 'https://via.placeholder.com/100' }} 
+                style={{ width: 48, height: 48, borderRadius: 24, marginRight: 12, backgroundColor: '#E5E7EB' }} 
+              />
+            ) : (
+              <View style={{
+                width: 48, height: 48, borderRadius: 16,
+                backgroundColor: serviceInfo.bg,
+                justifyContent: 'center', alignItems: 'center',
+                marginRight: 12,
+                shadowColor: serviceInfo.color,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 6,
+                elevation: 3,
+              }}>
+                <MaterialCommunityIcons name={serviceInfo.icon} size={26} color={serviceInfo.color} />
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={styles.orderTitle} numberOfLines={1}>
-                {item.name || sellerName}
+                {driverName ? driverName : (item.name || sellerName)}
               </Text>
               <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
             </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
+          <View style={[
+              styles.statusBadge, 
+              { 
+                backgroundColor: getStatusColor(item.status) + '15',
+                borderColor: getStatusColor(item.status) + '30',
+                borderWidth: 1
+              }
+            ]}>
             <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
               {item.status ?? 'Pendente'}
             </Text>

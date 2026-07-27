@@ -93,16 +93,24 @@ class DispatchService {
       await currentOrderState.save();
 
       // 2. Emitir o evento via WebSocket e Push Notification
-      const orderPayload = { ...currentOrderState.toObject(), type: 'requestService' };
+      const clientUser = await User.findById(currentOrderState.user?._id || currentOrderState.user);
+      const orderPayload = { 
+        ...currentOrderState.toObject(), 
+        type: 'requestService',
+        passengerName: clientUser?.name || "Cliente",
+        passengerImage: clientUser?.profileImage || clientUser?.photo || null,
+        passengerPhone: clientUser?.phoneNumber || "000000000"
+      };
       io.to(`driver_${driver._id}`).emit('new_order', orderPayload);
 
       // Send Push Notification
       const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
       console.log(`[DispatchService] 📲 Enviando push para motorista ${driver.name} (token: ${driver.deviceToken ? '✓' : 'sem token'})`);
       await createNotification({
-        message: `📍 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
+        message: `🚕 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
         receiver_id: driver._id,
-        pushToken: driver.deviceToken || null // deviceToken é o campo correto no UserModel
+        pushToken: driver.deviceToken || null, // deviceToken é o campo correto no UserModel
+        type: 'new_order'
       });
 
       // 3. Esperar 30 segundos usando uma Promise

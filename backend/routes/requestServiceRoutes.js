@@ -4,7 +4,7 @@ import User from '../models/UserModel.js';
 import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
-import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, calculateDynamicCommission } from '../services/walletService.js';
+import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, calculateDynamicCommission, checkAndDisableDriverIfLowBalance } from '../services/walletService.js';
 import Wallet from '../models/WalletModel.js';
 import Transaction from '../models/TransactionModel.js';
 import PricingService from '../services/PricingService.js';
@@ -235,7 +235,14 @@ requestServiceer.post(
         console.log(`[Dispatch Flow] 📡 WebSocket Status: ${isSocketConnected ? 'ONLINE ✅ (O motorista RECEBEU o popup na app aberta)' : 'OFFLINE ❌ (A app do motorista está fechada, vai tentar via Push)'}`);
         console.log(`====================================================\n`);
 
-        const orderPayload = { ...requestService.toObject(), type: 'requestService' };
+        const clientUser = await User.findById(req.user._id);
+        const orderPayload = { 
+          ...requestService.toObject(), 
+          type: 'requestService',
+          passengerName: clientUser ? clientUser.name : (req.user.name || "Cliente"),
+          passengerImage: clientUser ? (clientUser.profileImage || clientUser.photo) : null,
+          passengerPhone: clientUser ? clientUser.phoneNumber : (req.user.phoneNumber || "000000000")
+        };
         io.to(driverRoom).emit('new_order', orderPayload);
 
         // Push notification para o motorista alvo
@@ -482,45 +489,39 @@ requestServiceer.put(
       return res.status(404).send({ message: 'Motorista não encontrado na base de dados. Por favor, inicie sessão novamente.' });
     }
 
-    // Usar uma tranósação para garantir que débito e aceite ocorrem de forma atómica
+    // ✅ Verificação de saldo FORA da transação (leitura apenas — sem locks)
+    // Verificar se o pedido ainda existe antes de abrir transação
+    const orderCheck = await RequestService.findOne({ _id: req.params.id, status: 'Pendente' });
+    if (!orderCheck) {
+      return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
+    }
+
+    // Calcular comissão e verificar saldo (operações read-only fora da transação)
+    const commissionmount = await calculateDynamicCommission(orderCheck);
+    const canAfford = await canAffordTripCommission(user_deliver._id, commissionmount);
+    if (!canAfford) {
+      return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
+    }
+
+    let deliverymanData = {};
+    if (user_deliver.isDeliveryMan) {
+      deliverymanData = {
+        id: user_deliver._id,
+        photo: user_deliver.deliveryman?.photo || '',
+        name: user_deliver.deliveryman?.name || '',
+        phoneNumber: user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
+        transport_type: user_deliver.deliveryman?.transport_type || '',
+        transport_color: user_deliver.deliveryman?.transport_color || '',
+        transport_registration: user_deliver.deliveryman?.transport_registration || '',
+      };
+    }
+
+    // ✅ Transação mínima — apenas a escrita atómica, sem reads extras
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      const order = await RequestService.findOne({ _id: req.params.id, status: 'Pendente' }).session(session);
-
-      if (!order) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
-      }
-
-      // Calcular comissão baseada nas configurações financeiras e subcategoria
-      
-      const commissionmount = await calculateDynamicCommission(order);
-
-      // Apenas validar se o motorista tem saldo suficiente, mas NÃO debitar ainda.
-      const canAfford = await canAffordTripCommission(user_deliver._id, commissionmount);
-      if (!canAfford) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).send({ message: 'Saldo insuficiente. Para aceitar este serviço é necessário possuir saldo suficiente na sua carteira digital para cobrir a comissão da Nhiquela. Efetue uma recarga e tente novamente.' });
-      }
-
-      let deliverymanData = {};
-      if (user_deliver.isDeliveryMan) {
-        deliverymanData = {
-          id: user_deliver._id,
-          photo: user_deliver.deliveryman?.photo || '',
-          name: user_deliver.deliveryman?.name || '',
-          phoneNumber: user_deliver.deliveryman?.phoneNumber || user_deliver.phoneNumber || 0,
-          transport_type: user_deliver.deliveryman?.transport_type || '',
-          transport_color: user_deliver.deliveryman?.transport_color || '',
-          transport_registration: user_deliver.deliveryman?.transport_registration || '',
-        };
-      }
-
-      // 🔥 ATOMIC UPDATE to strictly prevent race conditions
+      // 🔥 ATOMIC UPDATE — impede race conditions entre motoristas
       const updatedOrder = await RequestService.findOneAndUpdate(
         { _id: req.params.id, status: 'Pendente' },
         {
@@ -543,11 +544,7 @@ requestServiceer.put(
         return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
       }
 
-      console.log(`\n====================================================`);
-      console.log(`[Dispatch Flow] ✅ SUCESSO: O motorista ${user_deliver.name} ACEITOU o pedido ${updatedOrder.code || updatedOrder._id}!`);
-      console.log(`====================================================\n`);
-
-      // Marcar motorista como ocupado â€” não deve receber novos pedidos até o cliente confirmar
+      // Marcar motorista como ocupado
       await User.updateOne(
         { _id: user_deliver._id },
         { $set: { 'deliveryman.hasActiveService': true } },
@@ -556,6 +553,10 @@ requestServiceer.put(
 
       await session.commitTransaction();
       session.endSession();
+
+      console.log(`\n====================================================`);
+      console.log(`[Dispatch Flow] ✅ SUCESSO: O motorista ${user_deliver.name} ACEITOU o pedido ${updatedOrder.code || updatedOrder._id}!`);
+      console.log(`====================================================\n`);
 
       const updateOrder = updatedOrder;
 
@@ -602,7 +603,7 @@ requestServiceer.put(
         
         createNotification({
           message: `O seu pedido foi aceite por ${user_deliver.deliveryman?.name || 'um motorista'} e está a caminho!`,
-          receiver_id: updateOrder.user?._id || updateOrder.user, // Handle populate
+          receiver_id: updateOrder.user?._id || updateOrder.user,
           sender_id: user_deliver._id,
           orderID: updateOrder._id,
           title: 'Pedido Aceite!'
@@ -624,7 +625,6 @@ requestServiceer.put(
     }
   })
 );
-
 // O pedido esta a caminho
 requestServiceer.put(
   '/:id/intransit',
@@ -655,19 +655,25 @@ requestServiceer.put(
       // WebSocket Optimization
       const io = req.app.get('io');
       if (io) {
+        try {
+          await order.populate('user', 'name phoneNumber profileImage');
+        } catch (e) {
+          console.error("Error populating user:", e);
+        }
+        
         io.to(`order_${order._id}`).emit('order_updated', order);
         if (order.deliveryman?.id) {
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
         }
-
-        createNotification({
-          message: `O motorista chegou ao local e a viagem foi iniciada.`,
-          receiver_id: order.user,
-          sender_id: order.deliveryman?.id,
-          orderID: order._id,
-          title: 'Viagem Iniciada'
-        });
       }
+
+      await createNotification({
+        message: `A viagem foi iniciada. O motorista está a caminho do destino.`,
+        receiver_id: order.user,
+        sender_id: order.deliveryman?.id,
+        orderID: order._id,
+        title: 'Viagem Iniciada'
+      });
 
       res.send({ message: `Pedido em trânsito` });
     } else {
@@ -685,7 +691,7 @@ requestServiceer.put(
 
     if (order) {
       order.status = 'No destino indicado';
-      order.stepStatus = 5;
+      order.stepStatus = 6;
 
       order.arrivedAtDestination = Date.now();
       if (req.body.latitude && req.body.longitude) {
@@ -711,19 +717,25 @@ requestServiceer.put(
       // WebSocket Optimization
       const io = req.app.get('io');
       if (io) {
+        try {
+          await updateOrder.populate('user', 'name phoneNumber profileImage');
+        } catch (e) {
+          console.error("Error populating user:", e);
+        }
+        
         io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
         if (updateOrder.deliveryman?.id) {
           io.to(`driver_${updateOrder.deliveryman.id}`).emit('order_updated', updateOrder);
         }
-
-        createNotification({
-          message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
-          receiver_id: updateOrder.user,
-          sender_id: updateOrder.deliveryman?.id,
-          orderID: updateOrder._id,
-          title: 'Motorista Chegou!'
-        });
       }
+
+      await createNotification({
+        message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
+        receiver_id: updateOrder.user,
+        sender_id: updateOrder.deliveryman?.id,
+        orderID: updateOrder._id,
+        title: 'Motorista Chegou!'
+      });
 
       res.send({ message: `No destino indicado`, order: updateOrder });
     } else {
@@ -748,7 +760,7 @@ requestServiceer.put(
       } else {
         // Cancelamento após aceitar
         order.status = 'Cancelado';
-        order.stepStatus = 7;
+        order.stepStatus = 8;
         order.canceledReason = req.body.message || 'Motorista cancelou a viagem';
         
         // Libertar o motorista
@@ -785,7 +797,7 @@ requestServiceer.put(
 
     if (order) {
       order.status = 'Cancelado';
-      order.stepStatus = 7; // Status de cancelamento/falha
+      order.stepStatus = 8; // Status de cancelamento/falha
 
       const updateOrder = await order.save();
 
@@ -819,18 +831,27 @@ requestServiceer.put(
   '/:id/deliver',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    // Iniciar sessão Mongoose para garantir débito e finalização de forma atómica
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const MAX_RETRIES = 3;
+    let lastError;
+    let savedOrder = null;
 
-    try {
-      const order = await RequestService.findById(req.params.id).session(session);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const session = await mongoose.startSession();
+      session.startTransaction();
 
-      if (order) {
+      try {
+        const order = await RequestService.findById(req.params.id).session(session);
+
+        if (!order) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).send({ message: 'Pedido não encontrado' });
+        }
+
         order.isDelivered = true;
         order.deliveredAt = Date.now();
         order.status = 'Concluído';
-        order.stepStatus = 6;
+        order.stepStatus = 7;
 
         if (req.body && req.body.id) {
           order.paymentResult = {
@@ -842,8 +863,6 @@ requestServiceer.put(
         }
 
         if (order.deliveryman && order.deliveryman.id) {
-          // Calcular comissão baseada nas configurações financeiras e subcategoria
-          
           const commissionAmount = await calculateDynamicCommission(order);
 
           try {
@@ -863,7 +882,7 @@ requestServiceer.put(
 
         await order.save({ session });
 
-        // Libertar motorista â€” pode agora receber novos pedidos
+        // Libertar motorista — pode agora receber novos pedidos
         if (order.deliveryman && order.deliveryman.id) {
           await User.updateOne(
             { _id: order.deliveryman.id },
@@ -874,51 +893,73 @@ requestServiceer.put(
 
         await session.commitTransaction();
         session.endSession();
+        savedOrder = order;
 
-        //  Para envio de mensagens
-
-        let msg = `Olá, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. nhiquela - Tudo em suas mãos.`;
-
-        sendSMSToUSendIt(req, msg);
-
-        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n nhiquela`;
-
-        sendEmailOrderStatus(req, mailText, order, res);
-
-        // WebSocket Optimization â€” notificar cliente e motorista
-        const io = req.app.get('io');
-        if (io) {
-          io.to(`order_${order._id}`).emit('order_updated', order);
-          if (order.deliveryman?.id) {
-            io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
-            // Notificar motorista que pode aceitar novos pedidos
-            io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
-          }
-
-          createNotification({
-            message: `A sua viagem foi entregue com sucesso! Obrigado por viajar com a Nhiquela.`,
-            receiver_id: order.user,
-            sender_id: order.deliveryman?.id,
-            orderID: order._id,
-            title: 'Viagem Concluída'
-          });
+        // ✅ Verificar e suspender motorista se saldo baixo — FORA da transação
+        if (order.deliveryman && order.deliveryman.id) {
+          checkAndDisableDriverIfLowBalance(order.deliveryman.id).catch(err =>
+            console.error('[Deliver] Erro ao verificar saldo pós-entrega:', err.message)
+          );
         }
 
-        res.send({ message: `Pedido entregue com sucesso` });
-      } else {
-        await session.abortTransaction();
+        break; // Sucesso — sair do loop
+
+      } catch (error) {
+        await session.abortTransaction().catch(() => {});
         session.endSession();
-        res.status(404).send({ message: 'Pedido não encontrado' });
+
+        const isTransient = error.errorLabels?.has?.('TransientTransactionError') ||
+                            error.code === 112 ||
+                            error.codeName === 'WriteConflict';
+
+        if (isTransient && attempt < MAX_RETRIES) {
+          console.warn(`[Deliver] ⚠️ WriteConflict na tentativa ${attempt}/${MAX_RETRIES}. A tentar novamente em ${attempt * 200}ms...`);
+          await new Promise(r => setTimeout(r, attempt * 200));
+          lastError = error;
+          continue;
+        }
+
+        lastError = error;
+        break;
       }
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      console.error('Erro na finalização do pedido:', error);
-      res.status(500).send({ message: error.message || 'Erro ao finalizar o pedido. Tente novamente.' });
     }
+
+    if (!savedOrder) {
+      console.error('Erro na finalização do pedido:', lastError);
+      return res.status(500).send({ message: lastError?.message || 'Erro ao finalizar o pedido. Tente novamente.' });
+    }
+
+    // ✅ Fora da transação: notificações, email e WebSocket
+    const order = savedOrder;
+
+    let msg = `Olá, o pedido ${order.code} foi entregue com sucesso. Agradecemos por escolher e confiar em nós. nhiquela - Tudo em suas mãos.`;
+    sendSMSToUSendIt(req, msg);
+
+    let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n nhiquela`;
+    sendEmailOrderStatus(req, mailText, order, res);
+
+    // WebSocket Optimization — notificar cliente e motorista
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('order_updated', order);
+      if (order.deliveryman?.id) {
+        io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+        // Notificar motorista que pode aceitar novos pedidos
+        io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Pode agora receber novos pedidos.' });
+      }
+
+      createNotification({
+        message: `A sua viagem foi entregue com sucesso! Obrigado por viajar com a Nhiquela.`,
+        receiver_id: order.user,
+        sender_id: order.deliveryman?.id,
+        orderID: order._id,
+        title: 'Viagem Concluída'
+      });
+    }
+
+    res.send({ message: `Pedido entregue com sucesso` });
   })
 );
-
 // Avaliar motorista
 requestServiceer.post(
   '/:id/rate',
@@ -1000,7 +1041,7 @@ requestServiceer.put(
           order.status = 'Cancelado';
         }
 
-        order.stepStatus = 7;
+        order.stepStatus = 8;
         order.canceledReason = req.body.message;
 
         await order.save({ session });
@@ -1127,7 +1168,7 @@ requestServiceer.put(
     if (order) {
       order.status = 'Motorista indisponível';
       order.targetDriverId = null;
-      order.stepStatus = 7;
+      order.stepStatus = 8;
       order.canceledReason = 'Motorista indisponível ou tempo esgotado';
       await order.save();
       const io = req.app.get('io');

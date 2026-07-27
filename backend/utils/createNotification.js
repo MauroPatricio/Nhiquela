@@ -19,6 +19,7 @@ export async function createNotification({
   orderID,
   pushToken,
   title = 'Nhiquela',
+  type = 'default',
 }) {
   try {
     let finalPushToken = pushToken;
@@ -71,7 +72,7 @@ export async function createNotification({
       await sendNotification(finalPushToken, title, message, {
         orderId: orderID,
         senderId: sender_id,
-      });
+      }, type);
     } else {
       console.log(`[NOTIFY-STEP-5] 🛑 O processo parou aqui. Não há token válido para enviar Push externo.`);
     }

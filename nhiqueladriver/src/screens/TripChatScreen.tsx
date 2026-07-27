@@ -4,7 +4,8 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Keyboard
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import api, { SOCKET_URL, API_BASE_URL } from '../api/apiConfig';
+import api, { API_BASE_URL } from '../api/apiConfig';
+const SOCKET_URL = API_BASE_URL.replace('/api', '');
 import io from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,7 +20,7 @@ const getImageUrl = (path) => {
 
 export default function TripChatScreen({ route, navigation }) {
   const { tripId, passenger, passengerImage, serviceMotive } = route.params;
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isChatActive, setIsChatActive] = useState(true);
@@ -55,7 +56,7 @@ export default function TripChatScreen({ route, navigation }) {
     fetchChat();
 
     const socket = io(SOCKET_URL, {
-      auth: { token },
+      auth: { token: user?.token },
       transports: ['websocket'],
     });
 
@@ -156,7 +157,7 @@ export default function TripChatScreen({ route, navigation }) {
         uri: asset.uri,
         name: `chat_img_${Date.now()}.jpg`,
         type: 'image/jpeg',
-      });
+      } as any);
       formData.append('type', 'driver');
 
       const uploadRes = await api.post('/upload/local', formData, {

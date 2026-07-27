@@ -1,6 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, API_TIMEOUT } from "./apiConfig";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL, API_TIMEOUT, getCachedToken, invalidateTokenCache } from "./apiConfig";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -10,9 +9,10 @@ const apiClient = axios.create({
   },
 });
 
+// ⚡ Usar cache de token — sem I/O bloqueante por request
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem("authToken");
+    const token = await getCachedToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,8 +24,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      invalidateTokenCache();
+    }
     if (error.message !== 'Network Error') {
-      // Usar console.warn em vez de console.error para evitar o Red Screen no React Native para erros tratados
       console.warn("API Error:", error.response?.data?.message || error.message);
     }
     return Promise.reject(error);

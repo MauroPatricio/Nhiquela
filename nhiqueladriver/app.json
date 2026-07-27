@@ -48,7 +48,8 @@
         "RECEIVE_BOOT_COMPLETED",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "USE_FULL_SCREEN_INTENT"
       ]
     },
     "ios": {

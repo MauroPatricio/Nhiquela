@@ -52,8 +52,10 @@ const TripCard = React.memo(function TripCard({
   const isStarting = startingTripId === item.id;
   const isCanceling = cancelingTripId === item.id;
   const hasAcceptedTrip = acceptedTrip !== null;
-  const isInTransit = item.stepStatus === 5;
-  const imageUrl = getImageUrl(item.passengerImage);
+  const isInTransit = item.stepStatus === 5 || item.stepStatus === 6;
+  const rawImage = item.passengerImage || item.originalData?.user?.profileImage || item.originalData?.user?.photo;
+  const imageUrl = getImageUrl(rawImage);
+  const passengerName = item.passenger || item.originalData?.user?.name || 'Cliente';
 
   const [timeLeft, setTimeLeft] = useState(30);
 
@@ -108,7 +110,7 @@ const TripCard = React.memo(function TripCard({
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.passengerName} numberOfLines={1}>
-              {item.passenger || 'Cliente'}
+              {passengerName}
             </Text>
             {item.serviceName && (
               <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
@@ -151,22 +153,8 @@ const TripCard = React.memo(function TripCard({
           </View>
         </View>
 
-        {isAccepted && item.passengerPhone && (
+        {item.passengerPhone && item.passengerPhone !== "Não disponvel" && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity 
-              style={[styles.callButton, { backgroundColor: '#8a2be2' }]}
-              onPress={() => {
-                navigation.navigate('TripChat', { 
-                  tripId: item.id || item._id,
-                  passenger: item.passenger,
-                  passengerImage: item.passengerImage,
-                  serviceMotive: item.serviceMotive || item.goodType || 'Serviço Padrão'
-                });
-              }}
-            >
-              <Ionicons name="chatbubble-ellipses" size={18} color="#FFF" />
-            </TouchableOpacity>
-
             <TouchableOpacity 
               style={styles.callButton}
               onPress={() => {
@@ -216,7 +204,7 @@ const TripCard = React.memo(function TripCard({
               <View style={[styles.statChip, { backgroundColor: '#DCFCE7' }]}>
                 <Ionicons name="cash" size={14} color="#059669" />
                 <Text style={[styles.statText, { color: '#059669' }]} numberOfLines={1}>
-                  {item.reward.replace('MZN ', 'MT ')}
+                  {item.reward.replace('MZN ', '').replace('MT ', '')} MT
                 </Text>
               </View>
             )}

@@ -35,8 +35,8 @@ export default function BottomMenu({ state, navigation }) {
         if (userInfo) {
           const { data } = await api.get('/orders/mine');
           if (data && data.length > 0) {
-            // Verifica se há algum pedido pendente com status de que o motorista chegou (stepStatus === 5)
-            const arrived = data.some(order => order.stepStatus === 5);
+            // Verifica se há algum pedido pendente com status de que o motorista chegou (stepStatus === 6)
+            const arrived = data.some(order => order.stepStatus === 6);
             if (isMounted) {
               setHasDriverArrived(arrived);
             }

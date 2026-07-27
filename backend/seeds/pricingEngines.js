@@ -52,9 +52,9 @@ export default [
     "defaultWaitingPricePerMinute": 3,
     "cancellationFeeClient": 30,
     "cancellationFeeProvider": 0,
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:42.213Z",
-    "updatedAt": "2026-07-11T11:39:42.213Z"
+    "updatedAt": "2026-07-11T11:39:42.213Z",
+    "__v": 0
   },
   {
     "trafficMultipliers": {
@@ -109,9 +109,9 @@ export default [
     "defaultWaitingPricePerMinute": 3,
     "cancellationFeeClient": 30,
     "cancellationFeeProvider": 0,
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:42.213Z",
-    "updatedAt": "2026-07-11T11:39:42.213Z"
+    "updatedAt": "2026-07-11T11:39:42.213Z",
+    "__v": 0
   },
   {
     "trafficMultipliers": {
@@ -166,8 +166,8 @@ export default [
     "defaultWaitingPricePerMinute": 3,
     "cancellationFeeClient": 30,
     "cancellationFeeProvider": 0,
-    "__v": 0,
     "createdAt": "2026-07-11T11:39:42.213Z",
-    "updatedAt": "2026-07-11T11:39:42.213Z"
+    "updatedAt": "2026-07-11T11:39:42.213Z",
+    "__v": 0
   }
 ];

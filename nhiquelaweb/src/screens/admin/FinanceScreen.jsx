@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMoneyBillWave, faEdit, faTrash, faPlus, faSave, faTimes, faArrowUp, faArrowDown, faSpinner, faMobileAlt, faFilter, faChevronLeft, faChevronRight, faUserCircle, faSearch, faDownload, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
@@ -167,6 +167,15 @@ export default function FinanceScreen() {
     totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
   } = usePagination(typeFilteredTransactions, 10, ['description', 'id', '_id']);
 
+  // Calculate Totals
+  const totalRecharges = transactions
+    .filter(t => t.type === 'credit' && (t.status === 'completed' || t.status === 'confirmado' || t.status === 'aprovado' || t.status === 'confirmada') && (t.description || '').toLowerCase().includes('recarga'))
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  const totalWithdrawals = transactions
+    .filter(t => t.type === 'debit' && (t.status === 'completed' || t.status === 'confirmado' || t.status === 'aprovada' || t.status === 'aprovado') && (t.description || '').toLowerCase().includes('levantamento'))
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
   return (
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -189,29 +198,58 @@ export default function FinanceScreen() {
       </div>
 
       <div className="row g-4 mb-4">
-        <div className="col-md-6">
+        <div className="col-md-3">
           <div className="card shadow-sm-custom border-0 rounded-4 bg-primary-subtle border border-primary border-opacity-25 h-100">
             <div className="card-body p-4">
               <div className="d-flex align-items-center mb-2">
                 <FontAwesomeIcon icon={faMoneyBillWave} className="text-primary-custom me-2" />
-                <span className="text-muted fw-bold text-uppercase">Saldo Disponível</span>
+                <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.8rem' }}>Saldo Disponível</span>
               </div>
-              <h3 className="fw-bold text-dark m-0">
+              <h4 className="fw-bold text-dark m-0">
                 {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${(balances.available || 0).toFixed(2)} ${balances.currency || 'MT'}`}
-              </h3>
+              </h4>
             </div>
           </div>
         </div>
-        <div className="col-md-6">
+        
+        <div className="col-md-3">
           <div className="card shadow-sm-custom border-0 rounded-4 bg-warning bg-opacity-10 h-100">
             <div className="card-body p-4">
               <div className="d-flex align-items-center mb-2">
                 <FontAwesomeIcon icon={faArrowUp} className="text-warning me-2" />
-                <span className="text-muted fw-bold text-uppercase">Saldo Pendente (Aguardando Libertação)</span>
+                <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.8rem' }}>Saldo Pendente</span>
               </div>
-              <h3 className="fw-bold text-dark m-0">
+              <h4 className="fw-bold text-dark m-0">
                 {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${(balances.pending || 0).toFixed(2)} ${balances.currency || 'MT'}`}
-              </h3>
+              </h4>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 bg-success bg-opacity-10 border border-success border-opacity-25 h-100">
+            <div className="card-body p-4">
+              <div className="d-flex align-items-center mb-2">
+                <FontAwesomeIcon icon={faArrowDown} className="text-success me-2" />
+                <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.8rem' }}>Total em Caixa (Recargas)</span>
+              </div>
+              <h4 className="fw-bold text-dark m-0">
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${totalRecharges.toFixed(2)} ${balances.currency || 'MT'}`}
+              </h4>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 bg-danger bg-opacity-10 border border-danger border-opacity-25 h-100">
+            <div className="card-body p-4">
+              <div className="d-flex align-items-center mb-2">
+                <FontAwesomeIcon icon={faArrowUp} className="text-danger me-2" />
+                <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.8rem' }}>Total Levantado (Saídas)</span>
+              </div>
+              <h4 className="fw-bold text-dark m-0">
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : `${totalWithdrawals.toFixed(2)} ${balances.currency || 'MT'}`}
+              </h4>
             </div>
           </div>
         </div>
