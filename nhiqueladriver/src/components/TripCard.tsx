@@ -57,7 +57,7 @@ const TripCard = React.memo(function TripCard({
   const imageUrl = getImageUrl(rawImage);
   const passengerName = item.passenger || item.originalData?.user?.name || 'Cliente';
 
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(50);
 
   useEffect(() => {
     if (isAccepted || hasAcceptedTrip || isInTransit) return;
@@ -74,7 +74,7 @@ const TripCard = React.memo(function TripCard({
     return () => clearInterval(timerId);
   }, [timeLeft, isAccepted, hasAcceptedTrip, isInTransit, item.id, onExpire]);
 
-  const progressWidth = (timeLeft / 30) * 100;
+  const progressWidth = (timeLeft / 50) * 100;
 
   return (
     <TouchableOpacity 

@@ -1,4 +1,4 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
@@ -18,7 +18,7 @@ const transactionSchema = new Schema(
     amount: {
       type: Number,
       required: true,
-      min: [0.01, 'O valor da transação deve ser maior que zero']
+      min: [0, 'O valor da transação não pode ser negativo']
     },
     method: {
       type: String,

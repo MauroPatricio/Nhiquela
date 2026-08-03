@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Alert, Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 export async function registerForPushNotificationsAsync() {
   let deviceToken;
@@ -18,7 +19,8 @@ export async function registerForPushNotificationsAsync() {
       return;
     }
 
-    deviceToken = (await Notifications.getExpoPushTokenAsync()).data;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId || 'nhiquela-4bfb5';
+    deviceToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   } else {
     Alert.alert('Precisa usar um dispositivo físico');
   }

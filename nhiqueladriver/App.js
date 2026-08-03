@@ -60,9 +60,10 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const token = (await Notifications.getDevicePushTokenAsync()).data;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId || 'nhiquela-4bfb5';
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
-  console.log("📩 FCM / Device Push Token:", token);
+  console.log("📩 Expo Push Token:", token);
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("driver_alerts_urgent", {
@@ -96,6 +97,20 @@ function AppContent() {
 
   useEffect(() => {
     const registerToken = async () => {
+      // 📌 Definir Categorias de Notificação (Botões Aceitar/Rejeitar)
+      await Notifications.setNotificationCategoryAsync('new_order', [
+        {
+          identifier: 'accept',
+          buttonTitle: 'Aceitar Viagem',
+          options: { opensAppToForeground: true }
+        },
+        {
+          identifier: 'reject',
+          buttonTitle: 'Rejeitar',
+          options: { isDestructive: true }
+        }
+      ]);
+
       const deviceToken = await registerForPushNotificationsAsync();
       if (!deviceToken) return;
 
@@ -149,12 +164,40 @@ function AppContent() {
       (response) => {
         console.log("👉 Usuário interagiu com a notificação:", response);
         const data = response.notification.request.content.data;
+        const actionIdentifier = response.actionIdentifier;
 
-        if (navigationRef.isReady() && data?.orderId) {
-          navigationRef.navigate("MainTabs", {
-            screen: "Home",
-            params: { orderId: data.orderId }
-          });
+        // Se clicou no botão "Aceitar Viagem" da notificação
+        if (actionIdentifier === 'accept' && data?.orderId) {
+          console.log('✅ Motorista clicou no botão Aceitar Viagem da notificação!');
+          // O fluxo de navegação ou chamada da API deve acontecer aqui.
+          // Como não conseguimos chamar o hook `useTrip` diretamente do App.js,
+          // passamos o parâmetro para a Home para que ela faça o accept automático.
+          if (navigationRef.isReady()) {
+            navigationRef.navigate("MainTabs", {
+              screen: "Home",
+              params: { orderId: data.orderId, autoAccept: true }
+            });
+          }
+        } 
+        // Se clicou no botão "Rejeitar"
+        else if (actionIdentifier === 'reject' && data?.orderId) {
+          console.log('❌ Motorista rejeitou a viagem a partir da notificação.');
+          if (navigationRef.isReady()) {
+             // Opcional: Avisar a Home para limpar a viagem ou disparar a API de ignorar
+             navigationRef.navigate("MainTabs", {
+              screen: "Home",
+              params: { orderId: data.orderId, autoReject: true }
+            });
+          }
+        }
+        // Clique normal na notificação (abrir app)
+        else {
+          if (navigationRef.isReady() && data?.orderId) {
+            navigationRef.navigate("MainTabs", {
+              screen: "Home",
+              params: { orderId: data.orderId }
+            });
+          }
         }
       }
     );

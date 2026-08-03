@@ -23,7 +23,7 @@ const menuItems = [
 
 export default function BottomMenu({ state, navigation }) {
   const currentRoute = state.routes[state.index].name;
-  const [hasDriverArrived, setHasDriverArrived] = useState(false);
+  const [arrivedCount, setArrivedCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,17 +31,17 @@ export default function BottomMenu({ state, navigation }) {
 
     const checkOrdersStatus = async () => {
       try {
-        const userInfo = await AsyncStorage.getItem("userInfo");
+        const userInfo = await AsyncStorage.getItem("userData");
         if (userInfo) {
           const { data } = await api.get('/orders/mine');
           if (data && data.length > 0) {
-            // Verifica se há algum pedido pendente com status de que o motorista chegou (stepStatus === 6)
-            const arrived = data.some(order => order.stepStatus === 6);
+            // Conta quantos pedidos estão pendentes com status de que o motorista chegou (stepStatus === 6)
+            const count = data.filter(order => order.stepStatus === 6).length;
             if (isMounted) {
-              setHasDriverArrived(arrived);
+              setArrivedCount(count);
             }
           } else {
-             if (isMounted) setHasDriverArrived(false);
+             if (isMounted) setArrivedCount(0);
           }
         }
       } catch (error) {
@@ -106,9 +106,9 @@ export default function BottomMenu({ state, navigation }) {
                 />
                 
                 {/* Badge para Pedidos */}
-                {item.name === "Pedidos" && hasDriverArrived && (
+                {item.name === "Pedidos" && arrivedCount > 0 && (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>!</Text>
+                    <Text style={styles.badgeText}>{arrivedCount}</Text>
                   </View>
                 )}
               </View>
@@ -190,20 +190,21 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#EF4444',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    top: 2,
+    right: 2,
+    backgroundColor: '#10B981', // Verde
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#FFF',
+    paddingHorizontal: 3,
   },
   badgeText: {
     color: '#FFF',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 'bold',
   }
 });

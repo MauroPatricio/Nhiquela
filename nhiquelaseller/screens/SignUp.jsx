@@ -505,16 +505,16 @@ const styles = StyleSheet.create({
   header: { 
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
     paddingHorizontal: 16, paddingVertical: 14, backgroundColor: COLORS.surface,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border 
+    borderBottomWidth: 1, borderBottomColor: COLORS.borderLight 
   },
   backButton: { 
-    width: 38, height: 38, borderRadius: RADIUS.sm, backgroundColor: COLORS.surface2, 
+    width: 38, height: 38, borderRadius: RADIUS.lg, backgroundColor: COLORS.surface2, 
     alignItems: 'center', justifyContent: 'center' 
   },
   headerTitle: { fontSize: SIZES.lg, fontWeight: '700', color: COLORS.text },
-  stepperContainer: { paddingHorizontal: 20, paddingVertical: 16, backgroundColor: COLORS.surfaceCard, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  stepperContainer: { paddingHorizontal: 20, paddingVertical: 16, backgroundColor: COLORS.surfaceCard, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
   stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border },
+  stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.borderLight },
   stepDotActive: { backgroundColor: COLORS.primaryLight, borderColor: COLORS.primaryLight },
   stepLine: { width: 60, height: 2, backgroundColor: COLORS.surface2, marginHorizontal: 4 },
   stepLineActive: { backgroundColor: COLORS.primaryLight },
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: SIZES.sm, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8 },
   inputWrapper: { 
     flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface2, 
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, 
+    borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: RADIUS.lg, 
     height: 56, paddingHorizontal: 16 
   },
   inputIcon: { marginRight: 12 },
@@ -536,27 +536,27 @@ const styles = StyleSheet.create({
   eyeButton: { padding: 5 },
 
   uploadBox: { 
-    height: 120, backgroundColor: COLORS.surface2, borderWidth: 1.5, borderColor: COLORS.border, 
-    borderStyle: 'dashed', borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' 
+    height: 120, backgroundColor: COLORS.surface2, borderWidth: 1.5, borderColor: COLORS.borderLight, 
+    borderStyle: 'dashed', borderRadius: RADIUS.lg, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' 
   },
   uploadText: { marginTop: 8, fontSize: SIZES.sm, color: COLORS.textMuted },
   previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
 
-  pickerContainer: { backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, overflow: 'hidden' },
+  pickerContainer: { backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: RADIUS.lg, overflow: 'hidden' },
   picker: { height: 56, color: COLORS.text },
 
   secondaryButton: { 
-    backgroundColor: COLORS.primaryGlow, borderRadius: RADIUS.sm, height: 52, 
+    backgroundColor: COLORS.primaryGlow, borderRadius: RADIUS.full, height: 52, 
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-    borderWidth: 1, borderColor: COLORS.primary + '40'
+    borderWidth: 1, borderColor: COLORS.primaryTransparent
   },
   secondaryButtonText: { color: COLORS.primaryLight, fontSize: SIZES.sm, fontWeight: '700', marginLeft: 8 },
   locationText: { fontSize: SIZES.xs, color: COLORS.textSecondary, textAlign: 'center' },
 
-  footer: { padding: 20, backgroundColor: COLORS.surfaceCard, borderTopWidth: 1, borderTopColor: COLORS.border },
+  footer: { padding: 20, backgroundColor: COLORS.surfaceCard, borderTopWidth: 1, borderTopColor: COLORS.borderLight },
   primaryButton: { 
-    backgroundColor: COLORS.primary, borderRadius: RADIUS.sm, height: 56, 
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...SHADOWS.md 
+    backgroundColor: COLORS.primary, borderRadius: RADIUS.full, height: 56, 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...SHADOWS.glow 
   },
   disabledButton: { opacity: 0.6 },
   primaryButtonText: { color: '#FFF', fontSize: SIZES.base, fontWeight: '700' }

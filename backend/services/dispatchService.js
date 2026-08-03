@@ -25,7 +25,7 @@ class DispatchService {
       // Montar a query base de pesquisa de motoristas
       const query = {
         isDeliveryMan: true,
-        status: { $nin: ['Inativo', 'Pendente'] }, // Garantir que não está bloqueado ou pendente de aprovação
+        status: 'Disponível', // Garantir que está no estado ativo/disponível
         availability: 'active', // Motorista marcou-se como online na app
         'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
         'locationGeo.coordinates.0': { $ne: 0 }, // Tem GPS válido
@@ -106,15 +106,15 @@ class DispatchService {
       // Send Push Notification
       const pickupLocation = currentOrderState.initialLocationName || 'Localização perto de si';
       console.log(`[DispatchService] 📲 Enviando push para motorista ${driver.name} (token: ${driver.deviceToken ? '✓' : 'sem token'})`);
-      await createNotification({
+      createNotification({
         message: `🚕 Nova viagem! Recolha em: ${pickupLocation}. Clique para aceitar.`,
         receiver_id: driver._id,
         pushToken: driver.deviceToken || null, // deviceToken é o campo correto no UserModel
         type: 'new_order'
-      });
+      }).catch(err => console.error('[DispatchService] Erro ao enviar push:', err));
 
-      // 3. Esperar 30 segundos usando uma Promise
-      await new Promise(resolve => setTimeout(resolve, 30000));
+      // 3. Esperar 50 segundos usando uma Promise
+      await new Promise(resolve => setTimeout(resolve, 50000));
 
       // 4. Verificar após 30s se o motorista aceitou
       const checkOrder = await RequestService.findById(order._id);

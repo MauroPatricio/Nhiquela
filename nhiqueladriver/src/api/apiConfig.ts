@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // 1️⃣ Configuração Automática de Ambiente
 // ---------------------------------------------------------------------
 const isDev = process.env.NODE_ENV !== 'production';
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://10.199.182.176:5000/api' : 'https://api.nhiquelaservicos.com/api');
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://api.nhiquelaservicos.com/api');
 export const API_TIMEOUT = 10000;
 
 // ---------------------------------------------------------------------
