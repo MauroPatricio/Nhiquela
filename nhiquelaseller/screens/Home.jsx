@@ -405,11 +405,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderLight,
+    ...SHADOWS.sm,
   },
   headerTop: {
     flexDirection: 'row',
@@ -450,13 +451,13 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    padding: 16,
+    borderRadius: RADIUS.lg,
+    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    ...SHADOWS.md,
+    ...SHADOWS.glow,
   },
   balanceLabel: {
     fontSize: SIZES.sm,
@@ -504,7 +505,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.borderLight,
   },
   storeDot: {
     width: 8,
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
     gap: 6,
   },
   filterChipActive: {
@@ -571,12 +572,12 @@ const styles = StyleSheet.create({
   orderCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.surfaceCard,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     marginBottom: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.sm,
+    borderColor: COLORS.borderLight,
+    ...SHADOWS.md,
   },
   statusStripe: {
     width: 5,
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
   orderIconBox: {
     width: 42,
     height: 42,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.lg,
     backgroundColor: COLORS.primaryGlow,
     alignItems: 'center',
     justifyContent: 'center',

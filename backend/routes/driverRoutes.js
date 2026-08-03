@@ -68,7 +68,7 @@ router.get(
     const nearbyDrivers = await User.find({
       isDeliveryMan: true,
       availability: 'active',
-      status: { $in: ['Active', 'Disponível', 'Ativo', 'Activo'] },
+      status: 'Disponível',
       locationGeo: {
         $near: {
           $geometry: {
@@ -341,6 +341,7 @@ router.get(
     const filter = {
       isDeliveryMan: true,
       availability: 'active',
+      status: 'Disponível',
       isDeleted: { $ne: true },
     };
 

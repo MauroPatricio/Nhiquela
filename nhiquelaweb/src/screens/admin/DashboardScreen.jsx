@@ -50,6 +50,7 @@ export default function DashboardScreen() {
   const completedTripsCount = stats.orders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').length;
   const inTransitDriversCount = stats.drivers.filter(d => d.status === 'Em Entrega').length;
   const cancelledTripsCount = stats.orders.filter(o => o.status === 'Cancelado').length;
+  const onlineWorkingDriversCount = stats.drivers.filter(d => d.availability === 'active' || d.status === 'Em Entrega').length;
   
   // Calculate driver earnings roughly as 85% based on 15% platform commission
   const driverEarnings = stats.orders.reduce((sum, order) => sum + Number(order.totalPrice || order.itemsPrice || 0) * 0.85, 0);
@@ -306,6 +307,28 @@ export default function DashboardScreen() {
           </div>
         </div>
       </div>
+
+      {/* KPI Row 3 */}
+      <div className="row g-4 mb-4">
+        {/* KPI 9: Motoristas Online a Trabalhar */}
+        <div className="col-md-6 col-xl-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 h-100 hover-lift">
+            <div className="card-body p-4 d-flex flex-column justify-content-between">
+              <div className="d-flex justify-content-between align-items-start mb-3">
+                <div className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center bg-opacity-75" style={{ width: '55px', height: '55px' }}>
+                  <FontAwesomeIcon icon={faMotorcycle} size="xl" />
+                </div>
+                <span className="badge bg-primary rounded-pill fw-bold text-white">Online</span>
+              </div>
+              <div>
+                <h6 className="text-muted fw-bold mb-1">Motoristas Online a Trabalhar</h6>
+                <h3 className="fw-bold text-dark m-0">{onlineWorkingDriversCount} <small className="text-muted fs-6">em rota</small></h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="row g-4">
 
         {/* Gráfico de Receitas (CSS Custom) */}

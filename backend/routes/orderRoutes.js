@@ -1476,6 +1476,13 @@ orderRouter.put(
               'wallet',
               session
             );
+            
+            // Increment completedOrders for the driver
+            await User.updateOne(
+              { _id: order.deliveryman.id },
+              { $inc: { completedOrders: 1 } },
+              { session }
+            );
           } catch (error) {
             await session.abortTransaction();
             session.endSession();

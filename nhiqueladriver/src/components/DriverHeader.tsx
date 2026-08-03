@@ -310,7 +310,7 @@ export default function DriverHeader({
 
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={16} color={COLORS.warning} />
-          <Text style={styles.rating}>{userRating}</Text>
+          <Text style={styles.rating}>{Number(user?.deliveryman?.averageRating || user?.rating || 0).toFixed(1)}</Text>
         </View>
       </View>
 

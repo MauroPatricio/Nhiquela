@@ -51,7 +51,7 @@ type WebSocketError = {
   code?: string;
 };
 
-export default function HomeScreen({ navigation }: any) {
+export default function HomeScreen({ navigation, route }: any) {
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [acceptedTrip, setAcceptedTrip] = useState<Trip | null>(null);
   const [routeSummary, setRouteSummary] = useState<Trip | null>(null);
@@ -143,6 +143,24 @@ export default function HomeScreen({ navigation }: any) {
   }, [allTrips, alertSound, user?.availability]);
 
   const isMounted = useRef(true);
+
+  // 🔥 PROCESSAR AÇÕES AUTOMÁTICAS VINDAS DA NOTIFICAÇÃO PUSH
+  useEffect(() => {
+    if (route?.params?.autoAccept && route.params?.orderId) {
+      console.log('⚡ Auto-aceitando viagem via push action:', route.params.orderId);
+      // O acceptTrip precisa do ID. Como o acceptTrip procura no allTrips,
+      // devemos chamar acceptTrip diretamente.
+      acceptTrip(route.params.orderId);
+      // Limpar o parâmetro para não rodar em loop se a tela for recarregada
+      navigation.setParams({ autoAccept: undefined });
+    }
+    
+    if (route?.params?.autoReject && route.params?.orderId) {
+      console.log('⚡ Removendo viagem da lista (auto-reject):', route.params.orderId);
+      setAllTrips(prev => prev.filter(t => t.id !== route.params.orderId));
+      navigation.setParams({ autoReject: undefined });
+    }
+  }, [route?.params?.autoAccept, route?.params?.autoReject, route?.params?.orderId]);
 
   // 🔥 OBTER E COMPARTILHAR LOCALIZAÇÃO EM TEMPO REAL
   const startLocationSharing = async () => {
@@ -241,7 +259,7 @@ export default function HomeScreen({ navigation }: any) {
           // ✅ Sem GPS — usar {0,0} como fallback neutro (o formatOrder usa dados do pedido, não posição do motorista)
           const newFormattedOrder = formatOrder(data, { latitude: 0, longitude: 0 });
           
-          const isCancelled = data.status === 'Cancelado' || data.status === 'Motorista indisponível' || data.isCanceled || data.deleted;
+          const isCancelled = data.status === 'Cancelado' || data.status === 'Motorista indisponível' || data.status === 'Concluído' || data.stepStatus === 7 || data.stepStatus === 8 || data.isCanceled || data.deleted;
           
           setAllTrips((prevTrips: any[]) => {
             let newTrips = [];
@@ -1641,19 +1659,25 @@ const proceedStartTrip = async (trip: Trip) => {
         </View>
       </ScrollView>
 
-      {/* 🚀 HEADS-UP INTENT DE NOVA VIAGEM (INCOMING TRIP) */}
-      {allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3)) && (
+      {/* 🚀 HEADS-UP INTENT DE NOVA VIAGEM (INCOMING TRIP) - MODAL MAXIMO */}
+      <Modal
+        visible={allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3))}
+        transparent
+        animationType="slide"
+      >
         <View style={styles.headsUpContainer}>
-          <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-            {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
-              <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
-                {renderTripCard({ item: trip })}
-              </View>
-            ))}
-          </ScrollView>
+          <View style={styles.headsUpContent}>
+            <Text style={styles.headsUpTitle}>Nova Solicitação de Viagem</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+              {allTrips.filter(t => (t.stepStatus === 1 || t.stepStatus === 3)).map(trip => (
+                <View key={trip.id} style={{ width: '100%', marginBottom: 15 }}>
+                  {renderTripCard({ item: trip })}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         </View>
-      )}
+      </Modal>
 
       {/* 🔥 MODAL PREMIUM "CONTA EM ANÁLISE" */}
       <Modal visible={showApprovalModal} transparent animationType="slide">
@@ -2436,26 +2460,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headsUpContainer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#F9FAFB',
-    paddingTop: 60,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)', // Fundo escuro para isolar a viagem
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 9999,
+  },
+  headsUpContent: {
+    width: '90%',
+    maxHeight: '85%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
     elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   headsUpTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: '#1E293B',
     marginBottom: 20,
-    marginTop: 20,
+    marginTop: 15,
     textAlign: 'center',
   },
   premiumModalText: {

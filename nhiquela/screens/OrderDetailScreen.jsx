@@ -611,14 +611,7 @@ const OrderDetailsScreen = () => {
                     </View>
                   )}
                 </View>
-                {(currentOrder.deliveryman.phoneNumber || currentOrder.deliveryman.phone) && (
-                  <TouchableOpacity 
-                    style={{ backgroundColor: '#10B981', padding: 10, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginLeft: 10 }}
-                    onPress={() => Linking.openURL(`tel:${currentOrder.deliveryman.phoneNumber || currentOrder.deliveryman.phone}`)}
-                  >
-                    <Ionicons name="call" size={22} color="#FFF" />
-                  </TouchableOpacity>
-                )}
+                {/* Removed call button as requested */}
               </View>
             </View>
 

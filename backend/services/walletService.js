@@ -36,6 +36,16 @@ export const getFinancialConfig = async () => {
 
 /** Helper: Calculate exact commission based on subcategory rules */
 export const calculateDynamicCommission = async (order) => {
+  // ✅ NOVA REGRA: Isenção de comissão na 1ª viagem do motorista
+  const driverId = order.deliveryman?.id || (order.deliveryman && order.deliveryman._id ? order.deliveryman._id : null) || order.driverId;
+  if (driverId) {
+    const driver = await User.findById(driverId);
+    // Se o motorista ainda não tem viagens concluídas, isenta a comissão
+    if (driver && (driver.completedOrders || 0) === 0) {
+      return 0; // 0 MT de comissão na primeira viagem
+    }
+  }
+
   const financialConfig = await getFinancialConfig();
   let defaultCommissionRate = financialConfig?.driverCommissionRate || 0.15;
   
@@ -179,13 +189,18 @@ export const debitCommissionFromPartner = async (partnerId, orderAmount, commiss
 
 /** Helper: check whether driver has enough balance */
 export const hasSufficientBalance = async (driverId, driverDoc = null) => {
+  const driver = driverDoc || await User.findById(driverId);
+  // ✅ NOVA REGRA: Isenção de saldo obrigatório para a primeira viagem
+  if (driver && (driver.completedOrders || 0) === 0) {
+    return true;
+  }
+
   const wallet = await getWallet(driverId);
 
   const config = await getFinancialConfig();
   
   let limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
   
-  const driver = driverDoc || await User.findById(driverId);
   if (driver && driver.deliveryman) {
     let vType = null;
     const VehicleType = (await import('../models/VehicleTypeModel.js')).default;
@@ -253,6 +268,12 @@ export const getDriverMinimumBalance = async (driverId, config, session = null) 
 
 /** Verify if driver has sufficient balance/credit to afford an upcoming trip commission */
 export const canAffordTripCommission = async (driverId, amount) => {
+  // ✅ NOVA REGRA: Isenção para a primeira viagem
+  const driver = await User.findById(driverId);
+  if (driver && (driver.completedOrders || 0) === 0) {
+    return true;
+  }
+
   const wallet = await getWallet(driverId);
   const config = await getFinancialConfig();
   
@@ -275,6 +296,11 @@ export const resetMonthlySales = async () => {
 
 /** Debit driver commission using MongoDB Sessions for atomicity */
 export const debitDriverCommissionWithSession = async (driverId, amount, description, method, session) => {
+  // Se o valor debitado for 0, atualizamos a descrição para refletir o bónus de isenção
+  if (amount === 0) {
+    description = "Isenção de Comissão - Bónus de 1ª Viagem";
+  }
+
   let wallet = await Wallet.findOne({ $or: [{ ownerId: driverId }, { userId: driverId }] }).session(session);
   if (!wallet) {
     wallet = await Wallet.create([{ ownerId: driverId, ownerType: 'driver', userId: driverId, balance: 0 }], { session });

@@ -886,7 +886,10 @@ requestServiceer.put(
         if (order.deliveryman && order.deliveryman.id) {
           await User.updateOne(
             { _id: order.deliveryman.id },
-            { $set: { 'deliveryman.hasActiveService': false } },
+            { 
+              $set: { 'deliveryman.hasActiveService': false },
+              $inc: { completedOrders: 1 }
+            },
             { session }
           );
         }

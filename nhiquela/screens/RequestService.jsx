@@ -56,25 +56,26 @@ export default function RequestServiceSimple() {
   const [reason, setReason] = useState('');
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
-  
+
   const [originCoord, setOriginCoord] = useState(null);
   const [destCoord, setDestCoord] = useState(null);
   const [driverCoord, setDriverCoord] = useState(null);
   const [preferredPaymentMethodName, setPreferredPaymentMethodName] = useState('Dinheiro');
   const [driverHeading, setDriverHeading] = useState(0);
   const [radarDrivers, setRadarDrivers] = useState([]);
-  
+
   // Radar Search State
   const [radius, setRadius] = useState(5);
   const [isSearching, setIsSearching] = useState(false);
   const [waitingForDriver, setWaitingForDriver] = useState(false);
   const [selectedDriverForRequest, setSelectedDriverForRequest] = useState(null);
   const [availableDriversList, setAvailableDriversList] = useState([]);
-  const [waitingCountdown, setWaitingCountdown] = useState(45);
+  const [waitingCountdown, setWaitingCountdown] = useState(60);
   const [rejectedDriverIds, setRejectedDriverIds] = useState([]);
   const [showBusyModal, setShowBusyModal] = useState(false);
   const [showUnavailableAlert, setShowUnavailableAlert] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState({ visible: false, message: '' });
+  const [showDriverArrivedModal, setShowDriverArrivedModal] = useState(false);
   const [duration, setDuration] = useState(null);
   const [activeTripData, setActiveTripData] = useState(null);
   const [currentRequestServiceId, setCurrentRequestServiceId] = useState(null);
@@ -98,6 +99,7 @@ export default function RequestServiceSimple() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [scheduledConfirmed, setScheduledConfirmed] = useState(false);
+  const [selectedDriverInfo, setSelectedDriverInfo] = useState(null);
 
   // Autocomplete state
   const [originText, setOriginText] = useState('');
@@ -144,9 +146,9 @@ export default function RequestServiceSimple() {
       if (p.originCoord) setOriginCoord(p.originCoord);
       if (p.destCoord) setDestCoord(p.destCoord);
       if (p.reason) setReason(p.reason);
-      
+
       setStep(2);
-      
+
       setTimeout(() => {
         setRejectedDriverIds([]);
         setAvailableDriversList([]);
@@ -221,13 +223,13 @@ export default function RequestServiceSimple() {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude
         });
-        
+
         let placeName = 'Minha localização atual';
         if (addressArray && addressArray.length > 0) {
           const addr = addressArray[0];
           const street = addr.street || addr.name || '';
           const city = addr.city || addr.subregion || addr.region || '';
-          
+
           if (street && city) {
             placeName = `${street}, ${city}`;
           } else if (street) {
@@ -236,7 +238,7 @@ export default function RequestServiceSimple() {
             placeName = city;
           }
         }
-        
+
         setOriginText(placeName);
         if (originRef.current) {
           originRef.current.setAddressText(placeName);
@@ -400,7 +402,7 @@ export default function RequestServiceSimple() {
             destLoc: destCoord,
             weightKg: 5
           });
-          
+
           if (data && data.price > 0) {
             setPrice(data.price);
           } else {
@@ -413,7 +415,7 @@ export default function RequestServiceSimple() {
             setRouteCoords([]);
             Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
           }
-          
+
           if (data.breakdown && data.breakdown.durationMin) {
             setDuration(Math.round(data.breakdown.durationMin));
           }
@@ -425,7 +427,7 @@ export default function RequestServiceSimple() {
         }
       }
     };
-    
+
     fetchPrice();
   }, [originCoord, destCoord]);
 
@@ -541,13 +543,13 @@ export default function RequestServiceSimple() {
     };
   }, [isSearching, radius]);
 
-  
+
   const sendRequestToDriver = async (driver) => {
     try {
       setSelectedDriverForRequest(driver);
       setWaitingForDriver(true);
-      setWaitingCountdown(45);
-      
+      setWaitingCountdown(60);
+
       const storedUserData = await AsyncStorage.getItem('userData');
       let token = '';
       let phoneNumber = '';
@@ -559,16 +561,14 @@ export default function RequestServiceSimple() {
 
       const serviceBase = service?.baseFare || 0;
       let deslocacao = price > serviceBase ? price - serviceBase : 0;
-      
-      let baseFare = price;
+
+      let baseFare = serviceBase;
       if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
         baseFare = driver.deliveryman.customPrice;
       } else if (driver.deliveryman?.assigned_base_fee) {
         baseFare = driver.deliveryman.assigned_base_fee;
-      } else if (serviceBase > 0) {
-        baseFare = serviceBase;
       }
-      
+
       let finalPrice = baseFare + deslocacao;
 
       const payload = {
@@ -611,17 +611,17 @@ export default function RequestServiceSimple() {
 
       if (response.data && response.data.requestService) {
         setCurrentRequestServiceId(response.data.requestService._id);
-        
+
         if (isScheduled) {
-           Alert.alert("Agendado com sucesso", `O seu pedido foi agendado para ${scheduledDate.toLocaleString('pt-PT')}.`);
-           navigation.navigate('OrderDetailsScreen', { orderId: response.data.requestService._id, item: response.data.requestService });
-           return;
+          Alert.alert("Agendado com sucesso", `O seu pedido foi agendado para ${scheduledDate.toLocaleString('pt-PT')}.`);
+          navigation.navigate('OrderDetailsScreen', { orderId: response.data.requestService._id, item: response.data.requestService });
+          return;
         }
       }
-      
+
       // We don't navigate yet, we wait for driver to accept/reject via socket
       // A proper implementation would listen to a socket event here for 'order_updated'
-      
+
     } catch (postError) {
       console.log('Erro ao criar pedido:', postError);
       if (postError?.response?.status === 409) {
@@ -662,7 +662,7 @@ export default function RequestServiceSimple() {
     try {
       const storedUserData = await AsyncStorage.getItem('userData');
       const token = storedUserData ? JSON.parse(storedUserData).token : '';
-      
+
       if (currentRequestServiceId) {
         await api.delete(`/request-service/${currentRequestServiceId}`, {
           headers: { authorization: `Bearer ${token}` }
@@ -690,8 +690,8 @@ export default function RequestServiceSimple() {
       }
     }
   };
-  
-  
+
+
   useEffect(() => {
     if (currentRequestServiceId && (waitingForDriver || isSearching)) {
       let isMounted = true;
@@ -699,30 +699,30 @@ export default function RequestServiceSimple() {
       const socket = io(socketUrl, { transports: ['websocket'] });
 
       const checkStatus = async () => {
-         try {
-           const storedUserData = await AsyncStorage.getItem('userData');
-           const token = storedUserData ? JSON.parse(storedUserData).token : '';
-           const { data } = await api.get('/request-service/userview', {
-             headers: { authorization: `Bearer ${token}` }
-           });
-           const myOrder = data.deliverRequests && data.deliverRequests[0];
-           if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
-             if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') {
-                Alert.alert("Cancelado", "O pedido foi cancelado ou nenhum motorista aceitou.");
-                setWaitingForDriver(false);
-                setIsSearching(false);
-                setSelectedDriverForRequest(null);
-                setCurrentRequestServiceId(null);
-             } else if (myOrder.status === 'Pedido aceite') {
-                setWaitingForDriver(false);
-                setIsSearching(false);
-                setActiveTripData(myOrder);
-                setCurrentRequestServiceId(null);
-             }
-           }
-         } catch(e){}
+        try {
+          const storedUserData = await AsyncStorage.getItem('userData');
+          const token = storedUserData ? JSON.parse(storedUserData).token : '';
+          const { data } = await api.get('/request-service/userview', {
+            headers: { authorization: `Bearer ${token}` }
+          });
+          const myOrder = data.deliverRequests && data.deliverRequests[0];
+          if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
+            if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') {
+              Alert.alert("Cancelado", "O pedido foi cancelado ou nenhum motorista aceitou.");
+              setWaitingForDriver(false);
+              setIsSearching(false);
+              setSelectedDriverForRequest(null);
+              setCurrentRequestServiceId(null);
+            } else if (myOrder.status === 'Pedido aceite') {
+              setWaitingForDriver(false);
+              setIsSearching(false);
+              setActiveTripData(myOrder);
+              setCurrentRequestServiceId(null);
+            }
+          }
+        } catch (e) { }
       };
-      
+
       checkStatus(); // Initial fetch check
 
       socket.on('connect', () => {
@@ -733,36 +733,36 @@ export default function RequestServiceSimple() {
       });
 
       socket.on('order_updated', (updatedOrder) => {
-         if (isMounted && updatedOrder._id === currentRequestServiceId) {
-            if (updatedOrder.status === 'Motorista indisponível') {
-                setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
-                setWaitingForDriver(false);
-                setIsSearching(false);
-                setSelectedDriverForRequest(null);
-                setCurrentRequestServiceId(null);
-                setShowUnavailableAlert(true);
-            } else if (updatedOrder.status === 'Cancelado') {
-                setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
-                setWaitingForDriver(false);
-                setIsSearching(false);
-                setSelectedDriverForRequest(null);
-                setCurrentRequestServiceId(null);
-                // Sem alert, pois foi o próprio cliente que cancelou ou admin
-            } else if (updatedOrder.status === 'Pedido aceite') {
-                setWaitingForDriver(false);
-                setIsSearching(false);
-                setActiveTripData(updatedOrder);
-                setCurrentRequestServiceId(null);
-                Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: "Pedido Aceite!",
-                    body: `O motorista ${updatedOrder.deliveryman?.name || ''} aceitou o seu pedido e está a caminho!`,
-                    sound: true,
-                  },
-                  trigger: null,
-                });
-            }
-         }
+        if (isMounted && updatedOrder._id === currentRequestServiceId) {
+          if (updatedOrder.status === 'Motorista indisponível') {
+            setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
+            setWaitingForDriver(false);
+            setIsSearching(false);
+            setSelectedDriverForRequest(null);
+            setCurrentRequestServiceId(null);
+            setShowUnavailableAlert(true);
+          } else if (updatedOrder.status === 'Cancelado') {
+            setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
+            setWaitingForDriver(false);
+            setIsSearching(false);
+            setSelectedDriverForRequest(null);
+            setCurrentRequestServiceId(null);
+            // Sem alert, pois foi o próprio cliente que cancelou ou admin
+          } else if (updatedOrder.status === 'Pedido aceite') {
+            setWaitingForDriver(false);
+            setIsSearching(false);
+            setActiveTripData(updatedOrder);
+            setCurrentRequestServiceId(null);
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: "Pedido Aceite!",
+                body: `O motorista ${updatedOrder.deliveryman?.name || ''} aceitou o seu pedido e está a caminho!`,
+                sound: true,
+              },
+              trigger: null,
+            });
+          }
+        }
       });
 
       return () => {
@@ -771,56 +771,53 @@ export default function RequestServiceSimple() {
       };
     }
   }, [waitingForDriver, selectedDriverForRequest, currentRequestServiceId, isSearching]);
-  
+
   // Socket listener para a viagem activa (quando o motorista aceitou)
   useEffect(() => {
     if (activeTripData && activeTripData._id) {
       let isMounted = true;
       const socketUrl = api.defaults.baseURL.replace(/\/api\/?$/, '');
       const socket = io(socketUrl, { transports: ['websocket'] });
-      
+
       socket.on('connect', () => {
         console.log('Socket conectado para a viagem activa');
         socket.emit('joinRoom', { orderId: activeTripData._id });
       });
 
       socket.on('order_updated', (updatedOrder) => {
-         if (isMounted && updatedOrder._id === activeTripData._id) {
-            setActiveTripData(updatedOrder);
-            
-            // Notificações Baseadas no Estado
-            if (updatedOrder.status === 'No destino indicado') {
-               Alert.alert(
-                 "O motorista chegou!", 
-                 `O motorista ${updatedOrder.deliveryman?.name || ''} acaba de chegar ao local indicado.`
-               );
-               Notifications.scheduleNotificationAsync({
-                 content: {
-                   title: "Motorista Chegou!",
-                   body: `O motorista ${updatedOrder.deliveryman?.name || ''} chegou ao local. Vá ao encontro dele.`,
-                   sound: true,
-                 },
-                 trigger: null,
-               });
-            } else if (updatedOrder.status === 'Cancelado') {
-               Alert.alert(
-                 "Viagem Cancelada", 
-                 "O motorista cancelou a viagem."
-               );
-               setActiveTripData(null);
-            }
-         }
+        if (isMounted && updatedOrder._id === activeTripData._id) {
+          setActiveTripData(updatedOrder);
+
+          // Notificações Baseadas no Estado
+          if (updatedOrder.status === 'No destino indicado') {
+            setShowDriverArrivedModal(true);
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: "Motorista Chegou!",
+                body: `O motorista ${updatedOrder.deliveryman?.name || ''} chegou ao local. Vá ao encontro dele.`,
+                sound: true,
+              },
+              trigger: null,
+            });
+          } else if (updatedOrder.status === 'Cancelado') {
+            Alert.alert(
+              "Viagem Cancelada",
+              "O motorista cancelou a viagem."
+            );
+            setActiveTripData(null);
+          }
+        }
       });
-      
+
       // Listener para a localização do motorista em tempo real
       socket.on('driver_location_update', (data) => {
-         if (isMounted) {
-            setDriverCoord({
-              lat: parseFloat(data.latitude),
-              lng: parseFloat(data.longitude)
-            });
-            setDriverHeading(parseFloat(data.heading || 0));
-         }
+        if (isMounted) {
+          setDriverCoord({
+            lat: parseFloat(data.latitude),
+            lng: parseFloat(data.longitude)
+          });
+          setDriverHeading(parseFloat(data.heading || 0));
+        }
       });
 
       return () => {
@@ -858,11 +855,11 @@ export default function RequestServiceSimple() {
   const motivesList = service.motives && service.motives.length > 0
     ? service.motives
     : [
-        'Transporte de documentos',
-        'Mudança de casa',
-        'Mercadorias gerais',
-        'Equipamento frágil'
-      ];
+      'Transporte de documentos',
+      'Mudança de casa',
+      'Mercadorias gerais',
+      'Equipamento frágil'
+    ];
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <MapView
@@ -922,12 +919,12 @@ export default function RequestServiceSimple() {
             </Callout>
           </Marker>
         )}
-        
+
         {routeCoords.length > 0 && (
-          <Polyline 
-            coordinates={routeCoords} 
-            strokeWidth={4} 
-            strokeColor="#A855F7" 
+          <Polyline
+            coordinates={routeCoords}
+            strokeWidth={4}
+            strokeColor="#A855F7"
           />
         )}
 
@@ -1006,8 +1003,8 @@ export default function RequestServiceSimple() {
         </View>
       )}
 
-      <TouchableOpacity 
-        style={styles.floatingBackBtn} 
+      <TouchableOpacity
+        style={styles.floatingBackBtn}
         onPress={() => navigation.goBack()}
       >
         <Ionicons name="arrow-back" size={26} color="#1A1A1A" />
@@ -1015,13 +1012,13 @@ export default function RequestServiceSimple() {
 
       <View style={[styles.overlay, { zIndex: 10 }]} pointerEvents="box-none">
         <Animated.View style={[styles.sheet, { height: screenHeight - SNAP_TOP, transform: [{ translateY }] }]}>
-          
+
           {/* DRAGGABLE HEADER ZONE */}
           <View {...panResponder.panHandlers} style={{ backgroundColor: '#FFF', paddingBottom: 10 }}>
             <View style={styles.dragHandleContainer}>
               <View style={styles.dragHandle} />
             </View>
-            
+
             <View style={[styles.headerRow, { marginTop: 0 }]}>
               <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
                 <Ionicons name="close" size={24} color="#1A1A1A" />
@@ -1060,399 +1057,399 @@ export default function RequestServiceSimple() {
             </View>
           </View>
 
-            <ScrollView 
-              ref={scrollViewRef}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{
-                paddingBottom: keyboardHeight > 0 ? keyboardHeight + 200 : 120,
-                paddingHorizontal: 20,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-            <View>
-              <Text style={styles.label}>Serviço</Text>
-              <Text style={styles.serviceName}>{service.name}</Text>
-            </View>
-            <TouchableOpacity 
-              onPress={() => {
-                if (!reason && showMotives) {
-                  setShowWarningModal({ visible: true, message: 'Selecione primeiro o motivo da solicitação.' });
-                  return;
-                }
-                setShowMotives(!showMotives);
-              }}
-              style={{ padding: 5 }}
-            >
-              <Ionicons name={showMotives ? "chevron-up" : "chevron-down"} size={26} color="#A855F7" />
-            </TouchableOpacity>
-          </View>
-
-          {showMotives && (
-            <>
-              <Text style={[styles.label, { marginTop: 5 }]}>
-                Motivo da solicitação <Text style={{ color: 'red' }}>*</Text>
-              </Text>
-              <View style={styles.grid}>
-                {motivesList.map((motive, i) => {
-                  const isActive = reason === motive;
-                  return (
-                    <TouchableOpacity 
-                      key={i} 
-                      style={[styles.card, isActive && styles.cardActive]} 
-                      onPress={() => {
-                        setReason(motive);
-                        setShowMotives(false);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      {isActive ? (
-                        <LinearGradient colors={['#9800FF', '#B400FF']} style={styles.cardGradient}>
-                          <Text style={[styles.cardTitle, { color: '#FFF' }]}>{motive}</Text>
-                        </LinearGradient>
-                      ) : (
-                        <View style={styles.cardContent}>
-                          <Text style={styles.cardTitle}>{motive}</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 200 : 120,
+              paddingHorizontal: 20,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+              <View>
+                <Text style={styles.label}>Serviço</Text>
+                <Text style={styles.serviceName}>{service.name}</Text>
               </View>
-            </>
-          )}
-
-          {reason && !showMotives && (
-            <Text style={{ fontSize: 14, color: '#A855F7', fontWeight: '600', marginBottom: 10 }}>
-              Motivo escolhido: {reason}
-            </Text>
-          )}
-
-          {/* ORIGIN INPUT - FIXED HEIGHT */}
-          <View style={styles.inputBlock}>
-            <Text style={styles.label}>Origem</Text>
-            <View style={styles.inputRow}>
-              <TextInput
-                ref={originInputRef}
-                style={styles.fixedInput}
-                placeholder="De onde partimos?"
-                placeholderTextColor="#9CA3AF"
-                value={originText}
-                onFocus={() => {
-                  snapTo(SNAP_TOP);
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 160, animated: true });
-                  }, 350);
+              <TouchableOpacity
+                onPress={() => {
+                  if (!reason && showMotives) {
+                    setShowWarningModal({ visible: true, message: 'Selecione primeiro o motivo da solicitação.' });
+                    return;
+                  }
+                  setShowMotives(!showMotives);
                 }}
-                onChangeText={(text) => {
-                  setOriginText(text);
-                  setOrigin(text);
-                  setOriginCoord(null);
-                  fetchSuggestions(text, 'origin');
-                }}
-              />
-              <TouchableOpacity style={styles.gpsBtn} onPress={handleGetCurrentLocation}>
-                <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#A855F7" />
+                style={{ padding: 5 }}
+              >
+                <Ionicons name={showMotives ? "chevron-up" : "chevron-down"} size={26} color="#A855F7" />
               </TouchableOpacity>
             </View>
-            {/* Suggestions dropdown */}
-            {originSuggestions.length > 0 && (
-              <View style={styles.suggestionsBox}>
-                {loadingOrigin && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
-                {originSuggestions.map((item) => (
-                  <TouchableOpacity
-                    key={item.place_id}
-                    style={styles.suggestionRow}
-                    onPress={() => selectPlace(item.place_id, item.description, 'origin')}
-                  >
-                    <Ionicons name="location-outline" size={16} color="#A855F7" style={{ marginRight: 8 }} />
-                    <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+
+            {showMotives && (
+              <>
+                <Text style={[styles.label, { marginTop: 5 }]}>
+                  Motivo da solicitação <Text style={{ color: 'red' }}>*</Text>
+                </Text>
+                <View style={styles.grid}>
+                  {motivesList.map((motive, i) => {
+                    const isActive = reason === motive;
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[styles.card, isActive && styles.cardActive]}
+                        onPress={() => {
+                          setReason(motive);
+                          setShowMotives(false);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {isActive ? (
+                          <LinearGradient colors={['#9800FF', '#B400FF']} style={styles.cardGradient}>
+                            <Text style={[styles.cardTitle, { color: '#FFF' }]}>{motive}</Text>
+                          </LinearGradient>
+                        ) : (
+                          <View style={styles.cardContent}>
+                            <Text style={styles.cardTitle}>{motive}</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
             )}
-          </View>
 
-          {/* DESTINATION INPUT - FIXED HEIGHT */}
-          <View style={[styles.inputBlock, { marginTop: 12 }]}>
-            <Text style={styles.label}>Destino</Text>
-            <View style={styles.inputRow}>
-              <TextInput
-                ref={destInputRef}
-                style={styles.fixedInput}
-                placeholder="Para onde vamos?"
-                placeholderTextColor="#9CA3AF"
-                value={destText}
-                onFocus={() => {
-                  snapTo(SNAP_TOP);
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 350, animated: true });
-                  }, 350);
-                }}
-                onChangeText={(text) => {
-                  setDestText(text);
-                  setDestination(text);
-                  setDestCoord(null);
-                  fetchSuggestions(text, 'dest');
-                }}
-              />
-            </View>
-            {/* Suggestions dropdown */}
-            {destSuggestions.length > 0 && (
-              <View style={styles.suggestionsBox}>
-                {loadingDest && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
-                {destSuggestions.map((item) => (
-                  <TouchableOpacity
-                    key={item.place_id}
-                    style={styles.suggestionRow}
-                    onPress={() => selectPlace(item.place_id, item.description, 'dest')}
-                  >
-                    <Ionicons name="location-outline" size={16} color="#EF4444" style={{ marginRight: 8 }} />
-                    <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {reason && !showMotives && (
+              <Text style={{ fontSize: 14, color: '#A855F7', fontWeight: '600', marginBottom: 10 }}>
+                Motivo escolhido: {reason}
+              </Text>
             )}
-          </View>
-          
-          {/* Estimativa de tempo */}
-          {duration !== null && !isSearching && (
-            <View style={styles.durationBadge}>
-              <MaterialCommunityIcons name="clock-fast" size={15} color="#A855F7" />
-              <Text style={styles.durationText}> {duration} min de viagem estimados</Text>
-            </View>
-          )}
 
-          {/* ========================================================= */}
-          {/* BLOCO DE AGENDAMENTO + CONFIRMAR â€” aparece com origem+destino */}
-          {/* ========================================================= */}
-          {originCoord && destCoord && !isSearching && (
-            <View style={{ marginTop: 16 }}>
-
-              {/* Toggle Imediato / Agendar */}
-              {false && (
-                <>
-                  <Text style={[styles.label, { marginBottom: 8 }]}>Quando pretende o servico?</Text>
-                  <View style={{ flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#A855F7', marginBottom: 16 }}>
+            {/* ORIGIN INPUT - FIXED HEIGHT */}
+            <View style={styles.inputBlock}>
+              <Text style={styles.label}>Origem</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  ref={originInputRef}
+                  style={styles.fixedInput}
+                  placeholder="De onde partimos?"
+                  placeholderTextColor="#9CA3AF"
+                  value={originText}
+                  onFocus={() => {
+                    snapTo(SNAP_TOP);
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 160, animated: true });
+                    }, 350);
+                  }}
+                  onChangeText={(text) => {
+                    setOriginText(text);
+                    setOrigin(text);
+                    setOriginCoord(null);
+                    fetchSuggestions(text, 'origin');
+                  }}
+                />
+                <TouchableOpacity style={styles.gpsBtn} onPress={handleGetCurrentLocation}>
+                  <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#A855F7" />
+                </TouchableOpacity>
+              </View>
+              {/* Suggestions dropdown */}
+              {originSuggestions.length > 0 && (
+                <View style={styles.suggestionsBox}>
+                  {loadingOrigin && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
+                  {originSuggestions.map((item) => (
                     <TouchableOpacity
-                      style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, !isScheduled && { backgroundColor: '#7F00FF' }]}
-                      onPress={() => { setIsScheduled(false); setScheduledConfirmed(false); }}
+                      key={item.place_id}
+                      style={styles.suggestionRow}
+                      onPress={() => selectPlace(item.place_id, item.description, 'origin')}
                     >
-                      <Text style={{ color: !isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Imediato</Text>
+                      <Ionicons name="location-outline" size={16} color="#A855F7" style={{ marginRight: 8 }} />
+                      <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, isScheduled && { backgroundColor: '#7F00FF' }]}
-                      onPress={() => setIsScheduled(true)}
-                    >
-                      <Text style={{ color: isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Agendar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-
-              {/* Seletor de Data e Hora (apenas quando Agendar selecionado) */}
-              {isScheduled && (
-                <View style={{ backgroundColor: '#F5F3FF', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#DDD6FE' }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#5B21B6', marginBottom: 10 }}>Data e Hora do Servico</Text>
-
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    {/* Botao Data */}
-                    <TouchableOpacity
-                      onPress={() => setShowDatePicker(true)}
-                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', borderRadius: 10, padding: 10 }}
-                    >
-                      <Ionicons name="calendar-outline" size={18} color="#7F00FF" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#4C1D95', fontWeight: '600', fontSize: 13 }}>
-                        {scheduledDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Botao Hora */}
-                    <TouchableOpacity
-                      onPress={() => setShowTimePicker(true)}
-                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', borderRadius: 10, padding: 10 }}
-                    >
-                      <Ionicons name="time-outline" size={18} color="#7F00FF" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#4C1D95', fontWeight: '600', fontSize: 13 }}>
-                        {scheduledDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Aviso se a data for no passado */}
-                  {scheduledDate <= new Date() && (
-                    <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 8, fontWeight: '600' }}>
-                      âš  Escolha uma data/hora futura.
-                    </Text>
-                  )}
+                  ))}
                 </View>
               )}
+            </View>
 
-              {/* DatePicker (nativo) */}
-              {showDatePicker && (
-                <DateTimePicker
-                  value={scheduledDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  minimumDate={new Date()}
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(false);
-                    if (selectedDate) {
-                      const updated = new Date(scheduledDate);
-                      updated.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-                      setScheduledDate(updated);
-                    }
+            {/* DESTINATION INPUT - FIXED HEIGHT */}
+            <View style={[styles.inputBlock, { marginTop: 12 }]}>
+              <Text style={styles.label}>Destino</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  ref={destInputRef}
+                  style={styles.fixedInput}
+                  placeholder="Para onde vamos?"
+                  placeholderTextColor="#9CA3AF"
+                  value={destText}
+                  onFocus={() => {
+                    snapTo(SNAP_TOP);
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: 350, animated: true });
+                    }, 350);
+                  }}
+                  onChangeText={(text) => {
+                    setDestText(text);
+                    setDestination(text);
+                    setDestCoord(null);
+                    fetchSuggestions(text, 'dest');
                   }}
                 />
+              </View>
+              {/* Suggestions dropdown */}
+              {destSuggestions.length > 0 && (
+                <View style={styles.suggestionsBox}>
+                  {loadingDest && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
+                  {destSuggestions.map((item) => (
+                    <TouchableOpacity
+                      key={item.place_id}
+                      style={styles.suggestionRow}
+                      onPress={() => selectPlace(item.place_id, item.description, 'dest')}
+                    >
+                      <Ionicons name="location-outline" size={16} color="#EF4444" style={{ marginRight: 8 }} />
+                      <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
+            </View>
 
-              {/* TimePicker (nativo) */}
-              {showTimePicker && (
-                <DateTimePicker
-                  value={scheduledDate}
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  is24Hour={true}
-                  onChange={(event, selectedTime) => {
-                    setShowTimePicker(false);
-                    if (selectedTime) {
-                      const updated = new Date(scheduledDate);
-                      updated.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
-                      setScheduledDate(updated);
-                    }
-                  }}
-                />
-              )}
+            {/* Estimativa de tempo */}
+            {duration !== null && !isSearching && (
+              <View style={styles.durationBadge}>
+                <MaterialCommunityIcons name="clock-fast" size={15} color="#A855F7" />
+                <Text style={styles.durationText}> {duration} min de viagem estimados</Text>
+              </View>
+            )}
 
-              {/* Botao Confirmar */}
-              <TouchableOpacity
-                style={styles.confirmBtnInSheet}
-                activeOpacity={0.85}
-                onPress={() => {
-                  if (!reason) {
-                    setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitacao.' });
-                    return;
-                  }
-                  if (isScheduled && scheduledDate <= new Date()) {
-                    setShowWarningModal({ visible: true, message: 'Por favor escolha uma data e hora futuras para o agendamento.' });
-                    return;
-                  }
-                  Keyboard.dismiss();
-                  snapTo(screenHeight);
-                  setRejectedDriverIds([]);
-                  setIsSearching(true);
-                  startPulse();
-                }}
-              >
-                <LinearGradient
-                  colors={isScheduled ? ['#F59E0B', '#D97706'] : ['#6D00E0', '#A855F7']}
-                  style={styles.confirmGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Ionicons
-                    name={isScheduled ? 'calendar-sharp' : 'checkmark-circle'}
-                    size={22}
-                    color="#FFF"
-                    style={{ marginRight: 8 }}
+            {/* ========================================================= */}
+            {/* BLOCO DE AGENDAMENTO + CONFIRMAR â€” aparece com origem+destino */}
+            {/* ========================================================= */}
+            {originCoord && destCoord && !isSearching && (
+              <View style={{ marginTop: 16 }}>
+
+                {/* Toggle Imediato / Agendar */}
+                {false && (
+                  <>
+                    <Text style={[styles.label, { marginBottom: 8 }]}>Quando pretende o servico?</Text>
+                    <View style={{ flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#A855F7', marginBottom: 16 }}>
+                      <TouchableOpacity
+                        style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, !isScheduled && { backgroundColor: '#7F00FF' }]}
+                        onPress={() => { setIsScheduled(false); setScheduledConfirmed(false); }}
+                      >
+                        <Text style={{ color: !isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Imediato</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, isScheduled && { backgroundColor: '#7F00FF' }]}
+                        onPress={() => setIsScheduled(true)}
+                      >
+                        <Text style={{ color: isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Agendar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
+                {/* Seletor de Data e Hora (apenas quando Agendar selecionado) */}
+                {isScheduled && (
+                  <View style={{ backgroundColor: '#F5F3FF', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#DDD6FE' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#5B21B6', marginBottom: 10 }}>Data e Hora do Servico</Text>
+
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      {/* Botao Data */}
+                      <TouchableOpacity
+                        onPress={() => setShowDatePicker(true)}
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', borderRadius: 10, padding: 10 }}
+                      >
+                        <Ionicons name="calendar-outline" size={18} color="#7F00FF" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#4C1D95', fontWeight: '600', fontSize: 13 }}>
+                          {scheduledDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Botao Hora */}
+                      <TouchableOpacity
+                        onPress={() => setShowTimePicker(true)}
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', borderRadius: 10, padding: 10 }}
+                      >
+                        <Ionicons name="time-outline" size={18} color="#7F00FF" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#4C1D95', fontWeight: '600', fontSize: 13 }}>
+                          {scheduledDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Aviso se a data for no passado */}
+                    {scheduledDate <= new Date() && (
+                      <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 8, fontWeight: '600' }}>
+                        âš  Escolha uma data/hora futura.
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* DatePicker (nativo) */}
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={scheduledDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    minimumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(false);
+                      if (selectedDate) {
+                        const updated = new Date(scheduledDate);
+                        updated.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                        setScheduledDate(updated);
+                      }
+                    }}
                   />
-                  <Text style={styles.confirmBtnText}>
-                    {isScheduled ? 'Confirmar Agendamento' : 'Confirmar Pedido'}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
+                )}
 
-          {/* Espaco extra no fundo do scroll */}
-          <View style={{ height: 60 }} />
-        </ScrollView>
-      </Animated.View>
-    </View>
+                {/* TimePicker (nativo) */}
+                {showTimePicker && (
+                  <DateTimePicker
+                    value={scheduledDate}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    is24Hour={true}
+                    onChange={(event, selectedTime) => {
+                      setShowTimePicker(false);
+                      if (selectedTime) {
+                        const updated = new Date(scheduledDate);
+                        updated.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+                        setScheduledDate(updated);
+                      }
+                    }}
+                  />
+                )}
 
+                {/* Botao Confirmar */}
+                <TouchableOpacity
+                  style={styles.confirmBtnInSheet}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (!reason) {
+                      setShowWarningModal({ visible: true, message: 'Por favor selecione um motivo da solicitacao.' });
+                      return;
+                    }
+                    if (isScheduled && scheduledDate <= new Date()) {
+                      setShowWarningModal({ visible: true, message: 'Por favor escolha uma data e hora futuras para o agendamento.' });
+                      return;
+                    }
+                    Keyboard.dismiss();
+                    snapTo(screenHeight);
+                    setRejectedDriverIds([]);
+                    setIsSearching(true);
+                    startPulse();
+                  }}
+                >
+                  <LinearGradient
+                    colors={isScheduled ? ['#F59E0B', '#D97706'] : ['#6D00E0', '#A855F7']}
+                    style={styles.confirmGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Ionicons
+                      name={isScheduled ? 'calendar-sharp' : 'checkmark-circle'}
+                      size={22}
+                      color="#FFF"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={styles.confirmBtnText}>
+                      {isScheduled ? 'Confirmar Agendamento' : 'Confirmar Pedido'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            )}
 
-    <Modal visible={isSearching} transparent animationType="fade">
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-        <View style={{
-          backgroundColor: '#FFF',
-          borderRadius: 28,
-          padding: 32,
-          width: '88%',
-          alignItems: 'center',
-          elevation: 20,
-          shadowColor: '#7F00FF',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.2,
-          shadowRadius: 20,
-        }}>
-          {/* Radar pulse */}
-          <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-            <Animated.View style={[styles.radarCenter, {
-              position: 'absolute',
-              width: 110,
-              height: 110,
-              borderRadius: 55,
-              backgroundColor: 'rgba(168, 85, 247, 0.15)',
-              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
-              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
-            }]} />
-            <Animated.View style={[styles.radarCenter, {
-              position: 'absolute',
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: 'rgba(168, 85, 247, 0.2)',
-              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
-              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
-            }]} />
-            <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
-              <MaterialCommunityIcons name="car-search" size={30} color="#A855F7" />
-            </View>
-          </View>
-
-          <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-            Procurando serviço de {service?.name}...
-          </Text>
-          <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14 }}>
-            Raio de busca: <Text style={{ color: '#A855F7', fontWeight: '700' }}>{radius} KM</Text>
-          </Text>
-
-          {/* Barra de progresso */}
-          <View style={{ width: '100%', height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, marginTop: 20, overflow: 'hidden' }}>
-            <Animated.View style={{
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: '#A855F7',
-              width: `${Math.min((searchSeconds / 60) * 100, 100)}%`,
-            }} />
-          </View>
-          <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 6 }}>
-            {searchSeconds < 60 ? `${searchSeconds}s / 60s` : 'A expandir raio...'}
-          </Text>
-
-          <TouchableOpacity
-            style={{
-              marginTop: 24,
-              paddingVertical: 12,
-              paddingHorizontal: 32,
-              backgroundColor: '#FEF2F2',
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: '#FECACA',
-            }}
-            onPress={() => {
-              setIsSearching(false);
-              clearTimeout(searchTimerRef.current);
-              clearInterval(searchCounterRef.current);
-              setRejectedDriverIds([]);
-              snapTo(SNAP_TOP);
-            }}
-          >
-            <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Busca</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Espaco extra no fundo do scroll */}
+            <View style={{ height: 60 }} />
+          </ScrollView>
+        </Animated.View>
       </View>
-    </Modal>
+
+
+      <Modal visible={isSearching} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View style={{
+            backgroundColor: '#FFF',
+            borderRadius: 28,
+            padding: 32,
+            width: '88%',
+            alignItems: 'center',
+            elevation: 20,
+            shadowColor: '#7F00FF',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+          }}>
+            {/* Radar pulse */}
+            <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Animated.View style={[styles.radarCenter, {
+                position: 'absolute',
+                width: 110,
+                height: 110,
+                borderRadius: 55,
+                backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
+              }]} />
+              <Animated.View style={[styles.radarCenter, {
+                position: 'absolute',
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+              }]} />
+              <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
+                <MaterialCommunityIcons name="car-search" size={30} color="#A855F7" />
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+              Procurando serviço de {service?.name}...
+            </Text>
+            <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14 }}>
+              Raio de busca: <Text style={{ color: '#A855F7', fontWeight: '700' }}>{radius} KM</Text>
+            </Text>
+
+            {/* Barra de progresso */}
+            <View style={{ width: '100%', height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, marginTop: 20, overflow: 'hidden' }}>
+              <Animated.View style={{
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#A855F7',
+                width: `${Math.min((searchSeconds / 60) * 100, 100)}%`,
+              }} />
+            </View>
+            <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 6 }}>
+              {searchSeconds < 60 ? `${searchSeconds}s / 60s` : 'A expandir raio...'}
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                marginTop: 24,
+                paddingVertical: 12,
+                paddingHorizontal: 32,
+                backgroundColor: '#FEF2F2',
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#FECACA',
+              }}
+              onPress={() => {
+                setIsSearching(false);
+                clearTimeout(searchTimerRef.current);
+                clearInterval(searchCounterRef.current);
+                setRejectedDriverIds([]);
+                snapTo(SNAP_TOP);
+              }}
+            >
+              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Busca</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Lista de Motoristas Disponiveis */}
       <Modal
@@ -1462,34 +1459,32 @@ export default function RequestServiceSimple() {
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' }}>
-            
+
             <View style={{ width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginBottom: 15 }} />
-            
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Motoristas Disponíveis</Text>
               <TouchableOpacity onPress={() => { setAvailableDriversList([]); setRejectedDriverIds([]); setIsSearching(true); startPulse(); }}>
-                 <MaterialCommunityIcons name="refresh" size={24} color="#9800FF" />
+                <MaterialCommunityIcons name="refresh" size={24} color="#9800FF" />
               </TouchableOpacity>
             </View>
-            
+
             <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 15 }}>Escolha o motorista que preferir.</Text>
-            
+
             <ScrollView showsVerticalScrollIndicator={false}>
               {availableDriversList.map((driver, index) => {
                 const serviceBase = service?.baseFare || 0;
                 let deslocacao = price > serviceBase ? price - serviceBase : 0;
-                
-                let baseFare = price;
+
+                let baseFare = serviceBase;
                 if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
                   baseFare = driver.deliveryman.customPrice;
                 } else if (driver.deliveryman?.assigned_base_fee) {
                   baseFare = driver.deliveryman.assigned_base_fee;
-                } else if (serviceBase > 0) {
-                  baseFare = serviceBase;
                 }
-                
+
                 let finalPrice = baseFare + deslocacao;
-                
+
                 const colorMap = {
                   branco: '#E5E7EB', preto: '#1F2937', vermelho: '#EF4444',
                   azul: '#3B82F6', verde: '#10B981', amarelo: '#F59E0B',
@@ -1518,17 +1513,17 @@ export default function RequestServiceSimple() {
                         source={driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture ? { uri: driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture } : driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
                         style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#E5E7EB' }}
                       />
-                      
+
                       <View style={{ flex: 1, marginLeft: 12 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <View style={{ flex: 1, paddingRight: 8 }}>
                             <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }} numberOfLines={1}>{driver.name}</Text>
-                            
+
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 4 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
                                 <Text style={{ fontSize: 13, color: '#4B5563', marginLeft: 2, fontWeight: '600' }}>
-                                  {driver.deliveryman?.rating || 'Novo'}
+                                  {Number(driver.deliveryman?.averageRating || driver.rating || 0).toFixed(1)}
                                 </Text>
                               </View>
                               <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
@@ -1539,20 +1534,20 @@ export default function RequestServiceSimple() {
                                   if (typeof tName === 'object' && tName.name) tName = tName.name;
                                   tName = String(tName);
                                   const isCar = tName.toLowerCase().includes('carro') || tName.toLowerCase().includes('reboque') || tName.toLowerCase().includes('motorista');
-                                  
+
                                   return (
-                                    <View style={{ 
-                                      flexDirection: 'row', 
-                                      alignItems: 'center', 
+                                    <View style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
                                       backgroundColor: isCar ? '#DBEAFE' : '#F3F4F6',
                                       paddingHorizontal: 6,
                                       paddingVertical: 2,
                                       borderRadius: 6
                                     }}>
-                                      <MaterialCommunityIcons 
-                                        name={isCar ? "car" : "car-side"} 
-                                        size={14} 
-                                        color={isCar ? "#1D4ED8" : "#6B7280"} 
+                                      <MaterialCommunityIcons
+                                        name={isCar ? "car" : "car-side"}
+                                        size={14}
+                                        color={isCar ? "#1D4ED8" : "#6B7280"}
                                       />
                                       <Text style={{ fontSize: 13, color: isCar ? '#1D4ED8' : '#6B7280', marginLeft: 4, fontWeight: '500' }} numberOfLines={1}>
                                         {tName}
@@ -1563,17 +1558,25 @@ export default function RequestServiceSimple() {
                               </View>
                             </View>
                           </View>
-                          
+
                           <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={{ fontSize: 17, fontWeight: '800', color: '#9800FF' }}>
-                               {finalPrice.toFixed(0)} MT
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <TouchableOpacity
+                                style={{ padding: 4, marginRight: 4 }}
+                                onPress={() => setSelectedDriverInfo(driver)}
+                              >
+                                <MaterialCommunityIcons name="information-outline" size={20} color="#22C55E" />
+                              </TouchableOpacity>
+                              <Text style={{ fontSize: 17, fontWeight: '800', color: '#9800FF' }}>
+                                {finalPrice.toFixed(0)} MT
+                              </Text>
+                            </View>
                             <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>
-                               Base: {baseFare.toFixed(0)} + {deslocacao.toFixed(0)}
+                              Base: {baseFare.toFixed(0)} + {deslocacao.toFixed(0)}
                             </Text>
                           </View>
                         </View>
-                        
+
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexWrap: 'wrap', gap: 6 }}>
                           {!!driver.deliveryman?.transport_color && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
@@ -1591,7 +1594,7 @@ export default function RequestServiceSimple() {
                         </View>
                       </View>
                     </View>
-                    
+
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', flex: 1, gap: 8 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -1607,11 +1610,11 @@ export default function RequestServiceSimple() {
                           </Text>
                         </View>
                       </View>
-                      
+
                       <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                         <MaterialCommunityIcons name="flag-checkered" size={12} color="#6B7280" />
                         <Text style={{ fontSize: 11, color: '#4B5563', marginLeft: 4, fontWeight: '600' }}>
-                           Destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
+                          Destino: ~{duration ? String(duration).replace('mins', '').replace('min', '').trim() + ' min' : '15 min'}
                         </Text>
                       </View>
                     </View>
@@ -1619,8 +1622,8 @@ export default function RequestServiceSimple() {
                 );
               })}
             </ScrollView>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={{ padding: 16, marginTop: 10, alignItems: 'center' }}
               onPress={() => {
                 setAvailableDriversList([]);
@@ -1633,164 +1636,164 @@ export default function RequestServiceSimple() {
         </View>
       </Modal>
 
-    <Modal visible={waitingForDriver} transparent animationType="fade">
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-        <View style={{
-          backgroundColor: '#FFF',
-          borderRadius: 28,
-          padding: 32,
-          width: '88%',
-          alignItems: 'center',
-          elevation: 20,
-          shadowColor: '#7F00FF',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.2,
-          shadowRadius: 20,
-        }}>
-          {/* Radar pulse */}
-          <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-            <Animated.View style={[styles.radarCenter, {
-              position: 'absolute',
-              width: 110,
-              height: 110,
-              borderRadius: 55,
-              backgroundColor: 'rgba(168, 85, 247, 0.15)',
-              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
-              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
-            }]} />
-            <Animated.View style={[styles.radarCenter, {
-              position: 'absolute',
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: 'rgba(168, 85, 247, 0.2)',
-              transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
-              opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
-            }]} />
-            <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
-              {waitingCountdown > 0 ? (
-                <Text style={{ fontSize: 24, fontWeight: '900', color: '#A855F7' }}>{waitingCountdown}</Text>
-              ) : (
-                <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
-              )}
-            </View>
-          </View>
-
-          {waitingCountdown > 0 ? (
-            <>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
-              </Text>
-              <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-                Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                O motorista está a demorar...
-              </Text>
-              <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-                Pode continuar a esperar ou procurar novos motoristas disponíveis.
-              </Text>
-            </>
-          )}
-
-          {selectedDriverForRequest && (() => {
-            const serviceBase = service?.baseFare || 0;
-            let selectedDeslocacao = price > serviceBase ? price - serviceBase : 0;
-            
-            let selectedBaseFare = price;
-            if (selectedDriverForRequest.deliveryman?.allowCustomPrice && selectedDriverForRequest.deliveryman?.customPrice) {
-              selectedBaseFare = selectedDriverForRequest.deliveryman.customPrice;
-            } else if (selectedDriverForRequest.deliveryman?.assigned_base_fee) {
-              selectedBaseFare = selectedDriverForRequest.deliveryman.assigned_base_fee;
-            } else if (serviceBase > 0) {
-              selectedBaseFare = serviceBase;
-            }
-            
-            let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
-
-            return (
-              <View style={{ marginTop: 15, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 12, width: '100%', alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, color: '#6B7280' }}>Resumo do Pedido</Text>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF', marginTop: 4 }}>
-                  {selectedFinalPrice.toFixed(0)} MT
-                </Text>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                  Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
-                </Text>
+      <Modal visible={waitingForDriver} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View style={{
+            backgroundColor: '#FFF',
+            borderRadius: 28,
+            padding: 32,
+            width: '88%',
+            alignItems: 'center',
+            elevation: 20,
+            shadowColor: '#7F00FF',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+          }}>
+            {/* Radar pulse */}
+            <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Animated.View style={[styles.radarCenter, {
+                position: 'absolute',
+                width: 110,
+                height: 110,
+                borderRadius: 55,
+                backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
+              }]} />
+              <Animated.View style={[styles.radarCenter, {
+                position: 'absolute',
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+              }]} />
+              <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
+                {waitingCountdown > 0 ? (
+                  <Text style={{ fontSize: 24, fontWeight: '900', color: '#A855F7' }}>{waitingCountdown}</Text>
+                ) : (
+                  <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+                )}
               </View>
-            );
-          })()}
+            </View>
 
-          {waitingCountdown > 0 ? (
-            <TouchableOpacity
-              style={{
-                marginTop: 24,
-                paddingVertical: 12,
-                paddingHorizontal: 32,
-                backgroundColor: '#FEF2F2',
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: '#FECACA',
-                width: '100%',
-                alignItems: 'center',
-              }}
-              activeOpacity={0.8}
-              onPress={handleCancelPendingRequest}
-            >
-              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: '100%', marginTop: 24, gap: 12 }}>
+            {waitingCountdown > 0 ? (
+              <>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                  A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
+                </Text>
+                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                  Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                  O motorista está a demorar...
+                </Text>
+                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                  Pode continuar a esperar ou procurar novos motoristas disponíveis.
+                </Text>
+              </>
+            )}
+
+            {selectedDriverForRequest && (() => {
+              const serviceBase = service?.baseFare || 0;
+              let selectedDeslocacao = price > serviceBase ? price - serviceBase : 0;
+
+              let selectedBaseFare = price;
+              if (selectedDriverForRequest.deliveryman?.allowCustomPrice && selectedDriverForRequest.deliveryman?.customPrice) {
+                selectedBaseFare = selectedDriverForRequest.deliveryman.customPrice;
+              } else if (selectedDriverForRequest.deliveryman?.assigned_base_fee) {
+                selectedBaseFare = selectedDriverForRequest.deliveryman.assigned_base_fee;
+              } else if (serviceBase > 0) {
+                selectedBaseFare = serviceBase;
+              }
+
+              let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
+
+              return (
+                <View style={{ marginTop: 15, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 12, width: '100%', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: '#6B7280' }}>Resumo do Pedido</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF', marginTop: 4 }}>
+                    {selectedFinalPrice.toFixed(0)} MT
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                    Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
+                  </Text>
+                </View>
+              );
+            })()}
+
+            {waitingCountdown > 0 ? (
               <TouchableOpacity
                 style={{
+                  marginTop: 24,
                   paddingVertical: 12,
-                  backgroundColor: '#7F00FF',
-                  borderRadius: 14,
-                  alignItems: 'center',
-                }}
-                activeOpacity={0.8}
-                onPress={async () => {
-                  setWaitingCountdown(45);
-                  try {
-                    const storedUserData = await AsyncStorage.getItem('userData');
-                    const token = storedUserData ? JSON.parse(storedUserData).token : '';
-                    await api.post(`/request-service/${currentRequestServiceId}/resend`, 
-                      { targetDriverId: selectedDriverForRequest?._id }, 
-                      { headers: { authorization: `Bearer ${token}` } }
-                    );
-                  } catch(e) { console.log('Erro ao reenviar', e); }
-                }}
-              >
-                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar Ã  espera</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={{
-                  paddingVertical: 12,
+                  paddingHorizontal: 32,
                   backgroundColor: '#FEF2F2',
                   borderRadius: 14,
                   borderWidth: 1,
                   borderColor: '#FECACA',
+                  width: '100%',
                   alignItems: 'center',
                 }}
                 activeOpacity={0.8}
-                onPress={async () => {
-                  await handleCancelPendingRequest();
-                  setRejectedDriverIds([]);
-                  setIsSearching(true);
-                  startPulse();
-                }}
+                onPress={handleCancelPendingRequest}
               >
-                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Procurar novos motoristas</Text>
+                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
               </TouchableOpacity>
-            </View>
-          )}
+            ) : (
+              <View style={{ width: '100%', marginTop: 24, gap: 12 }}>
+                <TouchableOpacity
+                  style={{
+                    paddingVertical: 12,
+                    backgroundColor: '#7F00FF',
+                    borderRadius: 14,
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.8}
+                  onPress={async () => {
+                    setWaitingCountdown(60);
+                    try {
+                      const storedUserData = await AsyncStorage.getItem('userData');
+                      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+                      await api.post(`/request-service/${currentRequestServiceId}/resend`,
+                        { targetDriverId: selectedDriverForRequest?._id },
+                        { headers: { authorization: `Bearer ${token}` } }
+                      );
+                    } catch (e) { console.log('Erro ao reenviar', e); }
+                  }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar Ã  espera</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    paddingVertical: 12,
+                    backgroundColor: '#FEF2F2',
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: '#FECACA',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.8}
+                  onPress={async () => {
+                    await handleCancelPendingRequest();
+                    setRejectedDriverIds([]);
+                    setIsSearching(true);
+                    startPulse();
+                  }}
+                >
+                  <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Procurar novos motoristas</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
 
       <Modal visible={showBusyModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
@@ -1802,10 +1805,10 @@ export default function RequestServiceSimple() {
             <Text style={styles.modalDesc}>
               Não encontrámos nenhum motorista disponível num raio de {radius} KM. Deseja aumentar o raio em +2 KM?
             </Text>
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnCancel]} 
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel]}
                 onPress={() => {
                   setShowBusyModal(false);
                   setRadius(5); // Reset raio para o valor inicial
@@ -1817,8 +1820,8 @@ export default function RequestServiceSimple() {
                 <Text style={styles.modalBtnCancelText}>Mudar Destino</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnConfirm]} 
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnConfirm]}
                 onPress={() => {
                   setShowBusyModal(false);
                   setRadius(r => r + 2);
@@ -1846,10 +1849,10 @@ export default function RequestServiceSimple() {
             <Text style={styles.modalDesc}>
               O motorista selecionado não se encontra disponível neste momento. Por favor, pesquise por outros motoristas.
             </Text>
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%' }]} 
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%' }]}
                 onPress={() => {
                   setShowUnavailableAlert(false);
                   setRejectedDriverIds([]);
@@ -1867,6 +1870,36 @@ export default function RequestServiceSimple() {
         </View>
       </Modal>
 
+      <Modal visible={showDriverArrivedModal} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modernModal, { padding: 0, overflow: 'hidden' }]}>
+            <LinearGradient colors={['#10B981', '#059669']} style={{ width: '100%', height: 140, justifyContent: 'center', alignItems: 'center' }}>
+               <MaterialCommunityIcons name="car-side" size={60} color="#FFF" />
+               <View style={{ position: 'absolute', bottom: -20, backgroundColor: '#FFF', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 }}>
+                  <MaterialCommunityIcons name="check-decagram" size={40} color="#10B981" />
+               </View>
+            </LinearGradient>
+
+            <View style={{ padding: 24, alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#1F2937', marginTop: 12, marginBottom: 8 }}>O Motorista Chegou!</Text>
+              <Text style={{ fontSize: 16, color: '#4B5563', textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>
+                O seu parceiro <Text style={{ fontWeight: '700', color: '#10B981' }}>{activeTripData?.deliveryman?.name || 'motorista'}</Text> acaba de chegar ao local indicado.
+              </Text>
+
+              <TouchableOpacity
+                style={{ width: '100%' }}
+                onPress={() => setShowDriverArrivedModal(false)}
+                activeOpacity={0.8}
+              >
+                <LinearGradient colors={['#10B981', '#059669']} style={{ paddingVertical: 14, borderRadius: 16, alignItems: 'center' }}>
+                  <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 }}>Vou lá agora</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showWarningModal.visible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modernModal}>
@@ -1877,10 +1910,10 @@ export default function RequestServiceSimple() {
             <Text style={styles.modalDesc}>
               {showWarningModal.message}
             </Text>
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%', marginLeft: 0 }]} 
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnConfirm, { width: '100%', marginLeft: 0 }]}
                 onPress={() => setShowWarningModal({ visible: false, message: '' })}
               >
                 <LinearGradient colors={['#A855F7', '#7F00FF']} style={styles.modalBtnGradient}>
@@ -1906,23 +1939,23 @@ export default function RequestServiceSimple() {
               styles.premiumIconContainer,
               { backgroundColor: activeTripData?.status === 'Pendente' ? '#FEF3C7' : '#DCFCE7' }
             ]}>
-              <MaterialCommunityIcons 
-                name={activeTripData?.status === 'Pendente' ? 'clock-outline' : 'car-speed-limiter'} 
-                size={40} 
-                color={activeTripData?.status === 'Pendente' ? '#D97706' : '#16A34A'} 
+              <MaterialCommunityIcons
+                name={activeTripData?.status === 'Pendente' ? 'clock-outline' : 'car-speed-limiter'}
+                size={40}
+                color={activeTripData?.status === 'Pendente' ? '#D97706' : '#16A34A'}
               />
             </View>
-            
+
             <Text style={styles.premiumModalTitle}>
               {activeTripData?.status === 'Pendente' ? 'Solicitação Pendente' : 'Viagem Aceite!'}
             </Text>
-            
+
             <Text style={styles.premiumModalBody}>
-              {activeTripData?.status === 'Pendente' 
+              {activeTripData?.status === 'Pendente'
                 ? 'Você já tem uma solicitação pendente em curso. Por favor, acompanhe-a antes de iniciar outro serviço.'
                 : `O motorista ${activeTripData?.deliveryman?.name || 'parceiro'} aceitou a sua viagem! Acompanhe a trajetória em tempo real.`}
             </Text>
-            
+
             <TouchableOpacity
               style={styles.premiumModalBtn}
               activeOpacity={0.8}
@@ -1944,7 +1977,7 @@ export default function RequestServiceSimple() {
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.premiumModalBackBtn}
               onPress={() => {
                 setActiveTripData(null);
@@ -1953,6 +1986,102 @@ export default function RequestServiceSimple() {
             >
               <Text style={styles.premiumModalBackBtnText}>Voltar</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!selectedDriverInfo}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedDriverInfo(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' }}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ width: 40, height: 5, borderRadius: 2.5, backgroundColor: '#E5E7EB', marginBottom: 16 }} />
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937' }}>Detalhes do Motorista</Text>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedDriverInfo && (
+                <>
+                  <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                    <Image
+                      source={selectedDriverInfo.profileImage ? { uri: selectedDriverInfo.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+                      style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#F3F4F6', borderWidth: 3, borderColor: '#F3F4F6' }}
+                    />
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', marginTop: 12 }}>
+                      {selectedDriverInfo.name}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <MaterialCommunityIcons name="star" size={20} color="#F59E0B" />
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#4B5563', marginLeft: 4 }}>
+                        {Number(selectedDriverInfo.deliveryman?.averageRating || selectedDriverInfo.rating || 0).toFixed(1)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ backgroundColor: '#F9FAFB', borderRadius: 16, padding: 16, marginBottom: 24 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 12 }}>Informações da Viatura</Text>
+                    
+                    { (selectedDriverInfo.deliveryman?.vihicle_picture_front || selectedDriverInfo.deliveryman?.vihicle_picture) ? (
+                      <Image
+                        source={{ uri: selectedDriverInfo.deliveryman?.vihicle_picture_front || selectedDriverInfo.deliveryman?.vihicle_picture }}
+                        style={{ width: '100%', height: 160, borderRadius: 12, backgroundColor: '#E5E7EB', marginBottom: 16 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={{ width: '100%', height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', marginBottom: 16, justifyContent: 'center', alignItems: 'center' }}>
+                         <MaterialCommunityIcons name="car-off" size={40} color="#9CA3AF" />
+                         <Text style={{ color: '#9CA3AF', marginTop: 8 }}>Sem imagem disponível</Text>
+                      </View>
+                    )}
+
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                      {!!(selectedDriverInfo.transport_type || selectedDriverInfo.deliveryman?.transport_type) && (
+                        <View style={{ backgroundColor: '#FFF', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', flex: 1, minWidth: '45%' }}>
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Tipo</Text>
+                          <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2937' }}>
+                            {(() => {
+                              const tType = service?.name || selectedDriverInfo.transport_type || selectedDriverInfo.deliveryman?.transport_type || 'Desconhecido';
+                              let tName = /^[a-fA-F0-9]{24}$/.test(String(tType)) ? (service?.name || 'Viatura') : tType;
+                              if (typeof tName === 'object' && tName.name) tName = tName.name;
+                              return String(tName);
+                            })()}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {!!selectedDriverInfo.deliveryman?.transport_registration && (
+                        <View style={{ backgroundColor: '#FFF', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', flex: 1, minWidth: '45%' }}>
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Matrícula</Text>
+                          <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2937' }}>
+                            {selectedDriverInfo.deliveryman?.transport_registration.toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+
+                      {!!selectedDriverInfo.deliveryman?.transport_color && (
+                        <View style={{ backgroundColor: '#FFF', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', flex: 1, minWidth: '45%' }}>
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Cor</Text>
+                          <Text style={{ fontSize: 15, fontWeight: '700', color: '#1F2937', textTransform: 'capitalize' }}>
+                            {selectedDriverInfo.deliveryman?.transport_color}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#7F00FF', padding: 16, borderRadius: 16, alignItems: 'center' }}
+                    onPress={() => setSelectedDriverInfo(null)}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Fechar</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -2212,7 +2341,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6
   },
-  
+
   // New Styles for Step 1 Layout
   headerRow: {
     flexDirection: 'row',
@@ -2282,7 +2411,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#1A1A1A'
   },
-  
+
   // Custom Modal Styles
   modalBackdrop: {
     flex: 1,

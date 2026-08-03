@@ -82,6 +82,7 @@ export default function OrdersScreen() {
   const pedidosConcluídos = dateFilteredOrders.filter(o => ['Entregue', 'Finalizado'].includes(o.status)).length;
   const pedidosEmAndamento = dateFilteredOrders.filter(o => !['Entregue', 'Finalizado', 'Cancelada', 'Cancelado'].includes(o.status)).length;
   const receitaTotal = dateFilteredOrders.reduce((acc, order) => acc + Number(order.totalPrice || order.deliveryPrice || 0), 0);
+  const comissaoTotal = dateFilteredOrders.reduce((acc, order) => acc + (Number(order.totalPrice || order.deliveryPrice || 0) * 0.15), 0);
 
   useEffect(() => {
     fetchOrdersAndRelatedData();
@@ -314,29 +315,35 @@ export default function OrdersScreen() {
       </div>
 
       {/* KPIs Display */}
-      <div className="row g-3 mb-4">
-        <div className="col-md-3 col-sm-6">
+      <div className="row row-cols-1 row-cols-sm-2 row-cols-md-5 g-3 mb-4">
+        <div className="col">
           <div className="card border-0 shadow-sm rounded-4 text-center p-3">
             <div className="text-muted small mb-1 fw-bold">Total de Pedidos</div>
             <h3 className="fw-bold text-dark m-0">{totalPedidos}</h3>
           </div>
         </div>
-        <div className="col-md-3 col-sm-6">
+        <div className="col">
           <div className="card border-0 shadow-sm rounded-4 text-center p-3">
             <div className="text-muted small mb-1 fw-bold">Pedidos Concluídos</div>
             <h3 className="fw-bold text-success m-0">{pedidosConcluídos}</h3>
           </div>
         </div>
-        <div className="col-md-3 col-sm-6">
+        <div className="col">
           <div className="card border-0 shadow-sm rounded-4 text-center p-3">
             <div className="text-muted small mb-1 fw-bold">Em Andamento</div>
             <h3 className="fw-bold text-warning m-0">{pedidosEmAndamento}</h3>
           </div>
         </div>
-        <div className="col-md-3 col-sm-6">
+        <div className="col">
           <div className="card border-0 shadow-sm rounded-4 text-center p-3">
             <div className="text-muted small mb-1 fw-bold">Receita Total</div>
             <h3 className="fw-bold text-primary m-0">{receitaTotal.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
+          </div>
+        </div>
+        <div className="col">
+          <div className="card border-0 shadow-sm rounded-4 text-center p-3">
+            <div className="text-muted small mb-1 fw-bold">Comissão (15%)</div>
+            <h3 className="fw-bold text-info m-0">{comissaoTotal.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h3>
           </div>
         </div>
       </div>

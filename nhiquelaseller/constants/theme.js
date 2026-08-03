@@ -14,6 +14,7 @@ export const COLORS = {
   primaryLight: '#A855F7',
   primaryDark: '#5B00B5',
   primaryGlow: 'rgba(127, 0, 255, 0.15)',
+  primaryTransparent: 'rgba(127, 0, 255, 0.3)',
 
   // Accent
   accent: '#00D4FF',
@@ -35,9 +36,10 @@ export const COLORS = {
   textMuted: '#6B6B80',
   textInverse: '#0D0D14',
 
-  // Bordas
+  // Bordas e Glass
   border: '#2A2A4A',
   borderLight: 'rgba(255, 255, 255, 0.08)',
+  glassBg: 'rgba(26, 26, 46, 0.65)',
 
   // Status pedidos
   statusPendente: '#FF9F0A',
@@ -69,26 +71,33 @@ export const FONTS = {
 
 export const SHADOWS = {
   sm: {
-    shadowColor: '#7F00FF',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   md: {
-    shadowColor: '#7F00FF',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 6,
+    elevation: 4,
   },
   lg: {
-    shadowColor: '#7F00FF',
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowRadius: 10,
+    elevation: 8,
   },
+  glow: {
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  }
 };
 
 export const RADIUS = {
@@ -139,10 +148,19 @@ export const COMMON_STYLES = {
   },
   card: {
     backgroundColor: COLORS.surfaceCard,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
+    ...SHADOWS.md,
+  },
+  glassCard: {
+    backgroundColor: COLORS.glassBg,
+    borderRadius: RADIUS.lg,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    overflow: 'hidden',
     ...SHADOWS.sm,
   },
   input: {
@@ -153,15 +171,19 @@ export const COMMON_STYLES = {
     color: COLORS.text,
     fontSize: SIZES.base,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
+  },
+  inputFocus: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.sm,
-    paddingVertical: 15,
+    borderRadius: RADIUS.full,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.md,
+    ...SHADOWS.glow,
   },
   primaryButtonText: {
     color: COLORS.text,
@@ -169,16 +191,30 @@ export const COMMON_STYLES = {
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  secondaryButton: {
+    backgroundColor: COLORS.surface2,
+    borderRadius: RADIUS.full,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  secondaryButtonText: {
+    color: COLORS.text,
+    fontSize: SIZES.base,
+    fontWeight: '600',
+  },
   sectionTitle: {
     fontSize: SIZES.lg,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
     fontSize: SIZES.sm,
     color: COLORS.textSecondary,
-    marginBottom: 6,
-    fontWeight: '500',
+    marginBottom: 8,
+    fontWeight: '600',
   },
 };
