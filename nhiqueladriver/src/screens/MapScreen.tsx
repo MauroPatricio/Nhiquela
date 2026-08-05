@@ -241,13 +241,28 @@ export default function MapScreen({ route, navigation }: any) {
     };
 
     const handleOrderUpdated = async (data: any) => {
-      if (data && (data._id === tripData?.id || data.id === tripData?.id)) {
-        const status = data.status || "";
-        if (status === 'Entregue' || status === 'Finalizado' || status === 'Concluído' || status === 'Cancelado' || status === 'Motorista indisponível' || data.isCanceled || data.deleted) {
+      // O backend pode enviar os dados diretamente ou dentro de { order: data }
+      const order = data.order || data;
+      
+      if (order && (order._id === tripData?.id || order.id === tripData?.id)) {
+        const status = order.status || "";
+        const isTerminalStatus = (
+          status === 'Entregue' || 
+          status === 'Finalizado' || 
+          status === 'Concluído' || 
+          status === 'Concluido' || 
+          status === 'Cancelado' || 
+          status === 'Motorista indisponível' || 
+          order.isCanceled || 
+          order.deleted ||
+          order.stepStatus >= 7
+        );
+
+        if (isTerminalStatus) {
           await AsyncStorage.removeItem("acceptedTrip");
           setTripData(null);
           
-          if (status === 'Cancelado') {
+          if (status === 'Cancelado' || order.isCanceled) {
              Alert.alert("Viagem Cancelada", "Esta viagem foi cancelada pelo cliente.");
           }
           

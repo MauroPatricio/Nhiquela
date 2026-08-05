@@ -1473,7 +1473,7 @@ orderRouter.put(
               order.deliveryman.id,
               commissionAmount,
               `Comissão de serviço para o pedido ${order.code}`,
-              'wallet',
+              'commission',
               session
             );
             

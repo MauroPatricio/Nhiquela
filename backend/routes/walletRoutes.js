@@ -212,7 +212,7 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
 
     // Comissões descontadas (Soma de todos os 'debit' de serviço)
     const commissions = await Transaction.aggregate([
-      { $match: { walletId: wallet?._id, type: 'debit', status: 'confirmado' } },
+      { $match: { walletId: wallet?._id, type: 'debit', status: 'confirmado', method: 'commission' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     const totalCommissions = commissions[0]?.total || 0;

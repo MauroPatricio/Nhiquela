@@ -93,7 +93,7 @@ export const getWallet = async (userId) => {
 };
 
 /** Debit a commission from the driver’s wallet */
-export const debitCommission = async (driverId, amount) => {
+export const debitCommission = async (driverId, amount, orderId = null) => {
   const wallet = await getWallet(driverId);
   const config = await getFinancialConfig();
 
@@ -111,6 +111,17 @@ export const debitCommission = async (driverId, amount) => {
   }
   
   await wallet.save();
+
+  if (amount > 0) {
+    await Transaction.create({
+      walletId: wallet._id,
+      type: 'debit',
+      amount: amount,
+      method: 'commission',
+      description: orderId ? `Comissão da viagem #${orderId}` : 'Comissão da plataforma',
+      status: 'confirmado'
+    });
+  }
 
   // If balance falls below the credit limit (or min balance if no credit allowed), suspend driver
   const limit = config.allowNegativeBalance ? config.creditLimit : config.minOperationalBalance;
