@@ -870,7 +870,7 @@ requestServiceer.put(
               order.deliveryman.id,
               commissionAmount,
               `Comissão de serviço para o pedido direto ${order.code} finalizado`,
-              'wallet',
+              'commission',
               session
             );
           } catch (error) {
