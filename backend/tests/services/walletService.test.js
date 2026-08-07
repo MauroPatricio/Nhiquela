@@ -11,7 +11,15 @@ jest.unstable_mockModule('../../models/PricingEngineModel.js', () => ({
 
 jest.unstable_mockModule('../../models/SettingsModel.js', () => ({
   default: {
-    findOne: jest.fn().mockResolvedValue({ key: 'driver_commission_rate', value: '15' })
+    findOne: jest.fn().mockImplementation(async (query) => {
+      if (query.key === 'driver_commission_rate') {
+        return { key: 'driver_commission_rate', value: '15' };
+      }
+      if (query.key === 'enable_global_commission') {
+        return { key: 'enable_global_commission', value: 'true' };
+      }
+      return null;
+    })
   }
 }));
 
@@ -49,7 +57,7 @@ describe('walletService - calculateDynamicCommission', () => {
     expect(commission).toBeCloseTo(237);
   });
 
-  it('deve calcular a comissao dinâmica corretamente (serviço a 10% e deslocacao a 15%)', async () => {
+  it('deve calcular a comissao dinâmica corretamente aplicando a percentagem do serviço ao total (prestacao + deslocacao)', async () => {
     const order = {
       serviceId: 'sub_with_commission',
       pricing: {
@@ -58,10 +66,9 @@ describe('walletService - calculateDynamicCommission', () => {
       }
     };
 
-    // Servico: 1500 * 10% = 150
-    // Deslocacao: 80 * 15% = 12
-    // Total esperado: 162
+    // Total = 1500 + 80 = 1580
+    // Comissao = 1580 * 10% = 158
     const commission = await calculateDynamicCommission(order);
-    expect(commission).toBeCloseTo(162);
+    expect(commission).toBeCloseTo(158);
   });
 });
