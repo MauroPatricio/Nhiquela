@@ -58,6 +58,39 @@ export default function WalletScreen({ navigation, route }: any) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transportTypeName, setTransportTypeName] = useState<string | null>(null);
   const [selectedDayStats, setSelectedDayStats] = useState<any | null>(null);
+  const [countdownText, setCountdownText] = useState('15:00 min');
+
+  useEffect(() => {
+    if (balance.pending <= 0) {
+      setCountdownText('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const pendingRecharge = transactions.find(t => t.type === 'credit' && t.status === 'pendente');
+      if (pendingRecharge) {
+        const dateStr = pendingRecharge.createdAt || pendingRecharge.created_at;
+        const createdAt = dateStr ? new Date(dateStr).getTime() : new Date().getTime();
+        const now = new Date().getTime();
+        const diff = 15 * 60 * 1000 - (now - createdAt);
+        
+        if (diff > 0) {
+          const minutes = Math.floor(diff / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setCountdownText(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} min`);
+        } else {
+          setCountdownText('A processar...');
+        }
+      } else {
+        setCountdownText('15:00 min');
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [balance.pending, transactions]);
 
   useEffect(() => {
     const fetchTransportTypeName = async () => {
@@ -388,7 +421,7 @@ export default function WalletScreen({ navigation, route }: any) {
                     </Text>
                   </View>
                   <Text style={{ fontSize: 13, color: '#666', lineHeight: 18 }}>
-                    O seu saldo está a ser analisado pela equipa financeira. Dentro de até 30 minutos será validada a sua recarga.
+                    O seu saldo está a ser analisado pela equipa financeira. Dentro de até <Text style={{ fontWeight: 'bold', color: '#FF9800' }}>{countdownText}</Text> será validada a sua recarga.
                   </Text>
                 </View>
               )}

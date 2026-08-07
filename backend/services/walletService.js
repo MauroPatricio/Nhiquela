@@ -27,8 +27,15 @@ export const getFinancialConfig = async () => {
       // Divide by 100 because the web dashboard sends it as a percentage (e.g. 15 for 15%)
       financialEngine.driverCommissionRate = Number(commSetting.value) / 100;
     }
+
+    const useGenCommSetting = await Settings.findOne({ key: 'enable_global_commission' });
+    if (useGenCommSetting && useGenCommSetting.value !== undefined) {
+      financialEngine.useGeneralCommission = useGenCommSetting.value === 'true' || useGenCommSetting.value === true;
+    } else {
+      financialEngine.useGeneralCommission = true; // Habilitado por padrão
+    }
   } catch (err) {
-    console.error('Erro ao ler comissao do settings:', err);
+    console.error('Erro ao ler configuracoes de comissao do settings:', err);
   }
 
   return financialEngine;
@@ -67,19 +74,22 @@ export const calculateDynamicCommission = async (order) => {
       const sub = await ProviderSubcategory.findById(subId);
       
       if (sub) {
-        let servComm = sub.serviceCommission !== undefined && sub.serviceCommission !== null ? sub.serviceCommission : defaultCommissionRate * 100;
+        let servComm = sub.serviceCommission !== undefined && sub.serviceCommission !== null 
+          ? sub.serviceCommission 
+          : (financialConfig.useGeneralCommission !== false ? defaultCommissionRate * 100 : 0);
         
-        let sCommAmt = servicePrice * (servComm / 100);
-        let dCommAmt = distancePrice * defaultCommissionRate; // Sempre usa a global (ex: 15%)
-        
-        return sCommAmt + dCommAmt;
+        // O cálculo deve ser (deslocacao + prestacao) * a percentagem para aquele serviço
+        return (servicePrice + distancePrice) * (servComm / 100);
       }
     } catch(err) {
       console.error('Error calculating dynamic commission for subcategory:', err);
     }
   }
   
-  // Caso não tenha subcategoria, aplica a taxa global a tudo
+  // Caso não tenha subcategoria, aplica a taxa global a tudo (se habilitada)
+  if (financialConfig.useGeneralCommission === false) {
+    return 0; // Taxa global desabilitada
+  }
   return (servicePrice + distancePrice) * defaultCommissionRate;
 };
 
