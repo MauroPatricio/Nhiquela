@@ -85,6 +85,15 @@ export default function App() {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF231F7C',
       });
+
+      // Canal urgente para quando o motorista chega
+      Notifications.setNotificationChannelAsync('driver_alerts_urgent', {
+        name: 'Alertas Urgentes',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'default',
+        vibrationPattern: [0, 500, 200, 500, 200, 500], // Vibração longa
+        lightColor: '#FF231F7C',
+      });
     }
   }, []);
 

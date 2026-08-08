@@ -336,33 +336,7 @@ export default function ProfileScreen({ navigation }: Props) {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Estatísticas</Text>
           <View style={styles.statsGrid}>
-            {user?.isDeliveryMan && (
-              <View style={[styles.statCard, { backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
-                <View style={{ width: 100, height: 100, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-                  <PieChart
-                    style={{ height: 100, width: 100 }}
-                    valueAccessor={({ item }: { item: any }) => item.value}
-                    data={[
-                      { key: 1, value: 20, svg: { fill: '#7F00FF' } }, // Roxo
-                      { key: 2, value: 20, svg: { fill: '#007AFF' } }, // Azul
-                      { key: 3, value: 20, svg: { fill: '#FF3B30' } }, // Vermelho
-                      { key: 4, value: 20, svg: { fill: '#FFCC00' } }, // Amarelo
-                      { key: 5, value: 20, svg: { fill: '#34C759' } }, // Verde
-                    ]}
-                    spacing={0}
-                    innerRadius={'75%'}
-                    outerRadius={'100%'}
-                    padAngle={0.05}
-                  />
-                  <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1E1E24' }}>
-                      {userData.acceptanceRate || '0%'}
-                    </Text>
-                    <Text style={{ fontSize: 10, color: '#666' }}>Aceitação</Text>
-                  </View>
-                </View>
-              </View>
-            )}
+
             <StatCard
               title="Viagens"
               value={userData.totalTrips}
