@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "6a535cf1c55cef36ed550fa9",
+    "name": "Em dinheiro",
+    "description": "Pagamento em dinheiro ou numerario",
+    "icon": "💰",
+    "status": "Ativo",
+    "order": 0,
+    "type": "0 - Numerário / Dinheiro",
+    "createdAt": "2026-07-12T09:22:57.434Z",
+    "updatedAt": "2026-07-12T09:32:42.172Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a535d30c55cef36ed550fac",
+    "name": "Carteira digital",
+    "description": "Pagamento através do saldo da sua carteira digital.",
+    "icon": "📱",
+    "status": "Ativo",
+    "order": 1,
+    "type": "1 - Carteira Digital",
+    "createdAt": "2026-07-12T09:24:00.066Z",
+    "updatedAt": "2026-07-12T09:32:47.236Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a535ea9c55cef36ed550fb5",
+    "name": "Transferência móvel",
+    "description": "Transferência para carteiras móveis (M-Pesa e e-Mola)",
+    "icon": "💸",
+    "status": "Ativo",
+    "order": 2,
+    "type": "2 - Transferência Móvel",
+    "createdAt": "2026-07-12T09:30:17.541Z",
+    "updatedAt": "2026-07-12T09:30:26.604Z",
+    "__v": 0
+  }
+]

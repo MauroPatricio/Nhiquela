@@ -1,6 +1,7 @@
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ArrowRightIcon } from 'react-native-heroicons/outline';
+import { Ionicons } from '@expo/vector-icons';
 import SellerCard from './SellerCard';
 import api from '../hooks/createConnectionApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -14,9 +15,9 @@ const SellersView = ({ title, description }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/sellers');
+      const response = await api.get('/providers?type=Business');
       if (response.status === 200) {
-        setSellers(response.data.sellers);
+        setSellers(response.data.providers.slice(0, 10)); // Limit to 10
       }
     } catch (error) {
       console.error('Erro ao buscar vendedores:', error);
@@ -33,16 +34,6 @@ const SellersView = ({ title, description }) => {
     }, [])
   );
 
-  // Atualiza a cada 30 segundos
-  useEffect(() => {
-    fetchData(); // Chamada inicial
-
-    const interval = setInterval(() => {
-      fetchData();
-    }, 30000); // Atualiza a cada 30 segundos
-
-    return () => clearInterval(interval); // Limpa ao desmontar
-  }, []);
 
   return (
     <View>
@@ -57,28 +48,38 @@ const SellersView = ({ title, description }) => {
 
       <ScrollView 
         horizontal
-        contentContainerStyle={{ paddingHorizontal: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 10 }}
         showsHorizontalScrollIndicator={false}
       >
-        {sellers ? (
+        {sellers && sellers.length > 0 ? (
           sellers.map(seller => (
             <SellerCard
               key={seller._id}
               id={seller._id}
-              name={seller.seller.name}
-              logo={seller.seller.logo}
-              description={seller.seller.description}
-              rating={seller.seller.rating}
-              numReviews={seller.seller.numReviews}
-              province={seller.seller.province}
-              address={seller.seller.address}
-              latitude={seller.seller.latitude}
-              longitude={seller.seller.longitude}
-              openstore={seller.seller.openstore}
+              name={seller.name}
+              logo={seller.businessData?.logo || 'https://via.placeholder.com/65'}
+              description={seller.businessData?.description}
+              rating={seller.rating}
+              numReviews={seller.numReviews}
+              province={seller.location?.province}
+              tipoEstabelecimento={seller.categoryId}
+              address={seller.location?.address}
+              latitude={seller.location?.lat}
+              longitude={seller.location?.lng}
+              openstore={seller.businessData?.isOpen}
             />
           ))
         ) : (
-          <Text style={styles.loadingText}>{isLoading ? 'Carregando vendedores...' : 'Nenhum vendedor encontrado.'}</Text>
+          <View style={styles.emptyCard}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#7F00FF" />
+            ) : (
+              <>
+                <Ionicons name="storefront-outline" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+                <Text style={styles.emptyCardText}>Sem fornecedores registados de momento</Text>
+              </>
+            )}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -89,25 +90,44 @@ export default SellersView;
 
 const styles = StyleSheet.create({
   sellerWrapper: {
-    marginTop: 15,
+    marginTop: 20,
     justifyContent: 'space-between',
+    alignItems: 'center',
     flexDirection: "row",
-    marginLeft: 15,
-    marginRight: 15,
+    paddingHorizontal: 18,
   },
   title: {
-    fontWeight: "500",
-    fontSize: 19
+    fontWeight: "800",
+    fontSize: 22,
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   text: {
-    fontSize: 13,
-    marginLeft: 15,
-    letterSpacing: 1.2
-  },
-  loadingText: {
     fontSize: 14,
-    color: 'gray',
-    marginLeft: 15,
-    marginTop: 10
+    color: '#64748B',
+    paddingHorizontal: 18,
+    marginTop: 4,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  emptyCard: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    marginHorizontal: 18,
+    marginVertical: 10,
+    width: 320,
+  },
+  emptyCardText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginTop: 10,
   }
 });

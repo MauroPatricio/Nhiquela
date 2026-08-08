@@ -1,9 +1,10 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Image } from 'expo-image';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native'
 import { selectDestination, selectOrigin, selectTravelTimeInfo } from '../features/navSlice'
-import { Icon } from 'react-native-elements'
+import { AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 
@@ -11,7 +12,7 @@ const images ={
     image1: require('../assets/vehicle/bycicle.png'),
     image2: require('../assets/vehicle/car.png'),
     image3: require('../assets/vehicle/truck.png'),
-    image4: require('../assets/vehicle/reboque.png')
+    image4: require('../assets/vehicle/reboque.jpg')
 
 }
 const data = [
@@ -59,7 +60,7 @@ const TransportType = () => {
 
 <View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 5, marginRight: 5}}>
 
-<Text>Distancia: {travelTimeInfo.distance.text}</Text>
+<Text>Distância: {travelTimeInfo.distance.text}</Text>
 <Text>Estimativa de chegada: {travelTimeInfo.duration.text}</Text>
 </View>
 
@@ -82,13 +83,13 @@ const TransportType = () => {
               <Image
               source={images[item.image]}
               style={styles.image}
-              resizeMode="cover"
+              contentFit="cover"
               />
               <Text style={styles.title}>{item.title}</Text>
                            <Text style={{fontWeight:'500'}}>{item.price} MT</Text>
-              <Icon 
+              <AntDesign 
               name='arrowright'
-              type='antdesign' color={'black'}
+              size={24} color={'black'}
               />
             </View>
               </TouchableOpacity>
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
       },
       image:{
           aspectRatio: 1,
-          resizeMode: 'cover',
+          contentFit: 'cover',
         //   width: 50,
           height: 100,
           marginRight: 10,
@@ -160,3 +161,4 @@ const styles = StyleSheet.create({
       marginLeft: 10
     },
 })
+

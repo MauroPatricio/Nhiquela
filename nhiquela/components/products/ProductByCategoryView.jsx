@@ -1,4 +1,5 @@
-import { View, Text, TextInput, FlatList, Image, ActivityIndicator, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { Image } from 'expo-image';
+import { View, Text, TextInput, FlatList, ActivityIndicator, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from '../../screens/search.style';

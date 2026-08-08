@@ -1,0 +1,46 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext {
+        minSdkVersion = 24
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        buildToolsVersion = "35.0.0"
+        ndkVersion = "26.1.10909125"
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.2.1") // compatível com SDK 35
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20")
+    }
+}
+
+def reactNativeAndroidDir = new File(
+    providers.exec {
+        workingDir(rootDir)
+        commandLine("node", "--print", "require.resolve('react-native/package.json')")
+    }.standardOutput.asText.get().trim(),
+    "../android"
+)
+
+allprojects {
+    repositories {
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url(reactNativeAndroidDir)
+        }
+
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"

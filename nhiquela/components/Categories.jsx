@@ -34,12 +34,12 @@ export default Categories
 const styles = StyleSheet.create({
   image: {
     aspectRatio: 1,
-    resizeMode: 'cover'
+    contentFit: 'cover'
   },
   cover: {
     height: 50,
     width: 50,
-    resizeMode: "contain",
+    contentFit: "contain",
     marginBottom: 0,
     backgroundColor: 'white'
   },
@@ -47,3 +47,4 @@ const styles = StyleSheet.create({
     // marginBottom: 122
   }
 })
+

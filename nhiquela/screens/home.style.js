@@ -6,52 +6,74 @@ const styles = StyleSheet.create({
         fontSize: 40
     },
     appBarWrapper: {
-        marginHorizontal: 22,
-        marginTop: 10,
-
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 15,
+        backgroundColor: "white",
     },
     appBar: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-
+    },
+    userInfoContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    cover: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#F3F4F6', // Fundo leve caso a imagem falhe
+    },
+    textContainer: {
+        marginLeft: 14,
+    },
+    greetingText: {
+        fontSize: 13,
+        color: "#6B7280",
+        fontWeight: "500",
     },
     location: {
-        fontSize: 15,
-        textAlign: 'center',
-        fontWeight: "500"
+        fontSize: 18,
+        color: "#1A1A1A",
+        fontWeight: "800",
+        marginTop: 2,
     },
-    locationView: {
+    appBarRight: {
         flexDirection: "row",
-        // // justifyContent: "space-between",
         alignItems: "center",
-        paddingLeft: '12%'
+    },
+    cartBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: "#F9FAFB",
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+        borderWidth: 1,
+        borderColor: "#F0F2F5",
     },
     cartCount: {
         position: "absolute",
-        bottom: 16,
-        width: 16,
-        height: 16,
-        borderRadius: 8,
+        top: -4,
+        right: -4,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: "#9333EA",
+        justifyContent: "center",
         alignItems: "center",
-        backgroundColor: '#7F00FF',
-        justifyContent: 'center',
         zIndex: 999,
-
+        borderWidth: 2,
+        borderColor: "white",
     },
     cartNumber: {
-        fontWeight: '600',
+        fontWeight: "bold",
         fontSize: 10,
-        color: 'white',
-
-    },
-    cover: {
-        width: 40,
-        height: 40,
-        borderRadius: 120,
-
+        color: "white",
     }
-})
+});
 
-
-export default styles
+export default styles;
