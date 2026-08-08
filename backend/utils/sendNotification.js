@@ -18,6 +18,9 @@ export async function sendNotification(deviceToken, title, body, data = {}, type
   if (type === 'new_order') {
      channelId = 'driver_alerts_urgent';
      sound = 'calldriver';
+  } else if (type === 'driver_arrived') {
+     channelId = 'driver_alerts_urgent';
+     sound = 'default'; // O app cliente usa default com vibração longa
   }
 
   if (type === 'new_order') {

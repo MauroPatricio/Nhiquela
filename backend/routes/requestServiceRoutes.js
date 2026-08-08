@@ -734,7 +734,8 @@ requestServiceer.put(
         receiver_id: updateOrder.user,
         sender_id: updateOrder.deliveryman?.id,
         orderID: updateOrder._id,
-        title: 'Motorista Chegou!'
+        title: 'Motorista Chegou!',
+        type: 'driver_arrived'
       });
 
       res.send({ message: `No destino indicado`, order: updateOrder });

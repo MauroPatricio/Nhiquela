@@ -1381,7 +1381,8 @@ orderRouter.put(
         receiver_id: order.user,
         sender_id: order.seller,
         orderID: order._id,
-        title: 'Motorista Chegou!'
+        title: 'Motorista Chegou!',
+        type: 'driver_arrived'
       });
       // WebSocket Optimization
       const io = req.app.get('io');
