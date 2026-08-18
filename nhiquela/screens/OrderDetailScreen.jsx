@@ -26,6 +26,7 @@ import TrackingMap from '../components/TrackingMap';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Notifications from 'expo-notifications';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -62,16 +63,83 @@ const OrderDetailsScreen = () => {
   const [etaDuration, setEtaDuration] = useState(null);
   const [indisponivelCountdown, setIndisponivelCountdown] = useState(45);
   const [driverWaitTime, setDriverWaitTime] = useState(0);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [viewProofModal, setViewProofModal] = useState(false);
 
-  useEffect(() => {
-    let interval;
-    if (currentOrder?.status === 'No destino indicado' && currentOrder?.updatedAt) {
-      interval = setInterval(() => {
-        const diff = Math.floor((Date.now() - new Date(currentOrder.updatedAt).getTime()) / 1000);
-        setDriverWaitTime(diff > 0 ? diff : 0);
-      }, 1000);
+  // Refs para evitar re-criação de intervalos e tremerção do ecrã
+  const indisponivelStartRef = useRef(null); // quando começou o estado 'Motorista indisponível'
+  const navigationRef = useRef(navigation);
+  const isRequestServiceRef = useRef(isRequestService);
+  const currentOrderRef = useRef(currentOrder);
+
+  // Manter refs sincronizadas sem causar re-renders
+  useEffect(() => { navigationRef.current = navigation; }, [navigation]);
+  useEffect(() => { isRequestServiceRef.current = isRequestService; }, [isRequestService]);
+  useEffect(() => { currentOrderRef.current = currentOrder; }, [currentOrder]);
+
+  const handleUploadProof = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setUploadingProof(true);
+        const asset = result.assets[0];
+        
+        const formData = new FormData();
+        formData.append('file', {
+          uri: asset.uri,
+          name: asset.fileName || 'proof.jpg',
+          type: asset.type || asset.mimeType || 'image/jpeg',
+        });
+
+        // Upload image using native fetch to avoid Axios multipart network issues in React Native
+        const response = await fetch(`${api.defaults.baseURL}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        const uploadData = await response.json();
+        const proofUrl = uploadData.secure_url || uploadData.url;
+
+        if (proofUrl) {
+          // Send to order
+          const orderRes = await api.put(`/orders/${currentOrder._id}/payment-proof`, {
+            paymentProof: proofUrl
+          });
+          
+          if (orderRes.status === 200) {
+            setCurrentOrder(orderRes.data.order);
+            toast.show("Comprovativo enviado com sucesso!", { type: 'success' });
+          }
+        }
+      }
+    } catch (error) {
+      console.log('Error uploading proof:', error);
+      toast.show("Erro ao enviar comprovativo.", { type: 'danger' });
+    } finally {
+      setUploadingProof(false);
     }
+  };
+
+  // Timer: tempo de espera do motorista no destino
+  useEffect(() => {
+    if (currentOrder?.status !== 'No destino indicado' || !currentOrder?.updatedAt) return;
+    const updatedAtMs = new Date(currentOrder.updatedAt).getTime();
+    const interval = setInterval(() => {
+      const diff = Math.floor((Date.now() - updatedAtMs) / 1000);
+      setDriverWaitTime(diff > 0 ? diff : 0);
+    }, 1000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentOrder?.status, currentOrder?.updatedAt]);
 
   const handleUpdateTracking = useCallback(({ speed, distance, duration }) => {
@@ -94,35 +162,61 @@ const OrderDetailsScreen = () => {
     }
   };
 
+  // Timer: countdown 'Motorista indisponível' — usa ref para não recriar o intervalo a cada segundo
   useEffect(() => {
-    let timer;
-    if (currentOrder?.status === 'Motorista indisponível' && indisponivelCountdown > 0) {
-      timer = setInterval(() => {
-        setIndisponivelCountdown(prev => prev - 1);
-      }, 1000);
-    } else if (currentOrder?.status === 'Motorista indisponível' && indisponivelCountdown === 0) {
-      if (isRequestService && currentOrder?.serviceId) {
-        navigation.reset({ 
-          index: 1, 
-          routes: [
-            { name: 'BottomNavigation' },
-            { 
-              name: 'RequestService', 
-              params: { 
-                selectedService: { 
-                  _id: currentOrder.serviceId, 
-                  name: currentOrder.name || currentOrder.goodType || 'Serviço' 
-                } 
-              } 
-            }
-          ] 
-        });
-      } else {
-        navigation.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
+    const status = currentOrder?.status;
+    if (status !== 'Motorista indisponível') {
+      // Resetar se o estado mudou
+      if (indisponivelStartRef.current !== null) {
+        indisponivelStartRef.current = null;
+        setIndisponivelCountdown(45);
       }
+      return;
     }
+
+    // Registar o momento de início apenas uma vez
+    if (indisponivelStartRef.current === null) {
+      indisponivelStartRef.current = Date.now();
+      setIndisponivelCountdown(45);
+    }
+
+    const TOTAL = 45; // segundos
+    const timer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - indisponivelStartRef.current) / 1000);
+      const remaining = Math.max(0, TOTAL - elapsed);
+      setIndisponivelCountdown(remaining);
+
+      if (remaining === 0) {
+        clearInterval(timer);
+        const order = currentOrderRef.current;
+        const nav = navigationRef.current;
+        const isReqSvc = isRequestServiceRef.current;
+        if (isReqSvc && order?.serviceId) {
+          nav.reset({
+            index: 1,
+            routes: [
+              { name: 'BottomNavigation' },
+              {
+                name: 'RequestService',
+                params: {
+                  selectedService: {
+                    _id: order.serviceId,
+                    name: order.name || order.goodType || 'Serviço'
+                  }
+                }
+              }
+            ]
+          });
+        } else {
+          nav.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
+        }
+      }
+    }, 1000);
+
     return () => clearInterval(timer);
-  }, [currentOrder, indisponivelCountdown, navigation, isRequestService]);
+  // Só re-executar quando o STATUS muda, não quando o countdown muda
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOrder?.status]);
 
   useEffect(() => {
     checkIfUserExist();
@@ -181,6 +275,17 @@ const OrderDetailsScreen = () => {
     };
   }, [orderIdParam]);
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '---';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
+
   const [subcategories, setSubcategories] = useState([]);
   useEffect(() => {
     const fetchSubcategories = async () => {
@@ -200,6 +305,34 @@ const OrderDetailsScreen = () => {
       setIsRequestService(isReq);
     }
   }, [currentOrder]);
+
+  const resolvedSellerAccounts = useMemo(() => {
+    const provider = currentOrder?.seller;
+    const userDoc = provider?.userId || {};
+    const sellerInfo = userDoc?.seller || provider?.seller || {};
+
+    return {
+      mpesa: sellerInfo.phoneNumberAccount || provider?.phoneNumberAccount || userDoc?.phoneNumber || provider?.phoneNumber || null,
+      emola: sellerInfo.alternativePhoneNumberAccount || provider?.alternativePhoneNumberAccount || null,
+      bankAccount: sellerInfo.bankAccount || sellerInfo.accountNumber || provider?.bankAccount || provider?.accountNumber || null,
+      bankName: sellerInfo.accountType || provider?.accountType || 'Banco'
+    };
+  }, [currentOrder]);
+
+  // Timer: countdown de expiração do pedido (15 min) — cálculo baseado em timestamp fixo
+  useEffect(() => {
+    if (!currentOrder || currentOrder.status !== 'Pendente') return;
+    const endTime = new Date(currentOrder.createdAt).getTime() + 15 * 60 * 1000;
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+      setTimeLeft(diff);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  // Só re-arrancar quando o pedido mudar de ID ou de status
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOrder?._id, currentOrder?.status, currentOrder?.createdAt]);
 
   const fetchOrderDetails = async () => {
     setLoadingOrder(true);
@@ -335,6 +468,16 @@ const OrderDetailsScreen = () => {
             status: 'Confirmado',
           }).catch(() => {});
         }
+
+        // Notificação de Agradecimento ao Cliente
+        sendOrderNotificationToUser({
+          userId: userData._id,
+          orderId: finalOrder._id,
+          orderCode: finalOrder.code,
+          title: '🎉 Obrigado pela preferência!',
+          body: `Confirmámos a receção do seu pedido nº ${finalOrder.code}. Esperamos vê-lo de novo em breve!`,
+          status: 'Confirmado',
+        }).catch(() => {});
       }).catch((error) => {
         console.error('Erro ao confirmar entrega', error);
         // Reverter estado otimista em caso de erro
@@ -432,26 +575,111 @@ const OrderDetailsScreen = () => {
     const isTripEnded = ['Entregue', 'Finalizado', 'Cancelado', 'Cancelado pelo motorista'].includes(currentOrder?.status);
     const showChatBtn = isChatActive || isTripEnded; // histórico visível mesmo após
 
-    return (
-    <View style={styles.sheetContent}>
-      {/* Resumo Rápido para a aba inicial (15%) */}
-      {currentOrder.status === 'No destino indicado' && (
-        <>
-          <View style={{ backgroundColor: '#DCFCE7', padding: 16, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="checkmark-circle" size={28} color="#16A34A" style={{ marginRight: 12 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>O motorista chegou!</Text>
-              <Text style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>Encontre-se com ele no local indicado para confirmar a receção.</Text>
-              {driverWaitTime > 0 && (
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#EF4444', marginTop: 6 }}>
-                  Tempo de espera: {Math.floor(driverWaitTime / 60).toString().padStart(2, '0')}:{(driverWaitTime % 60).toString().padStart(2, '0')}
-                </Text>
-              )}
-            </View>
-          </View>
-          
+    const getFriendlyStatus = (status) => {
+      switch (status) {
+        case 'Pendente':
+          return {
+            title: 'Aguardando Estabelecimento',
+            desc: 'O fornecedor está a analisar o seu pedido e responderá em breve.',
+            icon: 'hourglass-outline',
+            color: '#D97706',
+            bg: '#FEF3C7'
+          };
+        case 'Aceite':
+        case 'Aceito':
+          return {
+            title: 'Pedido Aceite!',
+            desc: 'O fornecedor aceitou o seu pedido e já começou a prepará-lo.',
+            icon: 'checkmark-circle-outline',
+            color: '#10B981',
+            bg: '#D1FAE5'
+          };
+        case 'Em Preparação':
+        case 'Em preparacao':
+          return {
+            title: 'Em Preparação',
+            desc: 'Os seus produtos estão a ser preparados e embalados com cuidado.',
+            icon: 'restaurant-outline',
+            color: '#7C3AED',
+            bg: '#F3E8FF'
+          };
+        case 'A Caminho':
+        case 'a caminho':
+          return {
+            title: 'A Caminho da Entrega',
+            desc: 'O motorista já recolheu a encomenda e está a dirigir-se a si.',
+            icon: 'bicycle-outline',
+            color: '#3B82F6',
+            bg: '#DBEAFE'
+          };
+        case 'No destino indicado':
+          return {
+            title: 'O Motorista Chegou!',
+            desc: 'O motorista está no local. Encontre-se com ele para recolher a encomenda.',
+            icon: 'location-outline',
+            color: '#059669',
+            bg: '#DCFCE7'
+          };
+        case 'Entregue':
+        case 'Finalizado':
+          return {
+            title: 'Pedido Entregue',
+            desc: 'A entrega foi concluída com sucesso. Obrigado pela sua preferência!',
+            icon: 'gift-outline',
+            color: '#10B981',
+            bg: '#D1FAE5'
+          };
+        case 'Cancelado':
+        case 'Cancelado pelo motorista':
+        case 'Recusado':
+          return {
+            title: 'Pedido Cancelado',
+            desc: 'Este pedido foi cancelado ou recusado.',
+            icon: 'close-circle-outline',
+            color: '#EF4444',
+            bg: '#FEE2E2'
+          };
+        default:
+          return {
+            title: status || 'Processando',
+            desc: 'Estamos a atualizar o estado do seu pedido.',
+            icon: 'information-circle-outline',
+            color: '#6B7280',
+            bg: '#F3F4F6'
+          };
+      }
+    };
 
-          <View style={{ marginTop: 10, marginBottom: 16 }}>
+    const friendlyStatus = getFriendlyStatus(currentOrder.status);
+
+    return (
+      <View style={styles.sheetContent}>
+        {/* Status Message Highlight */}
+        <View style={{ backgroundColor: friendlyStatus.bg, padding: 16, borderRadius: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name={friendlyStatus.icon} size={28} color={friendlyStatus.color} style={{ marginRight: 12 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: friendlyStatus.color }}>{friendlyStatus.title}</Text>
+            <Text style={{ fontSize: 13, color: friendlyStatus.color, marginTop: 2, lineHeight: 18 }}>{friendlyStatus.desc}</Text>
+            {currentOrder.status === 'No destino indicado' && driverWaitTime > 0 && (
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#EF4444', marginTop: 6 }}>
+                Tempo de espera: {Math.floor(driverWaitTime / 60).toString().padStart(2, '0')}:{(driverWaitTime % 60).toString().padStart(2, '0')}
+              </Text>
+            )}
+            {currentOrder.status === 'Pendente' && timeLeft > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#D97706' }}>
+                  Tempo restante para resposta: 
+                </Text>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#D97706', fontVariant: ['tabular-nums'], width: 42, textAlign: 'right' }}>
+                  {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {currentOrder.status === 'No destino indicado' && (
+          <View style={{ marginBottom: 16 }}>
             <TouchableOpacity 
               onPress={() => setShowFinishConfirmationModal(true)}
               disabled={isConfirming}
@@ -474,260 +702,428 @@ const OrderDetailsScreen = () => {
               <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Confirmar Viagem</Text>
             </TouchableOpacity>
           </View>
-        </>
-      )}
-      
-      {currentOrder.status === 'SCHEDULED' && (
-        <View style={{ backgroundColor: '#F3E8FF', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="calendar" size={28} color="#7E22CE" style={{ marginRight: 12 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#7E22CE' }}>Agendamento Confirmado</Text>
-            <Text style={{ fontSize: 13, color: '#7E22CE', marginTop: 2 }}>O seu pedido está agendado para {new Date(currentOrder.scheduledAt).toLocaleString('pt-PT')}. Procuraremos um motorista quando a data se aproximar.</Text>
-          </View>
-        </View>
-      )}
+        )}
 
-      {currentOrder.status === 'SEARCHING' && (
-        <View style={{ backgroundColor: '#FEF3C7', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-          <ActivityIndicator size="small" color="#D97706" style={{ marginRight: 12 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706' }}>A procurar motorista</Text>
-            <Text style={{ fontSize: 13, color: '#D97706', marginTop: 2 }}>Estamos a localizar o parceiro ideal para a sua viagem agendada.</Text>
-          </View>
-        </View>
-      )}
-      <View style={styles.quickSummary}>
-        <View style={styles.summaryRow}>
-          <Text style={styles.storeName}>
-            {currentOrder.seller?.seller?.name || currentOrder.name || currentOrder.goodType || 'Serviço'}
-          </Text>
-          <View style={[
-              styles.statusBadge, 
-              { 
-                backgroundColor: getStatusColor(currentOrder.status) + '15',
-                borderColor: getStatusColor(currentOrder.status) + '30',
-                borderWidth: 1
-              }
-            ]}>
-            <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
-          </View>
-        </View>
-        {currentOrder.totalPrice ? <Text style={styles.totalPrice}>{currentOrder.totalPrice} MT</Text> : null}
-      </View>
-
-      <View style={styles.divider} />
-
-      {/* Detalhes da Viagem */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Detalhes do Serviço</Text>
-        <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <Ionicons name="location" size={20} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
+        {currentOrder.status === 'SCHEDULED' && (
+          <View style={{ backgroundColor: '#F3E8FF', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="calendar" size={28} color="#7E22CE" style={{ marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'uppercase' }}>Recolha</Text>
-              <Text style={{ fontSize: 15, color: '#1E293B', fontWeight: '500', marginTop: 2 }}>{currentOrder.origin || 'Não especificada'}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#7E22CE' }}>Agendamento Confirmado</Text>
+              <Text style={{ fontSize: 13, color: '#7E22CE', marginTop: 2 }}>O seu pedido está agendado para {new Date(currentOrder.scheduledAt).toLocaleString('pt-PT')}. Procuraremos um motorista quando a data se aproximar.</Text>
             </View>
           </View>
-          
-          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginLeft: 28 }} />
-          
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <Ionicons name="flag" size={20} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
+        )}
+
+        {currentOrder.status === 'SEARCHING' && (
+          <View style={{ backgroundColor: '#FEF3C7', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#D97706" style={{ marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'uppercase' }}>Destino</Text>
-              <Text style={{ fontSize: 15, color: '#1E293B', fontWeight: '500', marginTop: 2 }}>{currentOrder.destination || 'Não especificado'}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#D97706' }}>A procurar motorista</Text>
+              <Text style={{ fontSize: 13, color: '#D97706', marginTop: 2 }}>Estamos a localizar o parceiro ideal para a sua viagem agendada.</Text>
             </View>
           </View>
+        )}
 
-          <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 }} />
-
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="card" size={20} color="#64748B" style={{ marginRight: 8 }} />
-              <Text style={{ fontSize: 14, color: '#475569', fontWeight: '500' }}>Pagamento</Text>
-            </View>
-            <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '700' }}>{currentOrder.paymentMethod || 'Dinheiro'}</Text>
+        {/* Quick Summary Card */}
+        <View style={styles.quickSummary}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.storeName}>
+              {currentOrder.seller?.name || currentOrder.seller?.seller?.name || currentOrder.name || currentOrder.goodType || 'Serviço'}
+            </Text>
+            <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '700' }}>#{currentOrder.code || '---'}</Text>
           </View>
+          <Text style={styles.orderDate}>{formatDate(currentOrder.createdAt)}</Text>
         </View>
-      </View>
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      {/* Motorista e Veículo */}
-      {currentOrder.deliveryman && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Transporte</Text>
-          
-          <View style={styles.driverCard}>
-            <View style={styles.driverRow}>
-              <Image 
-                source={{ uri: currentOrder.deliveryman.photo || 'https://via.placeholder.com/60' }} 
-                style={styles.driverImage} 
-              />
-              <View style={styles.driverInfo}>
-                <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
-                  {currentOrder.deliveryman.transport_type && (() => {
-                    const tType = currentOrder.deliveryman.transport_type;
-                    const subcat = subcategories.find(s => s._id === tType || s.id === tType);
-                    let name = subcat ? subcat.name : tType;
-                    if (typeof name === 'object' && name.name) name = name.name;
-                    name = String(name);
-                    const isCar = name.toLowerCase().includes('carro') || name.toLowerCase().includes('reboque');
-                    
-                    if (isCar) {
+        {/* Destination Details / Delivery Info */}
+        {!isRequestService ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Dados de Entrega</Text>
+            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: '#F1F5F9' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="person-circle-outline" size={20} color="#64748B" style={{ marginRight: 8 }} />
+                <View>
+                  <Text style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: '600' }}>Destinatário</Text>
+                  <Text style={{ fontSize: 14, color: '#334155', fontWeight: '700', marginTop: 1 }}>
+                    {currentOrder.deliveryAddress?.fullName || currentOrder.user?.name || userData?.name || 'Cliente'}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ height: 1, backgroundColor: '#E2E8F0' }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="call-outline" size={20} color="#64748B" style={{ marginRight: 8 }} />
+                <View>
+                  <Text style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: '600' }}>Telemóvel</Text>
+                  <Text style={{ fontSize: 14, color: '#334155', fontWeight: '600', marginTop: 1 }}>
+                    {currentOrder.deliveryAddress?.phone || currentOrder.user?.phoneNumber || userData?.phoneNumber || 'Não informado'}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ height: 1, backgroundColor: '#E2E8F0' }} />
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <Ionicons name="location-outline" size={20} color="#EF4444" style={{ marginRight: 8, marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: '600' }}>Endereço de Entrega</Text>
+                  <Text style={{ fontSize: 14, color: '#334155', fontWeight: '500', marginTop: 2, lineHeight: 18 }}>
+                    {currentOrder.deliveryAddress?.addressLine || currentOrder.deliveryAddress?.address || currentOrder.deliveryAddress || 'Não especificado'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        ) : (
+          /* Trajeto do Serviço */
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Trajeto do Serviço</Text>
+            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: '#F1F5F9' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <Ionicons name="location" size={20} color="#3B82F6" style={{ marginTop: 2, marginRight: 8 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Recolha (Origem)</Text>
+                  <Text style={{ fontSize: 14, color: '#334155', fontWeight: '500', marginTop: 2 }}>
+                    {currentOrder.originDetails?.address || currentOrder.origin || currentOrder.seller?.address || 'Não especificada'}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={{ height: 1, backgroundColor: '#E2E8F0', marginLeft: 28 }} />
+              
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <Ionicons name="flag" size={20} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Destino Final</Text>
+                  <Text style={{ fontSize: 14, color: '#334155', fontWeight: '500', marginTop: 2 }}>
+                    {currentOrder.destinationDetails?.address || currentOrder.destination || currentOrder.deliveryAddress?.address || currentOrder.deliveryAddress || 'Não especificado'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.divider} />
+
+        {/* Driver and Vehicle */}
+        {currentOrder.deliveryman && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Transporte</Text>
+            
+            <View style={styles.driverCard}>
+              <View style={styles.driverRow}>
+                <Image 
+                  source={{ uri: currentOrder.deliveryman.photo || 'https://via.placeholder.com/60' }} 
+                  style={styles.driverImage} 
+                />
+                <View style={styles.driverInfo}>
+                  <Text style={styles.driverName}>{currentOrder.deliveryman.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
+                    {currentOrder.deliveryman.transport_type && (() => {
+                      const tType = currentOrder.deliveryman.transport_type;
+                      const subcat = subcategories.find(s => s._id === tType || s.id === tType);
+                      let name = subcat ? subcat.name : tType;
+                      if (typeof name === 'object' && name.name) name = name.name;
+                      name = String(name);
+                      const isCar = name.toLowerCase().includes('carro') || name.toLowerCase().includes('reboque');
+                      
+                      if (isCar) {
+                        return (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#DBEAFE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                             <MaterialCommunityIcons name="car" size={14} color="#1D4ED8" style={{ marginRight: 4 }} />
+                             <Text style={{ fontSize: 12, color: '#1D4ED8', fontWeight: '600' }}>{name}</Text>
+                          </View>
+                        );
+                      }
+                      
                       return (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#DBEAFE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                           <MaterialCommunityIcons name="car" size={14} color="#1D4ED8" style={{ marginRight: 4 }} />
-                           <Text style={{ fontSize: 12, color: '#1D4ED8', fontWeight: '600' }}>{name}</Text>
-                        </View>
+                        <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>
+                          🛵 {name}
+                        </Text>
                       );
-                    }
-                    
-                    return (
-                      <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>
-                        🛵 {name}
+                    })()}
+                    {currentOrder.deliveryman.transport_color && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
+                        <View style={{
+                          width: 10, height: 10, borderRadius: 5,
+                          backgroundColor: (() => {
+                            const c = currentOrder.deliveryman.transport_color.toLowerCase();
+                            const map = { 'vermelho': 'red', 'azul': 'blue', 'verde': 'green', 'preto': 'black', 'branco': 'white', 'cinzento': 'gray', 'cinza': 'gray', 'amarelo': 'yellow', 'laranja': 'orange', 'castanho': 'brown', 'prata': 'silver', 'roxo': 'purple', 'rosa': 'pink', 'ouro': 'gold' };
+                            return map[c] || c;
+                          })(),
+                          marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB'
+                        }} />
+                        <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>Cor: {currentOrder.deliveryman.transport_color}</Text>
+                      </View>
+                    )}
+                    {currentOrder.deliveryman.transport_registration && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#111827', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
+                        <MaterialCommunityIcons name="card-text-outline" size={11} color="#FFF" style={{ marginRight: 4 }} />
+                        <Text style={{ fontSize: 11, color: '#FFF', fontWeight: '800', letterSpacing: 0.8 }}>{currentOrder.deliveryman.transport_registration}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {currentOrder.deliveryman?.transferPreferences ? (
+                <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '600', marginBottom: 6 }}>Contactos para Pagamento (Motorista):</Text>
+                  {currentOrder.deliveryman.transferPreferences.mPesaNumber ? (
+                    <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500', marginBottom: 2 }}>M-Pesa: <Text style={{fontWeight: 'bold', color: '#DC2626'}}>{currentOrder.deliveryman.transferPreferences.mPesaNumber}</Text></Text>
+                  ) : null}
+                  {currentOrder.deliveryman.transferPreferences.eMolaNumber ? (
+                    <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500' }}>e-Mola: <Text style={{fontWeight: 'bold', color: '#EA580C'}}>{currentOrder.deliveryman.transferPreferences.eMolaNumber}</Text></Text>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {(resolvedSellerAccounts.mpesa || resolvedSellerAccounts.emola) ? (
+                <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F0FDF4', borderRadius: 8, borderWidth: 1, borderColor: '#BBF7D0' }}>
+                  <Text style={{ fontSize: 13, color: '#166534', fontWeight: '600', marginBottom: 6 }}>Contactos para Pagamento (Fornecedor):</Text>
+                  {resolvedSellerAccounts.mpesa ? (
+                    <Text style={{ fontSize: 14, color: '#14532D', fontWeight: '500', marginBottom: 2 }}>M-Pesa: <Text style={{fontWeight: 'bold', color: '#DC2626'}}>{resolvedSellerAccounts.mpesa}</Text></Text>
+                  ) : null}
+                  {resolvedSellerAccounts.emola ? (
+                    <Text style={{ fontSize: 14, color: '#14532D', fontWeight: '500' }}>e-Mola: <Text style={{fontWeight: 'bold', color: '#EA580C'}}>{resolvedSellerAccounts.emola}</Text></Text>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Comprovativo de Pagamento */}
+              {['Pendente', 'Aceite pelo entregador', 'Em Preparação', 'A Caminho', 'No destino indicado'].includes(currentOrder.status) && (
+                <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '600', marginBottom: 6 }}>Comprovativo de Pagamento:</Text>
+                  
+                  {currentOrder.paymentProof ? (
+                    <View style={{ alignItems: 'center' }}>
+                      <TouchableOpacity 
+                        style={{ width: '100%', height: 150, borderRadius: 8, overflow: 'hidden', position: 'relative', marginBottom: 8 }}
+                        onPress={() => setViewProofModal(true)}
+                        activeOpacity={0.9}
+                      >
+                        <Image 
+                          source={{ uri: currentOrder.paymentProof }} 
+                          style={{ width: '100%', height: '100%' }} 
+                          contentFit="cover"
+                        />
+                        <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}>
+                          <Ionicons name="eye-outline" size={20} color="#fff" />
+                        </View>
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: 'bold' }}>
+                        <Ionicons name="checkmark-circle" size={14} color="#16A34A" /> Comprovativo enviado
                       </Text>
-                    );
-                  })()}
-                  {currentOrder.deliveryman.transport_color && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
-                      <View style={{
-                        width: 10, height: 10, borderRadius: 5,
-                        backgroundColor: (() => {
-                          const c = currentOrder.deliveryman.transport_color.toLowerCase();
-                          const map = { 'vermelho': 'red', 'azul': 'blue', 'verde': 'green', 'preto': 'black', 'branco': 'white', 'cinzento': 'gray', 'cinza': 'gray', 'amarelo': 'yellow', 'laranja': 'orange', 'castanho': 'brown', 'prata': 'silver', 'roxo': 'purple', 'rosa': 'pink', 'ouro': 'gold' };
-                          return map[c] || c;
-                        })(),
-                        marginRight: 5, borderWidth: 1, borderColor: '#E5E7EB'
-                      }} />
-                      <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>Cor: {currentOrder.deliveryman.transport_color}</Text>
                     </View>
-                  )}
-                  {currentOrder.deliveryman.transport_registration && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#111827', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, marginLeft: 4 }}>
-                      <MaterialCommunityIcons name="card-text-outline" size={11} color="#FFF" style={{ marginRight: 4 }} />
-                      <Text style={{ fontSize: 11, color: '#FFF', fontWeight: '800', letterSpacing: 0.8 }}>{currentOrder.deliveryman.transport_registration}</Text>
+                  ) : (
+                    <View>
+                      <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 8 }}>
+                        Após efetuar a transferência, envie o comprovativo para agilizar o processo.
+                      </Text>
+                      <TouchableOpacity 
+                        onPress={handleUploadProof}
+                        disabled={uploadingProof}
+                        style={{
+                          backgroundColor: '#8B5CF6',
+                          padding: 10,
+                          borderRadius: 8,
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {uploadingProof ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <>
+                            <Ionicons name="cloud-upload-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Anexar Comprovativo</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
-                {/* Removed call button as requested */}
-              </View>
+              )}
+
+              {/* Foto da Viatura */}
+              {(currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture) && (
+                <View style={styles.vehicleImageContainer}>
+                  <Text style={styles.vehicleLabel}>Foto da viatura:</Text>
+                  <Image 
+                    source={{ uri: currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture }} 
+                    style={styles.vehicleImage} 
+                    contentFit="cover"
+                  />
+                </View>
+              )}
             </View>
+          </View>
+        )}
 
-            {currentOrder.deliveryman.transferPreferences ? (
-              <View style={{ marginTop: 12, padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
-                <Text style={{ fontSize: 13, color: '#475569', fontWeight: '600', marginBottom: 6 }}>Contactos para Pagamento Móvel:</Text>
-                {currentOrder.deliveryman.transferPreferences.mPesaNumber ? (
-                  <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500', marginBottom: 2 }}>M-Pesa: <Text style={{fontWeight: 'bold', color: '#DC2626'}}>{currentOrder.deliveryman.transferPreferences.mPesaNumber}</Text></Text>
-                ) : null}
-                {currentOrder.deliveryman.transferPreferences.eMolaNumber ? (
-                  <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '500' }}>e-Mola: <Text style={{fontWeight: 'bold', color: '#EA580C'}}>{currentOrder.deliveryman.transferPreferences.eMolaNumber}</Text></Text>
-                ) : null}
+        {/* Live Stats Container (Velocidade, Distância, Tempo) */}
+        {(etaDistance !== null || driverSpeed !== null) && (
+          <View style={styles.liveStatsContainer}>
+            {etaDistance !== null && (
+              <View style={styles.liveStatBox}>
+                <Ionicons name="navigate-outline" size={22} color="#9333EA" />
+                <Text style={styles.liveStatValue}>
+                  {etaDistance >= 1000 ? `${(etaDistance / 1000).toFixed(1)} km` : `${Math.round(etaDistance)} m`}
+                </Text>
+                <Text style={styles.liveStatLabel}>Distância</Text>
               </View>
-            ) : null}
+            )}
 
-            {/* Foto da Viatura */}
-            {(currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture) && (
-              <View style={styles.vehicleImageContainer}>
-                <Text style={styles.vehicleLabel}>Foto da viatura:</Text>
-                <Image 
-                  source={{ uri: currentOrder.deliveryman.vihicle_picture_front || currentOrder.deliveryman.vihicle_picture }} 
-                  style={styles.vehicleImage} 
-                  contentFit="cover"
-                />
+            {etaDuration !== null && (
+              <View style={styles.liveStatBox}>
+                <Ionicons name="time-outline" size={22} color="#9333EA" />
+                <Text style={styles.liveStatValue}>
+                  {etaDuration >= 60 ? `${Math.round(etaDuration / 60)} min` : `${Math.round(etaDuration)} s`}
+                </Text>
+                <Text style={styles.liveStatLabel}>Tempo de Chegada</Text>
+              </View>
+            )}
+
+            {driverSpeed !== null && (
+              <View style={styles.liveStatBox}>
+                <Ionicons name="speedometer-outline" size={22} color="#9333EA" />
+                <Text style={styles.liveStatValue}>
+                  {Math.round(driverSpeed)} km/h
+                </Text>
+                <Text style={styles.liveStatLabel}>Velocidade</Text>
               </View>
             )}
           </View>
-
-
-
-        </View>
-      )}
-
-      {/* Live Stats Container (Velocidade, Distância, Tempo) */}
-      {(etaDistance !== null || driverSpeed !== null) && (
-        <View style={styles.liveStatsContainer}>
-          {etaDistance !== null && (
-            <View style={styles.liveStatBox}>
-              <Ionicons name="navigate-outline" size={22} color="#9333EA" />
-              <Text style={styles.liveStatValue}>
-                {etaDistance >= 1000 ? `${(etaDistance / 1000).toFixed(1)} km` : `${Math.round(etaDistance)} m`}
-              </Text>
-              <Text style={styles.liveStatLabel}>Distância</Text>
-            </View>
-          )}
-
-          {etaDuration !== null && (
-            <View style={styles.liveStatBox}>
-              <Ionicons name="time-outline" size={22} color="#9333EA" />
-              <Text style={styles.liveStatValue}>
-                {etaDuration >= 60 ? `${Math.round(etaDuration / 60)} min` : `${Math.round(etaDuration)} s`}
-              </Text>
-              <Text style={styles.liveStatLabel}>Tempo de Chegada</Text>
-            </View>
-          )}
-
-          {driverSpeed !== null && (
-            <View style={styles.liveStatBox}>
-              <Ionicons name="speedometer-outline" size={22} color="#9333EA" />
-              <Text style={styles.liveStatValue}>
-                {Math.round(driverSpeed)} km/h
-              </Text>
-              <Text style={styles.liveStatLabel}>Velocidade</Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Detalhes do Serviço */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Detalhes do Serviço</Text>
-        {currentOrder.reason && (
-          <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.infoLabel, { marginBottom: 6, fontWeight: '600' }]}>Motivo da solicitação:</Text>
-            <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB' }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>{currentOrder.reason}</Text>
-            </View>
-          </View>
         )}
-        {currentOrder.description && (
-          <View style={{ marginBottom: 8 }}>
-            <Text style={[styles.infoLabel, { marginBottom: 4 }]}>Descrição / Observações:</Text>
-            <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>{currentOrder.description}</Text>
-          </View>
-        )}
-      </View>
 
-      {/* Informações do Pagamento */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Detalhes do Pagamento</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Método:</Text>
-          <Text style={styles.infoValue}>{currentOrder.paymentMethod} ({currentOrder.isPaid ? 'Pago' : 'Pendente'})</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Taxa de Serviço:</Text>
-          <Text style={styles.infoValue}>{currentOrder.addressPrice || currentOrder.deliveryPrice || 0} MT</Text>
-        </View>
-      </View>
-
-      {/* Produtos */}
-      {currentOrder.orderItems && currentOrder.orderItems.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Produtos ({currentOrder.orderItems.length})</Text>
-          {currentOrder.orderItems.map((item, idx) => (
-            <View key={idx} style={styles.productItem}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View style={styles.productDetails}>
-                <Text style={styles.productName}>{item.nome}</Text>
-                <Text style={styles.productQty}>Qtd: {item.quantity}</Text>
-                <Text style={styles.productPriceItem}>{item.price} MT</Text>
+        {/* Detalhes Extra do Serviço (Motivo / Descrição) */}
+        {(currentOrder.reason || currentOrder.description) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notas Adicionais</Text>
+            {currentOrder.reason && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={[styles.infoLabel, { marginBottom: 6, fontWeight: '600' }]}>Motivo da solicitação:</Text>
+                <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>{currentOrder.reason}</Text>
+                </View>
               </View>
+            )}
+            {currentOrder.description && (
+              <View style={{ marginBottom: 8 }}>
+                <Text style={[styles.infoLabel, { marginBottom: 4 }]}>Descrição / Observações:</Text>
+                <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>{currentOrder.description}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Produtos List */}
+        {currentOrder.orderItems && currentOrder.orderItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Produtos ({currentOrder.orderItems.length})</Text>
+            <View style={{ gap: 12 }}>
+              {currentOrder.orderItems.map((prod, idx) => (
+                <View key={idx} style={styles.productItem}>
+                  <Image source={{ uri: prod.image }} style={styles.productImage} />
+                  <View style={styles.productDetails}>
+                    <Text style={styles.productName}>{prod.name || prod.nome || 'Produto'}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                      <Text style={styles.productQty}>Qtd: {prod.quantity}</Text>
+                      <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '700' }}>
+                        {((prod.price || 0) * (prod.quantity || 1)).toFixed(2)} MT
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
+          </View>
+        )}
+
+        {/* Finanças e Detalhes do Pagamento */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumo Financeiro</Text>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 6, elevation: 1 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+              <Text style={{ fontSize: 14, color: '#64748B' }}>Método de Pagamento</Text>
+              <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '700' }}>{currentOrder.paymentMethod || 'Dinheiro'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+              <Text style={{ fontSize: 14, color: '#64748B' }}>Estado do Pagamento</Text>
+              <Text style={{ fontSize: 14, color: currentOrder.isPaid ? '#10B981' : '#EF4444', fontWeight: '700' }}>
+                {currentOrder.isPaid ? 'Pago' : 'Pendente de validação'}
+              </Text>
+            </View>
+
+            {/* Breakdown for products */}
+            {currentOrder.orderItems && currentOrder.orderItems.length > 0 && (
+              <>
+                <View style={{ height: 1, backgroundColor: '#F1F5F9', marginVertical: 10 }} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 14, color: '#64748B' }}>Subtotal dos Itens</Text>
+                  <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '600' }}>
+                    {(currentOrder.itemsPrice || (currentOrder.totalPrice - (currentOrder.deliveryPrice || currentOrder.addressPrice || 0) - (currentOrder.ivaTax || 0))).toFixed(2)} MT
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 14, color: '#64748B' }}>Estimativa de preço de entrega</Text>
+                  <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '600' }}>
+                    {(currentOrder.deliveryPrice || currentOrder.addressPrice || 0).toFixed(2)} MT
+                  </Text>
+                </View>
+                <View style={{ backgroundColor: '#FFFBEB', padding: 8, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#F59E0B', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 11, color: '#B45309', lineHeight: 15 }}>
+                    💡 <Text style={{ fontWeight: 'bold' }}>Nota importante:</Text> Este valor é apenas uma estimativa e será pago diretamente ao entregador (deliver) no momento da chegada ao destino. Envie apenas o valor correspondente aos produtos.
+                  </Text>
+                </View>
+                {currentOrder.ivaTax ? (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, color: '#64748B' }}>IVA</Text>
+                    <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '600' }}>
+                      {currentOrder.ivaTax.toFixed(2)} MT
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            )}
+
+            <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 10 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 15, color: '#1E293B', fontWeight: '700' }}>Total Geral</Text>
+              <Text style={{ fontSize: 18, color: '#9333EA', fontWeight: '800' }}>
+                {(currentOrder.totalPrice || 0).toFixed(2)} MT
+              </Text>
+            </View>
+          </View>
+
+          {/* Pending Transfer Payment Details for Seller */}
+          {!currentOrder.isPaid && (
+            (currentOrder.paymentMethod || '').toLowerCase().includes('m-pesa') || 
+            (currentOrder.paymentMethod || '').toLowerCase().includes('mpesa') || 
+            (currentOrder.paymentMethod || '').toLowerCase().includes('emola') || 
+            (currentOrder.paymentMethod || '').toLowerCase().includes('e-mola') || 
+            (currentOrder.paymentMethod || '').toLowerCase().includes('transfer') || 
+            (currentOrder.paymentMethod || '').toLowerCase().includes('banc')
+          ) ? (
+            <View style={{ marginTop: 14, padding: 14, backgroundColor: '#F0FDF4', borderRadius: 16, borderWidth: 1, borderColor: '#BBF7D0' }}>
+              {resolvedSellerAccounts.mpesa ? (
+                <Text style={{ fontSize: 14, color: '#14532D', fontWeight: '600', marginBottom: 4 }}>
+                  M-Pesa: <Text style={{fontWeight: '800', color: '#DC2626'}}>{resolvedSellerAccounts.mpesa}</Text>
+                </Text>
+              ) : null}
+              {resolvedSellerAccounts.emola ? (
+                <Text style={{ fontSize: 14, color: '#14532D', fontWeight: '600', marginBottom: 4 }}>
+                  e-Mola: <Text style={{fontWeight: '800', color: '#EA580C'}}>{resolvedSellerAccounts.emola}</Text>
+                </Text>
+              ) : null}
+              {resolvedSellerAccounts.bankAccount ? (
+                <Text style={{ fontSize: 14, color: '#14532D', fontWeight: '600' }}>
+                  {resolvedSellerAccounts.bankName || 'Banco'}: <Text style={{fontWeight: '800', color: '#1E293B'}}>{resolvedSellerAccounts.bankAccount}</Text>
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
-      )}
 
       {/* Ações */}
       <View style={styles.actionsContainer}>
@@ -839,6 +1235,13 @@ const OrderDetailsScreen = () => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.chatBtn} 
+          onPress={() => navigation.navigate('OrderChat', { orderId: currentOrder._id })}
+        >
+          <Ionicons name="chatbubbles" size={24} color="#fff" />
+        </TouchableOpacity>
       </SafeAreaView>
 
       {/* Bottom Sheet */}
@@ -853,6 +1256,25 @@ const OrderDetailsScreen = () => {
           {renderContent()}
         </BottomSheetScrollView>
       </BottomSheet>
+
+      {/* Visualizar Comprovativo Modal */}
+      <Modal visible={viewProofModal} transparent={true} animationType="fade" onRequestClose={() => setViewProofModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: 50, right: 25, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 24 }} 
+            onPress={() => setViewProofModal(false)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {currentOrder.paymentProof ? (
+            <Image 
+              source={{ uri: currentOrder.paymentProof }} 
+              style={{ width: '92%', height: '82%' }} 
+              contentFit="contain"
+            />
+          ) : null}
+        </View>
+      </Modal>
 
       {/* Modal de Cancelamento (Premium) */}
       <Modal animationType="fade" transparent visible={modalVisible}>
@@ -1126,16 +1548,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 15,
     zIndex: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   backBtn: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 8,

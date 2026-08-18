@@ -5,7 +5,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 // Para emuladores Android use 'http://10.0.2.2:5000/api'
 // Para dispositivos físicos use o IP da máquina local (ex: 'http://10.94.223.176:5000/api')
-const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://10.199.182.176:5000/api' : 'https://api.nhiquelaservicos.com/api');
+const baseURL = process.env.EXPO_PUBLIC_API_URL || (isDev ? 'http://192.168.0.2:5000/api' : 'https://api.nhiquelaservicos.com/api');
 
 const api = axios.create({
   baseURL,
@@ -40,6 +40,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Inject detailed error logging for debugging 500s
+    if (error.response) {
+      console.error(`API Error [${error.response.status}] on URL: ${error.config?.url}`);
+    } else {
+      console.error(`API Network Error on URL: ${error.config?.url}`, error.message);
+    }
+    
     if (error.response && error.response.status === 401) {
       try {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;

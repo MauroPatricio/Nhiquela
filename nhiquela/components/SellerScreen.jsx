@@ -39,11 +39,63 @@ const SellerScreen = () => {
   const [distance, setDistance] = useState('Calculando...');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [sellerDetails, setSellerDetails] = useState(null);
   const dispatch = useDispatch();
 
+  // Fetch full seller profile details from backend to load complete address/specialty details
   useEffect(() => {
-    dispatch(setSeller({ id, name, logo, description, rating, numReviews, province, address, latitude, longitude }));
-  }, []);
+    const fetchSellerProfile = async () => {
+      try {
+        const response = await api.get(`/users/${sellerId}`);
+        if (response.data) {
+          setSellerDetails(response.data);
+        }
+      } catch (error) {
+        console.log('Error fetching seller details in SellerScreen:', error.message);
+      }
+    };
+    fetchSellerProfile();
+  }, [sellerId]);
+
+  // Resolve seller properties dynamically with secure nesting logic
+  const sellerObj = React.useMemo(() => {
+    const active = sellerDetails || {};
+    const nested = active.seller || {};
+    
+    const lat = nested.latitude ?? active.latitude ?? latitude;
+    const lng = nested.longitude ?? active.longitude ?? longitude;
+    
+    return {
+      name: nested.name ?? active.name ?? name,
+      logo: nested.logo ?? active.logo ?? logo,
+      description: nested.description ?? active.description ?? description,
+      rating: nested.rating ?? active.rating ?? rating,
+      numReviews: nested.numReviews ?? active.numReviews ?? numReviews,
+      province: nested.province ?? active.province ?? province,
+      address: nested.address ?? active.address ?? address,
+      latitude: lat,
+      longitude: lng,
+      openstore: nested.openstore !== undefined ? nested.openstore : (active.openstore !== undefined ? active.openstore : openstore),
+      tipoEstabelecimento: nested.tipoEstabelecimento ?? active.tipoEstabelecimento ?? tipoEstabelecimento
+    };
+  }, [sellerDetails, id, name, logo, description, rating, numReviews, province, address, latitude, longitude, openstore, tipoEstabelecimento]);
+
+  useEffect(() => {
+    if (sellerObj) {
+      dispatch(setSeller({ 
+        id, 
+        name: sellerObj.name, 
+        logo: sellerObj.logo, 
+        description: sellerObj.description, 
+        rating: sellerObj.rating, 
+        numReviews: sellerObj.numReviews, 
+        province: sellerObj.province, 
+        address: sellerObj.address, 
+        latitude: sellerObj.latitude, 
+        longitude: sellerObj.longitude 
+      }));
+    }
+  }, [sellerObj, id]);
 
   useEffect(() => {
     const getUserLocation = async () => {
@@ -58,15 +110,18 @@ const SellerScreen = () => {
       const userLat = location.coords.latitude;
       const userLon = location.coords.longitude;
 
-      if (latitude && longitude) {
-        setDistance(calculateDistance(userLat, userLon, parseFloat(latitude), parseFloat(longitude)) + ' km');
+      const destLat = parseFloat(sellerObj.latitude);
+      const destLng = parseFloat(sellerObj.longitude);
+
+      if (destLat && destLng && destLat !== 0 && destLng !== 0) {
+        setDistance(calculateDistance(userLat, userLon, destLat, destLng) + ' km');
       } else {
         setDistance('Indisponível');
       }
     };
 
     getUserLocation();
-  }, [latitude, longitude]);
+  }, [sellerObj.latitude, sellerObj.longitude]);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
@@ -130,7 +185,7 @@ const SellerScreen = () => {
 
   const renderHeader = () => (
     <>
-      <Image source={{ uri: logo }} style={styles.logo} />
+      <Image source={{ uri: sellerObj.logo || logo || 'https://via.placeholder.com/150' }} style={styles.logo} />
 
       <View style={styles.icons}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -139,14 +194,14 @@ const SellerScreen = () => {
       </View>
 
       <View style={styles.view}>
-        <Text style={styles.sellerName}>{name}</Text>
-        <Text style={styles.establish}>{tipoEstabelecimento?.name || tipoEstabelecimento?.nome}</Text>
+        <Text style={styles.sellerName}>{sellerObj.name}</Text>
+        <Text style={styles.establish}>{sellerObj.tipoEstabelecimento?.name || sellerObj.tipoEstabelecimento?.nome || 'Fornecedor'}</Text>
 
         <View style={styles.ratingRowTop}>
           <View style={styles.ratingBadge}>
             <StarIcon color="#F59E0B" size={16} />
-            <Text style={styles.ratingText}>{rating || 0}</Text>
-            <Text style={styles.reviewsText}>({numReviews || 0} comentários)</Text>
+            <Text style={styles.ratingText}>{sellerObj.rating || 0}</Text>
+            <Text style={styles.reviewsText}>({sellerObj.numReviews || 0} comentários)</Text>
           </View>
         </View>
 
@@ -155,9 +210,9 @@ const SellerScreen = () => {
             <Ionicons name="location" size={14} color="#9333EA" />
             <Text style={styles.distanceBadgeText}>{distance}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: openstore ? '#D1FAE5' : '#FEE2E2' }]}>
-            <Text style={[styles.statusText, { color: openstore ? '#059669' : '#DC2626' }]}>
-              {openstore ? 'Estamos abertos' : 'Estamos fechados'}
+          <View style={[styles.statusBadge, { backgroundColor: sellerObj.openstore ? '#D1FAE5' : '#FEE2E2' }]}>
+            <Text style={[styles.statusText, { color: sellerObj.openstore ? '#059669' : '#DC2626' }]}>
+              {sellerObj.openstore ? 'Estamos abertos' : 'Estamos fechados'}
             </Text>
           </View>
         </View>
@@ -166,16 +221,16 @@ const SellerScreen = () => {
         <View style={styles.details}>
           <Ionicons name='location-outline' color="#9333EA" size={22} />
           <Text style={styles.addressText}>
-            {province?.name ? (
-              <><Text style={{ fontWeight: '600', color: '#1F2937' }}>{province.name}</Text> - </>
+            {sellerObj.province?.name ? (
+              <><Text style={{ fontWeight: '600', color: '#1F2937' }}>{sellerObj.province.name}</Text> - </>
             ) : null}
-            {address}
+            {sellerObj.address || 'Nenhum endereço cadastrado.'}
           </Text>
         </View>
 
         <View style={styles.description}>
           <Text style={styles.sectionTitle}>Especialidade:</Text>
-          <Text style={styles.descriptionText}>{description}</Text>
+          <Text style={styles.descriptionText}>{sellerObj.description || 'Nenhuma especialidade descrita.'}</Text>
         </View>
       </View>
 
@@ -228,7 +283,7 @@ const SellerScreen = () => {
             discount={product.discount}
             comissionPercentage={product.comissionPercentage}
             sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
-            isSellerOpen={product.seller?.businessData?.isOpen || product.isSellerOpen}
+            isSellerOpen={openstore}
             isOrdered={product.isOrdered}
             orderPeriod={product.orderPeriod}
           />

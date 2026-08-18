@@ -19,6 +19,8 @@ const styles = StyleSheet.create({
     userInfoContainer: {
         flexDirection: "row",
         alignItems: "center",
+        flex: 1,
+        marginRight: 12,
     },
     cover: {
         width: 50,
@@ -28,6 +30,7 @@ const styles = StyleSheet.create({
     },
     textContainer: {
         marginLeft: 14,
+        flex: 1,
     },
     greetingText: {
         fontSize: 13,
@@ -43,6 +46,7 @@ const styles = StyleSheet.create({
     appBarRight: {
         flexDirection: "row",
         alignItems: "center",
+        flexShrink: 0,
     },
     cartBtn: {
         width: 44,

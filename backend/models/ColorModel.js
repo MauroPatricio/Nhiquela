@@ -1,9 +1,9 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 const colorSchema = new mongoose.Schema(
   {
-    name: { type: String, require: true },
-    nome: { type: String, require: true },
+    name: { type: String, required: true },
+    nome: { type: String, required: true },
     isActive:  { type: Boolean, default: true },
   },
   {

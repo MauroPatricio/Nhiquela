@@ -41,7 +41,7 @@ const Orders = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get(`orders/sellerview?seller=${userData._id}`, {
+      const response = await api.get(`orders/sellerordersview?seller=${userData._id}`, {
         headers: { authorization: `Bearer ${userData?.token}` },
       });
       if (response?.status === 200) {
@@ -151,7 +151,6 @@ const Orders = () => {
               onPress={() => navigation.navigate('OrderDetail', { order })}
               activeOpacity={0.85}
             >
-              <View style={[styles.statusBar, { backgroundColor: getStatusColor(order?.status) }]} />
               <View style={[styles.iconBox, { backgroundColor: getStatusBg(order?.status) }]}>
                 <Ionicons name={getStatusIcon(order?.status)} size={22} color={getStatusColor(order?.status)} />
               </View>
@@ -191,24 +190,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    ...SHADOWS.md,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.lg,
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.xl,
     backgroundColor: COLORS.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: SIZES.lg,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: 0.5,
   },
   loadingContainer: {
     flex: 1,
@@ -217,113 +218,114 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: COLORS.textSecondary,
-    marginTop: 12,
+    marginTop: 16,
     fontSize: SIZES.sm,
+    fontWeight: '500',
   },
   scroll: {
     padding: 16,
+    paddingTop: 20,
   },
   filterRow: {
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingBottom: 4,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    marginRight: 8,
+    backgroundColor: COLORS.surface2,
+    marginRight: 10,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    gap: 6,
+    borderColor: 'transparent',
+    gap: 8,
   },
   chipActive: {
     backgroundColor: COLORS.primaryGlow,
     borderColor: COLORS.primary,
+    ...SHADOWS.glow,
   },
   chipText: {
     color: COLORS.textSecondary,
     fontSize: SIZES.sm,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   chipTextActive: {
     color: COLORS.primaryLight,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   dot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceCard,
-    borderRadius: RADIUS.lg,
-    marginBottom: 10,
-    overflow: 'hidden',
+    borderRadius: RADIUS.xl,
+    marginBottom: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
-    ...SHADOWS.md,
-  },
-  statusBar: {
-    width: 5,
-    alignSelf: 'stretch',
+    ...SHADOWS.lg,
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.lg,
+    width: 50,
+    height: 50,
+    borderRadius: RADIUS.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 12,
+    marginRight: 16,
   },
   cardContent: {
     flex: 1,
-    paddingVertical: 12,
-    paddingRight: 12,
   },
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   code: {
     fontSize: SIZES.base,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: 0.3,
   },
   price: {
     fontSize: SIZES.base,
     color: COLORS.primaryLight,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   date: {
     fontSize: SIZES.xs,
     color: COLORS.textMuted,
-    marginBottom: 6,
+    marginBottom: 10,
   },
   statusPill: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: RADIUS.full,
     borderWidth: 1,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   empty: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   emptyText: {
-    color: COLORS.textSecondary,
-    marginTop: 16,
+    color: COLORS.textMuted,
+    marginTop: 20,
     fontSize: SIZES.base,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });

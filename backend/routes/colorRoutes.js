@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
@@ -60,13 +60,12 @@ colorRoutes.put(
     const color = await Color.findById(req.params.id);
 
     if (color) {
-      color.name = req.body.name;
-      color.nome = req.body.nome;
-
-      color.isActive = req.body.isActive;
+      if (req.body.name !== undefined) color.name = req.body.name;
+      if (req.body.nome !== undefined) color.nome = req.body.nome;
+      if (req.body.isActive !== undefined) color.isActive = req.body.isActive;
 
      if(!color.isActive){
-     const colors = await Product.find({color: req.params.id});
+     const products = await Product.find({color: req.params.id});
       products.forEach(async p=>{
         p.isActive = false;
         await p.save();

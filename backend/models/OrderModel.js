@@ -124,6 +124,7 @@ const orderSchema = new mongoose.Schema(
     arrivalLatitude: { type: Number },
     arrivalLongitude: { type: Number },
     paymentMethod: { type: String, require: true },
+    paymentProof: { type: String },
     paymentResult: {
       id: String,
       status: String,
@@ -165,6 +166,25 @@ const orderSchema = new mongoose.Schema(
     contactedDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     lastDispatchTime: { type: Date },
     priorityLevel: { type: String, enum: ['normal', 'alta'], default: 'normal' },
+
+    // Transporte & Dispatch Inteligente
+    transportType: { type: String },
+    transportTypeId: { type: mongoose.Schema.Types.ObjectId, ref: 'VehicleType' },
+    requestServiceId: { type: mongoose.Schema.Types.ObjectId, ref: 'RequestService' }, // Referência à viagem do motorista
+
+    // Trajeto do pedido (origem = loja, destino = cliente)
+    origin: { type: String },
+    destination: { type: String },
+    originDetails: {
+      address: { type: String },
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+    destinationDetails: {
+      address: { type: String },
+      lat: { type: Number },
+      lng: { type: Number },
+    },
   },
   {
     timestamps: true,

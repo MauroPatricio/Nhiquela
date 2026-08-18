@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
@@ -60,9 +60,9 @@ sizeRoutes.put(
     const size = await Size.findById(req.params.id);
 
     if (size) {
-      size.name = req.body.name;
-      size.nome = req.body.nome;
-      size.isActive = req.body.isActive;
+      if (req.body.name !== undefined) size.name = req.body.name;
+      if (req.body.nome !== undefined) size.nome = req.body.nome;
+      if (req.body.isActive !== undefined) size.isActive = req.body.isActive;
 
      if(!size.isActive){
      const products = await Product.find({size: req.params.id});

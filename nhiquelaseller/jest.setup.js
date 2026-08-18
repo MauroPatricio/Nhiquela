@@ -42,6 +42,7 @@ jest.mock('expo-modules-core', () => {
       this.removeListeners = jest.fn();
     },
     requireNativeModule: jest.fn(),
+    requireOptionalNativeModule: jest.fn(),
   };
 });
 
@@ -75,11 +76,16 @@ jest.mock('expo-location', () => ({
 
 // Mock expo-image-picker
 jest.mock('expo-image-picker', () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
   launchImageLibraryAsync: jest.fn().mockResolvedValue({
     canceled: false,
     assets: [{ uri: 'mock-image-uri.jpg' }],
   }),
+  MediaTypeOptions: {
+    Images: 'Images',
+    Videos: 'Videos',
+    All: 'All',
+  }
 }));
 
 // Mock toast packages
@@ -111,13 +117,16 @@ jest.mock('react-native-reanimated', () => {
   return Reanimated;
 });
 
-// Silence logs during tests
-global.console = {
-  ...console,
-  log: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-};
+// Logs were here
+
+// Mock Picker
+jest.mock('@react-native-picker/picker', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const Picker = (props) => <View {...props}>{props.children}</View>;
+  Picker.Item = (props) => <View {...props} />;
+  return { Picker };
+});
 
 jest.mock('react-native-toast-notifications', () => ({
   useToast: jest.fn(() => ({
@@ -126,3 +135,12 @@ jest.mock('react-native-toast-notifications', () => ({
     hideAll: jest.fn()
   }))
 }));
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    SafeAreaView: (props) => <View {...props}>{props.children}</View>,
+    SafeAreaProvider: (props) => <View {...props}>{props.children}</View>,
+    useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+  };
+});

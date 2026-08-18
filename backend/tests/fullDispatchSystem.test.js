@@ -133,8 +133,8 @@ describe('Suite 1: Endpoint /drivers/available - Motoristas Disponíveis', () =>
   });
 
   it('1.3 Deve excluir motoristas com saldo insuficiente', async () => {
-    const richDriver = await createDriver();
-    const poorDriver = await createDriver();
+    const richDriver = await createDriver({ completedOrders: 1 });
+    const poorDriver = await createDriver({ completedOrders: 1 });
     await createWallet(richDriver._id, 5000);
     await createWallet(poorDriver._id, -500); // Saldo negativo
 

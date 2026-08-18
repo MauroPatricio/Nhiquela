@@ -219,6 +219,13 @@ const checkIfUserExist = async () => {
       });
 
       if (response.status === 200) {
+        // Notificação de Atualização
+        await api.post('notifications/broadcast', { 
+          title: 'Produto actualizado', 
+          body: `O produto ${values.nome} foi actualizado. Confira!`, 
+          data: response.data?.product || values 
+        }, { headers: { Authorization: `Bearer ${userData.token}` } }).catch(e => console.log('Erro broadcast:', e.message));
+
         Toast.show({
           type: 'success',
           text1: 'Sucesso',

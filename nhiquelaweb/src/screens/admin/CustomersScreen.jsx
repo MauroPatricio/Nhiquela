@@ -142,7 +142,7 @@ export default function CustomersScreen() {
                     </td>
                     <td>
                       <div className="text-dark fw-bold"><FontAwesomeIcon icon={faCalendarAlt} className="text-muted me-2" />
-                        {new Date(customer.joinedAt || Date.now()).toLocaleDateString('pt-PT')}
+                        {new Date(customer.createdAt || customer.joinedAt || Date.now()).toLocaleDateString('pt-PT')}
                       </div>
                     </td>
                     <td>
@@ -242,7 +242,7 @@ export default function CustomersScreen() {
                   <div className="col-6">
                     <div className="border rounded-3 p-3 text-center bg-white h-100">
                       <div className="text-muted small fw-bold mb-1">Membro Desde</div>
-                      <div className="fw-bold m-0 text-dark fs-5">{new Date(selectedCustomer.joinedAt || Date.now()).toLocaleDateString('pt-PT')}</div>
+                      <div className="fw-bold m-0 text-dark fs-5">{new Date(selectedCustomer.createdAt || selectedCustomer.joinedAt || Date.now()).toLocaleDateString('pt-PT')}</div>
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
-  Alert, Modal, TextInput, StatusBar, ActivityIndicator,
+  Alert, Modal, TextInput, StatusBar, ActivityIndicator, Animated, Linking
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +21,34 @@ const InfoRow = ({ label, value, highlight }) => (
   </View>
 );
 
+const getServiceIconInfo = (name) => {
+  if (!name) return { icon: 'toolbox-outline', color: '#7F00FF', bg: '#F3E8FF' };
+  const n = name.toLowerCase();
+  let iconName = 'toolbox-outline';
+  if (n.includes('reboque')) {
+    iconName = 'tow-truck';
+  } else if (n.includes('mudan')) {
+    iconName = 'truck-outline';
+  } else if (n.includes('box') || n.includes('carga') || n.includes('encomenda') || n.includes('entregas') || n.includes('entregar')) {
+    iconName = 'package-variant-closed';
+  } else if (n.includes('gás') || n.includes('gas')) {
+    iconName = 'gas-cylinder';
+  } else if (n.includes('deliver') || n.includes('mototaxi') || n.includes('mota')) {
+    iconName = 'moped';
+  }
+  const iconColors = {
+    'moped': { color: '#10B981', bg: '#D1FAE5' },
+    'motorbike': { color: '#10B981', bg: '#D1FAE5' },
+    'gas-cylinder': { color: '#0EA5E9', bg: '#E0F2FE' },
+    'package-variant-closed': { color: '#A855F7', bg: '#F3E8FF' },
+    'truck-outline': { color: '#D97706', bg: '#FEF3C7' },
+    'tow-truck': { color: '#EF4444', bg: '#FEE2E2' },
+    'dots-horizontal': { color: '#6B7280', bg: '#F3F4F6' },
+    'toolbox-outline': { color: '#7F00FF', bg: '#F3E8FF' }
+  };
+  return { icon: iconName, ...(iconColors[iconName] || iconColors['toolbox-outline']) };
+};
+
 const OrderDetail = ({ navigation }) => {
   const toast = useToast();
   const [userData, setUserData] = useState(null);
@@ -28,11 +56,44 @@ const OrderDetail = ({ navigation }) => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { params: { order } } = useRoute();
-  const [currentOrder, setCurrentOrder] = useState(order);
-  const [userLogin, setUserLogin] = useState(false);
+  const route = useRoute();
+  const orderParam = route.params?.order || null;
+  const orderIdParam = route.params?.orderId || orderParam?._id || null;
 
-  useEffect(() => { checkIfUserExist(); }, []);
+  const [currentOrder, setCurrentOrder] = useState(orderParam);
+  const [userLogin, setUserLogin] = useState(false);
+  const [subcategories, setSubcategories] = useState([]);
+  const [showTransportModal, setShowTransportModal] = useState(false);
+  const [selectedTransport, setSelectedTransport] = useState(orderParam?.transportTypeId || null);
+  const [viewProofModal, setViewProofModal] = useState(false);
+  const [waitingForDriver, setWaitingForDriver] = useState(false);
+  const [waitingCountdown, setWaitingCountdown] = useState(60);
+  const pulseAnim = React.useRef(new Animated.Value(0)).current;
+
+  const fetchOrderDetails = async () => {
+    if (!orderIdParam) return;
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      if (!token) return;
+
+      const { data } = await api.get(`/orders/${orderIdParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (data) {
+        setCurrentOrder(data);
+        if (data.transportTypeId) {
+          setSelectedTransport(data.transportTypeId);
+        }
+        // Se o motorista aceitou, fecha o modal de busca/espera
+        if (data.deliveryman && (data.deliveryman.id || data.deliveryman.name)) {
+          setWaitingForDriver(false);
+        }
+      }
+    } catch (error) {
+      console.log('Error fetching order details:', error);
+    }
+  };
 
   const checkIfUserExist = async () => {
     try {
@@ -53,6 +114,85 @@ const OrderDetail = ({ navigation }) => {
       navigation.navigate('Login');
     }
   };
+
+  const fetchSubcategories = async () => {
+    try {
+      const { data } = await api.get('/provider-subcategories');
+      if (data && data.length > 0) {
+        const filtered = data.filter(s => 
+          s.isActive !== false && 
+          s.providerTypeId?.classificationId?.name === 'SERVICE'
+        );
+        setSubcategories(filtered);
+      }
+    } catch (e) {
+      console.log('Error fetching subcategories', e);
+    }
+  };
+
+  useEffect(() => { 
+    checkIfUserExist(); 
+    fetchSubcategories();
+    fetchOrderDetails();
+  }, [orderIdParam]);
+
+  // Loop da animação de pulso do radar
+  useEffect(() => {
+    let anim;
+    if (waitingForDriver) {
+      pulseAnim.setValue(0);
+      anim = Animated.loop(
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      );
+      anim.start();
+    } else {
+      pulseAnim.setValue(0);
+    }
+    return () => {
+      if (anim) anim.stop();
+    };
+  }, [waitingForDriver]);
+
+  // Contador de busca e Polling de actualização de estado
+  useEffect(() => {
+    let timer;
+    let pollInterval;
+
+    const isActiveStatus = (status) => {
+      if (!status) return true;
+      const s = status.toLowerCase();
+      return s !== 'finalizado' && s !== 'entregue' && s !== 'cancelado' && s !== 'recusado';
+    };
+
+    const isOrderActive = currentOrder && isActiveStatus(currentOrder.status);
+
+    if (waitingForDriver) {
+      timer = setInterval(() => {
+        setWaitingCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    if (isOrderActive || waitingForDriver) {
+      pollInterval = setInterval(() => {
+        fetchOrderDetails();
+      }, 4000);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [waitingForDriver, currentOrder?.status]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
@@ -85,17 +225,39 @@ const OrderDetail = ({ navigation }) => {
     toast.show('Pedido aceito! O cliente será notificado.', { type: 'success', duration: 4000, placement: 'top' });
   });
 
-  const availableToDelivOrder = async (orderId) => withLoading(async () => {
-    if (!userData) return;
-    const { data } = await api.put(`/orders/${orderId}/toDeliv`, {}, { headers: { Authorization: `Bearer ${userData.token}` } });
-    setCurrentOrder(data.order);
-    await api.post('/notifications/send-to-user', {
-      userId: data.order.user, title: 'Pedido disponível para entrega',
-      body: `Seu pedido ${data.order.code} está disponível para entrega.`,
-      data: { orderId: data.order._id, type: 'order', status: 'Disponível' },
+  const confirmAvailableToDeliv = () => {
+    setShowTransportModal(true);
+  };
+
+  const availableToDelivOrder = async () => {
+    setShowTransportModal(false);
+    withLoading(async () => {
+      if (!userData) return;
+      const subcat = subcategories.find(s => s._id === selectedTransport);
+      
+      const payload = {};
+      if (subcat) {
+        payload.transportTypeId = subcat._id;
+        payload.transportType = subcat.name;
+      }
+
+      const { data } = await api.put(`/orders/${currentOrder._id}/toDeliv`, payload, { headers: { Authorization: `Bearer ${userData.token}` } });
+      setCurrentOrder(data.order);
+      
+      // Se não for Finalizado (ou seja, requer entrega), abrir o radar de espera
+      if (data.order.status !== 'Finalizado') {
+        setWaitingCountdown(60);
+        setWaitingForDriver(true);
+      }
+
+      await api.post('/notifications/send-to-user', {
+        userId: data.order.user, title: 'Pedido disponível para entrega',
+        body: `Seu pedido ${data.order.code} está disponível para entrega.`,
+        data: { orderId: data.order._id, type: 'order', status: 'Disponível' },
+      });
+      toast.show('Pedido marcado como disponível para entrega!', { type: 'success', duration: 4000, placement: 'top' });
     });
-    toast.show('Pedido marcado como disponível para entrega!', { type: 'success', duration: 4000, placement: 'top' });
-  });
+  };
 
   const orderInTransit = async (orderId) => withLoading(async () => {
     if (!userData) return;
@@ -147,6 +309,14 @@ const OrderDetail = ({ navigation }) => {
     ]);
   };
 
+  if (!currentOrder) {
+    return (
+      <SafeAreaView style={[styles.container, { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
+
   const groupedItems = currentOrder.orderItems.reduce((acc, item) => {
     const itemId = item._id;
     const quantity = Number(item.quantity) || 0;
@@ -175,9 +345,14 @@ const OrderDetail = ({ navigation }) => {
           <Ionicons name="arrow-back" size={20} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalhes do Pedido</Text>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteOrderPop(currentOrder._id)}>
-          <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[styles.deleteBtn, { backgroundColor: COLORS.primaryGlow }]} onPress={() => navigation.navigate('OrderChat', { orderId: currentOrder._id })}>
+            <Ionicons name="chatbubbles-outline" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteOrderPop(currentOrder._id)}>
+            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
@@ -227,19 +402,78 @@ const OrderDetail = ({ navigation }) => {
           <InfoRow label="Pagamento efectuado" value={currentOrder.isPaid ? '✅ Sim' : '❌ Não'} />
           {currentOrder.isPaid && <InfoRow label="Data de pagamento" value={formatDate(currentOrder.paidAt)} />}
           <InfoRow label="Taxa de entrega" value={`${currentOrder.addressPrice} MT`} />
-          <InfoRow label="Valor recebido" value={`${currentOrder.itemsPriceForSeller} MT`} highlight />
+          <InfoRow label="Transporte Solicitado" value={currentOrder.transportType || 'N/A'} />
+          <InfoRow label="Valor recebido" value={`${currentOrder.totalPrice} MT`} highlight />
           {currentOrder.stepStatus === 8 && currentOrder.canceledReason && (
             <InfoRow label="Motivo de cancelamento" value={currentOrder.canceledReason} />
           )}
         </View>
 
+        {/* Comprovativo de Pagamento */}
+        {currentOrder.paymentProof && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Comprovativo de Pagamento</Text>
+            <View style={{ alignItems: 'center', marginTop: 10 }}>
+              <TouchableOpacity 
+                style={{ width: '100%', height: 200, borderRadius: SIZES.radius, overflow: 'hidden', position: 'relative', marginBottom: 8 }}
+                onPress={() => setViewProofModal(true)}
+                activeOpacity={0.9}
+              >
+                <Image 
+                  source={{ uri: currentOrder.paymentProof }} 
+                  style={{ width: '100%', height: '100%' }} 
+                  resizeMode="cover"
+                />
+                <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="eye-outline" size={20} color="#fff" />
+                </View>
+              </TouchableOpacity>
+              <Text style={{ marginTop: 8, color: COLORS.primary, fontWeight: 'bold' }}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} /> Cliente enviou comprovativo
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Info do Cliente */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Cliente</Text>
-          <InfoRow label="Nome" value={currentOrder?.user?.name} />
-          <InfoRow label="Contacto" value={currentOrder.user?.phoneNumber} />
-          <InfoRow label="Endereço de entrega" value={currentOrder.address} />
+          <InfoRow label="Nome" value={currentOrder?.deliveryAddress?.fullName || currentOrder?.user?.name} />
+          <InfoRow label="Contacto" value={currentOrder?.deliveryAddress?.phoneNumber || currentOrder?.user?.phoneNumber} />
+          <InfoRow label="Endereço de entrega" value={currentOrder?.deliveryAddress?.address || currentOrder?.address} />
         </View>
+
+        {/* Prestador de Serviço */}
+        {currentOrder.deliveryman && (currentOrder.deliveryman.id || currentOrder.deliveryman.name) && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Prestador de Serviço</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <Image 
+                source={{ uri: currentOrder.deliveryman.photo || 'https://via.placeholder.com/60' }} 
+                style={{ width: 50, height: 50, borderRadius: 25, marginRight: 12 }} 
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.text }}>
+                  {currentOrder.deliveryman.name}
+                </Text>
+                <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>
+                  {currentOrder.deliveryman.transport_type || 'Transporte'} • {currentOrder.deliveryman.transport_registration || 'Sem Matrícula'}
+                </Text>
+              </View>
+              {currentOrder.deliveryman.phoneNumber && (
+                <TouchableOpacity 
+                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryGlow, justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => {
+                    const url = `tel:${currentOrder.deliveryman.phoneNumber}`;
+                    Linking.openURL(url).catch(() => Alert.alert('Erro', 'Não foi possível efetuar a ligação'));
+                  }}
+                >
+                  <Ionicons name="call" size={18} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Produtos */}
         <View style={styles.card}>
@@ -301,7 +535,7 @@ const OrderDetail = ({ navigation }) => {
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.acceptBtn]}
-              onPress={() => availableToDelivOrder(currentOrder._id)}
+              onPress={confirmAvailableToDeliv}
               disabled={isLoading}
             >
               {isLoading ? <ActivityIndicator color="#fff" size="small" /> : (
@@ -318,8 +552,18 @@ const OrderDetail = ({ navigation }) => {
           </View>
         )}
 
-        {currentOrder.status === 'Disponível para entrega' && (
+        {(currentOrder.status === 'Disponível para entrega' || currentOrder.status === 'Pronto') && (
           <View style={styles.actionRow}>
+            {(!currentOrder.deliveryman || !currentOrder.deliveryman.name) && (
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: COLORS.primary, flex: 1 }]}
+                onPress={confirmAvailableToDeliv}
+                disabled={isLoading}
+              >
+                <Ionicons name="search-outline" size={20} color="#fff" />
+                <Text style={styles.actionBtnText}>Pesquisar Motorista</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.actionBtn, styles.acceptBtn, { flex: 1 }]}
               onPress={() => orderInTransit(currentOrder._id)}
@@ -373,6 +617,222 @@ const OrderDetail = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+      <Modal animationType="slide" transparent={true} visible={showTransportModal} onRequestClose={() => setShowTransportModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { maxHeight: '85%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={styles.modalTitle}>Confirmar Transporte</Text>
+              <TouchableOpacity onPress={() => setShowTransportModal(false)}>
+                <Ionicons name="close-circle" size={26} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              O cliente solicitou <Text style={{fontWeight:'bold'}}>{currentOrder.transportType || 'N/A'}</Text>. Selecione o tipo de serviço para a pesquisa de prestadores de entrega:
+            </Text>
+
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
+                {subcategories.map((s) => {
+                  const isSelected = selectedTransport === s._id;
+                  const iconInfo = getServiceIconInfo(s.name);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={s._id}
+                      style={{
+                        width: '48%',
+                        backgroundColor: isSelected ? COLORS.primaryGlow : COLORS.surface2,
+                        borderColor: isSelected ? COLORS.primary : COLORS.borderLight,
+                        borderWidth: 1.5,
+                        borderRadius: 16,
+                        padding: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: 120,
+                        shadowColor: isSelected ? COLORS.primary : 'transparent',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: isSelected ? 0.15 : 0,
+                        shadowRadius: 6,
+                        elevation: isSelected ? 4 : 0,
+                      }}
+                      onPress={() => setSelectedTransport(s._id)}
+                    >
+                      <View style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: iconInfo.bg,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginBottom: 10,
+                      }}>
+                        <MaterialCommunityIcons name={iconInfo.icon} size={28} color={iconInfo.color} />
+                      </View>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: isSelected ? COLORS.primary : COLORS.text, textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
+                        {s.name}
+                      </Text>
+                      {s.description && (
+                        <Text style={{ fontSize: 10, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 14 }} numberOfLines={2}>
+                          {s.description}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            <View style={[styles.modalBtns, { marginTop: 12 }]}>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.surface2, flex: 1 }]} onPress={() => setShowTransportModal(false)}>
+                <Text style={{ color: COLORS.text, fontWeight: '700' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: COLORS.primary, flex: 2 }]} 
+                onPress={availableToDelivOrder} 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>Confirmar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Visualizar Comprovativo Modal */}
+      <Modal visible={viewProofModal} transparent={true} animationType="fade" onRequestClose={() => setViewProofModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: 50, right: 25, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 24 }} 
+            onPress={() => setViewProofModal(false)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {currentOrder.paymentProof ? (
+            <Image 
+              source={{ uri: currentOrder.paymentProof }} 
+              style={{ width: '92%', height: '82%' }} 
+              resizeMode="contain"
+            />
+          ) : null}
+        </View>
+      </Modal>
+
+      {/* Procurando/Aguardando Prestador Modal (Radar pulse) */}
+      <Modal visible={waitingForDriver} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View style={{
+            backgroundColor: '#FFF',
+            borderRadius: 28,
+            padding: 32,
+            width: '88%',
+            alignItems: 'center',
+            elevation: 20,
+            shadowColor: COLORS.primary,
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+          }}>
+            <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Animated.View style={{
+                position: 'absolute',
+                width: 110,
+                height: 110,
+                borderRadius: 55,
+                backgroundColor: 'rgba(127, 0, 255, 0.15)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
+              }} />
+              <Animated.View style={{
+                position: 'absolute',
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: 'rgba(127, 0, 255, 0.2)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+              }} />
+              <View style={{ backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' }}>
+                {waitingCountdown > 0 ? (
+                  <Text style={{ fontSize: 24, fontWeight: '900', color: COLORS.primary }}>{waitingCountdown}</Text>
+                ) : (
+                  <MaterialCommunityIcons name="clock-outline" size={30} color={COLORS.primary} />
+                )}
+              </View>
+            </View>
+
+            {waitingCountdown > 0 ? (
+              <>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                  A procurar prestador...
+                </Text>
+                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+                  Enviámos a solicitação. Aguarde enquanto procuramos um prestador parceiro próximo.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                  Sem prestadores próximos
+                </Text>
+                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+                  Não encontrámos nenhum motorista livre. Pode tentar novamente em instantes.
+                </Text>
+              </>
+            )}
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 24, width: '100%' }}>
+              {waitingCountdown === 0 && (
+                <TouchableOpacity 
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
+                    backgroundColor: COLORS.primary,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                  onPress={() => {
+                    setWaitingForDriver(false);
+                    confirmAvailableToDeliv();
+                  }}
+                >
+                  <Ionicons name="refresh" size={18} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Pesquisar Novamente</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  backgroundColor: COLORS.surface2,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: COLORS.borderLight,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onPress={() => setWaitingForDriver(false)}
+              >
+                <Text style={{ color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 }}>
+                  {waitingCountdown > 0 ? 'Cancelar Busca' : 'Fechar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };

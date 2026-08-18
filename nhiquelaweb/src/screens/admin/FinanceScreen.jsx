@@ -319,7 +319,7 @@ export default function FinanceScreen() {
                     nameUser = t.walletId.ownerId.name || 'Utilizador';
                   }
 
-                  const extractedUrl = t.receiptImage || (t.description?.includes('http') ? t.description.match(/https?:\/\/[^\s]+/)?.[0] : null);
+                  const extractedUrl = t.receiptImage || (t.description?.includes('http') ? t.description.match(/https?:\/\/[^\s)]+/)?.[0] : null);
                   
                   let displayDescription = t.description || '';
                   if (displayDescription.includes('Recarga Manual. Comprovativo:')) {

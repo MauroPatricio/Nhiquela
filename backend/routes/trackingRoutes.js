@@ -147,7 +147,7 @@ router.get('/:orderId', isAuth, expressAsyncHandler(async (req, res) => {
 
   if (order) {
     // Both RequestService and Order might have driver info in different fields
-    const driverId = order.targetDriverId || order.deliveryman?.id || order.deliveryman || order.driverId;
+    const driverId = order.targetDriverId || order.deliveryman?.id || order.driverId;
     if (driverId) {
       const driver = await User.findById(driverId);
       if (driver && driver.latitude && driver.longitude) {

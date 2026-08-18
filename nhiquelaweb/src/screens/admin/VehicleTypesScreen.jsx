@@ -131,10 +131,10 @@ export default function VehicleTypesScreen() {
                   <tr>
                     <th className="border-0 text-muted py-3 px-4 rounded-start-4">Nome do Tipo</th>
                     <th className="border-0 text-muted py-3">Categoria</th>
-                    <th className="border-0 text-muted py-3">Taxa Base (MT)</th>
-                    <th className="border-0 text-muted py-3">Preço/Km (MT)</th>
+                    <th className="border-0 text-muted py-3">Valor da Recarga (MT)</th>
+                    <th className="border-0 text-muted py-3">Preço por Km (MT)</th>
                     <th className="border-0 text-muted py-3">Capacidade</th>
-                    <th className="border-0 text-muted py-3">Taxa Mín. (Disp.)</th>
+                    <th className="border-0 text-muted py-3">Valor Mín. da Recarga</th>
                     <th className="border-0 text-muted py-3 text-center">Estado</th>
                     <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
                   </tr>
@@ -204,7 +204,7 @@ export default function VehicleTypesScreen() {
                     </select>
                   </div>
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Taxa Base (MT)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Valor da Recarga (MT)</label>
                     <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.basePrice} onChange={(e) => setFormData({...formData, basePrice: Number(e.target.value)})} required />
                   </div>
                 </div>
@@ -223,11 +223,11 @@ export default function VehicleTypesScreen() {
                   </div>
                   
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Taxa Mín. (Disp.)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Valor Mín. da Recarga (MT)</label>
                     <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.minVisibilityFee || 0} onChange={(e) => setFormData({...formData, minVisibilityFee: Number(e.target.value)})} placeholder="Ex: 50" required />
                   </div>
                   <div className="col-6">
-                    <label className="form-label fw-bold small text-muted mb-1">Preço por Km (MT)</label>
+                    <label className="form-label fw-bold small text-muted mb-1">Preço ou Valor por Km (MT)</label>
                     <input type="number" className="form-control bg-light border-0 py-3 rounded-3" value={formData.pricePerKm || 0} onChange={(e) => setFormData({...formData, pricePerKm: Number(e.target.value)})} placeholder="Ex: 40" required />
                   </div>
 

@@ -1,4 +1,4 @@
-﻿import mongoose from "mongoose";
+import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -71,6 +71,10 @@ productSchema.index({ rating: -1 });
 productSchema.index({ province: 1 });
 productSchema.index({ seller: 1 });
 productSchema.index({ onSale: 1 });
+// Índice composto para pesquisas de produto (isActive + seller + createdAt)
+productSchema.index({ isActive: 1, seller: 1, createdAt: -1 });
+// Índice de texto para pesquisa por nome rápida (evita regex scan full-collection)
+productSchema.index({ nome: 'text', name: 'text' });
 
 const Product = mongoose.model("Product", productSchema);
 

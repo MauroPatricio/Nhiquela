@@ -59,7 +59,12 @@ const Cart = () => {
 
                 {/* Lista de produtos do fornecedor */}
                 {Object.values(products).map((item) => (
-                  <View key={item._id} style={styles.itemLine}>
+                  <TouchableOpacity 
+                    key={item._id} 
+                    style={styles.itemLine}
+                    onPress={() => navigation.navigate("ProductDetail", { item: item })}
+                    activeOpacity={0.7}
+                  >
                     <Text style={styles.quantity}>{item.quantity}x</Text>
                     <Image source={{ uri: item.image }} style={styles.itemImage} />
                     <Text style={styles.itemName}>
@@ -86,14 +91,14 @@ const Cart = () => {
                       onPress={() => {
                         const itemInBasket = items.find(basketItem => basketItem._id === item._id);
                         if (itemInBasket) {
-                          dispatch(removeFromBasket({ _id: item._id }));
-                          dispatch(removeSeller(item.seller._id));
+                          if (typeof removeFromBasket === 'function') dispatch(removeFromBasket({ _id: item._id }));
+                          if (typeof removeSeller === 'function') dispatch(removeSeller(item.seller._id));
                         }
                       }}
                     >
                       <TrashIcon color="#EF4444" size={24} />
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             ))}

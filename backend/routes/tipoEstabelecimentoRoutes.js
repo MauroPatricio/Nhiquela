@@ -1,5 +1,6 @@
-﻿import express from 'express';
+import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
 import { body, validationResult } from 'express-validator';
 import { isAuth, isSellerOrAdmin } from '../utils.js';
@@ -103,11 +104,14 @@ router.get(
   '/:id',
   isAuth,
   expressAsyncHandler(async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).send({ message: 'ID do tipo de estabelecimento inválido' });
+    }
     const tipoestabelecimento = await TipoEstabelecimento.findById(req.params.id).populate('paymentMethods');
     if (tipoestabelecimento) {
       res.send(tipoestabelecimento);
     } else {
-      res.status(404).send({ message: 'Tipo de estabelecimento n�o encontrado' });
+      res.status(404).send({ message: 'Tipo de estabelecimento no encontrado' });
     }
   })
 );

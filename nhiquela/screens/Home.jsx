@@ -29,7 +29,7 @@ import useThrottle from '../hooks/useThrottle';
 const { width } = Dimensions.get('window');
 const isDev = process.env.NODE_ENV !== 'production';
 const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://api.nhiquelaservicos.com'));
-const socket = io(`${SOCKET_URL}/products`, { transports: ['websocket'] });
+const socket = io(`${SOCKET_URL}`, { transports: ['websocket'] });
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -54,20 +54,33 @@ const ProductItem = React.memo(({ item, onPress, userLocation }) => {
     }
   }
 
+  const isSellerClosed = item.isSellerOpen === false || item.seller?.status === 'inactive' || item.seller?.status === 'suspended';
+
   return (
   <TouchableOpacity
-    style={styles.productCard}
+    style={[styles.productCard, isSellerClosed && { opacity: 0.85 }]}
     onPress={() => onPress(item)}
+    disabled={isSellerClosed}
   >
-    <OptimizedImage 
-      source={{ uri: item.image }} 
-      style={styles.productImage}
-    />
-    <View style={styles.productDetails}>
-      <Text style={styles.productName} numberOfLines={1}>
-        {item.nome || item.name}
-      </Text>
-      <Text style={styles.productPrice}>
+    <View style={{ position: 'relative' }}>
+      <OptimizedImage 
+        source={{ uri: item.image }} 
+        style={styles.productImage}
+      />
+      {isSellerClosed && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', borderRadius: styles.productImage?.borderRadius || 8 }}>
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 13 }}>Fechado</Text>
+        </View>
+      )}
+    </View>
+      <View style={styles.productDetails}>
+        <Text style={styles.productName} numberOfLines={1}>
+          {item.nome || item.name}
+        </Text>
+        <Text style={[styles.productName, { fontSize: 11, color: '#6B7280', marginTop: 2, marginBottom: 4 }]} numberOfLines={1}>
+          <Ionicons name="storefront-outline" size={10} /> {item.seller?.name || 'Fornecedor N/A'}
+        </Text>
+        <Text style={styles.productPrice}>
         {item.discount > 0 ? (
           <View style={styles.discountContainer}>
             <Text style={styles.originalPrice}>{item.price} MT</Text>
@@ -117,18 +130,29 @@ const ProductRow = React.memo(({ item, onPress, userLocation }) => {
     }
   }
 
+  const isSellerClosed = item.isSellerOpen === false || item.seller?.status === 'inactive' || item.seller?.status === 'suspended';
+
   return (
   <TouchableOpacity
-    style={styles.productContainer}
-    onPress={() => onPress(item)}
+    style={[styles.productContainer, isSellerClosed && { opacity: 0.6 }]}
+    onPress={() => !isSellerClosed && onPress(item)}
+    disabled={isSellerClosed}
+    activeOpacity={0.8}
   >
     <View style={styles.productRow}>
-      <OptimizedImage 
-        source={{ uri: item.image }} 
-        style={styles.logo}
-      />
+      <View style={{ position: 'relative' }}>
+        <OptimizedImage 
+          source={{ uri: item.image }} 
+          style={styles.logo}
+        />
+        {isSellerClosed && (
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }]}>
+            <Ionicons name="lock-closed" size={16} color="#FFF" />
+          </View>
+        )}
+      </View>
       <View style={styles.productInfo}>
-        <Text style={styles.productBrand}>{item.nome || item.name}</Text>
+        <Text style={styles.productBrand} numberOfLines={1}>{item.nome || item.name}</Text>
         <Text style={styles.productPrice}>
           {item.discount > 0 ? (
             <View style={styles.rowDiscountContainer}>
@@ -139,7 +163,21 @@ const ProductRow = React.memo(({ item, onPress, userLocation }) => {
             `${item.price} MT`
           )}
         </Text>
-        <Text>Fornecedor: {item.seller?.name || item.seller?.seller?.name} <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text></Text>
+        
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+          <Ionicons name="storefront-outline" size={12} color="#7F00FF" />
+          <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>
+            {item.sellerName || item.seller?.name || item.seller?.seller?.name || 'N/A'}
+            <Text style={{ color: '#9CA3AF', fontWeight: 'bold' }}>{distanceText}</Text>
+          </Text>
+        </View>
+
+        {isSellerClosed && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+            <Ionicons name="alert-circle" size={12} color="#DC2626" />
+            <Text style={{ fontSize: 10, color: '#DC2626', fontWeight: 'bold' }}>Loja Fechada</Text>
+          </View>
+        )}
       </View>
     </View>
   </TouchableOpacity>
@@ -311,16 +349,61 @@ const Home = () => {
   useEffect(() => {
     socket.on("newProduct", throttledNewProductHandler);
     socket.on("productDeleted", throttledProductDeletedHandler);
-    socket.on("storeStatusChanged", () => {
-      loadCategories(true);
-    });
 
     return () => {
       socket.off("newProduct", throttledNewProductHandler);
       socket.off("productDeleted", throttledProductDeletedHandler);
-      socket.off("storeStatusChanged");
     };
-  }, [selectedCategory, throttledNewProductHandler, throttledProductDeletedHandler]);
+  }, [throttledNewProductHandler, throttledProductDeletedHandler]);
+
+  useEffect(() => {
+    // Quando um fornecedor abre/fecha a loja - actualiza instantaneamente sem reload
+    const handleStoreStatus = ({ sellerId, sellerName, isOpen }) => {
+      const displayName = sellerName || 'Uma loja';
+      // Notifica o cliente
+      showMessage({
+        message: isOpen ? `A loja ${displayName} acabou de abrir` : `A loja ${displayName} acabou de fechar`,
+        description: isOpen ? 'Pode voltar a fazer compras neste fornecedor.' : 'Os produtos deste fornecedor não podem ser adicionados ao carrinho.',
+        type: isOpen ? 'success' : 'warning',
+        icon: 'auto',
+        duration: 4000,
+      });
+
+      if (!sellerId) return;
+
+      const sellerIdStr = String(sellerId);
+
+      // Helper que actualiza isSellerOpen em qualquer array de produtos
+      const patchProducts = (prev) =>
+        prev.map(p =>
+          String(p.seller?._id || p.seller) === sellerIdStr
+            ? { ...p, isSellerOpen: isOpen }
+            : p
+        );
+
+      // 1. Produtos em Destaque
+      setFeaturedProducts(patchProducts);
+
+      // 2. Produtos da categoria seleccionada (BottomSheet)
+      setCatProducts(patchProducts);
+
+      // 3. Produtos em grade por categoria (Home lateral)
+      setCategoryProducts(prev => {
+        const updated = {};
+        for (const catId of Object.keys(prev)) {
+          updated[catId] = patchProducts(prev[catId] || []);
+        }
+        return updated;
+      });
+    };
+
+    socket.on("storeStatusChanged", handleStoreStatus);
+
+    return () => {
+      socket.off("storeStatusChanged", handleStoreStatus);
+    };
+  }, []);
+
 
   // ------------------- USER / PUSH -------------------
   const checkIfUserExist = async () => {
@@ -412,24 +495,18 @@ responseListener.remove();
   };
 
   // ------------------- CATEGORIAS -------------------
-  const loadCategories = async (replace = false) => {
+  const loadCategories = async (replace = false, force = false) => {
     setLoadingCategories(true);
     try {
-      const response = await api.get('/products/categoriesWithCount');
-
-      
+      const response = await api.get(`/products/categoriesWithCount?t=${Date.now()}`);
       const list = response.data?.categories || [];
 
-
-
-      
-      // Adiciona productCount se não existir (para compatibilidade)
       const categoriesWithCount = list.map(category => ({
         ...category,
         productCount: category.productCount || category.count || 0
       }));
       
-      setCategories(replace ? categoriesWithCount : [...categories, ...categoriesWithCount]);
+      setCategories(categoriesWithCount);
       
       // Salvar no cache
       await AsyncStorage.setItem('cachedCategories', JSON.stringify(categoriesWithCount));
@@ -438,7 +515,7 @@ responseListener.remove();
       // Carrega produtos para categorias que têm produtos
       categoriesWithCount.forEach(category => {
         if (category.productCount > 0) {
-          loadCategoryProductsForHome(category._id);
+          loadCategoryProductsForHome(category._id, force);
         }
       });
     } catch (error) {
@@ -459,7 +536,7 @@ responseListener.remove();
     setLoadingFeaturedProducts(true);
     try {
       // Usando a rota principal com filtros para produtos ativos
-      const response = await api.get('/products?page=1&pageSize=20&order=newest');
+      const response = await api.get(`/products?page=1&pageSize=20&order=newest&t=${Date.now()}`);
       const products = response.data?.products || [];
       setFeaturedProducts(products);
     } catch (error) {
@@ -470,13 +547,13 @@ responseListener.remove();
   };
 
   // ------------------- PRODUTOS POR CATEGORIA PARA HOME -------------------
-  const loadCategoryProductsForHome = async (categoryId) => {
-    if (loadingCategoryProducts[categoryId] || categoryProducts[categoryId]) return;
+  const loadCategoryProductsForHome = async (categoryId, force = false) => {
+    if (!force && (loadingCategoryProducts[categoryId] || categoryProducts[categoryId])) return;
     
     setLoadingCategoryProducts(prev => ({ ...prev, [categoryId]: true }));
     
     try {
-      const response = await api.get(`/products?category=${categoryId}&pageSize=5`);
+      const response = await api.get(`/products?category=${categoryId}&pageSize=5&t=${Date.now()}`);
       const products = response.data?.products || [];
       
       setCategoryProducts(prev => ({
@@ -490,10 +567,26 @@ responseListener.remove();
     }
   };
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadCategories(true);
-    loadFeaturedProducts();
+    // Limpar cache de categorias para forçar re-fetch total
+    try {
+      await AsyncStorage.removeItem('cachedCategories');
+      await AsyncStorage.removeItem('cachedCategoriesTimestamp');
+    } catch (_) {}
+
+    // Resetar estado de produtos para forçar atualização
+    setCategoryProducts({});
+
+    await Promise.all([
+      loadCategories(true, true),
+      loadFeaturedProducts(),
+    ]);
+
+    if (userData?.token) {
+      fetchWalletBalance(userData.token);
+    }
+    setRefreshing(false);
   };
 
   // ------------------- PRODUTOS DA CATEGORIA COM PAGINAÇÃO INFINITA -------------------
@@ -660,7 +753,7 @@ responseListener.remove();
             )}
             <View style={style.textContainer}>
               <Text style={style.greetingText}>Olá, bem-vindo</Text>
-              <Text style={style.location}>{userData ? userData.name : 'Faça login'}</Text>
+              <Text style={style.location} numberOfLines={1} ellipsizeMode="tail">{userData ? userData.name : 'Faça login'}</Text>
             </View>
           </View>
 
@@ -688,6 +781,7 @@ responseListener.remove();
       ) : (
         <FlatList
           data={memoizedCategories}
+          extraData={categoryProducts}
           keyExtractor={(item) => String(item._id)}
           renderItem={renderCategoryBlock}
           contentContainerStyle={{ paddingBottom: 120 }}
@@ -809,8 +903,6 @@ responseListener.remove();
     )}
   </View>
 </BottomSheetComponent>
-
-      <FlashMessage position="top" />
 
       {/* Botão do WhatsApp Oculto a pedido
       {userData && (

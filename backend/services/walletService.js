@@ -65,7 +65,40 @@ export const calculateDynamicCommission = async (order) => {
     servicePrice = order.pricing?.totalPrice || order.totalPrice || 0;
   }
 
-  const categoryRefId = order.subcategoryId || order.serviceId;
+  let categoryRefId = order.subcategoryId || order.serviceId;
+
+  // 1. Tentar encontrar a partir do requestServiceId vinculado (para motoristas/viagens)
+  if (!categoryRefId && order.requestServiceId) {
+    try {
+      const RequestService = mongoose.model('RequestService');
+      const linkedRequest = await RequestService.findById(order.requestServiceId);
+      if (linkedRequest) {
+        categoryRefId = linkedRequest.serviceId || linkedRequest.subcategoryId;
+      }
+    } catch (err) {
+      console.error('Error fetching linked requestService for commission:', err);
+    }
+  }
+
+  // 2. Tentar encontrar a partir do Provider do vendedor (para pedidos de lojas)
+  if (!categoryRefId && (order.seller || (order.sellers && order.sellers.length > 0))) {
+    try {
+      const Provider = mongoose.model('Provider');
+      const providerId = order.seller || order.sellers[0];
+      const provider = await Provider.findById(providerId);
+      if (provider) {
+        categoryRefId = provider.subcategoryId;
+        if (!categoryRefId && provider.userId) {
+          const sellerUser = await User.findById(provider.userId);
+          if (sellerUser?.seller?.tipoEstabelecimento) {
+            categoryRefId = sellerUser.seller.tipoEstabelecimento;
+          }
+        }
+      }
+    } catch(err) {
+      console.error('Error fetching provider subcategory for commission:', err);
+    }
+  }
 
   if (categoryRefId) {
     try {
@@ -78,8 +111,17 @@ export const calculateDynamicCommission = async (order) => {
           ? sub.serviceCommission 
           : (financialConfig.useGeneralCommission !== false ? defaultCommissionRate * 100 : 0);
         
-        // O cálculo deve ser (deslocacao + prestacao) * a percentagem para aquele serviço
-        return (servicePrice + distancePrice) * (servComm / 100);
+        const mode = sub.pricingMode;
+        if (mode === 'AUTO') {
+          // Calculado pela Plataforma: comissão apenas sobre o valor da deslocação
+          return distancePrice * (servComm / 100);
+        } else if (mode === 'PROVIDER_DEFINED') {
+          // Definido pelo Prestador: comissão apenas sobre o valor cobrado pelo prestador
+          return servicePrice * (servComm / 100);
+        } else {
+          // Calculado + Prestador (AUTO_PLUS_PROVIDER) ou indefinido: comissão sobre deslocação + prestador
+          return (servicePrice + distancePrice) * (servComm / 100);
+        }
       }
     } catch(err) {
       console.error('Error calculating dynamic commission for subcategory:', err);

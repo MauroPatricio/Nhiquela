@@ -17,6 +17,7 @@ import ReturnPolicyScreen from './screens/ReturnPolicyScreen';
 import DashboardScreen from './screens/admin/DashboardScreen';
 import SuppliersScreen from './screens/admin/SuppliersScreen';
 import ProductsScreen from './screens/ProductsScreen';
+import AdminProductsScreen from './screens/admin/ProductsScreen';
 import CategoriesScreen from './screens/admin/CategoriesScreen';
 import DriversScreen from './screens/admin/DriversScreen';
 import ServicesScreen from './screens/admin/ServicesScreen';
@@ -90,7 +91,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardScreen />} />
           <Route path="suppliers" element={<SuppliersScreen />} />
-          <Route path="products" element={<ProductsScreen />} />
+          <Route path="products" element={<AdminProductsScreen />} />
           <Route path="categories" element={<CategoriesScreen />} />
           <Route path="drivers" element={<DriversScreen />} />
             <Route path="price-requests" element={<PriceRequestsPanel />} />

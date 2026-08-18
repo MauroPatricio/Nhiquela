@@ -10,6 +10,14 @@ import Transaction from '../models/TransactionModel.js';
 import PricingService from '../services/PricingService.js';
 import createNotification from '../utils/createNotification.js';
 import DispatchService from '../services/dispatchService.js';
+import Order from '../models/OrderModel.js';
+
+const getSellerUser = async (sellerId) => {
+  if (!sellerId) return null;
+  const Provider = mongoose.model('Provider');
+  const provider = await Provider.findById(sellerId).populate('userId');
+  return provider?.userId || null;
+};
 
 const requestServiceer = express.Router();
 
@@ -420,7 +428,8 @@ requestServiceer.get(
   '/:id',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const requestService = await RequestService.findById(req.params.id);
+    const requestService = await RequestService.findById(req.params.id)
+      .populate('user', 'name phoneNumber profileImage');
 
     if (requestService) {
       res.send(requestService);
@@ -611,6 +620,20 @@ requestServiceer.put(
         
         // 🔥 Notificar TODOS os outros motoristas que tinham este pedido que ele já foi aceite
         io.emit('order_taken', { orderId: updateOrder._id.toString(), acceptedBy: user_deliver._id.toString() });
+
+        // [Reverse Sync] Atualizar a Order subjacente, se existir
+        try {
+          const linkedOrder = await Order.findOne({ requestServiceId: updateOrder._id });
+          if (linkedOrder) {
+            linkedOrder.status = 'Pedido aceite pelo motorista'; // ou 'Pedido aceite' conforme a lógica atual da App
+            linkedOrder.stepStatus = 5; // Step adequado para aceitação por parte de um motorista na loja
+            linkedOrder.deliveryman = deliverymanData;
+            await linkedOrder.save();
+            io.to(`order_${linkedOrder._id}`).emit('order_updated', linkedOrder);
+          }
+        } catch (syncErr) {
+          console.error('[Reverse Sync] Erro ao sincronizar aceitação com Order:', syncErr.message);
+        }
       }
 
       res.status(200).send({ message: `Pedido aceite`, order: updateOrder });
@@ -664,6 +687,20 @@ requestServiceer.put(
         io.to(`order_${order._id}`).emit('order_updated', order);
         if (order.deliveryman?.id) {
           io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
+        }
+
+        // [Reverse Sync] Atualizar a Order subjacente, se existir
+        try {
+          const linkedOrder = await Order.findOne({ requestServiceId: order._id });
+          if (linkedOrder) {
+            linkedOrder.status = 'Em trânsito';
+            linkedOrder.isInTransit = true;
+            linkedOrder.stepStatus = 6;
+            await linkedOrder.save();
+            io.to(`order_${linkedOrder._id}`).emit('order_updated', linkedOrder);
+          }
+        } catch (syncErr) {
+          console.error('[Reverse Sync] Erro ao sincronizar in-transit com Order:', syncErr.message);
         }
       }
 
@@ -745,46 +782,183 @@ requestServiceer.put(
   })
 );
 
-// Motorista rejeita (Pendente) ou cancela (Aceite) a viagem
+// Motorista ou Cliente cancela/recusa a viagem
 requestServiceer.put(
   '/:id/cancel',
   isAuth,
   expressAsyncHandler(async (req, res) => {
-    const order = await RequestService.findById(req.params.id);
+    // 1. Validar que o motivo de cancelamento foi enviado
+    if (!req.body.message || req.body.message.trim() === '') {
+      return res.status(400).send({ message: 'Por favor indique o motivo do cancelamento antes de prosseguir.' });
+    }
 
-    if (order) {
-      if (order.status === 'Pendente') {
-        // Rejeição do pedido Pendente: passa para o próximo motorista
-        order.status = 'Motorista indisponível'; // Para ser capturado pelo dispatch se necessário, ou apenas rejeitado
+    let session = null;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    } catch (e) {
+      session = null;
+    }
+
+    try {
+      const order = session 
+        ? await RequestService.findById(req.params.id).session(session)
+        : await RequestService.findById(req.params.id);
+
+      if (!order) {
+        if (session) { await session.abortTransaction(); session.endSession(); }
+        return res.status(404).send({ message: 'Pedido não encontrado' });
+      }
+
+      // 2. Verificar permissões: apenas cliente, motorista associado, motorista alvo ou admin
+      const isClient = order.user && order.user.toString() === req.user._id.toString();
+      const isAssignedDriver = order.deliveryman && order.deliveryman.id && order.deliveryman.id.toString() === req.user._id.toString();
+      const isTargetDriver = order.targetDriverId && order.targetDriverId.toString() === req.user._id.toString();
+      const isAdminUser = req.user.isAdmin;
+
+      if (!isClient && !isAssignedDriver && !isTargetDriver && !isAdminUser) {
+        if (session) { await session.abortTransaction(); session.endSession(); }
+        return res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
+      }
+
+      // 3. Validar estado do pedido
+      if (order.status === 'Cancelado' || order.status === 'Finalizado' || order.status === 'Entregue' || order.status === 'Concluído') {
+        if (session) { await session.abortTransaction(); session.endSession(); }
+        return res.status(400).send({ message: 'Este pedido já não pode ser cancelado.' });
+      }
+
+      const wasAccepted = (order.isAccepted || order.status === 'Pedido aceite') && order.deliveryman && order.deliveryman.id;
+      const isDriverRecusingPending = order.status === 'Pendente' && (isAssignedDriver || isTargetDriver);
+
+      order.isCanceled = true;
+      order.isAccepted = false;
+      order.canceledReason = req.body.message;
+      order.stepStatus = 8;
+
+      if (isDriverRecusingPending) {
+        // Motorista recusou ou deu timeout antes de aceitar
+        order.status = 'Motorista indisponível';
         order.targetDriverId = null;
-        order.canceledReason = req.body.message || 'Motorista recusou a viagem';
       } else {
-        // Cancelamento após aceitar
+        // Cancelado definitivamente
         order.status = 'Cancelado';
-        order.stepStatus = 8;
-        order.canceledReason = req.body.message || 'Motorista cancelou a viagem';
-        
-        // Libertar o motorista
-        if (order.deliveryman && order.deliveryman.id) {
+      }
+
+      if (session) {
+        await order.save({ session });
+      } else {
+        await order.save();
+      }
+
+      // 4. Libertar motorista se a viagem já tinha sido aceite
+      if (wasAccepted) {
+        const User = (await import('../models/UserModel.js')).default;
+        if (session) {
+          await User.updateOne(
+            { _id: order.deliveryman.id },
+            { $set: { 'deliveryman.hasActiveService': false } },
+            { session }
+          );
+        } else {
           await User.updateOne(
             { _id: order.deliveryman.id },
             { $set: { 'deliveryman.hasActiveService': false } }
           );
         }
+
+        // Penalização de 50MT se o próprio motorista cancelar após ter aceite
+        if (req.user.isDeliveryMan && isAssignedDriver) {
+          const Wallet = (await import('../models/WalletModel.js')).default;
+          const Transaction = (await import('../models/TransactionModel.js')).default;
+
+          let wallet = session
+            ? await Wallet.findOne({ ownerId: req.user._id }).session(session)
+            : await Wallet.findOne({ ownerId: req.user._id });
+
+          if (!wallet) {
+            wallet = new Wallet({ ownerId: req.user._id, ownerType: 'driver', userId: req.user._id, balance: 0 });
+          }
+
+          wallet.balance -= 50;
+          
+          if (session) {
+            await wallet.save({ session });
+            await Transaction.create([{
+              walletId: wallet._id,
+              type: 'debit',
+              amount: 50,
+              method: 'wallet',
+              description: 'Penalização por cancelar viagem aceite',
+              status: 'confirmado'
+            }], { session });
+          } else {
+            await wallet.save();
+            await Transaction.create({
+              walletId: wallet._id,
+              type: 'debit',
+              amount: 50,
+              method: 'wallet',
+              description: 'Penalização por cancelar viagem aceite',
+              status: 'confirmado'
+            });
+          }
+        }
       }
 
-      const updateOrder = await order.save();
+      if (session) {
+        await session.commitTransaction();
+        session.endSession();
+      }
 
+      // 5. Comunicações pós-sucesso
+      try {
+        let msg = `Olá, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
+        sendSMSToUSendIt(req, msg);
+
+        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n nhiquela`;
+        sendEmailOrderStatus(req, mailText, order, res);
+      } catch (err) {
+        console.log('Skipping mail/sms send during cancel route:', err.message);
+      }
+
+      // 6. WebSocket updates
       const io = req.app.get('io');
       if (io) {
-        io.to(`order_${updateOrder._id}`).emit('order_updated', updateOrder);
-        // Notifica motorista para retirar a viagem do ecrã
-        io.to(`driver_${req.user._id}`).emit('order_updated', updateOrder);
+        io.to(`order_${order._id}`).emit('order_updated', order);
+        if (order.targetDriverId) {
+          io.to(`driver_${order.targetDriverId}`).emit('order_cancelled', { orderId: order._id });
+        }
+        if (order.deliveryman?.id) {
+          io.to(`driver_${order.deliveryman.id}`).emit('order_cancelled', { orderId: order._id });
+          io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Serviço cancelado. Pode agora receber novos pedidos.' });
+        } else {
+          io.emit('order_updated', order);
+        }
+
+        // Criar notificação para outra parte
+        const receiverId = isClient ? (order.deliveryman?.id || order.targetDriverId) : order.user;
+        if (receiverId) {
+          createNotification({
+            message: isClient 
+              ? `O cliente cancelou a viagem. O seu estado foi libertado.`
+              : `A sua viagem foi cancelada pelo motorista. Motivo: ${req.body.message}`,
+            receiver_id: receiverId,
+            sender_id: req.user._id,
+            orderID: order._id,
+            title: 'Viagem Cancelada'
+          });
+        }
       }
 
-      res.send({ message: 'Viagem rejeitada/cancelada com sucesso', order: updateOrder });
-    } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
+      res.status(200).send({ message: 'Pedido cancelado com sucesso', order });
+
+    } catch (error) {
+      if (session) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      console.error('Erro no cancelamento do pedido:', error);
+      res.status(500).send({ message: error.message || 'Erro ao cancelar o pedido. Tente novamente.' });
     }
   })
 );
@@ -959,6 +1133,48 @@ requestServiceer.put(
         orderID: order._id,
         title: 'Viagem Concluída'
       });
+      
+      // [Reverse Sync] Atualizar a Order subjacente, se existir
+      try {
+        const linkedOrder = await Order.findOne({ requestServiceId: order._id });
+        if (linkedOrder) {
+          linkedOrder.status = 'Entregue';
+          linkedOrder.isDelivered = true;
+          linkedOrder.deliveredAt = Date.now();
+          linkedOrder.stepStatus = 7;
+          await linkedOrder.save();
+          
+          io.to(`order_${linkedOrder._id}`).emit('order_updated', linkedOrder);
+
+          // Notificações originais da Order
+          const sellerOfProduct = await getSellerUser(linkedOrder.seller);
+          const clientOfProduct = await User.findById(linkedOrder.user);
+
+          if (sellerOfProduct) {
+            await createNotification({
+              message: `O cliente confirmou a recepção do pedido nº ${linkedOrder.code}.`,
+              title: 'Pedido entregue com sucesso!',
+              receiver_id: linkedOrder.seller,
+              sender_id: linkedOrder.user,
+              orderID: linkedOrder._id,
+              pushToken: sellerOfProduct.deviceToken || 'none',
+            });
+          }
+
+          if (clientOfProduct) {
+            await createNotification({
+              message: `Confirmámos a receção do seu pedido nº ${linkedOrder.code}. Esperamos vê-lo de novo em breve!`,
+              title: '🎉 Obrigado pela preferência!',
+              receiver_id: linkedOrder.user,
+              sender_id: linkedOrder.seller,
+              orderID: linkedOrder._id,
+              pushToken: clientOfProduct.deviceToken || 'none',
+            });
+          }
+        }
+      } catch (syncErr) {
+        console.error('[Reverse Sync] Erro ao sincronizar deliver com Order:', syncErr.message);
+      }
     }
 
     res.send({ message: `Pedido entregue com sucesso` });
@@ -1015,118 +1231,7 @@ requestServiceer.post(
   })
 );
 
-// Em caso de cancelamento do pedido
-requestServiceer.put(
-  '/:id/cancel',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
 
-    try {
-      const order = await RequestService.findById(req.params.id).session(session);
-
-      if (order) {
-        // Validar que o motivo de cancelamento foi enviado
-        if (!req.body.message || req.body.message.trim() === '') {
-          await session.abortTransaction();
-          session.endSession();
-          return res.status(400).send({ message: 'Por favor indique o motivo do cancelamento antes de prosseguir.' });
-        }
-
-        const wasAccepted = order.isAccepted && order.deliveryman && order.deliveryman.id;
-
-        order.isCanceled = true;
-        order.isAccepted = false;
-
-        if (req.user.isDeliveryMan && !wasAccepted) {
-          order.status = 'Motorista indisponível';
-        } else {
-          order.status = 'Cancelado';
-        }
-
-        order.stepStatus = 8;
-        order.canceledReason = req.body.message;
-
-        await order.save({ session });
-
-        // Se o pedido já tinha sido aceite, libertar o motorista
-        if (wasAccepted) {
-          await User.updateOne(
-            { _id: order.deliveryman.id },
-            { $set: { 'deliveryman.hasActiveService': false } },
-            { session }
-          );
-
-          // Penalização de 50MT se o motorista cancelar a viagem que ele mesmo aceitou
-          if (req.user.isDeliveryMan) {
-            let wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] }).session(session);
-            if (!wallet) {
-               // Criar carteira caso não exista (fallback)
-               wallet = new Wallet({ ownerId: req.user._id, ownerType: 'driver', userId: req.user._id, balance: 0 });
-            }
-            wallet.balance -= 50;
-            await wallet.save({ session });
-
-            await Transaction.create([{
-              walletId: wallet._id,
-              type: 'debit',
-              amount: 50,
-              method: 'wallet',
-              description: 'Penalização por cancelar viagem aceite',
-              status: 'confirmado'
-            }], { session });
-          }
-        }
-
-        await session.commitTransaction();
-        session.endSession();
-
-        //  Para envio de mensagens
-
-        let msg = `Olá, a Nhiquela lamenta lhe informar que o seu pedido n ${order.code} foi cancelado. O motivo do cancelamento poderá verificar no site pesquisando pelo código.`;
-
-        sendSMSToUSendIt(req, msg);
-
-        let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n nhiquela`;
-
-        sendEmailOrderStatus(req, mailText, order, res);
-
-        // WebSocket Optimization
-        const io = req.app.get('io');
-        if (io) {
-          io.to(`order_${order._id}`).emit('order_updated', order);
-          if (order.deliveryman?.id) {
-            io.to(`driver_${order.deliveryman.id}`).emit('order_updated', order);
-            // Notificar motorista que está livre
-            io.to(`driver_${order.deliveryman.id}`).emit('service_released', { message: 'Serviço cancelado. Pode agora receber novos pedidos.' });
-          } else {
-            io.emit('order_updated', order); // broadcast to all
-          }
-          
-          createNotification({
-            message: `A sua viagem foi cancelada pelo motorista. Motivo: ${req.body.message}`,
-            receiver_id: order.user,
-            sender_id: order.deliveryman?.id,
-            orderID: order._id,
-            title: 'Viagem Cancelada'
-          });
-        }
-
-        res.send({ message: `Pedido Cancelado`, order: order });
-      } else {
-        await session.abortTransaction();
-        session.endSession();
-        res.status(404).send({ message: 'Pedido não encontrado' });
-      }
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      console.error('Erro no cancelamento do pedido:', error);
-      res.status(500).send({ message: error.message || 'Erro ao cancelar o pedido. Tente novamente.' });
-    }
-  })
-);
 
 
 
@@ -1283,53 +1388,6 @@ requestServiceer.delete(
         }
 
         res.send({ message: 'Pedido cancelado com sucesso' });
-      } else {
-        res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
-      }
-    } else {
-      res.status(404).send({ message: 'Pedido não encontrado' });
-    }
-  })
-);
-
-// Cancelar pedido a partir da tela de detalhes
-requestServiceer.put(
-  '/:id/cancel',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-    const order = await RequestService.findById(req.params.id);
-    if (order) {
-      if (order.user.toString() === req.user._id.toString() || req.user.isAdmin) {
-        if (order.status === 'Cancelado' || order.status === 'Finalizado' || order.status === 'Entregue') {
-          return res.status(400).send({ message: 'Este pedido já não pode ser cancelado.' });
-        }
-        order.status = 'Cancelado';
-        order.canceledReason = req.body.message || 'Cancelado pelo cliente';
-        await order.save();
-
-        const io = req.app.get('io');
-        if (io) {
-          io.to(`order_${order._id}`).emit('order_updated', order);
-          if (order.targetDriverId) {
-            io.to(`driver_${order.targetDriverId}`).emit('order_cancelled', { orderId: order._id });
-          }
-          if (order.deliveryman && order.deliveryman.id) {
-            io.to(`driver_${order.deliveryman.id}`).emit('order_cancelled', { orderId: order._id });
-            // Libertar motorista
-            const User = require('../models/UserModel.js').default || require('../models/UserModel.js');
-            await User.updateOne({ _id: order.deliveryman.id }, { $set: { 'deliveryman.hasActiveService': false } });
-            
-            createNotification({
-              message: `O cliente cancelou a viagem. O seu estado foi libertado para receber novos pedidos.`,
-              receiver_id: order.deliveryman.id,
-              sender_id: order.user,
-              orderID: order._id,
-              title: 'Viagem Cancelada'
-            });
-          }
-        }
-
-        res.send({ message: 'Pedido cancelado com sucesso', order: order });
       } else {
         res.status(403).send({ message: 'Sem permissão para cancelar este pedido' });
       }

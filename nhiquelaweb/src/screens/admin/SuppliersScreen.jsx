@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faEdit, faTrash, faPlus, faSave, faTimes, faEye, faMapMarkerAlt, faPhone, faEnvelope, faIdCard, faMoneyBillWave, faImage, faLocationArrow, faSpinner, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faEdit, faTrash, faPlus, faSave, faTimes, faEye, faMapMarkerAlt, faPhone, faEnvelope, faIdCard, faMoneyBillWave, faImage, faLocationArrow, faSpinner, faSearch, faCheck, faBan, faUser, faStar, faCalendarAlt, faBoxOpen, faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -21,7 +21,7 @@ export default function SuppliersScreen() {
 
   const fetchSuppliers = async () => {
     try {
-      const { data } = await api.get('/users/sellers');
+      const { data } = await api.get('/users/sellers?all=true');
       setSuppliers(data.sellers || []);
     } catch (error) {
       toast.error('Erro ao carregar fornecedores da base de dados.');
@@ -42,11 +42,7 @@ export default function SuppliersScreen() {
   const fetchEstablishmentTypes = async () => {
     try {
       const { data } = await api.get('/provider-subcategories');
-      const businessSubcategories = data.filter(c => 
-        c.providerTypeId?.classificationId?.name === 'Business' || 
-        c.providerTypeId?.classificationId?.name?.toLowerCase() === 'business'
-      );
-      setEstablishmentTypes(businessSubcategories);
+      setEstablishmentTypes(data || []);
     } catch (error) {
       console.error('Erro ao buscar subcategorias de fornecedores:', error);
     }
@@ -87,6 +83,30 @@ export default function SuppliersScreen() {
     setShowDetailsModal(true);
   };
 
+  const getCategoryName = (catIdOrObj) => {
+    if (!catIdOrObj) return 'N/A';
+    const catId = typeof catIdOrObj === 'string' ? catIdOrObj : catIdOrObj._id;
+    const found = establishmentTypes.find(t => t._id === catId);
+    
+    let subName = catIdOrObj.name || catIdOrObj.nome || (found ? (found.name || found.nome) : null) || (typeof catIdOrObj === 'string' ? catIdOrObj : 'N/A');
+    let typeName = found?.providerTypeId?.name;
+
+    if (typeName && subName && subName !== 'N/A' && typeName !== subName) {
+      return `${typeName} - ${subName}`;
+    }
+    return subName;
+  };
+
+  const getProvinceName = (provIdOrObj) => {
+    if (!provIdOrObj) return 'N/A';
+    if (provIdOrObj.name) return provIdOrObj.name;
+    if (typeof provIdOrObj === 'string') {
+      const found = provinces.find(p => p._id === provIdOrObj);
+      return found ? found.name : provIdOrObj;
+    }
+    return 'N/A';
+  };
+
   const handleOpenModal = (supplier = null) => {
     if (supplier) {
       setIsEditing(true);
@@ -106,7 +126,7 @@ export default function SuppliersScreen() {
         logo: supplier.seller?.logo || '',
         latitude: supplier.seller?.latitude || '', 
         longitude: supplier.seller?.longitude || '', 
-        status: supplier.isBanned ? 'Inativo' : (supplier.isApproved ? 'Ativo' : 'Pendente')
+        status: supplier.isBanned ? 'Bloqueado' : (supplier.isApproved ? 'Ativo' : 'Pendente')
       });
     } else {
       setIsEditing(false);
@@ -125,8 +145,8 @@ export default function SuppliersScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.representanteNome) {
-      return toast.error('Nome da empresa, Email e Nome do Representante são obrigatórios.');
+    if (!formData.name || !formData.email || !formData.representanteNome || !formData.tipoEstabelecimento) {
+      return toast.error('Nome da empresa, Email, Representante e Tipo de Estabelecimento são obrigatórios.');
     }
     
     try {
@@ -176,6 +196,35 @@ export default function SuppliersScreen() {
       } catch (error) {
         toast.error('Erro ao eliminar fornecedor');
       }
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await api.put(`/users/${id}`, { isApproved: true, isBanned: false });
+      setSuppliers(prev => prev.map(s => (s._id === id || s.id === id) ? { ...s, isApproved: true, isBanned: false } : s));
+      toast.success('Fornecedor aprovado com sucesso!');
+      fetchSuppliers();
+    } catch (error) {
+      toast.error('Erro ao aprovar fornecedor');
+    }
+  };
+
+  const handleReject = async (id) => {
+    const reason = window.prompt('Por favor, indique o motivo da rejeição/suspensão:');
+    if (reason === null) return; // User cancelled
+
+    try {
+      await api.put(`/users/${id}`, { 
+        isApproved: false, 
+        isBanned: true,
+        banReason: reason || 'Não especificado' 
+      });
+      setSuppliers(prev => prev.map(s => (s._id === id || s.id === id) ? { ...s, isApproved: false, isBanned: true, banReason: reason || 'Não especificado' } : s));
+      toast.success('Fornecedor rejeitado/suspenso.');
+      fetchSuppliers();
+    } catch (error) {
+      toast.error('Erro ao rejeitar fornecedor');
     }
   };
 
@@ -262,18 +311,34 @@ export default function SuppliersScreen() {
                         </div>
                       </div>
                     </td>
-                    <td><span className="badge bg-light text-dark border">{supplier.seller?.tipoEstabelecimento?.name || (typeof supplier.seller?.tipoEstabelecimento === 'string' ? supplier.seller?.tipoEstabelecimento : 'N/A')}</span></td>
-                    <td><span className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>{supplier.seller?.province?.name || (typeof supplier.seller?.province === 'string' ? supplier.seller?.province : 'N/A')}</span></td>
+                    <td><span className="badge bg-light text-dark border">{getCategoryName(supplier.seller?.tipoEstabelecimento)}</span></td>
+                    <td><span className="text-muted small fw-bold"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-danger"/>{getProvinceName(supplier.seller?.province)}</span></td>
                     <td>
                       <span className="text-dark small d-block fw-bold">{supplier.name}</span>
                       <span className="text-muted" style={{fontSize: '11px'}}>{supplier.phoneNumber}</span>
                     </td>
-                    <td className="text-center">
+                    <td className="text-center align-middle">
                       <span className={`badge rounded-pill px-3 py-2 ${(!supplier.isBanned && supplier.isApproved) ? 'bg-success-subtle text-success border border-success border-opacity-25' : supplier.isBanned ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
-                        {supplier.isBanned ? 'Inativo' : (supplier.isApproved ? 'Ativo' : 'Pendente')}
+                        {supplier.isBanned ? 'Bloqueado' : (supplier.isApproved ? 'Ativo' : 'Pendente')}
                       </span>
+                      {supplier.isBanned && supplier.banReason && (
+                        <div className="mt-2 text-danger lh-sm" style={{ fontSize: '11px', maxWidth: '180px', margin: '0 auto', textAlign: 'center' }}>
+                          <FontAwesomeIcon icon={faBan} className="me-1" />
+                          {supplier.banReason}
+                        </div>
+                      )}
                     </td>
                     <td className="text-end px-4">
+                      {(!supplier.isApproved || supplier.isBanned) && (
+                        <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm" onClick={() => handleApprove(supplier._id || supplier.id)} title="Aprovar">
+                          <FontAwesomeIcon icon={faCheck} />
+                        </button>
+                      )}
+                      {(!supplier.isBanned) && (
+                        <button className="btn btn-sm btn-light text-warning me-2 rounded-3 shadow-sm" onClick={() => handleReject(supplier._id || supplier.id)} title={supplier.isApproved ? "Suspender" : "Rejeitar"}>
+                          <FontAwesomeIcon icon={faBan} />
+                        </button>
+                      )}
                       <button className="btn btn-sm btn-light text-info me-2 rounded-3 shadow-sm" onClick={() => handleOpenDetails(supplier)} title="Ver Detalhes e Documentos">
                         <FontAwesomeIcon icon={faEye} />
                       </button>
@@ -442,45 +507,101 @@ export default function SuppliersScreen() {
             </div>
             
             <div className="card-body p-4" style={{ overflowY: 'auto', maxHeight: '75vh' }}>
-              <div className="text-center mb-4">
-                {selectedSupplier.seller?.logo ? (
-                  <img src={selectedSupplier.seller.logo} alt={selectedSupplier.seller?.name} className="img-fluid rounded-circle shadow-sm border mb-3" style={{ width: '120px', height: '120px', objectFit: 'cover' }} />
-                ) : (
-                  <div className="bg-light rounded-circle d-flex justify-content-center align-items-center text-muted border border-dashed mx-auto mb-3" style={{ width: '120px', height: '120px' }}>
-                    <FontAwesomeIcon icon={faStore} size="3x" />
+              
+              <div className="row g-4">
+                {/* Ficha de Utilizador */}
+                <div className="col-md-6 border-end pe-md-4">
+                  <h6 className="fw-bold text-muted mb-4 text-uppercase small"><FontAwesomeIcon icon={faUser} className="me-2" />Ficha de Utilizador</h6>
+                  
+                  <div className="d-flex align-items-center mb-4">
+                    {selectedSupplier.profileImage ? (
+                      <img src={selectedSupplier.profileImage} alt={selectedSupplier.name} className="rounded-circle shadow-sm me-3" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="bg-primary-subtle rounded-circle d-flex justify-content-center align-items-center text-primary-custom me-3" style={{ width: '80px', height: '80px' }}>
+                        <FontAwesomeIcon icon={faUser} size="2x" />
+                      </div>
+                    )}
+                    <div>
+                      <h5 className="fw-bold text-dark mb-1">{selectedSupplier.name}</h5>
+                      <span className="badge bg-primary bg-opacity-10 text-primary-custom px-3 py-1 rounded-pill small">Vendedor</span>
+                    </div>
                   </div>
-                )}
-                <h4 className="fw-bold text-dark mb-0">{selectedSupplier.seller?.name}</h4>
-                <div className="text-muted small">{selectedSupplier._id || selectedSupplier.id} | {selectedSupplier.seller?.tipoEstabelecimento}</div>
-                <div className="mt-2">
-                  <span className={`badge rounded-pill px-3 py-2 ${(!selectedSupplier.isBanned && selectedSupplier.isApproved) ? 'bg-success-subtle text-success border border-success border-opacity-25' : selectedSupplier.isBanned ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
-                    {selectedSupplier.isBanned ? 'Inativo' : (selectedSupplier.isApproved ? 'Ativo' : 'Pendente')}
-                  </span>
-                </div>
-              </div>
 
-              <div className="row g-4 mb-4">
-                <div className="col-md-6 border-end">
-                  <h6 className="fw-bold text-muted mb-3 text-uppercase small">Dados da Empresa</h6>
-                  <p className="small text-dark mb-2"><strong>Especialidade:</strong> <br/>{selectedSupplier.seller?.description || 'Não especificada'}</p>
-                  <p className="small text-dark mb-2"><strong>Endereço:</strong> <br/>{selectedSupplier.seller?.address || 'N/A'}</p>
-                  <p className="small text-dark mb-2"><strong>Província:</strong> {selectedSupplier.seller?.province || 'N/A'}</p>
-                  <p className="small text-dark mb-0 text-muted" style={{fontSize: '11px'}}>GPS: {selectedSupplier.seller?.latitude}, {selectedSupplier.seller?.longitude}</p>
-                </div>
-                
-                <div className="col-md-6">
-                  <h6 className="fw-bold text-muted mb-3 text-uppercase small">Representante & Contactos</h6>
-                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faIdCard} className="text-primary-custom me-2"/> {selectedSupplier.name}</p>
-                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faPhone} className="text-primary-custom me-2"/> {selectedSupplier.phoneNumber}</p>
-                  <p className="small text-dark mb-2"><FontAwesomeIcon icon={faEnvelope} className="text-primary-custom me-2"/> {selectedSupplier.email}</p>
-                </div>
-              </div>
+                  <div className="mb-4">
+                    <p className="small text-dark mb-2"><FontAwesomeIcon icon={faEnvelope} className="text-muted me-2" style={{width: '16px'}}/> {selectedSupplier.email || 'N/A'}</p>
+                    <p className="small text-dark mb-2"><FontAwesomeIcon icon={faPhone} className="text-muted me-2" style={{width: '16px'}}/> {selectedSupplier.phoneNumber || 'N/A'}</p>
+                    <p className="small text-dark mb-2"><FontAwesomeIcon icon={faCalendarAlt} className="text-muted me-2" style={{width: '16px'}}/> Membro Desde: <strong>{new Date(selectedSupplier.createdAt).toLocaleDateString('pt-PT')}</strong></p>
+                  </div>
 
-              <div className="bg-light p-3 rounded-4 mb-2 border border-primary border-opacity-25">
-                <h6 className="fw-bold text-dark mb-2 border-bottom pb-2"><FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-2"/> Contas de Pagamento</h6>
-                <div className="d-flex justify-content-between">
-                  <div className="small"><strong>M-Pesa:</strong> {selectedSupplier.seller?.phoneNumberAccount || 'N/A'}</div>
-                  <div className="small"><strong>e-Mola:</strong> {selectedSupplier.seller?.alternativePhoneNumberAccount || 'N/A'}</div>
+                  <div className="bg-light p-3 rounded-4 mb-4 border border-secondary border-opacity-10">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="small fw-bold text-dark"><FontAwesomeIcon icon={faStar} className="text-warning me-2"/>Rating:</span>
+                      <span className="small text-dark fw-bold">{selectedSupplier.seller?.rating || '0.0'} <span className="text-muted fw-normal">({selectedSupplier.seller?.numReviews || 0} reviews)</span></span>
+                    </div>
+                  </div>
+
+                  <h6 className="fw-bold text-dark mb-3 small border-bottom pb-2">Estatísticas de Pedidos</h6>
+                  <div className="d-flex justify-content-between text-center">
+                    <div>
+                      <h4 className="fw-bold text-primary-custom mb-0">0</h4>
+                      <span className="small text-muted" style={{fontSize: '11px'}}>Pedidos</span>
+                    </div>
+                    <div>
+                      <h4 className="fw-bold text-success mb-0">0</h4>
+                      <span className="small text-muted" style={{fontSize: '11px'}}>Concluídos</span>
+                    </div>
+                    <div>
+                      <h4 className="fw-bold text-danger mb-0">0</h4>
+                      <span className="small text-muted" style={{fontSize: '11px'}}>Cancelados</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detalhes do Estabelecimento */}
+                <div className="col-md-6 ps-md-4">
+                  <h6 className="fw-bold text-muted mb-4 text-uppercase small"><FontAwesomeIcon icon={faStore} className="me-2" />Detalhes do Estabelecimento</h6>
+                  
+                  <div className="d-flex align-items-center mb-4">
+                    {selectedSupplier.seller?.logo ? (
+                      <img src={selectedSupplier.seller.logo} alt={selectedSupplier.seller?.name} className="rounded-4 shadow-sm border me-3" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="bg-light rounded-4 d-flex justify-content-center align-items-center text-muted border border-dashed me-3" style={{ width: '80px', height: '80px' }}>
+                        <FontAwesomeIcon icon={faImage} size="2x" />
+                      </div>
+                    )}
+                    <div>
+                      <h5 className="fw-bold text-dark mb-2">{selectedSupplier.seller?.name || 'Não definido'}</h5>
+                      <small className="text-muted d-block" style={{fontSize: '11px'}}>Tipo de Estabelecimento</small>
+                      <div className="small fw-bold text-dark mb-2">{getCategoryName(selectedSupplier.seller?.tipoEstabelecimento)}</div>
+                      <span className={`badge rounded-pill px-3 py-1 ${(!selectedSupplier.isBanned && selectedSupplier.isApproved) ? 'bg-success-subtle text-success border border-success border-opacity-25' : selectedSupplier.isBanned ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
+                        {selectedSupplier.isBanned ? 'Bloqueado' : (selectedSupplier.isApproved ? 'Ativo' : 'Pendente')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="small text-dark mb-2"><strong>Morada:</strong> <br/>{selectedSupplier.seller?.address || 'N/A'}, {getProvinceName(selectedSupplier.seller?.province)}</p>
+                    <p className="small text-dark mb-0 text-muted" style={{fontSize: '11px'}}><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1"/> GPS: {selectedSupplier.seller?.latitude || 'N/A'}, {selectedSupplier.seller?.longitude || 'N/A'}</p>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="small text-dark mb-2"><strong>Telemóvel Comercial:</strong> <br/>{selectedSupplier.seller?.phoneNumberAccount || selectedSupplier.seller?.contact || 'N/A'}</p>
+                  </div>
+
+                  <div className="bg-light p-3 rounded-4 border border-success border-opacity-25">
+                    <h6 className="fw-bold text-dark mb-3 small"><FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-2"/> Conta Bancária</h6>
+                    <div className="d-flex flex-column gap-2">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="small text-muted">M-Pesa:</span>
+                        <span className="small fw-bold text-dark">{selectedSupplier.seller?.phoneNumberAccount || 'N/A'}</span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="small text-muted">e-Mola:</span>
+                        <span className="small fw-bold text-dark">{selectedSupplier.seller?.alternativePhoneNumberAccount || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 

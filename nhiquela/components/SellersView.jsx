@@ -5,6 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import SellerCard from './SellerCard';
 import api from '../hooks/createConnectionApi';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import io from 'socket.io-client';
+
+const isDev = process.env.NODE_ENV !== 'production';
+const SOCKET_URL = typeof api === 'string' ? api : (api.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://api.nhiquelaservicos.com'));
+const socket = io(`${SOCKET_URL}`);
 
 const SellersView = ({ title, description }) => {
   const navigation = useNavigation();
@@ -15,9 +20,16 @@ const SellersView = ({ title, description }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/providers?type=Business');
+      const timestamp = new Date().getTime();
+      const response = await api.get(`/users/sellers?pageSize=10&t=${timestamp}`);
+      console.log('--- SELLERS VIEW API RESPONSE ---');
+      console.log('Status:', response.status);
+      console.log('Data:', JSON.stringify(response.data).substring(0, 200)); // Log first 200 chars
       if (response.status === 200) {
-        setSellers(response.data.providers.slice(0, 10)); // Limit to 10
+        // The /users/sellers endpoint returns an object with a 'sellers' property
+        const fetchedSellers = response.data.sellers || (Array.isArray(response.data) ? response.data : []);
+        console.log('Fetched Sellers length:', fetchedSellers.length);
+        setSellers(fetchedSellers);
       }
     } catch (error) {
       console.error('Erro ao buscar vendedores:', error);
@@ -33,6 +45,28 @@ const SellersView = ({ title, description }) => {
       fetchData();
     }, [])
   );
+
+  // Escuta actualizações do estado da loja em tempo real
+  useEffect(() => {
+    const handleStoreStatus = ({ userId, isOpen }) => {
+      if (!userId) return;
+      
+      setSellers(prev => {
+        if (!prev) return prev;
+        return prev.map(s => 
+          String(s._id) === String(userId) 
+            ? { ...s, seller: { ...s.seller, openstore: isOpen } } 
+            : s
+        );
+      });
+    };
+
+    socket.on("storeStatusChanged", handleStoreStatus);
+
+    return () => {
+      socket.off("storeStatusChanged", handleStoreStatus);
+    };
+  }, []);
 
 
   return (
@@ -52,21 +86,21 @@ const SellersView = ({ title, description }) => {
         showsHorizontalScrollIndicator={false}
       >
         {sellers && sellers.length > 0 ? (
-          sellers.map(seller => (
+          sellers.map(item => (
             <SellerCard
-              key={seller._id}
-              id={seller._id}
-              name={seller.name}
-              logo={seller.businessData?.logo || 'https://via.placeholder.com/65'}
-              description={seller.businessData?.description}
-              rating={seller.rating}
-              numReviews={seller.numReviews}
-              province={seller.location?.province}
-              tipoEstabelecimento={seller.categoryId}
-              address={seller.location?.address}
-              latitude={seller.location?.lat}
-              longitude={seller.location?.lng}
-              openstore={seller.businessData?.isOpen}
+              key={item._id}
+              id={item._id}
+              name={item.seller?.name || item.name}
+              description={item.seller?.description}
+              logo={item.seller?.logo || 'https://via.placeholder.com/65'}
+              rating={item.seller?.rating || item.rating || 0}
+              numReviews={item.seller?.numReviews || 0}
+              province={item.location?.province}
+              tipoEstabelecimento={item.seller?.tipoEstabelecimento}
+              address={item.seller?.address || item.location?.address}
+              latitude={item.seller?.latitude || item.location?.lat}
+              longitude={item.seller?.longitude || item.location?.lng}
+              openstore={item.seller?.openstore !== false}
             />
           ))
         ) : (

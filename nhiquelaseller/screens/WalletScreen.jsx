@@ -52,6 +52,23 @@ const WalletScreen = ({ navigation }) => {
     init();
   }, []);
 
+  // Listen to realtime socket updates
+  const socket = require('../hooks/useSocket').default(userData?._id);
+  useEffect(() => {
+    if (socket && userData) {
+      const handleWalletUpdated = async () => {
+        console.log('🔄 Sockets: Recebeu walletUpdated, atualizando carteira...');
+        await loadWallet(userData);
+      };
+      
+      socket.on('walletUpdated', handleWalletUpdated);
+      
+      return () => {
+        socket.off('walletUpdated', handleWalletUpdated);
+      };
+    }
+  }, [socket, userData]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     const user = await loadUserData();
@@ -68,29 +85,39 @@ const WalletScreen = ({ navigation }) => {
 
   const renderTransaction = ({ item }) => {
     const isCredit = item.type === 'credit';
+    const isPending = item.status === 'pendente';
+    const isFailed = item.status === 'falhado';
+    const statusColor = isPending ? '#F59E0B' : (isFailed ? COLORS.error : (isCredit ? COLORS.success : COLORS.text));
+    const iconColor = isPending ? '#F59E0B' : (isFailed ? COLORS.error : (isCredit ? COLORS.success : COLORS.error));
+    const iconBg = isPending ? '#FEF3C7' : (isFailed ? COLORS.errorBg : (isCredit ? COLORS.successBg : COLORS.errorBg));
+
     return (
       <View style={styles.txCard}>
-        <View style={[styles.txIconBox, { backgroundColor: isCredit ? COLORS.successBg : COLORS.errorBg }]}>
+        <View style={[styles.txIconBox, { backgroundColor: iconBg }]}>
           <Ionicons
-            name={isCredit ? 'arrow-down-circle' : 'arrow-up-circle'}
+            name={isPending ? 'time-outline' : (isFailed ? 'close-circle' : (isCredit ? 'arrow-down-circle' : 'arrow-up-circle'))}
             size={24}
-            color={isCredit ? COLORS.success : COLORS.error}
+            color={iconColor}
           />
         </View>
         <View style={{ flex: 1, marginHorizontal: 12 }}>
-          <Text style={styles.txType}>{isCredit ? 'Entrada' : 'Saída'}</Text>
+          <Text style={styles.txType}>
+            {isCredit ? 'Entrada' : 'Saída'}
+            {isPending && ' (Pendente)'}
+            {isFailed && ' (Rejeitado)'}
+          </Text>
           <Text style={styles.txDesc} numberOfLines={1}>{item.description || '—'}</Text>
           <Text style={styles.txDate}>{formatDate(item.date || item.createdAt)}</Text>
         </View>
-        <Text style={[styles.txAmount, { color: isCredit ? COLORS.success : COLORS.error }]}>
+        <Text style={[styles.txAmount, { color: statusColor, textDecorationLine: isFailed ? 'line-through' : 'none' }]}>
           {isCredit ? '+' : '-'}{Math.abs(item.amount).toFixed(2)} MT
         </Text>
       </View>
     );
   };
 
-  const totalIn = transactions.filter(t => t.type === 'credit').reduce((s, t) => s + (t.amount || 0), 0);
-  const totalOut = transactions.filter(t => t.type === 'debit').reduce((s, t) => s + (t.amount || 0), 0);
+  const totalIn = transactions.filter(t => t.type === 'credit' && t.status === 'confirmado').reduce((s, t) => s + (t.amount || 0), 0);
+  const totalOut = transactions.filter(t => t.type === 'debit' && t.status === 'confirmado').reduce((s, t) => s + (t.amount || 0), 0);
 
   if (loading) {
     return (
@@ -143,14 +170,14 @@ const WalletScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Botão de Levantamento */}
+            {/* Botão de Recarga */}
             <TouchableOpacity
               style={styles.withdrawBtn}
-              onPress={() => navigation.navigate('withdraw')}
+              onPress={() => navigation.navigate('TopUp')}
               activeOpacity={0.85}
             >
-              <Ionicons name="cash-outline" size={20} color="#fff" />
-              <Text style={styles.withdrawBtnText}>Solicitar Levantamento</Text>
+              <Ionicons name="add-circle-outline" size={20} color="#fff" />
+              <Text style={styles.withdrawBtnText}>Recarregar Carteira</Text>
               <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
 

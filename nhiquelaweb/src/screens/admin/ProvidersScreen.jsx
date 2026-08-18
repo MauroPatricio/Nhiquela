@@ -186,7 +186,7 @@ export default function ProvidersScreen() {
                       </span>
                     </td>
                     <td>
-                      <span className="text-dark small">{provider.categoryId?.name || 'N/A'}</span>
+                      <span className="text-dark small">{provider.subcategoryId?.name || provider.categoryId?.nome || provider.categoryId?.name || 'N/A'}</span>
                     </td>
                     <td>
                       {provider.userId ? (

@@ -28,6 +28,8 @@ const ProductCardView = ({ item }) => {
             distanceText = ` • ${(dist / 1000).toFixed(1)} km`;
         }
     }
+    // isSellerOpen vem do backend no produto; fallback: status != 'active'
+    const isSellerClosed = product.isSellerOpen === false || product.seller?.status === 'inactive' || product.seller?.status === 'suspended';
 
     return (
         <TouchableOpacity 
@@ -42,6 +44,12 @@ const ProductCardView = ({ item }) => {
                         source={{ uri: product.image }} 
                         style={styles.image} 
                     />
+                    
+                    {isSellerClosed && (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 5 }]}>
+                            <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Fechado</Text>
+                        </View>
+                    )}
                     
                     {/* Badges Flutuantes (Canto Superior Esquerdo) */}
                     <View style={styles.badgesContainer}>
@@ -68,7 +76,7 @@ const ProductCardView = ({ item }) => {
                     <View style={styles.supplierRow}>
                         <Ionicons name="storefront-outline" size={10} color="#7F00FF" />
                         <Text style={styles.supplier} numberOfLines={1}>
-                            {' '}{product.seller?.seller?.name || product.seller?.name || 'Fornecedor N/A'}
+                            {' '}{product.seller?.name || 'Fornecedor N/A'}
                             <Text style={styles.distanceText}>{distanceText}</Text>
                         </Text>
                     </View>
@@ -90,7 +98,12 @@ const ProductCardView = ({ item }) => {
                         </View>
                         
                         {/* Botão de Adicionar ao Carrinho (Rápido) */}
-                        <TouchableOpacity style={styles.addBtn} activeOpacity={0.7} onPress={() => navigation.navigate("ProductDetail", { item })}>
+                        <TouchableOpacity 
+                            style={[styles.addBtn, isSellerClosed && { backgroundColor: '#CCC' }]} 
+                            activeOpacity={0.7} 
+                            onPress={() => navigation.navigate("ProductDetail", { item })}
+                            disabled={isSellerClosed}
+                        >
                             <Ionicons name='add' size={20} color={'#FFF'} />
                         </TouchableOpacity>
                     </View>

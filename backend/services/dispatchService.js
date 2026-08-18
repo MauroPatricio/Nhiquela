@@ -28,6 +28,13 @@ class DispatchService {
         status: 'Disponível', // Garantir que está no estado ativo/disponível
         availability: 'active', // Motorista marcou-se como online na app
         'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
+        isBanned: { $ne: true },
+        isDeleted: { $ne: true },
+        $or: [
+          { blockedUntil: { $exists: false } },
+          { blockedUntil: null },
+          { blockedUntil: { $lt: new Date() } }
+        ],
         'locationGeo.coordinates.0': { $ne: 0 }, // Tem GPS válido
         'locationGeo.coordinates.1': { $ne: 0 },
         locationGeo: {

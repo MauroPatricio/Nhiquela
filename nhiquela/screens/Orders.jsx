@@ -3,7 +3,7 @@ import {
   TouchableOpacity, ScrollView, Animated, Dimensions, Alert, Modal
 } from 'react-native';
 import { Image } from 'expo-image';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -14,6 +14,39 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getRoute } from '../src/services/routingService';
 
 const { width } = Dimensions.get('window');
+
+const OrderCountdown = memo(({ createdAt }) => {
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    const createdAtTime = new Date(createdAt).getTime();
+    const endTime = createdAtTime + 15 * 60 * 1000; // 15 minutes
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = Math.max(0, Math.floor((endTime - now) / 1000));
+      setTimeLeft(diff);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  if (timeLeft <= 0) return null;
+
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  const timeFormatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginTop: 6 }}>
+      <Ionicons name="timer-outline" size={14} color="#D97706" style={{ marginRight: 4 }} />
+      <Text style={{ fontSize: 11, color: '#D97706', fontWeight: '700' }}>Tempo limite: </Text>
+      <Text style={{ fontSize: 11, color: '#D97706', fontWeight: '700', fontVariant: ['tabular-nums'], width: 36, textAlign: 'right' }}>{timeFormatted}</Text>
+    </View>
+  );
+});
 
 const Orders = () => {
   const navigation = useNavigation();
@@ -62,27 +95,7 @@ const Orders = () => {
     }
   };
 
-  const checkIfUserExist = async () => {
-    try {
-      setIsLoading(true);
-      const storedUserData = await AsyncStorage.getItem('userData');
-      const storedUserId = await AsyncStorage.getItem('id');
-      
-      if (storedUserData && storedUserId) {
-        const parsedUserData = JSON.parse(storedUserData);
-        if (parsedUserData._id === storedUserId) {
-          setUserData(parsedUserData);
-          setUserLogin(true);
-          return; // fetchData será chamado pelo useEffect do userData
-        }
-      }
-      setUserLogin(false);
-      setIsLoading(false);
-    } catch (error) {
-      setUserLogin(false);
-      setIsLoading(false);
-    }
-  };
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -108,16 +121,19 @@ const Orders = () => {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
-  const fetchData = async (isRefresh = false) => {
+  const fetchData = async (isRefresh = false, token = null) => {
     try {
       if (!isRefresh) setIsLoading(true);
-      if (!userData?.token) {
+      
+      const authToken = token || userData?.token;
+      
+      if (!authToken) {
         setIsLoading(false);
         if (isRefresh) setRefreshing(false);
         return;
       }
       const { data } = await api.get('/orders/mine', {
-        headers: { Authorization: `Bearer ${userData.token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       setOrders(data || []);
     } catch (error) {
@@ -151,25 +167,52 @@ const Orders = () => {
     fetchData(true);
   }, [userData]);
 
-  useEffect(() => {
-    checkIfUserExist();
-    getCurrentLocation();
-  }, []);
-
-  useEffect(() => {
-    if (userData) fetchData();
-  }, [userData]);
-
   useFocusEffect(
     useCallback(() => {
-      checkIfUserExist();
+      let isActive = true;
+      
+      const loadInitialData = async () => {
+        setIsLoading(true);
+        try {
+          const storedUserData = await AsyncStorage.getItem('userData');
+          const storedUserId = await AsyncStorage.getItem('id');
+          
+          if (storedUserData && storedUserId) {
+            const parsedUserData = JSON.parse(storedUserData);
+            if (parsedUserData._id === storedUserId) {
+              if (isActive) {
+                setUserData(parsedUserData);
+                setUserLogin(true);
+                // Call fetchData with the token directly to avoid state delay
+                await fetchData(false, parsedUserData.token);
+              }
+            } else {
+              if (isActive) {
+                setUserLogin(false);
+                setIsLoading(false);
+              }
+            }
+          } else {
+             if (isActive) {
+               setUserLogin(false);
+               setIsLoading(false);
+             }
+          }
+        } catch (error) {
+          if (isActive) {
+            setUserLogin(false);
+            setIsLoading(false);
+          }
+        }
+      };
+
+      loadInitialData();
+      getCurrentLocation();
+      
+      return () => {
+        isActive = false;
+      };
     }, [])
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (userData) fetchData();
-    }, [userData])
   );
 
   const [etas, setEtas] = useState({});
@@ -213,29 +256,6 @@ const Orders = () => {
     fetchEtas();
   }, [orders, currentLocation]);
 
-  const [currentTimes, setCurrentTimes] = useState({});
-  useEffect(() => {
-    let interval = setInterval(() => {
-      if (orders && orders.length > 0) {
-        const newTimes = {};
-        const now = new Date().getTime();
-        orders.forEach(order => {
-          const isTripActive = order.status === 'No destino indicado' || 
-                               order.status === 'Em Trânsito' || 
-                               order.status === 'A Caminho do Destino' ||
-                               order.stepStatus === 5 || order.stepStatus === 6;
-          if (isTripActive && order.updatedAt) {
-            const startTime = new Date(order.updatedAt).getTime();
-            const diffInSeconds = Math.floor((now - startTime) / 1000);
-            newTimes[order._id] = diffInSeconds > 0 ? diffInSeconds : 0;
-          }
-        });
-        setCurrentTimes(newTimes);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [orders]);
-
   // Mapa de serviço -> ícone
   const getServiceIcon = (name) => {
     if (!name) return { icon: 'help-circle-outline', color: '#6B7280', bg: '#F3F4F6' };
@@ -255,11 +275,17 @@ const Orders = () => {
 
     let timeMinutes = etas[item._id] || null;
 
-    const sellerName = item?.seller?.seller?.name || item?.name || item?.goodType || 'Serviço';
+    const isOrder = !!item.orderItems;
+    const storeName = item.seller?.name || item.seller?.seller?.name || 'Fornecedor';
+    const categoryName = item.seller?.categoryId?.nome || item.seller?.categoryId?.name;
+    const categoryLabel = categoryName ? `Compra de ${categoryName}` : 'Compra';
+    const sellerName = isOrder ? storeName : (item?.seller?.seller?.name || item?.name || item?.goodType || 'Serviço');
     const sellerLogo = item?.seller?.seller?.logo || 'https://via.placeholder.com/60';
     const code = item?.code || '---';
 
-    const serviceInfo = getServiceIcon(item.name);
+    const serviceInfo = isOrder 
+      ? { icon: 'basket-outline', color: '#9333EA', bg: '#F3E8FF' }
+      : getServiceIcon(item.name);
 
     // Verificação de motorista atribuído
     const driverName = item?.deliveryman?.name;
@@ -305,9 +331,17 @@ const Orders = () => {
             )}
             <View style={{ flex: 1 }}>
               <Text style={styles.orderTitle} numberOfLines={1}>
-                {driverName ? driverName : (item.name || sellerName)}
+                {isOrder ? categoryLabel : (driverName ? driverName : (item.name || sellerName))}
               </Text>
+              {isOrder && (
+                <Text style={{ fontSize: 13, color: '#4B5563', fontWeight: '600', marginTop: 2, marginBottom: 2 }} numberOfLines={1}>
+                  Fornecedor: {storeName}
+                </Text>
+              )}
               <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
+              {isOrder && item.status === 'Pendente' && (
+                <OrderCountdown createdAt={item.createdAt} />
+              )}
             </View>
           </View>
           <View style={[
@@ -327,23 +361,27 @@ const Orders = () => {
         <View style={styles.cardBody}>
           <View style={styles.priceRow}>
             <Text style={styles.orderCode}>Pedido: #{code}</Text>
-            <Text style={styles.orderPrice}>{item.totalPrice ?? item.deliveryPrice ?? '---'} MT</Text>
+            <Text style={styles.orderPrice}>
+              {typeof (item.totalPrice ?? item.deliveryPrice) === 'number'
+                ? parseFloat(item.totalPrice ?? item.deliveryPrice).toFixed(2)
+                : '---'} MT
+            </Text>
           </View>
 
-          {/* Início Histórico Origem e Destino */}
-          {(item.originDetails || item.origin) && (
+          {/* Origem e Destino */}
+          {(item.originDetails?.address || item.origin || item.deliveryAddress?.address) && (
             <View style={styles.routeContainer}>
               <View style={styles.routePoint}>
                 <Ionicons name="location" size={16} color="#EF4444" />
                 <Text style={styles.routeText} numberOfLines={2}>
-                  {item.originDetails?.address || item.origin}
+                  {item.originDetails?.address || item.origin || 'Origem'}
                 </Text>
               </View>
               <Ionicons name="arrow-down" size={16} color="#9CA3AF" style={{ marginLeft: 2, marginVertical: 4 }} />
               <View style={styles.routePoint}>
                 <Ionicons name="location" size={16} color="#10B981" />
                 <Text style={styles.routeText} numberOfLines={2}>
-                  {item.destinationDetails?.address || item.destination || '---'}
+                  {item.destinationDetails?.address || item.destination || item.deliveryAddress?.address || 'Destino não definido'}
                 </Text>
               </View>
             </View>

@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [hideText, setHideText] = useState(true);
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [passFocused, setPassFocused] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const handleForgotPassword = () => {
     if (phoneNumber.length < 9) {
@@ -42,11 +43,11 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     if (!phoneNumber || !/^\d{9}$/.test(phoneNumber)) {
-      toast.show("O telefone deve ter exatamente 9 dígitos", { type: 'danger', placement: 'top' });
+      setLoginError("O telefone deve ter exatamente 9 dígitos");
       return;
     }
     if (!password || password.length < 6) {
-      toast.show("A senha deve ter no mínimo 6 caracteres", { type: 'danger', placement: 'top' });
+      setLoginError("A senha deve ter no mínimo 6 caracteres");
       return;
     }
 
@@ -62,9 +63,7 @@ export default function LoginPage() {
 
       navigation.reset({ index: 0, routes: [{ name: 'BottomNavigation' }] });
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Erro ao fazer login', {
-        type: 'danger', placement: 'top', duration: 4000,
-      });
+      setLoginError(err.response?.data?.message || 'Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -121,7 +120,7 @@ export default function LoginPage() {
                 value={phoneNumber}
                 keyboardType="numeric"
                 maxLength={9}
-                onChangeText={setPhoneNumber}
+                onChangeText={(text) => { setPhoneNumber(text); if (loginError) setLoginError(''); }}
                 onFocus={() => setPhoneFocused(true)}
                 onBlur={() => setPhoneFocused(false)}
               />
@@ -137,7 +136,7 @@ export default function LoginPage() {
                 secureTextEntry={hideText}
                 style={[styles.inputText, { flex: 1 }]}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => { setPassword(text); if (loginError) setLoginError(''); }}
                 onFocus={() => setPassFocused(true)}
                 onBlur={() => setPassFocused(false)}
               />
@@ -153,6 +152,20 @@ export default function LoginPage() {
             <TouchableOpacity style={styles.forgotBtn} onPress={handleForgotPassword}>
               <Text style={styles.forgotText}>Esqueci a palavra-passe</Text>
             </TouchableOpacity>
+
+            {/* Login Error Card */}
+            {loginError ? (
+              <View style={styles.loginErrorCard}>
+                <Ionicons name="warning" size={24} color="#FFF" />
+                <View style={styles.loginErrorTextContainer}>
+                  <Text style={styles.loginErrorTitle}>Falha no Login</Text>
+                  <Text style={styles.loginErrorDesc}>{loginError}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setLoginError('')} style={styles.loginErrorClose}>
+                  <Ionicons name="close" size={20} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             {/* Botão Login */}
             <TouchableOpacity
@@ -197,6 +210,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  
+  // Premium Error Card
+  loginErrorCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.error,
+    padding: 16,
+    borderRadius: RADIUS.lg,
+    marginBottom: 20,
+    alignItems: 'center',
+    ...SHADOWS.medium
+  },
+  loginErrorTextContainer: {
+    flex: 1,
+    marginLeft: 12
+  },
+  loginErrorTitle: {
+    color: '#FFF',
+    fontSize: SIZES.base,
+    fontWeight: 'bold',
+    marginBottom: 2
+  },
+  loginErrorDesc: {
+    color: '#FFF',
+    fontSize: SIZES.sm,
+    opacity: 0.9,
+    lineHeight: 18
+  },
+  loginErrorClose: {
+    padding: 4
+  },
+  
   scroll: {
     flexGrow: 1,
   },

@@ -2,6 +2,7 @@ import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
 import Provider from '../models/ProviderModel.js';
 import { isAuth, isAdmin } from '../utils.js';
+import { getActiveProviderIds } from './productRoutes.js';
 
 const providerRouter = express.Router();
 
@@ -24,13 +25,18 @@ providerRouter.get(
         }
       } else {
         query.status = 'active'; // Default to only active providers
+        query.categoryId = { $exists: true, $ne: null }; // Only providers with Tipo de Prestador
+        const activeProviderIds = await getActiveProviderIds();
+        query._id = { $in: activeProviderIds };
       }
 
       const providers = await Provider.find(query)
-        .populate('userId', 'name email phoneNumber')
-        .populate('categoryId', 'name')
+        .populate('userId', 'name email phoneNumber seller.logo seller.description seller.rating')
+        .populate({ path: 'categoryId', model: 'TipoEstabelecimento', select: 'nome' })
+        .populate('subcategoryId', 'name')
         .populate('location.province', 'name')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
       res.send({ providers, count: providers.length });
     } catch (error) {
@@ -46,7 +52,8 @@ providerRouter.get(
   expressAsyncHandler(async (req, res) => {
     try {
       const { lat, lng, type, radius = 50 } = req.query;
-      const query = { status: 'active' };
+      const activeProviderIds = await getActiveProviderIds();
+      const query = { status: 'active', _id: { $in: activeProviderIds } };
       if (type) query.providerType = type;
 
       // Simplistic nearby logic (for real geo queries, use MongoDB 2dsphere index)

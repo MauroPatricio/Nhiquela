@@ -32,6 +32,7 @@ const basketSlice = createSlice({
     onSale: false,
     discount: 0,
     price: 0,
+    selectedVehicle: null,
   },
   reducers: {
     addToBasket: (state, action) => {
@@ -118,6 +119,7 @@ const basketSlice = createSlice({
         discount: 0,
         price: 0,
         totalSellerEarningsAfterDiscount: 0,
+        selectedVehicle: null,
       });
     },
 
@@ -137,6 +139,10 @@ const basketSlice = createSlice({
         state.sellers.push(newSeller);
       }
     },
+
+    setSelectedVehicle: (state, action) => {
+      state.selectedVehicle = action.payload;
+    },
   },
 });
 
@@ -152,6 +158,7 @@ export const {
   clearBasket,
   clearSellers,
   addAddress,
+  setSelectedVehicle,
 } = basketSlice.actions;
 
 // --- Selectors defensivos ---
@@ -230,5 +237,18 @@ export const selectBasketItemsWithId = (id) =>
 // --- Reducer ---
 export default basketSlice.reducer;
 
+const loggerMiddleware = storeAPI => next => action => {
+  if (typeof action === 'undefined') {
+    console.error("🚨 ERRO CRÍTICO: DISPATCH DE ACTION UNDEFINED 🚨");
+    console.error(new Error().stack);
+  }
+  return next(action);
+};
+
 // Store
-export const store = configureStore({ reducer: { basket: basketSlice.reducer } });
+export const store = configureStore({ 
+  reducer: { basket: basketSlice.reducer },
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware({
+    serializableCheck: false
+  }).concat(loggerMiddleware)
+});

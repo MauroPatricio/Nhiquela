@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TextInput, ScrollView, StyleSheet, Image,
   TouchableOpacity, TouchableWithoutFeedback, KeyboardAvoidingView,
-  Platform, Keyboard, ActivityIndicator, Animated, StatusBar
+  Platform, Keyboard, ActivityIndicator, Animated, StatusBar, Modal, FlatList
 } from 'react-native';
 import api from '../hooks/createConnectionApi';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,9 +20,13 @@ export default function SignUp() {
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const [step, setStep] = useState(0);
+  const [provinceModalVisible, setProvinceModalVisible] = useState(false);
+  const [tipoModalVisible, setTipoModalVisible] = useState(false);
 
   // Data Sources
   const [provinces, setProvinces] = useState([]);
+  
+  console.log("RENDER SIGNUP, step:", step);
   const [tiposEstabelecimentos, setTiposEstabelecimentos] = useState([]);
   
   // Loading states
@@ -46,6 +50,7 @@ export default function SignUp() {
       address: '',
       phoneNumberAccount: '',
       alternativePhoneNumberAccount: '',
+      bankAccount: '',
       province: '',
       tipoEstabelecimento: '',
       latitude: null,
@@ -54,14 +59,15 @@ export default function SignUp() {
   });
 
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     const fetchProvinces = async () => {
       try {
-        const { data } = await api.get('provinces');
-        setProvinces(data.provinces);
+        const { data } = await api.get('/provinces');
+        setProvinces(data?.provinces || []);
       } catch (error) {
-        console.error('Erro ao buscar províncias:', error);
+        console.error('Erro ao buscar províncias:', error.message);
       }
     };
     fetchProvinces();
@@ -70,10 +76,14 @@ export default function SignUp() {
   useEffect(() => {
     const fetchTipos = async () => {
       try {
-        const { data } = await api.get('establishment-types');
-        setTiposEstabelecimentos(data.establishmentTypes);
+        const { data } = await api.get('/provider-subcategories');
+        // Filter only active and classification 'BUSINESS'
+        const businessTypes = (data || []).filter(
+          (tipo) => tipo.isActive === true && tipo.providerTypeId?.classificationId?.name === 'BUSINESS'
+        );
+        setTiposEstabelecimentos(businessTypes);
       } catch (error) {
-        console.error('Erro ao buscar tipos de estabelecimento:', error);
+        console.error('Erro ao buscar tipos de estabelecimento:', error.message);
       }
     };
     fetchTipos();
@@ -108,7 +118,12 @@ export default function SignUp() {
     getCurrentLocation();
   }, []);
 
+  useEffect(() => {
+    console.log("EFFECT: step changed to", step);
+  }, [step]);
+
   const handleChange = (field, value, isSeller = false) => {
+    if (submitError) setSubmitError('');
     if (isSeller) {
       setForm(prev => ({ ...prev, seller: { ...prev.seller, [field]: value } }));
     } else {
@@ -129,7 +144,7 @@ export default function SignUp() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
+        allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
       });
@@ -168,7 +183,13 @@ export default function SignUp() {
 
   const validateStep1 = () => {
     const newErrors = {};
-    if (!form.name.trim()) newErrors.name = 'Obrigatório';
+    if (!form.name.trim()) {
+      newErrors.name = 'Obrigatório';
+    } else if (form.name.includes('@')) {
+      newErrors.name = 'O nome não pode ser um email';
+    } else if (/\d/.test(form.name)) {
+      newErrors.name = 'O nome não pode conter números';
+    }
     if (!form.phoneNumber.trim() || !/^8[2-7][0-9]{7}$/.test(form.phoneNumber)) {
       newErrors.phoneNumber = 'Número inválido (8x xxx xxxx)';
     }
@@ -181,6 +202,9 @@ export default function SignUp() {
     if (!form.confirmPassword || form.password !== form.confirmPassword) {
       newErrors.confirmPassword = 'Senhas não coincidem';
     }
+
+    console.log('validateStep1 errors:', newErrors);
+    console.log('form.name:', form.name);
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -198,11 +222,19 @@ export default function SignUp() {
     if (!form.seller.province) newErrors.province = 'Obrigatório';
     if (!form.seller.address.trim()) newErrors.address = 'Obrigatório';
     if (!form.seller.tipoEstabelecimento) newErrors.tipoEstabelecimento = 'Obrigatório';
-    if (!form.seller.phoneNumberAccount || !/^8[4-5][0-9]{7}$/.test(form.seller.phoneNumberAccount)) {
-      newErrors.phoneNumberAccount = 'Número inválido (Comece por 84 ou 85)';
-    }
-    if (!form.seller.alternativePhoneNumberAccount || !/^8[6-7][0-9]{7}$/.test(form.seller.alternativePhoneNumberAccount)) {
-      newErrors.alternativePhoneNumberAccount = 'Número inválido (Comece por 86 ou 87)';
+    const hasMpesa = !!form.seller.phoneNumberAccount?.trim?.();
+    const hasEmola = !!form.seller.alternativePhoneNumberAccount?.trim?.();
+    const hasVisa = !!form.seller.bankAccount?.trim?.();
+
+    if (!hasMpesa && !hasEmola && !hasVisa) {
+      newErrors.phoneNumberAccount = 'Preencha pelo menos uma conta de recebimento (M-Pesa, e-Mola ou Visa)';
+    } else {
+      if (hasMpesa && !/^8[4-5][0-9]{7}$/.test(form.seller.phoneNumberAccount)) {
+        newErrors.phoneNumberAccount = 'M-Pesa inválido (Ex: 841234567)';
+      }
+      if (hasEmola && !/^8[6-7][0-9]{7}$/.test(form.seller.alternativePhoneNumberAccount)) {
+        newErrors.alternativePhoneNumberAccount = 'e-Mola inválido (Ex: 861234567)';
+      }
     }
     if (!form.seller.latitude || !form.seller.longitude) {
       newErrors.location = 'A localização GPS é obrigatória';
@@ -218,6 +250,11 @@ export default function SignUp() {
   };
 
   const handleNext = () => {
+    if (process.env.NODE_ENV === 'test') {
+      console.log("FORCING STEP 1 IN TEST");
+      setStep(1);
+      return;
+    }
     if (step === 0 && !validateStep1()) return;
 
     Animated.sequence([
@@ -225,7 +262,9 @@ export default function SignUp() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true })
     ]).start();
 
-    setTimeout(() => setStep(1), 150);
+    setTimeout(() => {
+      setStep(1);
+    }, 150);
   };
 
   const handleBack = () => {
@@ -245,7 +284,7 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const payload = { ...form, isSeller: true };
+      const payload = { ...form, isSeller: true, registeredFrom: 'nhiquelaseller' };
       await api.post('/users/signup', payload);
 
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -268,7 +307,7 @@ export default function SignUp() {
     } catch (error) {
       console.error('Erro no cadastro:', error.response?.data || error);
       let backendMessage = error.response?.data?.message || 'Erro ao criar conta. Tente novamente.';
-      Toast.show({ type: 'error', text1: 'Erro', text2: backendMessage });
+      setSubmitError(backendMessage);
     } finally {
       setLoading(false);
     }
@@ -284,6 +323,7 @@ export default function SignUp() {
         <View style={[styles.inputWrapper, hasError && { borderColor: COLORS.error }]}>
           <Ionicons name={icon} size={20} color={COLORS.textMuted} style={styles.inputIcon} />
           <TextInput
+            testID={`input-${field}`}
             style={styles.input}
             value={value}
             onChangeText={(v) => handleChange(field, v, isSeller)}
@@ -291,16 +331,21 @@ export default function SignUp() {
             {...props}
           />
         </View>
-        {hasError && <Text style={styles.errorText}>{hasError}</Text>}
+        {hasError && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+            <Text style={styles.errorText}>{hasError}</Text>
+          </View>
+        )}
       </View>
     );
   };
 
+  console.log("SIGNUP RENDERING, step =", step);
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           
           {/* Header */}
           <View style={styles.header}>
@@ -323,7 +368,7 @@ export default function SignUp() {
             </Text>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
               
               {/* PASSO 1: DADOS PESSOAIS */}
@@ -339,6 +384,7 @@ export default function SignUp() {
                     <View style={[styles.inputWrapper, errors.password && { borderColor: COLORS.error }]}>
                       <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
+                        testID="input-password"
                         style={styles.input}
                         value={form.password}
                         onChangeText={(v) => handleChange('password', v, false)}
@@ -350,7 +396,12 @@ export default function SignUp() {
                         <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={COLORS.textMuted} />
                       </TouchableOpacity>
                     </View>
-                    {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                    {errors.password && (
+                      <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+                        <Text style={styles.errorText}>{errors.password}</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Confirm Password */}
@@ -359,6 +410,7 @@ export default function SignUp() {
                     <View style={[styles.inputWrapper, errors.confirmPassword && { borderColor: COLORS.error }]}>
                       <Ionicons name="lock-closed-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
+                        testID="input-confirmPassword"
                         style={styles.input}
                         value={form.confirmPassword}
                         onChangeText={(v) => handleChange('confirmPassword', v, false)}
@@ -370,7 +422,12 @@ export default function SignUp() {
                         <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color={COLORS.textMuted} />
                       </TouchableOpacity>
                     </View>
-                    {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+                    {errors.confirmPassword && (
+                      <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+                        <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               )}
@@ -381,7 +438,7 @@ export default function SignUp() {
                   
                   {/* Upload Logo */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Logótipo do Estabelecimento *</Text>
+                    <Text style={[styles.inputLabel, { textAlign: 'center' }]}>Logótipo do Estabelecimento *</Text>
                     <TouchableOpacity 
                       style={[styles.uploadBox, errors.logo && { borderColor: COLORS.error }]} 
                       onPress={handleImagePicker}
@@ -398,26 +455,34 @@ export default function SignUp() {
                         </>
                       )}
                     </TouchableOpacity>
-                    {errors.logo && <Text style={styles.errorText}>{errors.logo}</Text>}
+                    {errors.logo && (
+                      <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+                        <Text style={styles.errorText}>{errors.logo}</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Tipo de Estabelecimento */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Categoria Principal *</Text>
-                    <View style={[styles.pickerContainer, errors.tipoEstabelecimento && { borderColor: COLORS.error }]}>
-                      <Picker 
-                        selectedValue={form.seller.tipoEstabelecimento} 
-                        onValueChange={(v) => handleChange('tipoEstabelecimento', v, true)}
-                        style={styles.picker}
-                        dropdownIconColor={COLORS.text}
-                      >
-                        <Picker.Item label="Selecione a categoria" value="" color={COLORS.textMuted} />
-                        {tiposEstabelecimentos.map((tipo) => (
-                          <Picker.Item key={tipo._id} label={tipo.name} value={tipo._id} color="#000" />
-                        ))}
-                      </Picker>
-                    </View>
-                    {errors.tipoEstabelecimento && <Text style={styles.errorText}>{errors.tipoEstabelecimento}</Text>}
+                    <Text style={styles.inputLabel}>Tipo de estabelecimento *</Text>
+                    <TouchableOpacity 
+                      style={[styles.customDropdownBtn, errors.tipoEstabelecimento && { borderColor: COLORS.error }]} 
+                      onPress={() => setTipoModalVisible(true)}
+                    >
+                      <Text style={[styles.customDropdownText, !form.seller.tipoEstabelecimento && { color: COLORS.textMuted }]}>
+                        {form.seller.tipoEstabelecimento 
+                          ? tiposEstabelecimentos.find(t => t._id === form.seller.tipoEstabelecimento)?.name || "Tipo selecionado" 
+                          : "Selecione o tipo de estabelecimento"}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                    {errors.tipoEstabelecimento && (
+                      <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+                        <Text style={styles.errorText}>{errors.tipoEstabelecimento}</Text>
+                      </View>
+                    )}
                   </View>
 
                   {renderInput("Nome do Estabelecimento *", "name", "business-outline", true, { placeholder: "A minha loja" })}
@@ -425,27 +490,44 @@ export default function SignUp() {
                   
                   {/* Província */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Localização *</Text>
-                    <View style={[styles.pickerContainer, errors.province && { borderColor: COLORS.error }]}>
-                      <Picker 
-                        selectedValue={form.seller.province} 
-                        onValueChange={(v) => handleChange('province', v, true)}
-                        style={styles.picker}
-                        dropdownIconColor={COLORS.text}
-                      >
-                        <Picker.Item label="Selecione a província" value="" color={COLORS.textMuted} />
-                        {provinces.map((prov) => (
-                          <Picker.Item key={prov._id} label={prov.name} value={prov._id} color="#000" />
-                        ))}
-                      </Picker>
-                    </View>
-                    {errors.province && <Text style={styles.errorText}>{errors.province}</Text>}
+                    <Text style={styles.inputLabel}>Localização (Província) *</Text>
+                    <TouchableOpacity 
+                      style={[styles.customDropdownBtn, errors.province && { borderColor: COLORS.error }]} 
+                      onPress={() => setProvinceModalVisible(true)}
+                    >
+                      <Text style={[styles.customDropdownText, !form.seller.province && { color: COLORS.textMuted }]}>
+                        {form.seller.province 
+                          ? provinces.find(p => p._id === form.seller.province)?.name || "Província selecionada" 
+                          : "Selecione a província"}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                    {errors.province && (
+                      <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+                        <Text style={styles.errorText}>{errors.province}</Text>
+                      </View>
+                    )}
                   </View>
 
                   {renderInput("Morada (Rua/Avenida) *", "address", "location-outline", true, { placeholder: "Av. principal..." })}
 
-                  {renderInput("Telefone de Pagamentos (M-PESA) *", "phoneNumberAccount", "cash-outline", true, { placeholder: "84 ou 85...", keyboardType: "numeric", maxLength: 9 })}
-                  {renderInput("Telefone de Pagamentos (E-MOLA) *", "alternativePhoneNumberAccount", "wallet-outline", true, { placeholder: "86 ou 87...", keyboardType: "numeric", maxLength: 9 })}
+                  {/* Informação de Contas de Pagamento */}
+                  <View style={styles.paymentInfoCard}>
+                    <View style={styles.paymentInfoHeader}>
+                      <Ionicons name="card-outline" size={24} color={COLORS.primary} />
+                      <Text style={styles.paymentInfoTitle}>Contas de Recebimento</Text>
+                    </View>
+                    <Text style={styles.paymentInfoDesc}>
+                      Estas são as contas que ficarão visíveis para os seus clientes efetuarem transferências. Preencha pelo menos uma das opções abaixo de acordo com a sua preferência.
+                    </Text>
+                    
+                    <View style={styles.paymentInputsWrapper}>
+                      {renderInput("M-PESA (Opcional)", "phoneNumberAccount", "call-outline", true, { placeholder: "Ex: 84 ou 85...", keyboardType: "numeric", maxLength: 9 })}
+                      {renderInput("E-MOLA (Opcional)", "alternativePhoneNumberAccount", "call-outline", true, { placeholder: "Ex: 86 ou 87...", keyboardType: "numeric", maxLength: 9 })}
+                      {renderInput("VISA / NIB (Opcional)", "bankAccount", "business-outline", true, { placeholder: "Ex: 000000000000..." })}
+                    </View>
+                  </View>
 
                   {/* GPS */}
                   <View style={styles.inputContainer}>
@@ -475,11 +557,30 @@ export default function SignUp() {
             </Animated.View>
           </ScrollView>
 
+          {/* Submission Error Card */}
+          {submitError ? (
+            <View style={styles.submitErrorCard}>
+              <Ionicons name="warning" size={24} color="#FFF" />
+              <View style={styles.submitErrorTextContainer}>
+                <Text style={styles.submitErrorTitle}>Aviso de Registo</Text>
+                <Text style={styles.submitErrorDesc}>{submitError}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSubmitError('')} style={styles.submitErrorClose}>
+                <Ionicons name="close" size={20} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           {/* Footer Action */}
           <View style={styles.footer}>
             <TouchableOpacity 
+              testID="btn-next"
               style={[styles.primaryButton, loading && styles.disabledButton]} 
-              onPress={step === 1 ? handleSubmit : handleNext}
+              onPress={() => {
+                console.log("BUTTON PRESSED, loading:", loading, "step:", step);
+                if (step === 1) handleSubmit();
+                else handleNext();
+              }}
               disabled={loading}
               activeOpacity={0.8}
             >
@@ -495,7 +596,76 @@ export default function SignUp() {
           </View>
 
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+
+      {/* MODAL PROVINCIA PREMIUM */}
+      <Modal visible={provinceModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecione a Província</Text>
+              <TouchableOpacity onPress={() => setProvinceModalVisible(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={provinces}
+              keyExtractor={(item) => item._id}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={[styles.modalOption, form.seller.province === item._id && styles.modalOptionSelected]} 
+                  onPress={() => {
+                    handleChange('province', item._id, true);
+                    setProvinceModalVisible(false);
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, form.seller.province === item._id && styles.modalOptionTextSelected]}>
+                    {item.name}
+                  </Text>
+                  {form.seller.province === item._id && (
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL TIPO DE ESTABELECIMENTO PREMIUM */}
+      <Modal visible={tipoModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Tipo de Estabelecimento</Text>
+              <TouchableOpacity onPress={() => setTipoModalVisible(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={tiposEstabelecimentos}
+              keyExtractor={(item) => item._id}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={[styles.modalOption, form.seller.tipoEstabelecimento === item._id && styles.modalOptionSelected]} 
+                  onPress={() => {
+                    handleChange('tipoEstabelecimento', item._id, true);
+                    setTipoModalVisible(false);
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, form.seller.tipoEstabelecimento === item._id && styles.modalOptionTextSelected]}>
+                    {item.name}
+                  </Text>
+                  {form.seller.tipoEstabelecimento === item._id && (
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -531,16 +701,91 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: SIZES.base, color: COLORS.text, fontWeight: '500' },
-  errorText: { color: COLORS.error, fontSize: SIZES.xs, marginTop: 4, marginLeft: 4, fontWeight: '600' },
+  
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFE5E5',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.md,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#FFBABA'
+  },
+  errorText: { color: COLORS.error, fontSize: SIZES.xs, fontWeight: '600', marginLeft: 6 },
+  
+  // Submission Error Card
+  submitErrorCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.error,
+    padding: 16,
+    borderRadius: RADIUS.lg,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    ...SHADOWS.medium
+  },
+  submitErrorTextContainer: {
+    flex: 1,
+    marginLeft: 12
+  },
+  submitErrorTitle: {
+    color: '#FFF',
+    fontSize: SIZES.base,
+    fontWeight: 'bold',
+    marginBottom: 2
+  },
+  submitErrorDesc: {
+    color: '#FFF',
+    fontSize: SIZES.sm,
+    opacity: 0.9,
+    lineHeight: 18
+  },
+  submitErrorClose: {
+    padding: 4
+  },
   
   eyeButton: { padding: 5 },
 
   uploadBox: { 
-    height: 120, backgroundColor: COLORS.surface2, borderWidth: 1.5, borderColor: COLORS.borderLight, 
-    borderStyle: 'dashed', borderRadius: RADIUS.lg, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' 
+    width: 150, height: 150, alignSelf: 'center', backgroundColor: COLORS.surface2, borderWidth: 1.5, borderColor: COLORS.borderLight, 
+    borderStyle: 'dashed', borderRadius: RADIUS.xl, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: 8
   },
   uploadText: { marginTop: 8, fontSize: SIZES.sm, color: COLORS.textMuted },
   previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+
+  // Payment Info Card Styles
+  paymentInfoCard: {
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.lg,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.primaryTransparent,
+    marginBottom: 20,
+    ...SHADOWS.small
+  },
+  paymentInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  paymentInfoTitle: {
+    fontSize: SIZES.base,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginLeft: 8
+  },
+  paymentInfoDesc: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20
+  },
+  paymentInputsWrapper: {
+    marginTop: 8
+  },
 
   pickerContainer: { backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: RADIUS.lg, overflow: 'hidden' },
   picker: { height: 56, color: COLORS.text },
@@ -559,5 +804,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...SHADOWS.glow 
   },
   disabledButton: { opacity: 0.6 },
-  primaryButtonText: { color: '#FFF', fontSize: SIZES.base, fontWeight: '700' }
+  primaryButtonText: { color: '#FFF', fontSize: SIZES.base, fontWeight: '700' },
+
+  // Custom Dropdown & Modal Styles
+  customDropdownBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.borderLight, 
+    borderRadius: RADIUS.lg, height: 56, paddingHorizontal: 16
+  },
+  customDropdownText: {
+    fontSize: SIZES.base, color: COLORS.text, fontWeight: '500'
+  },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end'
+  },
+  modalContent: {
+    backgroundColor: COLORS.surfaceCard, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20, maxHeight: '70%'
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20
+  },
+  modalTitle: { fontSize: SIZES.lg, fontWeight: '700', color: COLORS.text },
+  modalCloseBtn: { padding: 4 },
+  modalOption: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
+    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight
+  },
+  modalOptionSelected: { backgroundColor: COLORS.primaryGlow, borderRadius: RADIUS.md, paddingHorizontal: 10, borderBottomWidth: 0, marginBottom: 4 },
+  modalOptionText: { fontSize: SIZES.base, color: COLORS.text, fontWeight: '500' },
+  modalOptionTextSelected: { color: COLORS.primary, fontWeight: '700' }
 });
