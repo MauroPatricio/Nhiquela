@@ -14,6 +14,15 @@ class DispatchService {
     try {
       console.log(`[DispatchService] Iniciando despacho para o pedido ${order.code}`);
       
+      if (order.targetDriverId) {
+        console.log(`[DispatchService] Pedido ${order.code} tem motorista alvo específico: ${order.targetDriverId}`);
+        const targetDriver = await User.findById(order.targetDriverId).select('_id name deviceToken locationGeo');
+        if (targetDriver) {
+          this._pingDriversSequentially(order, [targetDriver], io);
+          return;
+        }
+      }
+
       const originDetails = order.originDetails;
       if (!originDetails || !originDetails.lat || !originDetails.lng) {
         console.error(`[DispatchService] Falha: O pedido ${order.code} não tem coordenadas válidas.`);

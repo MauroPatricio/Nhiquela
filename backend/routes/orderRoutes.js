@@ -428,58 +428,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
         await debitCommissionFromPartner(req.body.partnerId, parseFloat(req.body.itemsPriceForSeller), commissionRate);
       }
 
-      // --- SELLER WALLET LOGIC ---
-      const sellerUser = await getSellerUser(order.seller);
-      if (sellerUser && sellerUser.isSeller) {
-        if (!sellerUser.seller.hasUsedFreeSale) {
-          // First sale is free
-          sellerUser.seller.hasUsedFreeSale = true;
-          await sellerUser.save();
-        } else {
-          // Calculate and deduct fee
-          let feePercentage = 0.05; // default 5%
-          const Provider = mongoose.model('Provider');
-          const provider = await Provider.findById(order.seller);
-          const subcategoryRefId = provider?.subcategoryId || sellerUser.seller.tipoEstabelecimento;
-          if (subcategoryRefId) {
-            const subcategory = await ProviderSubcategory.findById(subcategoryRefId);
-            if (subcategory && subcategory.serviceCommission > 0) {
-              feePercentage = subcategory.serviceCommission / 100;
-            } else if (subcategory && subcategory.percentageFee > 0) {
-              feePercentage = subcategory.percentageFee / 100;
-            }
-          }
-          
-          const feeAmount = order.totalPrice * feePercentage;
-          
-          if (feeAmount > 0) {
-            // findOneAndUpdate com upsert evita o erro E11000 (userId null duplicado)
-            const sellerWallet = await Wallet.findOneAndUpdate(
-              { ownerId: sellerUser._id },
-              {
-                $setOnInsert: {
-                  ownerId: sellerUser._id,
-                  ownerType: 'seller',
-                  userId: sellerUser._id, // Preencher userId para satisfazer o indice unico legacy
-                },
-                $inc: { balance: -feeAmount },
-                $set: { updatedAt: new Date() }
-              },
-              { upsert: true, new: true }
-            );
-            
-            await Transaction.create({
-              walletId: sellerWallet._id,
-              type: 'debit',
-              amount: feeAmount,
-              method: 'commission',
-              description: `Comissão da venda - Pedido #${order.code}`,
-              status: 'confirmado'
-            });
-          }
-        }
-      }
-      // --- END SELLER WALLET LOGIC ---
+
 
       // Create a notification after the order is saved
       const mensagemCliente = `Olá! Seu pedido com o código ${order.code} foi criado com sucesso! Agora, aguarde a confirmação do fornecedor. Acompanhe o status do seu pedido diretamente no app. Obrigado por escolher a Nhiquela!`;
@@ -490,7 +439,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
 
       //toSeller
       if (sellerOfProduct?.deviceToken) {
-        await createNotification({
+        createNotification({
           message: mensagemVendedor,
           receiver_id: order.seller,
           sender_id: order.user,
@@ -501,7 +450,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
       
       //toOrderClient
       if (clientOfProduct?.deviceToken) {
-        await createNotification({
+        createNotification({
           message: mensagemCliente,
           receiver_id: order.user,
           sender_id: order.seller,
@@ -834,7 +783,7 @@ orderRouter.put(
 
     if (sellerOfProduct?.deviceToken) {
       //toSeller
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: updatedOrder.seller,
         sender_id: updatedOrder.user,
@@ -845,7 +794,7 @@ orderRouter.put(
 
     if (clientOfProduct?.deviceToken) {
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: updatedOrder.user,
         sender_id: updatedOrder.seller,
@@ -909,7 +858,7 @@ orderRouter.put(
 
     if (sellerOfProduct?.deviceToken) {
       //toSeller
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
@@ -920,7 +869,7 @@ orderRouter.put(
 
     if (clientOfProduct?.deviceToken) {
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.user,
         sender_id: order.seller,
@@ -953,6 +902,85 @@ orderRouter.put(
       order.stepStatus = 2;
       order.status = 'Aceite';
 
+      // --- SELLER WALLET DEDUCTION LOGIC ---
+      const sellerUser = await getSellerUser(order.seller);
+      if (sellerUser && sellerUser.isSeller) {
+        if (!sellerUser.seller.hasUsedFreeSale) {
+          // First sale is free
+          sellerUser.seller.hasUsedFreeSale = true;
+          await sellerUser.save();
+          console.log(`[respond] Primeira venda do fornecedor ${sellerUser.name} - isenção de comissão ativada.`);
+        } else {
+          // Calculate and deduct fee
+          let feePercentage = 0.15; // Default is now 15%
+          try {
+            const Settings = mongoose.model('Settings');
+            const commSetting = await Settings.findOne({ key: 'platform_commission_rate' });
+            if (commSetting && commSetting.value !== undefined) {
+              feePercentage = Number(commSetting.value) / 100;
+            }
+          } catch (err) {
+            console.log('Error fetching platform_commission_rate from settings:', err.message);
+          }
+
+          // If provider subcategory has a specific commission rate configured, override
+          const Provider = mongoose.model('Provider');
+          const provider = await Provider.findById(order.seller);
+          const subcategoryRefId = provider?.subcategoryId || sellerUser.seller.tipoEstabelecimento;
+          if (subcategoryRefId) {
+            const subcategory = await ProviderSubcategory.findById(subcategoryRefId);
+            if (subcategory && subcategory.serviceCommission > 0) {
+              feePercentage = subcategory.serviceCommission / 100;
+            } else if (subcategory && subcategory.percentageFee > 0) {
+              feePercentage = subcategory.percentageFee / 100;
+            }
+          }
+
+          const basePrice = order.itemsPrice || order.totalPrice || 0;
+          const feeAmount = basePrice * feePercentage;
+
+          if (feeAmount > 0) {
+            const sellerWallet = await Wallet.findOneAndUpdate(
+              { ownerId: sellerUser._id },
+              {
+                $setOnInsert: {
+                  ownerId: sellerUser._id,
+                  ownerType: 'seller',
+                  userId: sellerUser._id,
+                },
+                $inc: { balance: -feeAmount },
+                $set: { updatedAt: new Date() }
+              },
+              { upsert: true, new: true }
+            );
+
+            await Transaction.create({
+              walletId: sellerWallet._id,
+              type: 'debit',
+              amount: feeAmount,
+              method: 'commission',
+              description: `Comissão da venda - Pedido #${order.code}`,
+              status: 'confirmado'
+            });
+
+            console.log(`[respond] Comissão de ${feeAmount} MT (${(feePercentage * 100).toFixed(0)}%) debitada do fornecedor ${sellerUser.name}. Novo saldo: ${sellerWallet.balance} MT`);
+
+            // Emit walletUpdated socket event instantly!
+            const io = req.app.get('io');
+            if (io) {
+              const userId = sellerUser._id.toString();
+              io.to(`user_${userId}`).emit('walletUpdated', {
+                message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+              });
+              io.to(`seller_${userId}`).emit('walletUpdated', {
+                message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+              });
+            }
+          }
+        }
+      }
+      // --- END SELLER WALLET DEDUCTION LOGIC ---
+
       const savedOrder = await order.save();
       const updatedOrder = await Order.findById(savedOrder._id)
         .populate('user', 'name phoneNumber profileImage')
@@ -964,7 +992,7 @@ orderRouter.put(
       const clientOfProduct = await User.findById(order.user);
 
       if (clientOfProduct?.deviceToken) {
-        await createNotification({
+        createNotification({
           message,
           receiver_id: order.user,
           sender_id: order.seller,
@@ -1016,7 +1044,7 @@ orderRouter.put(
 
       const clientOfProduct = await User.findById(order.user);
       if (clientOfProduct?.deviceToken) {
-        await createNotification({
+        createNotification({
           message,
           receiver_id: order.user,
           sender_id: order.seller,
@@ -1074,7 +1102,7 @@ orderRouter.put(
 
     if (sellerOfProduct?.deviceToken) {
       //toSeller
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
@@ -1085,7 +1113,7 @@ orderRouter.put(
 
     if (clientOfProduct?.deviceToken) {
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.user,
         sender_id: order.seller,
@@ -1153,10 +1181,12 @@ orderRouter.put(
             if (existingService) {
               existingService.status = 'Pendente';
               existingService.stepStatus = 1;
-              existingService.targetDriverId = null;
+              existingService.targetDriverId = req.body.targetDriverId || null;
               existingService.deliveryman = null;
               if (order.transportTypeId) existingService.transportTypeId = order.transportTypeId;
               if (order.transportType) existingService.transportType = order.transportType;
+              existingService.paymentMethod = 'Dinheiro';
+              existingService.paymentOption = 'Pagamento na entrega';
               serviceToDispatch = await existingService.save();
             }
           }
@@ -1182,15 +1212,16 @@ orderRouter.put(
                 lng: clientLng
               },
               description: `Entrega da encomenda ${order.code} da loja ${providerName}`,
-              paymentMethod: order.paymentMethod,
-              paymentOption: 'Pagamento antecipado',
+              paymentMethod: 'Dinheiro',
+              paymentOption: 'Pagamento na entrega',
               deliveryPrice: order.addressPrice,
               user: order.user,
-              isPaid: order.isPaid,
-              paidAt: order.paidAt,
+              isPaid: false,
+              paidAt: null,
               status: 'Pendente',
               stepStatus: 1,
               code: order.code,
+              targetDriverId: req.body.targetDriverId || null,
             });
 
             serviceToDispatch = await newRequestService.save();
@@ -1219,7 +1250,7 @@ orderRouter.put(
       const clientOfProduct = await User.findById(order.user);
 
       //toSeller
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
@@ -1227,7 +1258,7 @@ orderRouter.put(
         pushToken: sellerOfProduct?.deviceToken || 'none',
       });
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.user,
         sender_id: order.seller,
@@ -1269,7 +1300,7 @@ orderRouter.put(
       if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
 
         //toSeller
-        await createNotification({
+        createNotification({
           message: message,
           receiver_id: order.seller,
           sender_id: order.user,
@@ -1278,7 +1309,7 @@ orderRouter.put(
 
         });
         //toOrderClient
-        await createNotification({
+        createNotification({
           message: message,
           receiver_id: order.user,
           sender_id: order.seller,
@@ -1317,7 +1348,7 @@ orderRouter.put(
 
       if (sellerOfProduct.deviceToken && clientOfProduct.deviceToken) {
         //toSeller
-        await createNotification({
+        createNotification({
           message: message,
           receiver_id: order.seller,
           sender_id: order.user,
@@ -1326,7 +1357,7 @@ orderRouter.put(
 
         });
         //toOrderClient
-        await createNotification({
+        createNotification({
           message: message,
           receiver_id: order.user,
           sender_id: order.seller,
@@ -1547,7 +1578,7 @@ orderRouter.put(
       const clientOfProduct = await User.findById(order.user);
 
       //toSeller
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
@@ -1555,7 +1586,7 @@ orderRouter.put(
         title: 'Pedido em trânsito'
       });
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.user,
         sender_id: order.seller,
@@ -1615,7 +1646,7 @@ orderRouter.put(
       // sendEmailOrderToSeller(req,message,sellerOfProduct, updateOrder, res);
 
       //toSeller
-      // await createNotification({
+      // createNotification({
       //   message: message,
       //   receiver_id: order.seller,
       //   sender_id: order.user,
@@ -1624,7 +1655,7 @@ orderRouter.put(
 
       // });
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.user,
         sender_id: order.seller,
@@ -1823,7 +1854,7 @@ orderRouter.put(
     const clientOfProduct = await User.findById(order.user);
 
     if (sellerOfProduct) {
-      await createNotification({
+      createNotification({
         message: `O cliente confirmou a recepção do pedido nº ${order.code}.`,
         title: 'Pedido entregue com sucesso!',
         receiver_id: order.seller,
@@ -1834,7 +1865,7 @@ orderRouter.put(
     }
 
     if (clientOfProduct) {
-      await createNotification({
+      createNotification({
         message: `Confirmámos a receção do seu pedido nº ${order.code}. Esperamos vê-lo de novo em breve!`,
         title: '🎉 Obrigado pela preferência!',
         receiver_id: order.user,
@@ -1923,7 +1954,7 @@ orderRouter.put(
       const clientOfProduct = await User.findById(order.user);
 
       //toSeller
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.seller,
         sender_id: order.user,
@@ -1932,7 +1963,7 @@ orderRouter.put(
 
       });
       //toOrderClient
-      await createNotification({
+      createNotification({
         message: message,
         receiver_id: order.user,
         sender_id: order.seller,
@@ -1993,7 +2024,7 @@ orderRouter.put(
     // Notificaï¿½ï¿½es (se quiser ativar):
     /*
     if (sellerOfProduct?.deviceToken && clientOfProduct?.deviceToken) {
-      await createNotification({
+      createNotification({
         message,
         receiver_id: order.seller,
         sender_id: order.user,
@@ -2001,7 +2032,7 @@ orderRouter.put(
         deviceToken: sellerOfProduct.deviceToken,
       });
 
-      await createNotification({
+      createNotification({
         message,
         receiver_id: order.user,
         sender_id: order.seller,

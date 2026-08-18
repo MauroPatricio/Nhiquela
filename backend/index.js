@@ -1,4 +1,12 @@
 import 'express-async-errors';
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.log('⚠️ Unhandled Rejection:', reason?.message || reason);
+});
+process.on('uncaughtException', (error) => {
+  console.log('⚠️ Uncaught Exception:', error?.message || error);
+});
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

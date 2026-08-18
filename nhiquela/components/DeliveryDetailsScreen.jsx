@@ -145,30 +145,60 @@ const DeliveryDetailsScreen = () => {
             s.providerTypeId?.classificationId?.name === 'SERVICE'
           );
 
-          // Extrair e deduplificar os tipos de viatura populados dentro de cada subcategoria
-          const vehicleMap = new Map();
-          activeServices.forEach(sub => {
-            if (sub.vehicleTypes && sub.vehicleTypes.length > 0) {
-              sub.vehicleTypes.forEach(vt => {
-                if (vt && vt._id && !vehicleMap.has(vt._id.toString())) {
-                  vehicleMap.set(vt._id.toString(), {
-                    _id: vt._id,
-                    name: vt.name,
-                    category: vt.category,
-                    basePrice: vt.basePrice || 0,
-                    pricePerKm: vt.pricePerKm || 0,
-                    isActive: vt.isActive !== false,
-                  });
-                }
-              });
-            }
-          });
+          // Buscar o ID da subcategoria do vendedor (tipoEstabelecimento ou subcategoryId)
+          const sellerSubcatId = sellerObj?.tipoEstabelecimento?._id || 
+                                sellerObj?.tipoEstabelecimento || 
+                                sellerObj?.subcategoryId || 
+                                sellerObj?.seller?.tipoEstabelecimento?._id || 
+                                sellerObj?.seller?.tipoEstabelecimento || 
+                                sellerObj?.seller?.subcategoryId || 
+                                (rawSeller?.seller?.tipoEstabelecimento?._id || rawSeller?.seller?.tipoEstabelecimento || rawSeller?.seller?.subcategoryId) ||
+                                (dbSeller?.seller?.tipoEstabelecimento?._id || dbSeller?.seller?.tipoEstabelecimento || dbSeller?.seller?.subcategoryId);
 
-          const vehicles = [...vehicleMap.values()].filter(v => v.isActive);
+          const sellerSubcat = response.data.find(s => s._id.toString() === sellerSubcatId?.toString());
+          
+          let filteredVehicles = [];
+          if (sellerSubcat && sellerSubcat.vehicleTypes && sellerSubcat.vehicleTypes.length > 0) {
+            // Se a subcategoria do vendedor tiver veículos associados, usar apenas esses!
+            sellerSubcat.vehicleTypes.forEach(vt => {
+              if (vt && vt._id) {
+                filteredVehicles.push({
+                  _id: vt._id,
+                  name: vt.name,
+                  category: vt.category,
+                  basePrice: vt.basePrice || 0,
+                  pricePerKm: vt.pricePerKm || 0,
+                  isActive: vt.isActive !== false,
+                });
+              }
+            });
+          }
 
-          if (vehicles.length > 0) {
-            setVehicleTypes(vehicles);
-            setSelectedVehicle(vehicles[0]);
+          // Se não encontrou veículos específicos para o vendedor, cai para o comportamento geral deduplicado
+          if (filteredVehicles.length === 0) {
+            const vehicleMap = new Map();
+            activeServices.forEach(sub => {
+              if (sub.vehicleTypes && sub.vehicleTypes.length > 0) {
+                sub.vehicleTypes.forEach(vt => {
+                  if (vt && vt._id && !vehicleMap.has(vt._id.toString())) {
+                    vehicleMap.set(vt._id.toString(), {
+                      _id: vt._id,
+                      name: vt.name,
+                      category: vt.category,
+                      basePrice: vt.basePrice || 0,
+                      pricePerKm: vt.pricePerKm || 0,
+                      isActive: vt.isActive !== false,
+                    });
+                  }
+                });
+              }
+            });
+            filteredVehicles = [...vehicleMap.values()].filter(v => v.isActive);
+          }
+
+          if (filteredVehicles.length > 0) {
+            setVehicleTypes(filteredVehicles);
+            setSelectedVehicle(filteredVehicles[0]);
           } else {
             // Fallback: mostrar subcategorias directamente (sem preços por km)
             setVehicleTypes(activeServices);
@@ -182,7 +212,7 @@ const DeliveryDetailsScreen = () => {
       }
     };
     fetchServiceTypes();
-  }, []);
+  }, [sellerObj, dbSeller, rawSeller]);
 
   // --- Location ---
   useEffect(() => {

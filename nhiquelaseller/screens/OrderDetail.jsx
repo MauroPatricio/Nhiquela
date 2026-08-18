@@ -70,6 +70,15 @@ const OrderDetail = ({ navigation }) => {
   const [waitingCountdown, setWaitingCountdown] = useState(60);
   const pulseAnim = React.useRef(new Animated.Value(0)).current;
 
+  const [availableDriversList, setAvailableDriversList] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [radius, setRadius] = useState(5);
+  const [rejectedDriverIds, setRejectedDriverIds] = useState([]);
+  const [selectedDriverForRequest, setSelectedDriverForRequest] = useState(null);
+
+  const searchTimerRef = React.useRef(null);
+  const pollIntervalRef = React.useRef(null);
+
   const fetchOrderDetails = async () => {
     if (!orderIdParam) return;
     try {
@@ -85,15 +94,144 @@ const OrderDetail = ({ navigation }) => {
         if (data.transportTypeId) {
           setSelectedTransport(data.transportTypeId);
         }
+        fetchSubcategories(data);
         // Se o motorista aceitou, fecha o modal de busca/espera
         if (data.deliveryman && (data.deliveryman.id || data.deliveryman.name)) {
           setWaitingForDriver(false);
+          setIsSearching(false);
+          setAvailableDriversList([]);
+        } else if (waitingForDriver && data.requestServiceId) {
+          try {
+            const reqRes = await api.get(`/request-service/${data.requestServiceId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const rs = reqRes.data;
+            if (rs && (rs.status === 'Motorista indisponível' || rs.status === 'Rejeitado' || rs.status === 'Cancelado')) {
+              if (selectedDriverForRequest) {
+                setRejectedDriverIds(old => [...old, selectedDriverForRequest._id]);
+              }
+              setSelectedDriverForRequest(null);
+              setWaitingForDriver(false);
+              setIsSearching(true);
+              toast.show('O motorista rejeitou a solicitação. Procurando outros...', { type: 'warning', placement: 'top' });
+            }
+          } catch (err) {
+            console.log('Erro ao checar status do request service:', err);
+          }
         }
       }
     } catch (error) {
       console.log('Error fetching order details:', error);
     }
   };
+
+  useEffect(() => {
+    if (!isSearching) return;
+
+    const startPulse = () => {
+      pulseAnim.setValue(0);
+      Animated.loop(
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      ).start();
+    };
+    startPulse();
+
+    const searchDrivers = async () => {
+      try {
+        if (!userData || !currentOrder) return;
+        const sellerLoc = currentOrder.seller?.location || userData.seller?.location;
+        const lat = sellerLoc?.lat;
+        const lng = sellerLoc?.lng;
+
+        if (!lat || !lng) {
+          toast.show('Erro: Estabelecimento sem coordenadas GPS.', { type: 'danger', placement: 'top' });
+          setIsSearching(false);
+          return;
+        }
+
+        const response = await api.get('/drivers/available', {
+          params: {
+            lat,
+            lng,
+            radius,
+            serviceId: selectedTransport,
+          },
+          headers: { Authorization: `Bearer ${userData.token}` }
+        });
+
+        let drivers = response.data?.drivers || response.data || [];
+        drivers = drivers.filter(d => !rejectedDriverIds.includes(d._id));
+
+        if (drivers.length > 0) {
+          clearInterval(pollIntervalRef.current);
+          clearTimeout(searchTimerRef.current);
+          setIsSearching(false);
+          setAvailableDriversList(drivers);
+        }
+      } catch (err) {
+        console.log('Erro ao procurar motoristas:', err);
+      }
+    };
+
+    searchDrivers();
+    pollIntervalRef.current = setInterval(searchDrivers, 3000);
+
+    searchTimerRef.current = setTimeout(() => {
+      setRadius(r => r + 2);
+    }, 60000);
+
+    return () => {
+      clearTimeout(searchTimerRef.current);
+      clearInterval(pollIntervalRef.current);
+    };
+  }, [isSearching, radius, rejectedDriverIds]);
+
+  const sendRequestToDriver = async (driver) => {
+    setSelectedDriverForRequest(driver);
+    setWaitingCountdown(60);
+    setWaitingForDriver(true);
+    setAvailableDriversList([]); // Fecha modal de lista
+
+    try {
+      if (!userData) return;
+      const subcat = subcategories.find(s => s._id === selectedTransport);
+      
+      const payload = {
+        targetDriverId: driver._id,
+      };
+      if (subcat) {
+        payload.transportTypeId = subcat._id;
+        payload.transportType = subcat.name;
+      }
+
+      const { data } = await api.put(`/orders/${currentOrder._id}/toDeliv`, payload, {
+        headers: { Authorization: `Bearer ${userData.token}` }
+      });
+      setCurrentOrder(data.order);
+      toast.show(`Solicitação enviada para ${driver.name}!`, { type: 'success', duration: 4000, placement: 'top' });
+    } catch (err) {
+      console.log('Erro ao enviar solicitação para o motorista:', err);
+      toast.show('Erro ao enviar solicitação.', { type: 'danger', placement: 'top' });
+      setWaitingForDriver(false);
+      setIsSearching(true);
+    }
+  };
+
+  useEffect(() => {
+    if (waitingForDriver && waitingCountdown === 0) {
+      if (selectedDriverForRequest) {
+        setRejectedDriverIds(old => [...old, selectedDriverForRequest._id]);
+      }
+      setSelectedDriverForRequest(null);
+      setWaitingForDriver(false);
+      setIsSearching(true);
+      toast.show('O motorista não respondeu. Procurando novos motoristas...', { type: 'warning', placement: 'top' });
+    }
+  }, [waitingForDriver, waitingCountdown]);
 
   const checkIfUserExist = async () => {
     try {
@@ -115,15 +253,38 @@ const OrderDetail = ({ navigation }) => {
     }
   };
 
-  const fetchSubcategories = async () => {
+  const fetchSubcategories = async (orderData) => {
     try {
+      const activeOrder = orderData || currentOrder;
       const { data } = await api.get('/provider-subcategories');
       if (data && data.length > 0) {
-        const filtered = data.filter(s => 
+        let filtered = data.filter(s => 
           s.isActive !== false && 
           s.providerTypeId?.classificationId?.name === 'SERVICE'
         );
+
+        const orderVehicleId = activeOrder?.transportTypeId?._id || activeOrder?.transportTypeId;
+        const orderVehicleName = activeOrder?.transportType;
+
+        if (orderVehicleId || orderVehicleName) {
+          filtered = filtered.filter(sub => {
+            if (sub.vehicleTypes && sub.vehicleTypes.length > 0) {
+              return sub.vehicleTypes.some(vt => {
+                const vtId = vt._id || vt;
+                if (orderVehicleId && vtId?.toString() === orderVehicleId.toString()) return true;
+                if (orderVehicleName && vt.name?.toLowerCase() === orderVehicleName.toLowerCase()) return true;
+                return false;
+              });
+            }
+            if (orderVehicleName && sub.name?.toLowerCase()?.includes(orderVehicleName.toLowerCase())) return true;
+            return false;
+          });
+        }
+
         setSubcategories(filtered);
+        if (filtered.length > 0 && !selectedTransport) {
+          setSelectedTransport(filtered[0]._id);
+        }
       }
     } catch (e) {
       console.log('Error fetching subcategories', e);
@@ -231,32 +392,17 @@ const OrderDetail = ({ navigation }) => {
 
   const availableToDelivOrder = async () => {
     setShowTransportModal(false);
-    withLoading(async () => {
-      if (!userData) return;
-      const subcat = subcategories.find(s => s._id === selectedTransport);
-      
-      const payload = {};
-      if (subcat) {
-        payload.transportTypeId = subcat._id;
-        payload.transportType = subcat.name;
-      }
-
-      const { data } = await api.put(`/orders/${currentOrder._id}/toDeliv`, payload, { headers: { Authorization: `Bearer ${userData.token}` } });
-      setCurrentOrder(data.order);
-      
-      // Se não for Finalizado (ou seja, requer entrega), abrir o radar de espera
-      if (data.order.status !== 'Finalizado') {
-        setWaitingCountdown(60);
-        setWaitingForDriver(true);
-      }
-
-      await api.post('/notifications/send-to-user', {
-        userId: data.order.user, title: 'Pedido disponível para entrega',
-        body: `Seu pedido ${data.order.code} está disponível para entrega.`,
-        data: { orderId: data.order._id, type: 'order', status: 'Disponível' },
-      });
-      toast.show('Pedido marcado como disponível para entrega!', { type: 'success', duration: 4000, placement: 'top' });
-    });
+    if (!userData) return;
+    const subcat = subcategories.find(s => s._id === selectedTransport);
+    if (!subcat) {
+      toast.show('Selecione o tipo de transporte para continuar.', { type: 'warning', placement: 'top' });
+      return;
+    }
+    setRadius(5);
+    setRejectedDriverIds([]);
+    setAvailableDriversList([]);
+    setSelectedDriverForRequest(null);
+    setIsSearching(true);
   };
 
   const orderInTransit = async (orderId) => withLoading(async () => {
@@ -724,7 +870,189 @@ const OrderDetail = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Procurando/Aguardando Prestador Modal (Radar pulse) */}
+      {/* Procurando/Pesquisando Prestadores Radar Modal */}
+      <Modal visible={isSearching} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View style={{
+            backgroundColor: '#FFF',
+            borderRadius: 28,
+            padding: 32,
+            width: '88%',
+            alignItems: 'center',
+            elevation: 20,
+            shadowColor: COLORS.primary,
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+          }}>
+            <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Animated.View style={{
+                position: 'absolute',
+                width: 110,
+                height: 110,
+                borderRadius: 55,
+                backgroundColor: 'rgba(127, 0, 255, 0.15)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
+              }} />
+              <Animated.View style={{
+                position: 'absolute',
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: 'rgba(127, 0, 255, 0.2)',
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+              }} />
+              <View style={{ backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="radar" size={32} color={COLORS.primary} />
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+              Buscando prestadores...
+            </Text>
+            <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+              Procurando motoristas disponíveis num raio de {radius} km do seu estabelecimento.
+            </Text>
+
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                paddingVertical: 14,
+                backgroundColor: '#F3F4F6',
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 24
+              }}
+              onPress={() => setIsSearching(false)}
+            >
+              <Text style={{ color: '#4B5563', fontWeight: '700', fontSize: 15 }}>Cancelar Busca</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Lista de Motoristas Disponíveis */}
+      <Modal
+        visible={availableDriversList.length > 0 && !waitingForDriver && !isSearching}
+        transparent
+        animationType="slide"
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            padding: 24,
+            maxHeight: '80%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 10,
+          }}>
+            <View style={{ width: 44, height: 6, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginBottom: 20 }} />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827' }}>Prestadores Disponíveis</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setAvailableDriversList([]);
+                  setRejectedDriverIds([]);
+                  setIsSearching(true);
+                }}
+                style={{ padding: 4 }}
+              >
+                <MaterialCommunityIcons name="refresh" size={24} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 20 }}>
+              Selecione o motorista para recolha no seu estabelecimento e entrega ao cliente (pago na entrega).
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              {availableDriversList.map((driver, index) => {
+                let baseFare = 0;
+                if (driver.deliveryman?.allowCustomPrice && driver.deliveryman?.customPrice) {
+                  baseFare = driver.deliveryman.customPrice;
+                } else if (driver.deliveryman?.assigned_base_fee) {
+                  baseFare = driver.deliveryman.assigned_base_fee;
+                }
+                const driverRating = Number(driver.deliveryman?.averageRating || driver.rating || 5.0).toFixed(1);
+
+                return (
+                  <TouchableOpacity
+                    key={driver._id || index}
+                    activeOpacity={0.7}
+                    onPress={() => sendRequestToDriver(driver)}
+                    style={{
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      borderRadius: 20,
+                      marginBottom: 12,
+                      backgroundColor: '#F9FAFB',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Image
+                      source={
+                        driver.profileImage
+                          ? { uri: driver.profileImage }
+                          : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }
+                      }
+                      style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#E5E7EB' }}
+                    />
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }} numberOfLines={1}>
+                        {driver.name}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                          <MaterialCommunityIcons name="star" size={14} color="#D97706" />
+                          <Text style={{ fontSize: 12, color: '#D97706', marginLeft: 3, fontWeight: '700' }}>
+                            {driverRating}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
+                        <Text style={{ fontSize: 13, color: '#4B5563', fontWeight: '500' }}>
+                          {driver.deliveryman?.transport_type || 'Motorista'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
+                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontWeight: '500' }}>Base</Text>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: COLORS.primary, marginTop: 2 }}>
+                        {baseFare > 0 ? `${baseFare.toFixed(2)} MT` : 'Grátis'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                paddingVertical: 14,
+                backgroundColor: '#F3F4F6',
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 8
+              }}
+              onPress={() => setAvailableDriversList([])}
+            >
+              <Text style={{ color: '#4B5563', fontWeight: '700', fontSize: 15 }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Aguardando Confirmação do Prestador Selecionado Modal */}
       <Modal visible={waitingForDriver} transparent animationType="fade">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <View style={{
@@ -759,76 +1087,35 @@ const OrderDetail = ({ navigation }) => {
                 opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
               }} />
               <View style={{ backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' }}>
-                {waitingCountdown > 0 ? (
-                  <Text style={{ fontSize: 24, fontWeight: '900', color: COLORS.primary }}>{waitingCountdown}</Text>
-                ) : (
-                  <MaterialCommunityIcons name="clock-outline" size={30} color={COLORS.primary} />
-                )}
+                <Text style={{ fontSize: 24, fontWeight: '900', color: COLORS.primary }}>{waitingCountdown}</Text>
               </View>
             </View>
 
-            {waitingCountdown > 0 ? (
-              <>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                  A procurar prestador...
-                </Text>
-                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
-                  Enviámos a solicitação. Aguarde enquanto procuramos um prestador parceiro próximo.
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                  Sem prestadores próximos
-                </Text>
-                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
-                  Não encontrámos nenhum motorista livre. Pode tentar novamente em instantes.
-                </Text>
-              </>
-            )}
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+              Aguardando motorista...
+            </Text>
+            <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+              Solicitação enviada para {selectedDriverForRequest?.name || 'motorista'}. Aguarde a aceitação do parceiro.
+            </Text>
 
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 24, width: '100%' }}>
-              {waitingCountdown === 0 && (
-                <TouchableOpacity 
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 14,
-                    backgroundColor: COLORS.primary,
-                    borderRadius: 20,
-                    alignItems: 'center',
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    gap: 6
-                  }}
-                  onPress={() => {
-                    setWaitingForDriver(false);
-                    confirmAvailableToDeliv();
-                  }}
-                >
-                  <Ionicons name="refresh" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Pesquisar Novamente</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity 
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  paddingHorizontal: 14,
-                  backgroundColor: COLORS.surface2,
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: COLORS.borderLight,
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                onPress={() => setWaitingForDriver(false)}
-              >
-                <Text style={{ color: COLORS.textSecondary, fontWeight: '700', fontSize: 13 }}>
-                  {waitingCountdown > 0 ? 'Cancelar Busca' : 'Fechar'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                paddingVertical: 14,
+                backgroundColor: '#F3F4F6',
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 24
+              }}
+              onPress={() => {
+                setWaitingForDriver(false);
+                setSelectedDriverForRequest(null);
+                setWaitingCountdown(60);
+              }}
+            >
+              <Text style={{ color: '#4B5563', fontWeight: '700', fontSize: 15 }}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

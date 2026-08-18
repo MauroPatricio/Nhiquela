@@ -704,7 +704,7 @@ requestServiceer.put(
         }
       }
 
-      await createNotification({
+      createNotification({
         message: `A viagem foi iniciada. O motorista está a caminho do destino.`,
         receiver_id: order.user,
         sender_id: order.deliveryman?.id,
@@ -766,7 +766,7 @@ requestServiceer.put(
         }
       }
 
-      await createNotification({
+      createNotification({
         message: `O motorista chegou ao local de recolha/destino. Por favor, vá ao encontro do motorista.`,
         receiver_id: updateOrder.user,
         sender_id: updateOrder.deliveryman?.id,
@@ -1075,9 +1075,11 @@ requestServiceer.put(
 
         // ✅ Verificar e suspender motorista se saldo baixo — FORA da transação
         if (order.deliveryman && order.deliveryman.id) {
-          checkAndDisableDriverIfLowBalance(order.deliveryman.id).catch(err =>
-            console.error('[Deliver] Erro ao verificar saldo pós-entrega:', err.message)
-          );
+          try {
+            await checkAndDisableDriverIfLowBalance(order.deliveryman.id);
+          } catch (err) {
+            console.error('[Deliver] Erro ao verificar saldo pós-entrega:', err.message);
+          }
         }
 
         break; // Sucesso — sair do loop
@@ -1151,7 +1153,7 @@ requestServiceer.put(
           const clientOfProduct = await User.findById(linkedOrder.user);
 
           if (sellerOfProduct) {
-            await createNotification({
+            createNotification({
               message: `O cliente confirmou a recepção do pedido nº ${linkedOrder.code}.`,
               title: 'Pedido entregue com sucesso!',
               receiver_id: linkedOrder.seller,
@@ -1162,7 +1164,7 @@ requestServiceer.put(
           }
 
           if (clientOfProduct) {
-            await createNotification({
+            createNotification({
               message: `Confirmámos a receção do seu pedido nº ${linkedOrder.code}. Esperamos vê-lo de novo em breve!`,
               title: '🎉 Obrigado pela preferência!',
               receiver_id: linkedOrder.user,

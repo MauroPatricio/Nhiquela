@@ -78,7 +78,7 @@ describe('Order Acceptance Flow', () => {
 
     // Carregar carteira do motorista para ele conseguir pagar a comissão
     const wallet = new Wallet({
-      user: driverId,
+      userId: driverId,
       ownerType: 'User',
       ownerId: driverId,
       balance: 5000, // Saldo suficiente
