@@ -15,7 +15,7 @@ export default function CategoriesScreen() {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', image: '' });
+  const [formData, setFormData] = useState({ name: '', nome: '', image: '' });
   
   // Modal State (Subcategories)
   const [showSubModal, setShowSubModal] = useState(false);
@@ -58,18 +58,19 @@ export default function CategoriesScreen() {
     if (category) {
       setIsEditing(true);
       setCurrentId(category._id);
-      setFormData({ name: category.name, image: category.image || '' });
+      setFormData({ name: category.name, nome: category.nome || '', image: category.image || '' });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ name: '', image: '' });
+      setFormData({ name: '', nome: '', image: '' });
     }
     setShowModal(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('Nome da categoria � obrigatório.');
+    if (!formData.nome) return toast.error('Nome da categoria (Português) é obrigatório.');
+    if (!formData.name) return toast.error('Nome da categoria (Inglês) é obrigatório.');
 
     try {
       if (isEditing) {
@@ -223,7 +224,9 @@ export default function CategoriesScreen() {
                             </div>
                           )}
                         </td>
-                        <td className="fw-bold text-dark">{cat.name}</td>
+                        <td className="fw-bold text-dark">
+                          {cat.nome || cat.name} <span className="text-muted fw-normal fs-7 d-block">({cat.name})</span>
+                        </td>
                         <td className="text-end px-4">
                           <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm" onClick={(e) => { e.stopPropagation(); handleOpenModal(cat); }} title="Editar">
                             <FontAwesomeIcon icon={faEdit} />
@@ -321,8 +324,12 @@ export default function CategoriesScreen() {
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Nome da Categoria *</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Ex: Mercearia, Bebidas..." required />
+                  <label className="form-label fw-bold small text-muted mb-1">Nome da Categoria (Português) *</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} placeholder="Ex: Mercearia, Bebidas..." required />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted mb-1">Nome da Categoria (Inglês) *</label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Ex: Grocery, Drinks..." required />
                 </div>
                 <div className="mb-4">
                   <label className="form-label fw-bold small text-muted mb-1">Imagem da Categoria (Opcional)</label>

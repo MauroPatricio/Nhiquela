@@ -652,7 +652,7 @@ export default function ProviderSubcategoriesScreen() {
                         />
                         <label className="form-check-label ms-2 w-100 cursor-pointer" htmlFor="pricingModeAuto">
                           <span className="fw-bold d-block text-dark">Calculado pela Plataforma</span>
-                          <span className="small text-muted d-block mt-1">O valor é calculado automaticamente e não inclui o valor do prestador.</span>
+                          <span className="small text-muted d-block mt-1">O valor da comissão é calculado automaticamente apenas com base no valor da deslocação.</span>
                         </label>
                       </div>
 
@@ -668,7 +668,7 @@ export default function ProviderSubcategoriesScreen() {
                         />
                         <label className="form-check-label ms-2 w-100 cursor-pointer" htmlFor="pricingModeProvider">
                           <span className="fw-bold d-block text-dark">Definido pelo Prestador</span>
-                          <span className="small text-muted d-block mt-1">Cálculo da deslocação por percentagem + valor definido pelo prestador (aqui calcula o valor da deslocação+15% e o valor do prestador +10%).</span>
+                          <span className="small text-muted d-block mt-1">O prestador define o preço e a percentagem da comissão incide exclusivamente sobre o valor do prestador.</span>
                         </label>
                       </div>
 
@@ -684,7 +684,7 @@ export default function ProviderSubcategoriesScreen() {
                         />
                         <label className="form-check-label ms-2 w-100 cursor-pointer" htmlFor="pricingModeAutoPlusProvider">
                           <span className="fw-bold d-block text-dark">Calculado + Prestador</span>
-                          <span className="small text-muted d-block mt-1">Valor da deslocação calculado automaticamente + valor definido pelo prestador (o valor final é multiplicado pela comissão definida na plataforma).</span>
+                          <span className="small text-muted d-block mt-1">O sistema calcula o valor da deslocação + valor do prestador, e a comissão (%) é deduzida sobre o valor total acumulado.</span>
                         </label>
                       </div>
 

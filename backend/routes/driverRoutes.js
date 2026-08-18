@@ -69,6 +69,13 @@ router.get(
       isDeliveryMan: true,
       availability: 'active',
       status: 'Disponível',
+      isBanned: { $ne: true },
+      isDeleted: { $ne: true },
+      $or: [
+        { blockedUntil: { $exists: false } },
+        { blockedUntil: null },
+        { blockedUntil: { $lt: new Date() } }
+      ],
       locationGeo: {
         $near: {
           $geometry: {
@@ -276,7 +283,15 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const { name, email, password, phoneNumber, transport_type, transport_color, plate, licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices } = req.body;
+    const { 
+      name, email, password, phoneNumber, 
+      transport_type, transport_color, plate, 
+      licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices,
+      photo, vihicle_picture, vihicle_picture_front, vihicle_picture_back,
+      vihicle_inspection, vihicle_Insurance, vihicle_logbook,
+      license_front, license_back, document_front, document_back,
+      Proof_of_Address, mPesaNumber, eMolaNumber
+    } = req.body;
     const exists = await User.findOne({ $or: [{ email }, { phoneNumber }] });
     if (exists) {
       return res.status(400).send({ message: 'Email ou telefone já registado' });
@@ -317,9 +332,23 @@ router.post(
         transport_registration: plate,
         vehicle_type_id,
         assigned_base_fee,
-        license_front: licenseNumber,
-        document_type,
-        document_front: idNumber,
+        license_front: license_front || licenseNumber || '',
+        license_back: license_back || '',
+        document_type: document_type || 'bi',
+        document_front: document_front || idNumber || '',
+        document_back: document_back || '',
+        photo: photo || '',
+        vihicle_picture: vihicle_picture || '',
+        vihicle_picture_front: vihicle_picture_front || '',
+        vihicle_picture_back: vihicle_picture_back || '',
+        vihicle_inspection: vihicle_inspection || '',
+        vihicle_Insurance: vihicle_Insurance || '',
+        vihicle_logbook: vihicle_logbook || '',
+        Proof_of_Address: Proof_of_Address || '',
+        transferPreferences: {
+          mPesaNumber: mPesaNumber || '',
+          eMolaNumber: eMolaNumber || ''
+        },
         providedServices: driverServices
       },
       status: status || 'Pendente',
@@ -717,11 +746,15 @@ router.put(
     const driver = await User.findById(req.params.id);
     if (!driver || !driver.isDeliveryMan) {
       return res.status(404).send({ message: 'Motorista não encontrado' });
-    }
-    if (req.user._id !== driver._id.toString() && !req.user.isAdmin) {
-      return res.status(403).send({ message: 'Acesso negado' });
-    }
-    const { name, email, phoneNumber, password, transport_type, transport_color, plate, licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices } = req.body;
+    }    const { 
+      name, email, phoneNumber, password, 
+      transport_type, transport_color, plate, 
+      licenseNumber, idNumber, document_type, status, vehicle_type_id, providedServices,
+      photo, vihicle_picture, vihicle_picture_front, vihicle_picture_back,
+      vihicle_inspection, vihicle_Insurance, vihicle_logbook,
+      license_front, license_back, document_front, document_back,
+      Proof_of_Address, mPesaNumber, eMolaNumber
+    } = req.body;
     if (name) driver.name = name;
     if (email) driver.email = email;
     if (phoneNumber) driver.phoneNumber = phoneNumber;
@@ -741,7 +774,11 @@ router.put(
     }
 
     // Process VehicleType
-    if (vehicle_type_id || transport_type || transport_color || plate || licenseNumber || idNumber || document_type || providedServices) {
+    if (vehicle_type_id || transport_type || transport_color || plate || licenseNumber || idNumber || document_type || providedServices || 
+        photo !== undefined || vihicle_picture !== undefined || vihicle_picture_front !== undefined || vihicle_picture_back !== undefined ||
+        vihicle_inspection !== undefined || vihicle_Insurance !== undefined || vihicle_logbook !== undefined ||
+        license_front !== undefined || license_back !== undefined || document_front !== undefined || document_back !== undefined ||
+        Proof_of_Address !== undefined || mPesaNumber !== undefined || eMolaNumber !== undefined) {
       driver.deliveryman = driver.deliveryman || {};
 
       if (name) driver.deliveryman.name = name;
@@ -749,9 +786,28 @@ router.put(
       if (transport_type) driver.deliveryman.transport_type = transport_type;
       if (transport_color) driver.deliveryman.transport_color = transport_color;
       if (plate) driver.deliveryman.transport_registration = plate;
-      if (licenseNumber) driver.deliveryman.license_front = licenseNumber;
+      if (licenseNumber && !license_front) driver.deliveryman.license_front = licenseNumber;
       if (document_type) driver.deliveryman.document_type = document_type;
-      if (idNumber) driver.deliveryman.document_front = idNumber;
+      if (idNumber && !document_front) driver.deliveryman.document_front = idNumber;
+
+      if (photo !== undefined) driver.deliveryman.photo = photo;
+      if (vihicle_picture !== undefined) driver.deliveryman.vihicle_picture = vihicle_picture;
+      if (vihicle_picture_front !== undefined) driver.deliveryman.vihicle_picture_front = vihicle_picture_front;
+      if (vihicle_picture_back !== undefined) driver.deliveryman.vihicle_picture_back = vihicle_picture_back;
+      if (vihicle_inspection !== undefined) driver.deliveryman.vihicle_inspection = vihicle_inspection;
+      if (vihicle_Insurance !== undefined) driver.deliveryman.vihicle_Insurance = vihicle_Insurance;
+      if (vihicle_logbook !== undefined) driver.deliveryman.vihicle_logbook = vihicle_logbook;
+      if (license_front !== undefined) driver.deliveryman.license_front = license_front;
+      if (license_back !== undefined) driver.deliveryman.license_back = license_back;
+      if (document_front !== undefined) driver.deliveryman.document_front = document_front;
+      if (document_back !== undefined) driver.deliveryman.document_back = document_back;
+      if (Proof_of_Address !== undefined) driver.deliveryman.Proof_of_Address = Proof_of_Address;
+
+      if (mPesaNumber !== undefined || eMolaNumber !== undefined) {
+        driver.deliveryman.transferPreferences = driver.deliveryman.transferPreferences || {};
+        if (mPesaNumber !== undefined) driver.deliveryman.transferPreferences.mPesaNumber = mPesaNumber;
+        if (eMolaNumber !== undefined) driver.deliveryman.transferPreferences.eMolaNumber = eMolaNumber;
+      }
 
       if (Array.isArray(providedServices)) {
         driver.deliveryman.providedServices = providedServices.map(id => ({ serviceId: id, isAvailable: true }));

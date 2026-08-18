@@ -58,6 +58,7 @@ const modelSchema = new mongoose.Schema({
     zones: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Zone' }],
     assignedEstablishments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // References sellers/stores where the shopper works
     deviceToken: { type: String },
+    registeredFrom: { type: String, default: 'unknown' },
     seller: {
         name: { type: String },
         logo: { type: String },
@@ -87,6 +88,9 @@ const modelSchema = new mongoose.Schema({
 
         alternativeAccountType: { type: String },
         alternativeAccountNumber: { type: Number },
+        bankAccount: { type: String, default: '' },
+        
+        hasUsedFreeSale: { type: Boolean, default: false }
     },
     deliveryman: {
         photo: { type: String },

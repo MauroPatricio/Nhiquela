@@ -37,7 +37,7 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
 
     useEffect(() => {
         if (sellers.length > 0) {
-            const validSeller = sellers.find(seller => seller.seller.latitude && seller.seller.longitude);
+            const validSeller = sellers.find(seller => seller?.seller?.latitude && seller?.seller?.longitude);
             if (validSeller) {
                 setSellerLocation({
                     latitude: parseFloat(validSeller.seller.latitude),
@@ -82,9 +82,26 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
     }, []);
 
     useEffect(() => {
-        if (userLocation && sellerLocation.latitude && sellerLocation.longitude) {
-            const calculatedDistance = haversine(userLocation, sellerLocation, { unit: 'km' });
-            setDistance(calculatedDistance);
+        // Clear metro cache trigger
+        if (userLocation?.latitude && userLocation?.longitude && sellerLocation?.latitude && sellerLocation?.longitude) {
+            const fetchRealDistance = async () => {
+                try {
+                    const origin = `${userLocation.longitude},${userLocation.latitude}`;
+                    const destination = `${sellerLocation.longitude},${sellerLocation.latitude}`;
+                    const response = await api.get(`/osrm/route?origin=${origin}&destination=${destination}`);
+                    
+                    if (response.data && response.data.distanceKm) {
+                        setDistance(parseFloat(response.data.distanceKm));
+                    } else {
+                        const calculatedDistance = haversine(userLocation, sellerLocation, { unit: 'km' });
+                        setDistance(calculatedDistance);
+                    }
+                } catch (error) {
+                    const calculatedDistance = haversine(userLocation, sellerLocation, { unit: 'km' });
+                    setDistance(calculatedDistance);
+                }
+            };
+            fetchRealDistance();
         }
     }, [userLocation, sellerLocation]);
 
@@ -121,14 +138,14 @@ const [totalToPay, setTotalToPay] = useState(subtotal);
     
     // Atualizar Redux sempre que os valores mudarem
     useEffect(() => {
-        dispatch(addTotalToPay(totalToPay));
-        dispatch(addIva(iva));
-        dispatch(addDeliverPrice(distanceToPay));
+        if (typeof addTotalToPay === 'function') dispatch(addTotalToPay(totalToPay));
+        if (typeof addIva === 'function') dispatch(addIva(iva));
+        if (typeof addDeliverPrice === 'function') dispatch(addDeliverPrice(distanceToPay));
     }, [totalToPay, distanceToPay, dispatch]);
 
 
     useEffect(() => {
-  dispatch(addAddress(address));
+  if (typeof addAddress === 'function') dispatch(addAddress(address));
 }, [address]);
 
     // useEffect(() => {

@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { io } from 'socket.io-client';
 import { Ionicons, SimpleLineIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,6 +11,7 @@ import { getDistance } from 'geolib';
 import BasketIcon from '../BasketIcon';
 import { useToast } from 'react-native-toast-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#7F00FF';
@@ -55,6 +57,77 @@ const ProductDetail = () => {
   const [freightCalculated, setFreightCalculated] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
+  // Estado em tempo real: aberta/fechada
+  // isSellerOpen vem do backend no produto; seller?.openstore é o fallback legacy
+  const initialOpen = itemData?.isSellerOpen !== undefined
+    ? itemData.isSellerOpen
+    : (seller?.openstore !== false); // se undefined => assume aberta
+  const [isSellerOpen, setIsSellerOpen] = useState(initialOpen);
+
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const checkIsFavorite = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@fav_products');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const exists = parsed.some(fav => fav._id === _id);
+        setIsFavorite(exists);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar favorito:", error);
+    }
+  }, [_id]);
+
+  useEffect(() => {
+    checkIsFavorite();
+  }, [checkIsFavorite]);
+
+  const toggleFavorite = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@fav_products');
+      let parsed = stored ? JSON.parse(stored) : [];
+
+      if (isFavorite) {
+        parsed = parsed.filter(fav => fav._id !== _id);
+        setIsFavorite(false);
+        toast.show('Removido dos favoritos', { type: 'warning', placement: 'top' });
+      } else {
+        parsed.push(itemData);
+        setIsFavorite(true);
+        toast.show('Adicionado aos favoritos', { type: 'success', placement: 'top' });
+      }
+
+      await AsyncStorage.setItem('@fav_products', JSON.stringify(parsed));
+    } catch (error) {
+      console.error("Erro ao atualizar favorito:", error);
+      toast.show('Erro ao atualizar favorito', { type: 'danger', placement: 'top' });
+    }
+  };
+
+  // Escuta evento socket para actualizar o estado da loja instantaneamente
+  useEffect(() => {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const import_api = require('../../hooks/createConnectionApi').default;
+    const baseURL = import_api?.defaults?.baseURL?.replace('/api', '') || (isDev ? 'http://192.168.0.5:5002' : 'https://api.nhiquelaservicos.com');
+    const productSocket = io(`${baseURL}`, { transports: ['websocket'] });
+
+    const sellerId = String(seller?._id || seller?.seller?._id || '');
+
+    const handleStoreStatus = ({ sellerId: changedId, isOpen }) => {
+      if (sellerId && String(changedId) === sellerId) {
+        setIsSellerOpen(isOpen);
+      }
+    };
+
+    productSocket.on('storeStatusChanged', handleStoreStatus);
+
+    return () => {
+      productSocket.off('storeStatusChanged', handleStoreStatus);
+      productSocket.disconnect();
+    };
+  }, []);
+
   const calculateFreight = () => {
     setIsCalculating(true);
     if (!userLocation) {
@@ -63,13 +136,23 @@ const ProductDetail = () => {
       return;
     }
     
-    if (seller?.latitude && seller?.longitude) {
+    // A API retorna seller.location.lat / seller.location.lng (objeto embebido)
+    // com fallback para seller.latitude / seller.longitude (campos directos)
+    const sellerLat = parseFloat(
+      seller?.location?.lat ?? seller?.latitude ?? seller?.seller?.location?.lat ?? seller?.seller?.latitude
+    );
+    const sellerLng = parseFloat(
+      seller?.location?.lng ?? seller?.longitude ?? seller?.seller?.location?.lng ?? seller?.seller?.longitude
+    );
+
+    if (!isNaN(sellerLat) && !isNaN(sellerLng)) {
       const dist = getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
-        { latitude: parseFloat(seller.latitude), longitude: parseFloat(seller.longitude) }
+        { latitude: sellerLat, longitude: sellerLng }
       );
       
       const distanceInKm = dist / 1000;
+      // Preço base: 100 MT; acrescenta 10 MT por km acima de 10 km
       let price = 100;
       if (distanceInKm >= 10) {
         price = 100 + (distanceInKm * 10);
@@ -120,19 +203,21 @@ const ProductDetail = () => {
   const navigateToSeller = () => {
     if (!seller) return;
     const targetSeller = seller.seller || seller;
+    // Extract correct user account ID (from seller.userId) so we can query /users/:id successfully
+    const correctId = seller.userId?._id || seller.userId || seller._id || seller.id || targetSeller._id || targetSeller.id;
     navigation.navigate('SellerScreen', {
-      id: targetSeller._id || targetSeller.id,
-      name: targetSeller.name,
-      logo: targetSeller.logo,
-      description: targetSeller.description,
-      rating: targetSeller.rating,
-      numReviews: targetSeller.numReviews,
-      province: targetSeller.province,
-      address: targetSeller.address,
-      latitude: targetSeller.latitude,
-      longitude: targetSeller.longitude,
-      openstore: targetSeller.isOpen,
-      tipoEstabelecimento: targetSeller.tipoEstabelecimento
+      id: correctId,
+      name: targetSeller.name || seller.name,
+      logo: targetSeller.logo || seller.logo,
+      description: targetSeller.description || seller.description,
+      rating: targetSeller.rating || seller.rating,
+      numReviews: targetSeller.numReviews || seller.numReviews,
+      province: targetSeller.province || seller.province,
+      address: targetSeller.address || seller.address,
+      latitude: targetSeller.latitude || seller.latitude,
+      longitude: targetSeller.longitude || seller.longitude,
+      openstore: targetSeller.openstore !== undefined ? targetSeller.openstore : (seller.openstore !== undefined ? seller.openstore : true),
+      tipoEstabelecimento: targetSeller.tipoEstabelecimento || seller.tipoEstabelecimento
     });
   };
 
@@ -166,8 +251,12 @@ const ProductDetail = () => {
             <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={24} color="#333" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="heart-outline" size={24} color="#333" />
+            <TouchableOpacity style={styles.iconButton} onPress={toggleFavorite}>
+              <Ionicons 
+                name={isFavorite ? "heart" : "heart-outline"} 
+                size={24} 
+                color={isFavorite ? "#EF4444" : "#333"} 
+              />
             </TouchableOpacity>
           </SafeAreaView>
 
@@ -243,36 +332,6 @@ const ProductDetail = () => {
           </View>
           <Ionicons name="chevron-forward" size={20} color="#CCC" />
         </TouchableOpacity>
-
-        <View style={styles.divider} />
-
-        {/* Calculadora de Entrega */}
-        <View style={styles.contentSection}>
-          <Text style={styles.sectionTitle}>Entrega e Prazos</Text>
-          {isOrdered && (
-            <View style={styles.infoBox}>
-              <Ionicons name="time-outline" size={20} color="#FF9500" />
-              <Text style={styles.infoBoxText}>
-                Este produto é por encomenda. Tempo estimado de produção/entrega: <Text style={{fontWeight: 'bold'}}>{orderPeriod}</Text>.
-              </Text>
-            </View>
-          )}
-          <View style={styles.deliveryCalculator}>
-            <View style={styles.calcRow}>
-              <Ionicons name="location-outline" size={20} color={PRIMARY_COLOR} />
-              <Text style={styles.calcText}>
-                {freightCalculated ? `Entrega a ${freightCalculated.distance} km de distância` : 'Calcular custo de entrega para o seu endereço'}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.calcBtn} onPress={calculateFreight} disabled={isCalculating}>
-              <Text style={styles.calcBtnText}>
-                {freightCalculated ? `${freightCalculated.price} MT` : (isCalculating ? 'Calculando...' : 'Calcular Frete')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
 
         {/* Tabs de Detalhes */}
         <View style={styles.tabsContainer}>
@@ -355,10 +414,16 @@ const ProductDetail = () => {
         </View>
 
         {/* Botão Adicionar ao Carrinho */}
+        {!isSellerOpen && (
+          <View style={{ backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="lock-closed-outline" size={16} color="#DC2626" />
+            <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 13 }}>Loja temporariamente fechada</Text>
+          </View>
+        )}
         <TouchableOpacity 
-          style={[styles.buyBtn, (countInStock === 0 && !isOrdered) && styles.buyBtnDisabled]} 
+          style={[styles.buyBtn, ((countInStock === 0 && !isOrdered) || !isSellerOpen) && styles.buyBtnDisabled]} 
           onPress={addItemToBasket}
-          disabled={countInStock === 0 && !isOrdered}
+          disabled={(countInStock === 0 && !isOrdered) || !isSellerOpen}
         >
           <Text style={styles.buyBtnText}>Adicionar ao Carrinho</Text>
           {count > 0 && (

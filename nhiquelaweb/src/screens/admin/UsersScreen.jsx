@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api, { SOCKET_URL } from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -13,6 +13,7 @@ export default function UsersScreen() {
   const [loading, setLoading] = useState(true);
   const [servicesList, setServicesList] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [provinces, setProvinces] = useState([]);
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -27,7 +28,24 @@ export default function UsersScreen() {
     fetchServices();
     fetchRoles();
     fetchSubcategories();
+    fetchProvinces();
   }, []);
+
+  const fetchProvinces = async () => {
+    try {
+      const { data } = await api.get('/provinces');
+      setProvinces(data.provinces || []);
+    } catch (error) {
+      console.warn('Erro ao buscar províncias:', error);
+    }
+  };
+
+  const getProvinceName = (provinceId) => {
+    if (!provinceId) return 'N/A';
+    if (typeof provinceId === 'object' && provinceId.name) return provinceId.name;
+    const prov = provinces.find(p => p._id === provinceId || p.id === provinceId);
+    return prov ? prov.name : provinceId;
+  };
 
   const fetchSubcategories = async () => {
     try {
@@ -36,6 +54,13 @@ export default function UsersScreen() {
     } catch (error) {
       console.warn('Subcategorias não carregadas', error);
     }
+  };
+
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    if (typeof categoryId === 'object' && categoryId.name) return categoryId.name;
+    const cat = subcategories.find(c => c._id === categoryId || c.id === categoryId);
+    return cat ? cat.name : categoryId;
   };
 
   const getTransportName = (idOrName) => {
@@ -444,11 +469,11 @@ export default function UsersScreen() {
         >
           <div 
             className="card border-0 shadow-lg rounded-4 animation-fade-in" 
-            style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+            style={{ width: '100%', maxWidth: selectedUserView.isSeller ? '700px' : '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
             onClick={(e) => e.stopPropagation()}
           >
               <div className="card-header bg-white border-bottom-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-                <h5 className="fw-bold m-0 text-dark">Ficha de Utilizador</h5>
+                <h5 className="fw-bold m-0 text-dark">{selectedUserView.isSeller ? 'Ficha de Fornecedor' : 'Ficha de Utilizador'}</h5>
                 <button 
                   type="button" 
                   className="btn btn-sm btn-light rounded-circle text-muted" 
@@ -459,7 +484,107 @@ export default function UsersScreen() {
                 </button>
               </div>
               <div className="card-body p-0" style={{ overflowY: 'auto', flex: '1 1 auto', minHeight: 0 }}>
-                <div className="p-4">
+                {selectedUserView.isSeller ? (
+                  <div className="p-4">
+                    <div className="row g-4">
+                      {/* Ficha de Utilizador */}
+                      <div className="col-md-6 border-end pe-md-4">
+                        <h6 className="fw-bold text-muted mb-4 text-uppercase small"><FontAwesomeIcon icon={faUser} className="me-2" />Ficha de Utilizador</h6>
+                        
+                        <div className="d-flex align-items-center mb-4">
+                          {selectedUserView.profileImage ? (
+                            <img src={getImageUrl(selectedUserView.profileImage)} alt={selectedUserView.name} className="rounded-circle shadow-sm me-3" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="bg-primary-subtle rounded-circle d-flex justify-content-center align-items-center text-primary-custom me-3" style={{ width: '80px', height: '80px' }}>
+                              <FontAwesomeIcon icon={faUser} size="2x" />
+                            </div>
+                          )}
+                          <div>
+                            <h5 className="fw-bold text-dark mb-1">{selectedUserView.name}</h5>
+                            <span className="badge bg-primary bg-opacity-10 text-primary-custom px-3 py-1 rounded-pill small">Vendedor</span>
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="small text-dark mb-2"><FontAwesomeIcon icon={faEnvelope} className="text-muted me-2" style={{width: '16px'}}/> {selectedUserView.email || 'N/A'}</p>
+                          <p className="small text-dark mb-2"><FontAwesomeIcon icon={faPhone} className="text-muted me-2" style={{width: '16px'}}/> {selectedUserView.phoneNumber || 'N/A'}</p>
+                          <p className="small text-dark mb-2"><FontAwesomeIcon icon={faCalendarAlt} className="text-muted me-2" style={{width: '16px'}}/> Membro Desde: <strong>{selectedUserView.createdAt ? new Date(selectedUserView.createdAt._seconds ? selectedUserView.createdAt._seconds * 1000 : selectedUserView.createdAt).toLocaleDateString('pt-PT') : 'Desconhecido'}</strong></p>
+                        </div>
+
+                        <div className="bg-light p-3 rounded-4 mb-4 border border-secondary border-opacity-10">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <span className="small fw-bold text-dark"><FontAwesomeIcon icon={faStar} className="text-warning me-2"/>Rating:</span>
+                            <span className="small text-dark fw-bold">{selectedUserView.seller?.rating || selectedUserView.rating || '0.0'} <span className="text-muted fw-normal">({selectedUserView.seller?.numReviews || 0} reviews)</span></span>
+                          </div>
+                        </div>
+
+                        <h6 className="fw-bold text-dark mb-3 small border-bottom pb-2">Estatísticas de Pedidos</h6>
+                        <div className="d-flex justify-content-between text-center">
+                          <div>
+                            <h4 className="fw-bold text-primary-custom mb-0">{selectedUserView.totalOrders || 0}</h4>
+                            <span className="small text-muted" style={{fontSize: '11px'}}>Pedidos</span>
+                          </div>
+                          <div>
+                            <h4 className="fw-bold text-success mb-0">{selectedUserView.completedOrders || 0}</h4>
+                            <span className="small text-muted" style={{fontSize: '11px'}}>Concluídos</span>
+                          </div>
+                          <div>
+                            <h4 className="fw-bold text-danger mb-0">{selectedUserView.cancelledOrders || 0}</h4>
+                            <span className="small text-muted" style={{fontSize: '11px'}}>Cancelados</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Detalhes do Estabelecimento */}
+                      <div className="col-md-6 ps-md-4">
+                        <h6 className="fw-bold text-muted mb-4 text-uppercase small"><FontAwesomeIcon icon={faStore} className="me-2" />Detalhes do Estabelecimento</h6>
+                        
+                        <div className="d-flex align-items-center mb-4">
+                          {selectedUserView.seller?.logo ? (
+                            <img src={getImageUrl(selectedUserView.seller.logo)} alt={selectedUserView.seller?.name} className="rounded-4 shadow-sm border me-3" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="bg-light rounded-4 d-flex justify-content-center align-items-center text-muted border border-dashed me-3" style={{ width: '80px', height: '80px' }}>
+                              <FontAwesomeIcon icon={faImage} size="2x" />
+                            </div>
+                          )}
+                          <div>
+                            <h5 className="fw-bold text-dark mb-2">{selectedUserView.seller?.name || 'Não definido'}</h5>
+                            <small className="text-muted d-block" style={{fontSize: '11px'}}>Tipo de Estabelecimento</small>
+                            <div className="small fw-bold text-dark mb-2">{getCategoryName(selectedUserView.seller?.tipoEstabelecimento)}</div>
+                            <span className={`badge rounded-pill px-3 py-1 ${(!selectedUserView.isBanned && selectedUserView.isApproved) ? 'bg-success-subtle text-success border border-success border-opacity-25' : selectedUserView.isBanned ? 'bg-danger-subtle text-danger border border-danger border-opacity-25' : 'bg-warning-subtle text-warning text-dark border border-warning border-opacity-25'}`}>
+                              {selectedUserView.isBanned ? 'Bloqueado' : (selectedUserView.isApproved ? 'Ativo' : 'Pendente')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="small text-dark mb-2"><strong>Morada:</strong> <br/>{selectedUserView.seller?.address || 'N/A'}, {getProvinceName(selectedUserView.seller?.province)}</p>
+                          <p className="small text-dark mb-0 text-muted" style={{fontSize: '11px'}}><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1"/> GPS: {selectedUserView.seller?.latitude || 'N/A'}, {selectedUserView.seller?.longitude || 'N/A'}</p>
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="small text-dark mb-2"><strong>Telemóvel Comercial:</strong> <br/>{selectedUserView.seller?.phoneNumberAccount || selectedUserView.seller?.contact || 'N/A'}</p>
+                        </div>
+
+                        <div className="bg-light p-3 rounded-4 border border-success border-opacity-25">
+                          <h6 className="fw-bold text-dark mb-3 small"><FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-2"/> Conta Bancária</h6>
+                          <div className="d-flex flex-column gap-2">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="small text-muted">M-Pesa:</span>
+                              <span className="small fw-bold text-dark">{selectedUserView.seller?.phoneNumberAccount || 'N/A'}</span>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="small text-muted">e-Mola:</span>
+                              <span className="small fw-bold text-dark">{selectedUserView.seller?.alternativePhoneNumberAccount || 'N/A'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4">
                   <div className="d-flex align-items-center mb-4">
                     {selectedUserView.deliveryman?.photo || selectedUserView.profileImage || selectedUserView.seller?.logo ? (
                       <img 
@@ -667,6 +792,7 @@ export default function UsersScreen() {
                   )}
 
                 </div>
+                )}
               </div>
               <div className="card-footer bg-white border-top-0 p-4 pt-0">
                 <button 

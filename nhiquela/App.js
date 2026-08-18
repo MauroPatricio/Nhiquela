@@ -13,6 +13,7 @@ import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ToastProvider } from 'react-native-toast-notifications'; // ✔️ CORRETO
+import FlashMessage from "react-native-flash-message";
 // ❌ REMOVIDO: import Toast from 'react-native-toast-message';
 
 import { store } from './store';
@@ -32,6 +33,8 @@ import SellerProduct from './components/SellerProduct';
 import Cart from './screens/Cart';
 import PaymentMethod from './screens/PaymentMethod';
 import MpesaScreen from './screens/MpesaScreen';
+import BankTransferScreen from './screens/BankTransferScreen';
+import OrderWaitingScreen from './screens/OrderWaitingScreen';
 import SuccessPayment from './screens/SuccessPayment';
 import FailedPayment from './screens/FailedPayment';
 import MapScreen from './screens/MapScreen';
@@ -50,6 +53,7 @@ import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import TripChatScreen from './screens/TripChatScreen';
+import OrderChat from './screens/OrderChat';
 
 // --- NAVIGATION REF ---
 export const navigationRef = createNavigationContainerRef();
@@ -319,6 +323,8 @@ export default function App() {
                 <Stack.Screen name="Cart" component={Cart} />
                 <Stack.Screen name="MpesaScreen" component={MpesaScreen} />
                 <Stack.Screen name="ProductListByCategory" component={ProductListByCategory} />
+                <Stack.Screen name="BankTransferScreen" component={BankTransferScreen} />
+                <Stack.Screen name="OrderWaitingScreen" component={OrderWaitingScreen} />
                 <Stack.Screen name="SuccessPayment" component={SuccessPayment} />
                 <Stack.Screen name="FailedPayment" component={FailedPayment} />
                 <Stack.Screen name="MapScreen" component={MapScreen} />
@@ -337,6 +343,11 @@ export default function App() {
                   component={TripChatScreen}
                   options={{ headerShown: true, title: 'Chat da Viagem', headerBackTitle: 'Voltar' }}
                 />
+                <Stack.Screen
+                  name="OrderChat"
+                  component={OrderChat}
+                  options={{ headerShown: false }}
+                />
               </Stack.Navigator>
             </NavigationContainer>
 
@@ -344,6 +355,7 @@ export default function App() {
         </Provider>
 
       </ToastProvider>
+      <FlashMessage position="top" />
     </GestureHandlerRootView>
   );
 }

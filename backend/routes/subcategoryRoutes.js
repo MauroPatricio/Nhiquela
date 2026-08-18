@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Subcategory from '../models/SubcategoryModel.js';
@@ -22,6 +22,19 @@ subcategoryRouter.get(
     res.status(200).send({ subcategories });
   })
 );
+// Helper to generate a URL-friendly slug
+const slugify = (text) => {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/[-\s]+/g, '-')
+    .concat('-' + Math.floor(1000 + Math.random() * 9000));
+};
 
 // Create new Subcategory
 subcategoryRouter.post(
@@ -29,11 +42,14 @@ subcategoryRouter.post(
   isAuth,
   isAdmin,
   expressAsyncHandler(async (req, res) => {
+    const parentCategory = req.body.category || req.body.categoryId;
+    const generatedSlug = req.body.slug || slugify(req.body.name);
+
     const newSubcategory = new Subcategory({
       name: req.body.name,
-      slug: req.body.slug,
+      slug: generatedSlug,
       description: req.body.description,
-      category: req.body.category, // ID da categoria pai
+      category: parentCategory, // ID da categoria pai
       image: req.body.image,
       isActive: true,
     });
@@ -74,9 +90,9 @@ subcategoryRouter.put(
 
     if (subcategory) {
       subcategory.name = req.body.name || subcategory.name;
-      subcategory.slug = req.body.slug || subcategory.slug;
+      subcategory.slug = req.body.slug || (req.body.name ? slugify(req.body.name) : subcategory.slug);
       subcategory.description = req.body.description || subcategory.description;
-      subcategory.category = req.body.category || subcategory.category;
+      subcategory.category = req.body.category || req.body.categoryId || subcategory.category;
       subcategory.image = req.body.image || subcategory.image;
       subcategory.isActive =
         req.body.isActive !== undefined ? req.body.isActive : subcategory.isActive;
@@ -93,7 +109,7 @@ subcategoryRouter.put(
       await subcategory.save();
       res.send({ message: 'Subcategoria atualizada com sucesso', subcategory });
     } else {
-      res.status(404).send({ message: 'Subcategoria n�o encontrada' });
+      res.status(404).send({ message: 'Subcategoria não encontrada' });
     }
   })
 );

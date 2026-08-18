@@ -13,7 +13,7 @@ export default function AdminLayout() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userInfo } = useSelector((state) => state.user);
   const dispatch = useDispatch();
-  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0 });
+  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0, pendingSellers: 0 });
 
   useEffect(() => {
     if (userInfo && userInfo.isAdmin) {
@@ -107,7 +107,7 @@ export default function AdminLayout() {
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
     // { name: 'Live Map Ops', path: '/admin/live-map', icon: faMapMarkerAlt },
-    { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog },
+    { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog, badge: badges.pendingSellers },
     { name: 'Papéis (Roles)', path: '/admin/roles', icon: faShieldAlt },
     { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart, badge: badges.pendingOrders },
     { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
@@ -118,7 +118,7 @@ export default function AdminLayout() {
     { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
     { name: 'Subcategorias de Prestador', path: '/admin/provider-subcategories', icon: faTags },
     { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
-    { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers },
+    { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingSellers },
     { name: 'Provedores', path: '/admin/providers', icon: faStore },
     { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
     { name: 'Categorias', path: '/admin/categories', icon: faTags },

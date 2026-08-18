@@ -1,4 +1,12 @@
 import 'express-async-errors';
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.log('⚠️ Unhandled Rejection:', reason?.message || reason);
+});
+process.on('uncaughtException', (error) => {
+  console.log('⚠️ Uncaught Exception:', error?.message || error);
+});
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -12,6 +20,7 @@ import seedRoutes from './routes/seedRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import userRouter from './routes/userRoutes.js';
 import orderRouter from './routes/orderRoutes.js';
+import orderChatRouter from './routes/orderChatRoutes.js';
 import uploadRouter from './routes/uploadRoutes.js';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -119,11 +128,11 @@ app.use(cors({
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Permite carregar imagens de outros domnios
 
-// Rate Limiting (Bloqueia DDoS e ataques de fora bruta)
+// Rate Limiting (Bloqueia DDoS e ataques de força bruta)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 800, // Proteção DDoS ativa em produção
-  message: { message: 'Muitas requisições deste IP, tente novamente mais tarde.' }
+  max: process.env.NODE_ENV === 'production' ? 800 : 100000, // Proteção DDoS ativa em produção, mas liberto no dev
+  message: 'Muitas requisições deste IP, por favor tente novamente após 15 minutos.'
 });
 app.use('/api', limiter); // Aplica o limitador a todas as rotas de API
 
@@ -156,6 +165,8 @@ app.use('/api/seed', seedRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRouter);
 app.use('/api/orders', orderRouter);
+app.use('/api/order-chats', orderChatRouter);
+app.use('/api/keys/paypal', (req, res) => { res.send(process.env.PAYPAL_CLIENT_ID || 'sb'); });
 app.use('/api/upload', uploadRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/subcategories', subcategoryRouter);
@@ -234,6 +245,9 @@ app.get('/api/debug/emit-test/:driverId', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.log(err);
+  try {
+    require('fs').appendFileSync('d:/Projectos/Nhiquela/backend/error_log.txt', new Date().toISOString() + ' ' + req.url + '\n' + (err.stack || err.message) + '\n\n');
+  } catch(e) {}
   res.status(500).send({ message: err.message });
 });
 

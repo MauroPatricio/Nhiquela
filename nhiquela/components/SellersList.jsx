@@ -93,28 +93,23 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
       style={styles.sellerCard}  
       onPress={() => {
   
-        const {
-          logo,
-          description,
-          openTime,
-          closeTime,
-          isOpen
-        } = item.businessData || {}; 
+        const sellerDetails = item.userId?.seller || item.seller || {};
+        const sellerUserId = item.userId?._id || item.userId || item._id;
 
-        const name = item.name;
-        const address = item.location?.address;
-        const latitude = item.location?.lat;
-        const longitude = item.location?.lng;
-        const rating = item.rating;
-        const numReviews = item.numReviews;
-        const _id = item._id;
+        const name = sellerDetails.name || item.name;
+        const address = sellerDetails.address || item.location?.address;
+        const latitude = sellerDetails.latitude || item.location?.lat;
+        const longitude = sellerDetails.longitude || item.location?.lng;
+        const rating = sellerDetails.rating || item.rating;
+        const numReviews = sellerDetails.numReviews || item.numReviews;
+        const isOpen = sellerDetails.openstore !== undefined ? sellerDetails.openstore : item.openstore;
 
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {
-          id: _id, // Pass the ID correctly
+          id: sellerUserId, // Pass the correct User ID
           name,
-          logo,
-          description,
+          logo: sellerDetails.logo || item.logo,
+          description: sellerDetails.description || item.description,
           rating,
           numReviews,
           address,
@@ -127,13 +122,13 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
       }}
     >
       {/* Seller's Logo */}
-      <Image source={{ uri: item.businessData?.logo || 'https://via.placeholder.com/65' }} style={styles.sellerLogo} />
+      <Image source={{ uri: (item.userId?.seller?.logo || item.seller?.logo || item.logo || 'https://via.placeholder.com/65') }} style={styles.sellerLogo} />
       
       {/* Seller's Information */}
       <View style={styles.sellerInfo}>
-        <Text style={styles.sellerName}>{item.name}</Text>
+        <Text style={styles.sellerName}>{item.userId?.seller?.name || item.seller?.name || item.name}</Text>
         <Text style={styles.sellerDescription}>
-          {truncateDescription(item.businessData?.description)}
+          {truncateDescription(item.userId?.seller?.description || item.seller?.description || item.description)}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
           <Ionicons name="location-outline" size={14} color="#9CA3AF" />

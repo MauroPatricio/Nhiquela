@@ -48,7 +48,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
         }
-      }
+      },
+      "usesCleartextTraffic": true
     },
     "notification": {
       "icon": "./assets/nhiquela2.png",

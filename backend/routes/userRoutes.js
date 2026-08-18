@@ -10,6 +10,7 @@ import mongoose from 'mongoose';
 import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
 import { updatePushToken } from '../controllers/userController.js'
 import DeliverymanUpdateRequest from "../models/DeliverymanUpdateRequestModel.js";
+import Provider from '../models/ProviderModel.js';
 
 const userRouter = express.Router();
 
@@ -122,7 +123,8 @@ userRouter.get(
         isSeller: true,
         isApproved: true,
         isBanned: false,
-        isDeleted: { $ne: true }
+        isDeleted: { $ne: true },
+        'seller.tipoEstabelecimento': { $exists: true, $ne: null }
       };
 
       if (tipoEstabelecimento && mongoose.Types.ObjectId.isValid(tipoEstabelecimento)) {
@@ -238,7 +240,7 @@ userRouter.get(
         res.send({
           ...user.toObject(),
           seller: {
-            ...user.seller.toObject(),
+            ...(user.seller && typeof user.seller.toObject === 'function' ? user.seller.toObject() : user.seller),
             tipoEstabelecimento: user.seller.tipoEstabelecimento?.name || 'N�o especificado'
           }
         });
@@ -307,6 +309,9 @@ userRouter.put(
       const user = await User.findById(req.user._id);
 
       if (user) {
+        if (req.body.name && (req.body.name.includes('@') || /\d/.test(req.body.name))) {
+          return res.status(400).send({ message: 'O nome não pode conter números ou o caractere @' });
+        }
         user.name = req.body.name || user.name;
         user.email = req.body.email || user.email;
         user.profileImage = req.body.profileImage || user.profileImage;
@@ -328,6 +333,7 @@ userRouter.put(
             address: req.body.sellerAddress || req.body.seller?.address || user.seller.address,
             phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount || user.seller.phoneNumberAccount,
             alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount,
+            bankAccount: req.body.bankAccount || req.body.seller?.bankAccount || user.seller.bankAccount,
             accountType: req.body.accountType || req.body.seller?.accountType || user.seller.accountType,
             accountNumber: req.body.accountNumber || req.body.seller?.accountNumber || user.seller.accountNumber,
             latitude: req.body.latitude || req.body.seller?.latitude || user.seller.latitude,
@@ -440,6 +446,9 @@ userRouter.put(
   expressAsyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (user) {
+      if (req.body.name && (req.body.name.includes('@') || /\d/.test(req.body.name))) {
+        return res.status(400).send({ message: 'O nome não pode conter números ou o caractere @' });
+      }
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.isAdmin = Boolean(req.body.isAdmin !== undefined ? req.body.isAdmin : user.isAdmin);
@@ -463,6 +472,7 @@ userRouter.put(
           longitude: req.body.seller.longitude || user.seller?.longitude,
           phoneNumberAccount: req.body.seller.phoneNumberAccount !== undefined ? req.body.seller.phoneNumberAccount : user.seller?.phoneNumberAccount,
           alternativePhoneNumberAccount: req.body.seller.alternativePhoneNumberAccount !== undefined ? req.body.seller.alternativePhoneNumberAccount : user.seller?.alternativePhoneNumberAccount,
+          bankAccount: req.body.seller.bankAccount !== undefined ? req.body.seller.bankAccount : user.seller?.bankAccount,
         };
       }
 
@@ -512,7 +522,7 @@ userRouter.put(
       // Emitir evento pelo socket para real-time reload na app (ex: aprovação de motorista)
       const io = req.app.get('io');
       if (io) {
-        io.emit('userStatusChanged', {
+        io.to(`user_${user._id.toString()}`).emit('userStatusChanged', {
           userId: user._id,
           isApproved: user.isApproved,
           isBanned: user.isBanned,
@@ -638,16 +648,22 @@ userRouter.put(
 
       await user.save();
 
-      // Atualizar todos os produtos com o estado atual da loja
+      // Find the Provider for this user
+      const provider = await Provider.findOne({ userId: req.params.id });
+      const targetSellerId = provider ? provider._id : req.params.id;
+
+      // Atualizar todos os produtos com o estado atual da loja usando o ID do Provider
       await Product.updateMany(
-        { seller: req.params.id },
+        { seller: targetSellerId },
         { isSellerOpen: isOpenStore }
       );
 
       // Emitir evento pelo socket
       const io = req.app.get('io');
       io.emit('storeStatusChanged', {
-        sellerId: req.params.id,
+        sellerId: targetSellerId,
+        userId: req.params.id,
+        sellerName: user.seller?.name || user.name,
         isOpen: user.seller.openstore,
       });
 
@@ -734,15 +750,24 @@ userRouter.patch(
     user.seller.openstore = Boolean(isOpenStore);
     await user.save();
 
-    // Atualiza o estado dos produtos da loja
+    // Find the Provider for this user
+    const provider = await Provider.findOne({ userId: req.params.id });
+    const targetSellerId = provider ? provider._id : req.params.id;
+
+    // Atualiza o estado dos produtos da loja usando o ID do Provider
     await Product.updateMany(
-      { seller: req.params.id },
+      { seller: targetSellerId },
       { isSellerOpen: Boolean(isOpenStore) }
     );
 
-    // Notifica��o via socket
+    // Notificao via socket
     const io = req.app.get('io');
-    io.emit('storeStatusChanged', { sellerId: req.params.id, isOpen: Boolean(isOpenStore) });
+    io.emit('storeStatusChanged', { 
+      sellerId: targetSellerId, 
+      userId: req.params.id,
+      sellerName: user.seller?.name || user.name,
+      isOpen: Boolean(isOpenStore) 
+    });
 
     res.status(200).json({ message: 'Estado da loja atualizado com sucesso', isOpenStore: Boolean(isOpenStore) });
   })
@@ -1183,6 +1208,10 @@ userRouter.post(
         return res.status(409).send({ message: 'J� existe um email id�ntico registrado' });
       }
 
+      if (req.body.name && (req.body.name.includes('@') || /\d/.test(req.body.name))) {
+        return res.status(400).send({ message: 'O nome não pode conter números ou o caractere @' });
+      }
+
       if (!userExist) {
         if (!req.body.password) {
           return res.status(400).send({ message: 'A palavra-passe � obrigat�ria' });
@@ -1200,6 +1229,13 @@ userRouter.post(
 
 
         if (newUser.isSeller) {
+          const hasMpesa = !!(req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount);
+          const hasEmola = !!(req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount);
+          const hasVisa = !!(req.body.bankAccount || req.body.seller?.bankAccount);
+          if (!hasMpesa && !hasEmola && !hasVisa) {
+            return res.status(400).send({ message: 'Deve preencher pelo menos uma conta de recebimento (M-Pesa, e-Mola ou Visa)' });
+          }
+
           let provinceId = null;
           const provinceInput = req.body.sellerLocation || req.body.seller?.province;
           if (provinceInput) {
@@ -1232,6 +1268,7 @@ userRouter.post(
             address: req.body.sellerAddress || req.body.seller?.address,
             phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount,
             alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount,
+            bankAccount: req.body.bankAccount || req.body.seller?.bankAccount,
             accountType: req.body.accountType || req.body.seller?.accountType,
             accountNumber: req.body.accountNumber || req.body.seller?.accountNumber,
             alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType,
@@ -1334,6 +1371,29 @@ userRouter.post(
             }
           });
           await provider.save();
+
+          // Enviar email de notificação para administradores
+          try {
+            await sendAdminNotificationEmail(
+              'Novo Registo de Fornecedor Pendente',
+              `O fornecedor <b>${user.seller.name}</b> (Representante: ${user.name}, Tel: ${user.phoneNumber}, Email: ${user.email}) registou-se na plataforma e encontra-se no estado pendente para autorização.<br><br>Por favor, aceda ao painel de administração na plataforma web para analisar e autorizar este fornecedor.`
+            );
+          } catch (emailErr) {
+            console.error('Erro ao enviar email de notificação de novo fornecedor:', emailErr.message);
+          }
+
+          // Notificação em tempo real via WebSocket para administradores online
+          const io = req.app.get('io');
+          const usersOnline = req.app.get('users');
+          if (io && usersOnline) {
+            const admins = usersOnline.filter(u => u.isAdmin && u.socketId);
+            admins.forEach(admin => {
+              io.to(admin.socketId).emit('adminNotification', {
+                type: 'seller_approval',
+                message: `Novo registo de fornecedor pendente: ${user.seller.name}`
+              });
+            });
+          }
         }
         return res.send({
           _id: user._id,

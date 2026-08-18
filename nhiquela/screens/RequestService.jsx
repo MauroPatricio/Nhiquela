@@ -277,8 +277,9 @@ export default function RequestServiceSimple() {
               const pmRes = await api.get('/payment-methods', {
                 headers: { authorization: `Bearer ${parsed.token}` }
               });
-              if (pmRes.status === 200 && pmRes.data?.paymentMethods) {
-                const pref = pmRes.data.paymentMethods.find(p => p._id === parsed.preferredPaymentMethod);
+              const methodsList = Array.isArray(pmRes.data) ? pmRes.data : (pmRes.data?.paymentMethods || []);
+              if (pmRes.status === 200 && methodsList.length > 0) {
+                const pref = methodsList.find(p => p._id === parsed.preferredPaymentMethod);
                 if (pref) {
                   setPreferredPaymentMethodName(pref.name);
                 }
@@ -2025,18 +2026,33 @@ export default function RequestServiceSimple() {
                   <View style={{ backgroundColor: '#F9FAFB', borderRadius: 16, padding: 16, marginBottom: 24 }}>
                     <Text style={{ fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 12 }}>Informações da Viatura</Text>
                     
-                    { (selectedDriverInfo.deliveryman?.vihicle_picture_front || selectedDriverInfo.deliveryman?.vihicle_picture) ? (
-                      <Image
-                        source={{ uri: selectedDriverInfo.deliveryman?.vihicle_picture_front || selectedDriverInfo.deliveryman?.vihicle_picture }}
-                        style={{ width: '100%', height: 160, borderRadius: 12, backgroundColor: '#E5E7EB', marginBottom: 16 }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={{ width: '100%', height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', marginBottom: 16, justifyContent: 'center', alignItems: 'center' }}>
-                         <MaterialCommunityIcons name="car-off" size={40} color="#9CA3AF" />
-                         <Text style={{ color: '#9CA3AF', marginTop: 8 }}>Sem imagem disponível</Text>
-                      </View>
-                    )}
+                    { (() => {
+                      const photos = [];
+                      if (selectedDriverInfo.deliveryman?.vihicle_picture_front) photos.push(selectedDriverInfo.deliveryman.vihicle_picture_front);
+                      if (selectedDriverInfo.deliveryman?.vihicle_picture_back) photos.push(selectedDriverInfo.deliveryman.vihicle_picture_back);
+                      if (selectedDriverInfo.deliveryman?.vihicle_picture && !photos.includes(selectedDriverInfo.deliveryman.vihicle_picture)) photos.push(selectedDriverInfo.deliveryman.vihicle_picture);
+                      
+                      if (photos.length > 0) {
+                        return (
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                            {photos.map((uri, idx) => (
+                              <Image
+                                key={idx}
+                                source={{ uri }}
+                                style={{ width: 280, height: 160, borderRadius: 12, backgroundColor: '#E5E7EB', marginRight: 12 }}
+                                resizeMode="cover"
+                              />
+                            ))}
+                          </ScrollView>
+                        );
+                      }
+                      return (
+                        <View style={{ width: '100%', height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', marginBottom: 16, justifyContent: 'center', alignItems: 'center' }}>
+                           <MaterialCommunityIcons name="car-off" size={40} color="#9CA3AF" />
+                           <Text style={{ color: '#9CA3AF', marginTop: 8 }}>Sem imagem disponível</Text>
+                        </View>
+                      );
+                    })()}
 
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                       {!!(selectedDriverInfo.transport_type || selectedDriverInfo.deliveryman?.transport_type) && (

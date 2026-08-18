@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { isAdmin, isAuth } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Category from '../models/CategoryModel.js';
@@ -32,6 +32,8 @@ categoryRouter.post(
       name: req.body.name,
       nome: req.body.nome,
       description: req.body.description,
+      image: req.body.image,
+      img: req.body.image,
       isActive: true,
     });
 
@@ -60,29 +62,33 @@ categoryRouter.get(
 categoryRouter.put(
   '/:id/',
   isAuth,
+  isAdmin,
   expressAsyncHandler(async (req, res) => {
     const category = await Category.findById(req.params.id);
 
     if (category) {
-      category.icon = req.body.icon;
-      category.name = req.body.name;
-      category.nome = req.body.nome;
+      if (req.body.icon !== undefined) category.icon = req.body.icon;
+      if (req.body.name !== undefined) category.name = req.body.name;
+      if (req.body.nome !== undefined) category.nome = req.body.nome;
+      if (req.body.description !== undefined) category.description = req.body.description;
+      if (req.body.isActive !== undefined) category.isActive = req.body.isActive;
+      if (req.body.image !== undefined) {
+        category.image = req.body.image;
+        category.img = req.body.image;
+      }
 
-      category.description = req.body.description;
-      category.isActive = req.body.isActive;
-
-     if(!category.isActive){
-     const products = await Product.find({category: req.params.id});
-      products.forEach(async p=>{
-        p.isActive = false;
-        await p.save();
-      })
-     }
+      if(!category.isActive){
+      const products = await Product.find({category: req.params.id});
+       products.forEach(async p=>{
+         p.isActive = false;
+         await p.save();
+       })
+      }
 
       await category.save();
-      res.send({ message: `Categoria actualizada com sucesso` });
+      res.send({ message: `Categoria actualizada com sucesso`, category });
     } else {
-      res.status(404).send({ message: 'Categoria n�o encontrada' });
+      res.status(404).send({ message: 'Categoria não encontrada' });
     }
   })
 );

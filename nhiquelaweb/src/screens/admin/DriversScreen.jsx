@@ -129,87 +129,130 @@ export default function DriversScreen() {
   // All fields from a standard mobile driver registration
 
   const [formData, setFormData] = useState({ 
-
     name: '', email: '', phone: '', password: '',
-
     transport_type: '', transport_color: 'Branco', plate: '', 
-
     licenseNumber: '', idNumber: '', document_type: 'bi',
-
-    status: 'Pendente', vehicle_type_id: '', providedServices: []
-
+    status: 'Pendente', vehicle_type_id: '', providedServices: [],
+    photo: '', vihicle_picture: '', vihicle_picture_front: '', vihicle_picture_back: '',
+    vihicle_inspection: '', vihicle_Insurance: '', vihicle_logbook: '',
+    license_front: '', license_back: '', document_front: '', document_back: '',
+    Proof_of_Address: '', mPesaNumber: '', eMolaNumber: ''
   });
 
-  
-
   const [showModal, setShowModal] = useState(false);
-
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-
   const [selectedDriver, setSelectedDriver] = useState(null);
-
   const [selectedImage, setSelectedImage] = useState(null);
-
-
+  const [uploadingField, setUploadingField] = useState(null);
 
   const {
-
     currentPage, searchQuery, setSearchQuery, currentData: currentDrivers,
-
     totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
-
   } = usePagination(drivers, 10, ['name', 'phone', 'email', 'plate', 'province']);
 
+  const uploadFileHandler = async (e, fieldName) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
+    const bodyFormData = new FormData();
+    bodyFormData.append('file', file);
 
-  const handleOpenDetails = (driver) => {
-
-    setSelectedDriver(driver);
-
-    setShowDetailsModal(true);
-
+    try {
+      setUploadingField(fieldName);
+      const { data } = await api.post('/upload', bodyFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setFormData(prev => ({ ...prev, [fieldName]: data.secure_url }));
+      toast.success('Documento carregado com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao carregar ficheiro');
+    } finally {
+      setUploadingField(null);
+    }
   };
 
+  const renderFileField = (label, fieldName) => {
+    const fileUrl = formData[fieldName];
+    return (
+      <div className="col-md-6 mt-3">
+        <label className="form-label fw-bold small text-muted mb-1">{label}</label>
+        <div className="d-flex align-items-center gap-2">
+          {fileUrl ? (
+            <div className="position-relative border rounded-3 p-1 bg-white" style={{ width: '45px', height: '45px', overflow: 'hidden' }}>
+              {fileUrl.endsWith('.pdf') ? (
+                <div className="w-100 h-100 d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger fw-bold" style={{ fontSize: '10px' }}>PDF</div>
+              ) : (
+                <img src={getImageUrl(fileUrl)} className="w-100 h-100 object-fit-cover" alt="Preview" />
+              )}
+            </div>
+          ) : (
+            <div className="border border-dashed rounded-3 d-flex align-items-center justify-content-center text-muted bg-light" style={{ width: '45px', height: '45px' }}>
+              <FontAwesomeIcon icon={faImage} />
+            </div>
+          )}
+          <div className="flex-grow-1">
+            <input 
+              type="file" 
+              className="form-control form-control-sm" 
+              onChange={(e) => uploadFileHandler(e, fieldName)}
+              disabled={uploadingField === fieldName}
+            />
+            {uploadingField === fieldName && (
+              <span className="text-primary small d-block" style={{ fontSize: '10px' }}>A carregar...</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
+  const handleOpenDetails = (driver) => {
+    setSelectedDriver(driver);
+    setShowDetailsModal(true);
+  };
 
   const handleOpenModal = (driver = null) => {
-
     if (driver) {
-
       setIsEditing(true);
-
       setCurrentId(driver._id || driver.id);
-
       
-
       const mappedServices = driver.deliveryman?.providedServices?.map(s => s.serviceId?._id || s.serviceId) || [];
-
       
-
-      setFormData({ ...driver, phoneNumber: driver.phoneNumber || driver.phone, password: '', providedServices: mappedServices });
-
-    } else {
-
-      setIsEditing(false);
-
-      setCurrentId(null);
-
-      setFormData({
-
-        name: '', email: '', phoneNumber: '', password: '',
-
-        transport_type: '', transport_color: 'Branco', plate: '', 
-
-        licenseNumber: '', idNumber: '', document_type: 'bi',
-
-        status: 'Pendente', vehicle_type_id: '', providedServices: []
-
+      setFormData({ 
+        ...driver, 
+        phoneNumber: driver.phoneNumber || driver.phone, 
+        password: '', 
+        providedServices: mappedServices,
+        photo: driver.deliveryman?.photo || '',
+        vihicle_picture: driver.deliveryman?.vihicle_picture || '',
+        vihicle_picture_front: driver.deliveryman?.vihicle_picture_front || '',
+        vihicle_picture_back: driver.deliveryman?.vihicle_picture_back || '',
+        vihicle_inspection: driver.deliveryman?.vihicle_inspection || '',
+        vihicle_Insurance: driver.deliveryman?.vihicle_Insurance || '',
+        vihicle_logbook: driver.deliveryman?.vihicle_logbook || '',
+        license_front: driver.deliveryman?.license_front || '',
+        license_back: driver.deliveryman?.license_back || '',
+        document_front: driver.deliveryman?.document_front || '',
+        document_back: driver.deliveryman?.document_back || '',
+        Proof_of_Address: driver.deliveryman?.Proof_of_Address || '',
+        mPesaNumber: driver.deliveryman?.transferPreferences?.mPesaNumber || '',
+        eMolaNumber: driver.deliveryman?.transferPreferences?.eMolaNumber || ''
       });
-
+    } else {
+      setIsEditing(false);
+      setCurrentId(null);
+      setFormData({
+        name: '', email: '', phoneNumber: '', password: '',
+        transport_type: '', transport_color: 'Branco', plate: '', 
+        licenseNumber: '', idNumber: '', document_type: 'bi',
+        status: 'Pendente', vehicle_type_id: '', providedServices: [],
+        photo: '', vihicle_picture: '', vihicle_picture_front: '', vihicle_picture_back: '',
+        vihicle_inspection: '', vihicle_Insurance: '', vihicle_logbook: '',
+        license_front: '', license_back: '', document_front: '', document_back: '',
+        Proof_of_Address: '', mPesaNumber: '', eMolaNumber: ''
+      });
     }
-
     setShowModal(true);
-
   };
 
 
@@ -840,13 +883,19 @@ export default function DriversScreen() {
                   </div>
 
                   <div className="col-md-12">
-
                     <label className="form-label fw-bold small text-muted mb-1">Nº Carta de Condução *</label>
-
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.licenseNumber} onChange={(e) => setFormData({...formData, licenseNumber: e.target.value})} required />
-
                   </div>
+                </div>
 
+                <h6 className="fw-bold text-primary-custom mb-3 mt-4 border-bottom pb-2">Documentos Pessoais & Selfie</h6>
+                <div className="row g-3">
+                  {renderFileField("Foto de Perfil (Selfie)", "photo")}
+                  {renderFileField(`${formData.document_type === 'passport' ? 'Passaporte' : 'BI'} (Frente)`, "document_front")}
+                  {renderFileField(`${formData.document_type === 'passport' ? 'Passaporte' : 'BI'} (Verso)`, "document_back")}
+                  {renderFileField("Carta de Condução (Frente)", "license_front")}
+                  {renderFileField("Carta de Condução (Verso)", "license_back")}
+                  {renderFileField("Comprovativo de Morada", "Proof_of_Address")}
                 </div>
 
 
@@ -902,13 +951,19 @@ export default function DriversScreen() {
                   </div>
 
                   <div className="col-md-4">
-
                     <label className="form-label fw-bold small text-muted mb-1">Matrícula/Placa *</label>
-
                     <input type="text" className="form-control bg-light border-0 py-2 rounded-3 text-uppercase" value={formData.plate} onChange={(e) => setFormData({...formData, plate: e.target.value})} placeholder="Ex: ABC 123 MC" required />
-
                   </div>
+                </div>
 
+                <h6 className="fw-bold text-primary-custom mb-3 mt-4 border-bottom pb-2">Documentos e Fotos do Veículo</h6>
+                <div className="row g-3">
+                  {renderFileField("Foto Geral do Veículo", "vihicle_picture")}
+                  {renderFileField("Foto do Veículo (Frente)", "vihicle_picture_front")}
+                  {renderFileField("Foto do Veículo (Traseira)", "vihicle_picture_back")}
+                  {renderFileField("Livrete do Veículo", "vihicle_logbook")}
+                  {renderFileField("Inspeção do Veículo", "vihicle_inspection")}
+                  {renderFileField("Seguro do Veículo", "vihicle_Insurance")}
                 </div>
 
 
@@ -965,8 +1020,19 @@ export default function DriversScreen() {
 
 
 
-                <div className="mb-4 bg-light p-3 rounded-3 border">
+                <h6 className="fw-bold text-primary-custom mb-3 mt-4 border-bottom pb-2">Contas para Transferência (Pagamentos)</h6>
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Número M-Pesa (Opcional)</label>
+                    <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.mPesaNumber || ''} onChange={(e) => setFormData({...formData, mPesaNumber: e.target.value})} placeholder="Ex: 84XXXXXXX" />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label fw-bold small text-muted mb-1">Número e-Mola (Opcional)</label>
+                    <input type="text" className="form-control bg-light border-0 py-2 rounded-3" value={formData.eMolaNumber || ''} onChange={(e) => setFormData({...formData, eMolaNumber: e.target.value})} placeholder="Ex: 86XXXXXXX" />
+                  </div>
+                </div>
 
+                <div className="mb-4 bg-light p-3 rounded-3 border">
                   <label className="form-label fw-bold small text-dark mb-1">Status de Operação (Conta)</label>
 
                   <select className="form-select bg-white border py-3 rounded-3 fw-bold" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>

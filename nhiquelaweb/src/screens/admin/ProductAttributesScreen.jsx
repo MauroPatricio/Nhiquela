@@ -21,7 +21,7 @@ export default function ProductAttributesScreen() {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ nome: '' });
+  const [formData, setFormData] = useState({ name: '', nome: '' });
 
   const currentList = activeTab === 'colors' ? colors : sizes;
   const {
@@ -70,16 +70,15 @@ export default function ProductAttributesScreen() {
       setLoadingSizes(false);
     }
   };
-
-  const handleOpenModal = (item = null) => {
+  const handleOpenModal = (item = null) => {
     if (item) {
       setIsEditing(true);
       setCurrentId(item._id);
-      setFormData({ nome: item.nome });
+      setFormData({ name: item.name || '', nome: item.nome || '' });
     } else {
       setIsEditing(false);
       setCurrentId(null);
-      setFormData({ nome: '' });
+      setFormData({ name: '', nome: '' });
     }
     setShowModal(true);
   };
@@ -88,7 +87,8 @@ export default function ProductAttributesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.nome) return toast.error('O nome � obrigatório.');
+    if (!formData.nome) return toast.error('O nome (Português) é obrigatório.');
+    if (!formData.name) return toast.error('O nome (Inglês) é obrigatório.');
 
     try {
       const endpoint = activeTab === 'colors' ? '/colors' : '/sizes';
@@ -97,13 +97,14 @@ export default function ProductAttributesScreen() {
       const itemName = activeTab === 'colors' ? 'Cor' : 'Tamanho';
 
       if (isEditing) {
-        // await api.put(`${endpoint}/${currentId}`, formData);
-        listSetter(list.map(i => i._id === currentId ? { ...i, ...formData } : i));
+        const { data } = await api.put(`${endpoint}/${currentId}`, formData);
+        const updatedItem = data.color || data.size || { ...formData, _id: currentId };
+        listSetter(list.map(i => i._id === currentId ? updatedItem : i));
         toast.success(`${itemName} atualizado com sucesso!`);
       } else {
-        // const { data } = await api.post(endpoint, formData);
-        // listSetter([...list, data]);
-        listSetter([...list, { _id: Date.now().toString(), ...formData }]);
+        const { data } = await api.post(endpoint, formData);
+        const newItem = data.color || data.size || { ...formData, _id: Date.now().toString() };
+        listSetter([...list, newItem]);
         toast.success(`${itemName} criado com sucesso!`);
       }
       handleCloseModal();
@@ -120,7 +121,7 @@ export default function ProductAttributesScreen() {
         const listSetter = activeTab === 'colors' ? setColors : setSizes;
         const list = activeTab === 'colors' ? colors : sizes;
         
-        // await api.delete(`${endpoint}/${id}`);
+        await api.delete(`${endpoint}/${id}`);
         listSetter(list.filter(i => i._id !== id));
         toast.success(`${itemName} eliminado!`);
       } catch (error) {
@@ -148,7 +149,9 @@ export default function ProductAttributesScreen() {
                   <div className="bg-light rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm border text-primary-custom" style={{ width: '40px', height: '40px' }}>
                     <FontAwesomeIcon icon={icon} />
                   </div>
-                  <span className="fw-bold text-dark">{item.nome}</span>
+                  <span className="fw-bold text-dark">
+                    {item.nome || item.name} <span className="text-muted fw-normal fs-7">({item.name})</span>
+                  </span>
                 </div>
               </td>
               <td className="text-end px-4">
@@ -228,11 +231,17 @@ export default function ProductAttributesScreen() {
             </div>
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
-                <div className="mb-4">
+                <div className="mb-3">
                   <label className="form-label fw-bold small text-muted mb-1">
-                    {activeTab === 'colors' ? 'Nome da Cor (Ex: Azul Marinho)' : 'Nome do Tamanho (Ex: XL, 2Kg)'}
+                    {activeTab === 'colors' ? 'Nome da Cor (Português) *' : 'Nome do Tamanho (Português) *'}
                   </label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} required />
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} placeholder={activeTab === 'colors' ? 'Ex: Azul' : 'Ex: Pequeno'} required />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted mb-1">
+                    {activeTab === 'colors' ? 'Nome da Cor (Inglês) *' : 'Nome do Tamanho (Inglês) *'}
+                  </label>
+                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder={activeTab === 'colors' ? 'Ex: Blue' : 'Ex: Small'} required />
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Adicionar'}

@@ -2,10 +2,11 @@ import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, 
-  RefreshControl, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, 
-  Keyboard, ActivityIndicator, StatusBar
+  RefreshControl, Platform, TouchableWithoutFeedback, 
+  Keyboard, ActivityIndicator, StatusBar, Modal, FlatList
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Formik } from 'formik';
 import api from '../hooks/createConnectionApi';
 import { Picker } from '@react-native-picker/picker';
@@ -15,7 +16,61 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
+
+const PremiumSelect = ({ icon, label, selectedValue, onValueChange, items, error }) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const selectedItem = items.find(i => String(i.value) === String(selectedValue));
+
+  return (
+    <View style={{ width: '100%', marginBottom: 16 }}>
+      <TouchableOpacity 
+        style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceCard || '#fafafa', borderWidth: 1, borderColor: COLORS.borderLight || '#e0e0e0', borderRadius: RADIUS.md, paddingHorizontal: 16, height: 56, ...SHADOWS.sm }, error && { borderColor: '#d32f2f' }]} 
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name={icon} size={20} color={COLORS.primary} style={{ marginRight: 12, opacity: 0.8 }} />
+        <Text style={{ flex: 1, color: selectedItem && selectedItem.value !== "" ? COLORS.text : '#9e9e9e', fontSize: 14 }}>
+          {selectedItem && selectedItem.value !== "" ? selectedItem.label : label}
+        </Text>
+        <Ionicons name="chevron-down" size={20} color={'#9e9e9e'} />
+      </TouchableOpacity>
+
+      {modalVisible && (
+        <Modal visible={modalVisible} animationType="fade" transparent={true} onRequestClose={() => setModalVisible(false)}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }} activeOpacity={1} onPress={() => setModalVisible(false)}>
+            <TouchableOpacity activeOpacity={1} style={{ backgroundColor: '#fff', borderRadius: 24, padding: 20, maxHeight: '70%', elevation: 5 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text }}>{label}</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close-circle" size={28} color={'#e0e0e0'} />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={items}
+                keyExtractor={(item, index) => String(item.value) + index}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => {
+                  const isSelected = String(selectedValue) === String(item.value);
+                  return (
+                    <TouchableOpacity
+                      style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 15, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: isSelected ? COLORS.primary : '#f5f5f5' }, isSelected && { backgroundColor: COLORS.primaryLight ? COLORS.primaryLight + '15' : '#e0f2f1' }]}
+                      onPress={() => { onValueChange(item.value); setModalVisible(false); }}
+                    >
+                      <Text style={[{ fontSize: 16, color: COLORS.text, fontWeight: isSelected ? '700' : '500' }, isSelected && { color: COLORS.primary }]}>{item.label}</Text>
+                      {isSelected && <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
+    </View>
+  );
+};
 
 const validationSchema = Yup.object().shape({
   nome: Yup.string().required('Nome (PT) é obrigatório'),
@@ -33,12 +88,16 @@ const NewProduct = () => {
   const route = useRoute();
   
   const [editingProduct, setEditingProduct] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [timerEndDate, setTimerEndDate] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [showNotifyBtn, setShowNotifyBtn] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
   const [provinces, setProvinces] = useState([]);
   const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
   const [sizes, setSizes] = useState([]);
   
-  const [userData, setUserData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -69,13 +128,80 @@ const NewProduct = () => {
     const loadUserData = async () => {
       try {
         const storedUser = await AsyncStorage.getItem('userData');
-        if (storedUser) setUserData(JSON.parse(storedUser));
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          setUserData(parsed);
+          if (!parsed.isApproved) {
+            const storedEnd = await AsyncStorage.getItem('@approval_timer_end');
+            if (storedEnd) {
+              const end = parseInt(storedEnd, 10);
+              if (Date.now() < end) {
+                setTimerEndDate(end);
+                setShowNotifyBtn(false);
+              } else {
+                setShowNotifyBtn(true);
+              }
+            } else {
+              const end = Date.now() + 3600000;
+              await AsyncStorage.setItem('@approval_timer_end', end.toString());
+              setTimerEndDate(end);
+              setShowNotifyBtn(false);
+            }
+          }
+        }
       } catch (error) {
         console.error('Erro ao carregar sessão:', error);
       }
     };
     loadUserData();
   }, []);
+
+  useEffect(() => {
+    if (!timerEndDate || showNotifyBtn) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (now >= timerEndDate) {
+        clearInterval(interval);
+        setShowNotifyBtn(true);
+        setTimeRemaining(0);
+      } else {
+        setTimeRemaining(Math.floor((timerEndDate - now) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timerEndDate, showNotifyBtn]);
+
+  const handleNotifyAdmin = async () => {
+    setIsNotifying(true);
+    try {
+      await api.post('/users/notify-approval', {}, {
+        headers: { authorization: `Bearer ${userData?.token}` }
+      });
+      showMessage({
+        message: 'Sucesso',
+        description: 'A administração foi notificada com sucesso.',
+        type: 'success',
+      });
+      const end = Date.now() + 900000;
+      await AsyncStorage.setItem('@approval_timer_end', end.toString());
+      setTimerEndDate(end);
+      setShowNotifyBtn(false);
+    } catch (error) {
+      showMessage({
+        message: 'Erro',
+        description: 'Não foi possível notificar a administração.',
+        type: 'danger',
+      });
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   // 2. Carregar Dados de Dropdowns
   useEffect(() => {
@@ -252,7 +378,7 @@ const NewProduct = () => {
         }, { headers }).catch(e => console.log('Erro broadcast:', e.message));
 
         Toast.show({ type: 'success', text1: 'Sucesso', text2: 'Produto atualizado!' });
-        navigation.navigate('ProductListSeller');
+        navigation.navigate('ProductListSeller', { updatedProduct: response.data.product, timestamp: Date.now() });
       } else {
         const response = await api.post('products/', payload, { headers });
 
@@ -267,7 +393,7 @@ const NewProduct = () => {
         
         resetForm();
         resetLocalState();
-        navigation.navigate('ProductListSeller');
+        navigation.navigate('ProductListSeller', { newProduct: response.data.product, timestamp: Date.now() });
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Erro ao guardar o produto.';
@@ -277,18 +403,20 @@ const NewProduct = () => {
     }
   };
 
-  const renderInput = (icon, placeholder, value, onChangeText, onBlur, error, keyboardType = 'default') => (
+  const renderInput = (icon, placeholder, value, onChangeText, onBlur, error, keyboardType = 'default', isTextArea = false) => (
     <View style={styles.inputGroup}>
-      <View style={[styles.inputWrapper, error && { borderColor: COLORS.error }]}>
-        <Ionicons name={icon} size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+      <View style={[styles.inputWrapper, error && { borderColor: COLORS.error }, isTextArea && { height: 120, alignItems: 'flex-start', paddingTop: 12 }]}>
+        <Ionicons name={icon} size={20} color={COLORS.textMuted} style={[styles.inputIcon, isTextArea && { marginTop: 4 }]} />
         <TextInput
-          style={styles.input}
+          style={[styles.input, isTextArea && { height: 100, textAlignVertical: 'top' }]}
           placeholder={placeholder}
           placeholderTextColor={COLORS.textMuted}
           value={value}
           onChangeText={onChangeText}
           onBlur={onBlur}
           keyboardType={keyboardType}
+          multiline={isTextArea}
+          numberOfLines={isTextArea ? 4 : 1}
         />
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -308,11 +436,15 @@ const NewProduct = () => {
         <View style={{ width: 38 }} />
       </View>
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          
-          <ScrollView 
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAwareScrollView 
+            style={{ flex: 1 }}
             contentContainerStyle={styles.scrollContent}
+            enableOnAndroid={true}
+            keyboardOpeningTime={0}
+            extraHeight={100}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
           >
 
@@ -331,9 +463,9 @@ const NewProduct = () => {
                   description: description,
                   onSale: editingProduct?.onSale || false,
                   onSalePercentage: editingProduct?.onSalePercentage || 0,
-                  orderPeriod: editingProduct?.orderPeriod || 0,
+                  orderPeriod: editingProduct?.orderPeriod || '',
                   isGuaranteed: editingProduct?.isGuaranteed || false,
-                  guaranteedPeriod: editingProduct?.guaranteedPeriod || 0,
+                  guaranteedPeriod: editingProduct?.guaranteedPeriod || '',
                   isOrdered: editingProduct?.isOrdered || false,
                 }}
                 validationSchema={validationSchema}
@@ -367,7 +499,7 @@ const NewProduct = () => {
 
                     {renderInput("text-outline", "Nome do produto (PT) *", values.nome, (t) => { handleChange('nome')(t); setNome(t); }, handleBlur('nome'), touched.nome && errors.nome)}
                     {renderInput("text-outline", "Nome do produto (Inglês) *", values.name, (t) => { handleChange('name')(t); setName(t); }, handleBlur('name'), touched.name && errors.name)}
-                    {renderInput("information-circle-outline", "Descrição detalhada", values.description, (t) => { handleChange('description')(t); setDescription(t); }, handleBlur('description'), touched.description && errors.description)}
+                    {renderInput("information-circle-outline", "Descrição detalhada", values.description, (t) => { handleChange('description')(t); setDescription(t); }, handleBlur('description'), touched.description && errors.description, "default", true)}
                     
                     <View style={styles.rowGrid}>
                       <View style={{ flex: 1 }}>
@@ -382,37 +514,29 @@ const NewProduct = () => {
 
                     <Text style={styles.sectionTitle}>Classificação e Filtros</Text>
 
-                    {/* Categoria */}
-                    <View style={styles.inputGroup}>
-                      <View style={[styles.pickerContainer, touched.category && errors.category && { borderColor: COLORS.error }]}>
-                        <Picker
-                          selectedValue={values.category}
-                          onValueChange={(val) => { setFieldValue('category', val); setCategory(val); }}
-                          style={styles.picker}
-                          dropdownIconColor={COLORS.text}
-                        >
-                          <Picker.Item label="Selecione a Categoria *" value="" color={COLORS.textMuted} />
-                          {categories.map(c => <Picker.Item key={c._id} label={c.nome} value={c._id} color="#000" />)}
-                        </Picker>
-                      </View>
-                      {touched.category && errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
-                    </View>
+                    <PremiumSelect
+                      icon="grid-outline"
+                      label="Selecione a Categoria *"
+                      selectedValue={values.category}
+                      onValueChange={(val) => { setFieldValue('category', val); setCategory(val); }}
+                      items={[
+                        { label: 'Selecione a Categoria *', value: '' },
+                        ...categories.map(c => ({ label: c.nome, value: c._id }))
+                      ]}
+                      error={touched.category && errors.category ? errors.category : null}
+                    />
 
-                    {/* Provincia */}
-                    <View style={styles.inputGroup}>
-                      <View style={[styles.pickerContainer, touched.province && errors.province && { borderColor: COLORS.error }]}>
-                        <Picker
-                          selectedValue={values.province}
-                          onValueChange={(val) => { setFieldValue('province', val); setProvince(val); }}
-                          style={styles.picker}
-                          dropdownIconColor={COLORS.text}
-                        >
-                          <Picker.Item label="Localização do Produto *" value="" color={COLORS.textMuted} />
-                          {provinces.map(p => <Picker.Item key={p._id} label={p.name} value={p._id} color="#000" />)}
-                        </Picker>
-                      </View>
-                      {touched.province && errors.province && <Text style={styles.errorText}>{errors.province}</Text>}
-                    </View>
+                    <PremiumSelect
+                      icon="location-outline"
+                      label="Localização do Produto *"
+                      selectedValue={values.province}
+                      onValueChange={(val) => { setFieldValue('province', val); setProvince(val); }}
+                      items={[
+                        { label: 'Localização do Produto *', value: '' },
+                        ...provinces.map(p => ({ label: p.name, value: p._id }))
+                      ]}
+                      error={touched.province && errors.province ? errors.province : null}
+                    />
 
                     {/* Cores */}
                     <View style={styles.inputGroup}>
@@ -476,19 +600,16 @@ const NewProduct = () => {
 
                     {values.onSale && (
                       <View style={styles.inputGroup}>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={values.onSalePercentage}
-                            onValueChange={(val) => setFieldValue('onSalePercentage', val)}
-                            style={styles.picker}
-                            dropdownIconColor={COLORS.text}
-                          >
-                            <Picker.Item label="Desconto (%)" value={0} color={COLORS.textMuted} />
-                            {[10, 15, 20, 25, 30, 40, 50, 60, 70, 80].map(p => (
-                              <Picker.Item key={p} label={`${p}% OFF`} value={p} color="#000" />
-                            ))}
-                          </Picker>
-                        </View>
+                        <PremiumSelect
+                          icon="pricetag-outline"
+                          label="Desconto (%)"
+                          selectedValue={values.onSalePercentage}
+                          onValueChange={(val) => setFieldValue('onSalePercentage', val)}
+                          items={[
+                            { label: 'Desconto (%)', value: 0 },
+                            ...[10, 15, 20, 25, 30, 40, 50, 60, 70, 80].map(p => ({ label: `${p}% OFF`, value: p }))
+                          ]}
+                        />
                       </View>
                     )}
 
@@ -510,19 +631,16 @@ const NewProduct = () => {
 
                     {values.isOrdered && (
                       <View style={styles.inputGroup}>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={values.orderPeriod}
-                            onValueChange={(val) => setFieldValue('orderPeriod', val)}
-                            style={styles.picker}
-                            dropdownIconColor={COLORS.text}
-                          >
-                            <Picker.Item label="Prazo de entrega" value="" color={COLORS.textMuted} />
-                            {['1 dia', '2 dias', '5 dias', '7 dias', '15 dias', '30 dias'].map(d => (
-                              <Picker.Item key={d} label={d} value={d} color="#000" />
-                            ))}
-                          </Picker>
-                        </View>
+                        <PremiumSelect
+                          icon="time-outline"
+                          label="Prazo de entrega"
+                          selectedValue={values.orderPeriod}
+                          onValueChange={(val) => setFieldValue('orderPeriod', val)}
+                          items={[
+                            { label: 'Prazo de entrega', value: '' },
+                            ...['1 dia', '2 dias', '5 dias', '7 dias', '15 dias', '30 dias'].map(d => ({ label: d, value: d }))
+                          ]}
+                        />
                       </View>
                     )}
 
@@ -544,19 +662,16 @@ const NewProduct = () => {
 
                     {values.isGuaranteed && (
                       <View style={styles.inputGroup}>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={values.guaranteedPeriod}
-                            onValueChange={(val) => setFieldValue('guaranteedPeriod', val)}
-                            style={styles.picker}
-                            dropdownIconColor={COLORS.text}
-                          >
-                            <Picker.Item label="Período de garantia" value="" color={COLORS.textMuted} />
-                            {['1 mês', '3 meses', '6 meses', '12 meses'].map(m => (
-                              <Picker.Item key={m} label={m} value={m} color="#000" />
-                            ))}
-                          </Picker>
-                        </View>
+                        <PremiumSelect
+                          icon="shield-checkmark-outline"
+                          label="Período de garantia"
+                          selectedValue={values.guaranteedPeriod}
+                          onValueChange={(val) => setFieldValue('guaranteedPeriod', val)}
+                          items={[
+                            { label: 'Período de garantia', value: '' },
+                            ...['1 mês', '3 meses', '6 meses', '12 meses'].map(m => ({ label: m, value: m }))
+                          ]}
+                        />
                       </View>
                     )}
 
@@ -583,24 +698,45 @@ const NewProduct = () => {
                 )}
               </Formik>
             ) : (
-              <View style={styles.notApprovedCard}>
-                <View style={styles.notApprovedIconBox}>
-                  <Ionicons name="time-outline" size={40} color={COLORS.warning} />
+              <LinearGradient
+                colors={['#1E1E1E', '#2D2D2D']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.notApprovedCard, { backgroundColor: 'transparent', borderColor: '#D4AF37', borderWidth: 1 }]}
+              >
+                <View style={[styles.notApprovedIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.15)' }]}>
+                  <Ionicons name="shield-checkmark" size={44} color="#D4AF37" />
                 </View>
-                <Text style={styles.notApprovedTitle}>Conta em Análise</Text>
-                <Text style={styles.notApprovedText}>
-                  Para começar a publicar os seus produtos, precisamos de finalizar a ativação da sua conta de parceiro.
+                <Text style={[styles.notApprovedTitle, { color: '#D4AF37', letterSpacing: 0.5 }]}>Conta em Análise</Text>
+                <Text style={[styles.notApprovedText, { color: '#E0E0E0', opacity: 0.9 }]}>
+                  Para começar a publicar os seus produtos, precisamos de finalizar a ativação da sua conta de parceiro. A nossa equipa já está a rever os seus dados.
                 </Text>
                 <View style={styles.contactBox}>
-                  <Text style={styles.contactLabel}>Precisa de ajuda urgente?</Text>
-                  <Text style={styles.contactValue}>WhatsApp: 85 360 0036</Text>
-                  <Text style={styles.contactValue}>nhiquelaservicosconsultoria@gmail.com</Text>
+                  {showNotifyBtn ? (
+                    <TouchableOpacity 
+                      style={[styles.notifyBtn, isNotifying && { opacity: 0.7 }]} 
+                      onPress={handleNotifyAdmin}
+                      disabled={isNotifying}
+                    >
+                      {isNotifying ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.notifyBtnText}>Notificar Administração</Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.timerBox}>
+                      <Ionicons name="timer-outline" size={20} color={COLORS.primary} style={{ marginRight: 6 }} />
+                      <Text style={styles.timerText}>
+                        Notificar novamente em: {formatTime(timeRemaining)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              </View>
+              </LinearGradient>
             )}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+          </KeyboardAwareScrollView>
+        </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };
@@ -637,7 +773,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 60,
+    paddingBottom: 100,
   },
   formContainer: {
     paddingBottom: 20,
@@ -729,6 +865,24 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 6,
     fontWeight: '600',
+  },
+  premiumPickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary + '80', // semi-transparent primary
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 8,
+  },
+  pickerIcon: {
+    marginRight: 4,
   },
   pickerContainer: {
     backgroundColor: COLORS.surface2,
@@ -899,5 +1053,31 @@ const styles = StyleSheet.create({
     color: COLORS.primaryLight,
     fontWeight: '700',
     marginBottom: 4,
+  },
+  notifyBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: RADIUS.full,
+    width: '100%',
+    alignItems: 'center',
+  },
+  notifyBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: SIZES.sm,
+  },
+  timerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '10',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.full,
+  },
+  timerText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: SIZES.sm,
   },
 });

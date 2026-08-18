@@ -1,4 +1,14 @@
 if (!Array.prototype.toReversed) { Array.prototype.toReversed = function() { return this.slice().reverse(); }; }
+if (typeof URL.canParse !== 'function') {
+  URL.canParse = function(url, base) {
+    try {
+      new URL(url, base);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+}
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 

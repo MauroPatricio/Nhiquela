@@ -24,7 +24,7 @@ export default function ProductsScreen() {
   const fetchData = async () => {
     try {
       const [prodRes, catRes, colRes, sizeRes, supRes] = await Promise.all([
-        api.get('/products'),
+        api.get('/products/admin/all'),
         api.get('/categories').catch(() => ({ data: [] })),
         api.get('/colors').catch(() => ({ data: [] })),
         api.get('/sizes').catch(() => ({ data: [] })),
@@ -53,11 +53,24 @@ export default function ProductsScreen() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  const [filterCategory, setFilterCategory] = useState('');
+
+  const kpis = {
+    total: products.length,
+    outOfStock: products.filter(p => p.countInStock <= 0).length,
+    onSale: products.filter(p => p.onSale).length,
+    totalValue: products.reduce((acc, p) => acc + ((Number(p.price) || 0) * (Number(p.countInStock) || 0)), 0)
+  };
+
+  const filteredForPagination = products.filter(p => 
+    filterCategory ? (typeof p.category === 'object' ? (p.category?.name || p.category?.nome) : p.category) === filterCategory : true
+  );
 
   const {
     currentPage, searchQuery, setSearchQuery, currentData: currentProducts,
     totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
-  } = usePagination(products, 10, ['nome', 'name', 'brand', 'category', 'province']);
+  } = usePagination(filteredForPagination, 10, ['nome', 'name', 'brand', 'category', 'province']);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -165,12 +178,58 @@ export default function ProductsScreen() {
 
   return (
     <div className="animation-fade-in pb-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      
+      {/* KPIs */}
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 bg-primary-custom text-white h-100">
+            <div className="card-body p-3 d-flex flex-column justify-content-center">
+              <h6 className="mb-1 opacity-75 small">Total de Produtos</h6>
+              <h3 className="fw-bold mb-0">{kpis.total}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 bg-danger text-white h-100">
+            <div className="card-body p-3 d-flex flex-column justify-content-center">
+              <h6 className="mb-1 opacity-75 small">Esgotados</h6>
+              <h3 className="fw-bold mb-0">{kpis.outOfStock}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 bg-warning text-dark h-100">
+            <div className="card-body p-3 d-flex flex-column justify-content-center">
+              <h6 className="mb-1 opacity-75 small">Em Promoção</h6>
+              <h3 className="fw-bold mb-0">{kpis.onSale}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card shadow-sm-custom border-0 rounded-4 bg-success text-white h-100">
+            <div className="card-body p-3 d-flex flex-column justify-content-center">
+              <h6 className="mb-1 opacity-75 small">Valor em Estoque</h6>
+              <h4 className="fw-bold mb-0">{kpis.totalValue.toLocaleString('pt-MZ', {minimumFractionDigits: 2, maximumFractionDigits: 2})} MT</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
           <h2 className="fw-bold m-0 text-dark">Catálogo de Produtos</h2>
           <span className="text-muted small">Gestão de estoque, promoções, garantias e atributos</span>
         </div>
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-3 flex-wrap">
+          <select 
+            className="form-select rounded-pill bg-light border-0 py-2 text-muted" 
+            style={{ width: 'auto', minWidth: '150px' }}
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <option value="">Todas Categorias</option>
+            {categoriesList.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
           <div className="position-relative" style={{ width: '250px' }}>
             <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
               <FontAwesomeIcon icon={faSearch} />
@@ -195,70 +254,70 @@ export default function ProductsScreen() {
             <table className="table table-hover align-middle m-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="border-0 text-muted py-3 px-4 rounded-start-4">Produto</th>
-                  <th className="border-0 text-muted py-3">Categoria & Província</th>
-                  <th className="border-0 text-muted py-3">Preço</th>
-                  <th className="border-0 text-muted py-3">Estoque</th>
-                  <th className="border-0 text-muted py-3 text-end px-4 rounded-end-4">Ações</th>
+                  <th className="border-0 text-muted py-2 px-3 rounded-start-4 small">Produto</th>
+                  <th className="border-0 text-muted py-2 small">Categoria & Província</th>
+                  <th className="border-0 text-muted py-2 small">Preço</th>
+                  <th className="border-0 text-muted py-2 small">Estoque</th>
+                  <th className="border-0 text-muted py-2 text-end px-3 rounded-end-4 small">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="5" className="text-center py-5 text-muted"><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A carregar catálogo...</td></tr>
+                  <tr><td colSpan="5" className="text-center py-4 text-muted small"><FontAwesomeIcon icon={faSpinner} spin className="me-2" /> A carregar catálogo...</td></tr>
                 ) : currentProducts.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhum produto encontrado.</td></tr>
+                  <tr><td colSpan="5" className="text-center py-4 text-muted small">Nenhum produto encontrado.</td></tr>
                 ) : currentProducts.map(product => (
                   <tr key={product._id || product.id}>
-                    <td className="px-4">
-                      <div className="d-flex align-items-center py-2">
+                    <td className="px-3 py-1">
+                      <div className="d-flex align-items-center">
                         {product.image ? (
-                          <img src={product.image} alt={product.nome} className="rounded-3 shadow-sm me-3 border" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+                          <img src={product.image} alt={product.nome} className="rounded-2 shadow-sm me-2 border" style={{ width: '35px', height: '35px', objectFit: 'cover' }} />
                         ) : (
-                          <div className="bg-light rounded-3 d-flex justify-content-center align-items-center me-3 text-muted border border-dashed" style={{ width: '50px', height: '50px' }}>
-                            <FontAwesomeIcon icon={faImage} />
+                          <div className="bg-light rounded-2 d-flex justify-content-center align-items-center me-2 text-muted border border-dashed" style={{ width: '35px', height: '35px' }}>
+                            <FontAwesomeIcon icon={faImage} size="sm" />
                           </div>
                         )}
                         <div>
-                          <div className="fw-bold text-dark text-truncate" style={{ maxWidth: '250px' }}>{product.nome}</div>
-                          <div className="text-muted small d-flex align-items-center gap-2 mt-1">
+                          <div className="fw-bold text-dark text-truncate small mb-0" style={{ maxWidth: '200px' }}>{product.nome}</div>
+                          <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                             <span>{typeof product.brand === 'object' ? (product.brand?.name || product.brand?.nome) : (product.brand || 'Sem marca')}</span>
-                            {product.onSale && <span className="badge bg-danger">-{product.onSalePercentage}% OFF</span>}
+                            {product.onSale && <span className="badge bg-danger ms-1" style={{ fontSize: '0.65rem' }}>-{product.onSalePercentage}% OFF</span>}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <span className="badge bg-light text-dark border d-block mb-1 text-start" style={{width: 'max-content'}}>
+                    <td className="py-1">
+                      <span className="badge bg-light text-dark border d-block text-start mb-0" style={{width: 'max-content', fontSize: '0.7rem'}}>
                         {typeof product.category === 'object' ? (product.category?.name || product.category?.nome || 'N/A') : (product.category || 'N/A')}
                       </span>
-                      <div className="d-flex flex-column gap-1">
-                        <span className="small text-muted">{typeof product.province === 'object' ? (product.province?.name || product.province?.nome) : product.province}</span>
-                        {product.seller && <span className="badge bg-primary-subtle text-primary-custom border border-primary border-opacity-25" style={{width: 'max-content'}}>Vendedor: {typeof product.seller === 'object' ? (product.seller?.name || product.seller?.nome) : product.seller}</span>}
+                      <div className="d-flex flex-column">
+                        <span className="text-muted" style={{ fontSize: '0.7rem' }}>{typeof product.province === 'object' ? (product.province?.name || product.province?.nome) : product.province}</span>
+                        {product.seller && <span className="badge bg-primary-subtle text-primary-custom border border-primary border-opacity-25 mt-1" style={{width: 'max-content', fontSize: '0.65rem'}}>Vend: {typeof product.seller === 'object' ? (product.seller?.name || product.seller?.nome) : product.seller}</span>}
                       </div>
                     </td>
-                    <td>
+                    <td className="py-1">
                       {product.onSale ? (
                         <div>
-                          <span className="fw-bold text-danger">{parseFloat(product.price - (product.price * (product.onSalePercentage/100))).toFixed(2)} MT</span><br/>
-                          <span className="text-muted small text-decoration-line-through">{parseFloat(product.price).toFixed(2)} MT</span>
+                          <span className="fw-bold text-danger small">{parseFloat(product.price - (product.price * (product.onSalePercentage/100))).toFixed(2)} MT</span><br/>
+                          <span className="text-muted text-decoration-line-through" style={{ fontSize: '0.7rem' }}>{parseFloat(product.price).toFixed(2)} MT</span>
                         </div>
                       ) : (
-                        <span className="fw-bold text-primary-custom">{parseFloat(product.price).toFixed(2)} MT</span>
+                        <span className="fw-bold text-primary-custom small">{parseFloat(product.price).toFixed(2)} MT</span>
                       )}
                     </td>
-                    <td>
+                    <td className="py-1">
                       {product.countInStock > 10 ? (
-                        <span className="badge rounded-pill bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2">{product.countInStock} un</span>
+                        <span className="badge rounded-pill bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1" style={{ fontSize: '0.7rem' }}>{product.countInStock} un</span>
                       ) : product.countInStock > 0 ? (
-                        <span className="badge rounded-pill bg-warning-subtle text-warning border border-warning border-opacity-25 px-3 py-2 text-dark">{product.countInStock} un</span>
+                        <span className="badge rounded-pill bg-warning-subtle text-warning border border-warning border-opacity-25 px-2 py-1 text-dark" style={{ fontSize: '0.7rem' }}>{product.countInStock} un</span>
                       ) : (
-                        <span className="badge rounded-pill bg-danger-subtle text-danger border border-danger border-opacity-25 px-3 py-2">Esgotado</span>
+                        <span className="badge rounded-pill bg-danger-subtle text-danger border border-danger border-opacity-25 px-2 py-1" style={{ fontSize: '0.7rem' }}>Esgotado</span>
                       )}
                     </td>
-                    <td className="text-end px-4">
-                      <button className="btn btn-sm btn-light text-secondary me-2 rounded-3 shadow-sm" onClick={() => handleOpenDetails(product)} title="Ver Detalhes"><FontAwesomeIcon icon={faEye} /></button>
-                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm" onClick={() => handleOpenModal(product)} title="Editar"><FontAwesomeIcon icon={faEdit} /></button>
-                      <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(product._id || product.id)} title="Eliminar"><FontAwesomeIcon icon={faTrash} /></button>
+                    <td className="text-end px-3 py-1">
+                      <button className="btn btn-sm btn-light text-secondary me-1 rounded-2 shadow-sm" onClick={() => handleOpenDetails(product)} title="Ver Detalhes" style={{ padding: '0.2rem 0.4rem' }}><FontAwesomeIcon icon={faEye} size="sm" /></button>
+                      <button className="btn btn-sm btn-light text-primary-custom me-1 rounded-2 shadow-sm" onClick={() => handleOpenModal(product)} title="Editar" style={{ padding: '0.2rem 0.4rem' }}><FontAwesomeIcon icon={faEdit} size="sm" /></button>
+                      <button className="btn btn-sm btn-light text-danger rounded-2 shadow-sm" onClick={() => handleDelete(product._id || product.id)} title="Eliminar" style={{ padding: '0.2rem 0.4rem' }}><FontAwesomeIcon icon={faTrash} size="sm" /></button>
                     </td>
                   </tr>
                 ))}

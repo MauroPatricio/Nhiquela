@@ -294,4 +294,17 @@ export const sendAdminNotificationEmail = async (subject, textHtml) => {
   }
 };
 
-
+export const sendEmailSellerApprovalReminderAdmin = async (sellerName) => {
+  const adminEmail = 'nhiquelaservicosconsultoria@gmail.com';
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'NOTIFICACAO <noreply@nhiquelaservicos.com>',
+    to: adminEmail,
+    subject: `Nhiquela - Lembrete de Aprovação: ${sellerName}`,
+    html: `<h3>Lembrete de Aprovação de Vendedor</h3><p>O vendedor <b>${sellerName}</b> está aguardando aprovação na plataforma há algum tempo.</p><p>Por favor, acesse o painel de administração para verificar os dados e aprovar a conta.</p>`,
+  };
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Erro ao enviar email:', error);
+  }
+};

@@ -6,6 +6,7 @@ import api from '../../api';
 import usePagination from '../../hooks/usePagination';
 import PaginationControls from '../../components/Admin/PaginationControls';
 import TripChatPanel from './TripChatPanel';
+import OrderChatPanel from './OrderChatPanel';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from '@e965/xlsx';
@@ -673,10 +674,34 @@ export default function OrdersScreen() {
                   </div>
                 </div>
 
+                {/* Comprovativo de Pagamento */}
+                {selectedOrder.paymentProof && (
+                  <div className="border rounded-4 p-3 bg-white mb-4 shadow-sm text-center">
+                    <h6 className="fw-bold text-success mb-3">
+                      <FontAwesomeIcon icon={faCheckDouble} className="me-2" /> Comprovativo de Pagamento Recebido
+                    </h6>
+                    <img 
+                      src={selectedOrder.paymentProof} 
+                      alt="Comprovativo" 
+                      style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px' }} 
+                      className="shadow-sm"
+                    />
+                    <div className="mt-3">
+                      <a href={selectedOrder.paymentProof} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary fw-bold">
+                        Ver Original
+                      </a>
+                    </div>
+                  </div>
+                )}
+
                 {/* Chat Panel Integrado */}
                 {!['Cancelada', 'Cancelado', 'Entregue', 'Finalizado'].includes(selectedOrder.status) && (
                   <div className="mb-4">
-                    <TripChatPanel tripId={selectedOrder._id} />
+                    {selectedOrder.orderType === 'Pedido' ? (
+                      <OrderChatPanel orderId={selectedOrder._id} />
+                    ) : (
+                      <TripChatPanel tripId={selectedOrder._id} />
+                    )}
                   </div>
                 )}
 

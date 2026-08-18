@@ -1,13 +1,14 @@
 import express from 'express';
 import Product from '../models/ProductModel.js';
 import expressAsyncHandler from 'express-async-handler';
-import { isAuth, isSellerOrAdmin } from '../utils.js';
+import { isAuth, isSellerOrAdmin, isAdmin } from '../utils.js';
 import User from '../models/UserModel.js';
 import http from 'http';
 import { Server } from 'socket.io';
 import { v2 as cloudinary } from 'cloudinary';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import Wallet from '../models/WalletModel.js';
 
 // Inicializa��o
 const productRoutes = express.Router();
@@ -23,6 +24,65 @@ cloudinary.config({
 });
 
 // ----------------------------- Helpers -----------------------------
+
+// Cache em memória para os IDs de fornecedores activos (TTL: 60 segundos)
+// Evita 3 queries sequenciais ao MongoDB em cada pedido de pesquisa.
+let _activeProviderCache = null;
+let _activeProviderCacheAt = 0;
+const ACTIVE_PROVIDER_CACHE_TTL = 60 * 1000; // 60 segundos
+
+// Invalida o cache manualmente (chamar após alterações de estado de fornecedor)
+export const invalidateActiveProviderCache = () => {
+  _activeProviderCache = null;
+  _activeProviderCacheAt = 0;
+};
+
+export const getActiveProviderIds = async () => {
+  // Devolver do cache se válido
+  if (_activeProviderCache && (Date.now() - _activeProviderCacheAt) < ACTIVE_PROVIDER_CACHE_TTL) {
+    return _activeProviderCache;
+  }
+
+  const sellers = await User.find({ 
+    isSeller: true, 
+    isApproved: true,
+    isBanned: { $ne: true },
+    isDeleted: { $ne: true }
+  }, '_id seller.hasUsedFreeSale');
+  const sellerIds = sellers.map(s => s._id);
+  
+  // Verificar carteiras dos vendedores
+  const wallets = await Wallet.find({ ownerId: { $in: sellerIds }, ownerType: 'seller' });
+  const walletMap = new Map();
+  wallets.forEach(w => walletMap.set(w.ownerId.toString(), w));
+  
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+  // Filtrar apenas vendedores com conta aprovada e saldo maior que zero
+  const activeSellerIds = sellers.filter(s => {
+    if (!s.seller?.hasUsedFreeSale) return true; // Primeira venda gratuita, sempre activo
+    const wallet = walletMap.get(s._id.toString());
+    // Excluir se o saldo for menor ou igual a 0
+    if (!wallet || wallet.balance <= 0) {
+      return false;
+    }
+    return true;
+  }).map(s => s._id);
+
+  // Retornar APENAS os Provider IDs correspondentes (nunca User IDs directos).
+  // Produtos cujo campo seller aponte para um User ID sem Provider registado
+  // são considerados inválidos e não devem ser contados nem apresentados.
+  const activeProviders = await mongoose.model('Provider').find({ 
+    userId: { $in: activeSellerIds },
+    status: { $nin: ['inactive', 'suspended', 'deleted'] }
+  }, '_id userId');
+  
+  _activeProviderCache = activeProviders.map(p => p._id);
+  _activeProviderCacheAt = Date.now();
+  return _activeProviderCache;
+};
+
+
 const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActive = false) => {
   const pageSize = parseInt(query.pageSize) || 10;
   const page = parseInt(query.page) || 1;
@@ -33,9 +93,10 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
   const province = query.province || '';
   const searchQuery = query.query || '';
 
+  // Usar $text para pesquisa rápida (índice de texto), regex apenas como fallback
   const queryFilter =
     searchQuery && searchQuery !== 'all'
-      ? { nome: { $regex: searchQuery, $options: 'i' } }
+      ? { $text: { $search: searchQuery } }
       : {};
 
   const categoryFilter = category && category !== 'all' ? { category } : {};
@@ -62,21 +123,30 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
       ? { rating: -1 }
       : order === 'newest'
       ? { createdAt: -1 }
+      : order === 'oldest'
+      ? { createdAt: 1 }
       : { _id: -1 };
 
-  const filters = {
-    ...queryFilter,
-    ...categoryFilter,
-    ...priceFilter,
-    ...ratingFilter,
-    ...provinceFilter,
-    ...additionalFilters,
-    ...(showAllIsActive ? {} : { isActive: true }),
-  };
+    // --- SELLER WALLET & ACTIVE SUPPLIER PRE-FILTER ---
+    let activeProviderIds = null;
+    if (!showAllIsActive) {
+      activeProviderIds = await getActiveProviderIds();
+    }
+  
+    const filters = {
+      ...queryFilter,
+      ...categoryFilter,
+      ...priceFilter,
+      ...ratingFilter,
+      ...provinceFilter,
+      ...additionalFilters,
+      ...(showAllIsActive ? {} : { isActive: true }),
+      ...(activeProviderIds ? { seller: { $in: activeProviderIds } } : {})
+    };
 
   const [products, countProducts] = await Promise.all([
     Product.find(filters)
-      .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+      .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
       .populate('category province conditionStatus qualityType size color')
       .sort(sortOrder)
       .skip(pageSize * (page - 1))
@@ -85,16 +155,45 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
     Product.countDocuments(filters),
   ]);
 
-  return { products, countProducts, page, pages: Math.ceil(countProducts / pageSize) };
+  // Excluir estritamente produtos sem fornecedor válido (populate retornou null)
+  // Isto garante que contagens e listagens são consistentes.
+  const validProducts = showAllIsActive
+    ? products
+    : products.filter(p => {
+        if (!p.seller || typeof p.seller !== 'object') return false; // sem Provider válido
+        if (p.seller.status === 'inactive' || p.seller.status === 'suspended') return false;
+        return true;
+      });
+
+  return { products: validProducts, countProducts, page, pages: Math.ceil(countProducts / pageSize) };
 };
 
 // ----------------------------- ROTAS -----------------------------
 
-// GET /products (lista com filtros + pagina��o)
+// GET /products/admin/all (Retorna TODOS os produtos para o painel Admin Web)
+productRoutes.get('/admin/all', isAuth, isAdmin, expressAsyncHandler(async (req, res) => {
+  const products = await Product.find({})
+    .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
+    .populate('category province conditionStatus qualityType size color')
+    .sort({ createdAt: -1 })
+    .lean();
+  res.send({ products, pages: 1 });
+}));
+
+// GET /products (lista com filtros + paginao)
 productRoutes.get('/', async (req, res) => {
   try {
-    const seller = req.query.seller || '';
-    const sellerFilter = seller ? { seller } : {};
+    const sellerQuery = req.query.seller || '';
+    // Exclude literal "undefined" string sent by mistake from frontend
+    const seller = (sellerQuery === 'undefined') ? '' : sellerQuery;
+    
+    let sellerFilter = {};
+    if (seller && mongoose.Types.ObjectId.isValid(seller)) {
+      const provider = await mongoose.model('Provider').findOne({ $or: [{ ownerId: seller }, { userId: seller }] });
+      sellerFilter = { seller: provider ? provider._id : seller };
+    } else if (seller) {
+      sellerFilter = { seller };
+    }
     const showAllIsActive = !!seller;
 
     const { products, pages } = await getFilteredProducts(req.query, sellerFilter, showAllIsActive);
@@ -107,7 +206,15 @@ productRoutes.get('/', async (req, res) => {
 // GET /products/bycategory
 productRoutes.get('/bycategory', async (req, res) => {
   try {
+    const activeProviderIds = await getActiveProviderIds();
+
     const categoriesWithProducts = await Product.aggregate([
+      { 
+        $match: { 
+          isActive: true,
+          seller: { $in: activeProviderIds }
+        } 
+      },
       {
         $lookup: {
           from: 'categories',
@@ -117,6 +224,15 @@ productRoutes.get('/bycategory', async (req, res) => {
         },
       },
       { $unwind: '$categoryDetails' },
+      {
+        $lookup: {
+          from: 'providers',
+          localField: 'seller',
+          foreignField: '_id',
+          as: 'sellerDetails',
+        },
+      },
+      { $unwind: { path: '$sellerDetails', preserveNullAndEmptyArrays: true } },
       {
         $group: {
           _id: '$categoryDetails._id',
@@ -130,6 +246,7 @@ productRoutes.get('/bycategory', async (req, res) => {
               image: '$image',
               price: '$price',
               isActive: '$isActive',
+              seller: '$sellerDetails',
             },
           },
         },
@@ -189,11 +306,17 @@ productRoutes.get('/bycategory/:id', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 10;
 
-    const filter = { category: id, isActive: true };
+    const activeProviderIds = await getActiveProviderIds();
+
+    const filter = { 
+      category: id, 
+      isActive: true,
+      seller: { $in: activeProviderIds }
+    };
 
     const [products, totalProducts] = await Promise.all([
       Product.find(filter)
-        .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+        .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
         .populate('category province')
         .sort({ createdAt: -1 })
         .skip((page - 1) * pageSize)
@@ -227,17 +350,17 @@ productRoutes.get('/onsale', expressAsyncHandler(async (req, res) => {
 // PUT /products/:id  (atualiza produto)
 productRoutes.put('/:id', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req, res) => {
   try {
-    const comissionPercentage = parseFloat(process.env.COMISSION_PRICE);
-    const priceFromSeller = parseFloat(req.body.price);
-    const priceComission = parseFloat(priceFromSeller * comissionPercentage);
-    const price = parseFloat(priceComission + priceFromSeller);
+      const comissionPercentage = parseFloat(process.env.COMISSION_PRICE) || 0.3;
+      const priceFromSeller = parseFloat(req.body.price);
+      const priceComission = 0;
+      const price = priceFromSeller;
 
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).send({ message: 'Produto n�o encontrado' });
+    if (!product) return res.status(404).send({ message: 'Produto no encontrado' });
 
-    if (req.body.onSale) {
-      const discount = price * (req.body.onSalePercentage / 100);
-      const sellerEarningsAfterDiscount = price - discount - priceComission;
+      if (req.body.onSale) {
+        const discount = price * (req.body.onSalePercentage / 100);
+        const sellerEarningsAfterDiscount = price - discount;
 
       Object.assign(product, {
         ...req.body,
@@ -282,7 +405,7 @@ productRoutes.delete(
   expressAsyncHandler(async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
-      if (!product) return res.status(404).send({ message: 'Produto n�o encontrado' });
+      if (!product) return res.status(404).send({ message: 'Produto no encontrado' });
 
       await product.deleteOne();
       io.emit('productDeleted', { _id: req.params.id });
@@ -297,16 +420,17 @@ productRoutes.delete(
 productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req, res) => {
   try {
     if (!req.body.image) {
-      return res.status(400).send({ message: 'A imagem do produto � obrigat�ria' });
+      return res.status(400).send({ message: 'A imagem do produto  obrigatria' });
     }
 
-    const comission_price = parseFloat(process.env.COMISSION_PRICE);
-    const priceFromSeller = parseFloat(req.body.price);
-    const priceComission = parseFloat(priceFromSeller * comission_price);
-    const priceWithComission = parseFloat(priceComission + priceFromSeller);
+      const comission_price = parseFloat(process.env.COMISSION_PRICE) || 0.3;
+      const priceFromSeller = parseFloat(req.body.price);
+      // The commission is deducted later from the seller's wallet, so the selling price is the same as the seller's price
+      const priceComission = 0; 
+      const priceWithComission = priceFromSeller;
 
     const user = await User.findById(req.user._id);
-    const provider = await mongoose.model('Provider').findOne({ ownerId: req.user._id });
+    const provider = await mongoose.model('Provider').findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
     
     if (!provider) {
       return res.status(400).send({ message: 'Provider profile not found for this user.' });
@@ -323,11 +447,11 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
       slug: crypto.randomBytes(3).toString('hex'),
     });
 
-    if (req.body.onSale) {
-      newProduct.discount = priceFromSeller - (priceFromSeller * (req.body.onSalePercentage / 100));
-      newProduct.price = newProduct.discount + (newProduct.discount * comission_price);
-      newProduct.sellerEarningsAfterDiscount = newProduct.discount - (newProduct.discount * comission_price);
-    }
+      if (req.body.onSale) {
+        newProduct.discount = priceFromSeller * (req.body.onSalePercentage / 100);
+        newProduct.price = priceFromSeller - newProduct.discount;
+        newProduct.sellerEarningsAfterDiscount = newProduct.price; // commission deducted from wallet later
+      }
 
     const product = await newProduct.save();
     io.emit('newProduct', product); // notifica clientes
@@ -341,7 +465,7 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
 productRoutes.get('/slug/:slug', async (req, res) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug })
-      .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+      .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
       .populate('category conditionStatus qualityType size color')
       .lean();
 
@@ -395,13 +519,25 @@ productRoutes.patch(
 
 
 
-// NEW: GET /products/categoriesWithCount  (r�pido e leve � s� categorias com contagem)
+// GET /products/categoriesWithCount - apenas categorias com produtos de fornecedores activos
 productRoutes.get('/categoriesWithCount', async (req, res) => {
-
   try {
+    // Reutiliza a mesma lógica de filtragem de fornecedores activos
+    const activeProviderIds = await getActiveProviderIds();
+
     const categories = await Product.aggregate([
-      { $match: { isActive: true } },
+      // 1. Apenas produtos activos de fornecedores activos
+      { 
+        $match: { 
+          isActive: true,
+          seller: { $in: activeProviderIds }
+        } 
+      },
+      // 2. Agrupar por categoria e contar
       { $group: { _id: '$category', count: { $sum: 1 } } },
+      // 3. Remover produtos sem categoria
+      { $match: { _id: { $ne: null } } },
+      // 4. Obter detalhes da categoria
       {
         $lookup: {
           from: 'categories',
@@ -410,12 +546,14 @@ productRoutes.get('/categoriesWithCount', async (req, res) => {
           as: 'categoryDetails',
         },
       },
-      { $unwind: '$categoryDetails' },
+      // 5. Ignorar categorias sem detalhes registados
+      { $unwind: { path: '$categoryDetails', preserveNullAndEmptyArrays: false } },
+      // 6. Projectar campos necessários
       {
         $project: {
           _id: '$categoryDetails._id',
-          name: '$categoryDetails.nome', // ajuste se seu campo na Category for diferente
-          image: '$categoryDetails.image', // opcional se existir
+          name: '$categoryDetails.nome',
+          image: '$categoryDetails.image',
           count: 1,
         },
       },
@@ -424,7 +562,7 @@ productRoutes.get('/categoriesWithCount', async (req, res) => {
 
     res.status(200).json({ categories });
   } catch (error) {
-    console.error(error);
+    console.error('Erro em categoriesWithCount:', error);
     res.status(500).json({ error: 'Erro ao buscar categorias' });
   }
 });
@@ -443,7 +581,7 @@ productRoutes.get('/search', expressAsyncHandler(async (req, res) => {
 productRoutes.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate({ path: 'seller', populate: { path: 'seller.tipoEstabelecimento' } })
+      .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
       .populate('color size category province qualityType conditionStatus')
       .lean();
 

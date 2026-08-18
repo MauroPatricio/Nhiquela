@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, Dimensions, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../hooks/createConnectionApi';
@@ -24,35 +24,37 @@ const SellersByEstablishment = () => {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-const fetchSellers = async (pageNum = page, isRefresh = false) => {
-  if (loading || (!hasMore && !isRefresh)) return;
+  const fetchSellers = async (pageNum = page, isRefresh = false) => {
+    if (loading || (!hasMore && !isRefresh)) return;
 
-  setLoading(!isRefresh);
-  try {
-    const response = await api.get(`users/byestablishment/${id}?page=${pageNum}`);
-    const data = response.data;
+    setLoading(!isRefresh);
+    try {
+      const response = await api.get(`users/byestablishment/${id}?page=${pageNum}`);
+      const data = response.data;
 
-    const newSellers = data.users;
-    
-    setSellers(prevSellers => {
-      const combinedSellers = isRefresh ? newSellers : [...prevSellers, ...newSellers];
-      const uniqueSellersMap = new Map();
-      combinedSellers.forEach((seller) => {
-        uniqueSellersMap.set(seller._id, seller);
+      const newSellers = data.users || [];
+      
+      setSellers(prevSellers => {
+        const combinedSellers = isRefresh ? newSellers : [...prevSellers, ...newSellers];
+        const uniqueSellersMap = new Map();
+        combinedSellers.forEach((seller) => {
+          if (seller && seller._id) {
+            uniqueSellersMap.set(seller._id, seller);
+          }
+        });
+        return Array.from(uniqueSellersMap.values());
       });
-      return Array.from(uniqueSellersMap.values());
-    });
 
-    setTotalPages(data.pages);
-    setHasMore(pageNum < data.pages);
-    setPage(pageNum + 1);
-  } catch (error) {
-    console.error("Erro ao buscar fornecedores:", error);
-  } finally {
-    setLoading(false);
-    if (isRefresh) setRefreshing(false);
-  }
-};
+      setTotalPages(data.pages || 1);
+      setHasMore(pageNum < (data.pages || 1));
+      setPage(pageNum + 1);
+    } catch (error) {
+      console.error("Erro ao buscar fornecedores:", error);
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -68,7 +70,7 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
 
   useEffect(() => {
     if (page === 1) {
-      fetchSellers();
+      fetchSellers(1, true);
     }
   }, [page]);
 
@@ -76,21 +78,20 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
     desc?.length > 30 ? desc.substring(0, 30) + '...' : desc;
 
   const renderSeller = ({ item, index }) => {
-    const {
-      name,
-      logo,
-      description,
-      rating,
-      numReviews,
-      province,
-      address,
-      latitude,
-      longitude,
-      isOpen, 
-      tipoEstabelecimento
-    } = item?.seller || {};
+    const sellerDetails = item.userId?.seller || item.seller || {};
+    const sellerUserId = item.userId?._id || item.userId || item._id;
 
-    const _id = item._id;
+    const name = sellerDetails.name || item.name;
+    const logo = sellerDetails.logo || item.logo;
+    const description = sellerDetails.description || item.description;
+    const rating = sellerDetails.rating || item.rating || 0;
+    const numReviews = sellerDetails.numReviews || item.numReviews || 0;
+    const province = sellerDetails.province || item.location?.province;
+    const address = sellerDetails.address || item.location?.address;
+    const latitude = sellerDetails.latitude || item.location?.lat;
+    const longitude = sellerDetails.longitude || item.location?.lng;
+    const isOpen = sellerDetails.openstore !== undefined ? sellerDetails.openstore : item.openstore;
+    const tipoEstabelecimento = sellerDetails.tipoEstabelecimento || item.categoryId;
 
     let distanceText = '';
     if (userLocation && latitude && longitude) {
@@ -110,7 +111,7 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
         style={styles.sellerCard}
         onPress={() =>
           navigation.navigate('SellerScreen', {
-            id: _id,
+            id: sellerUserId, // Pass the correct User ID
             name,
             logo,
             description,
@@ -125,7 +126,7 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
           })
         }
       >
-        <Image source={{ uri: logo }} style={styles.sellerLogo} />
+        <Image source={{ uri: logo || 'https://via.placeholder.com/65' }} style={styles.sellerLogo} />
         <View style={styles.sellerInfo}>
           <Text style={styles.sellerName}>{name}</Text>
           <Text style={styles.sellerDescription}>
@@ -157,12 +158,15 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
         renderItem={renderSeller}
         keyExtractor={(item, index) => item._id ? `${item._id}-${index}` : index.toString()}
         contentContainerStyle={styles.listContent}
-        onEndReached={() => fetchSellers(page)}
+        onEndReached={() => {
+          if (hasMore && !loading) {
+            fetchSellers(page);
+          }
+        }}
         onEndReachedThreshold={0.5}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        colors={["#9333EA"]} // Android loading spinner color for refresh
-        tintColor="#9333EA" // iOS loading spinner color for refresh
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#9333EA"]} />
+        }
         ListFooterComponent={loading ? <ActivityIndicator size="large" color="#9333EA" /> : null}
         ListEmptyComponent={
           !loading ? (
@@ -181,7 +185,7 @@ export default SellersByEstablishment;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB', // Fundo mais premium
+    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',

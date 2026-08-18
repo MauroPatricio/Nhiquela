@@ -53,16 +53,27 @@ interface DriverForm {
 }
 
 
+const DEFAULT_COLORS = [
+    { label: "Branco", value: "branco" },
+    { label: "Preto", value: "preto" },
+    { label: "Prata", value: "prata" },
+    { label: "Cinza", value: "cinza" },
+    { label: "Vermelho", value: "vermelho" },
+    { label: "Azul", value: "azul" },
+    { label: "Amarelo", value: "amarelo" },
+    { label: "Verde", value: "verde" },
+];
+
 export default function RegisterDriverScreen({ navigation }: any) {
     const [step, setStep] = useState(0);
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const [subcategories, setSubcategories] = useState<{ label: string, value: string, pricingMode?: string, description?: string }[]>([]);
-    const [colorOptions, setColorOptions] = useState<{ label: string, value: string }[]>([]);
+    const [colorOptions, setColorOptions] = useState<{ label: string, value: string }[]>(DEFAULT_COLORS);
 
     useEffect(() => {
         const fetchSubcategoriesAndColors = async () => {
+            // Fetch subcategories
             try {
-                // Fetch subcategories
                 const data = await getProviderSubcategories();
                 const filtered = data.filter((item: any) => {
                     const typeName = item.providerTypeId?.name?.toLowerCase() || '';
@@ -78,16 +89,24 @@ export default function RegisterDriverScreen({ navigation }: any) {
                     vehicleTypes: item.vehicleTypes ? item.vehicleTypes.map((v: any) => v.name).join(', ') : ''
                 }));
                 setSubcategories(formatted);
-                
-                // Fetch colors
-                const colorsData = await getVehicleColors();
-                const colorsFormatted = colorsData.map((color: any) => ({
-                    label: color.name,
-                    value: color.name.toLowerCase()
-                }));
-                setColorOptions(colorsFormatted);
             } catch (error) {
-                console.error("Failed to fetch data", error);
+                console.error("Failed to fetch subcategories", error);
+            }
+            
+            // Fetch colors
+            try {
+                const colorsData = await getVehicleColors();
+                if (colorsData && Array.isArray(colorsData)) {
+                    const colorsFormatted = colorsData.map((color: any) => ({
+                        label: color.name,
+                        value: color.name.toLowerCase()
+                    }));
+                    if (colorsFormatted.length > 0) {
+                        setColorOptions(colorsFormatted);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch vehicle colors", error);
             }
         };
         fetchSubcategoriesAndColors();
@@ -174,7 +193,13 @@ export default function RegisterDriverScreen({ navigation }: any) {
     const validateStep0 = () => {
         const newErrors: Record<string, string> = {};
         if (!form.photo) newErrors.photo = 'Obrigatório';
-        if (!form.name) newErrors.name = 'Obrigatório';
+        if (!form.name) {
+          newErrors.name = 'Obrigatório';
+        } else if (form.name.includes('@')) {
+          newErrors.name = 'O nome não pode ser um email';
+        } else if (/\d/.test(form.name)) {
+          newErrors.name = 'O nome não pode conter números';
+        }
         if (form.phoneNumber.length < 9) newErrors.phoneNumber = 'Número muito curto';
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!form.email) {

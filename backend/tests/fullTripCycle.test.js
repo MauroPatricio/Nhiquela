@@ -39,6 +39,7 @@ beforeAll(async () => {
     isApproved: true,
     availability: 'active', // Changed to active
     status: 'Disponível',   // Changed to Disponível
+    completedOrders: 1,
     locationGeo: {
       type: 'Point',
       coordinates: [32.5731, -25.9614] // Near origin

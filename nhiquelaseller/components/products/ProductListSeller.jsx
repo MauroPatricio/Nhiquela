@@ -1,42 +1,100 @@
 import { showMessage } from "react-native-flash-message";
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  ActivityIndicator, SafeAreaView, Image, Alert 
+  ActivityIndicator, SafeAreaView, Image, Alert, Animated, RefreshControl
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import api from '../../hooks/createConnectionApi';
-// import FastImage from 'react-native-fast-image'; // <- use se instalar cache
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../../constants/theme';
+
+const SkeletonCard = () => {
+  const animatedValue = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [animatedValue]);
+
+  return (
+    <Animated.View style={[styles.card, { opacity: animatedValue }]}>
+      <View style={[styles.productImage, { backgroundColor: '#E0E0E0', marginRight: 16 }]} />
+      <View style={styles.content}>
+        <View style={{ height: 16, backgroundColor: '#E0E0E0', borderRadius: 4, width: '80%', marginBottom: 8 }} />
+        <View style={{ height: 12, backgroundColor: '#E0E0E0', borderRadius: 4, width: '50%', marginBottom: 6 }} />
+        <View style={{ height: 12, backgroundColor: '#E0E0E0', borderRadius: 4, width: '40%', marginBottom: 12 }} />
+        <View style={styles.buttonRow}>
+          <View style={{ height: 32, width: 44, backgroundColor: '#E0E0E0', borderRadius: 8 }} />
+          <View style={{ height: 32, width: 44, backgroundColor: '#E0E0E0', borderRadius: 8 }} />
+          <View style={{ height: 32, width: 90, backgroundColor: '#E0E0E0', borderRadius: 8 }} />
+        </View>
+      </View>
+    </Animated.View>
+  );
+};
 
 const ProductListSeller = () => {
   const [userData, setUserData] = useState(null);
   const [productsOfSeller, setProductsOfSeller] = useState([]);
   const [userLogin, setUserLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1); // paginação
+  const [page, setPage] = useState(1);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
+  const route = useRoute();
 
   useEffect(() => {
     checkIfUserExist();
   }, []);
 
+  useEffect(() => {
+    if (route.params?.newProduct) {
+      setProductsOfSeller(prev => [route.params.newProduct, ...prev]);
+      navigation.setParams({ newProduct: undefined });
+    }
+    if (route.params?.updatedProduct) {
+      setProductsOfSeller(prev => prev.map(p => p._id === route.params.updatedProduct._id ? route.params.updatedProduct : p));
+      navigation.setParams({ updatedProduct: undefined });
+    }
+  }, [route.params?.newProduct, route.params?.updatedProduct]);
+
   useFocusEffect(
     useCallback(() => {
       if (userData) {
-        fetchData(1, true); // recarrega do zero quando volta
+        fetchData(1, true);
       }
     }, [userData])
   );
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(1, true).then(() => setRefreshing(false));
+  }, [userData]);
+
   const fetchData = async (pageNumber = 1, replace = false) => {
+    if (pageNumber > 1 && !hasMore) return;
+    
     if (pageNumber > 1) setIsFetchingMore(true);
-    else setIsLoading(true);
+    else if (!replace || productsOfSeller.length === 0) setIsLoading(true); // Don't show skeleton on silent refreshes
 
     try {
-      const response = await api.get(`products?seller=${userData._id}&page=${pageNumber}&limit=20`, {
+      const response = await api.get(`products?seller=${userData._id}&page=${pageNumber}&pageSize=20&order=oldest&t=${Date.now()}`, {
         headers: { authorization: `Bearer ${userData?.token}` },
       });
 
@@ -44,6 +102,7 @@ const ProductListSeller = () => {
         const newProducts = response?.data?.products || [];
         setProductsOfSeller(prev => replace ? newProducts : [...prev, ...newProducts]);
         setPage(pageNumber);
+        setHasMore(newProducts.length === 20); // If less than pageSize, no more items
       }
     } catch (error) {
       console.error(error);
@@ -138,47 +197,50 @@ const handleToggleStatus = async (product) => {
     <TouchableOpacity 
       style={styles.card}
       onPress={() => navigation.navigate('ProductSellerDetail', { product })}
+      activeOpacity={0.8}
     >
-      <View style={styles.statusBar} />
-      <View style={styles.iconWrapper}>
+      <View style={styles.imageContainer}>
         {product.image ? (
-          // <FastImage source={{ uri: product.image }} style={styles.productImage} resizeMode={FastImage.resizeMode.cover}/>
           <Image source={{ uri: product.image }} style={styles.productImage} />
         ) : (
-          <Ionicons name="cube-outline" style={styles.productIcon} />
+          <View style={[styles.productImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primaryGlow }]}>
+             <Ionicons name="cube-outline" size={32} color={COLORS.primary} />
+          </View>
         )}
+        <View style={[styles.statusBadge, { backgroundColor: product.isActive ? '#E8F5E9' : '#FFEBEE' }]}>
+           <Text style={[styles.statusBadgeText, { color: product.isActive ? '#2E7D32' : '#C62828' }]}>
+              {product.isActive ? 'Visível' : 'Oculto'}
+           </Text>
+        </View>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.code}>{product?.nome}</Text>
-        <Text style={styles.createAt}>{product?.countInStock} unidade(s)</Text>
-        <Text style={styles.createAt}>{product?.price} MT</Text>
-        <Text style={[styles.statusText, { color: product?.isActive ? 'green' : 'red' }]}>
-          {product?.isActive ? 'Produto visível na loja' : 'Produto oculto para os clientes'}
-        </Text>
+        <Text style={styles.productTitle} numberOfLines={2}>{product?.nome}</Text>
+        <Text style={styles.productPrice}>{product?.price} MT</Text>
+        <Text style={styles.productStock}>{product?.countInStock} unidade(s) em stock</Text>
 
         <View style={styles.buttonRow}>
           <TouchableOpacity
-            style={styles.editButton}
+            style={styles.actionBtn}
             onPress={() => navigation.navigate('NewProduct', { productToEdit: product })}
           >
-            <Ionicons name="create-outline" size={20} color="#fff" />
+            <Ionicons name="create-outline" size={18} color={COLORS.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.deleteButton}
+            style={[styles.actionBtn, { backgroundColor: COLORS.errorBg }]}
             onPress={() => handleDelete(product._id)}
           >
-            <Ionicons name="trash-outline" size={20} color="#fff" />
+            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={product.isActive ? styles.deactivateButton : styles.activateButton}
+            style={[styles.toggleBtn, product.isActive ? styles.btnInactive : styles.btnActive]}
             onPress={() => handleToggleStatus(product)}
           >
-            <Ionicons name={product.isActive ? "eye-off" : "eye"} size={20} color="#fff" />
-            <Text style={styles.buttonText}>
-              {product.isActive ? "Inati." : "Ativar"}
+            <Ionicons name={product.isActive ? "eye-off" : "eye"} size={16} color={product.isActive ? COLORS.textSecondary : "#fff"} />
+            <Text style={[styles.toggleBtnText, { color: product.isActive ? COLORS.textSecondary : '#fff' }]}>
+              {product.isActive ? "Ocultar" : "Ativar"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -189,26 +251,84 @@ const handleToggleStatus = async (product) => {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#333" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meus produtos</Text>
-        <View style={{ width: 28 }} />
+        <Text style={styles.headerTitle}>Meus Produtos</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color="#1E90FF" style={{ marginTop: 20 }}/>
+        <View style={styles.scroll}>
+          {[1, 2, 3, 4].map(key => <SkeletonCard key={key} />)}
+        </View>
       ) : (
         <FlatList
           data={productsOfSeller}
           keyExtractor={(item) => item._id}
           renderItem={renderProduct}
           contentContainerStyle={styles.scroll}
-          ListEmptyComponent={<Text style={styles.empty}>Nenhum produto encontrado.</Text>}
-          ListFooterComponent={
-            isFetchingMore ? <ActivityIndicator size="small" color="#1E90FF"/> : <View style={{ paddingBottom: 100 }}/>
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLORS.primary]}
+            />
           }
-          onEndReached={() => fetchData(page + 1)}
+          ListHeaderComponent={
+            <View style={styles.kpiContainer}>
+              <View style={styles.kpiRow}>
+                <View style={styles.kpiCard}>
+                  <View style={[styles.kpiIconBox, { backgroundColor: '#E3F2FD' }]}>
+                    <Ionicons name="cube" size={24} color="#1976D2" />
+                  </View>
+                  <Text style={styles.kpiValue}>{productsOfSeller.length}</Text>
+                  <Text style={styles.kpiLabel}>Total Produtos</Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <View style={[styles.kpiIconBox, { backgroundColor: '#E8F5E9' }]}>
+                    <Ionicons name="cash" size={24} color="#388E3C" />
+                  </View>
+                  <Text style={styles.kpiValue}>
+                    {productsOfSeller.reduce((sum, p) => sum + ((p.priceFromSeller || 0) * (p.countInStock || 0)), 0).toLocaleString()} MT
+                  </Text>
+                  <Text style={styles.kpiLabel}>Valor em Stock</Text>
+                </View>
+              </View>
+              <View style={styles.kpiRow}>
+                <View style={styles.kpiCard}>
+                  <View style={[styles.kpiIconBox, { backgroundColor: '#FFF3E0' }]}>
+                    <MaterialCommunityIcons name="tag-multiple" size={24} color="#F57C00" />
+                  </View>
+                  <Text style={styles.kpiValue}>{productsOfSeller.filter(p => p.isActive).length}</Text>
+                  <Text style={styles.kpiLabel}>Ativos</Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <View style={[styles.kpiIconBox, { backgroundColor: '#FFEBEE' }]}>
+                    <Ionicons name="alert-circle" size={24} color="#D32F2F" />
+                  </View>
+                  <Text style={styles.kpiValue}>{productsOfSeller.filter(p => p.countInStock === 0).length}</Text>
+                  <Text style={styles.kpiLabel}>Sem Stock</Text>
+                </View>
+              </View>
+              <Text style={styles.listHeaderTitle}>Lista de Produtos</Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+               <Ionicons name="cube-outline" size={64} color={COLORS.textMuted} />
+               <Text style={styles.emptyTitle}>Sem Produtos</Text>
+               <Text style={styles.emptyText}>Você ainda não adicionou nenhum produto. Toque no botão + para começar.</Text>
+            </View>
+          }
+          ListFooterComponent={
+            isFetchingMore ? <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }}/> : <View style={{ paddingBottom: 100 }}/>
+          }
+          onEndReached={() => {
+            if (hasMore && !isFetchingMore && !isLoading) {
+              fetchData(page + 1);
+            }
+          }}
           onEndReachedThreshold={0.5}
         />
       )}
@@ -217,16 +337,13 @@ const handleToggleStatus = async (product) => {
         style={styles.floatingButton}
         onPress={() => navigation.navigate('NewProduct')}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add" size={32} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
   )
 }
 
 export default ProductListSeller;
-
-
-import { COLORS, SIZES, RADIUS, SHADOWS } from '../../constants/theme';
 
 const styles = StyleSheet.create({  
   safe: {
@@ -237,131 +354,191 @@ const styles = StyleSheet.create({
     flexDirection:'row',
     alignItems:'center',
     justifyContent:'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
   },
-  headerTitle: {
-    fontSize: SIZES.lg,
-    fontWeight:'bold',
-    color: COLORS.text,
-  },
-  scroll: {
-    padding: 16,
-  },
-  card: {
-    flexDirection:'row',
-    alignItems:'center',
-    backgroundColor: COLORS.surfaceCard,
-    borderRadius: RADIUS.lg,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    ...SHADOWS.md,
-    overflow:'hidden',
-  },
-  statusBar: {
-    width: 6,
-    height:'100%',
-    borderTopLeftRadius: RADIUS.lg,
-    borderBottomLeftRadius: RADIUS.lg,
-    marginRight: 16,
-    backgroundColor: COLORS.primary,
-  },
-  iconWrapper: {
-    backgroundColor: COLORS.primaryGlow,
-    padding: 12,
-    borderRadius: RADIUS.full,
-    marginRight: 16,
-    alignItems:'center',
-    justifyContent:'center',
-  },
-  productIcon: {
-    fontSize: 24,
-    color: COLORS.primary,
-  },
-  productImage: {
+  backBtn: {
     width: 40,
     height: 40,
     borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surfaceCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  headerTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  scroll: {
+    padding: 20,
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    ...SHADOWS.md,
+  },
+  imageContainer: {
+    marginRight: 16,
+    alignItems: 'center',
+  },
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.lg,
+  },
+  statusBadge: {
+    marginTop: -10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   content: {
     flex: 1,
+    justifyContent: 'center',
   },
-  code: {
+  productTitle: {
     fontSize: SIZES.base,
-    fontWeight:'bold',
+    fontWeight: '700',
     color: COLORS.text,
     marginBottom: 4,
+    lineHeight: 20,
   },
-  createAt: {
+  productPrice: {
+    fontSize: SIZES.sm,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginBottom: 2,
+  },
+  productStock: {
     fontSize: SIZES.sm,
     color: COLORS.textSecondary,
-    marginBottom: 4,
-  },
-  empty: {
-    textAlign:'center',
-    color: COLORS.textSecondary,
-    marginTop: 20,
-    fontSize: SIZES.base,
+    marginBottom: 12,
   },
   buttonRow: {
     flexDirection: 'row',
-    marginTop: 8,
-    gap: 10,
-  },
-  editButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.sm,
+    gap: 8,
   },
-  deleteButton: {
-    flexDirection: 'row',
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primaryGlow,
     alignItems: 'center',
-    backgroundColor: COLORS.error,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    marginLeft: 6,
+  toggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 36,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  btnActive: {
+    backgroundColor: COLORS.success,
+  },
+  btnInactive: {
+    backgroundColor: COLORS.surfaceCard,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  toggleBtnText: {
     fontSize: SIZES.sm,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    fontSize: SIZES.base,
+    lineHeight: 22,
   },
   floatingButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 80,
+    right: 24,
+    bottom: 110,
     backgroundColor: COLORS.primary,
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS.full,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.glow,
   },
-  activateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.success,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.sm,
+  kpiContainer: {
+    paddingHorizontal: 4,
+    marginBottom: 20,
   },
-  deactivateButton: {
+  kpiRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.textMuted,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.sm,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-});  
+  kpiCard: {
+    backgroundColor: '#FFF',
+    width: '48%',
+    borderRadius: RADIUS.lg,
+    padding: 16,
+    ...SHADOWS.light,
+  },
+  kpiIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  kpiValue: {
+    fontSize: SIZES.lg,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  kpiLabel: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  listHeaderTitle: {
+    fontSize: SIZES.lg,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  }
+});

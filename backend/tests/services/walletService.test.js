@@ -27,7 +27,16 @@ jest.unstable_mockModule('../../models/ProviderSubcategoryModel.js', () => ({
   default: {
     findById: jest.fn().mockImplementation((id) => {
       if (id === 'sub_with_commission') {
-        return Promise.resolve({ serviceCommission: 10 }); // 10%
+        return Promise.resolve({ serviceCommission: 10 }); // 10% (defaults to AUTO_PLUS_PROVIDER fallback)
+      }
+      if (id === 'sub_auto') {
+        return Promise.resolve({ serviceCommission: 10, pricingMode: 'AUTO' }); // 10% of distance only
+      }
+      if (id === 'sub_provider') {
+        return Promise.resolve({ serviceCommission: 10, pricingMode: 'PROVIDER_DEFINED' }); // 10% of service only
+      }
+      if (id === 'sub_auto_plus_provider') {
+        return Promise.resolve({ serviceCommission: 10, pricingMode: 'AUTO_PLUS_PROVIDER' }); // 10% of total
       }
       return Promise.resolve(null);
     })
@@ -68,6 +77,48 @@ describe('walletService - calculateDynamicCommission', () => {
 
     // Total = 1500 + 80 = 1580
     // Comissao = 1580 * 10% = 158
+    const commission = await calculateDynamicCommission(order);
+    expect(commission).toBeCloseTo(158);
+  });
+
+  it('deve calcular a comissao dinâmica apenas sobre o valor da deslocacao no modo AUTO', async () => {
+    const order = {
+      serviceId: 'sub_auto',
+      pricing: {
+        costServico: 1500,
+        costDeslocacao: 80
+      }
+    };
+
+    // Comissao = 80 * 10% = 8
+    const commission = await calculateDynamicCommission(order);
+    expect(commission).toBeCloseTo(8);
+  });
+
+  it('deve calcular a comissao dinâmica apenas sobre o valor do prestador no modo PROVIDER_DEFINED', async () => {
+    const order = {
+      serviceId: 'sub_provider',
+      pricing: {
+        costServico: 1500,
+        costDeslocacao: 80
+      }
+    };
+
+    // Comissao = 1500 * 10% = 150
+    const commission = await calculateDynamicCommission(order);
+    expect(commission).toBeCloseTo(150);
+  });
+
+  it('deve calcular a comissao dinâmica sobre o total (prestacao + deslocacao) no modo AUTO_PLUS_PROVIDER', async () => {
+    const order = {
+      serviceId: 'sub_auto_plus_provider',
+      pricing: {
+        costServico: 1500,
+        costDeslocacao: 80
+      }
+    };
+
+    // Comissao = (1500 + 80) * 10% = 158
     const commission = await calculateDynamicCommission(order);
     expect(commission).toBeCloseTo(158);
   });

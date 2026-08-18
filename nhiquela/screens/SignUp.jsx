@@ -16,7 +16,9 @@ import { useToast } from 'react-native-toast-notifications';
 const validationSchema = Yup.object().shape({
   name: Yup.string()
     .trim()
-    .required('O nome não deve estar vazio'),
+    .required('O nome não deve estar vazio')
+    .test('no-email', 'O nome não pode ser um email', value => !value || !value.includes('@'))
+    .test('no-digits', 'O nome não pode conter números', value => !value || !/\d/.test(value)),
 
   phoneNumber: Yup.string()
     .trim()

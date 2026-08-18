@@ -14,9 +14,11 @@ dotenv.config();
 
 // Use the real Atlas but point to a separate "nhiquela_test" database
 const MONGO_URI = process.env.MONGODB_URI || '';
-const TEST_MONGO_URI = MONGO_URI.includes('nhiquela.7pafgjv.mongodb.net/')
-  ? MONGO_URI.replace('nhiquela.7pafgjv.mongodb.net/', 'nhiquela.7pafgjv.mongodb.net/nhiquela_test')
-  : MONGO_URI;
+const TEST_MONGO_URI = MONGO_URI.includes('/?')
+  ? MONGO_URI.replace('/?', '/nhiquela_test?')
+  : (MONGO_URI.includes('nhiquela.7pafgjv.mongodb.net/')
+      ? MONGO_URI.replace('nhiquela.7pafgjv.mongodb.net/', 'nhiquela.7pafgjv.mongodb.net/nhiquela_test')
+      : MONGO_URI + '/nhiquela_test');
 
 export async function connectTestDB() {
   if (mongoose.connection.readyState === 0) {

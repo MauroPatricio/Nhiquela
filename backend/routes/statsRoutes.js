@@ -148,10 +148,19 @@ statsRouter.get(
     // 3. Pending Orders (status: Pendente or Nova)
     const pendingOrders = await Order.countDocuments({ status: 'Pendente', deleted: false });
 
+    // 4. Pending Sellers
+    const pendingSellers = await User.countDocuments({ 
+      isSeller: true, 
+      isApproved: false, 
+      isBanned: false,
+      registeredFrom: 'nhiquelaseller'
+    });
+
     res.send({
       pendingRecharges,
       pendingDrivers,
-      pendingOrders
+      pendingOrders,
+      pendingSellers
     });
   })
 );

@@ -3,11 +3,11 @@
 
 export const COLORS = {
   // Fundos
-  background: '#0D0D14',
-  surface: '#1A1A2E',
-  surface2: '#16213E',
-  surface3: '#0F3460',
-  surfaceCard: '#1E1E32',
+  background: '#FFFFFF',
+  surface: '#F8F9FA',
+  surface2: '#F3F4F6',
+  surface3: '#E5E7EB',
+  surfaceCard: '#FFFFFF',
 
   // Marca
   primary: '#7F00FF',
@@ -31,15 +31,15 @@ export const COLORS = {
   infoBg: 'rgba(0, 122, 255, 0.12)',
 
   // Texto
-  text: '#FFFFFF',
-  textSecondary: '#A0A0B5',
-  textMuted: '#6B6B80',
-  textInverse: '#0D0D14',
+  text: '#111827',
+  textSecondary: '#4B5563',
+  textMuted: '#9CA3AF',
+  textInverse: '#FFFFFF',
 
   // Bordas e Glass
-  border: '#2A2A4A',
-  borderLight: 'rgba(255, 255, 255, 0.08)',
-  glassBg: 'rgba(26, 26, 46, 0.65)',
+  border: '#E5E7EB',
+  borderLight: 'rgba(0, 0, 0, 0.08)',
+  glassBg: 'rgba(255, 255, 255, 0.85)',
 
   // Status pedidos
   statusPendente: '#FF9F0A',
@@ -186,7 +186,7 @@ export const COMMON_STYLES = {
     ...SHADOWS.glow,
   },
   primaryButtonText: {
-    color: COLORS.text,
+    color: COLORS.textInverse,
     fontSize: SIZES.base,
     fontWeight: '700',
     letterSpacing: 0.5,

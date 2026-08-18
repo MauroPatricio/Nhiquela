@@ -21,13 +21,13 @@ const walletRouter = express.Router();
 /**
  * Função genérica para atualizar saldo e registrar transação com segurança (MongoDB transaction)
  */
-async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver', referenceId = null) {
+async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver', referenceId = null, receiptImage = null) {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     let wallet = await Wallet.findOne({ ownerId }).session(session);
     if (!wallet) {
-      wallet = await Wallet.create([{ ownerId, ownerType, balance: 0 }], { session });
+      wallet = await Wallet.create([{ ownerId, ownerType, userId: ownerId, balance: 0 }], { session });
       wallet = wallet[0]; // create retorna array no modo transacional
     }
 
@@ -62,7 +62,8 @@ async function updateWallet(ownerId, amount, type, method, description, status =
       method,
       description,
       status,
-      referenceId
+      referenceId,
+      receiptImage
     }], { session });
 
     await session.commitTransaction();
@@ -122,7 +123,9 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
       method || 'Pagamento recebido',
       description || 'Recepção de valor do cliente',
       txStatus,
-      req.user.isDriver ? 'driver' : 'User'
+      req.user.isDriver ? 'driver' : (req.user.isSeller ? 'seller' : 'User'),
+      null, // referenceId
+      req.body.receiptImage // receiptImage
     );
 
     const successMessage = isManualDeposit 
@@ -156,6 +159,36 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
     console.error('Erro ao recarregar saldo:', error?.response?.data || error.message);
     const mpesaError = error?.response?.data?.output?.ResponseDesc;
     return res.status(500).json({ message: mpesaError || error.message || 'Erro interno ao recarregar saldo.' });
+  }
+});
+
+/**
+ * Notificar equipa financeira sobre atraso de recarga
+ */
+walletRouter.post('/notify-finance', isAuth, async (req, res) => {
+  try {
+    const title = 'Atraso na Aprovação de Recarga Manual';
+    const textHtml = `O motorista/fornecedor/cliente <b>${req.user.name || 'Utilizador'}</b> está a aguardar a aprovação da sua recarga manual há mais de 15 minutos.<br><br>Por favor, aceda à aba Financeiro no painel de administração o mais breve possível para analisar o comprovativo e aprovar/rejeitar o pedido.`;
+
+    await sendAdminNotificationEmail(title, textHtml);
+
+    // Emissão global em tempo real via WebSocket para todos os administradores conectados
+    const io = req.app.get('io');
+    const users = req.app.get('users');
+    if (io && users) {
+      const admins = users.filter(u => u.isAdmin && u.socketId);
+      admins.forEach(admin => {
+        io.to(admin.socketId).emit('adminNotification', {
+          type: 'alert',
+          message: `Atraso na recarga manual de ${req.user.name || 'Utilizador'}`
+        });
+      });
+    }
+
+    return res.json({ success: true, message: 'Equipa financeira notificada com sucesso.' });
+  } catch (error) {
+    console.error('Erro ao notificar equipa financeira:', error.message);
+    return res.status(500).json({ message: 'Erro interno ao notificar equipa financeira.' });
   }
 });
 
@@ -299,7 +332,10 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
 
     const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
     if (!wallet) return res.json([]);
+    
+    // Mostra todas as transacções, incluindo as pendentes
     const transactions = await Transaction.find({ walletId: wallet._id }).sort({ createdAt: -1 });
+    
     res.json(transactions);
   } catch (error) {
     console.error('Erro ao listar transações:', error);
@@ -595,32 +631,30 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    // Emit socket event to notify the driver to refresh wallet/status
+    // Emit socket event to notify the user to refresh wallet/status
     try {
       const io = req.app.get('io');
-      if (io && wallet && wallet.user) {
-        const userId = wallet.user.toString();
-        io.to(userId).emit('userStatusChanged', {
-          userId: userId,
-          status: 'approved', // Trigger a refresh on frontend
-          message: 'A sua recarga foi aprovada!'
-        });
-        io.to(`driver_${userId}`).emit('userStatusChanged', {
-          userId: userId,
-          status: 'approved', // Trigger a refresh on frontend
-          message: 'A sua recarga foi aprovada!'
-        });
+      const targetUserId = wallet.ownerId || wallet.userId;
+      
+      if (io && targetUserId) {
+        const userId = targetUserId.toString();
         
         io.to(userId).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
+        io.to(`user_${userId}`).emit('walletUpdated', {
           message: 'A sua recarga foi aprovada!'
         });
         io.to(`driver_${userId}`).emit('walletUpdated', {
           message: 'A sua recarga foi aprovada!'
         });
+        io.to(`seller_${userId}`).emit('walletUpdated', {
+          message: 'A sua recarga foi aprovada!'
+        });
       }
       
       const User = mongoose.model('User');
-      const providerUser = await User.findById(wallet.user);
+      const providerUser = await User.findById(targetUserId);
       if (providerUser && providerUser.deviceToken) {
          const { createNotification } = await import('../utils/createNotification.js');
          await createNotification({
@@ -655,9 +689,28 @@ walletRouter.put('/:id/reject-topup', isAuth, async (req, res) => {
 
     try {
        const wallet = await Wallet.findById(tx.walletId);
-       if (wallet && wallet.user) {
+       const targetUserId = wallet?.ownerId || wallet?.userId;
+       
+       if (targetUserId) {
+         const io = req.app.get('io');
+         if (io) {
+           const userId = targetUserId.toString();
+           io.to(userId).emit('walletUpdated', {
+             message: 'A sua solicitação de recarga foi rejeitada.'
+           });
+           io.to(`user_${userId}`).emit('walletUpdated', {
+             message: 'A sua solicitação de recarga foi rejeitada.'
+           });
+           io.to(`driver_${userId}`).emit('walletUpdated', {
+             message: 'A sua solicitação de recarga foi rejeitada.'
+           });
+           io.to(`seller_${userId}`).emit('walletUpdated', {
+             message: 'A sua solicitação de recarga foi rejeitada.'
+           });
+         }
+         
          const User = mongoose.model('User');
-         const providerUser = await User.findById(wallet.user);
+         const providerUser = await User.findById(targetUserId);
          if (providerUser && providerUser.deviceToken) {
             const { createNotification } = await import('../utils/createNotification.js');
             await createNotification({

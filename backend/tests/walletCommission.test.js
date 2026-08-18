@@ -77,6 +77,7 @@ describe('Trip Commission and Negative Balance Flow', () => {
       status: 'Disponível',
       latitude: -25.9690,
       longitude: 32.5730,
+      completedOrders: 1,
       deliveryman: {
         status: 'Ativo',
         register_conformance: 'CONFORMANCE',
@@ -94,7 +95,7 @@ describe('Trip Commission and Negative Balance Flow', () => {
 
     // Carregar carteira com exatamente 500 MT
     const wallet = new Wallet({
-      user: driverId,
+      userId: driverId,
       ownerType: 'driver',
       ownerId: driverId,
       balance: 500,

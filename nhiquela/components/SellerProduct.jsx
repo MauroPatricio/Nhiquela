@@ -196,10 +196,10 @@ const SellerProduct = ({
             <Text style={styles.quantity}>{items.length}</Text>
             <TouchableOpacity 
               onPress={addItemToBasket} 
-              disabled={items.length >= countInStock}
+              disabled={!isSellerOpen || items.length >= countInStock}
               style={styles.iconButton}
             >
-              <PlusCircleIcon size={32} color={items.length < countInStock ? "#9333EA" : "#D1D5DB"} />
+              <PlusCircleIcon size={32} color={(items.length < countInStock && isSellerOpen) ? "#9333EA" : "#D1D5DB"} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -208,7 +208,7 @@ const SellerProduct = ({
             onPress={addItemToBasket}
             disabled={!isSellerOpen || countInStock === 0}
           >
-            <Text style={styles.addButtonText}>Adicionar</Text>
+            <Text style={[styles.addButtonText, (!isSellerOpen || countInStock === 0) && { color: '#9CA3AF' }]}>Adicionar</Text>
           </TouchableOpacity>
         )}
       </View>

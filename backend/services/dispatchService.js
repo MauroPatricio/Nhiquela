@@ -14,6 +14,15 @@ class DispatchService {
     try {
       console.log(`[DispatchService] Iniciando despacho para o pedido ${order.code}`);
       
+      if (order.targetDriverId) {
+        console.log(`[DispatchService] Pedido ${order.code} tem motorista alvo específico: ${order.targetDriverId}`);
+        const targetDriver = await User.findById(order.targetDriverId).select('_id name deviceToken locationGeo');
+        if (targetDriver) {
+          this._pingDriversSequentially(order, [targetDriver], io);
+          return;
+        }
+      }
+
       const originDetails = order.originDetails;
       if (!originDetails || !originDetails.lat || !originDetails.lng) {
         console.error(`[DispatchService] Falha: O pedido ${order.code} não tem coordenadas válidas.`);
@@ -28,6 +37,13 @@ class DispatchService {
         status: 'Disponível', // Garantir que está no estado ativo/disponível
         availability: 'active', // Motorista marcou-se como online na app
         'deliveryman.hasActiveService': { $ne: true }, // Não está em viagem
+        isBanned: { $ne: true },
+        isDeleted: { $ne: true },
+        $or: [
+          { blockedUntil: { $exists: false } },
+          { blockedUntil: null },
+          { blockedUntil: { $lt: new Date() } }
+        ],
         'locationGeo.coordinates.0': { $ne: 0 }, // Tem GPS válido
         'locationGeo.coordinates.1': { $ne: 0 },
         locationGeo: {

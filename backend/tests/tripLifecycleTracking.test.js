@@ -74,9 +74,11 @@ beforeAll(async () => {
   
   // Mock do Socket.IO globalmente no app Express
   emitMock = jest.fn();
-  toMock = jest.fn().mockReturnValue({ emit: emitMock });
+  const fetchSocketsMock = jest.fn().mockResolvedValue([]);
+  toMock = jest.fn().mockReturnValue({ emit: emitMock, fetchSockets: fetchSocketsMock });
   ioMock = {
     to: toMock,
+    in: toMock,
     emit: emitMock
   };
   app.set('io', ioMock);
@@ -156,7 +158,7 @@ describe('Fluxo Completo de Viagem com Notificações de Rastreio (Socket.IO)', 
     expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'Em trânsito' }));
   }, 10000);
 
-  it('4. Motorista chega ao destino (stepStatus = 5 -> No destino indicado)', async () => {
+  it('4. Motorista chega ao destino (stepStatus = 6 -> No destino indicado)', async () => {
     const res = await request(app)
       .put(`/api/request-service/${orderId}/confirmDestination`)
       .set('Authorization', `Bearer ${driverToken}`)
@@ -169,7 +171,7 @@ describe('Fluxo Completo de Viagem com Notificações de Rastreio (Socket.IO)', 
 
     const checkOrder = await RequestService.findById(orderId);
     expect(checkOrder.status).toBe('No destino indicado');
-    expect(checkOrder.stepStatus).toBe(5);
+    expect(checkOrder.stepStatus).toBe(6);
     
     // Confirma que a última localização de chegada foi registada
     expect(checkOrder.arrivalLatitude).toBe(-25.9701);
@@ -178,7 +180,7 @@ describe('Fluxo Completo de Viagem com Notificações de Rastreio (Socket.IO)', 
     expect(emitMock).toHaveBeenCalledWith('order_updated', expect.objectContaining({ status: 'No destino indicado' }));
   }, 10000);
 
-  it('5. Cliente finaliza/confirma receção (stepStatus = 6 -> Concluído)', async () => {
+  it('5. Cliente finaliza/confirma receção (stepStatus = 7 -> Concluído)', async () => {
     const res = await request(app)
       .put(`/api/request-service/${orderId}/deliver`)
       .set('Authorization', `Bearer ${clientToken}`)
@@ -188,7 +190,7 @@ describe('Fluxo Completo de Viagem com Notificações de Rastreio (Socket.IO)', 
 
     const checkOrder = await RequestService.findById(orderId);
     expect(checkOrder.status).toBe('Concluído');
-    expect(checkOrder.stepStatus).toBe(6);
+    expect(checkOrder.stepStatus).toBe(7);
     expect(checkOrder.isDelivered).toBe(true);
 
     expect(toMock).toHaveBeenCalledWith(`order_${orderId}`);

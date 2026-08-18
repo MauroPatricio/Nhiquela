@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from 'react-native-toast-notifications';
 import api from './createConnectionApi';
 
 export default function useSocket() {
-  const socketRef = useRef(null);
+  const [socketInstance, setSocketInstance] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function useSocket() {
           reconnectionDelay: 1000,
         });
 
-        socketRef.current = socket;
+        setSocketInstance(socket);
 
         socket.on('connect', () => {
           console.log('🔗 Sockets Conectados (Seller). ID:', socket.id);
@@ -36,19 +36,23 @@ export default function useSocket() {
 
         // Eventos
         socket.on('new_order', (data) => {
-          toast.show('🎉 Você tem um novo pedido!', {
-            type: 'success',
-            duration: 5000,
-            placement: 'top',
-          });
+          if (toast && typeof toast.show === 'function') {
+            toast.show('🎉 Você tem um novo pedido!', {
+              type: 'success',
+              duration: 5000,
+              placement: 'top',
+            });
+          }
         });
 
         socket.on('order_paid', (data) => {
-          toast.show('💰 Um pedido foi pago e aguarda a sua ação!', {
-            type: 'info',
-            duration: 5000,
-            placement: 'top',
-          });
+          if (toast && typeof toast.show === 'function') {
+            toast.show('💰 Um pedido foi pago e aguarda a sua ação!', {
+              type: 'info',
+              duration: 5000,
+              placement: 'top',
+            });
+          }
         });
 
       } catch (err) {
@@ -65,5 +69,5 @@ export default function useSocket() {
     };
   }, []);
 
-  return socketRef.current;
+  return socketInstance;
 }
