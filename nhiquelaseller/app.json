@@ -17,8 +17,7 @@
     ],
     "platforms": [
       "ios",
-      "android",
-      "web"
+      "android"
     ],
     "android": {
       "package": "com.mpatricio.nhiquelap",
@@ -38,26 +37,16 @@
         "VIBRATE",
         "WAKE_LOCK"
       ],
-      "notification": {
-        "icon": "./assets/nhiquela3.png",
-        "color": "#7F00FF",
-        "androidCollapsedTitle": "NhiquelaPRO"
-      },
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
         }
-      },
-      "buildProperties": {
-        "enableProguardInReleaseBuilds": true
-      },
-      "blocklistPatterns": [
-        "*.so"
-      ],
-      "abiFilters": [
-        "arm64-v8a"
-      ],
-      "enableDangerousExperimentalMemory16KbPageSupport": true
+      }
+    },
+    "notification": {
+      "icon": "./assets/nhiquela3.png",
+      "color": "#7F00FF",
+      "androidCollapsedTitle": "NhiquelaPRO"
     },
     "ios": {
       "supportsTablet": true,
@@ -86,12 +75,12 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "minSdkVersion": 23,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
             "ndkVersion": "26.1.10909125",
             "softwareKeyboardLayoutMode": "pan",
-            "enableProguardInReleaseBuilds": true
+            "enableProguardInReleaseBuilds": false
           },
           "ios": {
             "deploymentTarget": "15.1"

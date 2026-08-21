@@ -1,57 +1,16 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+const { withProjectBuildGradle } = require('@expo/config-plugins');
 
-buildscript {
-    ext {
-        minSdkVersion = 24
-        compileSdkVersion = 35
-        targetSdkVersion = 35
-        buildToolsVersion = "35.0.0"
-        ndkVersion = "26.1.10909125"
-    }
-
-    repositories {
-        google()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath('com.google.gms:google-services:4.4.1')
-        classpath("com.android.tools.build:gradle")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
-    }
-}
-
-def reactNativeAndroidDir = new File(
-    providers.exec {
-        workingDir(rootDir)
-        commandLine("node", "--print", "require.resolve('react-native/package.json')")
-    }.standardOutput.asText.get().trim(),
-    "../android"
-)
-
-allprojects {
-    repositories {
-        maven {
-            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-            url(reactNativeAndroidDir)
-        }
-
-        google()
-        mavenCentral()
-        maven { url 'https://www.jitpack.io' }
-    }
-}
-
-apply plugin: "expo-root-project"
-apply plugin: "com.facebook.react.rootproject"
-
+module.exports = function withCustomGradleHook(config) {
+  return withProjectBuildGradle(config, async (config) => {
+    let buildGradle = config.modResults.contents;
+    if (!buildGradle.includes('patchGraphicsConversions')) {
+      buildGradle += `\n
 def patchGraphicsConversions() {
     try {
         def gradleCacheDir = new File(System.getProperty("user.home"), ".gradle/caches")
         if (gradleCacheDir.exists()) {
             gradleCacheDir.eachDir { versionDir ->
-                if (versionDir.name.matches(/\d+\.\d+(\.\d+)?/)) {
+                if (versionDir.name.matches(/\\d+\\.\\d+(\\.\\d+)?/)) {
                     def transformsDir = new File(versionDir, "transforms")
                     if (transformsDir.exists()) {
                         transformsDir.eachFileRecurse { file ->
@@ -62,8 +21,8 @@ def patchGraphicsConversions() {
                                         file.text = content.replace('std::format("{}%", dimension.value)', 'std::to_string(dimension.value) + "%"')
                                         println("React Native Patch: Patched std::format in: " + file.absolutePath)
                                     }
-                                } catch (Exception e) {
-                                    // ignore read/write errors
+                                } catch (e) {
+                                    // ignore
                                 }
                             }
                         }
@@ -85,4 +44,9 @@ allprojects {
         }
     }
 }
-
+`;
+      config.modResults.contents = buildGradle;
+    }
+    return config;
+  });
+};
