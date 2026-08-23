@@ -190,6 +190,13 @@ const Home = () => {
         DeviceEventEmitter.emit('userDataUpdated', updatedData);
         return updatedData;
       } catch (apiError) {
+        const is404 = (apiError.response && apiError.response.status === 404) || (apiError.message && apiError.message.includes('404'));
+        if (is404) {
+          console.log(`⚠️ Usuário não encontrado no backend (404). Fazendo logout... ID: ${storedUserId}`);
+          await AsyncStorage.multiRemove(['id', 'userData']);
+          navigation.navigate('Login');
+          return null;
+        }
         // Fallback to AsyncStorage if API fails or is offline
         const storedUserData = await AsyncStorage.getItem('userData');
         if (storedUserData) {
@@ -785,10 +792,13 @@ const Home = () => {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.greeting}>Olá, {userData?.name?.split(' ')[0] || 'Vendedor'} 👋</Text>
-              <Text style={styles.subGreeting}>
-                {userData?.seller?.name || 'Nhiquela Partner'}
-              </Text>
+              <Text style={styles.greeting}>Olá, {userData?.name?.split(' ')[0] || 'Vendedor'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <Ionicons name="storefront-outline" size={15} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
+                <Text style={[styles.subGreeting, { fontWeight: 'bold', marginTop: 0, color: COLORS.text }]}>
+                  {userData?.seller?.name || 'Nhiquela Partner'}
+                </Text>
+              </View>
             </View>
             <TouchableOpacity style={styles.avatarBtn} onPress={() => navigation.navigate('Profile')}>
               <Image 

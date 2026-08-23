@@ -102,7 +102,7 @@ const fetchSellers = async (pageNum = page, isRefresh = false) => {
         const longitude = sellerDetails.longitude || item.location?.lng;
         const rating = sellerDetails.rating || item.rating;
         const numReviews = sellerDetails.numReviews || item.numReviews;
-        const isOpen = sellerDetails.openstore !== undefined ? sellerDetails.openstore : item.openstore;
+        const isOpen = sellerDetails.openstore === true || item.openstore === true || item.seller?.openstore === true;
 
         // Navigate to the SellerScreen with the seller's details
         navigation.navigate('SellerScreen', {

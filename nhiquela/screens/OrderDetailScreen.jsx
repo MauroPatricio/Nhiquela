@@ -442,8 +442,8 @@ const OrderDetailsScreen = () => {
       // ✅ Atualizar UI imediatamente (otimismo) sem esperar a resposta do servidor
       const optimisticOrder = {
         ...currentOrder,
-        status: 'Concluído',
-        stepStatus: 7,
+        status: 'Entregue',
+        stepStatus: 5,
         isDelivered: true,
         deliveredAt: Date.now()
       };
@@ -571,86 +571,84 @@ const OrderDetailsScreen = () => {
   const renderContent = () => {
     // Mostrar o botão de Chat apenas quando o motorista já aceitou a viagem
     const ACTIVE_CHAT_STATUSES = ['Aceite', 'A Caminho', 'Em trânsito', 'No destino indicado', 'CONFIRMED'];
-    const isChatActive = ACTIVE_CHAT_STATUSES.includes(currentOrder?.status);
-    const isTripEnded = ['Entregue', 'Finalizado', 'Cancelado', 'Cancelado pelo motorista'].includes(currentOrder?.status);
+    const isChatActive = [2, 3, 4].includes(currentOrder?.stepStatus) || ACTIVE_CHAT_STATUSES.includes(currentOrder?.status);
+    const isTripEnded = [5, 8, 9].includes(currentOrder?.stepStatus) || ['Entregue', 'Finalizado', 'Cancelado', 'Cancelado pelo motorista'].includes(currentOrder?.status);
     const showChatBtn = isChatActive || isTripEnded; // histórico visível mesmo após
 
-    const getFriendlyStatus = (status) => {
-      switch (status) {
-        case 'Pendente':
-          return {
-            title: 'Aguardando Estabelecimento',
-            desc: 'O fornecedor está a analisar o seu pedido e responderá em breve.',
-            icon: 'hourglass-outline',
-            color: '#D97706',
-            bg: '#FEF3C7'
-          };
-        case 'Aceite':
-        case 'Aceito':
-          return {
-            title: 'Pedido Aceite!',
-            desc: 'O fornecedor aceitou o seu pedido e já começou a prepará-lo.',
-            icon: 'checkmark-circle-outline',
-            color: '#10B981',
-            bg: '#D1FAE5'
-          };
-        case 'Em Preparação':
-        case 'Em preparacao':
-          return {
-            title: 'Em Preparação',
-            desc: 'Os seus produtos estão a ser preparados e embalados com cuidado.',
-            icon: 'restaurant-outline',
-            color: '#7C3AED',
-            bg: '#F3E8FF'
-          };
-        case 'A Caminho':
-        case 'a caminho':
-          return {
-            title: 'A Caminho da Entrega',
-            desc: 'O motorista já recolheu a encomenda e está a dirigir-se a si.',
-            icon: 'bicycle-outline',
-            color: '#3B82F6',
-            bg: '#DBEAFE'
-          };
-        case 'No destino indicado':
-          return {
-            title: 'O Motorista Chegou!',
-            desc: 'O motorista está no local. Encontre-se com ele para recolher a encomenda.',
-            icon: 'location-outline',
-            color: '#059669',
-            bg: '#DCFCE7'
-          };
-        case 'Entregue':
-        case 'Finalizado':
-          return {
-            title: 'Pedido Entregue',
-            desc: 'A entrega foi concluída com sucesso. Obrigado pela sua preferência!',
-            icon: 'gift-outline',
-            color: '#10B981',
-            bg: '#D1FAE5'
-          };
-        case 'Cancelado':
-        case 'Cancelado pelo motorista':
-        case 'Recusado':
-          return {
-            title: 'Pedido Cancelado',
-            desc: 'Este pedido foi cancelado ou recusado.',
-            icon: 'close-circle-outline',
-            color: '#EF4444',
-            bg: '#FEE2E2'
-          };
-        default:
-          return {
-            title: status || 'Processando',
-            desc: 'Estamos a atualizar o estado do seu pedido.',
-            icon: 'information-circle-outline',
-            color: '#6B7280',
-            bg: '#F3F4F6'
-          };
+    const getFriendlyStatus = (status, stepStatus) => {
+      if (stepStatus === 1 || status === 'Pendente') {
+        return {
+          title: 'Aguardando Estabelecimento',
+          desc: 'O fornecedor está a analisar o seu pedido e responderá em breve.',
+          icon: 'hourglass-outline',
+          color: '#D97706',
+          bg: '#FEF3C7'
+        };
       }
+      if (stepStatus === 2 || ['Aceite', 'Aceito', 'Em Preparação', 'Em preparacao'].includes(status)) {
+        return {
+          title: 'Pedido Aceite!',
+          desc: 'O fornecedor aceitou o seu pedido e já começou a prepará-lo.',
+          icon: 'checkmark-circle-outline',
+          color: '#10B981',
+          bg: '#D1FAE5'
+        };
+      }
+      if (stepStatus === 3 || ['Pronto', 'Disponível para entrega'].includes(status)) {
+        return {
+          title: 'Pronto para Levantamento / Entrega',
+          desc: 'A sua encomenda está pronta para recolha ou envio.',
+          icon: 'bag-check-outline',
+          color: '#7C3AED',
+          bg: '#F3E8FF'
+        };
+      }
+      if (stepStatus === 4 || ['Em trânsito', 'A Caminho', 'a caminho'].includes(status)) {
+        return {
+          title: 'A Caminho da Entrega',
+          desc: 'O motorista já recolheu a encomenda e está a dirigir-se a si.',
+          icon: 'bicycle-outline',
+          color: '#3B82F6',
+          bg: '#DBEAFE'
+        };
+      }
+      if (status === 'No destino indicado') {
+        return {
+          title: 'O Motorista Chegou!',
+          desc: 'O motorista está no local. Encontre-se com ele para recolher a encomenda.',
+          icon: 'location-outline',
+          color: '#059669',
+          bg: '#DCFCE7'
+        };
+      }
+      if (stepStatus === 5 || ['Entregue', 'Finalizado'].includes(status)) {
+        return {
+          title: 'Pedido Entregue',
+          desc: 'A entrega foi concluída com sucesso. Obrigado pela sua preferência!',
+          icon: 'gift-outline',
+          color: '#10B981',
+          bg: '#D1FAE5'
+        };
+      }
+      if ([8, 9].includes(stepStatus) || ['Cancelado', 'Cancelado pelo motorista', 'Recusado', 'Rejeitado'].includes(status)) {
+        return {
+          title: 'Pedido Cancelado',
+          desc: 'Este pedido foi cancelado ou recusado.',
+          icon: 'close-circle-outline',
+          color: '#EF4444',
+          bg: '#FEE2E2'
+        };
+      }
+      return {
+        title: status || 'Processando',
+        desc: 'Estamos a atualizar o estado do seu pedido.',
+        icon: 'information-circle-outline',
+        color: '#6B7280',
+        bg: '#F3F4F6'
+      };
     };
 
-    const friendlyStatus = getFriendlyStatus(currentOrder.status);
+    const friendlyStatus = getFriendlyStatus(currentOrder.status, currentOrder.stepStatus);
 
     return (
       <View style={styles.sheetContent}>
@@ -678,7 +676,7 @@ const OrderDetailsScreen = () => {
           </View>
         </View>
 
-        {currentOrder.status === 'No destino indicado' && (
+        {['No destino indicado', 'Em trânsito', 'Pronto'].includes(currentOrder.status) && !currentOrder.isDelivered && (
           <View style={{ marginBottom: 16 }}>
             <TouchableOpacity 
               onPress={() => setShowFinishConfirmationModal(true)}
@@ -699,7 +697,9 @@ const OrderDetailsScreen = () => {
               activeOpacity={0.8}
             >
               <Ionicons name="checkmark-done-circle" size={24} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Confirmar Viagem</Text>
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>
+                {currentOrder.isUserWantDelivery === false ? 'Confirmar Levantamento' : 'Confirmar Recepção do Pedido'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1201,6 +1201,15 @@ const OrderDetailsScreen = () => {
           </View>
         )}
 
+
+        {['Em trânsito', 'A Caminho', 'No destino indicado', 'Disponível para entrega', 'Pronto'].includes(currentOrder?.status) && !currentOrder?.isDelivered && (
+          <TouchableOpacity onPress={() => confirmDeliveryOrder(currentOrder._id)} style={[styles.actionBtn, { marginBottom: 12 }]}>
+            <LinearGradient colors={['#10B981', '#059669']} style={styles.gradientBtn}>
+              <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>Confirmar a recepção</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {currentOrder.status === 'Entregue' && (
           <TouchableOpacity onPress={() => confirmDeleteOrder(currentOrder._id)} style={styles.actionBtn}>

@@ -1,32 +1,16 @@
 import { useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faShoppingCart, faBars, faMoon, faCommentAlt, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faShoppingCart, faMoon, faCommentAlt, faPaperPlane, faStore } from '@fortawesome/free-solid-svg-icons';
 import { faFacebookF, faInstagram, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectUser } from '../../store/features/userSlice';
-import { selectTotalItems, addTotalToPay } from '../../store/features/basketSlice';
-import api from '../../api';
+import { selectTotalItems } from '../../store/features/basketSlice';
 
 export default function PublicLayout() {
   const dispatch = useDispatch();
   const userInfo = useSelector(selectUser);
   const cartCount = useSelector(selectTotalItems);
-
-  useEffect(() => {
-    if (userInfo) {
-      const fetchCartCount = async () => {
-        try {
-          // A lógica real dependerá se o carrinho vem da DB ou se gere localmente.
-          // No mobile o carrinho começa vazio até puxar (ou é só local storage).
-          // Vamos manter a chamada comentada se quisermos sync backend.
-        } catch (error) {
-          console.error('Erro ao buscar carrinho:', error);
-        }
-      };
-      fetchCartCount();
-    }
-  }, [userInfo, dispatch]);
 
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--color-bg-light)' }}>
@@ -34,31 +18,32 @@ export default function PublicLayout() {
       <header className="bg-white border-bottom p-3 sticky-top">
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center gap-5">
+            <div className="d-flex align-items-center gap-4">
               <Link to="/shop" className="text-decoration-none">
                 <h3 className="m-0 text-black fw-extrabold" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
               </Link>
               
               <nav className="d-none d-lg-flex gap-4">
-                <Link to="/shop" className="text-muted text-decoration-none fw-bold small hover-shadow transition-all">Categorias</Link>
+                <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Categorias</Link>
                 <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Produtos</Link>
                 <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Serviços</Link>
-                <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Para Empresas</Link>
-                <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Motoristas</Link>
+                <Link to="/signup?type=seller" className="text-primary-custom text-decoration-none fw-bold small">
+                  <FontAwesomeIcon icon={faStore} className="me-1" /> Vender na Nhiquela
+                </Link>
               </nav>
             </div>
             
-            <div className="d-flex gap-4 align-items-center">
-              <button className="btn btn-link text-dark p-0"><FontAwesomeIcon icon={faMoon} /></button>
+            <div className="d-flex gap-3 align-items-center">
               <Link to="/login" className="text-dark fw-bold text-decoration-none small">
                 Entrar
               </Link>
-              <Link to="/signup" className="btn text-white rounded-pill px-4 py-2 fw-bold small" style={{ backgroundColor: '#1E0F0A' }}>
-                Começar
+
+              <Link to="/signup?type=seller" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold small shadow-sm">
+                Criar Loja Fornecedor
               </Link>
               
-              <Link to="/shop/cart" className="position-relative text-dark text-decoration-none">
-                <FontAwesomeIcon icon={faShoppingCart} />
+              <Link to="/shop/cart" className="position-relative text-dark text-decoration-none ms-2">
+                <FontAwesomeIcon icon={faShoppingCart} size="lg" />
                 {cartCount > 0 && (
                   <span className="position-absolute translate-middle badge rounded-pill bg-primary-custom" style={{ top: '-5px', right: '-15px', fontSize: '10px' }}>
                     {cartCount}
@@ -78,9 +63,6 @@ export default function PublicLayout() {
       <div className="position-fixed" style={{ bottom: '30px', right: '30px', zIndex: 1000 }}>
         <button className="btn bg-primary-custom text-white rounded-circle shadow-lg d-flex justify-content-center align-items-center position-relative" style={{ width: '60px', height: '60px' }}>
           <FontAwesomeIcon icon={faCommentAlt} size="lg" />
-          <span className="position-absolute translate-middle badge rounded-circle border border-white" style={{ top: '10px', right: '-10px', backgroundColor: '#1E0F0A' }}>
-            3
-          </span>
         </button>
       </div>
 
@@ -102,20 +84,20 @@ export default function PublicLayout() {
             <div className="col-6 col-lg-2 mb-4 mb-lg-0">
               <h6 className="fw-bold mb-4">Categorias</h6>
               <ul className="list-unstyled small d-flex flex-column gap-3">
-                <li><a href="#" className="text-muted text-decoration-none">Supermercado</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Restaurantes</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Farmácia</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Serviços</a></li>
+                <li><Link to="/shop" className="text-muted text-decoration-none">Supermercado</Link></li>
+                <li><Link to="/shop" className="text-muted text-decoration-none">Restaurantes</Link></li>
+                <li><Link to="/shop" className="text-muted text-decoration-none">Farmácia</Link></li>
+                <li><Link to="/shop" className="text-muted text-decoration-none">Serviços</Link></li>
               </ul>
             </div>
             
             <div className="col-6 col-lg-2 mb-4 mb-lg-0">
-              <h6 className="fw-bold mb-4">Empresa</h6>
+              <h6 className="fw-bold mb-4">Para Fornecedores</h6>
               <ul className="list-unstyled small d-flex flex-column gap-3">
-                <li><a href="#" className="text-muted text-decoration-none">Sobre nós</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Carreiras</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Imprensa</a></li>
-                <li><a href="#" className="text-muted text-decoration-none">Contactos</a></li>
+                <li><Link to="/signup?type=seller" className="text-primary-custom fw-bold text-decoration-none">Criar Loja Fornecedor</Link></li>
+                <li><Link to="/signup?type=seller" className="text-muted text-decoration-none">Registar o Seu Negócio</Link></li>
+                <li><Link to="/signup?type=seller" className="text-muted text-decoration-none">Vender na Nhiquela</Link></li>
+                <li><Link to="/login" className="text-muted text-decoration-none">Portal do Vendedor</Link></li>
               </ul>
             </div>
             
@@ -124,7 +106,6 @@ export default function PublicLayout() {
               <ul className="list-unstyled small d-flex flex-column gap-3">
                 <li><Link to="/privacy-policy" className="text-muted text-decoration-none">Privacidade</Link></li>
                 <li><Link to="/terms" className="text-muted text-decoration-none">Termos de Uso</Link></li>
-                <li><a href="#" className="text-muted text-decoration-none">Cookies</a></li>
               </ul>
             </div>
             

@@ -2,7 +2,7 @@ import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
 import RequestService from '../models/RequestServiceModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendOrderNotificationToSellerEmail } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 import DispatchService from '../services/dispatchService.js';
@@ -198,8 +198,29 @@ orderRouter.get(
       deleted: { $eq: false }
     });
 
+    const OrderChat = mongoose.model('OrderChat');
+    const ordersWithChat = await Promise.all(orders.map(async (order) => {
+      const orderObj = order.toObject();
+      const chat = await OrderChat.findOne({ orderId: order._id });
+      let chatCount = 0;
+      let unreadCount = 0;
+
+      if (chat && chat.messages) {
+        chatCount = chat.messages.length;
+        unreadCount = chat.messages.filter(
+          m => m.senderId.toString() !== req.user._id.toString() && m.status !== 'read'
+        ).length;
+      }
+
+      return {
+        ...orderObj,
+        chatCount,
+        unreadCount
+      };
+    }));
+
     const pages = Math.ceil(countOrders / pageSize);
-    res.send({ orders, pages });
+    res.send({ orders: ordersWithChat, pages });
   })
 );
 
@@ -325,7 +346,7 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
 
       seller: req.body.orderItems[0].seller,
       orderItems: req.body.orderItems.map((x) => ({ ...x, product: x._id })),
-      deliveryAddress: req.body.address,
+      deliveryAddress: req.body.deliveryAddress || { address: req.body.address },
       isUserWantDelivery: req.body.isUserWantDelivery,
       paymentMethod: req.body.paymentMethod,
       itemsPrice: req.body.itemsPrice,
@@ -447,6 +468,11 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
           pushToken: sellerOfProduct.deviceToken,
         });
       }
+
+      // Enviar e-mail de notificação para o vendedor
+      if (sellerOfProduct?.email) {
+        sendOrderNotificationToSellerEmail(sellerOfProduct.email, order);
+      }
       
       //toOrderClient
       if (clientOfProduct?.deviceToken) {
@@ -510,13 +536,44 @@ orderRouter.get(
       .populate('deliveryman')
       .sort({ createdAt: -1 });
     
-    // ?? IMPORTANTE: Incluir tambï¿½m os serviï¿½os (RequestService)
+    // ?? IMPORTANTE: Incluir também os serviços (RequestService)
     const trips = await RequestService.find({ user: req.user._id, deleted: { $eq: false } }).populate('user deliveryman').sort({ createdAt: -1 });
     
     // Mesclar ambos e ordenar por data
     const all = [...orders, ...trips].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-    res.send(all);
+    const OrderChat = mongoose.model('OrderChat');
+    const TripChat = mongoose.model('TripChat');
+
+    const allWithChat = await Promise.all(all.map(async (item) => {
+      const itemObj = item.toObject();
+      const isOrder = !!itemObj.orderItems;
+
+      let chat = null;
+      if (isOrder) {
+        chat = await OrderChat.findOne({ orderId: itemObj._id });
+      } else {
+        chat = await TripChat.findOne({ tripId: itemObj._id });
+      }
+
+      let chatCount = 0;
+      let unreadCount = 0;
+
+      if (chat && chat.messages) {
+        chatCount = chat.messages.length;
+        unreadCount = chat.messages.filter(
+          m => m.senderId.toString() !== req.user._id.toString() && m.status !== 'read'
+        ).length;
+      }
+
+      return {
+        ...itemObj,
+        chatCount,
+        unreadCount
+      };
+    }));
+
+    res.send(allWithChat);
   })
 );
 
@@ -832,6 +889,8 @@ orderRouter.put(
       return res.status(404).send({ message: 'Pedido nï¿½o encontrado' });
     }
 
+    const wasAccepted = order.isAccepted;
+
     order.isAccepted = true;
     order.isCanceled = false;
     order.stepStatus = 2;
@@ -842,6 +901,112 @@ orderRouter.put(
     if (order.paymentMethod && !order.paymentMethod.toLowerCase().includes('dinheiro')) {
       order.isPaid = true;
       order.paidAt = Date.now();
+    }
+
+    if (!wasAccepted) {
+      // --- SELLER WALLET DEDUCTION LOGIC ---
+      const sellerUser = await getSellerUser(order.seller);
+      if (sellerUser && sellerUser.isSeller) {
+        if (!sellerUser.seller.hasUsedFreeSale) {
+          // First sale is free
+          sellerUser.seller.hasUsedFreeSale = true;
+          await sellerUser.save();
+          console.log(`[accept] Primeira venda do fornecedor ${sellerUser.name} - isenção de comissão ativada.`);
+        } else {
+          // Calculate and deduct fee
+          let feePercentage = 0.15; // Default 15%
+          try {
+            const Settings = mongoose.model('Settings');
+            const commSetting = await Settings.findOne({ key: 'platform_commission_rate' });
+            if (commSetting && commSetting.value !== undefined) {
+              feePercentage = Number(commSetting.value) / 100;
+            }
+          } catch (err) {
+            console.log('Error fetching platform_commission_rate from settings:', err.message);
+          }
+
+          // If provider subcategory has a specific commission rate configured, override
+          const Provider = mongoose.model('Provider');
+          const provider = await Provider.findById(order.seller);
+          const subcategoryRefId = provider?.subcategoryId || sellerUser.seller.tipoEstabelecimento;
+          if (subcategoryRefId) {
+            const subcategory = await ProviderSubcategory.findById(subcategoryRefId);
+            if (subcategory && subcategory.serviceCommission > 0) {
+              feePercentage = subcategory.serviceCommission / 100;
+            } else if (subcategory && subcategory.percentageFee > 0) {
+              feePercentage = subcategory.percentageFee / 100;
+            }
+          }
+
+          const basePrice = order.itemsPrice || order.totalPrice || 0;
+          const feeAmount = basePrice * feePercentage;
+
+          if (feeAmount > 0) {
+            let sellerWallet = await Wallet.findOne({ $or: [{ ownerId: order.seller }, { ownerId: sellerUser._id }, { userId: sellerUser._id }] });
+            if (!sellerWallet) {
+              sellerWallet = new Wallet({
+                ownerId: sellerUser._id,
+                ownerType: 'seller',
+                userId: sellerUser._id,
+                balance: 0,
+              });
+            }
+            sellerWallet.balance -= feeAmount;
+            sellerWallet.updatedAt = new Date();
+            await sellerWallet.save();
+
+            await Transaction.create({
+              walletId: sellerWallet._id,
+              type: 'debit',
+              amount: feeAmount,
+              method: 'commission',
+              description: `Comissão da venda - Pedido #${order.code}`,
+              status: 'confirmado'
+            });
+
+            console.log(`[accept] Comissão de ${feeAmount} MT (${(feePercentage * 100).toFixed(0)}%) debitada do fornecedor ${sellerUser.name}. Novo saldo: ${sellerWallet.balance} MT`);
+
+            // Auto-close store if balance is below 50 MT
+            if (sellerWallet.balance < 50) {
+              sellerUser.seller.openstore = false;
+              await sellerUser.save();
+
+              const targetSellerId = provider ? provider._id : sellerUser._id;
+              const Product = mongoose.model('Product');
+              await Product.updateMany(
+                { seller: targetSellerId },
+                { isSellerOpen: false }
+              );
+
+              console.log(`[accept] ⚠️ Fornecedor ${sellerUser.name} fechado automaticamente devido a saldo baixo (${sellerWallet.balance} MT < 50 MT).`);
+
+              // Emitir evento pelo socket de status alterado
+              const io = req.app.get('io');
+              if (io) {
+                io.emit('storeStatusChanged', {
+                  sellerId: targetSellerId,
+                  userId: sellerUser._id,
+                  sellerName: sellerUser.seller?.name || sellerUser.name,
+                  isOpen: false,
+                });
+              }
+            }
+
+            // Emit walletUpdated socket event instantly!
+            const io = req.app.get('io');
+            if (io) {
+              const userId = sellerUser._id.toString();
+              io.to(`user_${userId}`).emit('walletUpdated', {
+                message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+              });
+              io.to(`seller_${userId}`).emit('walletUpdated', {
+                message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+              });
+            }
+          }
+        }
+      }
+      // --- END SELLER WALLET DEDUCTION LOGIC ---
     }
 
     await order.save();
@@ -901,6 +1066,7 @@ orderRouter.put(
       order.isCanceled = false;
       order.stepStatus = 2;
       order.status = 'Aceite';
+      order.isCommissionProcessed = true;
 
       // --- SELLER WALLET DEDUCTION LOGIC ---
       const sellerUser = await getSellerUser(order.seller);
@@ -940,19 +1106,18 @@ orderRouter.put(
           const feeAmount = basePrice * feePercentage;
 
           if (feeAmount > 0) {
-            const sellerWallet = await Wallet.findOneAndUpdate(
-              { ownerId: sellerUser._id },
-              {
-                $setOnInsert: {
-                  ownerId: sellerUser._id,
-                  ownerType: 'seller',
-                  userId: sellerUser._id,
-                },
-                $inc: { balance: -feeAmount },
-                $set: { updatedAt: new Date() }
-              },
-              { upsert: true, new: true }
-            );
+            let sellerWallet = await Wallet.findOne({ $or: [{ ownerId: order.seller }, { ownerId: sellerUser._id }, { userId: sellerUser._id }] });
+            if (!sellerWallet) {
+              sellerWallet = new Wallet({
+                ownerId: sellerUser._id,
+                ownerType: 'seller',
+                userId: sellerUser._id,
+                balance: 0,
+              });
+            }
+            sellerWallet.balance -= feeAmount;
+            sellerWallet.updatedAt = new Date();
+            await sellerWallet.save();
 
             await Transaction.create({
               walletId: sellerWallet._id,
@@ -964,6 +1129,32 @@ orderRouter.put(
             });
 
             console.log(`[respond] Comissão de ${feeAmount} MT (${(feePercentage * 100).toFixed(0)}%) debitada do fornecedor ${sellerUser.name}. Novo saldo: ${sellerWallet.balance} MT`);
+
+            // Auto-close store if balance is below 50 MT
+            if (sellerWallet.balance < 50) {
+              sellerUser.seller.openstore = false;
+              await sellerUser.save();
+
+              const targetSellerId = provider ? provider._id : sellerUser._id;
+              const Product = mongoose.model('Product');
+              await Product.updateMany(
+                { seller: targetSellerId },
+                { isSellerOpen: false }
+              );
+
+              console.log(`[respond] ⚠️ Fornecedor ${sellerUser.name} fechado automaticamente devido a saldo baixo (${sellerWallet.balance} MT < 50 MT).`);
+
+              // Emitir evento pelo socket de status alterado
+              const io = req.app.get('io');
+              if (io) {
+                io.emit('storeStatusChanged', {
+                  sellerId: targetSellerId,
+                  userId: sellerUser._id,
+                  sellerName: sellerUser.seller?.name || sellerUser.name,
+                  isOpen: false,
+                });
+              }
+            }
 
             // Emit walletUpdated socket event instantly!
             const io = req.app.get('io');
@@ -1141,8 +1332,6 @@ orderRouter.put(
 
     if (order) {
       order.isAvailableToDeliver = true;
-      order.status = 'Disponível para entrega';
-      order.stepStatus = 3;
       
       // Update transport if provided by seller
       if (req.body.transportTypeId) {
@@ -1150,12 +1339,30 @@ orderRouter.put(
         order.transportType = req.body.transportType;
       }
 
-      if (order.addressPrice === 0) {
+      if (req.body.isExternalDelivery) {
+        order.isExternalDelivery = true;
+        order.status = 'Disponível para entrega';
+        order.stepStatus = 3;
+      } else if (
+        req.body.noTransport === true || 
+        req.body.isNoTransport === true || 
+        (!order.transportType || order.transportType === 'Nenhum' || order.transportType === null) && !order.transportTypeId
+      ) {
+        // Categoria/Serviço sem transporte: passa diretamente para "Em trânsito"
+        order.status = 'Em trânsito';
+        order.isInTransit = true;
+        order.stepStatus = 4;
+      } else {
+        order.status = 'Disponível para entrega';
+        order.stepStatus = 3;
+      }
+
+      if (order.addressPrice === 0 && (order.status !== 'Em trânsito')) {
         order.status = 'Finalizado';
         order.isInTransit = true;
         order.isDelivered = true;
         order.deliveredAt = Date.now();
-      } else {
+      } else if (order.status === 'Disponível para entrega' && !order.isExternalDelivery) {
         // Criar ou atualizar RequestService para motoristas (Intelligent Dispatch)
         try {
           const mongoose = await import('mongoose');
@@ -1231,8 +1438,7 @@ orderRouter.put(
           // Dispatch the drivers!
           const io = req.app.get('io');
           if (io && serviceToDispatch) {
-            const dispatchService = new DispatchService();
-            dispatchService.startDispatch(serviceToDispatch, io);
+            DispatchService.startDispatch(serviceToDispatch, io);
           }
         } catch (e) {
           console.error('Erro ao criar/re-despachar RequestService a partir de Encomenda:', e);
@@ -1389,7 +1595,7 @@ orderRouter.put(
     }
 
     // ✅ Verificações read-only FORA da transação para reduzir latência
-    const orderCheck = await Order.findOne({ _id: req.params.id, status: { $in: ['Pendente', 'Pronto'] } });
+    const orderCheck = await Order.findOne({ _id: req.params.id, status: { $in: ['Pendente', 'Pronto', 'Aceite', 'Disponível para entrega'] } });
     if (!orderCheck) {
       return res.status(409).send({ message: 'Pedido já foi aceite por outro motorista ou não está disponível' });
     }
@@ -1422,7 +1628,7 @@ orderRouter.put(
     try {
       // Atomic update — impede race conditions
       const updatedOrder = await Order.findOneAndUpdate(
-        { _id: req.params.id, status: { $in: ['Pendente', 'Pronto'] } },
+        { _id: req.params.id, status: { $in: ['Pendente', 'Pronto', 'Aceite', 'Disponível para entrega'] } },
         {
           $set: {
             status: 'Pedido aceite',
@@ -1543,9 +1749,9 @@ orderRouter.put(
     if (order) {
       //     order.isPaid = true;
       //     order.paidAt= Date.now();
-      order.status = 'Em trï¿½nsito';
+      order.status = 'Em trânsito';
       order.isInTransit = true;
-      order.stepStatus = 5;
+      order.stepStatus = 4;
 
       // if(user_deliver.isDeliveryMan){
 
@@ -1724,29 +1930,38 @@ orderRouter.put(
     let finalOrder = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      const session = await mongoose.startSession();
-      session.startTransaction();
+      let session = null;
+      try {
+        session = await mongoose.startSession();
+        session.startTransaction();
+      } catch (sessErr) {
+        session = null;
+      }
 
       try {
-        const order = await Order.findById(req.params.id).session(session);
+        const orderQuery = Order.findById(req.params.id);
+        if (session) orderQuery.session(session);
+        const order = await orderQuery;
 
         if (!order) {
-          await session.abortTransaction();
-          session.endSession();
+          if (session) {
+            await session.abortTransaction().catch(() => {});
+            session.endSession();
+          }
           return res.status(404).send({ message: 'Pedido não encontrado' });
         }
 
         order.status = 'Entregue';
         order.isDelivered = true;
         order.deliveredAt = Date.now();
-        order.stepStatus = 7;
+        order.stepStatus = 5;
 
-        await reputationTracker.recordOrderCompleted(order.user);
+        await reputationTracker.recordOrderCompleted(order.user).catch(() => {});
 
         // Calculate and debit commission if a deliveryman exists
         if (order.deliveryman && order.deliveryman.id) {
           const { calculateDynamicCommission } = await import('../services/walletService.js');
-          const commissionAmount = await calculateDynamicCommission(order);
+          const commissionAmount = await calculateDynamicCommission(order).catch(() => 0);
 
           try {
             await debitDriverCommissionWithSession(
@@ -1757,30 +1972,35 @@ orderRouter.put(
               session
             );
             
-            // Increment completedOrders and release driver from active service
-            await User.updateOne(
-              { _id: order.deliveryman.id },
-              { 
-                $set: { 'deliveryman.hasActiveService': false },
-                $inc: { completedOrders: 1 } 
-              },
-              { session }
-            );
+            const updateData = { 
+              $set: { 'deliveryman.hasActiveService': false },
+              $inc: { completedOrders: 1 } 
+            };
+            if (session) {
+              await User.updateOne({ _id: order.deliveryman.id }, updateData, { session });
+            } else {
+              await User.updateOne({ _id: order.deliveryman.id }, updateData);
+            }
           } catch (error) {
-            await session.abortTransaction();
-            session.endSession();
+            if (session) {
+              await session.abortTransaction().catch(() => {});
+              session.endSession();
+            }
             return res.status(400).send({ message: error.message });
           }
         }
 
         // --- CREDITAR CARTEIRA DO FORNECEDOR ---
-        // Quando o pedido é entregue, o fornecedor recebe o valor líquido da venda
         try {
           const Provider = (await import('../models/ProviderModel.js')).default;
-          // Tenta encontrar o Provider: por _id directo ou pelo userId vinculado
-          let providerDoc = await Provider.findById(order.seller).session(session).catch(() => null);
+          let providerQuery = Provider.findById(order.seller);
+          if (session) providerQuery.session(session);
+          let providerDoc = await providerQuery.catch(() => null);
+
           if (!providerDoc) {
-            providerDoc = await Provider.findOne({ userId: order.seller }).session(session).catch(() => null);
+            let providerUserQuery = Provider.findOne({ userId: order.seller });
+            if (session) providerUserQuery.session(session);
+            providerDoc = await providerUserQuery.catch(() => null);
           }
 
           if (providerDoc) {
@@ -1789,51 +2009,63 @@ orderRouter.put(
             );
 
             if (grossAmount > 0) {
-              let providerWallet = await Wallet.findOne({ ownerId: providerDoc._id }).session(session);
+              const sellerIds = [providerDoc._id, providerDoc.ownerId, providerDoc.userId].filter(Boolean);
+              let wQuery = Wallet.findOne({
+                $or: [{ ownerId: { $in: sellerIds } }, { userId: { $in: sellerIds } }]
+              });
+              if (session) wQuery.session(session);
+              let providerWallet = await wQuery;
+
               if (!providerWallet) {
-                providerWallet = new Wallet({ ownerId: providerDoc._id, ownerType: 'seller', balance: 0 });
-                await providerWallet.save({ session });
+                providerWallet = new Wallet({ 
+                  ownerId: providerDoc._id, 
+                  ownerType: 'seller', 
+                  userId: providerDoc.userId || providerDoc.ownerId, 
+                  balance: 0 
+                });
+                if (session) await providerWallet.save({ session });
+                else await providerWallet.save();
               }
               providerWallet.balance += grossAmount;
-              await providerWallet.save({ session });
+              if (session) await providerWallet.save({ session });
+              else await providerWallet.save();
 
-              await Transaction.create([{
+              const txData = {
                 walletId: providerWallet._id,
                 type: 'credit',
                 amount: grossAmount,
                 method: 'order_payment',
                 description: `Pagamento da venda - Pedido #${order.code}`,
                 status: 'confirmado',
-              }], { session });
+              };
+              if (session) {
+                await Transaction.create([txData], { session });
+              } else {
+                await Transaction.create(txData);
+              }
 
               console.log(`[Deliver] ✅ Fornecedor ${providerDoc.name} creditado: +${grossAmount} MT (Pedido #${order.code})`);
             }
           }
         } catch (walletErr) {
           console.error('[Deliver] ⚠️ Erro ao creditar carteira do fornecedor:', walletErr.message);
-          // Não abortar a transação por erro no crédito
         }
-        // --- FIM CREDITAR FORNECEDOR ---
 
-        const savedOrder = await order.save({ session });
-        await session.commitTransaction();
-        session.endSession();
+        let savedOrder;
+        if (session) {
+          savedOrder = await order.save({ session });
+          await session.commitTransaction();
+          session.endSession();
+        } else {
+          savedOrder = await order.save();
+        }
         finalOrder = savedOrder;
-        break; // Sucesso — sair do loop
+        break;
 
       } catch (error) {
-        await session.abortTransaction().catch(() => {});
-        session.endSession();
-
-        const isTransient = error.errorLabels?.has?.('TransientTransactionError') ||
-                            error.code === 112 ||
-                            error.codeName === 'WriteConflict';
-
-        if (isTransient && attempt < MAX_RETRIES) {
-          console.warn(`[Deliver] ⚠️ WriteConflict na tentativa ${attempt}/${MAX_RETRIES}. A tentar novamente em ${attempt * 200}ms...`);
-          await new Promise(r => setTimeout(r, attempt * 200));
-          lastError = error;
-          continue;
+        if (session) {
+          await session.abortTransaction().catch(() => {});
+          session.endSession();
         }
 
         lastError = error;

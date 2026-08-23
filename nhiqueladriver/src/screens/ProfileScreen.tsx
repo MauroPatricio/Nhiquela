@@ -82,7 +82,11 @@ export default function ProfileScreen({ navigation }: Props) {
     memberSince: getMemberSince(),
     totalTrips: user?.deliveryman?.totalTrips || 0,
     totalRatings: user?.deliveryman?.totalRatings || 0,
-    rating: user?.deliveryman?.averageRating ? user.deliveryman.averageRating.toFixed(1) : (user?.deliveryman?.rating || '5.0'),
+    rating: (() => {
+      const val = user?.deliveryman?.averageRating ?? user?.deliveryman?.rating;
+      const num = Number(val);
+      return (isNaN(num) || num === 0) ? "5.0" : num.toFixed(1);
+    })(),
     acceptanceRate: '100%',
     totalEarnings: user?.deliveryman?.totalEarnings ? `${Number(user.deliveryman.totalEarnings).toFixed(2)} MT` : '0.00 MT',
     vehicle: transportTypeName || transportTypeNameFromUser || (typeof transportTypeData === 'string' ? transportTypeData : 'Veículo Não registado'),
@@ -658,7 +662,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
             {user?.deliveryman?.vihicle_picture && (
               <View style={styles.docItem}>
-                <Text style={styles.docTitle}>Foto da Viatura</Text>
+                <Text style={styles.docTitle}>Foto Lateral da Viatura</Text>
                 <Image
                   source={{ uri: getImageUrl(user.deliveryman.vihicle_picture) }}
                   style={styles.docImage}

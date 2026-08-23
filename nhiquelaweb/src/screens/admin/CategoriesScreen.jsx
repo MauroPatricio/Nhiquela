@@ -35,7 +35,7 @@ export default function CategoriesScreen() {
     try {
       const [catRes, subRes] = await Promise.all([
         api.get('/categories').catch(() => ({ data: [] })),
-        api.get('/subcategories').catch(() => ({ data: [] }))
+        api.get('/subcategories?all=true').catch(() => ({ data: [] }))
       ]);
       const catData = Array.isArray(catRes.data) ? catRes.data : (catRes.data.categories || []);
       const subData = Array.isArray(subRes.data) ? subRes.data : (subRes.data.subcategories || []);
@@ -153,7 +153,10 @@ export default function CategoriesScreen() {
   };
 
   const currentSubcategories = selectedCategory 
-    ? subcategories.filter(s => s.categoryId === selectedCategory._id) 
+    ? subcategories.filter(s => {
+        const catId = s.categoryId || (typeof s.category === 'object' ? s.category?._id : s.category);
+        return catId === selectedCategory._id;
+      }) 
     : [];
 
   return (

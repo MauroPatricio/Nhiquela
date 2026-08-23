@@ -61,7 +61,7 @@ const ProductDetail = () => {
   // isSellerOpen vem do backend no produto; seller?.openstore é o fallback legacy
   const initialOpen = itemData?.isSellerOpen !== undefined
     ? itemData.isSellerOpen
-    : (seller?.openstore !== false); // se undefined => assume aberta
+    : (seller?.openstore === true);
   const [isSellerOpen, setIsSellerOpen] = useState(initialOpen);
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -216,7 +216,7 @@ const ProductDetail = () => {
       address: targetSeller.address || seller.address,
       latitude: targetSeller.latitude || seller.latitude,
       longitude: targetSeller.longitude || seller.longitude,
-      openstore: targetSeller.openstore !== undefined ? targetSeller.openstore : (seller.openstore !== undefined ? seller.openstore : true),
+      openstore: targetSeller.openstore === true || seller.openstore === true,
       tipoEstabelecimento: targetSeller.tipoEstabelecimento || seller.tipoEstabelecimento
     });
   };

@@ -13,6 +13,13 @@ vehicleTypeRouter.get(
   })
 );
 
+const parseSafeNumber = (val) => {
+  if (val === undefined || val === null) return undefined;
+  if (typeof val === 'number') return val;
+  const parsed = parseFloat(String(val).replace(/[^\d.]/g, ''));
+  return isNaN(parsed) ? undefined : parsed;
+};
+
 vehicleTypeRouter.post(
   '/',
   isAuth,
@@ -22,10 +29,10 @@ vehicleTypeRouter.post(
       name: req.body.name,
       icon: req.body.icon,
       category: req.body.category,
-      capacityKg: req.body.capacityKg,
-      basePrice: req.body.basePrice,
-      pricePerKm: req.body.pricePerKm,
-      minVisibilityFee: req.body.minVisibilityFee || 0,
+      capacityKg: parseSafeNumber(req.body.capacityKg),
+      basePrice: parseSafeNumber(req.body.basePrice),
+      pricePerKm: parseSafeNumber(req.body.pricePerKm),
+      minVisibilityFee: parseSafeNumber(req.body.minVisibilityFee) || 0,
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     });
     const createdType = await newType.save();
@@ -49,10 +56,16 @@ vehicleTypeRouter.put(
       type.name = req.body.name || type.name;
       type.icon = req.body.icon || type.icon;
       type.category = req.body.category || type.category;
-      type.capacityKg = req.body.capacityKg !== undefined ? req.body.capacityKg : type.capacityKg;
-      type.basePrice = req.body.basePrice !== undefined ? req.body.basePrice : type.basePrice;
-      type.pricePerKm = req.body.pricePerKm !== undefined ? req.body.pricePerKm : type.pricePerKm;
-      type.minVisibilityFee = req.body.minVisibilityFee !== undefined ? req.body.minVisibilityFee : type.minVisibilityFee;
+      
+      const capacity = parseSafeNumber(req.body.capacityKg);
+      const basePrice = parseSafeNumber(req.body.basePrice);
+      const pricePerKm = parseSafeNumber(req.body.pricePerKm);
+      const minVisibilityFee = parseSafeNumber(req.body.minVisibilityFee);
+
+      type.capacityKg = capacity !== undefined ? capacity : type.capacityKg;
+      type.basePrice = basePrice !== undefined ? basePrice : type.basePrice;
+      type.pricePerKm = pricePerKm !== undefined ? pricePerKm : type.pricePerKm;
+      type.minVisibilityFee = minVisibilityFee !== undefined ? minVisibilityFee : type.minVisibilityFee;
       type.isActive = req.body.isActive !== undefined ? req.body.isActive : type.isActive;
       
       const updatedType = await type.save();

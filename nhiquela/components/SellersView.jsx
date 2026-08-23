@@ -100,7 +100,7 @@ const SellersView = ({ title, description }) => {
               address={item.seller?.address || item.location?.address}
               latitude={item.seller?.latitude || item.location?.lat}
               longitude={item.seller?.longitude || item.location?.lng}
-              openstore={item.seller?.openstore !== false}
+              openstore={item.seller?.openstore === true}
             />
           ))
         ) : (

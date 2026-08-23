@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 
 const COLORS = {
-  primary: '#1D4ED8',
+  primary: '#7F00FF',
   background: '#F3F4F6',
   surface: '#FFFFFF',
   surface2: '#F9FAFB',

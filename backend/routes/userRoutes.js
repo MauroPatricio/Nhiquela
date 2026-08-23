@@ -1,6 +1,6 @@
 import express from 'express';
 import User from '../models/UserModel.js';
-import { baseUrl, generateToken, isAdmin, isAuth, isDeliveryMan, sendAdminNotificationEmail } from '../utils.js';
+import { baseUrl, generateToken, isAdmin, isAuth, isDeliveryMan, sendAdminNotificationEmail, sendUserBlockStatusEmail } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 import Product from '../models/ProductModel.js';
@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'
 import mongoose from 'mongoose';
 import TipoEstabelecimento from '../models/TipoEstabelecimento.js';
+import ProviderSubcategory from '../models/ProviderSubcategoryModel.js';
 import { updatePushToken } from '../controllers/userController.js'
 import DeliverymanUpdateRequest from "../models/DeliverymanUpdateRequestModel.js";
 import Provider from '../models/ProviderModel.js';
@@ -118,14 +119,18 @@ userRouter.get(
       const page = Number(req.query.page) || 1;
       const pageSize = 10;
       const { tipoEstabelecimento } = req.query;
+      const all = req.query.all === 'true';
 
       const query = {
         isSeller: true,
-        isApproved: true,
-        isBanned: false,
-        isDeleted: { $ne: true },
-        'seller.tipoEstabelecimento': { $exists: true, $ne: null }
+        isDeleted: { $ne: true }
       };
+
+      if (!all) {
+        query.isApproved = true;
+        query.isBanned = false;
+        query['seller.tipoEstabelecimento'] = { $exists: true, $ne: null };
+      }
 
       if (tipoEstabelecimento && mongoose.Types.ObjectId.isValid(tipoEstabelecimento)) {
         query['seller.tipoEstabelecimento'] = tipoEstabelecimento;
@@ -146,10 +151,34 @@ userRouter.get(
       });
       const uniqueSellers = Array.from(uniqueSellersMap.values());
 
-      // Pagina��o
-      const countSellers = uniqueSellers.length;
+      if (all) {
+        return res.send({
+          sellers: uniqueSellers,
+          pages: 1,
+          countSellers: uniqueSellers.length,
+          currentPage: 1,
+        });
+      }
+
+      // Filtrar por carteira: saldo mínimo de 50 MT (exceto se primeira venda gratuita)
+      const Wallet = mongoose.model('Wallet');
+      const sellerIds = uniqueSellers.map(s => s._id);
+      const wallets = await Wallet.find({ ownerId: { $in: sellerIds }, ownerType: 'seller' });
+      const walletMap = new Map(wallets.map(w => [w.ownerId.toString(), w]));
+
+      const visibleSellers = uniqueSellers.filter(s => {
+        if (!s.seller?.hasUsedFreeSale) return true; // Primeira venda gratuita
+        const wallet = walletMap.get(s._id.toString());
+        if (!wallet || wallet.balance < 50) {
+          return false;
+        }
+        return true;
+      });
+
+      // Paginação
+      const countSellers = visibleSellers.length;
       const pages = Math.ceil(countSellers / pageSize);
-      const paginatedSellers = uniqueSellers.slice(pageSize * (page - 1), pageSize * page);
+      const paginatedSellers = visibleSellers.slice(pageSize * (page - 1), pageSize * page);
 
       res.send({
         sellers: paginatedSellers,
@@ -171,7 +200,7 @@ userRouter.post(
 
 
 
-    // Buscar usu�rio vendedor
+    // Buscar usurio vendedor
     const isEmail = phoneNumber.includes('@');
     const query = isEmail
       ? { email: phoneNumber, isSeller: true }
@@ -179,9 +208,9 @@ userRouter.post(
 
     const user = await User.findOne(query);
 
-    // ? Usu�rio n�o existe
+    // ? Usurio no existe
     if (!user) {
-      return res.status(401).send({ message: 'Usu�rio n�o encontrado ou n�o � vendedor' });
+      return res.status(401).send({ message: 'Usurio no encontrado ou no  vendedor' });
     }
 
     // ? Conta banida
@@ -194,7 +223,7 @@ userRouter.post(
     // ? Senha errada
     const isPasswordCorrect = bcrypt.compareSync(password, user.password);
     if (!isPasswordCorrect) {
-      return res.status(401).send({ message: 'Senha inv�lida' });
+      return res.status(401).send({ message: 'Senha invlida' });
     }
 
     // Atualizar token do dispositivo, se fornecido
@@ -241,15 +270,15 @@ userRouter.get(
           ...user.toObject(),
           seller: {
             ...(user.seller && typeof user.seller.toObject === 'function' ? user.seller.toObject() : user.seller),
-            tipoEstabelecimento: user.seller.tipoEstabelecimento?.name || 'N�o especificado'
+            tipoEstabelecimento: user.seller?.tipoEstabelecimento?.name || 'No especificado'
           }
         });
       } else {
-        res.status(404).send({ message: 'Utilizador n�o encontrado' });
+        res.status(404).send({ message: 'Utilizador no encontrado' });
       }
     } catch (error) {
-      console.error('Erro ao buscar usu�rio:', error);
-      res.status(500).send({ message: 'Erro interno ao buscar usu�rio' });
+      console.error('Erro ao buscar usurio:', error);
+      res.status(500).send({ message: 'Erro interno ao buscar usurio' });
     }
   })
 );
@@ -322,26 +351,26 @@ userRouter.put(
         }
 
         if (req.body.isSeller) {
+          const currentSeller = user.seller || {};
           user.seller = {
-            ...user.seller,
-            name: req.body.sellerName || req.body.seller?.name || user.seller.name,
-            description: req.body.sellerDescription || req.body.seller?.description || user.seller.description,
-            logo: req.body.sellerLogo || req.body.seller?.logo || user.seller.logo,
-            opentime: req.body.opentime || req.body.seller?.opentime || user.seller.opentime,
-            closetime: req.body.closetime || req.body.seller?.closetime || user.seller.closetime,
-            province: req.body.sellerLocation || req.body.seller?.province || user.seller.province,
-            address: req.body.sellerAddress || req.body.seller?.address || user.seller.address,
-            phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount || user.seller.phoneNumberAccount,
-            alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount || user.seller.alternativePhoneNumberAccount,
-            bankAccount: req.body.bankAccount || req.body.seller?.bankAccount || user.seller.bankAccount,
-            accountType: req.body.accountType || req.body.seller?.accountType || user.seller.accountType,
-            accountNumber: req.body.accountNumber || req.body.seller?.accountNumber || user.seller.accountNumber,
-            latitude: req.body.latitude || req.body.seller?.latitude || user.seller.latitude,
-            longitude: req.body.longitude || req.body.seller?.longitude || user.seller.longitude,
-            alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType || user.seller.alternativeAccountType,
-            alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller?.alternativeAccountNumber || user.seller.alternativeAccountNumber,
-            workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime || user.seller.workDayAndTime,
-            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento || user.seller.tipoEstabelecimento // Adicionado tipoEstabelecimento
+            name: req.body.sellerName || req.body.seller?.name || currentSeller.name || user.name,
+            description: req.body.sellerDescription || req.body.seller?.description || currentSeller.description,
+            logo: req.body.sellerLogo || req.body.seller?.logo || currentSeller.logo,
+            opentime: req.body.opentime || req.body.seller?.opentime || currentSeller.opentime,
+            closetime: req.body.closetime || req.body.seller?.closetime || currentSeller.closetime,
+            province: req.body.sellerLocation || req.body.seller?.province || currentSeller.province,
+            address: req.body.sellerAddress || req.body.seller?.address || currentSeller.address,
+            phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount || currentSeller.phoneNumberAccount,
+            alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount || currentSeller.alternativePhoneNumberAccount,
+            bankAccount: req.body.bankAccount || req.body.seller?.bankAccount || currentSeller.bankAccount,
+            accountType: req.body.accountType || req.body.seller?.accountType || currentSeller.accountType,
+            accountNumber: req.body.accountNumber || req.body.seller?.accountNumber || currentSeller.accountNumber,
+            latitude: req.body.latitude || req.body.seller?.latitude || currentSeller.latitude,
+            longitude: req.body.longitude || req.body.seller?.longitude || currentSeller.longitude,
+            alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType || currentSeller.alternativeAccountType,
+            alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller?.alternativeAccountNumber || currentSeller.alternativeAccountNumber,
+            workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime || currentSeller.workDayAndTime,
+            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento || currentSeller.tipoEstabelecimento
           };
 
           try {
@@ -350,7 +379,7 @@ userRouter.put(
             if (!provider) {
               provider = new Provider({ userId: user._id, providerType: 'BUSINESS', status: 'active' });
             }
-            provider.name = user.seller.name;
+            provider.name = user.seller.name || user.name;
             provider.categoryId = user.seller.tipoEstabelecimento;
             provider.location = {
               lat: user.seller.latitude,
@@ -370,7 +399,7 @@ userRouter.put(
             console.log('Erro ao sincronizar Provider: ', e);
           }
         } else {
-          // Limpa os dados do seller se n�o for mais um vendedor
+          // Limpa os dados do seller se no for mais um vendedor
           user.seller = {
             name: "",
             description: "",
@@ -429,7 +458,7 @@ userRouter.put(
           token: generateToken(updatedUser),
         });
       } else {
-        res.status(404).send({ message: 'Usu�rio n�o encontrado' });
+        res.status(404).send({ message: 'Usurio no encontrado' });
       }
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
@@ -446,6 +475,7 @@ userRouter.put(
   expressAsyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (user) {
+      const wasBanned = user.isBanned;
       if (req.body.name && (req.body.name.includes('@') || /\d/.test(req.body.name))) {
         return res.status(400).send({ message: 'O nome não pode conter números ou o caractere @' });
       }
@@ -486,7 +516,31 @@ userRouter.put(
         await Product.updateMany({ seller: user._id }, { $set: { isActive: user.isApproved } });
       }
 
+      // ** Sincronizações de aprovação do Motorista **
+      if (user.isDeliveryMan) {
+        if (!user.deliveryman) user.deliveryman = {};
+        if (user.isApproved) {
+          user.status = 'Disponível';
+          user.availability = 'active';
+          user.deliveryman.register_conformance = 'CONFORMANCE';
+        } else if (user.isBanned) {
+          user.status = 'Inativo';
+          user.availability = 'inactive';
+          user.deliveryman.register_conformance = 'INCONFORMANCE';
+        } else {
+          user.status = 'Pendente';
+          user.availability = 'inactive';
+          user.deliveryman.register_conformance = 'PENDING_CONFORMANCE';
+        }
+        user.markModified('deliveryman');
+      }
+
       await user.save();
+
+      // Enviar e-mail se o estado de bloqueio (isBanned) foi alterado
+      if (wasBanned !== user.isBanned && user.email) {
+        sendUserBlockStatusEmail(user.email, user.name, user.isBanned);
+      }
 
       if (user.isSeller) {
         try {
@@ -519,8 +573,70 @@ userRouter.put(
         }
       }
 
-      // Emitir evento pelo socket para real-time reload na app (ex: aprovação de motorista)
+      // ** Notificações e Sockets em Tempo Real **
       const io = req.app.get('io');
+      const users = req.app.get('users') || [];
+
+      // 1. Notificar Motorista
+      if (user.isDeliveryMan) {
+        try {
+          const payload = {
+            status: user.status,
+            register_conformance: user.deliveryman?.register_conformance,
+            isApproved: user.status === 'Disponível',
+            message: user.status === 'Disponível'
+              ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
+              : user.status === 'Inativo'
+                ? '❌ A sua conta foi suspensa. Contacte o suporte.'
+                : '⏳ A sua conta está em análise.',
+          };
+
+          if (io) {
+            // Emissão para a sala (room) do motorista
+            io.to(`driver_${user._id}`).emit('driver_status_updated', payload);
+            
+            // Emissão directa se socketID estiver activo
+            const activeUserSocket = users.find(u => u._id && u._id.toString() === user._id.toString());
+            if (activeUserSocket?.socketId) {
+              io.to(activeUserSocket.socketId).emit('driver_status_updated', payload);
+            }
+          }
+
+          // Enviar Notificação Push via FCM/Expo
+          if (user.deviceToken) {
+            const { sendNotification } = await import('../utils/sendNotification.js');
+            await sendNotification(
+              user.deviceToken,
+              user.status === 'Disponível' ? 'Conta Aprovada 🚀' : 'Conta Atualizada 🔔',
+              user.status === 'Disponível'
+                ? 'A sua conta foi aprovada! Já pode receber pedidos e começar a trabalhar.'
+                : user.status === 'Inativo'
+                  ? 'A sua conta foi suspensa pelo Administrador.'
+                  : 'A sua conta de motorista está em análise.'
+            );
+          }
+        } catch (socketError) {
+          console.error('Erro ao notificar motorista:', socketError);
+        }
+      }
+
+      // 2. Notificar Fornecedor (Seller)
+      if (user.isSeller && user.isApproved) {
+        try {
+          if (user.deviceToken) {
+            const { sendNotification } = await import('../utils/sendNotification.js');
+            await sendNotification(
+              user.deviceToken,
+              'Conta de Fornecedor Aprovada 🚀',
+              'A sua conta de fornecedor foi aprovada! O seu estabelecimento está agora ativo e visível para os clientes.'
+            );
+          }
+        } catch (pushError) {
+          console.error('Erro ao enviar push notification para fornecedor:', pushError);
+        }
+      }
+
+      // 3. Emitir evento geral do utilizador
       if (io) {
         io.to(`user_${user._id.toString()}`).emit('userStatusChanged', {
           userId: user._id,
@@ -532,7 +648,7 @@ userRouter.put(
 
       res.send({ message: 'Utilizador Actualizado Com Sucesso' });
     } else {
-      res.status(404).send({ message: 'Utilizador n�o encontrado' });
+      res.status(404).send({ message: 'Utilizador no encontrado' });
     }
   })
 );
@@ -571,8 +687,8 @@ userRouter.get(
       const countUsers = await User.countDocuments(query);
       const pages = Math.ceil(countUsers / pageSize);
 
-      // REMOVA COMPLETAMENTE O FILTRO DE DUPLICATAS - n�o � necess�rio
-      // O MongoDB j� garante que n�o retorna documentos duplicados
+      // REMOVA COMPLETAMENTE O FILTRO DE DUPLICATAS - no  necessrio
+      // O MongoDB j garante que no retorna documentos duplicados
 
       const formattedUsers = users.map(user => ({
         _id: user._id,
@@ -631,7 +747,7 @@ userRouter.get(
 //       await user.save();
 //       res.status(201).send({user,  message: 'Loja Actualizada com Sucesso' });
 //     } else {
-//       res.status(404).send({ message: 'Utilizador n�o encontrado' });
+//       res.status(404).send({ message: 'Utilizador no encontrado' });
 //     }
 //   })
 // );
@@ -644,6 +760,29 @@ userRouter.put(
 
     if (user) {
       const isOpenStore = Boolean(req.body.isopenstore);
+
+      if (isOpenStore) {
+        // Verificar se o saldo é suficiente
+        const Settings = mongoose.model('Settings');
+        const minBalSetting = await Settings.findOne({ key: 'minimum_recommended_balance' });
+        const minBalance = minBalSetting ? Number(minBalSetting.value) : 50;
+
+        const isFreeSaleAvailable = user.seller?.free_sale_available !== false && !user.seller?.free_sale_used;
+
+        if (!isFreeSaleAvailable) {
+          const Wallet = mongoose.model('Wallet');
+          const wallet = await Wallet.findOne({ ownerId: user._id, ownerType: 'seller' });
+          if (!wallet || wallet.balance < minBalance) {
+            return res.status(400).send({ 
+              message: `Não é possível abrir a loja. O saldo mínimo de segurança da sua carteira deve ser de ${minBalance.toFixed(2)} MT. Efetue um carregamento para poder receber pedidos.` 
+            });
+          }
+        }
+        user.seller.storeStatus = 'OPEN';
+      } else {
+        user.seller.storeStatus = 'CLOSED_BY_SUPPLIER';
+      }
+
       user.seller.openstore = isOpenStore;
 
       await user.save();
@@ -747,7 +886,29 @@ userRouter.patch(
       return res.status(404).json({ message: 'Utilizador n�o encontrado' });
     }
 
-    user.seller.openstore = Boolean(isOpenStore);
+    const targetOpen = Boolean(isOpenStore);
+    if (targetOpen) {
+      const Settings = mongoose.model('Settings');
+      const minBalSetting = await Settings.findOne({ key: 'minimum_recommended_balance' });
+      const minBalance = minBalSetting ? Number(minBalSetting.value) : 50;
+
+      const isFreeSaleAvailable = user.seller?.free_sale_available !== false && !user.seller?.free_sale_used;
+
+      if (!isFreeSaleAvailable) {
+        const Wallet = mongoose.model('Wallet');
+        const wallet = await Wallet.findOne({ ownerId: user._id, ownerType: 'seller' });
+        if (!wallet || wallet.balance < minBalance) {
+          return res.status(400).json({ 
+            message: `Não é possível abrir a loja. O saldo mínimo de segurança da sua carteira deve ser de ${minBalance.toFixed(2)} MT. Efetue um carregamento para poder receber pedidos.` 
+          });
+        }
+      }
+      user.seller.storeStatus = 'OPEN';
+    } else {
+      user.seller.storeStatus = 'CLOSED_BY_SUPPLIER';
+    }
+
+    user.seller.openstore = targetOpen;
     await user.save();
 
     // Find the Provider for this user
@@ -1276,7 +1437,8 @@ userRouter.post(
             workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime,
             latitude: req.body.latitude || req.body.seller?.latitude,
             longitude: req.body.longitude || req.body.seller?.longitude,
-            tipoEstabelecimento: tipoEstId
+            tipoEstabelecimento: tipoEstId,
+            openstore: false
           };
         }
 
@@ -1284,9 +1446,8 @@ userRouter.post(
           const requiredFields = [
             'photo', 'transport_type', 'transport_color',
             'transport_registration', 'vihicle_picture', 'vihicle_picture_front',
-            'vihicle_picture_back', 'vihicle_inspection', 'vihicle_Insurance',
-            'vihicle_logbook', 'license_front', 'license_back',
-            'document_front', 'document_back', 'Proof_of_Address'
+            'vihicle_picture_back', 'vihicle_logbook', 'license_front', 'license_back',
+            'document_front', 'document_back'
           ];
           for (let field of requiredFields) {
             if (!req.body[field]) {

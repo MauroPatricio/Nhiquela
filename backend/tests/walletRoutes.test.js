@@ -107,3 +107,18 @@ describe('POST /api/wallet/withdraw', () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
   }, 15000);
 });
+
+describe('GET /api/wallet/seller-earnings', () => {
+  it('should return 404 for user who is not a seller/provider', async () => {
+    const res = await request(app)
+      .get('/api/wallet/seller-earnings')
+      .set('Authorization', `Bearer ${authToken}`);
+    expect(res.status).toBe(404);
+  }, 15000);
+
+  it('should return 401 unauthorized without token', async () => {
+    const res = await request(app)
+      .get('/api/wallet/seller-earnings');
+    expect(res.status).toBe(401);
+  }, 15000);
+});

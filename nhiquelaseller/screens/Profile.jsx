@@ -167,6 +167,13 @@ const Profile = () => {
           await AsyncStorage.setItem('userData', JSON.stringify(updatedData));
           return updatedData;
         } catch (apiError) {
+          const is404 = (apiError.response && apiError.response.status === 404) || (apiError.message && apiError.message.includes('404'));
+          if (is404) {
+            console.log(`⚠️ Usuário não encontrado no backend (404) no perfil. Fazendo logout... ID: ${storedUserId}`);
+            await AsyncStorage.multiRemove(['id', 'userData']);
+            navigation.navigate('Login');
+            return null;
+          }
           const storedUserData = await AsyncStorage.getItem('userData');
           if (storedUserData) {
             const parsedUserData = JSON.parse(storedUserData);
@@ -254,7 +261,14 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Erro ao atualizar estado da loja:', error);
-      showMessage({ message: 'Erro', description: 'Não foi possível atualizar o estado da loja.', type: "danger", icon: "auto" });
+      const errMsg = error.response?.data?.message || 'Não foi possível atualizar o estado da loja.';
+      showMessage({ 
+        message: 'Aviso Financeiro', 
+        description: errMsg, 
+        type: "danger", 
+        icon: "auto",
+        duration: 5000 
+      });
     } finally {
       setUpdatingStore(false);
     }
@@ -721,8 +735,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   storeText: {
-    color: COLORS.textSecondary,
+    color: COLORS.text,
     fontSize: SIZES.sm,
+    fontWeight: 'bold',
   },
   section: {
     paddingHorizontal: 16,

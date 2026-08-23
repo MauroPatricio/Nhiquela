@@ -155,54 +155,70 @@ const DeliveryDetailsScreen = () => {
                                 (rawSeller?.seller?.tipoEstabelecimento?._id || rawSeller?.seller?.tipoEstabelecimento || rawSeller?.seller?.subcategoryId) ||
                                 (dbSeller?.seller?.tipoEstabelecimento?._id || dbSeller?.seller?.tipoEstabelecimento || dbSeller?.seller?.subcategoryId);
 
-          const sellerSubcat = response.data.find(s => s._id.toString() === sellerSubcatId?.toString());
+          const sellerSubcat = response.data.find(s => 
+            s._id.toString() === sellerSubcatId?.toString() ||
+            s.name?.toLowerCase() === sellerSubcatId?.toString()?.toLowerCase()
+          );
           
           let filteredVehicles = [];
-          if (sellerSubcat && sellerSubcat.vehicleTypes && sellerSubcat.vehicleTypes.length > 0) {
-            // Se a subcategoria do vendedor tiver veículos associados, usar apenas esses!
-            sellerSubcat.vehicleTypes.forEach(vt => {
-              if (vt && vt._id) {
-                filteredVehicles.push({
-                  _id: vt._id,
-                  name: vt.name,
-                  category: vt.category,
-                  basePrice: vt.basePrice || 0,
-                  pricePerKm: vt.pricePerKm || 0,
-                  isActive: vt.isActive !== false,
-                });
-              }
-            });
+          let hasNoVehiclesExplicitly = false;
+
+          if (sellerSubcat) {
+            if (sellerSubcat.vehicleTypes && sellerSubcat.vehicleTypes.length > 0) {
+              // Se a subcategoria do vendedor tiver veículos associados, usar apenas esses!
+              sellerSubcat.vehicleTypes.forEach(vt => {
+                if (vt && vt._id) {
+                  filteredVehicles.push({
+                    _id: vt._id,
+                    name: vt.name,
+                    category: vt.category,
+                    basePrice: vt.basePrice || 0,
+                    pricePerKm: vt.pricePerKm || 0,
+                    isActive: vt.isActive !== false,
+                  });
+                }
+              });
+            } else {
+              // Subcategoria existe mas não tem veículos associados -> não precisa de transporte!
+              hasNoVehiclesExplicitly = true;
+            }
           }
 
-          // Se não encontrou veículos específicos para o vendedor, cai para o comportamento geral deduplicado
-          if (filteredVehicles.length === 0) {
-            const vehicleMap = new Map();
-            activeServices.forEach(sub => {
-              if (sub.vehicleTypes && sub.vehicleTypes.length > 0) {
-                sub.vehicleTypes.forEach(vt => {
-                  if (vt && vt._id && !vehicleMap.has(vt._id.toString())) {
-                    vehicleMap.set(vt._id.toString(), {
-                      _id: vt._id,
-                      name: vt.name,
-                      category: vt.category,
-                      basePrice: vt.basePrice || 0,
-                      pricePerKm: vt.pricePerKm || 0,
-                      isActive: vt.isActive !== false,
-                    });
-                  }
-                });
-              }
-            });
-            filteredVehicles = [...vehicleMap.values()].filter(v => v.isActive);
-          }
-
-          if (filteredVehicles.length > 0) {
-            setVehicleTypes(filteredVehicles);
-            setSelectedVehicle(filteredVehicles[0]);
+          if (hasNoVehiclesExplicitly) {
+            setVehicleTypes([]);
+            setSelectedVehicle(null);
+            setIsUserWantDelivery(false);
           } else {
-            // Fallback: mostrar subcategorias directamente (sem preços por km)
-            setVehicleTypes(activeServices);
-            if (activeServices.length > 0) setSelectedVehicle(activeServices[0]);
+            // Se não encontrou veículos específicos para o vendedor, cai para o comportamento geral deduplicado
+            if (filteredVehicles.length === 0) {
+              const vehicleMap = new Map();
+              activeServices.forEach(sub => {
+                if (sub.vehicleTypes && sub.vehicleTypes.length > 0) {
+                  sub.vehicleTypes.forEach(vt => {
+                    if (vt && vt._id && !vehicleMap.has(vt._id.toString())) {
+                      vehicleMap.set(vt._id.toString(), {
+                        _id: vt._id,
+                        name: vt.name,
+                        category: vt.category,
+                        basePrice: vt.basePrice || 0,
+                        pricePerKm: vt.pricePerKm || 0,
+                        isActive: vt.isActive !== false,
+                      });
+                    }
+                  });
+                }
+              });
+              filteredVehicles = [...vehicleMap.values()].filter(v => v.isActive);
+            }
+
+            if (filteredVehicles.length > 0) {
+              setVehicleTypes(filteredVehicles);
+              setSelectedVehicle(filteredVehicles[0]);
+            } else {
+              // Fallback: mostrar subcategorias directamente (sem preços por km)
+              setVehicleTypes(activeServices);
+              if (activeServices.length > 0) setSelectedVehicle(activeServices[0]);
+            }
           }
         }
       } catch (error) {
@@ -315,7 +331,7 @@ const DeliveryDetailsScreen = () => {
       if (distance) {
         newDistanceToPay = baseFee + (distance * priceKm);
       } else {
-        newDistanceToPay = baseFee;
+        newDistanceToPay = baseFee + (1 * priceKm);
       }
     } else if (!isUserWantDelivery) {
       setAddress('');
@@ -418,7 +434,7 @@ const DeliveryDetailsScreen = () => {
           </View>
 
           {/* Visual Route Representation */}
-          {userLocation && (
+          {vehicleTypes.length > 0 && userLocation && (
             <View style={styles.routeVisual}>
               <View style={styles.routeNode}>
                 <Ionicons name="storefront" size={16} color="#10B981" />
@@ -445,111 +461,111 @@ const DeliveryDetailsScreen = () => {
           )}
 
           {/* Delivery Toggle segmented pill control */}
-          <View style={styles.segmentContainer}>
-            <TouchableOpacity
-              style={[styles.segmentBtn, isUserWantDelivery && styles.segmentBtnActive]}
-              onPress={() => setIsUserWantDelivery(true)}
-              disabled={loadingLocation}
-            >
-              <Ionicons name="bicycle" size={18} color={isUserWantDelivery ? '#FFF' : '#64748B'} />
-              <Text style={[styles.segmentText, isUserWantDelivery && styles.segmentTextActive]}>
-                Receber em Casa
-              </Text>
-            </TouchableOpacity>
+          {vehicleTypes.length > 0 && (
+            <View style={styles.segmentContainer}>
+              <TouchableOpacity
+                style={[styles.segmentBtn, isUserWantDelivery && styles.segmentBtnActive]}
+                onPress={() => setIsUserWantDelivery(true)}
+                disabled={loadingLocation}
+              >
+                <Ionicons name="bicycle" size={18} color={isUserWantDelivery ? '#FFF' : '#64748B'} />
+                <Text style={[styles.segmentText, isUserWantDelivery && styles.segmentTextActive]}>
+                  Receber em Casa
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.segmentBtn, !isUserWantDelivery && styles.segmentBtnActive]}
-              onPress={() => setIsUserWantDelivery(false)}
-              disabled={loadingLocation}
-            >
-              <Ionicons name="storefront" size={18} color={!isUserWantDelivery ? '#FFF' : '#64748B'} />
-              <Text style={[styles.segmentText, !isUserWantDelivery && styles.segmentTextActive]}>
-                Levantar na Loja
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {isUserWantDelivery ? (
-            <>
-              {/* Vehicle Types Selector */}
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Escolha o Transporte</Text>
-                <Text style={styles.sectionSub}>Opções de veículos para entrega</Text>
-              </View>
-
-              {loadingVehicles ? (
-                <View style={styles.loaderBox}>
-                  <ActivityIndicator size="small" color="#7F00FF" />
-                  <Text style={styles.loaderText}>Buscando transportes disponíveis...</Text>
-                </View>
-              ) : vehicleTypes.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vehicleList}>
-                  {vehicleTypes.map((v) => {
-                    const isSelected = selectedVehicle?._id === v._id;
-                    let vehicleIcon = 'car';
-                    if (v.name.toLowerCase().includes('mota') || v.name.toLowerCase().includes('moto')) {
-                      vehicleIcon = 'bicycle';
-                    } else if (v.name.toLowerCase().includes('camin')) {
-                      vehicleIcon = 'bus';
-                    }
-
-                    return (
-                      <TouchableOpacity
-                        key={v._id}
-                        style={[styles.vehicleCard, isSelected && styles.vehicleCardSelected]}
-                        onPress={() => setSelectedVehicle(v)}
-                      >
-                        <View style={[styles.vehicleIconCircle, isSelected && styles.vehicleIconCircleActive]}>
-                          <Ionicons name={vehicleIcon} size={24} color={isSelected ? '#7F00FF' : '#64748B'} />
-                        </View>
-                        <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]} numberOfLines={1}>
-                          {v.name}
-                        </Text>
-                        <Text style={[styles.vehicleRate, isSelected && styles.vehicleRateSelected]}>
-                          {v.pricePerKm > 0
-                            ? distance > 0
-                              ? `~${(systemBaseFee + distance * v.pricePerKm).toFixed(0)} MT`
-                              : `${systemBaseFee} MT + ${v.pricePerKm} MT/km`
-                            : `${systemBaseFee} MT`}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              ) : (
-                <Text style={styles.statusText}>Nenhum transporte disponível no momento.</Text>
-              )}
-
-
-
-              {/* Input Address Card */}
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Endereço Completo</Text>
-              </View>
-              <View style={styles.addressInputCard}>
-                <MaterialCommunityIcons name="map-marker-radius" size={20} color="#7F00FF" style={styles.addressIcon} />
-                <TextInput
-                  style={styles.addressInput}
-                  placeholder="Indique a rua, nº do edifício, ponto de referência..."
-                  placeholderTextColor="#94A3B8"
-                  multiline
-                  value={address}
-                  onChangeText={setAddress}
-                  editable={!loadingLocation}
-                />
-              </View>
-            </>
-          ) : (
-            <View style={styles.pickupCard}>
-              <View style={styles.pickupHeader}>
-                <Ionicons name="information-circle" size={24} color="#7F00FF" />
-                <Text style={styles.pickupTitle}>Levantamento na Loja</Text>
-              </View>
-              <Text style={styles.pickupText}>
-                Deverá deslocar-se pessoalmente ao estabelecimento do fornecedor para levantar a sua encomenda. Nenhum custo de transporte será aplicado.
-              </Text>
+              <TouchableOpacity
+                style={[styles.segmentBtn, !isUserWantDelivery && styles.segmentBtnActive]}
+                onPress={() => setIsUserWantDelivery(false)}
+                disabled={loadingLocation}
+              >
+                <Ionicons name="storefront" size={18} color={!isUserWantDelivery ? '#FFF' : '#64748B'} />
+                <Text style={[styles.segmentText, !isUserWantDelivery && styles.segmentTextActive]}>
+                  Levantar na Loja
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
+
+          {vehicleTypes.length > 0 ? (
+            isUserWantDelivery ? (
+              <>
+                {/* Vehicle Types Selector */}
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Escolha o Transporte</Text>
+                  <Text style={styles.sectionSub}>Opções de veículos para entrega</Text>
+                </View>
+
+                {loadingVehicles ? (
+                  <View style={styles.loaderBox}>
+                    <ActivityIndicator size="small" color="#7F00FF" />
+                    <Text style={styles.loaderText}>Buscando transportes disponíveis...</Text>
+                  </View>
+                ) : vehicleTypes.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vehicleList}>
+                    {vehicleTypes.map((v) => {
+                      const isSelected = selectedVehicle?._id === v._id;
+                      let vehicleIcon = 'car';
+                      if (v.name.toLowerCase().includes('mota') || v.name.toLowerCase().includes('moto')) {
+                        vehicleIcon = 'bicycle';
+                      } else if (v.name.toLowerCase().includes('camin')) {
+                        vehicleIcon = 'bus';
+                      }
+
+                      return (
+                        <TouchableOpacity
+                          key={v._id}
+                          style={[styles.vehicleCard, isSelected && styles.vehicleCardSelected]}
+                          onPress={() => setSelectedVehicle(v)}
+                        >
+                          <View style={[styles.vehicleIconCircle, isSelected && styles.vehicleIconCircleActive]}>
+                            <Ionicons name={vehicleIcon} size={24} color={isSelected ? '#7F00FF' : '#64748B'} />
+                          </View>
+                          <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]} numberOfLines={1}>
+                            {v.name}
+                          </Text>
+                          <Text style={[styles.vehicleRate, isSelected && styles.vehicleRateSelected]}>
+                            {v.pricePerKm > 0
+                              ? `~${(systemBaseFee + (distance > 0 ? distance : 1) * v.pricePerKm).toFixed(0)} MT`
+                              : `~${systemBaseFee} MT`}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <Text style={styles.statusText}>Nenhum transporte disponível no momento.</Text>
+                )}
+
+                {/* Input Address Card */}
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Endereço Completo</Text>
+                </View>
+                <View style={styles.addressInputCard}>
+                  <MaterialCommunityIcons name="map-marker-radius" size={20} color="#7F00FF" style={styles.addressIcon} />
+                  <TextInput
+                    style={styles.addressInput}
+                    placeholder="Indique a rua, nº do edifício, ponto de referência..."
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    value={address}
+                    onChangeText={setAddress}
+                    editable={!loadingLocation}
+                  />
+                </View>
+              </>
+            ) : (
+              <View style={styles.pickupCard}>
+                <View style={styles.pickupHeader}>
+                  <Ionicons name="information-circle" size={24} color="#7F00FF" />
+                  <Text style={styles.pickupTitle}>Levantamento na Loja</Text>
+                </View>
+                <Text style={styles.pickupText}>
+                  Deverá deslocar-se pessoalmente ao estabelecimento do fornecedor para levantar a sua encomenda. Nenhum custo de transporte será aplicado.
+                </Text>
+              </View>
+            )
+          ) : null}
 
           {/* Receipt Summary Card */}
           <View style={styles.summaryCard}>
@@ -566,9 +582,9 @@ const DeliveryDetailsScreen = () => {
                   <Text style={styles.estimateLabel}>
                     🛵 Estimativa de Entrega ({selectedVehicle?.name || 'Padrão'})
                   </Text>
-                  <Text style={styles.estimateNote}>Não incluído · pago ao deliver na chegada</Text>
+                  <Text style={styles.estimateNote}>Não incluso · pagamento ao deliver na chegada</Text>
                 </View>
-                <Text style={styles.estimateValue}>~{distanceToPay.toFixed(2)} MT</Text>
+                 <Text style={styles.estimateValue}>~{distanceToPay.toFixed(0)} MT</Text>
               </View>
             )}
 
@@ -582,9 +598,9 @@ const DeliveryDetailsScreen = () => {
             {isUserWantDelivery && distanceToPay > 0 && (
               <View style={styles.deliveryInfoBox}>
                 <Ionicons name="information-circle-outline" size={14} color="#7F00FF" />
-                <Text style={styles.deliveryInfoText}>
-                  O valor de entrega (~{distanceToPay.toFixed(2)} MT) é pago <Text style={{ fontWeight: '700' }}>diretamente ao estafeta</Text> quando a encomenda chegar ao seu destino.
-                </Text>
+                 <Text style={styles.deliveryInfoText}>
+                   O valor de entrega (~{distanceToPay.toFixed(0)} MT) é pago <Text style={{ fontWeight: '700' }}>diretamente ao estafeta</Text> quando a encomenda chegar ao seu destino.
+                 </Text>
               </View>
             )}
           </View>

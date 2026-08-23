@@ -13,7 +13,7 @@ export default function AdminLayout() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userInfo } = useSelector((state) => state.user);
   const dispatch = useDispatch();
-  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0, pendingSellers: 0 });
+  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0, pendingSellers: 0, pendingProviders: 0 });
 
   useEffect(() => {
     if (userInfo && userInfo.isAdmin) {
@@ -112,13 +112,12 @@ export default function AdminLayout() {
     { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart, badge: badges.pendingOrders },
     { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
     { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
-    { name: 'Validação KYC', path: '/admin/kyc', icon: faShieldAlt },
     { name: 'Tipos Estabel.', path: '/admin/establishment-types', icon: faBuilding },
     { name: 'Classificações Prestador', path: '/admin/provider-classifications', icon: faTags },
     { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
     { name: 'Subcategorias de Prestador', path: '/admin/provider-subcategories', icon: faTags },
     { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
-    { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingSellers },
+    { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingProviders },
     { name: 'Provedores', path: '/admin/providers', icon: faStore },
     { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
     { name: 'Categorias', path: '/admin/categories', icon: faTags },

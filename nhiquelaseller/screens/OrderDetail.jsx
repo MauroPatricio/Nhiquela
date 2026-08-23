@@ -144,13 +144,13 @@ const OrderDetail = ({ navigation }) => {
       try {
         if (!userData || !currentOrder) return;
         const sellerLoc = currentOrder.seller?.location || userData.seller?.location;
-        const lat = sellerLoc?.lat;
-        const lng = sellerLoc?.lng;
+        let lat = sellerLoc?.lat ?? sellerLoc?.latitude ?? userData.seller?.latitude;
+        let lng = sellerLoc?.lng ?? sellerLoc?.longitude ?? userData.seller?.longitude;
 
-        if (!lat || !lng) {
-          toast.show('Erro: Estabelecimento sem coordenadas GPS.', { type: 'danger', placement: 'top' });
-          setIsSearching(false);
-          return;
+        if (!lat || !lng || lat === 0 || lng === 0) {
+          console.log("⚠️ Coordenadas do vendedor não encontradas ou zeradas. Usando coordenadas padrão de Maputo.");
+          lat = -25.9692;
+          lng = 32.5732;
         }
 
         const response = await api.get('/drivers/available', {
@@ -386,8 +386,37 @@ const OrderDetail = ({ navigation }) => {
     toast.show('Pedido aceito! O cliente será notificado.', { type: 'success', duration: 4000, placement: 'top' });
   });
 
-  const confirmAvailableToDeliv = () => {
-    setShowTransportModal(true);
+  const checkHasTransport = (order) => {
+    if (!order) return false;
+    if (order.isUserWantDelivery === false) return false;
+    const tType = order.transportType;
+    if (!tType || tType === 'Nenhum' || tType === 'null' || tType === 'Sem transporte') return false;
+    return true;
+  };
+
+  const confirmAvailableToDeliv = async () => {
+    const hasTransport = checkHasTransport(currentOrder);
+    if (!hasTransport) {
+      withLoading(async () => {
+        if (!userData) return;
+        const { data } = await api.put(`/orders/${currentOrder._id}/toDeliv`, { noTransport: true }, { headers: { Authorization: `Bearer ${userData.token}` } });
+        setCurrentOrder(data.order);
+        toast.show('Pedido pronto e em trânsito! Cliente notificado para confirmação de recepção.', { type: 'success', duration: 4000, placement: 'top' });
+      });
+    } else {
+      setShowTransportModal(true);
+    }
+  };
+
+  const requestExternalDelivery = async () => {
+    setIsSearching(false);
+    setAvailableDriversList([]);
+    withLoading(async () => {
+      if (!userData) return;
+      const { data } = await api.put(`/orders/${currentOrder._id}/toDeliv`, { isExternalDelivery: true }, { headers: { Authorization: `Bearer ${userData.token}` } });
+      setCurrentOrder(data.order);
+      toast.show('Definido como Deliver Externo. Organize a entrega por chamada e clique em Marcar Em Trânsito.', { type: 'info', duration: 5000, placement: 'top' });
+    });
   };
 
   const availableToDelivOrder = async () => {
@@ -415,6 +444,13 @@ const OrderDetail = ({ navigation }) => {
       data: { orderId: data.order._id, type: 'order', status: 'A Caminho' },
     });
     toast.show('Pedido em trânsito! Cliente notificado.', { type: 'success', duration: 4000, placement: 'top' });
+  });
+
+  const confirmOrderDelivered = async (orderId) => withLoading(async () => {
+    if (!userData) return;
+    const { data } = await api.put(`/orders/${orderId}/deliver`, {}, { headers: { Authorization: `Bearer ${userData.token}` } });
+    setCurrentOrder(data.order || { ...currentOrder, status: 'Entregue', isDelivered: true, stepStatus: 5 });
+    toast.show('Levantamento/Entrega confirmada com sucesso!', { type: 'success', duration: 4000, placement: 'top' });
   });
 
   const cancelOrderPop = async (orderId) => {
@@ -479,7 +515,16 @@ const OrderDetail = ({ navigation }) => {
   const statusBg = getStatusBg(currentOrder.status);
 
   const stepLabels = ['Pendente', 'Aceite', 'Disponível p/ entrega', 'Em trânsito', 'Entregue'];
-  const currentStep = currentOrder.stepStatus || 0;
+  const getCalculatedStep = (order) => {
+    if (!order) return 1;
+    const s = (order.status || '').toLowerCase();
+    if (s.includes('entregue') || s.includes('finalizado') || s.includes('concl') || order.isDelivered) return 5;
+    if (s.includes('trânsito') || s.includes('transito') || s.includes('caminho')) return 4;
+    if (s.includes('disponível') || s.includes('disponivel') || s.includes('pronto')) return 3;
+    if (s.includes('aceit') || s.includes('prepara')) return 2;
+    return order.stepStatus || 1;
+  };
+  const currentStep = getCalculatedStep(currentOrder);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -584,9 +629,9 @@ const OrderDetail = ({ navigation }) => {
         {/* Info do Cliente */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Cliente</Text>
-          <InfoRow label="Nome" value={currentOrder?.deliveryAddress?.fullName || currentOrder?.user?.name} />
-          <InfoRow label="Contacto" value={currentOrder?.deliveryAddress?.phoneNumber || currentOrder?.user?.phoneNumber} />
-          <InfoRow label="Endereço de entrega" value={currentOrder?.deliveryAddress?.address || currentOrder?.address} />
+          <InfoRow label="Nome" value={currentOrder?.deliveryAddress?.fullName || currentOrder?.user?.name || 'Cliente'} />
+          <InfoRow label="Contacto" value={currentOrder?.deliveryAddress?.phoneNumber || currentOrder?.user?.phoneNumber || 'Não especificado'} />
+          <InfoRow label="Endereço de entrega" value={currentOrder?.deliveryAddress?.address || currentOrder?.destination || currentOrder?.destinationDetails?.address || currentOrder?.address} />
         </View>
 
         {/* Prestador de Serviço */}
@@ -656,7 +701,7 @@ const OrderDetail = ({ navigation }) => {
         </View>
 
         {/* Botões de Ação */}
-        {currentOrder.status === 'Pendente' && (
+        {(currentOrder.stepStatus === 1 || currentOrder.status === 'Pendente') && (
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.acceptBtn]}
@@ -677,7 +722,7 @@ const OrderDetail = ({ navigation }) => {
           </View>
         )}
 
-        {currentOrder.status === 'Aceite' && (
+        {(currentOrder.stepStatus === 2 || currentOrder.status === 'Aceite') && (
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.acceptBtn]}
@@ -698,7 +743,7 @@ const OrderDetail = ({ navigation }) => {
           </View>
         )}
 
-        {(currentOrder.status === 'Disponível para entrega' || currentOrder.status === 'Pronto') && (
+        {(currentOrder.stepStatus === 3 || currentOrder.status === 'Disponível para entrega' || currentOrder.status === 'Pronto') && (
           <View style={styles.actionRow}>
             {(!currentOrder.deliveryman || !currentOrder.deliveryman.name) && (
               <TouchableOpacity
@@ -719,6 +764,25 @@ const OrderDetail = ({ navigation }) => {
                 <>
                   <Ionicons name="car-outline" size={20} color="#fff" />
                   <Text style={styles.actionBtnText}>Marcar Em Trânsito</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {(currentOrder.stepStatus === 4 || currentOrder.status === 'Em trânsito') && !currentOrder.isDelivered && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.acceptBtn, { flex: 1, backgroundColor: COLORS.success }]}
+              onPress={() => confirmOrderDelivered(currentOrder._id)}
+              disabled={isLoading}
+            >
+              {isLoading ? <ActivityIndicator color="#fff" size="small" /> : (
+                <>
+                  <Ionicons name="checkmark-done-circle-outline" size={20} color="#fff" />
+                  <Text style={styles.actionBtnText}>
+                    {currentOrder.isUserWantDelivery === false ? 'Confirmar Levantamento Concluído' : 'Marcar como Entregue'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -920,11 +984,28 @@ const OrderDetail = ({ navigation }) => {
               style={{
                 width: '100%',
                 paddingVertical: 14,
+                backgroundColor: '#F59E0B',
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                marginTop: 20
+              }}
+              onPress={requestExternalDelivery}
+            >
+              <Ionicons name="call-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Solicitar Deliver Externo (Chamada)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{
+                width: '100%',
+                paddingVertical: 12,
                 backgroundColor: '#F3F4F6',
                 borderRadius: 20,
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginTop: 24
+                marginTop: 10
               }}
               onPress={() => setIsSearching(false)}
             >
@@ -1038,6 +1119,23 @@ const OrderDetail = ({ navigation }) => {
               style={{
                 width: '100%',
                 paddingVertical: 14,
+                backgroundColor: '#F59E0B',
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                marginTop: 8
+              }}
+              onPress={requestExternalDelivery}
+            >
+              <Ionicons name="call-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Solicitar Deliver Externo (Chamada)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                paddingVertical: 12,
                 backgroundColor: '#F3F4F6',
                 borderRadius: 20,
                 alignItems: 'center',

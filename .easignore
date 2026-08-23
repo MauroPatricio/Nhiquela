@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+.expo-shared/
+.gradle/
+**/node_modules/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/.cxx/
+**/ios/Pods/
+**/ios/build/
+*.log
+crash*.txt
+adb_crash_dump*.txt

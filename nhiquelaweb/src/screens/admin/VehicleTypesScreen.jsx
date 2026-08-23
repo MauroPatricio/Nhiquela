@@ -68,14 +68,23 @@ export default function VehicleTypesScreen() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name) return toast.error('Nome do tipo de veículo ï¿½ obrigatório');
+    if (!formData.name) return toast.error('Nome do tipo de veículo é obrigatório');
     
+    // Limpa strings de capacidade e peso para enviar apenas números limpos
+    const finalData = { ...formData };
+    if (finalData.capacityKg !== undefined && finalData.capacityKg !== null) {
+      finalData.capacityKg = parseFloat(String(finalData.capacityKg).replace(/[^\d.]/g, '')) || 0;
+    }
+    if (finalData.maxWeight !== undefined && finalData.maxWeight !== null) {
+      finalData.maxWeight = parseFloat(String(finalData.maxWeight).replace(/[^\d.]/g, '')) || 0;
+    }
+
     try {
       if (isEditing) {
-        await api.put(`/vehicle-types/${currentId}`, formData);
+        await api.put(`/vehicle-types/${currentId}`, finalData);
         toast.success('Tipo de veículo atualizado!');
       } else {
-        await api.post('/vehicle-types', formData);
+        await api.post('/vehicle-types', finalData);
         toast.success('Tipo de veículo criado!');
       }
       fetchVehicleTypes();
