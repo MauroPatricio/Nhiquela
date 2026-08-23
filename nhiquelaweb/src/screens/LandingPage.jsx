@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMotorcycle, faStore, faShoppingBag, faMobileAlt, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faMotorcycle, faStore, faShoppingBag, faMobileAlt, faStar, faCheckCircle, faMapMarkerAlt, faWallet, faListCheck, faMap } from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
 import api from '../api';
 
@@ -10,6 +10,8 @@ export default function LandingPage() {
     cities: 38,
     activePartners: 142
   });
+
+  const [activeTab, setActiveTab] = useState('client');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -21,57 +23,235 @@ export default function LandingPage() {
           activePartners: data.activePartners || 142
         });
       } catch (error) {
-        // Se a API falhar (ou ainda não existir no backend), mantém os valores de fallback silenciosamente
+        // Se a API falhar, mantém os valores de fallback silenciosamente
       }
     };
     fetchStats();
   }, []);
 
+  const mockups = {
+    client: {
+      title: 'App Cliente — Catálogo de Serviços & Produtos',
+      subtitle: 'Encontre profissionais, logística, assistência técnica, reformas, mudanças e produtos num só lugar.',
+      image: '/images/mockups/client_app_services_mockup.png',
+      badge: 'App Cliente',
+      badgeBg: '#7F00FF',
+      bullets: [
+        'Acesso direto ao Catálogo de Serviços e Mercado Multi-Serviços',
+        'Serviço de Logística, Assistência Técnica, Reformas e Mudanças',
+        'Navegação intuitiva com acompanhamento e pagamentos M-Pesa / e-Mola'
+      ]
+    },
+    order: {
+      title: 'App Cliente — Acompanhamento de Pedido',
+      subtitle: 'Acompanhe cada etapa do seu pedido em tempo real, da aprovação do fornecedor à chegada do estafeta.',
+      image: '/images/mockups/order_detail_mockup.jpg',
+      badge: 'Progresso do Pedido',
+      badgeBg: '#8B5CF6',
+      bullets: [
+        'Acompanhamento transparente por passos (Pendente, Aceite, Em Trânsito, Entregue)',
+        'Notificações instantâneas em cada alteração de estado',
+        'Confirmação direta de recepção do pedido pelo cliente'
+      ]
+    },
+    seller: {
+      title: 'App Fornecedor (nhiquelaseller) — Gestão de Loja',
+      subtitle: 'Gerencie novos pedidos, controle o stock e acompanhe as suas vendas e saldo em tempo real.',
+      image: '/images/mockups/seller_app_mockup.jpg',
+      badge: 'Vendedor / Fornecedor',
+      badgeBg: '#9333EA',
+      bullets: [
+        'Saldo da Carteira Digital com crédito/débito automático',
+        'Aprovação e rejeição de pedidos com 1 toque',
+        'Opção de solicitar motorista interno ou entrega externa'
+      ]
+    },
+    driver: {
+      title: 'App Motorista (nhiqueladriver) — Viagens & Entregas',
+      subtitle: 'Receba solicitações de entregas com 1 toque e gira os seus ganhos diários na sua carteira.',
+      image: '/images/mockups/driver_app_mockup.jpg',
+      badge: 'Motorista / Entregador',
+      badgeBg: '#10B981',
+      bullets: [
+        'Alternador Online/Offline simples e intuitivo',
+        'Histórico de viagens e ganhos diários detalhados',
+        'Aceitação imediata de corridas com alerta sonoro'
+      ]
+    },
+    map: {
+      title: 'Navegação GPS & Trajeto em Tempo Real',
+      subtitle: 'Navegação integrada com mapas interativos e geolocalização exata de partida e chegada.',
+      image: '/images/mockups/driver_map_mockup.jpg',
+      badge: 'GPS & Trajeto',
+      badgeBg: '#3B82F6',
+      bullets: [
+        'Mapa vetorial com visualização 3D da rota',
+        'Cálculo de distância e tempo estimado de chegada (ETA)',
+        'Sincronização ao vivo entre Cliente, Vendedor e Motorista'
+      ]
+    }
+  };
+
+  const currentMockup = mockups[activeTab];
+
   return (
     <div className="bg-light min-vh-100">
       {/* Navbar Institucional */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3">
+      <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-top">
         <div className="container">
           <Link className="text-decoration-none" to="/">
             <h3 className="m-0 text-black fw-extrabold" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
           </Link>
           <div className="d-flex gap-2">
+            <Link to="/shop" className="btn btn-outline-dark rounded-pill px-4 fw-bold">Marketplace Web</Link>
             <Link to="/login" className="btn btn-outline-primary rounded-pill px-4">Entrar</Link>
-            <Link to="/signup" className="btn bg-primary-custom text-white rounded-pill px-4">Ser Parceiro</Link>
+            <Link to="/signup?type=seller" className="btn bg-primary-custom text-white rounded-pill px-4">Ser Parceiro</Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <div className="container py-5 my-5">
+      {/* Hero Section com Imagem do Cliente */}
+      <div className="container py-5 my-3">
         <div className="row align-items-center">
           <div className="col-lg-6 mb-5 mb-lg-0">
-            <h1 className="display-4 fw-bold text-dark mb-4">
+            <span className="badge bg-purple-light text-primary-custom px-3 py-2 rounded-pill fw-bold mb-3" style={{ backgroundColor: '#F3E8FF' }}>
+              🚀 O Ecossistema de Entregas nº 1 de Moçambique
+            </span>
+            <h1 className="display-4 fw-bold text-dark mb-4" style={{ letterSpacing: '-1.5px', lineHeight: '1.1' }}>
               Tudo em suas mãos, entregue em <span className="text-primary-custom">minutos.</span>
             </h1>
-            <p className="lead text-muted mb-4">
-              Nhiquela é o maior marketplace multi-serviços de Moçambique. Peça comida, faça compras ou contrate profissionais num só lugar.
+            <p className="lead text-muted mb-4 fs-5" style={{ lineHeight: '1.6' }}>
+              Nhiquela é a plataforma integrada que conecta Clientes, Fornecedores e Motoristas num único ecossistema inteligente de marketplace e entregas.
             </p>
-            <div className="d-flex gap-3">
+            <div className="d-flex flex-wrap gap-3">
               <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-3 fw-bold fs-5 shadow-sm">
                 Acessar Marketplace Web <FontAwesomeIcon icon={faShoppingBag} className="ms-2" />
               </Link>
+              <Link to="/signup?type=seller" className="btn btn-outline-dark rounded-pill px-4 py-3 fw-bold fs-5">
+                Vender na Nhiquela <FontAwesomeIcon icon={faStore} className="ms-2" />
+              </Link>
             </div>
-            <div className="mt-4 text-muted small">
-              <FontAwesomeIcon icon={faMobileAlt} className="me-2" /> 
-              Baixe também o nosso App na PlayStore
+            <div className="mt-4 text-muted small d-flex align-items-center gap-3">
+              <span><FontAwesomeIcon icon={faMobileAlt} className="me-1 text-primary-custom" /> Android & iOS</span>
+              <span>•</span>
+              <span><FontAwesomeIcon icon={faCheckCircle} className="me-1 text-success" /> Pagamentos via M-Pesa & e-Mola</span>
             </div>
           </div>
           <div className="col-lg-6 text-center d-flex justify-content-center align-items-center">
-            {/* Imagem Placeholder Hero */}
-            <img src="/nhiquela-app-mockup.png" alt="Mockup do App Nhiquela" className="img-fluid" style={{ maxHeight: '500px', objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} />
+            {/* Imagem Ilustrativa Principal (App Cliente) */}
+            <div className="position-relative p-2 bg-white rounded-5 shadow-lg border" style={{ maxWidth: '340px' }}>
+              <img 
+                src="/images/mockups/client_app_services_mockup.png" 
+                alt="App Cliente Nhiquela — Catálogo de Serviços" 
+                className="img-fluid rounded-4" 
+                style={{ maxHeight: '520px', objectFit: 'cover' }} 
+              />
+              <div className="position-absolute bottom-0 start-50 translate-middle-x mb-4 bg-dark text-white px-4 py-2 rounded-pill shadow fs-6 fw-bold border border-secondary" style={{ width: '85%' }}>
+                📱 App Cliente Nhiquela
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ECOSSISTEMA MOCKUP SHOWCASE SECTION */}
+      <div className="bg-white py-5 border-top border-bottom">
+        <div className="container py-4">
+          <div className="text-center mb-5">
+            <span className="text-uppercase fw-bold small text-primary-custom" style={{ letterSpacing: '2px' }}>Ecossistema Conetado</span>
+            <h2 className="display-5 fw-bold text-dark mt-2" style={{ letterSpacing: '-1px' }}>
+              Uma plataforma, 3 aplicações a trabalhar juntas.
+            </h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '650px' }}>
+              Explore como o Cliente navega e pede serviços, o Fornecedor faz a gestão e o Motorista realiza a entrega em tempo real.
+            </p>
+
+            {/* Tab Selectors */}
+            <div className="d-flex justify-content-center flex-wrap gap-2 mt-4">
+              <button 
+                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'client' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
+                onClick={() => setActiveTab('client')}
+              >
+                <FontAwesomeIcon icon={faShoppingBag} className="me-2" /> App Cliente (Serviços)
+              </button>
+              <button 
+                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'order' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
+                onClick={() => setActiveTab('order')}
+              >
+                <FontAwesomeIcon icon={faListCheck} className="me-2" /> Acompanhar Pedido
+              </button>
+              <button 
+                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'seller' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
+                onClick={() => setActiveTab('seller')}
+              >
+                <FontAwesomeIcon icon={faStore} className="me-2" /> App Fornecedor
+              </button>
+              <button 
+                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'driver' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
+                onClick={() => setActiveTab('driver')}
+              >
+                <FontAwesomeIcon icon={faMotorcycle} className="me-2" /> App Motorista
+              </button>
+              <button 
+                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'map' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
+                onClick={() => setActiveTab('map')}
+              >
+                <FontAwesomeIcon icon={faMap} className="me-2" /> Trajeto GPS
+              </button>
+            </div>
+          </div>
+
+          {/* Active Mockup Display Card */}
+          <div className="bg-light rounded-5 p-4 p-md-5 border shadow-sm">
+            <div className="row align-items-center g-4">
+              <div className="col-lg-5 text-center">
+                <div className="position-relative d-inline-block bg-white p-2 rounded-5 shadow border">
+                  <img 
+                    src={currentMockup.image} 
+                    alt={currentMockup.title} 
+                    className="img-fluid rounded-4 transition-all" 
+                    style={{ maxHeight: '480px', objectFit: 'cover' }} 
+                  />
+                  <span 
+                    className="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2 shadow"
+                    style={{ backgroundColor: currentMockup.badgeBg, fontSize: '0.85rem' }}
+                  >
+                    {currentMockup.badge}
+                  </span>
+                </div>
+              </div>
+              <div className="col-lg-7">
+                <h3 className="fw-bold text-dark mb-3">{currentMockup.title}</h3>
+                <p className="lead text-muted mb-4 fs-5">{currentMockup.subtitle}</p>
+
+                <div className="d-flex flex-column gap-3 mb-4">
+                  {currentMockup.bullets.map((bullet, idx) => (
+                    <div key={idx} className="d-flex align-items-start gap-3">
+                      <div className="bg-white text-primary-custom rounded-circle p-1 shadow-sm d-flex justify-content-center align-items-center" style={{ width: '28px', height: '28px' }}>
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                      </div>
+                      <span className="text-dark fw-medium fs-6">{bullet}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold me-2">
+                    Testar no Marketplace Web
+                  </Link>
+                  <Link to="/signup?type=seller" className="btn btn-outline-dark rounded-pill px-4 py-2 fw-bold">
+                    Registar o Seu Negócio
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Serviços / Features */}
       <div className="bg-white py-5">
-        <div className="container py-5">
+        <div className="container py-4">
           <h2 className="text-center fw-bold mb-5">Junte-se à revolução Nhiquela</h2>
           
           <div className="row g-4">
@@ -83,7 +263,7 @@ export default function LandingPage() {
                   </div>
                   <h4 className="fw-bold mb-3">Para Fornecedores</h4>
                   <p className="text-muted mb-4">Multiplique as suas vendas. Exponha os seus produtos a milhares de clientes sem pagar custos fixos de plataforma.</p>
-                  <Link to="/signup" className="text-primary-custom fw-bold text-decoration-none">Criar Loja Grátis &rarr;</Link>
+                  <Link to="/signup?type=seller" className="text-primary-custom fw-bold text-decoration-none">Criar Loja Grátis &rarr;</Link>
                 </div>
               </div>
             </div>
@@ -96,7 +276,7 @@ export default function LandingPage() {
                   </div>
                   <h4 className="fw-bold mb-3">Para Motoristas</h4>
                   <p className="text-muted mb-4">Seja seu próprio chefe. Faça entregas com a Nhiquela e receba os seus ganhos diretamente na sua carteira.</p>
-                  <a href="#" className="text-success fw-bold text-decoration-none">Seja um Motorista &rarr;</a>
+                  <Link to="/signup?type=driver" className="text-success fw-bold text-decoration-none">Seja um Motorista &rarr;</Link>
                 </div>
               </div>
             </div>
@@ -116,160 +296,27 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
-      
-      {/* Secção de Testemunhos */}
-      <div className="bg-light py-5">
-        <div className="container py-5">
-          <div className="d-flex justify-content-between align-items-end mb-5">
-            <div>
-              <span className="text-uppercase fw-bold small" style={{ color: '#ea4e1b', letterSpacing: '2px' }}>Testemunhos</span>
-              <h2 className="display-5 fw-bold text-dark mt-2 m-0" style={{ letterSpacing: '-1px' }}>
-                A voz de quem nos usa.
-              </h2>
-            </div>
-            <div className="d-none d-md-flex gap-2 pb-2">
-              <span className="rounded-pill" style={{ width: '30px', height: '10px', backgroundColor: '#4E342E' }}></span>
-              <span className="rounded-circle" style={{ width: '10px', height: '10px', backgroundColor: '#e5e3df' }}></span>
-              <span className="rounded-circle" style={{ width: '10px', height: '10px', backgroundColor: '#e5e3df' }}></span>
-            </div>
-          </div>
+
+      {/* Secção CTA (Call to Action) */}
+      <section className="bg-primary-custom text-white rounded-4 p-5 my-5 text-center shadow-sm container">
+        <div className="py-4 px-md-5">
+          <h1 className="fw-black mb-4" style={{ fontSize: '3.2rem', letterSpacing: '-1px' }}>
+            Pronto para experimentar a Nhiquela?
+          </h1>
+          <p className="lead text-white-50 mb-5 mx-auto" style={{ maxWidth: '600px' }}>
+            A sua próxima entrega, o seu próximo serviço, o seu próximo cliente — tudo a começar agora.
+          </p>
           
-          <div className="row g-4">
-            {/* Cartão 1 */}
-            <div className="col-md-4">
-              <div className="card h-100 border-0 shadow-sm rounded-4 p-4" style={{ border: '1px solid rgba(234, 78, 27, 0.3) !important' }}>
-                <div className="card-body p-0 d-flex flex-column">
-                  <div className="mb-4" style={{ color: '#ea4e1b' }}>
-                    {[...Array(5)].map((_, i) => <FontAwesomeIcon key={i} icon={faStar} className="me-1" />)}
-                  </div>
-                  <p className="text-dark fs-6 mb-5 flex-grow-1" style={{ lineHeight: '1.6' }}>
-                    "Fiquei sem gás a meio de um jantar importante. Em menos de 20 minutos, um motorista da Nhiquela entregou uma botija nova na minha porta. Foi super rápido e salvou-me a noite!"
-                  </p>
-                  <div className="d-flex align-items-center">
-                    <img src="https://ui-avatars.com/api/?name=Aida+Macuácua&background=ea4e1b&color=fff&bold=true" alt="Aida Macuácua" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
-                    <div>
-                      <h6 className="fw-bold m-0 text-dark">Aida Macuácua</h6>
-                      <small className="text-muted">Cliente em Maputo</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Cartão 2 */}
-            <div className="col-md-4">
-              <div className="card h-100 border-0 shadow-sm rounded-4 p-4">
-                <div className="card-body p-0 d-flex flex-column">
-                  <div className="mb-4" style={{ color: '#ea4e1b' }}>
-                    {[...Array(5)].map((_, i) => <FontAwesomeIcon key={i} icon={faStar} className="me-1" />)}
-                  </div>
-                  <p className="text-dark fs-6 mb-5 flex-grow-1" style={{ lineHeight: '1.6' }}>
-                    "Com o meu serviço de reboque na Nhiquela, o trabalho nunca para. O aplicativo encaminha clientes que precisam de ajuda urgente e os pagamentos caem na hora."
-                  </p>
-                  <div className="d-flex align-items-center">
-                    <img src="https://ui-avatars.com/api/?name=Carlos+Mondlane&background=ea4e1b&color=fff&bold=true" alt="Carlos Mondlane" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
-                    <div>
-                      <h6 className="fw-bold m-0 text-dark">Carlos Mondlane</h6>
-                      <small className="text-muted">Motorista</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Cartão 3 */}
-            <div className="col-md-4">
-              <div className="card h-100 border-0 shadow-sm rounded-4 p-4">
-                <div className="card-body p-0 d-flex flex-column">
-                  <div className="mb-4" style={{ color: '#ea4e1b' }}>
-                    {[...Array(5)].map((_, i) => <FontAwesomeIcon key={i} icon={faStar} className="me-1" />)}
-                  </div>
-                  <p className="text-dark fs-6 mb-5 flex-grow-1" style={{ lineHeight: '1.6' }}>
-                    "A nossa empresa de mudanças cresceu imenso. Os clientes agora encontram e solicitam os nossos serviços com um clique, e o nosso volume de negócios duplicou."
-                  </p>
-                  <div className="d-flex align-items-center">
-                    <img src="https://ui-avatars.com/api/?name=Lúcia+Tembe&background=ea4e1b&color=fff&bold=true" alt="Lúcia Tembe" className="rounded-circle me-3" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
-                    <div>
-                      <h6 className="fw-bold m-0 text-dark">Lúcia Tembe</h6>
-                      <small className="text-muted">Fornecedora</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="d-flex flex-column flex-sm-row justify-content-center gap-3">
+            <Link to="/shop" className="btn bg-white text-dark rounded-pill-custom px-5 py-3 fw-bold shadow-sm fs-5">
+              Fazer Compras no Web Marketplace
+            </Link>
+            <Link to="/signup?type=seller" className="btn btn-outline-light rounded-pill-custom px-5 py-3 fw-bold border-2 fs-5">
+              Criar Loja Fornecedor
+            </Link>
           </div>
         </div>
-      </div>
-      
-      {/* Secção de Cobertura */}
-      <div className="bg-white pb-5">
-        <div className="container py-5">
-          <div className="row align-items-center">
-            <div className="col-lg-5 mb-5 mb-lg-0 pe-lg-5">
-              <span className="text-uppercase fw-bold small" style={{ color: '#ea4e1b', letterSpacing: '2px' }}>Cobertura</span>
-              <h2 className="display-5 fw-bold text-dark mt-2 mb-4" style={{ letterSpacing: '-1px' }}>
-                Onde estiver, nós chegamos.
-              </h2>
-              <p className="lead text-muted mb-5 fs-5">
-                Veja em tempo real os fornecedores, serviços e motoristas próximos de si.
-              </p>
-              
-              <div className="d-flex gap-3">
-                <div className="bg-cream rounded-4 p-4 text-center flex-fill border border-light shadow-sm" style={{ backgroundColor: '#FAF9F6' }}>
-                  <h3 className="fw-extrabold text-dark m-0">{stats.provinces}</h3>
-                  <small className="text-muted">Províncias</small>
-                </div>
-                <div className="bg-cream rounded-4 p-4 text-center flex-fill border border-light shadow-sm" style={{ backgroundColor: '#FAF9F6' }}>
-                  <h3 className="fw-extrabold text-dark m-0">{stats.cities}</h3>
-                  <small className="text-muted">Cidades</small>
-                </div>
-                <div className="bg-cream rounded-4 p-4 text-center flex-fill border border-light shadow-sm" style={{ backgroundColor: '#FAF9F6' }}>
-                  <h3 className="fw-extrabold text-dark m-0">24/7</h3>
-                  <small className="text-muted">Operação</small>
-                </div>
-              </div>
-            </div>
-            
-            <div className="col-lg-7">
-              <div className="position-relative rounded-4 overflow-hidden shadow-sm-custom" style={{ height: '400px', backgroundColor: '#e5e3df' }}>
-                {/* Fallback de Imagem/Mapa estático para representar OpenStreetMap */}
-                <iframe 
-                  width="100%" 
-                  height="100%" 
-                  frameBorder="0" 
-                  scrolling="no" 
-                  marginHeight="0" 
-                  marginWidth="0" 
-                  src="https://www.openstreetmap.org/export/embed.html?bbox=32.388839721679695%2C-26.04655452292723%2C32.74452209472657%2C-25.801642878496464&amp;layer=mapnik" 
-                  style={{ border: 0, filter: 'contrast(0.9) opacity(0.8)' }}>
-                </iframe>
-                
-                {/* Pill Flutuante de parceiros ativos */}
-                <div className="position-absolute top-0 start-0 m-4 bg-white rounded-pill shadow-sm px-3 py-2 d-flex align-items-center gap-2">
-                  <span className="rounded-circle" style={{ width: '10px', height: '10px', backgroundColor: '#ea4e1b' }}></span>
-                  <span className="fw-bold small text-dark">{stats.activePartners} parceiros activos perto de si</span>
-                </div>
-                
-                <div className="position-absolute bottom-0 end-0 bg-white bg-opacity-75 px-2 py-1 small text-muted" style={{ fontSize: '10px' }}>
-                  Report a problem | © OpenStreetMap contributors
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Footer */}
-      <footer className="text-white py-4 text-center" style={{ backgroundColor: '#1E0F0A' }}>
-        <div className="container">
-          <p className="m-0 mb-2">&copy; {new Date().getFullYear()} Nhiquela. Todos os direitos reservados.</p>
-          <div className="d-flex justify-content-center gap-3 small">
-            <Link to="/terms" className="text-white text-decoration-none opacity-75 custom-hover-opacity">Termos e Condições</Link>
-            <span className="text-white opacity-50">|</span>
-            <Link to="/privacy-policy" className="text-white text-decoration-none opacity-75 custom-hover-opacity">Políticas de Privacidade</Link>
-          </div>
-        </div>
-      </footer>
+      </section>
     </div>
   );
 }

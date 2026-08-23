@@ -15,9 +15,10 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.2.1") // compatível com SDK 35
+        classpath('com.google.gms:google-services:4.4.1')
+        classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
     }
 }
 
@@ -44,3 +45,44 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
+def patchGraphicsConversions() {
+    try {
+        def gradleCacheDir = new File(System.getProperty("user.home"), ".gradle/caches")
+        if (gradleCacheDir.exists()) {
+            gradleCacheDir.eachDir { versionDir ->
+                if (versionDir.name.matches(/\d+\.\d+(\.\d+)?/)) {
+                    def transformsDir = new File(versionDir, "transforms")
+                    if (transformsDir.exists()) {
+                        transformsDir.eachFileRecurse { file ->
+                            if (file.name == "graphicsConversions.h") {
+                                try {
+                                    def content = file.text
+                                    if (content.contains('std::format("{}%", dimension.value)')) {
+                                        file.text = content.replace('std::format("{}%", dimension.value)', 'std::to_string(dimension.value) + "%"')
+                                        println("React Native Patch: Patched std::format in: " + file.absolutePath)
+                                    }
+                                } catch (Exception e) {
+                                    // ignore read/write errors
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (Exception e) {
+        println("React Native Patch Error: " + e.message)
+    }
+}
+
+allprojects {
+    tasks.configureEach { task ->
+        if (task.name.contains("CMake") || task.name.contains("generateCodegen") || task.name.contains("preBuild")) {
+            task.doFirst {
+                patchGraphicsConversions()
+            }
+        }
+    }
+}
+

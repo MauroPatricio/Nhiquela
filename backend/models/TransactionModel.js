@@ -15,6 +15,32 @@ const transactionSchema = new Schema(
       enum: ['credit', 'debit'], // garante tipos válidos
       required: true
     },
+    transaction_type: {
+      type: String,
+      enum: ['TOPUP', 'WITHDRAWAL', 'COMMISSION', 'REFUND', 'REVERSAL', 'ADJUSTMENT', 'PAYMENT'],
+      required: false
+    },
+    balance_before: {
+      type: Number,
+      required: false
+    },
+    balance_after: {
+      type: Number,
+      required: false
+    },
+    reference_type: {
+      type: String,
+      required: false
+    },
+    reference_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false
+    },
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false
+    },
     amount: {
       type: Number,
       required: true,

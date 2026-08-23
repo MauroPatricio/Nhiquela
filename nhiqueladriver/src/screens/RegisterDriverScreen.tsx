@@ -228,7 +228,6 @@ export default function RegisterDriverScreen({ navigation }: any) {
         if (!form.document_back) newErrors.document_back = 'Obrigatório';
         if (!form.license_front) newErrors.license_front = 'Obrigatório';
         if (!form.license_back) newErrors.license_back = 'Obrigatório';
-        if (!form.Proof_of_Address) newErrors.Proof_of_Address = 'Obrigatório';
         if (Object.keys(newErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...newErrors }));
             showMessage({ message: "As fotos dos documentos pessoais são obrigatórias", type: "warning" });
@@ -246,8 +245,6 @@ export default function RegisterDriverScreen({ navigation }: any) {
         if (!form.vihicle_picture_front) newErrors.vihicle_picture_front = 'Obrigatório';
         if (!form.vihicle_picture_back) newErrors.vihicle_picture_back = 'Obrigatório';
         if (!form.vihicle_logbook) newErrors.vihicle_logbook = 'Obrigatório';
-        if (!form.vihicle_inspection) newErrors.vihicle_inspection = 'Obrigatório';
-        if (!form.vihicle_Insurance) newErrors.vihicle_Insurance = 'Obrigatório';
         if (Object.keys(newErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...newErrors }));
             showMessage({ message: "Preencha todos os dados e documentos do veículo", type: "warning" });
@@ -475,9 +472,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                                 {renderGridImageUpload("BI ou Passaporte (Frente) *", "document_front", "passport")}
                                 {renderGridImageUpload("BI ou Passaporte (Verso) *", "document_back", "passport")}
                             </View>
-                            <View style={{ marginTop: 10, marginBottom: 20 }}>
-                                {renderImageUpload("Comprovativo de Morada *", "Proof_of_Address", "home-map-marker")}
-                            </View>
+
                         </View>
                     )}
 
@@ -522,7 +517,7 @@ export default function RegisterDriverScreen({ navigation }: any) {
                             <Text style={styles.sectionTitle}>Fotografias da Viatura</Text>
                             <Text style={{fontSize: 12, color: '#6B7280', marginBottom: 10}}>Atenção: A matrícula deve estar visível em ambas as fotos.</Text>
                             <View style={styles.gridContainer}>
-                                {renderGridImageUpload("Foto da Viatura *", "vihicle_picture", "car")}
+                                {renderGridImageUpload("Foto Lateral da Viatura *", "vihicle_picture", "car")}
                                 {renderGridImageUpload("Frente (C/ Matrícula) *", "vihicle_picture_front", "car-arrow-right")}
                                 {renderGridImageUpload("Trás (C/ Matrícula) *", "vihicle_picture_back", "car-arrow-left")}
                             </View>
@@ -530,8 +525,6 @@ export default function RegisterDriverScreen({ navigation }: any) {
                             <Text style={styles.sectionTitle}>Documentos da Viatura</Text>
                             <View style={styles.gridContainer}>
                                 {renderGridImageUpload("Livrete *", "vihicle_logbook", "file-document-outline")}
-                                {renderGridImageUpload("Inspeção *", "vihicle_inspection", "car-cog")}
-                                {renderGridImageUpload("Seguros *", "vihicle_Insurance", "shield-car")}
                             </View>
                         </View>
                     )}

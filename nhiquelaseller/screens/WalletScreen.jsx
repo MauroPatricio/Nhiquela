@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList, StyleSheet,
-  RefreshControl, StatusBar, ActivityIndicator,
+  RefreshControl, StatusBar, ActivityIndicator, Modal, ScrollView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,9 +12,15 @@ import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
 const WalletScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [balance, setBalance] = useState(0);
+  const [minRecommendedBalance, setMinRecommendedBalance] = useState(50);
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [earnings, setEarnings] = useState({ today: 0, week: 0, tripsToday: 0 });
+  const [dailyEarnings, setDailyEarnings] = useState([]);
+  const [selectedDayStats, setSelectedDayStats] = useState(null);
+
+  const formatCurrency = (val) => `${Number(val || 0).toFixed(2)} MT`;
 
   const loadUserData = async () => {
     try {
@@ -22,7 +28,18 @@ const WalletScreen = ({ navigation }) => {
       if (!storedUserData) { navigation.navigate('Login'); return null; }
       const parsedUser = JSON.parse(storedUserData);
       setUserData(parsedUser);
-      return parsedUser;
+      
+      try {
+        const { data } = await api.get(`/users/${parsedUser._id}`, {
+          headers: { authorization: `Bearer ${parsedUser.token}` }
+        });
+        const updatedUser = { ...parsedUser, ...data };
+        setUserData(updatedUser);
+        await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+        return updatedUser;
+      } catch (apiErr) {
+        return parsedUser;
+      }
     } catch (err) {
       navigation.navigate('Login');
       return null;
@@ -32,12 +49,25 @@ const WalletScreen = ({ navigation }) => {
   const loadWallet = async (user) => {
     try {
       const headers = { authorization: `Bearer ${user.token}` };
-      const [res1, res2] = await Promise.all([
+      const [res1, res2, res3] = await Promise.all([
         api.get('/wallet/balance', { headers }),
         api.get('/wallet/transactions', { headers }),
+        api.get('/wallet/seller-earnings', { headers }).catch(e => {
+          console.log('Erro ao buscar ganhos diários:', e.message);
+          return { data: { today: 0, week: 0, tripsToday: 0, dailyEarnings: [] } };
+        }),
       ]);
       setBalance(res1.data.available_balance || res1.data.balance || 0);
+      setMinRecommendedBalance(res1.data.minimum_recommended_balance || 50);
       setTransactions(res2.data || []);
+      if (res3 && res3.data) {
+        setEarnings({
+          today: res3.data.today || 0,
+          week: res3.data.week || 0,
+          tripsToday: res3.data.tripsToday || 0,
+        });
+        setDailyEarnings(res3.data.dailyEarnings || []);
+      }
     } catch (err) {
       console.error('Erro ao carregar carteira:', err.message);
     }
@@ -170,6 +200,32 @@ const WalletScreen = ({ navigation }) => {
               </View>
             </View>
 
+            {/* Status do Saldo */}
+            <View style={styles.statusBox}>
+              <View style={styles.statusHeader}>
+                <Ionicons 
+                  name={balance >= minRecommendedBalance ? "checkmark-circle" : "warning"} 
+                  size={20} 
+                  color={balance >= minRecommendedBalance ? COLORS.success : COLORS.warning} 
+                />
+                <Text style={[styles.statusTitle, { color: balance >= minRecommendedBalance ? COLORS.success : COLORS.warning }]}>
+                  {balance >= minRecommendedBalance ? "Saldo adequado" : "Saldo abaixo do recomendado"}
+                </Text>
+              </View>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusLabel}>Saldo mínimo recomendado:</Text>
+                <Text style={styles.statusValue}>{minRecommendedBalance.toFixed(2)} MT</Text>
+              </View>
+              {userData?.seller?.storeStatus === 'CLOSED_LOW_BALANCE' && (
+                <View style={styles.alertBox}>
+                  <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+                  <Text style={styles.alertText}>
+                    Loja fechada por saldo insuficiente. Recarregue a sua carteira para poder reactivar a loja.
+                  </Text>
+                </View>
+              )}
+            </View>
+
             {/* Botão de Recarga */}
             <TouchableOpacity
               style={styles.withdrawBtn}
@@ -181,6 +237,70 @@ const WalletScreen = ({ navigation }) => {
               <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
 
+            {/* Sumário de Ganhos */}
+            <Text style={styles.sectionTitle}>Sumário de Ganhos</Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Hoje</Text>
+                <Text style={styles.statValue}>{formatCurrency(earnings.today)}</Text>
+                <Text style={{ fontSize: 13, color: '#34C759', fontWeight: 'bold' }}>{earnings.tripsToday} {earnings.tripsToday === 1 ? 'venda' : 'vendas'}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Esta Semana</Text>
+                <Text style={styles.statValue}>{formatCurrency(earnings.week)}</Text>
+              </View>
+            </View>
+
+            {/* Gráfico de Ganhos Diários (Visualização Nativa Detalhada) */}
+            {dailyEarnings.length > 0 && (
+              <View style={[styles.chartContainer, { paddingVertical: 20 }]}>
+                <Text style={styles.sectionTitle}>Vendas Diárias (Ganhos)</Text>
+                
+                <View style={{ flexDirection: 'row', height: 220, marginTop: 15, alignItems: 'flex-end' }}>
+                  {/* Eixo Y */}
+                  {(() => {
+                    const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1);
+                    const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10;
+                    return (
+                      <View style={{ justifyContent: 'space-between', height: '100%', paddingBottom: 25, paddingRight: 10, borderRightWidth: 1, borderRightColor: '#E0E0E0' }}>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>{scaleTop} V</Text>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>{Math.round(scaleTop / 2)} V</Text>
+                        <Text style={{ color: '#999', fontSize: 10, fontWeight: 'bold' }}>0</Text>
+                      </View>
+                    );
+                  })()}
+
+                  {/* Barras do Gráfico */}
+                  <View style={[styles.barChartContainer, { flex: 1, height: '100%', paddingLeft: 5 }]}>
+                    {dailyEarnings.slice(-7).map((item, index) => {
+                      const maxTrips = Math.max(...dailyEarnings.map(e => e.trips || 0), 1);
+                      const scaleTop = Math.ceil(maxTrips / 10) * 10 || 10;
+                      // Calcula altura em relação ao teto da escala
+                      const heightPercent = Math.max(((item.trips || 0) / scaleTop) * 100, 2); 
+                      
+                      const dateObj = new Date(item.date);
+                      const dayLabel = isNaN(dateObj.getTime()) ? item.date.substring(0, 5) : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+
+                      return (
+                        <TouchableOpacity key={index} style={styles.barChartCol} onPress={() => setSelectedDayStats(item)}>
+                          <Text style={[styles.barChartValue, { marginBottom: 2, fontSize: 10 }]} numberOfLines={1} adjustsFontSizeToFit>
+                            {(item.amount || 0) > 0 ? `${item.amount} MT` : ''}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#34C759', fontWeight: 'bold', marginBottom: 4 }}>
+                            {item.trips ? `${item.trips}` : '0'}
+                          </Text>
+                          <View style={[styles.barChartBarBg, { overflow: 'hidden', backgroundColor: '#F0F0F0', borderRadius: 6 }]}>
+                            <View style={[styles.barChartBarFill, { height: `${heightPercent}%`, backgroundColor: COLORS.primary, borderRadius: 6, width: '100%' }]} />
+                          </View>
+                          <Text style={[styles.barChartLabel, { marginTop: 8, fontSize: 11, fontWeight: '600' }]}>{dayLabel}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            )}
+
             <Text style={styles.sectionTitle}>Movimentos</Text>
           </>
         }
@@ -191,6 +311,116 @@ const WalletScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      {/* Modal de Detalhes Diários */}
+      <Modal visible={!!selectedDayStats} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Detalhes - {selectedDayStats ? (() => {
+                  const dateObj = new Date(selectedDayStats.date);
+                  return isNaN(dateObj.getTime()) ? selectedDayStats.date : `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+                })() : ''}
+              </Text>
+              <TouchableOpacity onPress={() => setSelectedDayStats(null)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ marginBottom: 15, padding: 15, backgroundColor: '#F8F9FA', borderRadius: 12 }}>
+              <Text style={{ fontSize: 14, color: '#666', marginBottom: 5 }}>Faturação do dia</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#34C759' }}>{selectedDayStats ? formatCurrency(selectedDayStats.amount) : ''}</Text>
+              <Text style={{ fontSize: 13, color: '#666', marginTop: 5 }}>Total de {selectedDayStats?.trips || 0} vendas</Text>
+            </View>
+            <ScrollView style={{ flexGrow: 0 }}>
+              {selectedDayStats?.tripsList?.length > 0 ? (
+                selectedDayStats.tripsList.map((trip, idx) => (
+                  <View key={idx} style={{ 
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 16,
+                    padding: 20,
+                    marginBottom: 16,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 8,
+                    elevation: 3,
+                    borderWidth: 1,
+                    borderColor: '#F3F4F6'
+                  }}>
+                    {/* Cabeçalho da Viagem: Código e Preço */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: '900', fontSize: 18, color: '#1F2937' }}>#{trip.code}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                            <Ionicons name="time-outline" size={12} color="#4B5563" style={{ marginRight: 4 }} />
+                            <Text style={{ color: '#4B5563', fontSize: 12, fontWeight: '600' }}>{trip.time}</Text>
+                          </View>
+                          <View style={{ marginHorizontal: 8 }}>
+                            <Text style={{ color: '#D1D5DB' }}>•</Text>
+                          </View>
+                          <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '700' }}>{trip.type}</Text>
+                        </View>
+                      </View>
+                      <View style={{ backgroundColor: '#ECFDF5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
+                        <Text style={{ fontWeight: '800', fontSize: 18, color: '#059669' }}>{formatCurrency(trip.amount)}</Text>
+                      </View>
+                    </View>
+                    
+                    {/* Box de Cliente e Trajeto */}
+                    <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 16 }}>
+                      
+                      {/* Cliente */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                        <Image 
+                          source={{ uri: trip.clientImage || 'https://via.placeholder.com/60' }} 
+                          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E7EB', marginRight: 12 }} 
+                        />
+                        <View>
+                          <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 }}>Cliente</Text>
+                          <Text style={{ fontWeight: '700', color: '#111827', fontSize: 16 }}>{trip.clientName}</Text>
+                        </View>
+                      </View>
+                      
+                      {/* Trajeto */}
+                      <View style={{ paddingLeft: 6 }}>
+                        {/* Origem */}
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
+                          <View style={{ alignItems: 'center', marginRight: 12 }}>
+                            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary, marginTop: 4 }} />
+                            <View style={{ width: 2, height: 24, backgroundColor: '#E5E7EB', marginTop: 4 }} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Ponto de Partida</Text>
+                            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 20 }}>{trip.origin}</Text>
+                          </View>
+                        </View>
+                        
+                        {/* Destino */}
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                          <View style={{ alignItems: 'center', marginRight: 12 }}>
+                            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#10B981', marginTop: 4 }} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Ponto de Chegada</Text>
+                            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 20 }}>{trip.destination}</Text>
+                          </View>
+                        </View>
+                      </View>
+                      
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                  <Text style={{ color: '#999' }}>Nenhuma venda registada neste dia.</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -357,5 +587,142 @@ const styles = StyleSheet.create({
   emptyText: {
     color: COLORS.textSecondary,
     fontSize: SIZES.base,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  statCard: {
+    backgroundColor: COLORS.surfaceCard,
+    borderRadius: RADIUS.lg,
+    padding: 16,
+    width: '48%',
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    ...SHADOWS.md,
+  },
+  statLabel: {
+    color: COLORS.textSecondary,
+    fontSize: SIZES.sm,
+    marginBottom: 4,
+  },
+  statValue: {
+    color: COLORS.text,
+    fontSize: SIZES.base,
+    fontWeight: 'bold',
+  },
+  chartContainer: {
+    marginBottom: 20,
+  },
+  barChartContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 180,
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  barChartCol: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: 40,
+    height: '100%',
+  },
+  barChartValue: {
+    fontSize: 9,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  barChartBarBg: {
+    width: 20,
+    height: 130,
+    backgroundColor: COLORS.surface2 || '#F0F0F0',
+    borderRadius: 10,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barChartBarFill: {
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+  },
+  barChartLabel: {
+    fontSize: 9,
+    color: COLORS.textMuted,
+    marginTop: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.surfaceCard || '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  statusBox: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: RADIUS.lg,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusTitle: {
+    fontSize: SIZES.md,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusLabel: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+  },
+  statusValue: {
+    fontSize: SIZES.sm,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  alertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: 12,
+    marginTop: 12,
+  },
+  alertText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#991B1B',
+    marginLeft: 8,
+    lineHeight: 16,
   },
 });

@@ -42,7 +42,53 @@ export const sendMessage = async (req, res) => {
     // Populate the newly added message's senderId
     await chat.populate('messages.senderId', 'name profileImage');
 
-    res.status(201).json(chat.messages[chat.messages.length - 1]);
+    const savedMessage = chat.messages[chat.messages.length - 1];
+
+    // Emit real-time Socket.IO event to the room
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_chat_${orderId}`).emit('newOrderMessage', savedMessage);
+    }
+
+    // Send push notification asynchronously (so it doesn't block the API response)
+    const sendPushNotification = async () => {
+      try {
+        const User = (await import('../models/UserModel.js')).default;
+        const Order = (await import('../models/OrderModel.js')).default;
+        const Provider = (await import('../models/ProviderModel.js')).default;
+        const { sendNotification } = await import('../utils/sendNotification.js');
+
+        const order = await Order.findById(orderId);
+        if (order) {
+          let recipientUser = null;
+          const senderName = req.user.name || 'Alguém';
+
+          if (senderType === 'client') {
+            // Client sent it -> notify Seller (Provider)
+            const provider = await Provider.findById(order.seller).populate('userId');
+            if (provider && provider.userId) {
+              recipientUser = provider.userId;
+            }
+          } else {
+            // Seller/Admin sent it -> notify Client (User)
+            recipientUser = await User.findById(order.user);
+          }
+
+          if (recipientUser && recipientUser.deviceToken) {
+            await sendNotification(
+              recipientUser.deviceToken,
+              `Nova Mensagem de ${senderName} 💬`,
+              message || 'Enviou um anexo.'
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao enviar push de mensagem do chat:', err);
+      }
+    };
+    sendPushNotification(); // Call async function
+
+    res.status(201).json(savedMessage);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
   }

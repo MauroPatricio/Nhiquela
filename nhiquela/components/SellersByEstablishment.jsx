@@ -90,7 +90,7 @@ const SellersByEstablishment = () => {
     const address = sellerDetails.address || item.location?.address;
     const latitude = sellerDetails.latitude || item.location?.lat;
     const longitude = sellerDetails.longitude || item.location?.lng;
-    const isOpen = sellerDetails.openstore !== undefined ? sellerDetails.openstore : item.openstore;
+    const isOpen = sellerDetails.openstore === true || item.openstore === true || item.seller?.openstore === true;
     const tipoEstabelecimento = sellerDetails.tipoEstabelecimento || item.categoryId;
 
     let distanceText = '';

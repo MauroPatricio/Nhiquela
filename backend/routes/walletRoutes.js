@@ -21,7 +21,7 @@ const walletRouter = express.Router();
 /**
  * Função genérica para atualizar saldo e registrar transação com segurança (MongoDB transaction)
  */
-async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver', referenceId = null, receiptImage = null) {
+async function updateWallet(ownerId, amount, type, method, description, status = 'confirmado', ownerType = 'driver', referenceId = null, receiptImage = null, transactionType = null, referenceType = null, createdBy = null) {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -41,33 +41,64 @@ async function updateWallet(ownerId, amount, type, method, description, status =
       }
     }
 
+    const Settings = mongoose.model('Settings');
+    const allowNegativeSetting = await Settings.findOne({ key: 'allow_negative_balance' }).session(session);
+    const allowNegative = allowNegativeSetting ? (allowNegativeSetting.value === 'true' || allowNegativeSetting.value === true) : false;
+
     if (type === 'debit' && wallet.balance < amount) {
-      throw new Error('Saldo insuficiente');
+      if (!allowNegative || ownerType === 'seller') {
+        throw new Error('TRANSACTION_REJECTED');
+      }
     }
 
     // Atualiza saldo apenas se não for um crédito pendente
     // (créditos pendentes só entram no saldo quando o admin/sistema confirmar)
     const shouldUpdateBalance = !(type === 'credit' && status === 'pendente');
-    
+    const balanceBefore = wallet.balance;
+    let balanceAfter = balanceBefore;
+
     if (shouldUpdateBalance) {
       wallet.balance = Math.round((wallet.balance + (type === 'credit' ? amount : -amount)) * 100) / 100;
+      balanceAfter = wallet.balance;
       await wallet.save({ session });
     }
 
-    // Registra transação separada
+    // Registra transação separada com os campos de auditoria do Ledger
     await Transaction.create([{
       walletId: wallet._id,
       type,
+      transaction_type: transactionType || (type === 'credit' ? 'TOPUP' : 'PAYMENT'),
+      balance_before: balanceBefore,
+      balance_after: balanceAfter,
       amount,
       method,
       description,
       status,
-      referenceId,
-      receiptImage
+      referenceId, // Legacy referenceId
+      reference_id: referenceId, // New reference_id
+      reference_type: referenceType,
+      receiptImage,
+      created_by: createdBy
     }], { session });
 
     await session.commitTransaction();
     session.endSession();
+
+    // Trigger operational status checks asynchronously in the background
+    if (shouldUpdateBalance) {
+      if (ownerType === 'seller') {
+        const { checkAndDisableSellerIfLowBalance, checkAndReactivateSellerIfMinBalance } = await import('../services/walletService.js');
+        if (type === 'debit') {
+          checkAndDisableSellerIfLowBalance(ownerId);
+        } else if (type === 'credit' && status === 'confirmado') {
+          checkAndReactivateSellerIfMinBalance(ownerId);
+        }
+      } else if (ownerType === 'driver') {
+        const { checkAndDisableDriverIfLowBalance } = await import('../services/walletService.js');
+        checkAndDisableDriverIfLowBalance(ownerId);
+      }
+    }
+
     return wallet.balance;
   } catch (error) {
     await session.abortTransaction();
@@ -213,9 +244,14 @@ walletRouter.get('/balance', isAuth, async (req, res) => {
     const pendingTrans = await Transaction.find({ walletId: wallet?._id, status: 'pendente' });
     const pending_balance = pendingTrans.reduce((acc, t) => acc + (t.amount || 0), 0);
 
+    const Settings = mongoose.model('Settings');
+    const minBalSetting = await Settings.findOne({ key: 'minimum_recommended_balance' });
+    const minimum_recommended_balance = minBalSetting ? Number(minBalSetting.value) : 50;
+
     res.json({ 
       available_balance: wallet?.balance || 0,
       pending_balance: pending_balance,
+      minimum_recommended_balance: minimum_recommended_balance,
       currency: 'MZN'
     });
   } catch (error) {
@@ -853,6 +889,98 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar ganhos:', error);
     res.status(500).json({ message: 'Erro interno ao buscar ganhos.' });
+  }
+});
+
+// Buscar ganhos e vendas do fornecedor/estabelecimento
+walletRouter.get('/seller-earnings', isAuth, async (req, res) => {
+  try {
+    const sellerId = req.user._id;
+    const now = new Date();
+    
+    // Hoje (início do dia atual local)
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Esta semana (últimos 7 dias)
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
+
+    // Import models
+    const Provider = mongoose.model('Provider');
+    const Order = mongoose.model('Order');
+
+    // Tenta encontrar o Provider vinculado a este userId/ownerId
+    const provider = await Provider.findOne({
+      $or: [{ ownerId: sellerId }, { userId: sellerId }]
+    });
+
+    if (!provider) {
+      return res.status(404).json({ message: 'Fornecedor não encontrado.' });
+    }
+
+    // Busca encomendas entregues nos últimos 7 dias vinculadas a este fornecedor
+    const orders = await Order.find({
+      seller: provider._id,
+      isDelivered: true,
+      deleted: { $ne: true },
+      deliveredAt: { $gte: startOfWeek }
+    }).populate('user', 'name profileImage');
+
+    let todayEarnings = 0;
+    let weekEarnings = 0;
+    let tripsToday = 0;
+
+    const dailyStatsMap = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(d.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      dailyStatsMap[dateStr] = { date: dateStr, amount: 0, trips: 0, tripsList: [] };
+    }
+
+    orders.forEach(order => {
+      const orderAmount = order.itemsPriceForSeller ?? order.sellerEarningsAfterDiscount ?? order.itemsPrice ?? 0;
+      const orderDate = new Date(order.deliveredAt || order.createdAt);
+      
+      if (orderDate >= startOfToday) {
+        todayEarnings += orderAmount;
+        tripsToday++;
+      }
+      weekEarnings += orderAmount;
+
+      const dStr = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}-${String(orderDate.getDate()).padStart(2, '0')}`;
+      if (dailyStatsMap[dStr]) {
+        dailyStatsMap[dStr].amount += orderAmount;
+        dailyStatsMap[dStr].trips += 1;
+        
+        const origin = order.origin || order.pickupAddress?.address || 'Origem não especificada';
+        const destination = order.destination || order.deliveryAddress?.address || 'Destino não especificado';
+        
+        dailyStatsMap[dStr].tripsList.push({
+          id: order._id,
+          code: order.code || order._id.toString().slice(-6).toUpperCase(),
+          time: orderDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+          amount: orderAmount,
+          type: 'Venda',
+          clientName: order.user?.name || order.name || 'Cliente Desconhecido',
+          clientImage: order.user?.profileImage || null,
+          origin,
+          destination,
+          reason: order.canceledReason || 'Venda concluída com sucesso'
+        });
+      }
+    });
+
+    res.json({
+      today: todayEarnings,
+      week: weekEarnings,
+      tripsToday: tripsToday,
+      totalTrips: orders.length,
+      dailyEarnings: Object.values(dailyStatsMap).sort((a, b) => new Date(a.date) - new Date(b.date))
+    });
+  } catch (error) {
+    console.error('Erro ao buscar ganhos do fornecedor:', error);
+    res.status(500).json({ message: 'Erro interno ao buscar ganhos do fornecedor.' });
   }
 });
 

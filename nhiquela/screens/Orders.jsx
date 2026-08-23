@@ -270,6 +270,15 @@ const Orders = () => {
     return { icon: 'cube-send',                                                                       color: '#9333EA', bg: '#F3E8FF' };
   };
 
+  const handleChatPress = (item) => {
+    const isOrder = !!item.orderItems;
+    if (isOrder) {
+      navigation.navigate('OrderChat', { orderId: item._id });
+    } else {
+      navigation.navigate('TripChatScreen', { tripId: item._id });
+    }
+  };
+
   const renderItem = ({ item }) => {
     if (!item) return null;
 
@@ -361,11 +370,25 @@ const Orders = () => {
         <View style={styles.cardBody}>
           <View style={styles.priceRow}>
             <Text style={styles.orderCode}>Pedido: #{code}</Text>
-            <Text style={styles.orderPrice}>
-              {typeof (item.totalPrice ?? item.deliveryPrice) === 'number'
-                ? parseFloat(item.totalPrice ?? item.deliveryPrice).toFixed(2)
-                : '---'} MT
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity
+                style={styles.chatIconBtn}
+                onPress={() => handleChatPress(item)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubbles-outline" size={20} color="#7F00FF" />
+                {item.unreadCount > 0 && (
+                  <View style={styles.chatBadge}>
+                    <Text style={styles.chatBadgeText}>{item.unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <Text style={styles.orderPrice}>
+                {typeof (item.totalPrice ?? item.deliveryPrice) === 'number'
+                  ? parseFloat(item.totalPrice ?? item.deliveryPrice).toFixed(2)
+                  : '---'} MT
+              </Text>
+            </View>
           </View>
 
           {/* Origem e Destino */}
@@ -975,6 +998,36 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
+  },
+  chatIconBtn: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#F3E8FF',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 38,
+    height: 38,
+  },
+  chatBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  chatBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    textAlign: 'center',
   },
 });
 

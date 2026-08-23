@@ -1,6 +1,7 @@
 node_modules
 build
-echo "*.json" >> .gitignore
+*.json.bak
+
 # Node
 npm-debug.log*
 yarn-error.log*
@@ -9,6 +10,15 @@ package-lock.json.bak
 # Expo
 .expo/
 .expo-shared/
+
+# Android / iOS build artifacts & caches
+.gradle/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/.cxx/
+**/ios/Pods/
+**/ios/build/
 
 # Cache
 .cache/
@@ -19,6 +29,9 @@ coverage/
 # Logs
 *.log
 output.log
+crash.txt
+crash_log*.txt
+adb_crash_dump*.txt
 
 # Environment
 .env
@@ -26,8 +39,6 @@ output.log
 
 # Firebase
 *-firebase-adminsdk-*.json
-
-.env
 keys.json
 
 # Uploads
@@ -38,9 +49,6 @@ uploads/
 ~$*.xlsx
 ~$*.pptx
 
-# macOS
+# macOS / Windows
 .DS_Store
-
-# Windows
 Thumbs.db
- 

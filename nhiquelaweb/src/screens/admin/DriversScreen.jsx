@@ -895,7 +895,6 @@ export default function DriversScreen() {
                   {renderFileField(`${formData.document_type === 'passport' ? 'Passaporte' : 'BI'} (Verso)`, "document_back")}
                   {renderFileField("Carta de Condução (Frente)", "license_front")}
                   {renderFileField("Carta de Condução (Verso)", "license_back")}
-                  {renderFileField("Comprovativo de Morada", "Proof_of_Address")}
                 </div>
 
 
@@ -962,8 +961,6 @@ export default function DriversScreen() {
                   {renderFileField("Foto do Veículo (Frente)", "vihicle_picture_front")}
                   {renderFileField("Foto do Veículo (Traseira)", "vihicle_picture_back")}
                   {renderFileField("Livrete do Veículo", "vihicle_logbook")}
-                  {renderFileField("Inspeção do Veículo", "vihicle_inspection")}
-                  {renderFileField("Seguro do Veículo", "vihicle_Insurance")}
                 </div>
 
 
@@ -1237,10 +1234,6 @@ export default function DriversScreen() {
 
               </div>
 
-
-
-              </div>
-
             {selectedDriver.isBanned && (
               <div className="mb-4 p-3 rounded-4 border border-danger bg-danger bg-opacity-10">
                 <h6 className="fw-bold text-danger mb-2"><FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />Motorista Bloqueado (Instant Ban)</h6>
@@ -1276,12 +1269,6 @@ export default function DriversScreen() {
 
                   { key: 'vihicle_logbook', label: 'Livrete', icon: faFileAlt },
 
-                  { key: 'vihicle_inspection', label: 'Inspeção do Veículo', icon: faCheckCircle },
-
-                  { key: 'vihicle_Insurance', label: 'Seguro Automóvel', icon: faShieldAlt },
-
-                  { key: 'Proof_of_Address', label: 'Comprovativo de Morada', icon: faMapMarkerAlt },
-
                 ].map(doc => (
 
                   <div key={doc.key} className="col-md-6 col-lg-4">
@@ -1295,6 +1282,29 @@ export default function DriversScreen() {
                         {selectedDriver.deliveryman?.[doc.key] ? <FontAwesomeIcon icon={faCheckCircle} className="text-success ms-2" /> : <span className="badge bg-secondary ms-2" style={{fontSize: '0.65rem'}}>Em falta</span>}
 
                       </div>
+
+                      {/* Visualização direta do documento, igual à foto de perfil */}
+                      {selectedDriver.deliveryman?.[doc.key] ? (
+                        <div 
+                          className="my-2 bg-light rounded-3 overflow-hidden border shadow-xs position-relative" 
+                          style={{ width: '100%', height: '140px', cursor: 'pointer' }}
+                          onClick={() => setSelectedImage(getImageUrl(selectedDriver.deliveryman[doc.key]))}
+                          title="Clique para ampliar"
+                        >
+                          <img 
+                            src={getImageUrl(selectedDriver.deliveryman[doc.key])} 
+                            alt={doc.label} 
+                            className="w-100 h-100 object-fit-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <div 
+                          className="my-2 bg-light rounded-3 d-flex justify-content-center align-items-center text-muted border border-dashed" 
+                          style={{ width: '100%', height: '140px' }}
+                        >
+                          <FontAwesomeIcon icon={faImage} size="2x" className="opacity-50" />
+                        </div>
+                      )}
 
                       <div className="mt-auto pt-2">
 
@@ -1334,133 +1344,81 @@ export default function DriversScreen() {
 
               </div>
 
-            </div>
-
-            
-
-            <div className="card-footer bg-white border-top p-4">
-
-              {/* Barra de status atual */}
-
-              <div className="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3 bg-light border">
-
-                <div>
-
-                  <div className="text-muted small fw-bold text-uppercase mb-1">Estado atual da conta</div>
-
-                  <span className={`badge fs-6 rounded-pill px-3 py-2 ${
-
-                    selectedDriver.status === 'Disponível' ? 'bg-success' :
-
-                    selectedDriver.status === 'Pendente' ? 'bg-warning text-dark' :
-
-                    selectedDriver.status === 'Em Entrega' ? 'bg-info' : selectedDriver.status === 'Rejeitado' ? 'bg-danger' : 'bg-secondary'
-
-                  }`}>
-
-                    {selectedDriver.status || 'Pendente'}
-
-                  </span>
-
+              {/* Status e Ações dentro do scroll */}
+              <div className="mt-4 pt-3 border-top">
+                {/* Barra de status atual */}
+                <div className="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3 bg-light border">
+                  <div>
+                    <div className="text-muted small fw-bold text-uppercase mb-1">Estado atual da conta</div>
+                    <span className={`badge fs-6 rounded-pill px-3 py-2 ${
+                      selectedDriver.status === 'Disponível' ? 'bg-success' :
+                      selectedDriver.status === 'Pendente' ? 'bg-warning text-dark' :
+                      selectedDriver.status === 'Em Entrega' ? 'bg-info' : selectedDriver.status === 'Rejeitado' ? 'bg-danger' : 'bg-secondary'
+                    }`}>
+                      {selectedDriver.status || 'Pendente'}
+                    </span>
+                  </div>
+                  <div className="text-muted small text-end">
+                    {selectedDriver.status === 'Disponível' && <span className="text-success fw-bold"><FontAwesomeIcon icon={faCheckCircle} className="me-1" />Conta ativa e operacional</span>}
+                    {(selectedDriver.status === 'Pendente' || !selectedDriver.status) && <span className="text-warning fw-bold"><FontAwesomeIcon icon={faExclamationTriangle} className="me-1" />Aguarda aprovação dos documentos</span>}
+                    {selectedDriver.status === 'Inativo' && <span className="text-danger fw-bold"><FontAwesomeIcon icon={faTimes} className="me-1" />Conta suspensa ou rejeitada</span>}
+                  </div>
                 </div>
 
-                <div className="text-muted small text-end">
-
-                  {selectedDriver.status === 'Disponível' && <span className="text-success fw-bold"><FontAwesomeIcon icon={faCheckCircle} className="me-1" />Conta ativa e operacional</span>}
-
-                  {(selectedDriver.status === 'Pendente' || !selectedDriver.status) && <span className="text-warning fw-bold"><FontAwesomeIcon icon={faExclamationTriangle} className="me-1" />Aguarda aprovação dos documentos</span>}
-
-                  {selectedDriver.status === 'Inativo' && <span className="text-danger fw-bold"><FontAwesomeIcon icon={faTimes} className="me-1" />Conta suspensa ou rejeitada</span>}
-
+                {/* Botões de ação */}
+                <div className="d-flex gap-2 flex-wrap">
+                  <button className="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold" onClick={() => setShowDetailsModal(false)}>
+                    Fechar Dossier
+                  </button>
+                  <div className="d-flex gap-2 ms-auto flex-wrap">
+                    {selectedDriver.status !== 'Inativo' && (
+                      <button
+                        className="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm"
+                        onClick={() => { if(window.confirm(`Rejeitar e suspender a conta de ${selectedDriver.name}?`)) handleUpdateStatus('Inativo'); }}
+                      >
+                        <FontAwesomeIcon icon={faTimes} className="me-2" /> Rejeitar / Suspender
+                      </button>
+                    )}
+                    {selectedDriver.status !== 'Disponível' && (
+                      <button
+                        className="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm"
+                        onClick={() => handleUpdateStatus('Disponível')}
+                      >
+                        <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Aprovar Motorista
+                      </button>
+                    )}
+                    {selectedDriver.status === 'Disponível' && (
+                      <button
+                        className="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark"
+                        onClick={() => { if(window.confirm(`Colocar a conta de ${selectedDriver.name} em modo Pendente?`)) handleUpdateStatus('Pendente'); }}
+                      >
+                        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" /> Colocar Pendente
+                      </button>
+                    )}
+                    {!selectedDriver.isBanned ? (
+                      <button
+                        className="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm"
+                        onClick={handleInstantBan}
+                      >
+                        <FontAwesomeIcon icon={faShieldAlt} className="me-2" /> Instant Ban
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm"
+                        onClick={handleUnban}
+                      >
+                        <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Readmitir (Aceitar Justificação)
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-              </div>
-
-
-
-              {/* Botões de ação */}
-
-              <div className="d-flex gap-2 flex-wrap">
-
-                <button className="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold" onClick={() => setShowDetailsModal(false)}>
-
-                  Fechar Dossier
-
-                </button>
-
-                <div className="d-flex gap-2 ms-auto flex-wrap">
-
-                  {selectedDriver.status !== 'Inativo' && (
-
-                    <button
-
-                      className="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm"
-
-                      onClick={() => { if(window.confirm(`Rejeitar e suspender a conta de ${selectedDriver.name}?`)) handleUpdateStatus('Inativo'); }}
-
-                    >
-
-                      <FontAwesomeIcon icon={faTimes} className="me-2" /> Rejeitar / Suspender
-
-                    </button>
-
-                  )}
-
-                  {selectedDriver.status !== 'Disponível' && (
-
-                    <button
-
-                      className="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm"
-
-                      onClick={() => handleUpdateStatus('Disponível')}
-
-                    >
-
-                      <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Aprovar Motorista
-
-                    </button>
-
-                  )}
-
-                  {selectedDriver.status === 'Disponível' && (
-
-                    <button
-
-                      className="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark"
-
-                      onClick={() => { if(window.confirm(`Colocar a conta de ${selectedDriver.name} em modo Pendente?`)) handleUpdateStatus('Pendente'); }}
-
-                    >
-
-                      <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" /> Colocar Pendente
-
-                    </button>
-
-                  )}
-
-                  {!selectedDriver.isBanned ? (
-                    <button
-                      className="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm"
-                      onClick={handleInstantBan}
-                    >
-                      <FontAwesomeIcon icon={faShieldAlt} className="me-2" /> Instant Ban
-                    </button>
-                  ) : (
-                    <button
-                      className="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm"
-                      onClick={handleUnban}
-                    >
-                      <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> Readmitir (Aceitar Justificação)
-                    </button>
-                  )}
-
-                </div>
-
               </div>
 
             </div>
 
           </div>
+
+        </div>
 
       )}
 

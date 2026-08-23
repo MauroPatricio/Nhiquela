@@ -1532,6 +1532,61 @@ const proceedStartTrip = async (trip: Trip) => {
         contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Chamada de atenção destacada - Conta em análise */}
+        {!isDriverApproved && (
+          <LinearGradient
+            colors={['#FFFBEB', '#FEF3C7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 16,
+              padding: 20,
+              borderRadius: 24,
+              borderWidth: 1.5,
+              borderColor: '#FDE68A',
+              flexDirection: 'column',
+              alignItems: 'center',
+              shadowColor: '#D97706',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.1,
+              shadowRadius: 10,
+              elevation: 4,
+            }}
+          >
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: 'rgba(217, 119, 6, 0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 12,
+            }}>
+              <Ionicons name="time" size={28} color="#D97706" />
+            </View>
+            <Text style={{ 
+              color: '#78350F', 
+              fontSize: 18, 
+              fontWeight: '800', 
+              textAlign: 'center',
+              marginBottom: 6
+            }}>
+              Conta em Análise
+            </Text>
+            <Text style={{ 
+              color: '#92400E', 
+              fontSize: 13, 
+              lineHeight: 19,
+              fontWeight: '600',
+              textAlign: 'center',
+              marginBottom: 0,
+              paddingHorizontal: 8
+            }}>
+              O seu perfil de motorista encontra-se sob avaliação. Aguarde pela aprovação para começar a receber as solicitações de entrega e realizar viagens!
+            </Text>
+          </LinearGradient>
+        )}
         {/* 🔥 STATUS DA CONEXÃO WEBSOCKET - SÓ MOSTRAR SE APROVADO */}
         {false && isDriverApproved && connectionStatus !== "Conectado" && (
           <View style={[styles.connectionStatus, { backgroundColor: getConnectionStatusColor() }]}>

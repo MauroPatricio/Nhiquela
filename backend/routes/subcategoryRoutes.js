@@ -6,18 +6,22 @@ import Product from '../models/ProductModel.js';
 
 const subcategoryRouter = express.Router();
 
-// All Subcategories (pagina��o opcional)
+// All Subcategories (paginação opcional)
 subcategoryRouter.get(
   '/',
   expressAsyncHandler(async (req, res) => {
-    const page = Number(req.query.page) || 1;
-    const pageSize = 10;
+    const all = req.query.all === 'true';
+    let query = Subcategory.find({ isActive: true });
 
-    const subcategories = await Subcategory.find({ isActive: true })
+    if (!all) {
+      const page = Number(req.query.page) || 1;
+      const pageSize = 10;
+      query = query.skip((page - 1) * pageSize).limit(pageSize);
+    }
+
+    const subcategories = await query
       .populate('category', 'name')
-      .sort({ name: 'asc' })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize);
+      .sort({ name: 'asc' });
 
     res.status(200).send({ subcategories });
   })

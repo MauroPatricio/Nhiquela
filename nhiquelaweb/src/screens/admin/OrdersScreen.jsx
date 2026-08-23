@@ -82,8 +82,8 @@ export default function OrdersScreen() {
   const totalPedidos = dateFilteredOrders.length;
   const pedidosConcluídos = dateFilteredOrders.filter(o => ['Entregue', 'Finalizado'].includes(o.status)).length;
   const pedidosEmAndamento = dateFilteredOrders.filter(o => !['Entregue', 'Finalizado', 'Cancelada', 'Cancelado'].includes(o.status)).length;
-  const receitaTotal = dateFilteredOrders.reduce((acc, order) => acc + Number(order.totalPrice || order.deliveryPrice || 0), 0);
-  const comissaoTotal = dateFilteredOrders.reduce((acc, order) => acc + (Number(order.totalPrice || order.deliveryPrice || 0) * 0.15), 0);
+  const receitaTotal = dateFilteredOrders.filter(o => ['Entregue', 'Finalizado'].includes(o.status)).reduce((acc, order) => acc + Number(order.totalPrice || order.deliveryPrice || 0), 0);
+  const comissaoTotal = dateFilteredOrders.filter(o => ['Entregue', 'Finalizado'].includes(o.status)).reduce((acc, order) => acc + (Number(order.totalPrice || order.deliveryPrice || 0) * 0.15), 0);
 
   useEffect(() => {
     fetchOrdersAndRelatedData();

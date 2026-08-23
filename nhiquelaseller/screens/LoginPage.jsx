@@ -84,7 +84,7 @@ export default function LoginPage() {
             <View style={styles.glowCircle2} />
             <View style={styles.headerContent}>
               <Image source={require('../assets/nhiquela2.png')} style={styles.logo} />
-              <Text style={styles.appName}>Nhiquela Partner</Text>
+              <Text style={styles.appName}>Nhiquela Seller</Text>
               <Text style={styles.tagline}>Gerencie o seu negócio com facilidade</Text>
               <View style={styles.iconRow}>
                 <View style={styles.iconBadge}>
@@ -194,7 +194,7 @@ export default function LoginPage() {
             {/* Criar Conta */}
             <TouchableOpacity style={styles.signupBtn} onPress={() => navigation.navigate('SignUp')}>
               <Ionicons name="person-add-outline" size={18} color={COLORS.primary} style={{ marginRight: 8 }} />
-              <Text style={styles.signupBtnText}>Criar conta de vendedor</Text>
+              <Text style={styles.signupBtnText}>Criar conta de fornecedor</Text>
             </TouchableOpacity>
           </View>
 

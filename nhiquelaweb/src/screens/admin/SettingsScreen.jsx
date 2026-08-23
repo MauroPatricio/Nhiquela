@@ -8,6 +8,14 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [minBalance, setMinBalance] = useState(50);
+  const [commRate, setCommRate] = useState(15);
+  const [firstSaleFree, setFirstSaleFree] = useState(true);
+  const [freeSalesCount, setFreeSalesCount] = useState(1);
+  const [blockLowBalance, setBlockLowBalance] = useState(true);
+  const [allowNegative, setAllowNegative] = useState(false);
+  const [savingWalletConfig, setSavingWalletConfig] = useState(false);
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -20,6 +28,55 @@ export default function SettingsScreen() {
       toast.error('Erro ao carregar configurações globais');
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (settings.length > 0) {
+      const findVal = (key, fallback) => {
+        const item = settings.find(s => s.key === key);
+        if (!item) return fallback;
+        if (item.type === 'number') return Number(item.value);
+        if (item.type === 'boolean') return item.value === 'true' || item.value === true;
+        return item.value;
+      };
+      setMinBalance(findVal('minimum_recommended_balance', 50));
+      setCommRate(findVal('platform_commission_rate', 15));
+      setFirstSaleFree(findVal('enable_first_sale_free', true));
+      setFreeSalesCount(findVal('free_sales_count', 1));
+      setBlockLowBalance(findVal('block_store_below_minimum', true));
+      setAllowNegative(findVal('allow_negative_balance', false));
+    }
+  }, [settings]);
+
+  const handleSaveWalletConfig = async (e) => {
+    e.preventDefault();
+    setSavingWalletConfig(true);
+    try {
+      const updates = [
+        { key: 'minimum_recommended_balance', value: minBalance.toString(), type: 'number', description: 'Saldo mínimo recomendado para o fornecedor continuar ativo (MT)' },
+        { key: 'platform_commission_rate', value: commRate.toString(), type: 'number', description: 'Percentagem de comissão padrão da plataforma sobre as vendas (%)' },
+        { key: 'enable_first_sale_free', value: firstSaleFree.toString(), type: 'boolean', description: 'Ativar primeira venda gratuita para novos fornecedores' },
+        { key: 'free_sales_count', value: freeSalesCount.toString(), type: 'number', description: 'Número de primeiras vendas gratuitas concedidas' },
+        { key: 'block_store_below_minimum', value: blockLowBalance.toString(), type: 'boolean', description: 'Bloquear automaticamente a loja se o saldo for menor que o recomendado' },
+        { key: 'allow_negative_balance', value: allowNegative.toString(), type: 'boolean', description: 'Permitir que a carteira do fornecedor fique com saldo negativo' }
+      ];
+
+      await Promise.all(updates.map(async (up) => {
+        const exist = settings.find(s => s.key === up.key);
+        if (exist) {
+          await api.put(`/settings/${exist._id || exist.id}`, { value: up.value, description: up.description });
+        } else {
+          await api.post('/settings', up);
+        }
+      }));
+
+      toast.success('Configurações da carteira salvas com sucesso!');
+      fetchSettings();
+    } catch (error) {
+      toast.error('Erro ao salvar configurações da carteira');
+    } finally {
+      setSavingWalletConfig(false);
     }
   };
   
@@ -95,6 +152,15 @@ export default function SettingsScreen() {
     }
   };
 
+  const filteredSettings = settings.filter(s => ![
+    'minimum_recommended_balance',
+    'platform_commission_rate',
+    'enable_first_sale_free',
+    'free_sales_count',
+    'block_store_below_minimum',
+    'allow_negative_balance'
+  ].includes(s.key));
+
   return (
     <div className="animation-fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -105,6 +171,112 @@ export default function SettingsScreen() {
         <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold" onClick={() => handleOpenModal()}>
           <FontAwesomeIcon icon={faPlus} className="me-2" /> Nova Variável
         </button>
+      </div>
+
+      {/* Seção Carteira do Fornecedor */}
+      <div className="card shadow-sm-custom border-0 rounded-4 mb-4">
+        <div className="card-header bg-white border-0 py-3 px-4">
+          <h5 className="fw-bold m-0 text-dark">Configurações → Carteira do Fornecedor</h5>
+          <span className="text-muted small">Gerencie as regras operacionais e limites financeiros de todos os fornecedores</span>
+        </div>
+        <div className="card-body px-4 pb-4">
+          <form onSubmit={handleSaveWalletConfig}>
+            <div className="row g-3">
+              <div className="col-md-6 col-lg-4">
+                <label className="form-label fw-bold small text-muted mb-1">Saldo mínimo recomendado</label>
+                <div className="input-group">
+                  <input 
+                    type="number" 
+                    className="form-control bg-light border-0 py-2.5 rounded-start-3" 
+                    value={minBalance} 
+                    onChange={(e) => setMinBalance(Number(e.target.value))} 
+                    required 
+                    min="0"
+                  />
+                  <span className="input-group-text bg-light border-0 text-muted rounded-end-3">MT</span>
+                </div>
+              </div>
+
+              <div className="col-md-6 col-lg-4">
+                <label className="form-label fw-bold small text-muted mb-1">Modelo de comissão</label>
+                <select className="form-select bg-light border-0 py-2.5 rounded-3" disabled value="venda">
+                  <option value="venda">Desconto direto na venda (Recomendado)</option>
+                </select>
+              </div>
+
+
+              <div className="col-md-6 col-lg-4">
+                <label className="form-label fw-bold small text-muted mb-1">Número de vendas gratuitas</label>
+                <input 
+                  type="number" 
+                  className="form-control bg-light border-0 py-2.5 rounded-3" 
+                  value={freeSalesCount} 
+                  onChange={(e) => setFreeSalesCount(Number(e.target.value))} 
+                  required 
+                  min="1"
+                />
+              </div>
+
+              <div className="col-12 col-md-6 col-lg-4 d-flex align-items-center mt-lg-4 pt-lg-2">
+                <div className="form-check form-switch">
+                  <input 
+                    className="form-check-input" 
+                    type="checkbox" 
+                    role="switch" 
+                    id="firstSaleFreeSwitch"
+                    checked={firstSaleFree} 
+                    onChange={(e) => setFirstSaleFree(e.target.checked)} 
+                  />
+                  <label className="form-check-label fw-bold small text-muted ms-2" htmlFor="firstSaleFreeSwitch">
+                    Primeira venda gratuita
+                  </label>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-6 col-lg-4 d-flex align-items-center mt-lg-4 pt-lg-2">
+                <div className="form-check form-switch">
+                  <input 
+                    className="form-check-input" 
+                    type="checkbox" 
+                    role="switch" 
+                    id="blockStoreSwitch"
+                    checked={blockLowBalance} 
+                    onChange={(e) => setBlockLowBalance(e.target.checked)} 
+                  />
+                  <label className="form-check-label fw-bold small text-muted ms-2" htmlFor="blockStoreSwitch">
+                    Bloquear loja abaixo do mínimo
+                  </label>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-6 col-lg-4 d-flex align-items-center mt-lg-3">
+                <div className="form-check form-switch">
+                  <input 
+                    className="form-check-input" 
+                    type="checkbox" 
+                    role="switch" 
+                    id="allowNegativeSwitch"
+                    checked={allowNegative} 
+                    onChange={(e) => setAllowNegative(e.target.checked)} 
+                  />
+                  <label className="form-check-label fw-bold small text-muted ms-2" htmlFor="allowNegativeSwitch">
+                    Permitir saldo negativo
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="d-flex justify-content-end mt-4">
+              <button 
+                type="submit" 
+                className="btn bg-primary-custom text-white rounded-pill px-5 py-2.5 shadow-sm fw-bold"
+                disabled={savingWalletConfig}
+              >
+                {savingWalletConfig ? 'A guardar...' : 'Guardar Configurações da Carteira'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -122,9 +294,9 @@ export default function SettingsScreen() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar configurações...</td></tr>
-                ) : settings.length === 0 ? (
+                ) : filteredSettings.length === 0 ? (
                   <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhuma configuração definida na base de dados.</td></tr>
-                ) : settings.map(setting => (
+                ) : filteredSettings.map(setting => (
                   <tr key={setting._id || setting.id}>
                     <td className="px-4">
                       <div className="d-flex align-items-center py-2">

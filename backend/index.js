@@ -383,6 +383,14 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`Socket ${socket.id} joined room ${roomName}`);
       }
     });
+
+    socket.on('joinOrderRoom', (orderId) => {
+      if (orderId) {
+        const roomName = `order_chat_${orderId}`;
+        socket.join(roomName);
+        console.log(`Socket ${socket.id} joined order chat room ${roomName}`);
+      }
+    });
     
     socket.on('join_trip_chat', (data) => {
       if (data && data.tripId) {

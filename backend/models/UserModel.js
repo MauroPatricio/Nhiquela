@@ -70,7 +70,8 @@ const modelSchema = new mongoose.Schema({
         address: { type: String },
         latitude: { type: String },
         longitude: { type: String },
-        openstore: { type: Boolean },
+        openstore: { type: Boolean, default: false },
+        storeStatus: { type: String, enum: ['OPEN', 'CLOSED_BY_SUPPLIER', 'CLOSED_LOW_BALANCE', 'SUSPENDED', 'BLOCKED'], default: 'CLOSED_BY_SUPPLIER' },
         workDayAndTime: [
             {
                 dayNumber: Number,
@@ -90,7 +91,10 @@ const modelSchema = new mongoose.Schema({
         alternativeAccountNumber: { type: Number },
         bankAccount: { type: String, default: '' },
         
-        hasUsedFreeSale: { type: Boolean, default: false }
+        hasUsedFreeSale: { type: Boolean, default: false },
+        free_sale_available: { type: Boolean, default: true },
+        free_sale_used: { type: Boolean, default: false },
+        free_sale_used_at: { type: Date, default: null }
     },
     deliveryman: {
         photo: { type: String },
@@ -160,6 +164,18 @@ const modelSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true
+});
+
+// Fix old corrupted boolean values for register_conformance
+modelSchema.pre('save', function(next) {
+  if (this.deliveryman && this.deliveryman.register_conformance) {
+    if (this.deliveryman.register_conformance === 'true' || this.deliveryman.register_conformance === true) {
+      this.deliveryman.register_conformance = 'CONFORMANCE';
+    } else if (this.deliveryman.register_conformance === 'false' || this.deliveryman.register_conformance === false) {
+      this.deliveryman.register_conformance = 'INCONFORMANCE';
+    }
+  }
+  next();
 });
 
 // Adicionar índice 2dsphere para pesquisas geoespaciais eficientes

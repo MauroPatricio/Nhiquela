@@ -96,12 +96,17 @@ describe('Teste de Estado da Aplicação (Aberta vs Fechada)', () => {
     await order.save();
 
     // 3. Simular a APP ABERTA enviando o payload errado (com .id em vez de ._id)
-    await new Promise((resolve) => {
-      clientSocket.on('connect', () => {
-        clientSocket.emit('onLogin', { id: driver._id.toString() });
-        setTimeout(resolve, 500); // Dar tempo para o join(`driver_${userId}`) acontecer
+    if (clientSocket.connected) {
+      clientSocket.emit('onLogin', { id: driver._id.toString() });
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } else {
+      await new Promise((resolve) => {
+        clientSocket.once('connect', () => {
+          clientSocket.emit('onLogin', { id: driver._id.toString() });
+          setTimeout(resolve, 500); // Dar tempo para o join(`driver_${userId}`) acontecer
+        });
       });
-    });
+    }
 
     // 4. Escutar no cliente pelo evento 'new_order' (App Aberta)
     const newOrderPromise = new Promise((resolve) => {

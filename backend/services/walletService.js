@@ -451,3 +451,372 @@ export const refundDriverCommissionWithSession = async (driverId, amount, descri
   // Note: we don't commit the session here, the route controller does it
   return wallet;
 };
+
+/**
+ * Automatically close supplier store if wallet balance is below the minimum recommended.
+ */
+export const checkAndDisableSellerIfLowBalance = async (userId) => {
+  try {
+    const User = (await import('../models/UserModel.js')).default;
+    const Settings = (await import('../models/SettingsModel.js')).default;
+    const Provider = (await import('../models/ProviderModel.js')).default;
+    const Product = (await import('../models/ProductModel.js')).default;
+
+    const user = await User.findById(userId);
+    if (!user || !user.seller) return;
+
+    // Se tiver primeira venda grátis ativa, não suspende por saldo baixo!
+    if (user.seller.free_sale_available) {
+      return;
+    }
+
+    const minBalSetting = await Settings.findOne({ key: 'minimum_recommended_balance' });
+    const minBalance = minBalSetting ? Number(minBalSetting.value) : 50;
+
+    const blockSetting = await Settings.findOne({ key: 'block_store_below_minimum' });
+    const blockLow = blockSetting ? (blockSetting.value === 'true' || blockSetting.value === true) : true;
+
+    if (!blockLow) return;
+
+    const wallet = await getWallet(userId, 'seller');
+    if (wallet.balance < minBalance) {
+      user.seller.openstore = false;
+      user.seller.storeStatus = 'CLOSED_LOW_BALANCE';
+      await user.save();
+
+      const provider = await Provider.findOne({ userId });
+      const targetSellerId = provider ? provider._id : userId;
+
+      // Fechar produtos
+      await Product.updateMany(
+        { seller: targetSellerId },
+        { isSellerOpen: false }
+      );
+      console.log(`[Wallet] 🏪 Loja do fornecedor ${userId} fechada automaticamente por saldo insuficiente (${wallet.balance} < ${minBalance}).`);
+    }
+  } catch (err) {
+    console.error('Erro ao suspender loja do fornecedor:', err.message);
+  }
+};
+
+/**
+ * Automatically reopen supplier store if balance satisfies the recommended limit.
+ */
+export const checkAndReactivateSellerIfMinBalance = async (userId) => {
+  try {
+    const User = (await import('../models/UserModel.js')).default;
+    const Settings = (await import('../models/SettingsModel.js')).default;
+    const Provider = (await import('../models/ProviderModel.js')).default;
+    const Product = (await import('../models/ProductModel.js')).default;
+
+    const user = await User.findById(userId);
+    if (!user || !user.seller) return;
+
+    let canOpen = false;
+    if (user.seller.free_sale_available) {
+      canOpen = true;
+    } else {
+      const minBalSetting = await Settings.findOne({ key: 'minimum_recommended_balance' });
+      const minBalance = minBalSetting ? Number(minBalSetting.value) : 50;
+
+      const wallet = await getWallet(userId, 'seller');
+      canOpen = wallet.balance >= minBalance;
+    }
+
+    if (canOpen) {
+      if (user.seller.storeStatus === 'CLOSED_LOW_BALANCE') {
+        user.seller.storeStatus = 'OPEN';
+        user.seller.openstore = true;
+        await user.save();
+
+        const provider = await Provider.findOne({ userId });
+        const targetSellerId = provider ? provider._id : userId;
+
+        // Reabrir produtos
+        await Product.updateMany(
+          { seller: targetSellerId },
+          { isSellerOpen: true }
+        );
+        console.log(`[Wallet] 🏪 Loja do fornecedor ${userId} reaberta automaticamente por saldo suficiente.`);
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao reativar loja do fornecedor:', err.message);
+  }
+};
+
+/**
+ * Process order commission and payout for the seller wallet.
+ * Uses a Mongoose transaction to ensure operations are atomic and safe against concurrent updates.
+ */
+export const processSellerOrderFinancials = async (orderId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const Order = (await import('../models/OrderModel.js')).default;
+    const User = (await import('../models/UserModel.js')).default;
+    const Provider = (await import('../models/ProviderModel.js')).default;
+    const Settings = (await import('../models/SettingsModel.js')).default;
+
+    const order = await Order.findById(orderId).session(session);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (order.isCommissionProcessed) {
+      await session.abortTransaction();
+      session.endSession();
+      return { success: true, alreadyProcessed: true };
+    }
+
+    // Only process if status is completed/delivered
+    const isCompleted = ['Entregue', 'Finalizado'].includes(order.status) || order.isDelivered;
+    if (!isCompleted) {
+      throw new Error('Order is not in a completed status');
+    }
+
+    const provider = await Provider.findById(order.seller).session(session);
+    if (!provider || !provider.userId) {
+      throw new Error('Provider or seller user not found');
+    }
+
+    const sellerUser = await User.findById(provider.userId).session(session);
+    if (!sellerUser) {
+      throw new Error('Seller user account not found');
+    }
+
+    // Get configuration settings
+    const minBalSetting = await Settings.findOne({ key: 'minimum_recommended_balance' }).session(session);
+    const minBalance = minBalSetting ? Number(minBalSetting.value) : 50;
+
+    const commRateSetting = await Settings.findOne({ key: 'platform_commission_rate' }).session(session);
+    const globalCommRate = commRateSetting ? Number(commRateSetting.value) : 15;
+
+    const firstSaleFreeSetting = await Settings.findOne({ key: 'enable_first_sale_free' }).session(session);
+    const enableFirstSaleFree = firstSaleFreeSetting ? (firstSaleFreeSetting.value === 'true' || firstSaleFreeSetting.value === true) : true;
+
+    // Check for First Sale Free promotion
+    let isFreeSale = false;
+    if (enableFirstSaleFree && sellerUser.seller && sellerUser.seller.free_sale_available !== false && !sellerUser.seller.free_sale_used) {
+      isFreeSale = true;
+    }
+
+    const saleAmount = order.totalPrice || 0;
+    const commissionRate = isFreeSale ? 0 : globalCommRate;
+    const commissionAmount = Math.round((saleAmount * (commissionRate / 100)) * 100) / 100;
+    const supplierNetAmount = Math.round((saleAmount - commissionAmount) * 100) / 100;
+
+    // Retrieve or create Seller Wallet inside session
+    let wallet = await Wallet.findOne({ ownerId: sellerUser._id }).session(session);
+    if (!wallet) {
+      wallet = await Wallet.create([{ ownerId: sellerUser._id, ownerType: 'seller', userId: sellerUser._id, balance: 0 }], { session });
+      wallet = wallet[0];
+    }
+
+    const balanceBefore = wallet.balance;
+
+    // Check payment flow:
+    // If not COD (Dinheiro / Pagamento na entrega), we subtract commission from the sale and credit the net amount to the seller's wallet
+    const isPrepaid = order.paymentMethod !== 'Dinheiro' && order.paymentMethod !== 'Pagamento na entrega';
+
+    if (isPrepaid) {
+      // Credit net amount to seller wallet
+      wallet.balance = Math.round((wallet.balance + supplierNetAmount) * 100) / 100;
+      await wallet.save({ session });
+
+      // Create payment transaction
+      await Transaction.create([{
+        walletId: wallet._id,
+        type: 'credit',
+        transaction_type: 'PAYMENT',
+        balance_before: balanceBefore,
+        balance_after: wallet.balance,
+        amount: supplierNetAmount,
+        method: order.paymentMethod || 'online',
+        description: `Receita líquida da venda #${order.code} (comissão de ${commissionAmount} MT retida na venda)`,
+        status: 'confirmado',
+        reference_id: order._id,
+        referenceId: order._id
+      }], { session });
+
+      // Create platform commission record in ledger (neutral to wallet balance)
+      if (commissionAmount > 0) {
+        await Transaction.create([{
+          walletId: wallet._id,
+          type: 'debit',
+          transaction_type: 'COMMISSION',
+          balance_before: wallet.balance,
+          balance_after: wallet.balance,
+          amount: commissionAmount,
+          method: 'wallet',
+          description: `Comissão da plataforma sobre a venda #${order.code} (retida diretamente da venda)`,
+          status: 'confirmado',
+          reference_id: order._id,
+          referenceId: order._id
+        }], { session });
+      }
+    } else {
+      // Cash on Delivery: Seller received 100% in hand. We must debit commission from their wallet.
+      if (commissionAmount > 0) {
+        if (wallet.balance < commissionAmount) {
+          throw new Error('TRANSACTION_REJECTED');
+        }
+
+        wallet.balance = Math.round((wallet.balance - commissionAmount) * 100) / 100;
+        await wallet.save({ session });
+
+        await Transaction.create([{
+          walletId: wallet._id,
+          type: 'debit',
+          transaction_type: 'COMMISSION',
+          balance_before: balanceBefore,
+          balance_after: wallet.balance,
+          amount: commissionAmount,
+          method: 'wallet',
+          description: `Comissão da plataforma sobre a venda em dinheiro #${order.code}`,
+          status: 'confirmado',
+          reference_id: order._id,
+          referenceId: order._id
+        }], { session });
+      }
+    }
+
+    // If free sale was used, update seller user profile
+    if (isFreeSale) {
+      sellerUser.seller.free_sale_available = false;
+      sellerUser.seller.free_sale_used = true;
+      sellerUser.seller.free_sale_used_at = new Date();
+      sellerUser.seller.hasUsedFreeSale = true;
+      await sellerUser.save({ session });
+    }
+
+    // Mark order as processed
+    order.isCommissionProcessed = true;
+    order.siteTax = commissionAmount;
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Perform operational store status checks after commit
+    await checkAndDisableSellerIfLowBalance(sellerUser._id);
+
+    return { success: true, commissionAmount, supplierNetAmount, isFreeSale };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+/**
+ * Reverse order commission and payouts for the seller wallet in case of refunds or cancellations.
+ */
+export const reverseSellerOrderFinancials = async (orderId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const Order = (await import('../models/OrderModel.js')).default;
+    const User = (await import('../models/UserModel.js')).default;
+    const Provider = (await import('../models/ProviderModel.js')).default;
+
+    const order = await Order.findById(orderId).session(session);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (!order.isCommissionProcessed) {
+      await session.abortTransaction();
+      session.endSession();
+      return { success: true, notProcessed: true };
+    }
+
+    const provider = await Provider.findById(order.seller).session(session);
+    if (!provider || !provider.userId) {
+      throw new Error('Provider or seller user not found');
+    }
+
+    const sellerUser = await User.findById(provider.userId).session(session);
+    if (!sellerUser) {
+      throw new Error('Seller user account not found');
+    }
+
+    const wallet = await getWallet(sellerUser._id, 'seller');
+    const balanceBefore = wallet.balance;
+
+    const commissionAmount = order.siteTax || 0;
+    const saleAmount = order.totalPrice || 0;
+    const supplierNetAmount = Math.round((saleAmount - commissionAmount) * 100) / 100;
+
+    const isPrepaid = order.paymentMethod !== 'Dinheiro' && order.paymentMethod !== 'Pagamento na entrega';
+
+    if (isPrepaid) {
+      // We credited supplierNetAmount earlier. We must debit it now.
+      if (wallet.balance < supplierNetAmount) {
+        throw new Error('TRANSACTION_REJECTED');
+      }
+
+      wallet.balance = Math.round((wallet.balance - supplierNetAmount) * 100) / 100;
+      await wallet.save({ session });
+
+      await Transaction.create([{
+        walletId: wallet._id,
+        type: 'debit',
+        transaction_type: 'REFUND',
+        balance_before: balanceBefore,
+        balance_after: wallet.balance,
+        amount: supplierNetAmount,
+        method: 'wallet',
+        description: `Estorno de receita líquida da venda #${order.code} (reembolso/cancelamento)`,
+        status: 'confirmado',
+        reference_id: order._id,
+        referenceId: order._id
+      }], { session });
+    } else {
+      // Cash on Delivery: We debited commissionAmount earlier. We must credit it back.
+      if (commissionAmount > 0) {
+        wallet.balance = Math.round((wallet.balance + commissionAmount) * 100) / 100;
+        await wallet.save({ session });
+
+        await Transaction.create([{
+          walletId: wallet._id,
+          type: 'credit',
+          transaction_type: 'REFUND',
+          balance_before: balanceBefore,
+          balance_after: wallet.balance,
+          amount: commissionAmount,
+          method: 'wallet',
+          description: `Devolução de comissão sobre a venda em dinheiro #${order.code} (cancelamento/reembolso)`,
+          status: 'confirmado',
+          reference_id: order._id,
+          referenceId: order._id
+        }], { session });
+      }
+    }
+
+    // Restore free sale if it was consumed by this order
+    const isFreeSale = commissionAmount === 0 && order.siteTax === 0 && sellerUser.seller.free_sale_used;
+    if (isFreeSale) {
+      sellerUser.seller.free_sale_available = true;
+      sellerUser.seller.free_sale_used = false;
+      sellerUser.seller.free_sale_used_at = null;
+      sellerUser.seller.hasUsedFreeSale = false;
+      await sellerUser.save({ session });
+    }
+
+    order.isCommissionProcessed = false;
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Trigger operational checks after commit
+    await checkAndDisableSellerIfLowBalance(sellerUser._id);
+
+    return { success: true, isFreeSaleRestored: isFreeSale };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};

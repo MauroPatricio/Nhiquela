@@ -53,36 +53,40 @@ statsRouter.get(
       const price = Number(record[priceField]) || 0;
       const tax = Number(taxField) || 0;
       
-      // Receita
-      if (recordDate >= today) receitaHoje += price;
-      if (recordDate >= startOfWeek) receitaSemana += price;
-      if (recordDate >= startOfMonth) receitaMes += price;
+      const isFinalized = record.status === 'Entregue' || 
+                          record.status === 'Finalizado' || 
+                          record.isDelivered || 
+                          record.status === 'delivered';
 
-      lucroEstimado += tax;
+      if (isFinalized) {
+        // Receita
+        if (recordDate >= today) receitaHoje += price;
+        if (recordDate >= startOfWeek) receitaSemana += price;
+        if (recordDate >= startOfMonth) receitaMes += price;
 
-      if (record.status === 'Entregue' || record.isDelivered || record.status === 'delivered') {
+        lucroEstimado += tax;
         numServicosConcluídos++;
-      }
 
-      // Ranking
-      if (record.deliveryman && record.deliveryman.id) {
-        const dId = record.deliveryman.id.toString();
-        if (!motoristasRanking[dId]) {
-          motoristasRanking[dId] = {
-            id: dId,
-            name: record.deliveryman.name || 'Desconhecido',
-            receita: 0,
-            viagens: 0
-          };
+        // Ranking
+        if (record.deliveryman && record.deliveryman.id) {
+          const dId = record.deliveryman.id.toString();
+          if (!motoristasRanking[dId]) {
+            motoristasRanking[dId] = {
+              id: dId,
+              name: record.deliveryman.name || 'Desconhecido',
+              receita: 0,
+              viagens: 0
+            };
+          }
+          motoristasRanking[dId].receita += price;
+          motoristasRanking[dId].viagens += 1;
         }
-        motoristasRanking[dId].receita += price;
-        motoristasRanking[dId].viagens += 1;
-      }
 
-      // Receita por Servico
-      const servicoType = isDelivery ? (record.transportType || 'Entrega/Transporte') : 'Ecommerce/Produtos';
-      if (!receitaPorServico[servicoType]) receitaPorServico[servicoType] = 0;
-      receitaPorServico[servicoType] += price;
+        // Receita por Servico
+        const servicoType = isDelivery ? (record.transportType || 'Entrega/Transporte') : 'Ecommerce/Produtos';
+        if (!receitaPorServico[servicoType]) receitaPorServico[servicoType] = 0;
+        receitaPorServico[servicoType] += price;
+      }
     };
 
     orders.forEach(o => processRecord(o, 'paidAt', 'totalPrice', o.siteTax || 0, false));
@@ -117,7 +121,9 @@ statsRouter.get(
       value: receitaPorServico[name]
     }));
 
-    const receitaTotal = orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0) + deliveries.reduce((sum, d) => sum + (d.deliveryPrice || 0), 0);
+    const isFinalized = r => r.status === 'Entregue' || r.status === 'Finalizado' || r.isDelivered || r.status === 'delivered';
+    const receitaTotal = orders.filter(isFinalized).reduce((sum, o) => sum + (o.totalPrice || 0), 0) + 
+                         deliveries.filter(isFinalized).reduce((sum, d) => sum + (d.deliveryPrice || 0), 0);
     const ticketMedioReal = numServicosConcluídos > 0 ? receitaTotal / numServicosConcluídos : 0;
 
     res.send({
@@ -143,24 +149,34 @@ statsRouter.get(
     const pendingRecharges = await Transaction.countDocuments({ status: 'pendente', type: 'credit' });
     
     // 2. Pending Drivers
-    const pendingDrivers = await User.countDocuments({ isDeliveryMan: true, status: 'Pendente' });
+    const pendingDrivers = await User.countDocuments({ isDeliveryMan: true, status: 'Pendente', isDeleted: { $ne: true } });
     
     // 3. Pending Orders (status: Pendente or Nova)
     const pendingOrders = await Order.countDocuments({ status: 'Pendente', deleted: false });
-
-    // 4. Pending Sellers
+ 
+    // 4. Pending Sellers (registo via nhiquelaseller app)
     const pendingSellers = await User.countDocuments({ 
       isSeller: true, 
       isApproved: false, 
       isBanned: false,
-      registeredFrom: 'nhiquelaseller'
+      registeredFrom: 'nhiquelaseller',
+      isDeleted: { $ne: true }
+    });
+ 
+    // 5. Pending Providers (todos os fornecedores pendentes, qualquer origem)
+    const pendingProviders = await User.countDocuments({ 
+      isSeller: true, 
+      isApproved: false, 
+      isBanned: false,
+      isDeleted: { $ne: true }
     });
 
     res.send({
       pendingRecharges,
       pendingDrivers,
       pendingOrders,
-      pendingSellers
+      pendingSellers,
+      pendingProviders
     });
   })
 );

@@ -308,3 +308,76 @@ export const sendEmailSellerApprovalReminderAdmin = async (sellerName) => {
     console.error('Erro ao enviar email:', error);
   }
 };
+
+export const sendOrderNotificationToSellerEmail = async (sellerEmail, order) => {
+  if (!sellerEmail) return;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'nhiquela <noreply@nhiquelaservicos.com>',
+    to: sellerEmail,
+    subject: `nhiquela - Novo Pedido Recebido Nº ${order.code}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+        <h2 style="color: #7F00FF; text-align: center;">Novo Pedido Recebido!</h2>
+        <p>Olá,</p>
+        <p>Você recebeu um novo pedido de compra na plataforma <strong>Nhiquela</strong>. Por favor, aceda à sua aplicação <strong>Nhiquela Seller</strong> para gerir, aceitar ou rejeitar este pedido.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p><strong>Detalhes do Pedido:</strong></p>
+        <ul>
+          <li><strong>Código do Pedido:</strong> #${order.code}</li>
+          <li><strong>Método de Pagamento:</strong> ${order.paymentMethod}</li>
+          <li><strong>Valor Total:</strong> ${order.totalPrice.toFixed(2)} MT</li>
+        </ul>
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://nhiquelashop.co.mz" style="background-color: #7F00FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Aceder ao Painel</a>
+        </div>
+        <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">Este é um e-mail automático, por favor não responda.</p>
+      </div>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.error('Error sending seller order email notification:', error);
+    } else {
+      console.log('Seller order email notification sent:', info.response);
+    }
+  });
+};
+
+export const sendUserBlockStatusEmail = async (email, name, isBanned) => {
+  if (!email) return;
+
+  const subject = isBanned 
+    ? "nhiquela - A sua conta foi bloqueada" 
+    : "nhiquela - A sua conta foi desbloqueada";
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'nhiquela <noreply@nhiquelaservicos.com>',
+    to: email,
+    subject: subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+        <h2 style="color: ${isBanned ? '#DC2626' : '#16A34A'}; text-align: center;">
+          ${isBanned ? 'Conta Bloqueada' : 'Conta Desbloqueada'}
+        </h2>
+        <p>Olá, <strong>${name}</strong>,</p>
+        <p>
+          ${isBanned 
+            ? 'Lamentamos informar que a sua conta na plataforma <strong>Nhiquela</strong> foi suspensa/bloqueada pelo administrador. Se acredita que isto é um erro, por favor contacte o nosso suporte.' 
+            : 'Temos o prazer de informar que a sua conta na plataforma <strong>Nhiquela</strong> foi reativada/desbloqueada pelo administrador. Já pode aceder e utilizar todos os nossos serviços.'}
+        </p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #999; text-align: center;">Este é um e-mail automático, por favor não responda.</p>
+      </div>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.error('Error sending block/unblock status email:', error);
+    } else {
+      console.log('Block/unblock status email sent:', info.response);
+    }
+  });
+};

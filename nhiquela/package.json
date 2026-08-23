@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node --require ./polyfill.js ./node_modules/expo/bin/cli start",
     "start:clear": "node --require ./polyfill.js ./node_modules/expo/bin/cli start --clear",
@@ -12,7 +15,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "jest",
-    "security-check": "npm audit --audit-level=critical"
+    "security-check": "npm audit --audit-level=critical",
+    "postinstall": "node patch_node_modules.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

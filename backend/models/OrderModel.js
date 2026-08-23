@@ -158,7 +158,9 @@ const orderSchema = new mongoose.Schema(
     isDeletedByRequester: { type: Boolean, default: false },
     isSupplierPaid: { type: Boolean, default: false },
     isDeliverPaid: { type: Boolean, default: false },
+    isCommissionProcessed: { type: Boolean, default: false },
     isUserWantDelivery: { type: Boolean, default: false },
+    isExternalDelivery: { type: Boolean, default: false },
 
     // Intelligent Dispatch Fields
     isSearching: { type: Boolean, default: false },
@@ -190,6 +192,29 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+orderSchema.post('save', async function(doc) {
+  const isCompleted = ['Entregue', 'Finalizado'].includes(doc.status) || doc.isDelivered;
+  if (isCompleted && !doc.isCommissionProcessed) {
+    try {
+      const { processSellerOrderFinancials } = await import('../services/walletService.js');
+      processSellerOrderFinancials(doc._id).catch(err => {
+        console.error('[Mongoose Hook] Erro ao processar financeiro do fornecedor:', err.message);
+      });
+    } catch (err) {
+      console.error('[Mongoose Hook] Erro ao carregar walletService:', err.message);
+    }
+  } else if (!isCompleted && doc.isCommissionProcessed) {
+    try {
+      const { reverseSellerOrderFinancials } = await import('../services/walletService.js');
+      reverseSellerOrderFinancials(doc._id).catch(err => {
+        console.error('[Mongoose Hook] Erro ao estornar financeiro do fornecedor:', err.message);
+      });
+    } catch (err) {
+      console.error('[Mongoose Hook] Erro ao carregar walletService para estorno:', err.message);
+    }
+  }
+});
 
 const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
 

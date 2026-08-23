@@ -102,11 +102,63 @@ adminOpsRouter.post(
       if (action === 'APPROVE') {
         driver.deliveryman.register_conformance = 'CONFORMANCE';
         driver.isApproved = true;
+        driver.status = 'Disponível';
+        driver.availability = 'active';
       } else {
         driver.deliveryman.register_conformance = 'INCONFORMANCE';
-        // Pode-se enviar um email ou notificação com o motivo (reason)
+        driver.isApproved = false;
+        driver.status = 'Inativo';
+        driver.availability = 'inactive';
       }
+      driver.markModified('deliveryman');
       await driver.save();
+
+      // ** Notificações e Sockets em Tempo Real **
+      try {
+        const io = req.app.get('io');
+        const users = req.app.get('users') || [];
+        
+        const payload = {
+          status: driver.status,
+          register_conformance: driver.deliveryman?.register_conformance,
+          isApproved: driver.isApproved,
+          message: action === 'APPROVE'
+            ? '✅ A sua conta foi aprovada! Já pode receber pedidos.'
+            : '❌ A sua conta foi suspensa. Contacte o suporte.',
+        };
+
+        if (io) {
+          // Emissão para a sala (room) do motorista e utilizador
+          io.to(`driver_${driver._id}`).emit('driver_status_updated', payload);
+          io.to(`user_${driver._id}`).emit('userStatusChanged', {
+            userId: driver._id,
+            isApproved: driver.isApproved,
+            isBanned: driver.isBanned,
+            status: driver.status
+          });
+
+          // Emissão directa
+          const activeUserSocket = users.find(u => u._id && u._id.toString() === driver._id.toString());
+          if (activeUserSocket?.socketId) {
+            io.to(activeUserSocket.socketId).emit('driver_status_updated', payload);
+          }
+        }
+
+        // Notificação Push via FCM/Expo
+        if (driver.deviceToken) {
+          const { sendNotification } = await import('../utils/sendNotification.js');
+          await sendNotification(
+            driver.deviceToken,
+            action === 'APPROVE' ? 'Conta Aprovada 🚀' : 'Conta Atualizada 🔔',
+            action === 'APPROVE'
+              ? 'A sua conta foi aprovada! Já pode receber pedidos e começar a trabalhar.'
+              : `A sua conta de motorista foi rejeitada. Motivo: ${reason || 'Documentação não conforme.'}`
+          );
+        }
+      } catch (err) {
+        console.error('Erro ao notificar alteração KYC:', err);
+      }
+
       res.send({ message: `Documentos ${action === 'APPROVE' ? 'Aprovados' : 'Rejeitados'}` });
     } else {
       res.status(404).send({ message: 'Motorista não encontrado' });

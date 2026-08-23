@@ -310,7 +310,13 @@ export default function DriverHeader({
 
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={16} color={COLORS.warning} />
-          <Text style={styles.rating}>{Number(user?.deliveryman?.averageRating || user?.rating || 0).toFixed(1)}</Text>
+          <Text style={styles.rating}>
+            {(() => {
+              const val = user?.deliveryman?.averageRating ?? user?.deliveryman?.rating ?? user?.rating ?? userRating;
+              const num = Number(val);
+              return (isNaN(num) || num === 0) ? "5.0" : num.toFixed(1);
+            })()}
+          </Text>
         </View>
       </View>
 

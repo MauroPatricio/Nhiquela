@@ -75,7 +75,7 @@ const SellerScreen = () => {
       address: nested.address ?? active.address ?? address,
       latitude: lat,
       longitude: lng,
-      openstore: nested.openstore !== undefined ? nested.openstore : (active.openstore !== undefined ? active.openstore : openstore),
+      openstore: nested.openstore === true || active.openstore === true || openstore === true,
       tipoEstabelecimento: nested.tipoEstabelecimento ?? active.tipoEstabelecimento ?? tipoEstabelecimento
     };
   }, [sellerDetails, id, name, logo, description, rating, numReviews, province, address, latitude, longitude, openstore, tipoEstabelecimento]);

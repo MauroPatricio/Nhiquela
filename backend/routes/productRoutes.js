@@ -58,12 +58,12 @@ export const getActiveProviderIds = async () => {
   
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
-  // Filtrar apenas vendedores com conta aprovada e saldo maior que zero
+  // Filtrar apenas vendedores com conta aprovada e saldo >= 50 MT
   const activeSellerIds = sellers.filter(s => {
     if (!s.seller?.hasUsedFreeSale) return true; // Primeira venda gratuita, sempre activo
     const wallet = walletMap.get(s._id.toString());
-    // Excluir se o saldo for menor ou igual a 0
-    if (!wallet || wallet.balance <= 0) {
+    // Excluir se o saldo for menor que 50 MT
+    if (!wallet || wallet.balance < 50) {
       return false;
     }
     return true;
@@ -146,7 +146,7 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
 
   const [products, countProducts] = await Promise.all([
     Product.find(filters)
-      .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
+      .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
       .populate('category province conditionStatus qualityType size color')
       .sort(sortOrder)
       .skip(pageSize * (page - 1))
@@ -165,7 +165,14 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
         return true;
       });
 
-  return { products: validProducts, countProducts, page, pages: Math.ceil(countProducts / pageSize) };
+  const mappedProducts = validProducts.map(p => {
+    if (p.seller && typeof p.seller === 'object' && p.seller.userId && typeof p.seller.userId === 'object') {
+      p.isSellerOpen = p.seller.userId.seller?.openstore !== false;
+    }
+    return p;
+  });
+
+  return { products: mappedProducts, countProducts, page, pages: Math.ceil(countProducts / pageSize) };
 };
 
 // ----------------------------- ROTAS -----------------------------
@@ -173,11 +180,19 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
 // GET /products/admin/all (Retorna TODOS os produtos para o painel Admin Web)
 productRoutes.get('/admin/all', isAuth, isAdmin, expressAsyncHandler(async (req, res) => {
   const products = await Product.find({})
-    .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
+    .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
     .populate('category province conditionStatus qualityType size color')
     .sort({ createdAt: -1 })
     .lean();
-  res.send({ products, pages: 1 });
+
+  const mappedProducts = products.map(p => {
+    if (p.seller && typeof p.seller === 'object' && p.seller.userId && typeof p.seller.userId === 'object') {
+      p.isSellerOpen = p.seller.userId.seller?.openstore !== false;
+    }
+    return p;
+  });
+
+  res.send({ products: mappedProducts, pages: 1 });
 }));
 
 // GET /products (lista com filtros + paginao)
@@ -234,6 +249,15 @@ productRoutes.get('/bycategory', async (req, res) => {
       },
       { $unwind: { path: '$sellerDetails', preserveNullAndEmptyArrays: true } },
       {
+        $lookup: {
+          from: 'users',
+          localField: 'sellerDetails.userId',
+          foreignField: '_id',
+          as: 'sellerUserDetails',
+        },
+      },
+      { $unwind: { path: '$sellerUserDetails', preserveNullAndEmptyArrays: true } },
+      {
         $group: {
           _id: '$categoryDetails._id',
           category: { $first: '$categoryDetails' },
@@ -247,6 +271,7 @@ productRoutes.get('/bycategory', async (req, res) => {
               price: '$price',
               isActive: '$isActive',
               seller: '$sellerDetails',
+              isSellerOpen: { $ifNull: ['$sellerUserDetails.seller.openstore', false] }
             },
           },
         },
@@ -316,7 +341,7 @@ productRoutes.get('/bycategory/:id', async (req, res) => {
 
     const [products, totalProducts] = await Promise.all([
       Product.find(filter)
-        .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
+        .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
         .populate('category province')
         .sort({ createdAt: -1 })
         .skip((page - 1) * pageSize)
@@ -325,11 +350,18 @@ productRoutes.get('/bycategory/:id', async (req, res) => {
       Product.countDocuments(filter),
     ]);
 
+    const mappedProducts = products.map(p => {
+      if (p.seller && typeof p.seller === 'object' && p.seller.userId && typeof p.seller.userId === 'object') {
+        p.isSellerOpen = p.seller.userId.seller?.openstore !== false;
+      }
+      return p;
+    });
+
     res.status(200).json({
       totalPages: Math.ceil(totalProducts / pageSize),
       currentPage: page,
       totalProducts,
-      products,
+      products: mappedProducts,
     });
   } catch (error) {
     res.status(500).send({ message: 'Erro ao buscar produtos pela categoria', error });
@@ -444,6 +476,7 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
       price: priceWithComission,
       comissionPercentage: comission_price,
       isActive: user.isApproved,
+      isSellerOpen: user.seller?.openstore || false,
       slug: crypto.randomBytes(3).toString('hex'),
     });
 
@@ -465,11 +498,15 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
 productRoutes.get('/slug/:slug', async (req, res) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug })
-      .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
+      .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
       .populate('category conditionStatus qualityType size color')
       .lean();
 
-    if (!product) return res.status(404).send({ message: 'Produto n�o encontrado' });
+    if (!product) return res.status(404).send({ message: 'Produto não encontrado' });
+    
+    if (product.seller && typeof product.seller === 'object' && product.seller.userId && typeof product.seller.userId === 'object') {
+      product.isSellerOpen = product.seller.userId.seller?.openstore !== false;
+    }
     res.send(product);
   } catch (error) {
     res.status(500).send({ message: 'Erro ao buscar produto', error });
@@ -581,11 +618,15 @@ productRoutes.get('/search', expressAsyncHandler(async (req, res) => {
 productRoutes.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate({ path: 'seller', populate: { path: 'subcategoryId' } })
+      .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
       .populate('color size category province qualityType conditionStatus')
       .lean();
 
-    if (!product) return res.status(404).send({ message: 'Produto n�o encontrado' });
+    if (!product) return res.status(404).send({ message: 'Produto não encontrado' });
+    
+    if (product.seller && typeof product.seller === 'object' && product.seller.userId && typeof product.seller.userId === 'object') {
+      product.isSellerOpen = product.seller.userId.seller?.openstore !== false;
+    }
     res.send(product);
   } catch (error) {
     res.status(500).send({ message: 'Erro ao buscar o produto', error });
