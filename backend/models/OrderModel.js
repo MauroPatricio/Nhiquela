@@ -162,6 +162,20 @@ const orderSchema = new mongoose.Schema(
     isUserWantDelivery: { type: Boolean, default: false },
     isExternalDelivery: { type: Boolean, default: false },
 
+    // 🔥 CAMPOS PARA PEDIDOS DIGITAIS
+    isDigitalOrder: { type: Boolean, default: false },
+    digitalRecipientEmail: { type: String, default: '' },
+    digitalRecipientPhone: { type: String, default: '' },
+    digitalDeliveredItems: [
+      {
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+        productName: { type: String },
+        key: { type: String },
+        digitalInstructions: { type: String },
+        deliveredAt: { type: Date, default: Date.now }
+      }
+    ],
+
     // Intelligent Dispatch Fields
     isSearching: { type: Boolean, default: false },
     searchRadius: { type: Number, default: 3000 },
@@ -187,6 +201,34 @@ const orderSchema = new mongoose.Schema(
       lat: { type: Number },
       lng: { type: Number },
     },
+
+    // Fotos do veículo
+    vehiclePhotos: {
+      front: { type: String },
+      rear: { type: String },
+      leftSide: { type: String },
+      rightSide: { type: String }
+    },
+
+    // Negociação de Valor
+    basePrice: { type: Number },
+    finalAgreedPrice: { type: Number },
+    negotiationState: {
+      type: String,
+      enum: ['NONE', 'NEGOTIATING', 'PENDING_CUSTOMER', 'PENDING_PROVIDER', 'ACCEPTED', 'REJECTED', 'EXPIRED'],
+      default: 'NONE'
+    },
+    negotiationRoundCount: { type: Number, default: 0 },
+    maxNegotiationRounds: { type: Number, default: 3 },
+    negotiationHistory: [
+      {
+        proposedBy: { type: String, enum: ['PROVIDER', 'CUSTOMER'] },
+        amount: { type: Number, required: true },
+        note: { type: String },
+        status: { type: String, enum: ['PROPOSED', 'ACCEPTED', 'REJECTED'] },
+        timestamp: { type: Date, default: Date.now }
+      }
+    ],
   },
   {
     timestamps: true,

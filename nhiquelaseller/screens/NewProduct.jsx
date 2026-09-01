@@ -78,7 +78,12 @@ const validationSchema = Yup.object().shape({
   image: Yup.string().required('A imagem é obrigatória'),
   price: Yup.number().required('O preço é obrigatório'),
   category: Yup.string().required('A categoria é obrigatória'),
-  province: Yup.string().required('A província é obrigatória'),
+  productType: Yup.string(),
+  province: Yup.string().when('productType', {
+    is: 'DIGITAL',
+    then: (schema) => schema.optional().nullable(),
+    otherwise: (schema) => schema.required('A província é obrigatória'),
+  }),
   brand: Yup.string().required('A marca/sabor é obrigatória'),
   countInStock: Yup.number().required('Quantidade é obrigatória'),
 });
@@ -116,6 +121,8 @@ const NewProduct = () => {
   // Estados locais dos campos do formulário
   const [name, setName] = useState('');
   const [nome, setNome] = useState('');
+  const [productType, setProductType] = useState('PHYSICAL');
+  const [digitalInstructions, setDigitalInstructions] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [province, setProvince] = useState('');
@@ -129,8 +136,23 @@ const NewProduct = () => {
       try {
         const storedUser = await AsyncStorage.getItem('userData');
         if (storedUser) {
-          const parsed = JSON.parse(storedUser);
+          let parsed = JSON.parse(storedUser);
+          
+          // Refresh user profile quietly to check if approval status changed
+          try {
+            const { data } = await api.get(`/users/${parsed._id}`, {
+              headers: { authorization: `Bearer ${parsed.token}` }
+            });
+            if (data && (data.isApproved !== parsed.isApproved || data.status !== parsed.status)) {
+               parsed = { ...parsed, isApproved: data.isApproved, status: data.status };
+               await AsyncStorage.setItem('userData', JSON.stringify(parsed));
+            }
+          } catch (apiErr) {
+            console.log('Erro ao actualizar perfil no NewProduct:', apiErr);
+          }
+          
           setUserData(parsed);
+          
           if (!parsed.isApproved) {
             const storedEnd = await AsyncStorage.getItem('@approval_timer_end');
             if (storedEnd) {
@@ -240,6 +262,8 @@ const NewProduct = () => {
     if (editingProduct) {
       setNome(editingProduct.nome || '');
       setName(editingProduct.name || '');
+      setProductType(editingProduct.productType || 'PHYSICAL');
+      setDigitalInstructions(editingProduct.digitalInstructions || '');
       setPrice(editingProduct.price?.toString() || '');
       setCategory(editingProduct.category?._id || '');
       setProvince(editingProduct.province?._id || '');
@@ -254,6 +278,8 @@ const NewProduct = () => {
 
   const resetLocalState = () => {
     setEditingProduct(null);
+    setProductType('PHYSICAL');
+    setDigitalInstructions('');
     setSelectedColors([]);
     setSelectedSizes([]);
     setImage(null);
@@ -359,6 +385,7 @@ const NewProduct = () => {
     try {
       const payload = {
         ...values,
+        province: (values.province && values.province.trim() !== '') ? values.province : null,
         color: selectedColors,
         size: selectedSizes,
         isSellerOpen: userData?.seller?.openstore || false
@@ -454,6 +481,8 @@ const NewProduct = () => {
                 initialValues={{
                   nome: nome,
                   name: name,
+                  productType: productType,
+                  digitalInstructions: digitalInstructions,
                   image: image || '',
                   price: price,
                   category: category,
@@ -495,6 +524,92 @@ const NewProduct = () => {
                       {touched.image && errors.image && <Text style={styles.errorTextCenter}>{errors.image}</Text>}
                     </View>
 
+                    {/* Tipo de Produto (Físico vs Digital) */}
+                    <Text style={styles.sectionTitle}>Tipo de Produto</Text>
+                    <View style={styles.productTypeContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.productTypeTile,
+                          values.productType === 'PHYSICAL' && styles.productTypeTileActive
+                        ]}
+                        onPress={() => {
+                          setFieldValue('productType', 'PHYSICAL');
+                          setProductType('PHYSICAL');
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                          <View style={[styles.productTypeIconBg, values.productType === 'PHYSICAL' && styles.productTypeIconBgActive]}>
+                            <Ionicons
+                              name="cube-outline"
+                              size={18}
+                              color={values.productType === 'PHYSICAL' ? '#FFF' : COLORS.textMuted}
+                            />
+                          </View>
+                          <View style={{ marginLeft: 8, flex: 1 }}>
+                            <Text style={[styles.productTypeTitle, values.productType === 'PHYSICAL' && { color: COLORS.primary, fontWeight: '700' }]}>
+                              Físico
+                            </Text>
+                            <Text style={styles.productTypeSub}>Com entrega</Text>
+                          </View>
+                        </View>
+                        <View style={[styles.radioCircle, values.productType === 'PHYSICAL' && styles.radioCircleActive]}>
+                          {values.productType === 'PHYSICAL' && <View style={styles.radioInnerCircle} />}
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.productTypeTile,
+                          values.productType === 'DIGITAL' && styles.productTypeTileActive
+                        ]}
+                        onPress={() => {
+                          setFieldValue('productType', 'DIGITAL');
+                          setProductType('DIGITAL');
+                          setFieldValue('province', '');
+                          setProvince('');
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                          <View style={[styles.productTypeIconBg, values.productType === 'DIGITAL' && styles.productTypeIconBgActive]}>
+                            <Ionicons
+                              name="key-outline"
+                              size={18}
+                              color={values.productType === 'DIGITAL' ? '#FFF' : COLORS.textMuted}
+                            />
+                          </View>
+                          <View style={{ marginLeft: 8, flex: 1 }}>
+                            <Text style={[styles.productTypeTitle, values.productType === 'DIGITAL' && { color: COLORS.primary, fontWeight: '700' }]}>
+                              Digital
+                            </Text>
+                            <Text style={styles.productTypeSub}>Licença / Código</Text>
+                          </View>
+                        </View>
+                        <View style={[styles.radioCircle, values.productType === 'DIGITAL' && styles.radioCircleActive]}>
+                          {values.productType === 'DIGITAL' && <View style={styles.radioInnerCircle} />}
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
+                    {values.productType === 'DIGITAL' && (
+                      <View style={{ marginBottom: 12 }}>
+                        {renderInput(
+                          "information-circle-outline",
+                          "Instruções de resgate/ativação (opcional)",
+                          values.digitalInstructions,
+                          (t) => {
+                            setFieldValue('digitalInstructions', t);
+                            setDigitalInstructions(t);
+                          },
+                          handleBlur('digitalInstructions'),
+                          null,
+                          "default",
+                          true
+                        )}
+                      </View>
+                    )}
+
                     <Text style={styles.sectionTitle}>Informações Básicas</Text>
 
                     {renderInput("text-outline", "Nome do produto (PT) *", values.nome, (t) => { handleChange('nome')(t); setNome(t); }, handleBlur('nome'), touched.nome && errors.nome)}
@@ -526,17 +641,39 @@ const NewProduct = () => {
                       error={touched.category && errors.category ? errors.category : null}
                     />
 
-                    <PremiumSelect
-                      icon="location-outline"
-                      label="Localização do Produto *"
-                      selectedValue={values.province}
-                      onValueChange={(val) => { setFieldValue('province', val); setProvince(val); }}
-                      items={[
-                        { label: 'Localização do Produto *', value: '' },
-                        ...provinces.map(p => ({ label: p.name, value: p._id }))
-                      ]}
-                      error={touched.province && errors.province ? errors.province : null}
-                    />
+                    {values.productType === 'DIGITAL' ? (
+                      <View style={{ width: '100%', marginBottom: 16 }}>
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: COLORS.surfaceCard || '#fafafa',
+                          borderWidth: 1,
+                          borderColor: COLORS.borderLight || '#e0e0e0',
+                          borderRadius: RADIUS.md || 12,
+                          paddingHorizontal: 16,
+                          height: 56,
+                          ...SHADOWS.sm
+                        }}>
+                          <Ionicons name="location-outline" size={20} color={COLORS.primary} style={{ marginRight: 12, opacity: 0.8 }} />
+                          <Text style={{ flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '600' }}>
+                            Localização do Produto: Não aplicável
+                          </Text>
+                          <Ionicons name="lock-closed" size={18} color="#9e9e9e" />
+                        </View>
+                      </View>
+                    ) : (
+                      <PremiumSelect
+                        icon="location-outline"
+                        label="Localização do Produto *"
+                        selectedValue={values.province}
+                        onValueChange={(val) => { setFieldValue('province', val); setProvince(val); }}
+                        items={[
+                          { label: 'Localização do Produto *', value: '' },
+                          ...provinces.map(p => ({ label: p.name, value: p._id }))
+                        ]}
+                        error={touched.province && errors.province ? errors.province : null}
+                      />
+                    )}
 
                     {/* Cores */}
                     <View style={styles.inputGroup}>
@@ -1079,5 +1216,65 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
     fontSize: SIZES.sm,
+  },
+  productTypeContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  productTypeTile: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceCard || '#FAFAFA',
+    borderWidth: 1.5,
+    borderColor: COLORS.borderLight || '#E0E0E0',
+    borderRadius: RADIUS.md || 12,
+    padding: 12,
+  },
+  productTypeTileActive: {
+    borderColor: COLORS.primary || '#7F00FF',
+    backgroundColor: '#F5F0FF',
+  },
+  productTypeIconBg: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productTypeIconBgActive: {
+    backgroundColor: COLORS.primary || '#7F00FF',
+  },
+  productTypeTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text || '#1E293B',
+  },
+  productTypeSub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  radioCircle: {
+    height: 18,
+    width: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  radioCircleActive: {
+    borderColor: COLORS.primary || '#7F00FF',
+  },
+  radioInnerCircle: {
+    height: 8,
+    width: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary || '#7F00FF',
   },
 });

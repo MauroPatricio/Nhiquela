@@ -1,7 +1,7 @@
 import express from 'express';
 import RequestService from '../models/RequestServiceModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman, sendNegotiationEmail, containsPhoneNumber } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, calculateDynamicCommission, checkAndDisableDriverIfLowBalance } from '../services/walletService.js';
@@ -127,7 +127,24 @@ requestServiceer.post(
       destination: req.body.destination,
       originDetails: req.body.originDetails || null,
       destinationDetails: req.body.destinationDetails || null,
-      stops: req.body.stops || [],
+      stops: (req.body.stops || []).map(s => ({
+        address: s.address || s.text || '',
+        lat: Number(s.lat || s.latitude),
+        lng: Number(s.lng || s.longitude)
+      })),
+      deliveryStops: (req.body.stops || []).map((s, idx) => ({
+        sequence: s.sequence || (idx + 1),
+        address: s.address || s.text || `Paragem #${idx + 1}`,
+        latitude: Number(s.lat || s.latitude),
+        longitude: Number(s.lng || s.longitude),
+        recipientName: s.recipientName || s.name || `Destinatário #${idx + 1}`,
+        recipientPhone: s.recipientPhone || s.phone || req.body.phoneNumber || '000000000',
+        status: 'PENDING',
+        proofOfDelivery: {
+          otp: Math.floor(1000 + Math.random() * 9000).toString(),
+          otpVerified: false
+        }
+      })),
       paymentOption: req.body.paymentOption,
       description: req.body.description,
       paymentMethod: req.body.paymentMethod,
@@ -172,6 +189,7 @@ requestServiceer.post(
           serviceId,
           originLoc: { lat: originDetails.lat, lng: originDetails.lng },
           destLoc: { lat: destinationDetails.lat, lng: destinationDetails.lng },
+          stops: req.body.stops || [],
           clientSuggestedPrice: req.body.deliveryPrice,
           providerId: req.body.targetDriverId
         });
@@ -204,22 +222,53 @@ requestServiceer.post(
       console.log(`[PricingService] ℹ️  Campos insuficientes para cálculo OSRM. A usar fallback do cliente.`);
     }
 
-    let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
+    // ============================================================
+    // VALIDAÇÃO DE FOTOS E CONFIGURAÇÃO DE NEGOCIAÇÃO POR SUBCATEGORIA
+    // ============================================================
+    try {
+      const ProviderSubcategory = mongoose.model('ProviderSubcategory');
+      let subcat = null;
+      if (newOrder.serviceId) {
+        subcat = await ProviderSubcategory.findById(newOrder.serviceId);
+      } else if (req.body.transportType) {
+        subcat = await ProviderSubcategory.findOne({
+          $or: [
+            { _id: mongoose.Types.ObjectId.isValid(req.body.transportType) ? req.body.transportType : null },
+            { name: { $regex: new RegExp(`^${req.body.transportType}$`, 'i') } }
+          ]
+        });
+      }
 
-    //  Para envio de mensagens
-    // const sellerOfProduct = await User.findById(newOrder.seller);
+      if (subcat) {
+        if (!newOrder.serviceId) newOrder.serviceId = subcat._id;
+        
+        if (subcat.requiresPhotos) {
+          const vp = req.body.vehiclePhotos;
+          if (!vp || !vp.front || !vp.rear || !vp.leftSide || !vp.rightSide) {
+            return res.status(400).send({
+              message: 'É obrigatório fornecer as 4 fotografias do veículo (frente, traseira, lado esquerdo e lado direito).'
+            });
+          }
+          newOrder.vehiclePhotos = {
+            front: vp.front,
+            rear: vp.rear,
+            leftSide: vp.leftSide,
+            rightSide: vp.rightSide
+          };
+        } else if (req.body.vehiclePhotos) {
+          newOrder.vehiclePhotos = req.body.vehiclePhotos;
+        }
 
-    if (newOrder.isPaid) {
-      // Enviar sms para o fornecedor
-      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`;
-      sendSMSToUSendItDeliverman(msg);
-    } else {
-      let msg = `Olá, a Nhiquela  informa que possui um novo pedido com o código n ${newOrder.code}`;
-      sendSMSToUSendItAdmin(msg);
+        if (subcat.allowNegotiation) {
+          newOrder.maxNegotiationRounds = subcat.maxNegotiationRounds || 3;
+          newOrder.negotiationState = 'NONE';
+        }
+      }
+    } catch (subErr) {
+      console.error('Erro ao verificar subcategoria:', subErr);
     }
 
-    sendEmailOrderStatus(req, mailText, newOrder, res);
-
+    newOrder.basePrice = newOrder.deliveryPrice;
 
     const requestService = await newOrder.save();
     await requestService.populate([
@@ -227,49 +276,33 @@ requestServiceer.post(
       { path: 'serviceId', select: 'name' }
     ]);
 
+    const clientUser = await User.findById(req.user._id);
+    const orderPayload = { 
+      ...requestService.toObject(), 
+      type: 'requestService',
+      passengerName: clientUser ? clientUser.name : (req.user.name || "Cliente"),
+      passengerImage: clientUser ? (clientUser.profileImage || clientUser.photo) : null,
+      passengerPhone: clientUser ? clientUser.phoneNumber : (req.user.phoneNumber || "000000000")
+    };
+
+    // 🔥 1. DESPACHO INSTANTÂNEO VIA WEBSOCKET (0ms delay)
     const io = req.app.get('io');
-    if (io) {
-      console.log(`[Dispatch Flow] targetDriverId: ${newOrder.targetDriverId}, isScheduled: ${newOrder.isScheduled}`);
-      if (newOrder.targetDriverId) {
-        const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
-        
-        const driverRoom = `driver_${newOrder.targetDriverId}`;
-        const sockets = await io.in(driverRoom).fetchSockets();
-        const isSocketConnected = sockets && sockets.length > 0;
-        
-        console.log(`\n====================================================`);
-        console.log(`[Dispatch Flow] 🚀 Pedido #${newOrder.code} enviado pelo cliente!`);
-        console.log(`[Dispatch Flow] 🎯 Motorista Alvo: ${targetDriver ? targetDriver.name : newOrder.targetDriverId}`);
-        console.log(`[Dispatch Flow] 📡 WebSocket Status: ${isSocketConnected ? 'ONLINE ✅ (O motorista RECEBEU o popup na app aberta)' : 'OFFLINE ❌ (A app do motorista está fechada, vai tentar via Push)'}`);
-        console.log(`====================================================\n`);
-
-        const clientUser = await User.findById(req.user._id);
-        const orderPayload = { 
-          ...requestService.toObject(), 
-          type: 'requestService',
-          passengerName: clientUser ? clientUser.name : (req.user.name || "Cliente"),
-          passengerImage: clientUser ? (clientUser.profileImage || clientUser.photo) : null,
-          passengerPhone: clientUser ? clientUser.phoneNumber : (req.user.phoneNumber || "000000000")
-        };
-        io.to(driverRoom).emit('new_order', orderPayload);
-
-        // Push notification para o motorista alvo
-        if (targetDriver) {
-          console.log(`[Dispatch Flow] 📲 Tentativa Push Notification (FCM) - token: ${targetDriver.deviceToken ? '✓ VÁLIDO' : '✗ SEM TOKEN (Não vai receber push)'}`);
-          createNotification({
-            message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
-            receiver_id: targetDriver._id,
-            pushToken: targetDriver.deviceToken || null
-          });
-        } else {
-          console.warn(`[Dispatch Flow] ⚠️ Motorista ${newOrder.targetDriverId} não encontrado na BD.`);
+    if (!newOrder.isScheduled) {
+      if (io) {
+        console.log(`[Dispatch Flow] 🚀 Disparo instantâneo do Pedido #${newOrder.code} via WebSocket!`);
+        if (newOrder.targetDriverId) {
+          const driverRoom = `driver_${newOrder.targetDriverId}`;
+          io.to(driverRoom).emit('new_order', orderPayload);
         }
+        io.emit('new_order', orderPayload);
+      }
 
+      if (newOrder.targetDriverId) {
         // 45s timeout logic
         setTimeout(async () => {
           try {
             const checkOrder = await RequestService.findById(requestService._id);
-            if (checkOrder && checkOrder.status === 'Pendente') {
+            if (checkOrder && checkOrder.status === 'Pendente' && (!checkOrder.negotiationState || checkOrder.negotiationState === 'NONE')) {
               checkOrder.status = 'Motorista indisponível';
               checkOrder.targetDriverId = null;
               checkOrder.canceledReason = 'Tempo esgotado (45s)';
@@ -294,52 +327,74 @@ requestServiceer.post(
             console.error('[RequestService Timeout Error]', e);
           }
         }, 45000);
-      } else if (newOrder.isScheduled) {
-        // ============================================================
-        // PEDIDO AGENDADO â€” NÃO despachar agora.
-        // Notificar apenas o cliente com a confirmação do agendamento.
-        // ============================================================
-        const orderPayload = { ...requestService.toObject(), type: 'requestService' };
+      }
+    } else if (newOrder.isScheduled) {
+      // ============================================================
+      // PEDIDO AGENDADO — NÃO despachar agora.
+      // Notificar apenas o cliente com a confirmação do agendamento.
+      // ============================================================
+      const scheduledPayload = { ...requestService.toObject(), type: 'requestService' };
 
-        // Notificar o cliente via socket (confirmação de agendamento)
-        const users = req.app.get('users') || [];
-        const orderUser = users.find((x) => x._id === req.user._id.toString());
-        if (orderUser) {
-          io.to(orderUser.socketId).emit('order_scheduled', orderPayload);
+      // Notificar o cliente via socket (confirmação de agendamento)
+      const users = req.app.get('users') || [];
+      const orderUser = users.find((x) => x._id === req.user._id.toString());
+      if (orderUser && io) {
+        io.to(orderUser.socketId).emit('order_scheduled', scheduledPayload);
+      }
+
+      // Buscar todos os motoristas disponíveis e notificá-los do novo serviço agendado
+      const availableDrivers = await User.find({
+        role: 'deliveryman',
+        'deliveryman.status': { $in: ['Disponível', 'Em Entrega'] },
+        deviceToken: { $exists: true, $ne: null }
+      }).select('_id deviceToken deliveryman');
+
+      const scheduledDateStr = requestService.scheduledAt
+        ? new Date(requestService.scheduledAt).toLocaleString('pt-PT', { timeZone: 'Africa/Maputo', dateStyle: 'short', timeStyle: 'short' })
+        : 'hora não definida';
+
+      for (const driver of availableDrivers) {
+        if (io) io.to(`driver_${driver._id}`).emit('new_scheduled_order', scheduledPayload);
+        if (driver.deviceToken) {
+          createNotification({
+            message: `Serviço agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedência.`,
+            receiver_id: driver._id,
+            pushToken: driver.deviceToken
+          });
         }
+      }
 
-        // Buscar todos os motoristas disponíveis e notificá-los do novo serviço agendado
-        const availableDrivers = await User.find({
-          role: 'deliveryman',
-          'deliveryman.status': { $in: ['Disponível', 'Em Entrega'] },
-          deviceToken: { $exists: true, $ne: null }
-        }).select('_id deviceToken deliveryman');
+      console.log(`[Scheduling] Pedido agendado ${requestService.code} para ${scheduledDateStr}. Notificados ${availableDrivers.length} motoristas.`);
+    }
 
-        const scheduledDateStr = requestService.scheduledAt
-          ? new Date(requestService.scheduledAt).toLocaleString('pt-PT', { timeZone: 'Africa/Maputo', dateStyle: 'short', timeStyle: 'short' })
-          : 'hora não definida';
+    // 🔥 2. TAREFAS DE SEGUNDO PLANO (SMS, Email & Push em background sem bloquear o Socket)
+    (async () => {
+      try {
+        let mailText = `Olá ${req.user.name},\n \n Seja bem vindo(a) a nhiquela.\n Dentro de instantes confirmaremos o seu pagamento.\n Por favor, aguarde e muito obrigado pela preferencia. Pedido: ${newOrder.code}. \n Atenciosamente,\n \n nhiquela`;
+        
+        if (newOrder.isPaid) {
+          let msg = `Olá, a Nhiquela informa que possui um novo pedido com o código n ${newOrder.code}`;
+          sendSMSToUSendItDeliverman(msg);
+        } else {
+          let msg = `Olá, a Nhiquela informa que possui um novo pedido com o código n ${newOrder.code}`;
+          sendSMSToUSendItAdmin(msg);
+        }
+        sendEmailOrderStatus(req, mailText, newOrder, res);
 
-        for (const driver of availableDrivers) {
-          io.to(`driver_${driver._id}`).emit('new_scheduled_order', orderPayload);
-          if (driver.deviceToken) {
+        if (newOrder.targetDriverId) {
+          const targetDriver = await User.findById(newOrder.targetDriverId).select('_id name deviceToken');
+          if (targetDriver && targetDriver.deviceToken) {
             createNotification({
-              message: `â° Serviço agendado para ${scheduledDateStr}! Origem: ${newOrder.origin}. Aceite com antecedência.`,
-              receiver_id: driver._id,
-              pushToken: driver.deviceToken
+              message: `Novo pedido de viagem! Origem: ${newOrder.initialLocationName || 'Local de partida'}. Clique para aceitar.`,
+              receiver_id: targetDriver._id,
+              pushToken: targetDriver.deviceToken || null
             });
           }
         }
-
-        console.log(`[Scheduling] Pedido agendado ${requestService.code} para ${scheduledDateStr}. Notificados ${availableDrivers.length} motoristas.`);
-      } else {
-        // Intelligent Dispatch engine will handle emitting to nearest drivers
-        try {
-          DispatchService.startDispatch(requestService, io);
-        } catch (err) {
-          console.error('Falha ao executar DispatchService:', err);
-        }
+      } catch (bgErr) {
+        console.error('Erro em tarefas de fundo do envio:', bgErr);
       }
-    }
+    })();
 
     res.status(201).send({ message: 'Novo pedido criado com sucesso', requestService });
   })
@@ -1057,12 +1112,16 @@ requestServiceer.put(
 
         await order.save({ session });
 
-        // Libertar motorista — pode agora receber novos pedidos
+        // Libertar motorista e colocar offline após concluir a viagem
         if (order.deliveryman && order.deliveryman.id) {
           await User.updateOne(
             { _id: order.deliveryman.id },
             { 
-              $set: { 'deliveryman.hasActiveService': false },
+              $set: { 
+                'deliveryman.hasActiveService': false,
+                availability: 'paused',
+                isOnline: false
+              },
               $inc: { completedOrders: 1 }
             },
             { session }
@@ -1396,6 +1455,305 @@ requestServiceer.delete(
     } else {
       res.status(404).send({ message: 'Pedido não encontrado' });
     }
+  })
+);
+
+// ============================================================
+// ROTAS DE NEGOCIAÇÃO DE VALOR
+// ============================================================
+
+// POST /api/request-service/:id/negotiate/start
+requestServiceer.post(
+  '/:id/negotiate/start',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado.' });
+    }
+
+    order.negotiationState = 'NEGOTIATING';
+    await order.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('negotiation_updated', order);
+      io.to(`order_${order._id}`).emit('order_updated', order);
+      io.to(`order_${order._id}`).emit('order_negotiating', order);
+      if (order.targetDriverId) {
+        io.to(`driver_${order.targetDriverId}`).emit('negotiation_updated', order);
+        io.to(`driver_${order.targetDriverId}`).emit('order_updated', order);
+      }
+      const users = req.app.get('users') || [];
+      const orderUser = users.find((x) => x._id === (order.user?._id || order.user).toString());
+      if (orderUser) {
+        io.to(orderUser.socketId).emit('order_updated', order);
+        io.to(orderUser.socketId).emit('negotiation_updated', order);
+        io.to(orderUser.socketId).emit('order_negotiating', order);
+      }
+    }
+
+    try {
+      const recipientId = order.user?._id || order.user;
+      if (recipientId) {
+        const recipientUser = await User.findById(recipientId);
+        if (recipientUser) {
+          const orderCodeStr = order.code || order._id.toString().slice(-6);
+          const driverName = req.user.name || 'O motorista';
+          createNotification({
+            message: `${driverName} está a propor um novo valor para o pedido #${orderCodeStr}.`,
+            receiver_id: recipientUser._id,
+            sender_id: req.user._id,
+            orderID: order._id,
+            title: `Negociação Iniciada (#${orderCodeStr})`
+          }).catch(err => console.error('[Push Start Negotiation] Erro:', err));
+        }
+      }
+    } catch (e) {
+      console.error('[Start Negotiation Notify Error]:', e);
+    }
+
+    res.send({ message: 'Negociação iniciada.', order });
+  })
+);
+
+// POST /api/request-service/:id/negotiate/propose
+requestServiceer.post(
+  '/:id/negotiate/propose',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const { amount, note } = req.body;
+    const numericAmount = Number(amount);
+    if (!numericAmount || numericAmount <= 0) {
+      return res.status(400).send({ message: 'Valor de proposta inválido.' });
+    }
+
+    if (note && containsPhoneNumber(note)) {
+      return res.status(400).send({ message: 'Não é permitido incluir números de telefone ou contactos nas notas da negociação por razões de segurança.' });
+    }
+
+    const order = await RequestService.findById(req.params.id);
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado.' });
+    }
+
+    const maxRounds = order.maxNegotiationRounds || 3;
+    if (order.negotiationRoundCount >= maxRounds) {
+      return res.status(400).send({ message: `Limite máximo de ${maxRounds} rondas de negociação atingido.` });
+    }
+
+    const userIdStr = req.user._id.toString();
+    const isCustomer = order.user && order.user.toString() === userIdStr;
+    const proposedBy = isCustomer ? 'CUSTOMER' : 'PROVIDER';
+    const nextState = isCustomer ? 'PENDING_PROVIDER' : 'PENDING_CUSTOMER';
+
+    order.negotiationRoundCount = (order.negotiationRoundCount || 0) + 1;
+    order.negotiationState = nextState;
+
+    if (!order.basePrice) {
+      order.basePrice = order.deliveryPrice || order.pricing?.totalPrice || 0;
+    }
+
+    order.negotiationHistory.push({
+      proposedBy,
+      amount: numericAmount,
+      note: note || '',
+      status: 'PROPOSED',
+      timestamp: new Date()
+    });
+
+    await order.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('negotiation_updated', order);
+      io.to(`order_${order._id}`).emit('order_updated', order);
+      if (order.targetDriverId) {
+        io.to(`driver_${order.targetDriverId}`).emit('negotiation_updated', order);
+        io.to(`driver_${order.targetDriverId}`).emit('order_updated', order);
+      }
+      const users = req.app.get('users') || [];
+      const orderUser = users.find((x) => x._id === (order.user?._id || order.user).toString());
+      if (orderUser) {
+        io.to(orderUser.socketId).emit('order_updated', order);
+        io.to(orderUser.socketId).emit('negotiation_updated', order);
+      }
+    }
+
+    // Notificações Push e E-mail para o destinatário da proposta
+    try {
+      const recipientId = proposedBy === 'CUSTOMER' 
+        ? (order.targetDriverId || order.deliveryman?.id) 
+        : (order.user?._id || order.user);
+
+      if (recipientId) {
+        const recipientUser = await User.findById(recipientId);
+        if (recipientUser) {
+          const orderCodeStr = order.code || order._id.toString().slice(-6);
+          const pushTitle = `Nova Proposta de Preço (#${orderCodeStr})`;
+          const pushMsg = `${proposedBy === 'CUSTOMER' ? 'O cliente' : 'O prestador/motorista'} enviou uma proposta de ${numericAmount} MT.${note ? ' Nota: ' + note : ''}`;
+
+          createNotification({
+            message: pushMsg,
+            receiver_id: recipientUser._id,
+            sender_id: req.user._id,
+            orderID: order._id,
+            title: pushTitle
+          }).catch(err => console.error('[Push Negotiation] Erro ao enviar notificação:', err));
+
+          if (recipientUser.email) {
+            sendNegotiationEmail({
+              toEmail: recipientUser.email,
+              recipientName: recipientUser.name,
+              orderCode: orderCodeStr,
+              action: 'PROPOSE',
+              amount: numericAmount,
+              note,
+              proposedBy
+            }).catch(err => console.error('[Email Negotiation] Erro ao enviar e-mail:', err));
+          }
+        }
+      }
+    } catch (notifyErr) {
+      console.error('[Negotiation Notify Error]:', notifyErr);
+    }
+
+    res.send({ message: 'Proposta de valor enviada com sucesso.', order });
+  })
+);
+
+// POST /api/request-service/:id/negotiate/accept
+requestServiceer.post(
+  '/:id/negotiate/accept',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado.' });
+    }
+
+    if (!order.negotiationHistory || order.negotiationHistory.length === 0) {
+      return res.status(400).send({ message: 'Nenhuma proposta encontrada para aceitar.' });
+    }
+
+    const lastProposal = order.negotiationHistory[order.negotiationHistory.length - 1];
+    if (lastProposal.status !== 'PROPOSED') {
+      return res.status(400).send({ message: 'A última proposta já não se encontra pendente.' });
+    }
+
+    lastProposal.status = 'ACCEPTED';
+    order.negotiationState = 'ACCEPTED';
+    order.finalAgreedPrice = lastProposal.amount;
+    order.deliveryPrice = lastProposal.amount;
+    if (order.pricing) {
+      order.pricing.totalPrice = lastProposal.amount;
+    }
+
+    await order.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('negotiation_updated', order);
+      if (order.targetDriverId) {
+        io.to(`driver_${order.targetDriverId}`).emit('negotiation_updated', order);
+      }
+    }
+
+    // Notificações Push e E-mail para AMBOS (Cliente e Prestador) ao aceitar a proposta
+    try {
+      const orderCodeStr = order.code || order._id.toString().slice(-6);
+      const customerId = order.user?._id || order.user;
+      const driverId = order.targetDriverId || order.deliveryman?.id;
+
+      const usersToNotify = await User.find({ _id: { $in: [customerId, driverId].filter(Boolean) } });
+      for (const u of usersToNotify) {
+        createNotification({
+          message: `A proposta de ${order.finalAgreedPrice} MT foi ACEITE para o pedido #${orderCodeStr}.`,
+          receiver_id: u._id,
+          sender_id: req.user._id,
+          orderID: order._id,
+          title: `Proposta de Valor Aceite! (#${orderCodeStr})`
+        }).catch(err => console.error('[Push Accept] Erro ao enviar notificação:', err));
+
+        if (u.email) {
+          sendNegotiationEmail({
+            toEmail: u.email,
+            recipientName: u.name,
+            orderCode: orderCodeStr,
+            action: 'ACCEPT',
+            amount: order.finalAgreedPrice
+          }).catch(err => console.error('[Email Accept] Erro ao enviar e-mail:', err));
+        }
+      }
+    } catch (notifyErr) {
+      console.error('[Accept Notify Error]:', notifyErr);
+    }
+
+    res.send({ message: 'Proposta de valor aceite com sucesso!', order });
+  })
+);
+
+// POST /api/request-service/:id/negotiate/reject
+requestServiceer.post(
+  '/:id/negotiate/reject',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await RequestService.findById(req.params.id);
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado.' });
+    }
+
+    if (order.negotiationHistory && order.negotiationHistory.length > 0) {
+      const lastProposal = order.negotiationHistory[order.negotiationHistory.length - 1];
+      if (lastProposal.status === 'PROPOSED') {
+        lastProposal.status = 'REJECTED';
+      }
+    }
+
+    order.negotiationState = 'REJECTED';
+    await order.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('negotiation_updated', order);
+      if (order.targetDriverId) {
+        io.to(`driver_${order.targetDriverId}`).emit('negotiation_updated', order);
+      }
+    }
+
+    // Notificações Push e E-mail ao rejeitar proposta
+    try {
+      const orderCodeStr = order.code || order._id.toString().slice(-6);
+      const recipientId = req.user._id.toString() === (order.user?._id || order.user)?.toString()
+        ? (order.targetDriverId || order.deliveryman?.id)
+        : (order.user?._id || order.user);
+
+      if (recipientId) {
+        const recipientUser = await User.findById(recipientId);
+        if (recipientUser) {
+          createNotification({
+            message: `A proposta de valor para o pedido #${orderCodeStr} foi rejeitada.`,
+            receiver_id: recipientUser._id,
+            sender_id: req.user._id,
+            orderID: order._id,
+            title: `Proposta Rejeitada (#${orderCodeStr})`
+          }).catch(err => console.error('[Push Reject] Erro ao enviar notificação:', err));
+
+          if (recipientUser.email) {
+            sendNegotiationEmail({
+              toEmail: recipientUser.email,
+              recipientName: recipientUser.name,
+              orderCode: orderCodeStr,
+              action: 'REJECT'
+            }).catch(err => console.error('[Email Reject] Erro ao enviar e-mail:', err));
+          }
+        }
+      }
+    } catch (notifyErr) {
+      console.error('[Reject Notify Error]:', notifyErr);
+    }
+
+    res.send({ message: 'Proposta de valor rejeitada.', order });
   })
 );
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Dimensions, Image, Animated } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Dimensions, Image, Animated, Modal, TextInput, Alert, ScrollView, Vibration, KeyboardAvoidingView, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../api/apiConfig";
 
 const getImageUrl = (path?: string) => {
@@ -27,6 +28,7 @@ type Props = {
   acceptTrip: (id: string, isDelivery?: boolean) => void;
   onViewRoute: (item: Trip) => void;
   onExpire?: (id: string) => void;
+  onStartNegotiation?: (id: string) => void;
 };
 
 const { width } = Dimensions.get('window');
@@ -43,7 +45,8 @@ const TripCard = React.memo(function TripCard({
   cancelTrip,
   acceptTrip,
   onViewRoute,
-  onExpire
+  onExpire,
+  onStartNegotiation
 }: Props) {
   const navigation = useNavigation<any>();
   const isCurrentAcceptedTrip = acceptedTrip?.id === item.id;
@@ -57,10 +60,115 @@ const TripCard = React.memo(function TripCard({
   const imageUrl = getImageUrl(rawImage);
   const passengerName = item.passenger || item.originalData?.user?.name || 'Cliente';
 
+  const itemAny = item as any;
+  const negotiationState = itemAny.negotiationState || item.originalData?.negotiationState;
+  const [showNegotiateModal, setShowNegotiateModal] = useState(false);
+  const [proposedPrice, setProposedPrice] = useState('');
+  const [proposalNote, setProposalNote] = useState('');
+  const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ uri: string; label: string } | null>(null);
+
+  useEffect(() => {
+    if (showNegotiateModal) {
+      Vibration.cancel();
+      if (onStartNegotiation) {
+        onStartNegotiation(item.id || item.originalData?._id);
+      }
+    }
+  }, [showNegotiateModal, item.id, onStartNegotiation]);
+
+  const negotiationHistory = itemAny.negotiationHistory || item.originalData?.negotiationHistory || [];
+  const maxRounds = itemAny.maxNegotiationRounds || item.originalData?.maxNegotiationRounds || 3;
+  const currentRounds = itemAny.negotiationRoundCount || item.originalData?.negotiationRoundCount || negotiationHistory.length;
+  const remainingProposals = Math.max(0, maxRounds - currentRounds);
+  const hasProposals = negotiationHistory && negotiationHistory.length > 0;
+  const isNegotiationAllowed = itemAny.isNegotiationAllowed !== undefined 
+    ? Boolean(itemAny.isNegotiationAllowed) 
+    : (item.originalData?.isNegotiationAllowed !== undefined ? Boolean(item.originalData?.isNegotiationAllowed) : true);
+
+  const [driverName, setDriverName] = useState('Motorista');
+
+  useEffect(() => {
+    async function loadDriverInfo() {
+      try {
+        const userStr = (await AsyncStorage.getItem('@app:user')) || (await AsyncStorage.getItem('userData'));
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (u?.name && u.name.trim() !== '' && u.name !== 'Motorista') {
+            setDriverName(u.name);
+          }
+        }
+      } catch (e) {}
+    }
+    loadDriverInfo();
+  }, []);
+
+  const getCachedToken = async () => {
+    return (await AsyncStorage.getItem('authToken')) || (await AsyncStorage.getItem('token')) || '';
+  };
+
+  const handleStartNegotiation = async () => {
+    try {
+      const token = await getCachedToken();
+      const tripId = item.id || item.originalData?._id;
+      if (tripId) {
+        fetch(`${API_BASE_URL}/request-service/${tripId}/negotiate/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }).catch(err => console.log('Erro ao notificar início da negociação:', err));
+      }
+    } catch (e) {
+      console.log('Erro ao iniciar negociação:', e);
+    }
+  };
+
+  const handleSendDriverProposal = async () => {
+    if (!proposedPrice || isNaN(Number(proposedPrice)) || Number(proposedPrice) <= 0) {
+      Alert.alert('Valor Inválido', 'Introduza um valor numérico válido para a sua proposta.');
+      return;
+    }
+
+    try {
+      setIsSubmittingProposal(true);
+      const token = await getCachedToken();
+      const tripId = item.id || item.originalData?._id;
+
+      const response = await fetch(`${API_BASE_URL}/request-service/${tripId}/negotiate/propose`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: Number(proposedPrice),
+          note: proposalNote ? proposalNote.trim() : 'Reajuste de valor pelo motorista',
+          proposedBy: 'PROVIDER'
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao enviar proposta.');
+      }
+
+      Alert.alert('Proposta Enviada!', 'A sua proposta de preço foi enviada ao cliente com sucesso.');
+      setShowNegotiateModal(false);
+      setProposalNote('');
+    } catch (err: any) {
+      console.log('Erro ao enviar proposta:', err);
+      Alert.alert('Erro', err.message || 'Não foi possível enviar a proposta.');
+    } finally {
+      setIsSubmittingProposal(false);
+    }
+  };
+
   const [timeLeft, setTimeLeft] = useState(50);
 
   useEffect(() => {
-    if (isAccepted || hasAcceptedTrip || isInTransit) return;
+    if (isAccepted || hasAcceptedTrip || isInTransit || showNegotiateModal || (negotiationState && negotiationState !== 'NONE') || hasProposals) return;
     
     if (timeLeft <= 0) {
       if (onExpire) onExpire(item.id);
@@ -72,7 +180,7 @@ const TripCard = React.memo(function TripCard({
     }, 1000);
     
     return () => clearInterval(timerId);
-  }, [timeLeft, isAccepted, hasAcceptedTrip, isInTransit, item.id, onExpire]);
+  }, [timeLeft, isAccepted, hasAcceptedTrip, isInTransit, showNegotiateModal, negotiationState, hasProposals, item.id, onExpire]);
 
   const progressWidth = (timeLeft / 50) * 100;
 
@@ -124,6 +232,12 @@ const TripCard = React.memo(function TripCard({
             )}
             
             <View style={styles.badgesContainer}>
+              {negotiationState && negotiationState !== 'NONE' && !isAccepted && (
+                <View style={[styles.badge, { backgroundColor: "#7C3AED" }]}>
+                  <Ionicons name="swap-horizontal" size={10} color="#FFF" style={{ marginRight: 2 }} />
+                  <Text style={styles.badgeText}>EM NEGOCIAÇÃO</Text>
+                </View>
+              )}
               {isInTransit && (
                 <View style={[styles.badge, { backgroundColor: "#3498DB" }]}>
                   <Ionicons name="flash" size={10} color="#FFF" />
@@ -153,7 +267,7 @@ const TripCard = React.memo(function TripCard({
           </View>
         </View>
 
-        {item.passengerPhone && item.passengerPhone !== "Não disponvel" && (
+        {isAccepted && item.passengerPhone && item.passengerPhone !== "Não disponvel" && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity 
               style={styles.callButton}
@@ -225,32 +339,71 @@ const TripCard = React.memo(function TripCard({
       {/* Footer Actions */}
       <View style={styles.footerActions}>
         {!isAccepted ? (
-          <TouchableOpacity
-            style={[styles.acceptBtn, (isAccepting || hasAcceptedTrip || isInTransit) && styles.disabledBtn]}
-            onPress={() => acceptTrip(item.id, item.originalData?.goodType !== undefined)}
-            disabled={isAccepting || hasAcceptedTrip || isInTransit}
-          >
-            {/* Progress bar background */}
-            {!(hasAcceptedTrip || isInTransit) && (
-              <View style={[styles.progressBar, { width: `${progressWidth}%` }]} />
+          <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+            {isNegotiationAllowed && (
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  height: 52,
+                  borderRadius: 14,
+                  backgroundColor: '#7C3AED',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  shadowColor: '#7C3AED',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 5,
+                  elevation: 4
+                }}
+                onPress={() => {
+                  Vibration.cancel();
+                  if (onStartNegotiation) {
+                    onStartNegotiation(item.id || item.originalData?._id);
+                  }
+                  const initialPrice = item.reward ? item.reward.replace(/[^0-9.]/g, '') : '';
+                  setProposedPrice(initialPrice);
+                  setShowNegotiateModal(true);
+                  handleStartNegotiation();
+                }}
+                disabled={isAccepting || hasAcceptedTrip || isInTransit}
+              >
+                <Ionicons name="swap-horizontal" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>Negociar</Text>
+              </TouchableOpacity>
             )}
-            
-            {isAccepting ? (
-              <ActivityIndicator size="small" color="#FFF" />
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 1 }}>
-                <Ionicons
-                  name={hasAcceptedTrip || isInTransit ? "time" : "timer-outline"}
-                  size={20}
-                  color="#FFF"
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={styles.acceptBtnText}>
-                  {hasAcceptedTrip || isInTransit ? "Ocupado" : `Aceitar (${timeLeft}s)`}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.acceptBtn, 
+                isNegotiationAllowed ? { flex: 1.5 } : { width: '100%' },
+                (isAccepting || hasAcceptedTrip || isInTransit) && styles.disabledBtn
+              ]}
+              onPress={() => acceptTrip(item.id, item.originalData?.goodType !== undefined)}
+              disabled={isAccepting || hasAcceptedTrip || isInTransit}
+            >
+              {/* Progress bar background */}
+              {!(hasAcceptedTrip || isInTransit) && (
+                <View style={[styles.progressBar, { width: `${progressWidth}%` }]} />
+              )}
+              
+              {isAccepting ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 1 }}>
+                  <Ionicons
+                    name={hasAcceptedTrip || isInTransit ? "time" : "timer-outline"}
+                    size={20}
+                    color="#FFF"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.acceptBtnText}>
+                    {hasAcceptedTrip || isInTransit ? "Ocupado" : (negotiationState && negotiationState !== 'NONE' ? "Aceitar" : `Aceitar (${timeLeft}s)`)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         ) : (
           !isTripStarted || !isCurrentAcceptedTrip ? (
             <View style={styles.footerRow}>
@@ -298,6 +451,241 @@ const TripCard = React.memo(function TripCard({
       </View>
         </View>
       </View>
+      {/* 🤝 MODAL PREMIUM DE NEGOCIAÇÃO DO MOTORISTA */}
+      <Modal visible={showNegotiateModal} transparent animationType="slide" onRequestClose={() => setShowNegotiateModal(false)}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}
+        >
+          <View style={{ width: '100%', maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 28, overflow: 'hidden', shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.25, shadowRadius: 24, elevation: 12 }}>
+            
+            {/* Header com Dados Reais do Cliente e Motorista */}
+            <LinearGradient colors={['#7C3AED', '#6D28D9']} style={{ padding: 18 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  {imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#E9D5FF' }} />
+                  ) : (
+                    <View style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#E9D5FF', justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="person" size={24} color="#7C3AED" />
+                    </View>
+                  )}
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }} numberOfLines={1}>
+                      {passengerName}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, flexWrap: 'wrap', gap: 6 }}>
+                      <View style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Em Negociação</Text>
+                      </View>
+                      <View style={{ backgroundColor: '#F59E0B', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>
+                          {remainingProposals} propostas restantes
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => setShowNegotiateModal(false)}
+                >
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Nome do Motorista */}
+              <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
+                <Text style={{ color: '#E9D5FF', fontSize: 13, fontWeight: '600' }}>
+                  Motorista: <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>{driverName}</Text>
+                </Text>
+              </View>
+            </LinearGradient>
+
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ flexGrow: 1 }}
+            >
+              {/* Origem, Destino e Distância em km */}
+              <View style={{ padding: 14, backgroundColor: '#FAF5FF', borderBottomWidth: 1, borderBottomColor: '#F3E8FF' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Ionicons name="location" size={14} color="#7C3AED" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 12, color: '#4B5563', flex: 1, fontWeight: '500' }} numberOfLines={1}>
+                    Origem: <Text style={{ color: '#1F2937', fontWeight: '700' }}>{item.pickup}</Text>
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                  <Ionicons name="flag" size={14} color="#E74C3C" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 12, color: '#4B5563', flex: 1, fontWeight: '500' }} numberOfLines={1}>
+                    Destino: <Text style={{ color: '#1F2937', fontWeight: '700' }}>{item.destination}</Text>
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#F3E8FF' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDE9FE', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                    <Ionicons name="speedometer-outline" size={14} color="#7C3AED" style={{ marginRight: 5 }} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#6D28D9' }}>
+                      Distância: <Text style={{ fontWeight: '800' }}>{item.distance || 'N/A'}</Text>
+                    </Text>
+                  </View>
+
+                  <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>
+                    Preço Inicial: <Text style={{ color: '#7C3AED', fontWeight: '800' }}>{item.reward || 'N/A'}</Text>
+                  </Text>
+                </View>
+              </View>
+
+              {/* Stream / Chat de Propostas com CSS Ultra-Premium */}
+              <View style={{ padding: 16, backgroundColor: '#FAF5FF' }}>
+                {hasProposals ? (
+                  negotiationHistory.map((proposal: any, idx: number) => {
+                    const isFromDriver = proposal.proposedBy === 'PROVIDER' || proposal.proposedBy === 'DRIVER';
+                    const senderName = isFromDriver ? driverName : passengerName;
+                    const roleLabel = isFromDriver ? 'Motorista' : 'Cliente';
+
+                    return (
+                      <View
+                        key={idx}
+                        style={{
+                          alignSelf: isFromDriver ? 'flex-end' : 'flex-start',
+                          backgroundColor: isFromDriver ? '#7C3AED' : '#FFFFFF',
+                          padding: 14,
+                          borderRadius: 20,
+                          borderBottomRightRadius: isFromDriver ? 4 : 20,
+                          borderBottomLeftRadius: isFromDriver ? 20 : 4,
+                          maxWidth: '88%',
+                          marginBottom: 12,
+                          borderWidth: 1,
+                          borderColor: isFromDriver ? '#6D28D9' : '#E9D5FF',
+                          shadowColor: '#7C3AED',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: isFromDriver ? 0.25 : 0.08,
+                          shadowRadius: 10,
+                          elevation: 4
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: isFromDriver ? '#F3E8FF' : '#7C3AED' }}>
+                            {senderName} ({roleLabel})
+                          </Text>
+                          <View style={{
+                            backgroundColor: proposal.status === 'ACCEPTED' ? '#DCFCE7' : proposal.status === 'REJECTED' ? '#FEE2E2' : (isFromDriver ? 'rgba(255, 255, 255, 0.25)' : '#F3E8FF'),
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 10,
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}>
+                            <Ionicons
+                              name={proposal.status === 'ACCEPTED' ? "checkmark-circle" : proposal.status === 'REJECTED' ? "close-circle" : "paper-plane"}
+                              size={11}
+                              color={proposal.status === 'ACCEPTED' ? '#166534' : proposal.status === 'REJECTED' ? '#991B1B' : (isFromDriver ? '#FFFFFF' : '#6B21A8')}
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text style={{ fontSize: 9, fontWeight: '900', color: proposal.status === 'ACCEPTED' ? '#166534' : proposal.status === 'REJECTED' ? '#991B1B' : (isFromDriver ? '#FFFFFF' : '#6B21A8') }}>
+                              {proposal.status === 'ACCEPTED' ? 'ACEITE' : proposal.status === 'REJECTED' ? 'REJEITADO' : 'PROPOSTA ENVIADA'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={{ fontSize: 17, fontWeight: '900', color: isFromDriver ? '#FFFFFF' : '#1E1B4B' }}>
+                          Proposta: <Text style={{ color: isFromDriver ? '#FDE047' : '#7C3AED' }}>{proposal.amount} MT</Text>
+                        </Text>
+
+                        {proposal.note ? (
+                          <View style={{ marginTop: 6, backgroundColor: isFromDriver ? 'rgba(255, 255, 255, 0.15)' : '#F3E8FF', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: isFromDriver ? 'rgba(255, 255, 255, 0.25)' : '#E9D5FF' }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: isFromDriver ? '#F3E8FF' : '#4C1D95' }}>
+                              Motivo do Reajuste:
+                            </Text>
+                            <Text style={{ fontSize: 12, color: isFromDriver ? '#FFFFFF' : '#1E1B4B', fontStyle: 'italic', marginTop: 2 }}>
+                              "{proposal.note}"
+                            </Text>
+                          </View>
+                        ) : null}
+
+                        <Text style={{ fontSize: 9, color: isFromDriver ? '#E9D5FF' : '#9CA3AF', marginTop: 6, alignSelf: 'flex-end', fontWeight: '600' }}>
+                          {new Date(proposal.timestamp || Date.now()).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <View style={{ padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="chatbubbles-outline" size={32} color="#A78BFA" style={{ marginBottom: 6 }} />
+                    <Text style={{ fontSize: 13, color: '#6B7280', textAlign: 'center', fontWeight: '600', lineHeight: 18 }}>
+                      Ainda não existem propostas enviadas. Introduza a sua proposta de valor abaixo.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Formulário de Envio de Proposta com Suporte a Teclado */}
+              <View style={{ padding: 16, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderColor: '#F3E8FF' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>
+                  Sua Proposta de Preço (MT):
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 14, borderWidth: 1.5, borderColor: '#DDD6FE', paddingHorizontal: 14, height: 48, marginBottom: 12 }}>
+                  <TextInput
+                    style={{ flex: 1, fontSize: 16, fontWeight: '700', color: '#1E1B4B' }}
+                    placeholder="0"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                    value={proposedPrice}
+                    onChangeText={setProposedPrice}
+                  />
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: '#7C3AED' }}>MT</Text>
+                </View>
+
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>
+                  Motivo do Reajuste de Preço:
+                </Text>
+                <View style={{ backgroundColor: '#F9FAFB', borderRadius: 14, borderWidth: 1.5, borderColor: '#DDD6FE', paddingHorizontal: 14, paddingVertical: 8, marginBottom: 14 }}>
+                  <TextInput
+                    style={{ fontSize: 13, color: '#1E1B4B', minHeight: 44, textAlignVertical: 'top' }}
+                    placeholder="Ex: Trânsito, chuva, bagagem pesada..."
+                    placeholderTextColor="#9CA3AF"
+                    value={proposalNote}
+                    onChangeText={setProposalNote}
+                    multiline
+                  />
+                </View>
+
+                {/* Botão Enviar Proposta com CSS Ultra-Premium */}
+                <TouchableOpacity
+                  style={{
+                    width: '100%',
+                    height: 52,
+                    borderRadius: 16,
+                    backgroundColor: '#7C3AED',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    shadowColor: '#7C3AED',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 8,
+                    elevation: 5
+                  }}
+                  onPress={handleSendDriverProposal}
+                  disabled={isSubmittingProposal}
+                >
+                  {isSubmittingProposal ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="paper-plane" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                      <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '800' }}>Enviar Proposta</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </TouchableOpacity>
   );
 });

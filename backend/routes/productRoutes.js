@@ -38,7 +38,6 @@ export const invalidateActiveProviderCache = () => {
 };
 
 export const getActiveProviderIds = async () => {
-  // Devolver do cache se válido
   if (_activeProviderCache && (Date.now() - _activeProviderCacheAt) < ACTIVE_PROVIDER_CACHE_TTL) {
     return _activeProviderCache;
   }
@@ -49,33 +48,38 @@ export const getActiveProviderIds = async () => {
     isBanned: { $ne: true },
     isDeleted: { $ne: true }
   }, '_id seller.hasUsedFreeSale');
-  const sellerIds = sellers.map(s => s._id);
-  
-  // Verificar carteiras dos vendedores
-  const wallets = await Wallet.find({ ownerId: { $in: sellerIds }, ownerType: 'seller' });
-  const walletMap = new Map();
-  wallets.forEach(w => walletMap.set(w.ownerId.toString(), w));
-  
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const sellerUserIds = sellers.map(s => s._id);
 
-  // Filtrar apenas vendedores com conta aprovada e saldo >= 50 MT
-  const activeSellerIds = sellers.filter(s => {
-    if (!s.seller?.hasUsedFreeSale) return true; // Primeira venda gratuita, sempre activo
-    const wallet = walletMap.get(s._id.toString());
-    // Excluir se o saldo for menor que 50 MT
+  const providers = await mongoose.model('Provider').find({ 
+    userId: { $in: sellerUserIds },
+    status: { $nin: ['inactive', 'suspended', 'deleted'] }
+  }, '_id userId');
+  const providerIds = providers.map(p => p._id);
+
+  const Wallet = mongoose.model('Wallet');
+  const wallets = await Wallet.find({
+    $or: [
+      { ownerId: { $in: [...sellerUserIds, ...providerIds] } },
+      { userId: { $in: sellerUserIds } }
+    ]
+  });
+
+  const walletMap = new Map();
+  wallets.forEach(w => {
+    if (w.userId) walletMap.set(w.userId.toString(), w);
+    if (w.ownerId) walletMap.set(w.ownerId.toString(), w);
+  });
+
+  const activeProviders = providers.filter(p => {
+    const userObj = sellers.find(s => s._id.toString() === p.userId.toString());
+    if (userObj && !userObj.seller?.hasUsedFreeSale) return true; // Primeira venda gratuita, sempre activo
+
+    const wallet = walletMap.get(p.userId.toString()) || walletMap.get(p._id.toString());
     if (!wallet || wallet.balance < 50) {
       return false;
     }
     return true;
-  }).map(s => s._id);
-
-  // Retornar APENAS os Provider IDs correspondentes (nunca User IDs directos).
-  // Produtos cujo campo seller aponte para um User ID sem Provider registado
-  // são considerados inválidos e não devem ser contados nem apresentados.
-  const activeProviders = await mongoose.model('Provider').find({ 
-    userId: { $in: activeSellerIds },
-    status: { $nin: ['inactive', 'suspended', 'deleted'] }
-  }, '_id userId');
+  });
   
   _activeProviderCache = activeProviders.map(p => p._id);
   _activeProviderCacheAt = Date.now();
@@ -146,7 +150,13 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
 
   const [products, countProducts] = await Promise.all([
     Product.find(filters)
-      .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
+      .populate({ 
+        path: 'seller', 
+        populate: [
+          { path: 'subcategoryId' }, 
+          { path: 'userId', populate: { path: 'seller.province', model: 'Province' } }
+        ] 
+      })
       .populate('category province conditionStatus qualityType size color')
       .sort(sortOrder)
       .skip(pageSize * (page - 1))
@@ -271,7 +281,7 @@ productRoutes.get('/bycategory', async (req, res) => {
               price: '$price',
               isActive: '$isActive',
               seller: '$sellerDetails',
-              isSellerOpen: { $ifNull: ['$sellerUserDetails.seller.openstore', false] }
+              isSellerOpen: { $ifNull: ['$sellerUserDetails.seller.openstore', true] }
             },
           },
         },
@@ -390,12 +400,17 @@ productRoutes.put('/:id', isAuth, isSellerOrAdmin, expressAsyncHandler(async (re
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).send({ message: 'Produto no encontrado' });
 
-      if (req.body.onSale) {
-        const discount = price * (req.body.onSalePercentage / 100);
-        const sellerEarningsAfterDiscount = price - discount;
+    const cleanProvince = (req.body.province && mongoose.Types.ObjectId.isValid(req.body.province))
+      ? req.body.province
+      : null;
+
+    if (req.body.onSale) {
+      const discount = price * (req.body.onSalePercentage / 100);
+      const sellerEarningsAfterDiscount = price - discount;
 
       Object.assign(product, {
         ...req.body,
+        province: cleanProvince,
         priceFromSeller,
         priceComission,
         price,
@@ -408,6 +423,7 @@ productRoutes.put('/:id', isAuth, isSellerOrAdmin, expressAsyncHandler(async (re
     } else {
       Object.assign(product, {
         ...req.body,
+        province: cleanProvince,
         priceFromSeller,
         priceComission,
         price,
@@ -468,17 +484,35 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
       return res.status(400).send({ message: 'Provider profile not found for this user.' });
     }
 
+    const initialKeys = Array.isArray(req.body.initialKeys) 
+      ? req.body.initialKeys.map(k => (typeof k === 'string' ? { key: k.trim() } : k)).filter(k => k && k.key)
+      : [];
+
+    const cleanProvince = (req.body.province && mongoose.Types.ObjectId.isValid(req.body.province))
+      ? req.body.province
+      : null;
+
     const newProduct = new Product({
       ...req.body,
+      province: cleanProvince,
       seller: provider._id,
       priceFromSeller,
       priceComission,
       price: priceWithComission,
       comissionPercentage: comission_price,
       isActive: user.isApproved,
-      isSellerOpen: user.seller?.openstore || false,
+      isSellerOpen: user.seller?.openstore !== false,
       slug: crypto.randomBytes(3).toString('hex'),
+      productType: req.body.productType || 'PHYSICAL',
+      digitalType: req.body.digitalType || 'KEY',
+      digitalDeliveryMode: req.body.digitalDeliveryMode || 'AUTOMATIC',
+      digitalInstructions: req.body.digitalInstructions || '',
+      digitalStockKeys: initialKeys,
     });
+
+    if (req.body.productType === 'DIGITAL' && req.body.digitalDeliveryMode === 'AUTOMATIC' && initialKeys.length > 0) {
+      newProduct.countInStock = initialKeys.length;
+    }
 
       if (req.body.onSale) {
         newProduct.discount = priceFromSeller * (req.body.onSalePercentage / 100);
@@ -494,11 +528,63 @@ productRoutes.post('/', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req,
   }
 }));
 
+// POST /products/:id/digital-keys (Adiciona chaves de licença a um produto digital)
+productRoutes.post('/:id/digital-keys', isAuth, isSellerOrAdmin, expressAsyncHandler(async (req, res) => {
+  try {
+    const { keys } = req.body; // Array de strings ou string única separada por vírgulas/linhas
+    if (!keys) {
+      return res.status(400).send({ message: 'Nenhuma chave fornecida.' });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).send({ message: 'Produto não encontrado.' });
+    }
+
+    if (product.productType !== 'DIGITAL') {
+      return res.status(400).send({ message: 'Este produto não é um produto digital.' });
+    }
+
+    let keysList = [];
+    if (Array.isArray(keys)) {
+      keysList = keys.map(k => (typeof k === 'string' ? k.trim() : k)).filter(Boolean);
+    } else if (typeof keys === 'string') {
+      keysList = keys.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
+    }
+
+    if (keysList.length === 0) {
+      return res.status(400).send({ message: 'Nenhuma chave válida encontrada.' });
+    }
+
+    const newKeyObjs = keysList.map(k => ({ key: k, isUsed: false }));
+    product.digitalStockKeys.push(...newKeyObjs);
+
+    // Recalcula o stock total com base em chaves não utilizadas
+    const availableCount = product.digitalStockKeys.filter(k => !k.isUsed).length;
+    product.countInStock = availableCount;
+
+    await product.save();
+    res.send({ 
+      message: `${keysList.length} chaves adicionadas com sucesso.`, 
+      countInStock: product.countInStock,
+      totalKeys: product.digitalStockKeys.length
+    });
+  } catch (error) {
+    res.status(500).send({ message: 'Erro ao adicionar chaves digitais', error: error.message });
+  }
+}));
+
 // GET /products/slug/:slug
 productRoutes.get('/slug/:slug', async (req, res) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug })
-      .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
+      .populate({ 
+        path: 'seller', 
+        populate: [
+          { path: 'subcategoryId' }, 
+          { path: 'userId', populate: { path: 'seller.province', model: 'Province' } }
+        ] 
+      })
       .populate('category conditionStatus qualityType size color')
       .lean();
 
@@ -617,10 +703,36 @@ productRoutes.get('/search', expressAsyncHandler(async (req, res) => {
 // GET /products/:id
 productRoutes.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate({ path: 'seller', populate: [{ path: 'subcategoryId' }, { path: 'userId' }] })
-      .populate('color size category province qualityType conditionStatus')
-      .lean();
+    const { id } = req.params;
+    let product;
+
+    // If it's a valid ObjectId, search by _id; otherwise search by slug
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      product = await Product.findById(id)
+        .populate({ 
+          path: 'seller', 
+          populate: [
+            { path: 'subcategoryId' }, 
+            { path: 'userId', populate: { path: 'seller.province', model: 'Province' } }
+          ] 
+        })
+        .populate('color size category province qualityType conditionStatus')
+        .lean();
+    }
+
+    // Fallback: search by slug
+    if (!product) {
+      product = await Product.findOne({ slug: id })
+        .populate({ 
+          path: 'seller', 
+          populate: [
+            { path: 'subcategoryId' }, 
+            { path: 'userId', populate: { path: 'seller.province', model: 'Province' } }
+          ] 
+        })
+        .populate('color size category province qualityType conditionStatus')
+        .lean();
+    }
 
     if (!product) return res.status(404).send({ message: 'Produto não encontrado' });
     

@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import PublicLayout from './components/Layout/PublicLayout';
 import AdminLayout from './components/Layout/AdminLayout';
 import SupplierLayout from './components/Layout/SupplierLayout';
+import PartnerLayout from './components/Layout/PartnerLayout';
 import DocumentOrderScreen from './screens/DocumentOrder/DocumentOrderScreen';
 import LandingPage from './screens/LandingPage';
 import LoginScreen from './screens/LoginScreen';
@@ -11,11 +12,13 @@ import HomeScreen from './screens/HomeScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
+import SellerProfileScreen from './screens/SellerProfileScreen';
 import TermsScreen from './screens/TermsScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import ReturnPolicyScreen from './screens/ReturnPolicyScreen';
 import DashboardScreen from './screens/admin/DashboardScreen';
 import SuppliersScreen from './screens/admin/SuppliersScreen';
+import PartnersScreen from './screens/admin/PartnersScreen';
 import ProductsScreen from './screens/ProductsScreen';
 import AdminProductsScreen from './screens/admin/ProductsScreen';
 import CategoriesScreen from './screens/admin/CategoriesScreen';
@@ -49,11 +52,16 @@ import RolesScreen from './screens/admin/RolesScreen';
 import DeliveryTariffsScreen from './screens/admin/DeliveryTariffsScreen';
 import SupplierDashboardScreen from './screens/supplier/SupplierDashboardScreen';
 import SupplierProductsScreen from './screens/supplier/SupplierProductsScreen';
+import SupplierProfileScreen from './screens/supplier/SupplierProfileScreen';
+import PartnerDashboardScreen from './screens/partner/PartnerDashboardScreen';
+import PartnerMembersScreen from './screens/partner/PartnerMembersScreen';
 import ProviderSubcategoriesScreen from './screens/admin/ProviderSubcategoriesScreen.jsx';
 import StatsScreen from './screens/admin/StatsScreen';
 import LiveMapScreen from './screens/admin/LiveMapScreen';
 import AdminKYC from './screens/admin/AdminKYC';
 import AdminSupport from './screens/admin/AdminSupport';
+
+import MultiStopTripDetailScreen from './screens/admin/MultiStopTripDetailScreen';
 
 function App() {
   return (
@@ -66,7 +74,8 @@ function App() {
         <Route path="/terms" element={<TermsScreen />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
         <Route path="/return-policy" element={<ReturnPolicyScreen />} />
-
+        {/* Redirecionar rotas antigas sem /shop para a rota correcta */}
+        <Route path="/checkout" element={<Navigate to="/shop/checkout" replace />} />
         <Route path="/" element={<LandingPage />} />
 
         {/* Rotas Públicas (Marketplace) */}
@@ -75,32 +84,48 @@ function App() {
           <Route path="product/:id" element={<ProductDetailScreen />} />
           <Route path="cart" element={<CartScreen />} />
           <Route path="checkout" element={<CheckoutScreen />} />
+          <Route path="seller/:sellerId" element={<SellerProfileScreen />} />
           <Route path="document-order" element={<DocumentOrderScreen />} />
         </Route>
-        <Route path="/products" element={<PublicLayout />}>\n          <Route index element={<ProductsScreen />} />\n        </Route>
+        <Route path="/products" element={<PublicLayout />}>
+          <Route index element={<ProductsScreen />} />
+        </Route>
 
         {/* Rotas do Fornecedor */}
         <Route path="/supplier" element={<SupplierLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SupplierDashboardScreen />} />
           <Route path="products" element={<SupplierProductsScreen />} />
-          {/* Outras rotas pendentes (orders, profile) usariam o mesmo placeholder */}
+          <Route path="orders" element={<SupplierDashboardScreen />} />
+          <Route path="profile" element={<SupplierProfileScreen />} />
+        </Route>
+
+        {/* Rotas do Parceiro / Gestor de Frota */}
+        <Route path="/partner" element={<PartnerLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<PartnerDashboardScreen />} />
+          <Route path="members" element={<PartnerMembersScreen />} />
+          <Route path="reports" element={<PartnerDashboardScreen />} />
+          <Route path="orders/:id" element={<MultiStopTripDetailScreen />} />
         </Route>
 
         {/* Rotas Administrativas */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardScreen />} />
+          <Route path="partners" element={<PartnersScreen />} />
           <Route path="suppliers" element={<SuppliersScreen />} />
           <Route path="products" element={<AdminProductsScreen />} />
           <Route path="categories" element={<CategoriesScreen />} />
           <Route path="drivers" element={<DriversScreen />} />
-            <Route path="price-requests" element={<PriceRequestsPanel />} />
-            <Route path="doc-requests" element={<DocRequestsPanel />} />
+          <Route path="price-requests" element={<PriceRequestsPanel />} />
+          <Route path="doc-requests" element={<DocRequestsPanel />} />
           <Route path="services" element={<ServicesScreen />} />
           <Route path="incidents" element={<IncidentsScreen />} />
           <Route path="subscriptions" element={<SubscriptionsScreen />} />
           <Route path="finance" element={<FinanceScreen />} />
           <Route path="orders" element={<OrdersScreen />} />
+          <Route path="orders/:id" element={<MultiStopTripDetailScreen />} />
           <Route path="document-validation" element={<DocumentOrdersValidationScreen />} />
           <Route path="customers" element={<CustomersScreen />} />
           <Route path="providers" element={<ProvidersScreen />} />

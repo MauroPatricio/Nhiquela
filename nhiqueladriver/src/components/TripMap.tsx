@@ -445,6 +445,60 @@ export default function TripMap({
           </Marker>
         )}
 
+        {/* 🔥 MARCADORES DE MULTI-PARAGENS DO MOTORISTA COM CORES DISTINTAS */}
+        {tripData && tripData.stops && Array.isArray(tripData.stops) && tripData.stops.map((stopItem: any, index: number) => {
+          const lat = parseFloat(stopItem.latitude || stopItem.lat);
+          const lng = parseFloat(stopItem.longitude || stopItem.lng);
+          if (isNaN(lat) || isNaN(lng)) return null;
+
+          const colors = ['#F97316', '#9333EA', '#0284C7', '#D97706', '#EC4899', '#10B981'];
+          const stopColor = stopItem.status === 'DELIVERED' || stopItem.status === 'ENTREGUE' ? '#10B981' : colors[index % colors.length];
+          const stopSeq = stopItem.sequence || index + 1;
+
+          return (
+            <Marker
+              key={stopItem._id || stopItem.id || index}
+              coordinate={{ latitude: lat, longitude: lng }}
+              title={`Paragem #${stopSeq}: ${stopItem.recipientName || stopItem.address || 'Destino'}`}
+              description={stopItem.address || ''}
+            >
+              <View style={{ alignItems: 'center' }}>
+                <View style={{
+                  backgroundColor: stopColor,
+                  paddingHorizontal: 8,
+                  paddingVertical: 5,
+                  borderRadius: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 3,
+                  elevation: 5
+                }}>
+                  <Ionicons name="location" size={14} color="#FFFFFF" style={{ marginRight: 3 }} />
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11 }}>#{stopSeq}</Text>
+                </View>
+                <View style={{
+                  width: 0,
+                  height: 0,
+                  backgroundColor: 'transparent',
+                  borderStyle: 'solid',
+                  borderLeftWidth: 5,
+                  borderRightWidth: 5,
+                  borderBottomWidth: 0,
+                  borderTopWidth: 6,
+                  borderLeftColor: 'transparent',
+                  borderRightColor: 'transparent',
+                  borderTopColor: stopColor,
+                }} />
+              </View>
+            </Marker>
+          );
+        })}
+
         {/* 🔥 ROTA OSRM CENTRALIZADA (APENAS SE DEVE DESENHAR E TEM ORIGEM+DESTINO) */}
         {origin && destination && shouldDrawRoute && routeCoordinates.length > 0 && (
           <Polyline

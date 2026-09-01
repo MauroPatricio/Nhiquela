@@ -56,12 +56,16 @@ export const calculateDynamicCommission = async (order) => {
   const financialConfig = await getFinancialConfig();
   let defaultCommissionRate = financialConfig?.driverCommissionRate || 0.15;
   
+  // Se houve negociação aceite, o valor base para a comissão é o finalAgreedPrice
+  const hasAgreedPrice = (order.negotiationState === 'ACCEPTED' || order.finalAgreedPrice > 0) && Number(order.finalAgreedPrice) > 0;
+  const agreedPrice = hasAgreedPrice ? Number(order.finalAgreedPrice) : null;
+
   // Para serviços (RequestService), o preço do serviço é pricetopay ou costServico, e o deslocamento é deliveryPrice ou costDeslocacao
-  let servicePrice = order.pricing?.breakdown?.servicePrice || order.pricing?.costServico || order.servicePrice || order.pricetopay || 0;
-  let distancePrice = order.pricing?.breakdown?.distancePrice || order.pricing?.costDeslocacao || order.distancePrice || order.deliveryPrice || 0;
+  let servicePrice = agreedPrice !== null ? agreedPrice : (order.pricing?.breakdown?.servicePrice || order.pricing?.costServico || order.servicePrice || order.pricetopay || 0);
+  let distancePrice = agreedPrice !== null ? 0 : (order.pricing?.breakdown?.distancePrice || order.pricing?.costDeslocacao || order.distancePrice || order.deliveryPrice || 0);
 
   // Se não existir o breakdown (por exemplo, pedidos antigos de loja ou simples), fallback para usar o total
-  if (servicePrice === 0 && distancePrice === 0) {
+  if (agreedPrice === null && servicePrice === 0 && distancePrice === 0) {
     servicePrice = order.pricing?.totalPrice || order.totalPrice || 0;
   }
 
@@ -405,17 +409,36 @@ export const checkAndDisableDriverIfLowBalance = async (driverId) => {
     const wallet = await Wallet.findOne({ $or: [{ ownerId: driverId }, { userId: driverId }] });
     if (!wallet) return;
 
-    if (config.autoDisableOnLowBalance && wallet.balance < limit) {
+    const currentBalance = wallet.balance;
+    const formattedBalance = `MT ${Number(currentBalance).toFixed(2)}`;
+
+    if (config.autoDisableOnLowBalance && currentBalance < limit) {
       await User.updateOne(
         { _id: driverId },
         {
           $set: {
             status: 'Inativo',
-            'deliveryman.register_conformance': 'INCONFORMANCE'
+            'deliveryman.register_conformance': 'INCONFORMANCE',
+            'deliveryman.balance': formattedBalance,
+            'deliveryman.walletBalance': currentBalance
           }
         }
       );
-      console.log(`[Wallet] ⚠️ Motorista ${driverId} suspenso por saldo insuficiente (${wallet.balance} < ${limit})`);
+      console.log(`[Wallet] ⚠️ Motorista ${driverId} suspenso por saldo insuficiente (${currentBalance} < ${limit})`);
+    } else {
+      // ✅ SE O SALDO É SUFICIENTE (ex: 950 MT >= 50 MT), REATIVAR O MOTORISTA E ATUALIZAR O SALDO NA BD
+      await User.updateOne(
+        { _id: driverId },
+        {
+          $set: {
+            status: 'Disponível',
+            'deliveryman.register_conformance': 'CONFORMANCE',
+            'deliveryman.balance': formattedBalance,
+            'deliveryman.walletBalance': currentBalance
+          }
+        }
+      );
+      console.log(`[Wallet] ✅ Motorista ${driverId} reativado/sincronizado com sucesso (Saldo: ${currentBalance} >= ${limit})`);
     }
   } catch (err) {
     console.error('[Wallet] Erro ao verificar saldo do motorista:', err.message);
@@ -607,81 +630,67 @@ export const processSellerOrderFinancials = async (orderId) => {
     const supplierNetAmount = Math.round((saleAmount - commissionAmount) * 100) / 100;
 
     // Retrieve or create Seller Wallet inside session
-    let wallet = await Wallet.findOne({ ownerId: sellerUser._id }).session(session);
+    let wallet = await Wallet.findOne({ $or: [{ ownerId: sellerUser._id }, { userId: sellerUser._id }] }).session(session);
     if (!wallet) {
-      wallet = await Wallet.create([{ ownerId: sellerUser._id, ownerType: 'seller', userId: sellerUser._id, balance: 0 }], { session });
-      wallet = wallet[0];
+      try {
+        wallet = await Wallet.create([{ ownerId: sellerUser._id, ownerType: 'seller', userId: sellerUser._id, balance: 0 }], { session });
+        wallet = wallet[0];
+      } catch (createErr) {
+        if (createErr.code === 11000 || createErr.message?.includes('E11000')) {
+          wallet = await Wallet.findOne({ $or: [{ ownerId: sellerUser._id }, { userId: sellerUser._id }] }).session(session);
+        } else {
+          throw createErr;
+        }
+      }
     }
 
     const balanceBefore = wallet.balance;
 
-    // Check payment flow:
-    // If not COD (Dinheiro / Pagamento na entrega), we subtract commission from the sale and credit the net amount to the seller's wallet
-    const isPrepaid = order.paymentMethod !== 'Dinheiro' && order.paymentMethod !== 'Pagamento na entrega';
+    // Regra da Carteira Digital do Fornecedor:
+    // O saldo da carteira é pré-pago e SÓ é incrementado por Recargas (Top-Up).
+    // As vendas entram diretamente para o fornecedor.
+    // Ao concluir a venda, é debitada a comissão da plataforma do saldo da carteira (exceto se for a 1ª Venda Grátis).
+    if (commissionAmount > 0) {
+      const allowNegativeSetting = await Settings.findOne({ key: 'allow_negative_balance' }).session(session);
+      const allowNegative = allowNegativeSetting ? (allowNegativeSetting.value === 'true' || allowNegativeSetting.value === true) : false;
 
-    if (isPrepaid) {
-      // Credit net amount to seller wallet
-      wallet.balance = Math.round((wallet.balance + supplierNetAmount) * 100) / 100;
+      if (!allowNegative && wallet.balance < commissionAmount) {
+        throw new Error('TRANSACTION_REJECTED');
+      }
+
+      wallet.balance = Math.round((wallet.balance - commissionAmount) * 100) / 100;
       await wallet.save({ session });
 
-      // Create payment transaction
       await Transaction.create([{
         walletId: wallet._id,
-        type: 'credit',
-        transaction_type: 'PAYMENT',
+        type: 'debit',
+        transaction_type: 'COMMISSION',
         balance_before: balanceBefore,
         balance_after: wallet.balance,
-        amount: supplierNetAmount,
-        method: order.paymentMethod || 'online',
-        description: `Receita líquida da venda #${order.code} (comissão de ${commissionAmount} MT retida na venda)`,
+        amount: commissionAmount,
+        method: 'wallet',
+        description: `Comissão da plataforma sobre a venda #${order.code} (${commissionRate}%)`,
         status: 'confirmado',
         reference_id: order._id,
         referenceId: order._id
       }], { session });
-
-      // Create platform commission record in ledger (neutral to wallet balance)
-      if (commissionAmount > 0) {
-        await Transaction.create([{
-          walletId: wallet._id,
-          type: 'debit',
-          transaction_type: 'COMMISSION',
-          balance_before: wallet.balance,
-          balance_after: wallet.balance,
-          amount: commissionAmount,
-          method: 'wallet',
-          description: `Comissão da plataforma sobre a venda #${order.code} (retida diretamente da venda)`,
-          status: 'confirmado',
-          reference_id: order._id,
-          referenceId: order._id
-        }], { session });
-      }
-    } else {
-      // Cash on Delivery: Seller received 100% in hand. We must debit commission from their wallet.
-      if (commissionAmount > 0) {
-        if (wallet.balance < commissionAmount) {
-          throw new Error('TRANSACTION_REJECTED');
-        }
-
-        wallet.balance = Math.round((wallet.balance - commissionAmount) * 100) / 100;
-        await wallet.save({ session });
-
-        await Transaction.create([{
-          walletId: wallet._id,
-          type: 'debit',
-          transaction_type: 'COMMISSION',
-          balance_before: balanceBefore,
-          balance_after: wallet.balance,
-          amount: commissionAmount,
-          method: 'wallet',
-          description: `Comissão da plataforma sobre a venda em dinheiro #${order.code}`,
-          status: 'confirmado',
-          reference_id: order._id,
-          referenceId: order._id
-        }], { session });
-      }
+    } else if (isFreeSale) {
+      await Transaction.create([{
+        walletId: wallet._id,
+        type: 'debit',
+        transaction_type: 'COMMISSION',
+        balance_before: balanceBefore,
+        balance_after: wallet.balance,
+        amount: 0,
+        method: 'wallet',
+        description: `Comissão 1ª Venda Grátis (0 MT) da venda #${order.code}`,
+        status: 'confirmado',
+        reference_id: order._id,
+        referenceId: order._id
+      }], { session });
     }
 
-    // If free sale was used, update seller user profile
+    // Se a 1ª venda grátis foi usada, atualiza o perfil do vendedor
     if (isFreeSale) {
       sellerUser.seller.free_sale_available = false;
       sellerUser.seller.free_sale_used = true;
@@ -741,7 +750,19 @@ export const reverseSellerOrderFinancials = async (orderId) => {
       throw new Error('Seller user account not found');
     }
 
-    const wallet = await getWallet(sellerUser._id, 'seller');
+    let wallet = await Wallet.findOne({ $or: [{ ownerId: sellerUser._id }, { userId: sellerUser._id }] }).session(session);
+    if (!wallet) {
+      try {
+        wallet = await Wallet.create([{ ownerId: sellerUser._id, ownerType: 'seller', userId: sellerUser._id, balance: 0 }], { session });
+        wallet = wallet[0];
+      } catch (createErr) {
+        if (createErr.code === 11000 || createErr.message?.includes('E11000')) {
+          wallet = await Wallet.findOne({ $or: [{ ownerId: sellerUser._id }, { userId: sellerUser._id }] }).session(session);
+        } else {
+          throw createErr;
+        }
+      }
+    }
     const balanceBefore = wallet.balance;
 
     const commissionAmount = order.siteTax || 0;
@@ -750,48 +771,23 @@ export const reverseSellerOrderFinancials = async (orderId) => {
 
     const isPrepaid = order.paymentMethod !== 'Dinheiro' && order.paymentMethod !== 'Pagamento na entrega';
 
-    if (isPrepaid) {
-      // We credited supplierNetAmount earlier. We must debit it now.
-      if (wallet.balance < supplierNetAmount) {
-        throw new Error('TRANSACTION_REJECTED');
-      }
-
-      wallet.balance = Math.round((wallet.balance - supplierNetAmount) * 100) / 100;
+    if (commissionAmount > 0) {
+      wallet.balance = Math.round((wallet.balance + commissionAmount) * 100) / 100;
       await wallet.save({ session });
 
       await Transaction.create([{
         walletId: wallet._id,
-        type: 'debit',
+        type: 'credit',
         transaction_type: 'REFUND',
         balance_before: balanceBefore,
         balance_after: wallet.balance,
-        amount: supplierNetAmount,
+        amount: commissionAmount,
         method: 'wallet',
-        description: `Estorno de receita líquida da venda #${order.code} (reembolso/cancelamento)`,
+        description: `Devolução de comissão sobre a venda #${order.code} (cancelamento/reembolso)`,
         status: 'confirmado',
         reference_id: order._id,
         referenceId: order._id
       }], { session });
-    } else {
-      // Cash on Delivery: We debited commissionAmount earlier. We must credit it back.
-      if (commissionAmount > 0) {
-        wallet.balance = Math.round((wallet.balance + commissionAmount) * 100) / 100;
-        await wallet.save({ session });
-
-        await Transaction.create([{
-          walletId: wallet._id,
-          type: 'credit',
-          transaction_type: 'REFUND',
-          balance_before: balanceBefore,
-          balance_after: wallet.balance,
-          amount: commissionAmount,
-          method: 'wallet',
-          description: `Devolução de comissão sobre a venda em dinheiro #${order.code} (cancelamento/reembolso)`,
-          status: 'confirmado',
-          reference_id: order._id,
-          referenceId: order._id
-        }], { session });
-      }
     }
 
     // Restore free sale if it was consumed by this order

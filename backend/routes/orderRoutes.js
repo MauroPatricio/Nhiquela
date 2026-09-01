@@ -2,7 +2,7 @@ import express from 'express';
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
 import RequestService from '../models/RequestServiceModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendOrderNotificationToSellerEmail } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendOrderNotificationToSellerEmail, sendDigitalKeyDeliveryEmail } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import Product from '../models/ProductModel.js';
 import DispatchService from '../services/dispatchService.js';
@@ -32,6 +32,91 @@ function generateCode() {
   let code = Math.floor(Math.random() * 900000) + 100000;
   return code.toString();
 }
+
+/**
+ * Processes digital items delivery for automatic digital products.
+ * Assigns available stock keys to digitalDeliveredItems and marks order as Entregue if all items delivered.
+ */
+export const processDigitalOrderDelivery = async (order) => {
+  if (!order || !order.orderItems || order.orderItems.length === 0) return order;
+
+  let hasDigital = false;
+  let allDigital = true;
+  if (!order.digitalDeliveredItems) {
+    order.digitalDeliveredItems = [];
+  }
+
+  for (const item of order.orderItems) {
+    const productId = item.product || item._id;
+    if (!productId) continue;
+
+    const product = await Product.findById(productId);
+    if (!product || product.productType !== 'DIGITAL') {
+      allDigital = false;
+      continue;
+    }
+
+    hasDigital = true;
+
+    // Check if key already delivered for this product in this order
+    const alreadyDelivered = order.digitalDeliveredItems.some(
+      d => d.productId && d.productId.toString() === product._id.toString()
+    );
+    if (alreadyDelivered) continue;
+
+    if (product.digitalStockKeys && product.digitalStockKeys.length > 0) {
+      const availableKeyObj = product.digitalStockKeys.find(k => !k.isUsed);
+      if (availableKeyObj) {
+        availableKeyObj.isUsed = true;
+        availableKeyObj.usedByOrder = order._id;
+        availableKeyObj.usedAt = new Date();
+
+        product.countInStock = product.digitalStockKeys.filter(k => !k.isUsed).length;
+        await product.save();
+
+        order.digitalDeliveredItems.push({
+          productId: product._id,
+          productName: product.name || product.nome,
+          key: availableKeyObj.key,
+          digitalInstructions: product.digitalInstructions || '',
+          deliveredAt: new Date()
+        });
+      }
+    }
+  }
+
+  order.isDigitalOrder = hasDigital;
+  if (allDigital) {
+    order.isUserWantDelivery = false;
+    order.deliveryPrice = 0;
+    if (order.digitalDeliveredItems && order.digitalDeliveredItems.length > 0) {
+      order.status = 'Entregue';
+      order.isDelivered = true;
+      order.deliveredAt = order.deliveredAt || new Date();
+    }
+  }
+
+  await order.save();
+
+  // Enviar e-mail de entrega dos acessos digitais ao e-mail do destinatário (ou do comprador)
+  try {
+    const buyerUser = await User.findById(order.user);
+    const targetEmail = order.digitalRecipientEmail || (buyerUser && buyerUser.email ? buyerUser.email : null);
+    if (targetEmail && order.digitalDeliveredItems && order.digitalDeliveredItems.length > 0) {
+      let recipientName = buyerUser ? buyerUser.name : 'Cliente';
+      await sendDigitalKeyDeliveryEmail({
+        toEmail: targetEmail,
+        recipientName,
+        orderCode: order.code,
+        digitalItems: order.digitalDeliveredItems
+      });
+    }
+  } catch (emailErr) {
+    console.error('[Digital Email Dispatch Error]:', emailErr.message);
+  }
+
+  return order;
+};
 
 orderRouter.get('/debug/driver/:id', async (req, res) => {
   try {
@@ -379,6 +464,10 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
       transportType: req.body.transportType,
       transportTypeId: req.body.transportTypeId,
       paymentProof: req.body.paymentProof,
+
+      // Recipient for digital products
+      digitalRecipientEmail: req.body.digitalRecipientEmail || req.body.recipientEmail || '',
+      digitalRecipientPhone: req.body.digitalRecipientPhone || req.body.alternativePhoneNumber || '',
     });
 
     try {
@@ -438,7 +527,16 @@ orderRouter.post('/', isAuth, expressAsyncHandler(async (req, res) => {
       }
 
       // Save the order
-      const savedOrder = await newOrder.save();
+      let savedOrder = await newOrder.save();
+
+      // Process digital order keys & status if contains digital products
+      try {
+        const { processDigitalOrderDelivery } = await import('./orderRoutes.js');
+        savedOrder = await processDigitalOrderDelivery(savedOrder);
+      } catch (digitalErr) {
+        console.error('[Digital Order Processing Error]:', digitalErr.message);
+      }
+
       const order = await savedOrder.populate('seller');
 
       // Debit partner commission if this is a marketplace order
@@ -1382,6 +1480,15 @@ orderRouter.put(
           const clientLat = order.deliveryAddress?.lat || order.address?.latitude || 0;
           const clientLng = order.deliveryAddress?.lng || order.address?.longitude || 0;
 
+          const calculatedDeliveryFare = order.addressPrice || order.deliveryFee || order.deliveryPrice || (
+            (providerLat !== 0 && clientLat !== 0) 
+              ? Math.max(100, Math.round(Math.sqrt(Math.pow(clientLat - providerLat, 2) + Math.pow(clientLng - providerLng, 2)) * 111 * 25))
+              : 150
+          );
+          order.addressPrice = calculatedDeliveryFare;
+          order.deliveryFee = calculatedDeliveryFare;
+          order.deliveryPrice = calculatedDeliveryFare;
+
           let serviceToDispatch = null;
           if (order.requestServiceId) {
             const existingService = await RequestService.findById(order.requestServiceId);
@@ -1390,6 +1497,9 @@ orderRouter.put(
               existingService.stepStatus = 1;
               existingService.targetDriverId = req.body.targetDriverId || null;
               existingService.deliveryman = null;
+              existingService.deliveryPrice = calculatedDeliveryFare;
+              existingService.finalAgreedPrice = calculatedDeliveryFare;
+              existingService.basePrice = calculatedDeliveryFare;
               if (order.transportTypeId) existingService.transportTypeId = order.transportTypeId;
               if (order.transportType) existingService.transportType = order.transportType;
               existingService.paymentMethod = 'Dinheiro';
@@ -1421,7 +1531,9 @@ orderRouter.put(
               description: `Entrega da encomenda ${order.code} da loja ${providerName}`,
               paymentMethod: 'Dinheiro',
               paymentOption: 'Pagamento na entrega',
-              deliveryPrice: order.addressPrice,
+              deliveryPrice: calculatedDeliveryFare,
+              finalAgreedPrice: calculatedDeliveryFare,
+              basePrice: calculatedDeliveryFare,
               user: order.user,
               isPaid: false,
               paidAt: null,
@@ -1990,66 +2102,6 @@ orderRouter.put(
           }
         }
 
-        // --- CREDITAR CARTEIRA DO FORNECEDOR ---
-        try {
-          const Provider = (await import('../models/ProviderModel.js')).default;
-          let providerQuery = Provider.findById(order.seller);
-          if (session) providerQuery.session(session);
-          let providerDoc = await providerQuery.catch(() => null);
-
-          if (!providerDoc) {
-            let providerUserQuery = Provider.findOne({ userId: order.seller });
-            if (session) providerUserQuery.session(session);
-            providerDoc = await providerUserQuery.catch(() => null);
-          }
-
-          if (providerDoc) {
-            const grossAmount = parseFloat(
-              order.itemsPriceForSeller ?? order.sellerEarningsAfterDiscount ?? order.itemsPrice ?? 0
-            );
-
-            if (grossAmount > 0) {
-              const sellerIds = [providerDoc._id, providerDoc.ownerId, providerDoc.userId].filter(Boolean);
-              let wQuery = Wallet.findOne({
-                $or: [{ ownerId: { $in: sellerIds } }, { userId: { $in: sellerIds } }]
-              });
-              if (session) wQuery.session(session);
-              let providerWallet = await wQuery;
-
-              if (!providerWallet) {
-                providerWallet = new Wallet({ 
-                  ownerId: providerDoc._id, 
-                  ownerType: 'seller', 
-                  userId: providerDoc.userId || providerDoc.ownerId, 
-                  balance: 0 
-                });
-                if (session) await providerWallet.save({ session });
-                else await providerWallet.save();
-              }
-              providerWallet.balance += grossAmount;
-              if (session) await providerWallet.save({ session });
-              else await providerWallet.save();
-
-              const txData = {
-                walletId: providerWallet._id,
-                type: 'credit',
-                amount: grossAmount,
-                method: 'order_payment',
-                description: `Pagamento da venda - Pedido #${order.code}`,
-                status: 'confirmado',
-              };
-              if (session) {
-                await Transaction.create([txData], { session });
-              } else {
-                await Transaction.create(txData);
-              }
-
-              console.log(`[Deliver] ✅ Fornecedor ${providerDoc.name} creditado: +${grossAmount} MT (Pedido #${order.code})`);
-            }
-          }
-        } catch (walletErr) {
-          console.error('[Deliver] ⚠️ Erro ao creditar carteira do fornecedor:', walletErr.message);
-        }
 
         let savedOrder;
         if (session) {
@@ -2377,17 +2429,25 @@ orderRouter.get(
       }
     }
 
-    // Buscar Orders normais
+    // Buscar Orders normais (APENAS se o fornecedor chamou o entregador / ativou isAvailableToDeliver)
     const orderConditions = [
       { 'deliveryman.id': deliverymanId },
-      { 'deliveryman._id': deliverymanId }  // compatibilidade com diferentes schemas
+      { 'deliveryman._id': deliverymanId },
+      { deliveryman: deliverymanId }
     ];
     if (canAcceptNewTrips) {
-      orderConditions.push({ stepStatus: 3 }); // Disponíveis para aceitar se ativo
+      orderConditions.push({ 
+        stepStatus: 3,
+        isAvailableToDeliver: true,
+        noTransport: { $ne: true },
+        isNoTransport: { $ne: true },
+        transportType: { $ne: 'Nenhum' }
+      });
     }
 
     const ordersPromise = Order.find({
       deleted: false,
+      status: { $nin: ['SEM MOTORISTA', 'SEM_MOTORISTA', 'Cancelado', 'CANCELADO', 'Finalizado', 'Entregue'] },
       $or: orderConditions
     })
       .populate('user', 'name phoneNumber profileImage')
@@ -2403,6 +2463,7 @@ orderRouter.get(
     if (canAcceptNewTrips) {
       const availableCondition = {
         stepStatus: 3,
+        status: { $nin: ['SEM MOTORISTA', 'SEM_MOTORISTA', 'Cancelado', 'CANCELADO', 'Finalizado', 'Entregue'] },
         $or: [
           { targetDriverId: { $exists: false } },
           { targetDriverId: null },
@@ -2434,6 +2495,7 @@ orderRouter.get(
 
     const requestServicesPromise = RequestService.find({
       deleted: false,
+      status: { $nin: ['SEM MOTORISTA', 'SEM_MOTORISTA', 'Cancelado', 'CANCELADO', 'Finalizado', 'Entregue'] },
       $or: requestServiceConditions
     })
       .populate('user', 'name phoneNumber profileImage')
@@ -2451,8 +2513,26 @@ orderRouter.get(
     console.log("Total Orders Found:", ordersResult.length, "| Total RequestServices Found:", requestServicesResult.length);
     console.log("====================================================");
 
-    // Format orders
-    const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
+    // Format orders ensuring driver receives delivery fare, not store purchase price
+    const formattedOrders = ordersResult.map(o => {
+      const fare = o.addressPrice || o.deliveryFee || o.deliveryPrice || 150;
+      return {
+        ...o,
+        type: 'order',
+        price: fare,
+        deliveryPrice: fare,
+        finalAgreedPrice: fare,
+        basePrice: fare,
+        itemsPrice: undefined,
+        totalPrice: fare,
+        orderItems: o.orderItems?.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          image: item.image,
+          price: undefined // Ocultar preço de compra de produto ao motorista
+        }))
+      };
+    });
     const formattedRequests = requestServicesResult.map(r => ({ ...r, type: 'requestService' }));
 
     let combined = [...formattedOrders, ...formattedRequests];
@@ -2468,10 +2548,81 @@ orderRouter.get(
       return { ...item, passengerName: name, passengerImage: image, passengerPhone: phone };
     });
 
-    // 🔥 DEBUG — Mostrar dados do cliente para diagnóstico (remover após corrigir)
+    // 📍 FILTRAR APENAS PEDIDOS VÁLIDOS (EXCLUIR SEM MOTORISTA, CANCELADOS, FINALIZADOS OU SEM GPS)
+    combined = combined.filter(item => {
+      const statusStr = String(item.status || '').toUpperCase().trim();
+      const isInvalidStatus = [
+        'SEM MOTORISTA',
+        'SEM_MOTORISTA',
+        'CANCELADO',
+        'CANCELLED',
+        'FINALIZADO',
+        'COMPLETED'
+      ].includes(statusStr);
+
+      if (isInvalidStatus) {
+        return false;
+      }
+
+      const destLat = Number(
+        item.destinationDetails?.lat || 
+        item.deliveryAddress?.latitude || 
+        item.deliveryAddress?.lat || 
+        item.destinationLocation?.latitude ||
+        item.seller?.location?.lat ||
+        item.sellerInfo?.location?.lat ||
+        item.seller?.latitude ||
+        item.sellerInfo?.latitude || 
+        item.latitude || 0
+      );
+
+      const destLng = Number(
+        item.destinationDetails?.lng || 
+        item.deliveryAddress?.longitude || 
+        item.deliveryAddress?.lng || 
+        item.destinationLocation?.longitude ||
+        item.seller?.location?.lng ||
+        item.sellerInfo?.location?.lng ||
+        item.seller?.longitude ||
+        item.sellerInfo?.longitude || 
+        item.longitude || 0
+      );
+
+      const origLat = Number(
+        item.originDetails?.lat || 
+        item.seller?.location?.lat || 
+        item.sellerInfo?.location?.lat ||
+        item.seller?.location?.coordinates?.[1] ||
+        item.seller?.latitude || 
+        item.sellerInfo?.latitude || 
+        item.originLat ||
+        item.latitude || 0
+      );
+
+      const origLng = Number(
+        item.originDetails?.lng || 
+        item.seller?.location?.lng || 
+        item.sellerInfo?.location?.lng ||
+        item.seller?.location?.coordinates?.[0] ||
+        item.seller?.longitude || 
+        item.sellerInfo?.longitude || 
+        item.originLng ||
+        item.longitude || 0
+      );
+
+      const hasDestGPS = !isNaN(destLat) && !isNaN(destLng) && destLat !== 0 && destLng !== 0;
+      const hasOrigGPS = !isNaN(origLat) && !isNaN(origLng) && origLat !== 0 && origLng !== 0;
+
+      return hasDestGPS || hasOrigGPS;
+    });
+
+    // 🔥 DEBUG — Mostrar dados do cliente para diagnóstico
     const pendingForLog = combined.find(o => o.stepStatus === 3);
     if (pendingForLog) {
-      console.log(`[DEBUG /deliveryman/all] Pedido pendente #${pendingForLog.code || pendingForLog._id}: passengerName=${pendingForLog.passengerName}, passengerImage=${pendingForLog.passengerImage}`);
+      const imgLog = pendingForLog.passengerImage
+        ? (pendingForLog.passengerImage.startsWith('data:') ? `${pendingForLog.passengerImage.substring(0, 30)}... [Base64]` : pendingForLog.passengerImage)
+        : 'null';
+      console.log(`[DEBUG /deliveryman/all] Pedido pendente #${pendingForLog.code || pendingForLog._id}: passengerName=${pendingForLog.passengerName}, passengerImage=${imgLog}`);
     }
 
     res.send({ orders: combined });
@@ -2540,6 +2691,139 @@ orderRouter.put(
   })
 );
 
+/**
+ * GET /api/orders/:id/receipt
+ * Gerar Recibo de Compra Oficial e Fatura Simplificada (PDF/Print)
+ */
+orderRouter.get(
+  '/:id/receipt',
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name email phoneNumber address')
+      .populate('orderItems.product', 'name price image seller');
+
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado.' });
+    }
+
+    const itemsFare = order.itemsPrice || order.orderItems?.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0;
+    const shippingFare = order.addressPrice || order.deliveryFee || order.deliveryPrice || 0;
+    const grandTotal = order.totalPrice || (itemsFare + shippingFare);
+    const receiptCode = `REC-${order.code || order._id.toString().substring(0, 8).toUpperCase()}`;
+
+    const receiptHtml = `
+      <!DOCTYPE html>
+      <html lang="pt-PT">
+      <head>
+        <meta charset="UTF-8">
+        <title>Recibo de Compra - ${receiptCode}</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 40px; background-color: #f9f9f9; }
+          .receipt-card { max-width: 750px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #6f42c1; padding-bottom: 20px; margin-bottom: 25px; }
+          .logo { font-size: 26px; font-weight: bold; color: #6f42c1; }
+          .logo span { color: #ff9900; }
+          .badge-paid { background-color: #d1fae5; color: #065f46; font-size: 13px; font-weight: bold; padding: 6px 16px; border-radius: 20px; text-transform: uppercase; }
+          .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; font-size: 14px; }
+          .details-box { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #f1f5f9; }
+          .details-box h4 { margin: 0 0 8px 0; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+          th { background: #f1f5f9; text-align: left; padding: 12px; font-size: 12px; color: #475569; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+          td { padding: 14px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+          .text-right { text-align: right; }
+          .summary-box { width: 300px; margin-left: auto; font-size: 14px; }
+          .summary-row { display: flex; justify-content: space-between; padding: 6px 0; }
+          .summary-total { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #6f42c1; font-weight: bold; font-size: 18px; color: #6f42c1; }
+          .print-btn { display: block; width: 220px; margin: 30px auto 0 auto; text-align: center; background: #6f42c1; color: #fff; padding: 12px 24px; border-radius: 25px; text-decoration: none; font-weight: bold; cursor: pointer; border: none; }
+          @media print { .print-btn { display: none; } body { padding: 0; background: #fff; } .receipt-card { border: none; box-shadow: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-card">
+          <div class="header">
+            <div>
+              <div class="logo">NHIQUELA<span>.</span></div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Recibo de Compra & Fatura Simplificada</div>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge-paid">🟢 PAGAMENTO CONFIRMADO</span>
+              <div style="font-size: 13px; font-weight: bold; margin-top: 8px; color: #334155;">Nº ${receiptCode}</div>
+              <div style="font-size: 12px; color: #64748b;">Data: ${new Date(order.createdAt).toLocaleString('pt-PT')}</div>
+            </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="details-box">
+              <h4>Cliente / Destinatário</h4>
+              <div><strong>${order.name || order.user?.name || 'Cliente'}</strong></div>
+              <div>📞 ${order.phoneNumber || order.user?.phoneNumber || 'N/A'}</div>
+              <div>📍 ${order.origin || order.destination || order.user?.address || 'Maputo, Moçambique'}</div>
+            </div>
+
+            <div class="details-box">
+              <h4>Dados do Pagamento</h4>
+              <div><strong>Método:</strong> ${order.paymentMethod || 'Dinheiro / M-Pesa'}</div>
+              <div><strong>Opção:</strong> ${order.paymentOption || 'Pagamento na Entrega'}</div>
+              <div><strong>Estado:</strong> Confirmado & Processado</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Item / Descrição</th>
+                <th class="text-right">Qtd</th>
+                <th class="text-right">Preço Unitário</th>
+                <th class="text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.orderItems && order.orderItems.length > 0 ? order.orderItems.map(item => `
+                <tr>
+                  <td><strong>${item.name || item.title || 'Produto Marketplace'}</strong></td>
+                  <td class="text-right">${item.quantity || 1}</td>
+                  <td class="text-right">${(item.price || 0).toLocaleString('pt-PT')} MT</td>
+                  <td class="text-right"><strong>${((item.price || 0) * (item.quantity || 1)).toLocaleString('pt-PT')} MT</strong></td>
+                </tr>
+              `).join('') : `
+                <tr>
+                  <td><strong>${order.goodType || order.description || 'Serviço de Transporte / Entrega'}</strong></td>
+                  <td class="text-right">1</td>
+                  <td class="text-right">${grandTotal.toLocaleString('pt-PT')} MT</td>
+                  <td class="text-right"><strong>${grandTotal.toLocaleString('pt-PT')} MT</strong></td>
+                </tr>
+              `}
+            </tbody>
+          </table>
+
+          <div class="summary-box">
+            <div class="summary-row">
+              <span>Subtotal dos Produtos</span>
+              <span>${itemsFare.toLocaleString('pt-PT')} MT</span>
+            </div>
+            <div class="summary-row">
+              <span>Taxa de Entrega / Frete</span>
+              <span>${shippingFare.toLocaleString('pt-PT')} MT</span>
+            </div>
+            <div class="summary-total">
+              <span>TOTAL PAGO</span>
+              <span>${grandTotal.toLocaleString('pt-PT')} MT</span>
+            </div>
+          </div>
+
+          <button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+        </div>
+      </body>
+      </html>
+    `;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(receiptHtml);
+  })
+);
+
 export default orderRouter;
+
+
 
 

@@ -55,11 +55,19 @@ export default function SupplierLayout() {
         
         {/* Foto e Nome da Loja */}
         <div className="p-4 text-center border-bottom">
-          <div className="bg-success text-white rounded-circle d-flex justify-content-center align-items-center mx-auto mb-2" style={{ width: '60px', height: '60px', fontSize: '24px' }}>
-            <FontAwesomeIcon icon={faStore} />
+          <div className="rounded-circle d-flex justify-content-center align-items-center mx-auto mb-2 overflow-hidden bg-success text-white shadow-sm" style={{ width: '60px', height: '60px', fontSize: '24px' }}>
+            {(userInfo.seller?.logo || userInfo.sellerLogo || userInfo.profileImage) ? (
+              <img src={userInfo.seller?.logo || userInfo.sellerLogo || userInfo.profileImage} alt="Logo" className="w-100 h-100 object-fit-cover" />
+            ) : (
+              <FontAwesomeIcon icon={faStore} />
+            )}
           </div>
-          <h6 className="fw-bold m-0">{userInfo.seller?.name || userInfo.name || 'Minha Loja'}</h6>
-          <small className="text-success fw-bold">Loja Ativa</small>
+          <h6 className="fw-bold m-0 text-truncate">{userInfo.seller?.nomeEstabelecimento || userInfo.seller?.name || userInfo.name || 'Minha Loja'}</h6>
+          {userInfo.seller?.openstore !== false ? (
+            <small className="text-success fw-bold d-block mt-1">🟢 Loja Ativa</small>
+          ) : (
+            <small className="text-danger fw-bold d-block mt-1">🔴 Loja Fechada</small>
+          )}
         </div>
 
         <nav className="nav flex-column flex-grow-1 p-3 gap-2">

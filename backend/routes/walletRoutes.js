@@ -25,10 +25,18 @@ async function updateWallet(ownerId, amount, type, method, description, status =
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    let wallet = await Wallet.findOne({ ownerId }).session(session);
+    let wallet = await Wallet.findOne({ $or: [{ ownerId }, { userId: ownerId }] }).session(session);
     if (!wallet) {
-      wallet = await Wallet.create([{ ownerId, ownerType, userId: ownerId, balance: 0 }], { session });
-      wallet = wallet[0]; // create retorna array no modo transacional
+      try {
+        wallet = await Wallet.create([{ ownerId, ownerType, userId: ownerId, balance: 0 }], { session });
+        wallet = wallet[0]; // create retorna array no modo transacional
+      } catch (createErr) {
+        if (createErr.code === 11000 || createErr.message?.includes('E11000')) {
+          wallet = await Wallet.findOne({ $or: [{ ownerId }, { userId: ownerId }] }).session(session);
+        } else {
+          throw createErr;
+        }
+      }
     }
 
     // Idempotency Check: Previne duplo crédito ou ataque replay
@@ -170,8 +178,26 @@ walletRouter.post('/topup', isAuth, async (req, res) => {
 
     await sendAdminNotificationEmail(title, textHtml);
 
-    // [NOVO] Emissão global em tempo real via WebSocket para todos os administradores conectados
-    if (isManualDeposit) {
+    if (!isManualDeposit) {
+      try {
+        const { checkAndReactivateSellerIfMinBalance } = await import('../services/walletService.js');
+        await checkAndReactivateSellerIfMinBalance(req.user._id);
+      } catch (reactivateErr) {
+        console.log('[Wallet] Error reactivating seller store after instant topup:', reactivateErr.message);
+      }
+
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          const userId = req.user._id.toString();
+          io.to(userId).emit('walletUpdated', { message: 'A sua recarga foi aprovada!' });
+          io.to(`user_${userId}`).emit('walletUpdated', { message: 'A sua recarga foi aprovada!' });
+          io.to(`seller_${userId}`).emit('walletUpdated', { message: 'A sua recarga foi aprovada!' });
+        }
+      } catch (sErr) {
+        console.log('Socket emit error on instant topup:', sErr.message);
+      }
+    } else {
       const io = req.app.get('io');
       const users = req.app.get('users');
       if (io && users) {
@@ -367,11 +393,47 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
     }
 
     const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
-    if (!wallet) return res.json([]);
+    let transactions = wallet ? await Transaction.find({ walletId: wallet._id }).sort({ createdAt: -1 }).lean() : [];
     
-    // Mostra todas as transacções, incluindo as pendentes
-    const transactions = await Transaction.find({ walletId: wallet._id }).sort({ createdAt: -1 });
-    
+    // Se o utilizador for um Fornecedor/Seller, incluir as Vendas Entregues como Movimentos de Entrada
+    const Provider = mongoose.model('Provider');
+    const Order = mongoose.model('Order');
+
+    const provider = await Provider.findOne({
+      $or: [{ ownerId: req.user._id }, { userId: req.user._id }]
+    });
+
+    if (provider) {
+      const sellerOrders = await Order.find({
+        seller: provider._id,
+        isDelivered: true,
+        deleted: { $ne: true }
+      }).lean();
+
+      const existingRefIds = new Set(
+        transactions.map(t => (t.referenceId || t.reference_id || '').toString()).filter(Boolean)
+      );
+
+      const salesMovements = sellerOrders.map(order => {
+        const amount = order.itemsPrice ?? order.orderItems?.reduce((acc, item) => acc + ((item.price || item.priceFromSeller || 0) * (item.quantity || 1)), 0) ?? order.itemsPriceForSeller ?? 0;
+        return {
+          _id: `sale_${order._id}`,
+          type: 'credit',
+          transaction_type: 'PAYMENT',
+          amount: amount,
+          method: order.paymentMethod || 'venda',
+          description: `Receita da venda #${order.code}`,
+          status: 'confirmado',
+          createdAt: order.deliveredAt || order.createdAt,
+          date: order.deliveredAt || order.createdAt,
+          referenceId: order._id
+        };
+      }).filter(s => !existingRefIds.has(s.referenceId.toString()));
+
+      transactions = [...transactions, ...salesMovements];
+      transactions.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+    }
+
     res.json(transactions);
   } catch (error) {
     console.error('Erro ao listar transações:', error);
@@ -667,10 +729,17 @@ walletRouter.put('/:id/authorize-topup', isAuth, async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    const targetUserId = wallet.ownerId || wallet.userId;
+    try {
+      const { checkAndReactivateSellerIfMinBalance } = await import('../services/walletService.js');
+      await checkAndReactivateSellerIfMinBalance(targetUserId);
+    } catch (reactivateErr) {
+      console.log('[Wallet] Error reactivating seller store after topup:', reactivateErr.message);
+    }
+
     // Emit socket event to notify the user to refresh wallet/status
     try {
       const io = req.app.get('io');
-      const targetUserId = wallet.ownerId || wallet.userId;
       
       if (io && targetUserId) {
         const userId = targetUserId.toString();
@@ -939,7 +1008,7 @@ walletRouter.get('/seller-earnings', isAuth, async (req, res) => {
     }
 
     orders.forEach(order => {
-      const orderAmount = order.itemsPriceForSeller ?? order.sellerEarningsAfterDiscount ?? order.itemsPrice ?? 0;
+      const orderAmount = order.itemsPrice ?? order.orderItems?.reduce((acc, item) => acc + ((item.price || item.priceFromSeller || 0) * (item.quantity || 1)), 0) ?? order.itemsPriceForSeller ?? 0;
       const orderDate = new Date(order.deliveredAt || order.createdAt);
       
       if (orderDate >= startOfToday) {

@@ -103,48 +103,74 @@ class PricingService {
   }
 
   /**
-   * Consulta a API do OSRM para obter dist�ncia (em km) e tempo (em min)
-   * Agora utiliza o servi�o centralizado routingService.js (com cache!)
+   * Consulta a API do OSRM para obter distncia (em km) e tempo (em min)
+   * Agora utiliza o servio centralizado routingService.js (com cache!)
    */
-  async getRouteInfo(originLoc, destLoc) {
+  async getRouteInfo(originLoc, destLoc, stops = []) {
     if (!originLoc || !destLoc) return { distanceKm: 0, durationMin: 0, routeCoordinates: [] };
     try {
-      // Importa dinamicamente para evitar depend�ncias circulares (se houver) ou usa o import no topo
       const { getRoute } = await import('./routingService.js');
       
-      // O getRoute centralizado j� converte coordenadas e aplica caching
-      const routeData = await getRoute(
-        originLoc.lat, 
-        originLoc.lng, 
-        destLoc.lat, 
-        destLoc.lng
-      );
-      
-      return { 
-        distanceKm: routeData.distanceKm, 
-        durationMin: routeData.durationMinutes, 
-        routeCoordinates: routeData.coordinates.map(coord => ({
+      const validStops = Array.isArray(stops) ? stops.filter(s => s && (s.latitude || s.lat) && (s.longitude || s.lng)) : [];
+
+      if (validStops.length === 0) {
+        const routeData = await getRoute(originLoc.lat, originLoc.lng, destLoc.lat, destLoc.lng);
+        return { 
+          distanceKm: routeData.distanceKm, 
+          durationMin: routeData.durationMinutes, 
+          routeCoordinates: (routeData.coordinates || []).map(coord => ({
+            latitude: coord[1],
+            longitude: coord[0]
+          }))
+        };
+      }
+
+      // Waypoints: Origem -> Destino -> Paragem 1 -> Paragem 2...
+      const waypoints = [
+        originLoc,
+        destLoc,
+        ...validStops.map(s => ({ lat: s.latitude || s.lat, lng: s.longitude || s.lng }))
+      ];
+
+      let totalDistance = 0;
+      let totalDuration = 0;
+      let allCoordinates = [];
+
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        const from = waypoints[i];
+        const to = waypoints[i + 1];
+        const routeData = await getRoute(from.lat, from.lng, to.lat, to.lng);
+        totalDistance += routeData.distanceKm;
+        totalDuration += routeData.durationMinutes;
+        const segmentCoords = (routeData.coordinates || []).map(coord => ({
           latitude: coord[1],
           longitude: coord[0]
-        }))
+        }));
+        allCoordinates = [...allCoordinates, ...segmentCoords];
+      }
+
+      return {
+        distanceKm: totalDistance,
+        durationMin: totalDuration,
+        routeCoordinates: allCoordinates
       };
     } catch (error) {
       console.error('Erro ao consultar OSRM no PricingService:', error.message);
     }
     
-    // Fallback b�sico
+    // Fallback bsico
     return { distanceKm: 5, durationMin: 15, routeCoordinates: [] };
   }
 
   /**
-   * Sele��o autom�tica do ve�culo baseada no peso ou noutros crit�rios
+   * Seleo automtica do veculo baseada no peso ou noutros critrios
    */
   async autoSelectVehicle(weightKg, requestedVehicleTypeId = null) {
     if (requestedVehicleTypeId) {
       return await VehicleType.findById(requestedVehicleTypeId);
     }
 
-    // L�gica inteligente simples
+    // Lógica inteligente simples
     let query = {};
     if (weightKg <= 10) query = { name: { $regex: /mota/i } };
     else if (weightKg <= 300) query = { category: 'ligeiro' };
@@ -174,19 +200,19 @@ class PricingService {
     let dayMult = engineConfig.dayMultipliers.weekday;
     if (day === 6) dayMult = engineConfig.dayMultipliers.saturday;
     else if (day === 0) dayMult = engineConfig.dayMultipliers.sunday;
-    // Feriados n�o implementados nativamente (precisaria de API externa)
+    // Feriados no implementados nativamente (precisaria de API externa)
 
     return timeMult * dayMult;
   }
 
   /**
-   * C�lculo Final
+   * Clculo Final
    */
-  async calculatePrice({ serviceId, originLoc, destLoc, weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false, trafficCondition = 'normal', demandLevel = 'normal', providerId = null, clientSuggestedPrice = null }) {
+  async calculatePrice({ serviceId, originLoc, destLoc, stops = [], weightKg = 0, vehicleTypeId = null, hasHelper = false, isRaining = false, trafficCondition = 'normal', demandLevel = 'normal', providerId = null, clientSuggestedPrice = null }) {
     const engineConfig = await this.getGlobalSettings();
     const service = await ProviderSubcategory.findById(serviceId);
     
-    if (!service) throw new Error("Servi�o n�o encontrado");
+    if (!service) throw new Error("Servio no encontrado");
 
     let providerRatingMult = engineConfig.ratingMultipliers.threeStar;
     let customBasePrice = null;
@@ -210,7 +236,7 @@ class PricingService {
     }
 
     // 1. Rota (OSRM)
-    const { distanceKm, durationMin, routeCoordinates } = await this.getRouteInfo(originLoc, destLoc);
+    const { distanceKm, durationMin, routeCoordinates } = await this.getRouteInfo(originLoc, destLoc, stops);
 
     // 2. Veculo
     let vehicle = null;

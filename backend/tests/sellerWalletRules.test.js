@@ -88,11 +88,10 @@ describe('Seller Wallet and Financial Rules', () => {
     expect(result.success).toBe(true);
     expect(result.isFreeSale).toBe(true);
     expect(result.commissionAmount).toBe(0);
-    expect(result.supplierNetAmount).toBe(1000);
 
-    // Verify wallet balance
+    // Verify wallet balance (remains 0 MT because sales do not credit prepaid wallet)
     const wallet = await getWallet(sellerUserId, 'seller');
-    expect(wallet.balance).toBe(1000);
+    expect(wallet.balance).toBe(0);
 
     // Verify promotion was consumed
     const updatedUser = await User.findById(sellerUserId);
@@ -102,13 +101,18 @@ describe('Seller Wallet and Financial Rules', () => {
     // Verify transaction logs
     const txs = await Transaction.find({ walletId: wallet._id });
     expect(txs.length).toBe(1);
-    expect(txs[0].transaction_type).toBe('PAYMENT');
-    expect(txs[0].amount).toBe(1000);
+    expect(txs[0].transaction_type).toBe('COMMISSION');
+    expect(txs[0].amount).toBe(0);
   }, 60000);
 
-  test('Should charge platform commission and credit net amount to seller wallet for prepaid orders', async () => {
+  test('Should debit platform commission from seller wallet for sales when free sale is not available', async () => {
     // Disallow first sale free to test commission calculation
     await User.updateOne({ _id: sellerUserId }, { $set: { 'seller.free_sale_available': false } });
+
+    // Seed wallet with prepaid top-up balance (e.g. 200 MT)
+    const wallet = await getWallet(sellerUserId, 'seller');
+    wallet.balance = 200;
+    await wallet.save();
 
     const order = new Order({
       code: 'ORDER2',
@@ -127,19 +131,16 @@ describe('Seller Wallet and Financial Rules', () => {
     expect(result.success).toBe(true);
     expect(result.isFreeSale).toBe(false);
     expect(result.commissionAmount).toBe(150);
-    expect(result.supplierNetAmount).toBe(850);
 
-    // Verify wallet balance
-    const wallet = await getWallet(sellerUserId, 'seller');
-    expect(wallet.balance).toBe(850);
+    // Verify wallet balance: 200 - 150 commission = 50 MT
+    const updatedWallet = await getWallet(sellerUserId, 'seller');
+    expect(updatedWallet.balance).toBe(50);
 
     // Verify ledger records
-    const txs = await Transaction.find({ walletId: wallet._id }).sort({ createdAt: 1 });
-    expect(txs.length).toBe(2);
-    expect(txs[0].transaction_type).toBe('PAYMENT');
-    expect(txs[0].amount).toBe(850);
-    expect(txs[1].transaction_type).toBe('COMMISSION');
-    expect(txs[1].amount).toBe(150);
+    const txs = await Transaction.find({ walletId: wallet._id });
+    expect(txs.length).toBe(1);
+    expect(txs[0].transaction_type).toBe('COMMISSION');
+    expect(txs[0].amount).toBe(150);
   }, 60000);
 
   test('Should debit platform commission from seller wallet for Cash on Delivery (COD) orders', async () => {

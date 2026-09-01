@@ -48,14 +48,27 @@ const productSchema = new mongoose.Schema(
     sellerPriceWithDeliver: { type: Number },
     promotion: { type: mongoose.Schema.Types.ObjectId, ref: "Promotion" },
     variants: [
-  {
-    color: { type: mongoose.Schema.Types.ObjectId, ref: "Color" },
-    size: { type: mongoose.Schema.Types.ObjectId, ref: "Size" },
-    stock: { type: Number, default: 0 },
-    price: { type: Number },
-  }
-],
+      {
+        color: { type: mongoose.Schema.Types.ObjectId, ref: "Color" },
+        size: { type: mongoose.Schema.Types.ObjectId, ref: "Size" },
+        stock: { type: Number, default: 0 },
+        price: { type: Number },
+      }
+    ],
 
+    // 🔥 CAMPOS DE PRODUTO DIGITAL
+    productType: { type: String, enum: ['PHYSICAL', 'DIGITAL'], default: 'PHYSICAL' },
+    digitalType: { type: String, enum: ['SUBSCRIPTION', 'KEY', 'ACCOUNT', 'VOUCHER', 'FILE_LINK'], default: 'KEY' },
+    digitalDeliveryMode: { type: String, enum: ['AUTOMATIC', 'MANUAL'], default: 'AUTOMATIC' },
+    digitalInstructions: { type: String, default: '' },
+    digitalStockKeys: [
+      {
+        key: { type: String, required: true },
+        isUsed: { type: Boolean, default: false },
+        usedByOrder: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+        usedAt: { type: Date }
+      }
+    ],
   },
   {
     timestamps: true,

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 
-export default function usePagination(data = [], itemsPerPage = 10, searchFields = ['name', 'nome', 'description', 'email', 'phone', '_id', 'title']) {
+export default function usePagination(data = [], initialItemsPerPage = 10, searchFields = ['name', 'nome', 'description', 'email', 'phone', '_id', 'title']) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Sort and Handle Search Filtering
@@ -59,12 +60,20 @@ export default function usePagination(data = [], itemsPerPage = 10, searchFields
     setCurrentPage(1);
   };
 
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(Number(newLimit));
+    setCurrentPage(1);
+  };
+
   return {
     currentPage,
+    itemsPerPage,
+    setItemsPerPage: handleItemsPerPageChange,
     searchQuery,
     setSearchQuery: handleSearch,
     filteredData,
     currentData,
+    pageData: currentData,
     totalPages,
     nextPage,
     prevPage,

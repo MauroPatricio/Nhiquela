@@ -155,10 +155,14 @@ import serviceCatalogRoutes from './routes/serviceCatalogRoutes.js';
 import serviceRequestRoutes from './routes/serviceRequestRoutes.js';
 import roleRouter from './routes/roleRoutes.js';
 import supportRouter from './routes/supportRoutes.js';
+import partnerRouter from './routes/partnerRoutes.js';
+import deliveryOrderRouter from './routes/deliveryOrderRoutes.js';
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Mount API routers under the '/api' namespace
+app.use('/api/delivery-orders', deliveryOrderRouter);
+app.use('/api/partners', partnerRouter);
 app.use('/api/catalog', serviceCatalogRoutes);
 app.use('/api/service-requests', serviceRequestRoutes);
 app.use('/api/seed', seedRoutes);
@@ -187,6 +191,7 @@ app.use('/api/colors', colorRoutes);
 app.use('/api/sizes', sizeRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/request-service', requestServiceRoutes);
+app.use('/api/request-services', requestServiceRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
 app.use('/api/establishment-types', establishmentTypeRoutes);

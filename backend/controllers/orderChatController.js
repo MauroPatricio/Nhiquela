@@ -50,13 +50,13 @@ export const sendMessage = async (req, res) => {
       io.to(`order_chat_${orderId}`).emit('newOrderMessage', savedMessage);
     }
 
-    // Send push notification asynchronously (so it doesn't block the API response)
+    // Send push notification & real-time socket event asynchronously
     const sendPushNotification = async () => {
       try {
         const User = (await import('../models/UserModel.js')).default;
         const Order = (await import('../models/OrderModel.js')).default;
         const Provider = (await import('../models/ProviderModel.js')).default;
-        const { sendNotification } = await import('../utils/sendNotification.js');
+        const createNotification = (await import('../utils/createNotification.js')).default;
 
         const order = await Order.findById(orderId);
         if (order) {
@@ -74,19 +74,33 @@ export const sendMessage = async (req, res) => {
             recipientUser = await User.findById(order.user);
           }
 
-          if (recipientUser && recipientUser.deviceToken) {
-            await sendNotification(
-              recipientUser.deviceToken,
-              `Nova Mensagem de ${senderName} 💬`,
-              message || 'Enviou um anexo.'
-            );
+          if (recipientUser) {
+            // Real-time socket emit directly to the user's socket room
+            if (io) {
+              io.to(recipientUser._id.toString()).emit('new_chat_message', {
+                orderId,
+                senderName,
+                message: message || 'Enviou um anexo.',
+                savedMessage
+              });
+            }
+
+            // Create notification in DB and dispatch Push Notification
+            await createNotification({
+              receiver_id: recipientUser._id,
+              title: `Nova Mensagem de ${senderName} 💬`,
+              message: message || 'Enviou um anexo.',
+              type: 'chat',
+              relatedId: orderId,
+              order_id: orderId
+            });
           }
         }
       } catch (err) {
         console.error('Erro ao enviar push de mensagem do chat:', err);
       }
     };
-    sendPushNotification(); // Call async function
+    sendPushNotification();
 
     res.status(201).json(savedMessage);
   } catch (error) {

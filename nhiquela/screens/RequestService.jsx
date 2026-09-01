@@ -22,6 +22,7 @@ import {
   Share
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as ImagePicker from 'expo-image-picker';
 
 LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
 
@@ -48,7 +49,44 @@ export default function RequestServiceSimple() {
   const navigation = useNavigation();
   const route = useRoute();
 
+  const formatDriverRating = (item) => {
+    if (!item) return '5.0';
+    const val = item.deliveryman?.averageRating ?? item.deliveryman?.rating ?? item.averageRating ?? item.rating;
+    const parsed = parseFloat(val);
+    return (!isNaN(parsed) && parsed > 0) ? parsed.toFixed(1) : '5.0';
+  };
+
+  const getDriverAvatar = (d) => {
+    if (!d) return 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+    const uri = d.profileImage || 
+                d.deliveryman?.photo || 
+                d.deliveryman?.profileImage || 
+                d.deliveryman?.image || 
+                d.deliveryman?.avatar || 
+                d.photo || 
+                d.image || 
+                d.avatar;
+    if (uri && typeof uri === 'string' && uri.trim() !== '' && uri.startsWith('http')) {
+      return uri;
+    }
+    return 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  };
+
   const service = route.params?.selectedService;
+
+  const [subcatConfig, setSubcatConfig] = useState(null);
+
+  useEffect(() => {
+    if (service?._id) {
+      api.get(`/provider-subcategories/${service._id}`)
+        .then(res => {
+          if (res.data) setSubcatConfig(res.data);
+        })
+        .catch(err => console.log('Erro ao carregar subcategoria:', err));
+    }
+  }, [service?._id]);
+
+  const requiresPhotos = service?.requiresPhotos === true || subcatConfig?.requiresPhotos === true;
 
   const [step, setStep] = useState(1);
   const [location, setLocation] = useState(null);
@@ -63,6 +101,192 @@ export default function RequestServiceSimple() {
   const [preferredPaymentMethodName, setPreferredPaymentMethodName] = useState('Dinheiro');
   const [driverHeading, setDriverHeading] = useState(0);
   const [radarDrivers, setRadarDrivers] = useState([]);
+
+  // Fotos do Veículo e Negociação de Valor
+  const [vehiclePhotos, setVehiclePhotos] = useState({ front: '', rear: '', leftSide: '', rightSide: '' });
+  const [uploadingPhotos, setUploadingPhotos] = useState({ front: false, rear: false, leftSide: false, rightSide: false });
+  const [showNegotiationModal, setShowNegotiationModal] = useState(false);
+  const [proposalAmount, setProposalAmount] = useState('');
+  const [proposalNote, setProposalNote] = useState('');
+  const [submittingProposal, setSubmittingProposal] = useState(false);
+
+  const uploadVehiclePhotoAsset = async (position, asset) => {
+    try {
+      setUploadingPhotos(prev => ({ ...prev, [position]: true }));
+      const formData = new FormData();
+      const filename = asset.fileName || `vehicle_${position}.jpg`;
+      const fileType = asset.mimeType || asset.type || 'image/jpeg';
+
+      formData.append('file', {
+        uri: asset.uri,
+        type: fileType,
+        name: filename,
+      });
+
+      const baseURL = api.defaults.baseURL || 'http://10.167.165.176:5000/api';
+      const uploadUrl = `${baseURL}/upload`;
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload falhou com código ${response.status}`);
+      }
+
+      const data = await response.json();
+      const url = data.secure_url || data.url;
+
+      if (!url) {
+        throw new Error('Servidor não retornou a URL da imagem.');
+      }
+
+      setVehiclePhotos(prev => ({ ...prev, [position]: url }));
+    } catch (err) {
+      console.log('Erro ao carregar foto do veículo:', err);
+      Alert.alert('Erro', 'Não foi possível carregar a imagem do veículo. Verifique a ligação à rede.');
+    } finally {
+      setUploadingPhotos(prev => ({ ...prev, [position]: false }));
+    }
+  };
+
+  const getMediaType = () => ImagePicker.MediaType?.Images || ImagePicker.MediaTypeOptions?.Images || 'images';
+
+  const handleLaunchCamera = async (position) => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão Negada', 'Precisamos de acesso à câmara para fotografar o veículo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: getMediaType(),
+        allowsEditing: false,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await uploadVehiclePhotoAsset(position, result.assets[0]);
+      }
+    } catch (err) {
+      console.log('Erro ao abrir câmara:', err);
+      Alert.alert('Erro', 'Não foi possível abrir a câmara.');
+    }
+  };
+
+  const handleLaunchLibrary = async (position) => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão Negada', 'Precisamos de acesso à galeria de fotos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: getMediaType(),
+        allowsEditing: false,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await uploadVehiclePhotoAsset(position, result.assets[0]);
+      }
+    } catch (err) {
+      console.log('Erro ao abrir galeria:', err);
+      Alert.alert('Erro', 'Não foi possível abrir a galeria.');
+    }
+  };
+
+  const pickVehiclePhoto = (position) => {
+    Alert.alert(
+      'Fotografia do Veículo',
+      'Escolha como deseja adicionar a foto:',
+      [
+        {
+          text: '📷 Tirar Foto (Câmara)',
+          onPress: () => handleLaunchCamera(position)
+        },
+        {
+          text: '🖼️ Escolher da Galeria',
+          onPress: () => handleLaunchLibrary(position)
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        }
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleProposePrice = async () => {
+    if (!proposalAmount || isNaN(Number(proposalAmount)) || Number(proposalAmount) <= 0) {
+      Alert.alert('Valor Inválido', 'Introduza um valor válido para a proposta.');
+      return;
+    }
+    const orderId = currentRequestServiceId || activeTripData?._id;
+    if (!orderId) return;
+
+    setSubmittingProposal(true);
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const { data } = await api.post(`/request-service/${orderId}/negotiate/propose`, {
+        amount: Number(proposalAmount),
+        note: proposalNote
+      }, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      Alert.alert('Proposta Enviada', 'A sua proposta de preço foi enviada ao fornecedor.');
+      setShowNegotiationModal(false);
+      setProposalAmount('');
+      setProposalNote('');
+      if (data.order) setActiveTripData(data.order);
+    } catch (err) {
+      console.log('Erro ao enviar proposta:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Falha ao enviar proposta.');
+    } finally {
+      setSubmittingProposal(false);
+    }
+  };
+
+  const handleAcceptProposal = async () => {
+    const orderId = currentRequestServiceId || activeTripData?._id;
+    if (!orderId) return;
+    setSubmittingProposal(true);
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const { data } = await api.post(`/request-service/${orderId}/negotiate/accept`, {}, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      Alert.alert('Proposta Aceite', 'O valor final do serviço foi acordado com sucesso!');
+      if (data.order) setActiveTripData(data.order);
+    } catch (err) {
+      console.log('Erro ao aceitar proposta:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Falha ao aceitar proposta.');
+    } finally {
+      setSubmittingProposal(false);
+    }
+  };
+
+  const handleRejectProposal = async () => {
+    const orderId = currentRequestServiceId || activeTripData?._id;
+    if (!orderId) return;
+    setSubmittingProposal(true);
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const { data } = await api.post(`/request-service/${orderId}/negotiate/reject`, {}, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+      Alert.alert('Proposta Rejeitada', 'A proposta foi rejeitada.');
+      if (data.order) setActiveTripData(data.order);
+    } catch (err) {
+      console.log('Erro ao rejeitar proposta:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Falha ao rejeitar proposta.');
+    } finally {
+      setSubmittingProposal(false);
+    }
+  };
 
   // Radar Search State
   const [radius, setRadius] = useState(5);
@@ -79,6 +303,119 @@ export default function RequestServiceSimple() {
   const [duration, setDuration] = useState(null);
   const [activeTripData, setActiveTripData] = useState(null);
   const [currentRequestServiceId, setCurrentRequestServiceId] = useState(null);
+  const [activeNegotiationOrder, setActiveNegotiationOrder] = useState(null);
+  const [showCounterModal, setShowCounterModal] = useState(false);
+  const [counterPrice, setCounterPrice] = useState('');
+  const [counterNote, setCounterNote] = useState('');
+  const [isSubmittingNegotiation, setIsSubmittingNegotiation] = useState(false);
+
+  // Handlers para Negociação do Cliente
+  const handleAcceptNegotiation = async (orderToAccept) => {
+    try {
+      setIsSubmittingNegotiation(true);
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const orderId = orderToAccept?._id || currentRequestServiceId;
+
+      const { data } = await api.post(`/request-service/${orderId}/negotiate/accept`, {}, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+
+      Alert.alert('Proposta Aceite!', 'A proposta de preço foi aceite com sucesso. O motorista está a caminho!');
+      setWaitingForDriver(false);
+      setIsSearching(false);
+      setActiveTripData(data.order || orderToAccept);
+      setActiveNegotiationOrder(null);
+      setCurrentRequestServiceId(null);
+    } catch (err) {
+      console.error('Erro ao aceitar proposta:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Não foi possível aceitar a proposta.');
+    } finally {
+      setIsSubmittingNegotiation(false);
+    }
+  };
+
+  const handleCounterPropose = async (orderToCounter) => {
+    const numericAmount = Number(counterPrice);
+    if (!counterPrice || isNaN(numericAmount) || numericAmount <= 0) {
+      Alert.alert('Valor Inválido', 'Por favor insira um valor válido para a sua contra-proposta.');
+      return;
+    }
+
+    try {
+      setIsSubmittingNegotiation(true);
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const orderId = orderToCounter?._id || currentRequestServiceId;
+
+      const { data } = await api.post(`/request-service/${orderId}/negotiate/propose`, {
+        amount: numericAmount,
+        proposedBy: 'CUSTOMER',
+        note: counterNote || 'Contra-proposta enviada pelo cliente'
+      }, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+
+      Alert.alert('Contra-proposta Enviada!', 'A sua proposta foi enviada com sucesso ao motorista.');
+      setActiveNegotiationOrder(data.order);
+      setShowCounterModal(false);
+      setCounterPrice('');
+      setCounterNote('');
+    } catch (err) {
+      console.error('Erro ao enviar contra-proposta:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Não foi possível enviar a contra-proposta.');
+    } finally {
+      setIsSubmittingNegotiation(false);
+    }
+  };
+
+  const handleRejectNegotiation = async (orderToReject) => {
+    try {
+      setIsSubmittingNegotiation(true);
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const orderId = orderToReject?._id || currentRequestServiceId;
+
+      const { data } = await api.post(`/request-service/${orderId}/negotiate/reject`, {}, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+
+      Alert.alert('Proposta Rejeitada', 'A proposta do motorista foi rejeitada.');
+      setActiveNegotiationOrder(data.order);
+    } catch (err) {
+      console.error('Erro ao rejeitar proposta:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Não foi possível rejeitar a proposta.');
+    } finally {
+      setIsSubmittingNegotiation(false);
+    }
+  };
+
+  const handleCancelNegotiatedOrder = async (orderToCancel) => {
+    try {
+      setIsSubmittingNegotiation(true);
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const orderId = orderToCancel?._id || currentRequestServiceId;
+
+      await api.put(`/request-service/${orderId}/cancel`, {
+        message: 'Cancelado pelo cliente durante a negociação'
+      }, {
+        headers: { authorization: `Bearer ${token}` }
+      });
+
+      Alert.alert('Pedido Cancelado', 'A sua solicitação foi cancelada.');
+      setWaitingForDriver(false);
+      setIsSearching(false);
+      setSelectedDriverForRequest(null);
+      setActiveNegotiationOrder(null);
+      setCurrentRequestServiceId(null);
+    } catch (err) {
+      console.error('Erro ao cancelar pedido:', err);
+      Alert.alert('Erro', err.response?.data?.message || 'Não foi possível cancelar o pedido.');
+    } finally {
+      setIsSubmittingNegotiation(false);
+    }
+  };
   const pulseAnim = React.useRef(new Animated.Value(0)).current;
   const originRef = React.useRef(null);
   const mapRef = React.useRef(null);
@@ -104,6 +441,7 @@ export default function RequestServiceSimple() {
   // Autocomplete state
   const [originText, setOriginText] = useState('');
   const [destText, setDestText] = useState('');
+  const [additionalStops, setAdditionalStops] = useState([]);
   const [originSuggestions, setOriginSuggestions] = useState([]);
   const [destSuggestions, setDestSuggestions] = useState([]);
   const [loadingOrigin, setLoadingOrigin] = useState(false);
@@ -112,6 +450,64 @@ export default function RequestServiceSimple() {
   const destInputRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false); // toggle ver rota
+
+  // Multi-stop handlers
+  const handleAddStop = () => {
+    if (additionalStops.length >= 5) {
+      Alert.alert('Limite Atingido', 'Pode adicionar no máximo 5 paragens adicionais.');
+      return;
+    }
+    setAdditionalStops(prev => [
+      ...prev,
+      { id: Date.now().toString(), text: '', coord: null, suggestions: [], loading: false }
+    ]);
+  };
+
+  const handleRemoveStop = (stopId) => {
+    setAdditionalStops(prev => prev.filter(s => s.id !== stopId));
+  };
+
+  const handleUpdateStopText = (stopId, text) => {
+    setAdditionalStops(prev => prev.map(s => s.id === stopId ? { ...s, text, coord: null } : s));
+    fetchStopSuggestions(stopId, text);
+  };
+
+  const fetchStopSuggestions = async (stopId, text) => {
+    if (!text || text.length < 2) {
+      setAdditionalStops(prev => prev.map(s => s.id === stopId ? { ...s, suggestions: [], loading: false } : s));
+      return;
+    }
+    setAdditionalStops(prev => prev.map(s => s.id === stopId ? { ...s, loading: true } : s));
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${EXPO_PUBLIC_GOOGLE_PLACES_APIKEY}&language=pt&components=country:mz`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.predictions) {
+        setAdditionalStops(prev => prev.map(s => s.id === stopId ? { ...s, suggestions: json.predictions, loading: false } : s));
+      }
+    } catch (e) {
+      console.log('Stop autocomplete error:', e);
+      setAdditionalStops(prev => prev.map(s => s.id === stopId ? { ...s, loading: false } : s));
+    }
+  };
+
+  const selectStopPlace = async (stopId, placeId, description) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${EXPO_PUBLIC_GOOGLE_PLACES_APIKEY}&fields=geometry`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const loc = json.result?.geometry?.location;
+      setAdditionalStops(prev => prev.map(s => s.id === stopId ? {
+        ...s,
+        text: description,
+        coord: loc ? { lat: loc.lat, lng: loc.lng } : null,
+        suggestions: []
+      } : s));
+      Keyboard.dismiss();
+    } catch (e) {
+      console.log('Stop place details error:', e);
+    }
+  };
 
   // Native Bottom Sheet State
   const { height: screenHeight } = Dimensions.get('window');
@@ -131,6 +527,12 @@ export default function RequestServiceSimple() {
       bounciness: 0,
     }).start();
   };
+
+  useEffect(() => {
+    if (requiresPhotos) {
+      snapTo(SNAP_TOP);
+    }
+  }, [requiresPhotos]);
 
   useEffect(() => {
     if (route.params?.retrySearch) {
@@ -392,45 +794,111 @@ export default function RequestServiceSimple() {
     };
   }, []);
 
-  /* ---------------- PRICE API ---------------- */
+  /* ---------------- PRICE API + ROUTE DRAWING ---------------- */
   useEffect(() => {
     const fetchPrice = async () => {
-      if (originCoord && destCoord) {
+      if (!originCoord || !destCoord) return;
+
+      const validStops = (additionalStops || [])
+        .filter(s => s.coord?.lat && s.coord?.lng)
+        .map(s => ({
+          latitude: Number(s.coord.lat),
+          longitude: Number(s.coord.lng),
+          address: s.text || ''
+        }));
+
+      // Construir todos os waypoints em ordem: origem → paragens → destino
+      const allWaypoints = [
+        { lat: Number(originCoord.lat), lng: Number(originCoord.lng) },
+        ...validStops.map(s => ({ lat: s.latitude, lng: s.longitude })),
+        { lat: Number(destCoord.lat), lng: Number(destCoord.lng) },
+      ];
+
+      // Buscar rota segmento a segmento com 3 níveis de fallback
+      const fetchSegment = async (fromLat, fromLng, toLat, toLng) => {
+        // Nível 1: OSRM privado via backend
         try {
-          const { data } = await api.post('/pricing/calculate', {
-            serviceId: service._id,
-            originLoc: originCoord,
-            destLoc: destCoord,
-            weightKg: 5
-          });
-
-          if (data && data.price > 0) {
-            setPrice(data.price);
-          } else {
-            setPrice(service?.baseFare || 0);
+          const { data: rd } = await api.get(
+            `/routing/route?originLat=${fromLat}&originLng=${fromLng}&destLat=${toLat}&destLng=${toLng}`
+          );
+          if (rd?.coordinates?.length > 0) {
+            return rd.coordinates.map(c => ({
+              latitude: Number(Array.isArray(c) ? c[1] : (c.lat ?? c.latitude)),
+              longitude: Number(Array.isArray(c) ? c[0] : (c.lng ?? c.longitude)),
+            }));
           }
-          // NAO forcar snap aqui â€” deixar o utilizador controlar a posicao do sheet
-          if (data.routeCoordinates && data.routeCoordinates.length > 0) {
-            setRouteCoords(data.routeCoordinates);
-          } else {
-            setRouteCoords([]);
-            Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
-          }
-
-          if (data.breakdown && data.breakdown.durationMin) {
-            setDuration(Math.round(data.breakdown.durationMin));
-          }
-        } catch (error) {
-          console.log('Erro ao consultar motor de preços:', error);
-          setPrice(120); // Fallback
-          setRouteCoords([]);
-          Alert.alert('Erro de Rota', 'Não foi possível calcular esta rota. Escolha outro destino.');
+        } catch (e) {
+          console.log('[Route] Backend OSRM falhou, tentando público...', e?.message);
         }
+        // Nível 2: OSRM público
+        try {
+          const resp = await fetch(
+            `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`
+          );
+          const d = await resp.json();
+          if (d.code === 'Ok' && d.routes?.[0]?.geometry?.coordinates?.length > 0) {
+            return d.routes[0].geometry.coordinates.map(c => ({
+              latitude: Number(c[1]),
+              longitude: Number(c[0]),
+            }));
+          }
+        } catch (e) {
+          console.log('[Route] OSRM público também falhou:', e?.message);
+        }
+        // Nível 3: linha recta
+        return [
+          { latitude: fromLat, longitude: fromLng },
+          { latitude: toLat, longitude: toLng },
+        ];
+      };
+
+      const buildFullRoute = async () => {
+        const allCoords = [];
+        for (let i = 0; i < allWaypoints.length - 1; i++) {
+          const from = allWaypoints[i];
+          const to = allWaypoints[i + 1];
+          const seg = await fetchSegment(from.lat, from.lng, to.lat, to.lng);
+          allCoords.push(...seg);
+        }
+        return allCoords;
+      };
+
+      try {
+        const { data } = await api.post('/pricing/calculate', {
+          serviceId: service?._id,
+          originLoc: originCoord,
+          destLoc: destCoord,
+          stops: validStops,
+          weightKg: 5
+        });
+
+        if (data?.price > 0) setPrice(data.price);
+        else setPrice(service?.baseFare || 120);
+
+        if (data?.breakdown?.durationMin) setDuration(Math.round(data.breakdown.durationMin));
+
+        // Usar coordenadas da pricing API se disponíveis
+        if (data?.routeCoordinates?.length > 0) {
+          setRouteCoords(data.routeCoordinates.map(c => ({
+            latitude: Number(c.latitude),
+            longitude: Number(c.longitude)
+          })));
+        } else {
+          // Pricing não retornou rota — construir via OSRM
+          const coords = await buildFullRoute();
+          if (coords.length > 0) setRouteCoords(coords);
+        }
+      } catch (error) {
+        console.log('[Route] Pricing falhou, usando rota direta:', error?.message);
+        setPrice(service?.baseFare || 120);
+        const coords = await buildFullRoute();
+        if (coords.length > 0) setRouteCoords(coords);
       }
     };
 
     fetchPrice();
-  }, [originCoord, destCoord]);
+  }, [originCoord, destCoord, additionalStops]);
+
 
   // Radar continuo de motoristas
   useEffect(() => {
@@ -458,14 +926,19 @@ export default function RequestServiceSimple() {
     return () => clearInterval(intervalId);
   }, [location, step, isSearching, activeTripData]);
 
-  // Zoom and Fit map when origin, destination, or route changes
+  // Zoom and Fit map when origin, destination, additional stops or route changes
   useEffect(() => {
     if (mapRef.current && originCoord) {
-      if (destCoord && routeCoords.length > 0) {
+      if (destCoord) {
+        const stopCoords = (additionalStops || [])
+          .filter(s => s.coord?.lat && s.coord?.lng)
+          .map(s => ({ latitude: s.coord.lat, longitude: s.coord.lng }));
+
         const coordsToFit = [
           { latitude: originCoord.lat, longitude: originCoord.lng },
           { latitude: destCoord.lat, longitude: destCoord.lng },
-          ...routeCoords
+          ...stopCoords,
+          ...(routeCoords || [])
         ];
         mapRef.current.fitToCoordinates(coordsToFit, {
           edgePadding: { top: 100, right: 50, bottom: Dimensions.get('window').height * 0.5, left: 50 },
@@ -480,7 +953,7 @@ export default function RequestServiceSimple() {
         }, 1000);
       }
     }
-  }, [originCoord, destCoord, routeCoords]);
+  }, [originCoord, destCoord, additionalStops, routeCoords]);
 
   // REAL Search Logic â€” calls API, waits 10s, then asks to expand radius
   useEffect(() => {
@@ -572,6 +1045,16 @@ export default function RequestServiceSimple() {
 
       let finalPrice = baseFare + deslocacao;
 
+      if (requiresPhotos) {
+        if (!vehiclePhotos.front || !vehiclePhotos.rear || !vehiclePhotos.leftSide || !vehiclePhotos.rightSide) {
+          Alert.alert(
+            'Fotografias Obrigatórias',
+            'Por favor, faça upload de todas as 4 fotografias do veículo (Frente, Traseira, Lado Esquerdo e Lado Direito) antes de solicitar o serviço.'
+          );
+          return;
+        }
+      }
+
       const payload = {
         name: service.name,
         phoneNumber: phoneNumber || '000000000',
@@ -580,6 +1063,7 @@ export default function RequestServiceSimple() {
         deliverCity: originText || 'N/A',
         origin: originText,
         destination: destText,
+        vehiclePhotos: requiresPhotos ? vehiclePhotos : undefined,
         originDetails: {
           address: originText,
           lat: originCoord.lat,
@@ -590,6 +1074,15 @@ export default function RequestServiceSimple() {
           lat: destCoord.lat,
           lng: destCoord.lng
         },
+        stops: [
+          { sequence: 1, address: destText, lat: destCoord.lat, lng: destCoord.lng },
+          ...additionalStops.filter(s => s.text && s.coord).map((s, idx) => ({
+            sequence: idx + 2,
+            address: s.text,
+            lat: s.coord.lat,
+            lng: s.coord.lng
+          }))
+        ],
         paymentOption: preferredPaymentMethodName,
         reason: reason,
         description: reason,
@@ -708,7 +1201,10 @@ export default function RequestServiceSimple() {
           });
           const myOrder = data.deliverRequests && data.deliverRequests[0];
           if (isMounted && myOrder && myOrder._id === currentRequestServiceId) {
-            if (myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') {
+            if (myOrder.negotiationState && myOrder.negotiationState !== 'NONE') {
+              setActiveNegotiationOrder(myOrder);
+            }
+            if ((myOrder.status === 'Cancelado' || myOrder.status === 'Motorista indisponível') && (!myOrder.negotiationState || myOrder.negotiationState === 'NONE')) {
               Alert.alert("Cancelado", "O pedido foi cancelado ou nenhum motorista aceitou.");
               setWaitingForDriver(false);
               setIsSearching(false);
@@ -733,9 +1229,18 @@ export default function RequestServiceSimple() {
         }
       });
 
+      socket.on('negotiation_updated', (updatedOrder) => {
+        if (isMounted && updatedOrder._id === currentRequestServiceId) {
+          setActiveNegotiationOrder(updatedOrder);
+        }
+      });
+
       socket.on('order_updated', (updatedOrder) => {
         if (isMounted && updatedOrder._id === currentRequestServiceId) {
-          if (updatedOrder.status === 'Motorista indisponível') {
+          if (updatedOrder.negotiationState && updatedOrder.negotiationState !== 'NONE') {
+            setActiveNegotiationOrder(updatedOrder);
+          }
+          if (updatedOrder.status === 'Motorista indisponível' && (!updatedOrder.negotiationState || updatedOrder.negotiationState === 'NONE')) {
             setRejectedDriverIds(prev => selectedDriverForRequest ? [...prev, selectedDriverForRequest._id] : prev);
             setWaitingForDriver(false);
             setIsSearching(false);
@@ -840,15 +1345,20 @@ export default function RequestServiceSimple() {
     ).start();
   };
 
+  const isInNegotiation = !!(activeNegotiationOrder && (
+    (activeNegotiationOrder.negotiationState && activeNegotiationOrder.negotiationState !== 'NONE') ||
+    (activeNegotiationOrder.negotiationHistory && activeNegotiationOrder.negotiationHistory.length > 0)
+  ));
+
   useEffect(() => {
     let interval = null;
-    if (waitingForDriver && waitingCountdown > 0) {
+    if (waitingForDriver && waitingCountdown > 0 && !isInNegotiation) {
       interval = setInterval(() => {
         setWaitingCountdown((prev) => prev - 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [waitingForDriver, waitingCountdown]);
+  }, [waitingForDriver, waitingCountdown, isInNegotiation]);
 
   if (!service) return null;
 
@@ -921,13 +1431,67 @@ export default function RequestServiceSimple() {
           </Marker>
         )}
 
+        {/* MARKERS DAS PARAGENS ADICIONAIS COM CORES DISTINTAS */}
+        {additionalStops.map((stopItem, index) => {
+          if (!stopItem.coord?.lat || !stopItem.coord?.lng) return null;
+          
+          const colors = ['#F97316', '#9333EA', '#0284C7', '#D97706', '#EC4899', '#10B981'];
+          const stopColor = colors[index % colors.length];
+          const stopNumber = index + 2;
+
+          return (
+            <Marker
+              key={stopItem.id}
+              coordinate={{ latitude: Number(stopItem.coord.lat), longitude: Number(stopItem.coord.lng) }}
+              title={`Paragem #${stopNumber}`}
+              description={stopItem.text || `Paragem #${stopNumber}`}
+              pinColor={stopColor}
+              draggable
+              onDragEnd={async (e) => {
+                const { latitude, longitude } = e.nativeEvent.coordinate;
+                setAdditionalStops(prev => prev.map(s => s.id === stopItem.id ? { ...s, coord: { lat: latitude, lng: longitude } } : s));
+                try {
+                  const addressArray = await Location.reverseGeocodeAsync({ latitude, longitude });
+                  if (addressArray && addressArray.length > 0) {
+                    const addr = addressArray[0];
+                    const street = addr.street || addr.name || '';
+                    const city = addr.city || addr.subregion || addr.region || '';
+                    const newName = street && city ? `${street}, ${city}` : street || city || `Paragem #${stopNumber}`;
+                    
+                    // Em vez de chamar handleUpdateStopText que limpa o coord (coord: null),
+                    // apenas atualizamos o texto de morada mantendo a nova coordenada
+                    setAdditionalStops(prev => prev.map(s => 
+                      s.id === stopItem.id ? { ...s, text: newName } : s
+                    ));
+                  }
+                } catch (err) {
+                  console.log('Reverse geocode stop:', err);
+                }
+              }}
+            />
+          );
+        })}
+
+
         {routeCoords.length > 0 && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeWidth={4}
-            strokeColor="#A855F7"
-          />
+          <>
+            {/* Sombra da rota - efeito de profundidade */}
+            <Polyline
+              coordinates={routeCoords}
+              strokeWidth={8}
+              strokeColor="rgba(107,33,168,0.20)"
+              zIndex={1}
+            />
+            {/* Linha lilas principal */}
+            <Polyline
+              coordinates={routeCoords}
+              strokeWidth={5}
+              strokeColor="#A855F7"
+              zIndex={2}
+            />
+          </>
         )}
+
 
         {driverCoord && activeTripData && (
           <Marker
@@ -1061,11 +1625,12 @@ export default function RequestServiceSimple() {
           <ScrollView
             ref={scrollViewRef}
             keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
             contentContainerStyle={{
-              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 200 : 120,
+              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 250 : (requiresPhotos ? 350 : 160),
               paddingHorizontal: 20,
             }}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
               <View>
@@ -1126,6 +1691,124 @@ export default function RequestServiceSimple() {
               </Text>
             )}
 
+            {/* Seção de Fotos Obrigatórias do Veículo — Design Ultra-Premium */}
+            {requiresPhotos && (
+              <View style={{
+                marginTop: 10,
+                marginBottom: 20,
+                backgroundColor: '#FAF5FF',
+                borderRadius: 20,
+                padding: 16,
+                borderWidth: 1.5,
+                borderColor: '#E9D5FF',
+                shadowColor: '#7E22CE',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 10,
+                elevation: 3,
+              }}>
+                {/* Cabeçalho Premium com Badges */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <LinearGradient
+                      colors={['#9333EA', '#7E22CE']}
+                      style={{ width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 8 }}
+                    >
+                      <Ionicons name="camera" size={16} color="#FFF" />
+                    </LinearGradient>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#1E1B4B' }}>
+                      Fotografias do Veículo
+                    </Text>
+                  </View>
+                  <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#FCA5A5' }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#DC2626' }}>
+                      * 4 Fotos Obrigatórias
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 14, lineHeight: 16 }}>
+                  Anexe as 4 fotografias (Câmara ou Galeria) para que o prestador identifique o veículo antes da prestação do serviço.
+                </Text>
+
+                {/* Grelha de Cards de Fotos */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                  {[
+                    { key: 'front', label: 'Frente' },
+                    { key: 'rear', label: 'Traseira' },
+                    { key: 'leftSide', label: 'Lado Esquerdo' },
+                    { key: 'rightSide', label: 'Lado Direito' }
+                  ].map((item) => {
+                    const isUploaded = !!vehiclePhotos[item.key];
+                    const isLoading = !!uploadingPhotos[item.key];
+
+                    return (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={{
+                          width: '48%',
+                          height: 105,
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: 16,
+                          borderWidth: isUploaded ? 2 : 1.5,
+                          borderColor: isUploaded ? '#10B981' : '#D8B4FE',
+                          borderStyle: isUploaded ? 'solid' : 'dashed',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginBottom: 12,
+                          overflow: 'hidden',
+                          shadowColor: isUploaded ? '#10B981' : '#7E22CE',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: isUploaded ? 0.15 : 0.05,
+                          shadowRadius: 4,
+                          elevation: 2,
+                        }}
+                        onPress={() => pickVehiclePhoto(item.key)}
+                        disabled={isLoading}
+                        activeOpacity={0.75}
+                      >
+                        {isLoading ? (
+                          <View style={{ alignItems: 'center' }}>
+                            <ActivityIndicator size="small" color="#9333EA" />
+                            <Text style={{ fontSize: 10, color: '#7E22CE', marginTop: 4, fontWeight: '600' }}>Enviando...</Text>
+                          </View>
+                        ) : isUploaded ? (
+                          <View style={{ width: '100%', height: '100%' }}>
+                            <Image source={{ uri: vehiclePhotos[item.key] }} style={{ width: '100%', height: '100%' }} />
+                            {/* Overlay Inferior com Nome */}
+                            <LinearGradient
+                              colors={['transparent', 'rgba(0,0,0,0.75)']}
+                              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 32, justifyContent: 'flex-end', paddingHorizontal: 8, paddingBottom: 4 }}
+                            >
+                              <Text style={{ fontSize: 10, fontWeight: '700', color: '#FFF' }}>{item.label}</Text>
+                            </LinearGradient>
+
+                            {/* Badge Aceito no topo direito */}
+                            <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#10B981', borderRadius: 12, padding: 3, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 }}>
+                              <Ionicons name="checkmark-circle" size={14} color="#FFF" />
+                            </View>
+
+                            {/* Badge da câmara para alterar foto no topo esquerdo */}
+                            <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, padding: 4 }}>
+                              <Ionicons name="camera" size={12} color="#FFF" />
+                            </View>
+                          </View>
+                        ) : (
+                          <View style={{ alignItems: 'center', padding: 6 }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center', marginBottom: 4 }}>
+                              <Ionicons name="camera-outline" size={20} color="#9333EA" />
+                            </View>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#374151' }}>{item.label}</Text>
+                            <Text style={{ fontSize: 9, color: '#9333EA', fontWeight: '600', marginTop: 1 }}>+ Foto / Galeria</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             {/* ORIGIN INPUT - FIXED HEIGHT */}
             <View style={styles.inputBlock}>
               <Text style={styles.label}>Origem</Text>
@@ -1139,7 +1822,7 @@ export default function RequestServiceSimple() {
                   onFocus={() => {
                     snapTo(SNAP_TOP);
                     setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ y: 160, animated: true });
+                      scrollViewRef.current?.scrollTo({ y: requiresPhotos ? 480 : 160, animated: true });
                     }, 350);
                   }}
                   onChangeText={(text) => {
@@ -1184,7 +1867,7 @@ export default function RequestServiceSimple() {
                   onFocus={() => {
                     snapTo(SNAP_TOP);
                     setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ y: 350, animated: true });
+                      scrollViewRef.current?.scrollTo({ y: requiresPhotos ? 680 : 350, animated: true });
                     }, 350);
                   }}
                   onChangeText={(text) => {
@@ -1213,6 +1896,66 @@ export default function RequestServiceSimple() {
               )}
             </View>
 
+            {/* MULTI-STOP ADDITIONAL DESTINATIONS */}
+            {additionalStops.map((stopItem, index) => (
+              <View key={stopItem.id} style={[styles.inputBlock, { marginTop: 12 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={styles.label}>Paragem #{index + 2}</Text>
+                  <TouchableOpacity onPress={() => handleRemoveStop(stopItem.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={styles.fixedInput}
+                    placeholder={`Ex: Endereço da paragem #${index + 2}`}
+                    placeholderTextColor="#9CA3AF"
+                    value={stopItem.text}
+                    onFocus={() => snapTo(SNAP_TOP)}
+                    onChangeText={(text) => handleUpdateStopText(stopItem.id, text)}
+                  />
+                </View>
+                {stopItem.suggestions && stopItem.suggestions.length > 0 && (
+                  <View style={styles.suggestionsBox}>
+                    {stopItem.loading && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
+                    {stopItem.suggestions.map((item) => (
+                      <TouchableOpacity
+                        key={item.place_id}
+                        style={styles.suggestionRow}
+                        onPress={() => selectStopPlace(stopItem.id, item.place_id, item.description)}
+                      >
+                        <Ionicons name="location-outline" size={16} color="#A855F7" style={{ marginRight: 8 }} />
+                        <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))}
+
+            {/* BOTÃO ADICIONAR MAIS PARAGENS */}
+            <TouchableOpacity
+              onPress={handleAddStop}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#F3E8FF',
+                paddingVertical: 11,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                marginTop: 12,
+                borderWidth: 1.5,
+                borderColor: '#C084FC',
+                borderStyle: 'dashed'
+              }}
+            >
+              <Ionicons name="add-circle" size={20} color="#7E22CE" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#7E22CE', fontWeight: '700', fontSize: 14 }}>
+                + Adicionar Paragem {additionalStops.length > 0 ? `(${additionalStops.length + 1} Pontos)` : ''}
+              </Text>
+            </TouchableOpacity>
+
             {/* Estimativa de tempo */}
             {duration !== null && !isSearching && (
               <View style={styles.durationBadge}>
@@ -1222,31 +1965,10 @@ export default function RequestServiceSimple() {
             )}
 
             {/* ========================================================= */}
-            {/* BLOCO DE AGENDAMENTO + CONFIRMAR â€” aparece com origem+destino */}
+            {/* BLOCO DE AGENDAMENTO + CONFIRMAR — aparece com origem+destino */}
             {/* ========================================================= */}
             {originCoord && destCoord && !isSearching && (
               <View style={{ marginTop: 16 }}>
-
-                {/* Toggle Imediato / Agendar */}
-                {false && (
-                  <>
-                    <Text style={[styles.label, { marginBottom: 8 }]}>Quando pretende o servico?</Text>
-                    <View style={{ flexDirection: 'row', borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#A855F7', marginBottom: 16 }}>
-                      <TouchableOpacity
-                        style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, !isScheduled && { backgroundColor: '#7F00FF' }]}
-                        onPress={() => { setIsScheduled(false); setScheduledConfirmed(false); }}
-                      >
-                        <Text style={{ color: !isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Imediato</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[{ flex: 1, paddingVertical: 12, alignItems: 'center' }, isScheduled && { backgroundColor: '#7F00FF' }]}
-                        onPress={() => setIsScheduled(true)}
-                      >
-                        <Text style={{ color: isScheduled ? '#FFF' : '#7F00FF', fontWeight: '700', fontSize: 14 }}>Agendar</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
 
                 {/* Seletor de Data e Hora (apenas quando Agendar selecionado) */}
                 {isScheduled && (
@@ -1511,7 +2233,7 @@ export default function RequestServiceSimple() {
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                       <Image
-                        source={driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture ? { uri: driver.deliveryman?.vihicle_picture_front || driver.deliveryman?.vihicle_picture } : driver.profileImage ? { uri: driver.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+                        source={{ uri: getDriverAvatar(driver) }}
                         style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#E5E7EB' }}
                       />
 
@@ -1524,7 +2246,7 @@ export default function RequestServiceSimple() {
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
                                 <Text style={{ fontSize: 13, color: '#4B5563', marginLeft: 2, fontWeight: '600' }}>
-                                  {Number(driver.deliveryman?.averageRating || driver.rating || 0).toFixed(1)}
+                                  {formatDriverRating(driver)}
                                 </Text>
                               </View>
                               <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
@@ -1638,162 +2360,432 @@ export default function RequestServiceSimple() {
       </Modal>
 
       <Modal visible={waitingForDriver} transparent animationType="fade">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <View style={{
-            backgroundColor: '#FFF',
-            borderRadius: 28,
-            padding: 32,
-            width: '88%',
-            alignItems: 'center',
-            elevation: 20,
-            shadowColor: '#7F00FF',
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.2,
-            shadowRadius: 20,
-          }}>
-            {/* Radar pulse */}
-            <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-              <Animated.View style={[styles.radarCenter, {
-                position: 'absolute',
-                width: 110,
-                height: 110,
-                borderRadius: 55,
-                backgroundColor: 'rgba(168, 85, 247, 0.15)',
-                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
-                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
-              }]} />
-              <Animated.View style={[styles.radarCenter, {
-                position: 'absolute',
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: 'rgba(168, 85, 247, 0.2)',
-                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
-                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
-              }]} />
-              <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
-                {waitingCountdown > 0 ? (
-                  <Text style={{ fontSize: 24, fontWeight: '900', color: '#A855F7' }}>{waitingCountdown}</Text>
-                ) : (
-                  <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
-                )}
-              </View>
-            </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(15, 23, 42, 0.75)', padding: 16 }}>
+          {activeNegotiationOrder && ((activeNegotiationOrder.negotiationHistory && activeNegotiationOrder.negotiationHistory.length > 0) || (activeNegotiationOrder.negotiationState && activeNegotiationOrder.negotiationState !== 'NONE')) ? (
+            <View style={{ width: '100%', maxHeight: '88%', backgroundColor: '#FFFFFF', borderRadius: 28, overflow: 'hidden', shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.25, shadowRadius: 24, elevation: 12 }}>
+              
+              {/* Header com Dados do Motorista e Cliente */}
+              {(() => {
+                const driverObj = selectedDriverForRequest || (typeof activeNegotiationOrder?.deliveryman === 'object' ? activeNegotiationOrder?.deliveryman : null) || (typeof activeNegotiationOrder?.targetDriver === 'object' ? activeNegotiationOrder?.targetDriver : null);
+                const rawDriverName = selectedDriverForRequest?.name || selectedDriverForRequest?.deliveryman?.name || activeNegotiationOrder?.deliveryman?.name || activeNegotiationOrder?.targetDriver?.name || activeNegotiationOrder?.deliverymanName || '';
+                const driverName = (rawDriverName && rawDriverName.trim() !== '' && rawDriverName !== 'Motorista') ? rawDriverName : '';
+                const customerName = activeNegotiationOrder?.user?.name || 'Cliente';
+                const maxRounds = activeNegotiationOrder?.maxNegotiationRounds || 3;
+                const currentRounds = activeNegotiationOrder?.negotiationRoundCount || (activeNegotiationOrder?.negotiationHistory?.length || 0);
+                const propostasRestantes = Math.max(0, maxRounds - currentRounds);
 
-            {waitingCountdown > 0 ? (
-              <>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                  A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
-                </Text>
-                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-                  Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
-                  O motorista está a demorar...
-                </Text>
-                <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
-                  Pode continuar a esperar ou procurar novos motoristas disponíveis.
-                </Text>
-              </>
-            )}
+                return (
+                  <LinearGradient colors={['#7C3AED', '#6D28D9']} style={{ padding: 18 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <Image
+                          source={{ uri: getDriverAvatar(driverObj) }}
+                          style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#E9D5FF' }}
+                        />
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }} numberOfLines={1}>
+                            {driverName ? driverName : 'Motorista'}
+                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', gap: 4 }}>
+                            <Ionicons name="star" size={13} color="#FBBF24" />
+                            <Text style={{ color: '#F3E8FF', fontSize: 12, fontWeight: '700' }}>
+                              {formatDriverRating(driverObj)}
+                            </Text>
+                            <View style={{ backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, marginLeft: 4 }}>
+                              <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '800' }}>
+                                {propostasRestantes} propostas restantes
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
 
-            {selectedDriverForRequest && (() => {
-              const serviceBase = service?.baseFare || 0;
-              let selectedDeslocacao = price > serviceBase ? price - serviceBase : 0;
+                      {driverObj?.phoneNumber && (
+                        <TouchableOpacity
+                          style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center' }}
+                          onPress={() => {
+                            const phoneStr = String(driverObj.phoneNumber).replace(/\D/g, '');
+                            if (phoneStr) Linking.openURL(`tel:${phoneStr}`).catch(() => {});
+                          }}
+                        >
+                          <Ionicons name="call" size={18} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
 
-              let selectedBaseFare = price;
-              if (selectedDriverForRequest.deliveryman?.allowCustomPrice && selectedDriverForRequest.deliveryman?.customPrice) {
-                selectedBaseFare = selectedDriverForRequest.deliveryman.customPrice;
-              } else if (selectedDriverForRequest.deliveryman?.assigned_base_fee) {
-                selectedBaseFare = selectedDriverForRequest.deliveryman.assigned_base_fee;
-              } else if (serviceBase > 0) {
-                selectedBaseFare = serviceBase;
-              }
+                    {/* Linha com Nome do Cliente */}
+                    <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ color: '#E9D5FF', fontSize: 12, fontWeight: '600' }}>
+                        Cliente: <Text style={{ color: '#FFF', fontWeight: '800' }}>{customerName}</Text>
+                      </Text>
+                      <Text style={{ color: '#E9D5FF', fontSize: 11, fontWeight: '600' }}>
+                        Em Negociação
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                );
+              })()}
 
-              let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
+              {/* Conversa Interna (Chat Stream de Negociação com Nomes Reais) */}
+              <ScrollView style={{ padding: 16, maxHeight: 320, backgroundColor: '#FAF5FF' }} contentContainerStyle={{ paddingBottom: 16 }}>
+                {(() => {
+                  const driverName = selectedDriverForRequest?.name || activeNegotiationOrder?.deliveryman?.name || 'Motorista';
+                  const customerName = activeNegotiationOrder?.user?.name || 'Cliente';
 
-              return (
-                <View style={{ marginTop: 15, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 12, width: '100%', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 13, color: '#6B7280' }}>Resumo do Pedido</Text>
-                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF', marginTop: 4 }}>
-                    {selectedFinalPrice.toFixed(0)} MT
-                  </Text>
-                  <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                    Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
-                  </Text>
-                </View>
-              );
-            })()}
+                  return (
+                    <>
+                      {/* Preço Inicial Solicitado */}
+                      <View style={{ alignSelf: 'flex-end', backgroundColor: '#E9D5FF', padding: 12, borderRadius: 18, borderBottomRightRadius: 4, maxWidth: '85%', marginBottom: 12 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B21A8', marginBottom: 2 }}>{customerName} (Cliente)</Text>
+                        <Text style={{ fontSize: 13, color: '#1E1B4B', fontWeight: '600' }}>
+                          Pedido Solicitado: <Text style={{ fontWeight: '800', color: '#7C3AED' }}>{(activeNegotiationOrder?.basePrice || price || 0).toFixed(0)} MT</Text>
+                        </Text>
+                        <Text style={{ fontSize: 10, color: '#7E22CE', marginTop: 4, alignSelf: 'flex-end' }}>Preço Inicial</Text>
+                      </View>
 
-            {waitingCountdown > 0 ? (
-              <TouchableOpacity
-                style={{
-                  marginTop: 24,
-                  paddingVertical: 12,
-                  paddingHorizontal: 32,
-                  backgroundColor: '#FEF2F2',
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: '#FECACA',
-                  width: '100%',
-                  alignItems: 'center',
-                }}
-                activeOpacity={0.8}
-                onPress={handleCancelPendingRequest}
-              >
-                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={{ width: '100%', marginTop: 24, gap: 12 }}>
+                      {/* Lista de Propostas do Histórico */}
+                      {(activeNegotiationOrder?.negotiationHistory || []).map((proposal, hIdx) => {
+                        const isFromDriver = proposal.proposedBy === 'PROVIDER' || proposal.proposedBy === 'DRIVER';
+                        const senderName = isFromDriver ? driverName : customerName;
+                        const roleLabel = isFromDriver ? 'Motorista' : 'Cliente';
+
+                        return (
+                          <View
+                            key={hIdx}
+                            style={{
+                              alignSelf: isFromDriver ? 'flex-start' : 'flex-end',
+                              backgroundColor: isFromDriver ? '#FFFFFF' : '#E9D5FF',
+                              padding: 14,
+                              borderRadius: 18,
+                              borderTopLeftRadius: isFromDriver ? 4 : 18,
+                              borderTopRightRadius: isFromDriver ? 18 : 4,
+                              maxWidth: '85%',
+                              marginBottom: 12,
+                              borderWidth: 1,
+                              borderColor: isFromDriver ? '#DDD6FE' : '#C084FC',
+                              shadowColor: '#7C3AED',
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.06,
+                              shadowRadius: 6,
+                              elevation: 2
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <Text style={{ fontSize: 11, fontWeight: '800', color: isFromDriver ? '#7C3AED' : '#6B21A8' }}>
+                                {senderName} ({roleLabel})
+                              </Text>
+                              <View style={{ backgroundColor: proposal.status === 'ACCEPTED' ? '#DCFCE7' : proposal.status === 'REJECTED' ? '#FEE2E2' : '#F3E8FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                                <Text style={{ fontSize: 9, fontWeight: '800', color: proposal.status === 'ACCEPTED' ? '#166534' : proposal.status === 'REJECTED' ? '#991B1B' : '#6B21A8' }}>
+                                  {proposal.status === 'ACCEPTED' ? 'ACEITE' : proposal.status === 'REJECTED' ? 'REJEITADO' : 'PENDENTE'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#1E1B4B' }}>
+                              Proposta: <Text style={{ color: '#7C3AED' }}>{proposal.amount} MT</Text>
+                            </Text>
+                            {proposal.note ? (
+                              <View style={{ marginTop: 6, backgroundColor: isFromDriver ? '#F3E8FF' : '#DDD6FE', padding: 8, borderRadius: 10 }}>
+                                <Text style={{ fontSize: 10, fontWeight: '800', color: isFromDriver ? '#6B21A8' : '#4C1D95' }}>
+                                  Motivo do Reajuste:
+                                </Text>
+                                <Text style={{ fontSize: 12, color: '#1E1B4B', marginTop: 2, fontStyle: 'italic' }}>
+                                  "{proposal.note}"
+                                </Text>
+                              </View>
+                            ) : null}
+                            <Text style={{ fontSize: 9, color: '#9CA3AF', marginTop: 6, alignSelf: 'flex-end' }}>
+                              {new Date(proposal.timestamp || Date.now()).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
+              </ScrollView>
+
+              {/* Painel de Ações do Cliente */}
+              <View style={{ padding: 18, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderColor: '#F3E8FF' }}>
+                {(() => {
+                  const history = activeNegotiationOrder?.negotiationHistory || [];
+                  const lastProp = history[history.length - 1];
+                  const isPendingFromDriver = lastProp && (lastProp.proposedBy === 'PROVIDER' || lastProp.proposedBy === 'DRIVER') && lastProp.status === 'PROPOSED';
+
+                  if (isPendingFromDriver) {
+                    return (
+                      <View style={{ gap: 10 }}>
+                        <TouchableOpacity
+                          style={{ borderRadius: 16, overflow: 'hidden' }}
+                          onPress={() => handleAcceptNegotiation(activeNegotiationOrder)}
+                          disabled={isSubmittingNegotiation}
+                        >
+                          <LinearGradient colors={['#10B981', '#059669']} style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+                            {isSubmittingNegotiation ? (
+                              <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                              <>
+                                <Ionicons name="checkmark-circle" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '800' }}>
+                                  Aceitar Proposta ({lastProp.amount} MT)
+                                </Text>
+                              </>
+                            )}
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                          <TouchableOpacity
+                            style={{ flex: 1, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#7C3AED', backgroundColor: '#F3E8FF', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}
+                            onPress={() => {
+                              setCounterPrice(String(lastProp.amount));
+                              setShowCounterModal(true);
+                            }}
+                            disabled={isSubmittingNegotiation}
+                          >
+                            <Ionicons name="swap-horizontal" size={16} color="#7C3AED" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#7C3AED', fontSize: 13, fontWeight: '700' }}>Contra-Propor</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={{ flex: 1, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}
+                            onPress={() => handleRejectNegotiation(activeNegotiationOrder)}
+                            disabled={isSubmittingNegotiation}
+                          >
+                            <Ionicons name="close-circle" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }}>Rejeitar</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 6, fontWeight: '600' }}>
+                        A aguardar resposta do motorista...
+                      </Text>
+                    </View>
+                  );
+                })()}
+
                 <TouchableOpacity
-                  style={{
-                    paddingVertical: 12,
-                    backgroundColor: '#7F00FF',
-                    borderRadius: 14,
-                    alignItems: 'center',
-                  }}
-                  activeOpacity={0.8}
-                  onPress={async () => {
-                    setWaitingCountdown(60);
-                    try {
-                      const storedUserData = await AsyncStorage.getItem('userData');
-                      const token = storedUserData ? JSON.parse(storedUserData).token : '';
-                      await api.post(`/request-service/${currentRequestServiceId}/resend`,
-                        { targetDriverId: selectedDriverForRequest?._id },
-                        { headers: { authorization: `Bearer ${token}` } }
-                      );
-                    } catch (e) { console.log('Erro ao reenviar', e); }
-                  }}
+                  style={{ marginTop: 14, paddingVertical: 10, alignItems: 'center' }}
+                  onPress={() => handleCancelNegotiatedOrder(activeNegotiationOrder)}
+                  disabled={isSubmittingNegotiation}
                 >
-                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar Ã  espera</Text>
+                  <Text style={{ color: '#DC2626', fontSize: 13, fontWeight: '700' }}>
+                    Cancelar Pedido
+                  </Text>
                 </TouchableOpacity>
+              </View>
 
+            </View>
+          ) : (
+            <View style={{
+              backgroundColor: '#FFF',
+              borderRadius: 28,
+              padding: 32,
+              width: '88%',
+              alignItems: 'center',
+              elevation: 20,
+              shadowColor: '#7F00FF',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.2,
+              shadowRadius: 20,
+            }}>
+              {/* Radar pulse */}
+              <View style={{ width: 110, height: 110, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+                <Animated.View style={[styles.radarCenter, {
+                  position: 'absolute',
+                  width: 110,
+                  height: 110,
+                  borderRadius: 55,
+                  backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                  transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+                  opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] })
+                }]} />
+                <Animated.View style={[styles.radarCenter, {
+                  position: 'absolute',
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                  transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }],
+                  opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+                }]} />
+                <View style={[styles.radarCenter, { backgroundColor: '#F3E8FF', width: 64, height: 64, borderRadius: 32 }]}>
+                  {waitingCountdown > 0 ? (
+                    <Text style={{ fontSize: 24, fontWeight: '900', color: '#A855F7' }}>{waitingCountdown}</Text>
+                  ) : (
+                    <MaterialCommunityIcons name="clock-outline" size={30} color="#A855F7" />
+                  )}
+                </View>
+              </View>
+
+              {waitingCountdown > 0 ? (
+                <>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                    A aguardar {selectedDriverForRequest?.name?.split(' ')[0]}...
+                  </Text>
+                  <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                    Enviámos o seu pedido. Por favor aguarde enquanto o motorista analisa.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A1A1A', textAlign: 'center' }}>
+                    O motorista está a demorar...
+                  </Text>
+                  <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 14, textAlign: 'center' }}>
+                    Pode continuar a esperar ou procurar novos motoristas disponíveis.
+                  </Text>
+                </>
+              )}
+
+              {selectedDriverForRequest && (() => {
+                const serviceBase = service?.baseFare || 0;
+                let selectedDeslocacao = price > serviceBase ? price - serviceBase : 0;
+
+                let selectedBaseFare = price;
+                if (selectedDriverForRequest.deliveryman?.allowCustomPrice && selectedDriverForRequest.deliveryman?.customPrice) {
+                  selectedBaseFare = selectedDriverForRequest.deliveryman.customPrice;
+                } else if (selectedDriverForRequest.deliveryman?.assigned_base_fee) {
+                  selectedBaseFare = selectedDriverForRequest.deliveryman.assigned_base_fee;
+                } else if (serviceBase > 0) {
+                  selectedBaseFare = serviceBase;
+                }
+
+                let selectedFinalPrice = selectedBaseFare + selectedDeslocacao;
+
+                return (
+                  <View style={{ marginTop: 15, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 12, width: '100%', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 13, color: '#6B7280' }}>Resumo do Pedido</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '800', color: '#9800FF', marginTop: 4 }}>
+                      {selectedFinalPrice.toFixed(0)} MT
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                      Taxa Base ({selectedBaseFare.toFixed(0)} MT) + Deslocação ({selectedDeslocacao.toFixed(0)} MT)
+                    </Text>
+                  </View>
+                );
+              })()}
+
+              {waitingCountdown > 0 ? (
                 <TouchableOpacity
                   style={{
+                    marginTop: 24,
                     paddingVertical: 12,
+                    paddingHorizontal: 32,
                     backgroundColor: '#FEF2F2',
                     borderRadius: 14,
                     borderWidth: 1,
                     borderColor: '#FECACA',
+                    width: '100%',
                     alignItems: 'center',
                   }}
                   activeOpacity={0.8}
-                  onPress={async () => {
-                    await handleCancelPendingRequest();
-                    setRejectedDriverIds([]);
-                    setIsSearching(true);
-                    startPulse();
-                  }}
+                  onPress={handleCancelPendingRequest}
                 >
-                  <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Procurar novos motoristas</Text>
+                  <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Cancelar Pedido</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-          </View>
+              ) : (
+                <View style={{ width: '100%', marginTop: 24, gap: 12 }}>
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: 12,
+                      backgroundColor: '#7F00FF',
+                      borderRadius: 14,
+                      alignItems: 'center',
+                    }}
+                    activeOpacity={0.8}
+                    onPress={async () => {
+                      setWaitingCountdown(60);
+                      try {
+                        const storedUserData = await AsyncStorage.getItem('userData');
+                        const token = storedUserData ? JSON.parse(storedUserData).token : '';
+                        await api.post(`/request-service/${currentRequestServiceId}/resend`,
+                          { targetDriverId: selectedDriverForRequest?._id },
+                          { headers: { authorization: `Bearer ${token}` } }
+                        );
+                      } catch (e) { console.log('Erro ao reenviar', e); }
+                    }}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continuar a esperar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: 12,
+                      backgroundColor: '#FEF2F2',
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: '#FECACA',
+                      alignItems: 'center',
+                    }}
+                    activeOpacity={0.8}
+                    onPress={async () => {
+                      await handleCancelPendingRequest();
+                      setRejectedDriverIds([]);
+                      setIsSearching(true);
+                      startPulse();
+                    }}
+                  >
+                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>Procurar novos motoristas</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
         </View>
+      </Modal>
+
+      {/* Modal de Contra-Proposta do Cliente */}
+      <Modal visible={showCounterModal} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}
+        >
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, elevation: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#1E1B4B' }}>Enviar Contra-Proposta</Text>
+              <TouchableOpacity onPress={() => setShowCounterModal(false)}>
+                <Ionicons name="close-circle" size={26} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, color: '#4B5563', marginBottom: 8, fontWeight: '600' }}>Novo Valor Proposto (MT)</Text>
+            <TextInput
+              style={{ backgroundColor: '#F3E8FF', borderRadius: 14, padding: 14, fontSize: 18, fontWeight: '800', color: '#7C3AED', marginBottom: 14, borderWidth: 1, borderColor: '#C084FC' }}
+              keyboardType="numeric"
+              placeholder="0 MT"
+              value={counterPrice}
+              onChangeText={setCounterPrice}
+            />
+
+            <Text style={{ fontSize: 13, color: '#4B5563', marginBottom: 8, fontWeight: '600' }}>Nota / Motivo do Reajuste (Opcional)</Text>
+            <TextInput
+              style={{ backgroundColor: '#F8FAFC', borderRadius: 14, padding: 14, fontSize: 14, color: '#1E293B', marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', minHeight: 44 }}
+              placeholder="Ex: Ofereço este valor pela deslocação..."
+              value={counterNote}
+              onChangeText={setCounterNote}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={{ backgroundColor: '#7C3AED', paddingVertical: 14, borderRadius: 16, alignItems: 'center', elevation: 4 }}
+              onPress={() => handleCounterPropose(activeNegotiationOrder)}
+              disabled={isSubmittingNegotiation}
+            >
+              {isSubmittingNegotiation ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 15 }}>Enviar Contra-Proposta</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showBusyModal} transparent animationType="fade">
@@ -2009,7 +3001,7 @@ export default function RequestServiceSimple() {
                 <>
                   <View style={{ alignItems: 'center', marginBottom: 24 }}>
                     <Image
-                      source={selectedDriverInfo.profileImage ? { uri: selectedDriverInfo.profileImage } : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+                      source={{ uri: getDriverAvatar(selectedDriverInfo) }}
                       style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#F3F4F6', borderWidth: 3, borderColor: '#F3F4F6' }}
                     />
                     <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', marginTop: 12 }}>
@@ -2018,7 +3010,7 @@ export default function RequestServiceSimple() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                       <MaterialCommunityIcons name="star" size={20} color="#F59E0B" />
                       <Text style={{ fontSize: 16, fontWeight: '700', color: '#4B5563', marginLeft: 4 }}>
-                        {Number(selectedDriverInfo.deliveryman?.averageRating || selectedDriverInfo.rating || 0).toFixed(1)}
+                        {formatDriverRating(selectedDriverInfo)}
                       </Text>
                     </View>
                   </View>
@@ -2625,3 +3617,4 @@ const autocompleteStyles = StyleSheet.create({
     fontSize: 14,
   },
 });
+// Metro cache invalidation refresh

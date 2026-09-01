@@ -281,9 +281,9 @@ export default function OrderWaitingScreen() {
               </View>
             </View>
 
-            <Text style={styles.waitingTitle}>Aguardando Resposta do Vendedor</Text>
+            <Text style={styles.waitingTitle}>Aguardando Resposta do Fornecedor</Text>
             <Text style={styles.waitingSubtitle}>
-              O pedido foi enviado para <Text style={styles.boldText}>{sellerName}</Text>. O vendedor tem até 15 minutos para confirmar o estoque e aceitar a encomenda.
+              O pedido foi enviado para <Text style={styles.boldText}>{sellerName}</Text>. O fornecedor tem até 15 minutos para confirmar o estoque e aceitar a encomenda.
             </Text>
 
             {/* COUNTDOWN TIMER BADGE — componente memo para evitar tremor */}

@@ -10,7 +10,8 @@ import {
   Dimensions,
   ActivityIndicator,
   Share,
-  Linking
+  Linking,
+  Clipboard
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -808,12 +809,12 @@ const OrderDetailsScreen = () => {
         {/* Driver and Vehicle */}
         {currentOrder.deliveryman && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Transporte</Text>
+            <Text style={styles.sectionTitle}>Transporte e Comprovativo</Text>
             
             <View style={styles.driverCard}>
               <View style={styles.driverRow}>
                 <Image 
-                  source={{ uri: currentOrder.deliveryman.photo || 'https://via.placeholder.com/60' }} 
+                  source={{ uri: currentOrder.deliveryman.photo || currentOrder.deliveryman.profileImage || currentOrder.deliveryman.image || currentOrder.deliveryman.user?.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }} 
                   style={styles.driverImage} 
                 />
                 <View style={styles.driverInfo}>
@@ -1034,6 +1035,68 @@ const OrderDetailsScreen = () => {
                       </Text>
                     </View>
                   </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        {/* 🔑 PRODUTOS DIGITAIS E CHAVES DE ATIVAÇÃO */}
+        {currentOrder.digitalDeliveredItems && currentOrder.digitalDeliveredItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Chaves & Acessos Digitais</Text>
+            <View style={{ gap: 12 }}>
+              {currentOrder.digitalDeliveredItems.map((item, idx) => (
+                <View key={idx} style={{
+                  backgroundColor: '#F0FDF4',
+                  borderRadius: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: '#86EFAC'
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="key" size={20} color="#16A34A" style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#14532D', flex: 1 }}>
+                      {item.productName || 'Produto Digital'}
+                    </Text>
+                  </View>
+
+                  {item.key ? (
+                    <View style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 10,
+                      padding: 12,
+                      borderWidth: 1,
+                      borderColor: '#BBF7D0',
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 8
+                    }}>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: '#166534', fontFamily: 'monospace', flex: 1 }}>
+                        {item.key}
+                      </Text>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: '#16A34A',
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 6
+                        }}
+                        onPress={() => {
+                          Clipboard.setString(String(item.key));
+                          Alert.alert('Copiado!', 'Chave copiada para a área de transferência.');
+                        }}
+                      >
+                        <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 12 }}>Copiar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+
+                  {item.digitalInstructions ? (
+                    <Text style={{ fontSize: 12, color: '#15803D', lineHeight: 18 }}>
+                      💡 <Text style={{ fontWeight: '700' }}>Instruções de Resgate:</Text> {item.digitalInstructions}
+                    </Text>
+                  ) : null}
                 </View>
               ))}
             </View>

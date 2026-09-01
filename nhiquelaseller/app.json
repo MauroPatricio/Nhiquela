@@ -75,9 +75,9 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
             "softwareKeyboardLayoutMode": "pan",
             "enableProguardInReleaseBuilds": false
           },
@@ -104,13 +104,13 @@
     "extra": {
       "googleMapsApiKey": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s",
       "firebase": {
-        "apiKey": "AIzaSyCY-wvry4w6GAsMJQ4zD_e3LiMSVx3qoGU",
-        "authDomain": "nhiquela-pro.firebaseapp.com",
-        "projectId": "nhiquela-pro",
-        "storageBucket": "nhiquela-pro.firebasestorage.app",
-        "messagingSenderId": "321336552110",
-        "appId": "1:321336552110:web:2883153d447c5abe96db3f",
-        "measurementId": "G-2HJXSQN0Z7"
+        "apiKey": "AIzaSyBU7yO9-ZLoxZ8S-sBxfLHeyjMa0KB4Aus",
+        "authDomain": "nhiquela-4bfb5.firebaseapp.com",
+        "projectId": "nhiquela-4bfb5",
+        "storageBucket": "nhiquela-4bfb5.appspot.com",
+        "messagingSenderId": "127489638441",
+        "appId": "1:127489638441:web:27d4f40299cb1324ca9c38",
+        "measurementId": "G-FN5JGWV1S4"
       },
       "eas": {
         "projectId": "3955dd7f-ad17-497a-966b-33dfae1b0b18"

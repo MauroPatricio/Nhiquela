@@ -3,7 +3,7 @@ import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import api, { SOCKET_URL } from '../../api';
 import { useSelector, useDispatch } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle, faSignOutAlt, faHandshake } from '@fortawesome/free-solid-svg-icons';
 import { setUserLogout } from '../../store/features/userSlice';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -117,6 +117,7 @@ export default function AdminLayout() {
     { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
     { name: 'Subcategorias de Prestador', path: '/admin/provider-subcategories', icon: faTags },
     { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
+    { name: '🤝 Parceiros & Frotas', path: '/admin/partners', icon: faHandshake },
     { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingProviders },
     { name: 'Provedores', path: '/admin/providers', icon: faStore },
     { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },

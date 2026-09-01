@@ -1,4 +1,4 @@
-﻿// models/PartnerModel.js
+// models/PartnerModel.js
 import mongoose from 'mongoose';
 
 const partnerSchema = new mongoose.Schema(
@@ -7,6 +7,7 @@ const partnerSchema = new mongoose.Schema(
       email: { type: String, required: true, unique: true },
       phoneNumber: { type: String },
       address: { type: String },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // Conta de login do parceiro
       commissionRate: { type: Number, default: 0.1 }, // 10% default, configurable by admin
       isActive: { type: Boolean, default: true },
       // Minimum wallet balance required for the partner to stay active

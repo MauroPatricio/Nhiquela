@@ -65,7 +65,7 @@ export default function SignUp() {
     const fetchProvinces = async () => {
       try {
         const { data } = await api.get('/provinces');
-        setProvinces(data?.provinces || []);
+        setProvinces(Array.isArray(data) ? data : (data?.provinces || []));
       } catch (error) {
         console.error('Erro ao buscar províncias:', error.message);
       }
@@ -77,9 +77,17 @@ export default function SignUp() {
     const fetchTipos = async () => {
       try {
         const { data } = await api.get('/provider-subcategories');
-        // Filter only active and classification 'BUSINESS'
-        const businessTypes = (data || []).filter(
-          (tipo) => tipo.isActive === true && tipo.providerTypeId?.classificationId?.name === 'BUSINESS'
+        const list = Array.isArray(data) ? data : (data?.subcategories || []);
+        const businessTypes = list.filter(
+          (tipo) => {
+            if (tipo.isActive === false) return false;
+            
+            const classObj = tipo.providerTypeId?.classificationId;
+            const className = (classObj?.name || classObj || '').toString().toUpperCase();
+            const typeName = (tipo.providerTypeId?.name || '').toString().toUpperCase();
+            
+            return className === 'BUSINESS' || typeName === 'BUSINESS';
+          }
         );
         setTiposEstabelecimentos(businessTypes);
       } catch (error) {

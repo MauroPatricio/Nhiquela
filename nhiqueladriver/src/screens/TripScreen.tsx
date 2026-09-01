@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -85,8 +85,6 @@ export default function TripScreen({ navigation }: any) {
         .map((trip: any) => {
         const isRequestService = trip.type === 'requestService';
         
-        const distance = trip.distance || 0;
-        
         let status = "Desconhecido";
         let statusColor = "#95A5A6";
         let statusIcon = "help-circle";
@@ -139,19 +137,30 @@ export default function TripScreen({ navigation }: any) {
           });
         }
 
-        let passengerName = trip.user?.name || trip.clientName || "Cliente";
+        let passengerName = trip.user?.name || trip.clientName || trip.deliveryAddress?.fullName || "Cliente";
+        let passengerPhone = trip.passengerPhone || trip.phoneNumber || trip.user?.phoneNumber || trip.deliveryAddress?.phoneNumber || "Não disponível";
         let pickupLoc = "Origem";
         let destLoc = "Destino";
         let rewardPrice = 0;
 
         if (isRequestService) {
-          pickupLoc = trip.origin || "Local de Partida";
-          destLoc = trip.destination || "Destino";
-          rewardPrice = trip.deliveryPrice || trip.pricetopay || 0;
+          pickupLoc = trip.origin || trip.originDetails?.address || "Local de Partida";
+          destLoc = trip.destination || trip.destinationDetails?.address || "Destino";
+          rewardPrice = trip.pricing?.totalPrice || trip.addressPrice || trip.deliveryPrice || trip.deliveryFee || trip.pricetopay || 0;
         } else {
-          pickupLoc = trip.sellers?.[0]?.name || trip.orderItems?.[0]?.seller || "Loja/Fornecedor";
-          destLoc = trip.deliveryAddress?.address || trip.deliveryAddress?.city || "Endereço do Cliente";
-          rewardPrice = trip.deliveryPrice || trip.totalPrice || 0;
+          pickupLoc = trip.seller?.name || trip.sellers?.[0]?.name || trip.orderItems?.[0]?.seller || trip.originDetails?.address || "Loja/Fornecedor";
+          destLoc = trip.deliveryAddress?.address || trip.deliveryAddress?.city || trip.destination || "Endereço do Cliente";
+          rewardPrice = trip.addressPrice || trip.deliveryFee || trip.deliveryPrice || (trip.pricing?.totalPrice) || 0;
+          if (rewardPrice === 0 && trip.totalPrice && (!trip.orderItems || trip.orderItems.length === 0)) {
+            rewardPrice = trip.totalPrice;
+          }
+        }
+
+        if (typeof pickupLoc === 'string' && /^[0-9a-fA-F]{24}$/.test(pickupLoc.trim())) {
+          pickupLoc = trip.seller?.name || trip.sellerInfo?.name || "Estabelecimento do Fornecedor";
+        }
+        if (typeof destLoc === 'string' && /^[0-9a-fA-F]{24}$/.test(destLoc.trim())) {
+          destLoc = trip.deliveryAddress?.city ? `Entrega em ${trip.deliveryAddress.city}` : "Destino do Cliente";
         }
 
         let serviceNameStr = "Pedido de Loja";
@@ -172,47 +181,53 @@ export default function TripScreen({ navigation }: any) {
         // Extract coordinates if available
         let originLat, originLng, destLat, destLng;
         if (trip.originDetails?.lat && trip.originDetails?.lng) {
-          originLat = trip.originDetails.lat;
-          originLng = trip.originDetails.lng;
+          originLat = Number(trip.originDetails.lat);
+          originLng = Number(trip.originDetails.lng);
         } else if (trip.originLocation?.latitude && trip.originLocation?.longitude) {
-          originLat = trip.originLocation.latitude;
-          originLng = trip.originLocation.longitude;
+          originLat = Number(trip.originLocation.latitude);
+          originLng = Number(trip.originLocation.longitude);
+        } else if (trip.seller?.location?.lat && trip.seller?.location?.lng) {
+          originLat = Number(trip.seller.location.lat);
+          originLng = Number(trip.seller.location.lng);
         } else if (trip.latitude && trip.longitude) {
-          originLat = trip.latitude;
-          originLng = trip.longitude;
-        } else if (trip.sellers?.[0]?.latitude && trip.sellers?.[0]?.longitude) {
-          originLat = trip.sellers[0].latitude;
-          originLng = trip.sellers[0].longitude;
-        } else if (trip.seller?.latitude && trip.seller?.longitude) {
-          originLat = trip.seller.latitude;
-          originLng = trip.seller.longitude;
+          originLat = Number(trip.latitude);
+          originLng = Number(trip.longitude);
         }
 
         if (trip.destinationDetails?.lat && trip.destinationDetails?.lng) {
-          destLat = trip.destinationDetails.lat;
-          destLng = trip.destinationDetails.lng;
+          destLat = Number(trip.destinationDetails.lat);
+          destLng = Number(trip.destinationDetails.lng);
         } else if (trip.destinationLocation?.latitude && trip.destinationLocation?.longitude) {
-          destLat = trip.destinationLocation.latitude;
-          destLng = trip.destinationLocation.longitude;
+          destLat = Number(trip.destinationLocation.latitude);
+          destLng = Number(trip.destinationLocation.longitude);
         } else if (trip.deliveryAddress?.latitude && trip.deliveryAddress?.longitude) {
-          destLat = trip.deliveryAddress.latitude;
-          destLng = trip.deliveryAddress.longitude;
-        } else if (trip.deliveryAddress?.lat && trip.deliveryAddress?.lng) {
-          destLat = trip.deliveryAddress.lat;
-          destLng = trip.deliveryAddress.lng;
+          destLat = Number(trip.deliveryAddress.latitude);
+          destLng = Number(trip.deliveryAddress.longitude);
+        }
+
+        let distance = 0;
+        if (trip.pricing?.distanceKm && Number(trip.pricing.distanceKm) > 0) {
+          distance = Number(trip.pricing.distanceKm);
+        } else if (originLat && originLng && destLat && destLng) {
+          const R = 6371;
+          const dLat = (destLat - originLat) * (Math.PI / 180);
+          const dLon = (destLng - originLng) * (Math.PI / 180);
+          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(originLat * (Math.PI / 180)) * Math.cos(destLat * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
         return {
           id: trip.id || trip._id || Math.random().toString(),
-          passengerId: trip.user?._id || trip.user?.id || trip.user || trip.userId || trip.client || "Não disponível",
+          passengerId: passengerPhone,
+          passengerPhone: passengerPhone,
           passengerPhoto: passengerPhoto,
           type: serviceNameStr,
           motive: trip.reason || trip.description || trip.goodType || null,
           passenger: passengerName,
           pickup: pickupLoc,
           destination: destLoc,
-          reward: rewardPrice > 0 ? `MT ${rewardPrice.toFixed(2)}` : `MT ${Math.round(distance * 25).toFixed(2)}`,
-          distance: distance ? `${distance.toFixed(2)} km` : "Distância não disponível",
+          reward: rewardPrice > 0 ? `MT ${rewardPrice.toFixed(2)}` : (distance > 0 ? `MT ${Math.round(distance * 25).toFixed(2)}` : "MT 150.00"),
+          distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distância não disponível",
           time: tripDate,
           status: status,
           statusColor: statusColor,
@@ -234,9 +249,14 @@ export default function TripScreen({ navigation }: any) {
     }
   };
 
-  // ðŸ”¹ VER DETALHES DA VIAGEM
+  // VER DETALHES DA VIAGEM
   const viewTripDetails = (trip: any) => {
-    setSelectedTrip(trip);
+    // Viagens com paragens multiplas -> MultiStopTripScreen
+    if (trip.deliveryStops && trip.deliveryStops.length > 0) {
+      navigation.navigate("MultiStopTrip" as never, { trip } as never);
+    } else {
+      setSelectedTrip(trip);
+    }
   };
 
   // ðŸ”¹ COMPARTILHAR DETALHES DA VIAGEM
@@ -487,7 +507,9 @@ export default function TripScreen({ navigation }: any) {
                       )}
                       <View>
                         <Text style={styles.modalTextValue}>{selectedTrip.passenger}</Text>
-                        <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>ID: {selectedTrip.passengerId}</Text>
+                        <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 2 }}>
+                          Contacto: {selectedTrip.passengerPhone || selectedTrip.passengerId || 'Não disponível'}
+                        </Text>
                       </View>
                     </View>
                   </View>

@@ -283,7 +283,7 @@ const SellerScreen = () => {
             discount={product.discount}
             comissionPercentage={product.comissionPercentage}
             sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
-            isSellerOpen={openstore}
+            isSellerOpen={product.isSellerOpen !== undefined ? product.isSellerOpen : (openstore !== false)}
             isOrdered={product.isOrdered}
             orderPeriod={product.orderPeriod}
           />

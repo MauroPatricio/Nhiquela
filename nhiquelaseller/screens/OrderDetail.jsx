@@ -267,7 +267,7 @@ const OrderDetail = ({ navigation }) => {
         const orderVehicleName = activeOrder?.transportType;
 
         if (orderVehicleId || orderVehicleName) {
-          filtered = filtered.filter(sub => {
+          const matching = filtered.filter(sub => {
             if (sub.vehicleTypes && sub.vehicleTypes.length > 0) {
               return sub.vehicleTypes.some(vt => {
                 const vtId = vt._id || vt;
@@ -279,16 +279,46 @@ const OrderDetail = ({ navigation }) => {
             if (orderVehicleName && sub.name?.toLowerCase()?.includes(orderVehicleName.toLowerCase())) return true;
             return false;
           });
+          if (matching.length > 0) {
+            filtered = matching;
+          }
         }
 
         setSubcategories(filtered);
-        if (filtered.length > 0 && !selectedTransport) {
-          setSelectedTransport(filtered[0]._id);
+        if (filtered.length > 0) {
+          const targetName = activeOrder?.transportType?.toLowerCase();
+          const matchedSub = filtered.find(s => 
+            s.name?.toLowerCase() === targetName || 
+            (targetName && s.name?.toLowerCase()?.includes(targetName)) ||
+            (targetName && targetName.includes(s.name?.toLowerCase()))
+          );
+          setSelectedTransport(matchedSub ? matchedSub._id : filtered[0]._id);
         }
       }
     } catch (e) {
       console.log('Error fetching subcategories', e);
     }
+  };
+  const resolveSubcategoryName = (typeValue, defaultName = 'Serviço de Transporte') => {
+    if (!typeValue) return defaultName;
+    if (typeof typeValue === 'object' && typeValue.name) return typeValue.name;
+    const strVal = String(typeValue);
+
+    if (/^[0-9a-fA-F]{24}$/.test(strVal)) {
+      const found = subcategories.find(s => s._id === strVal);
+      if (found) return found.name;
+      if (currentOrder?.transportType && !/^[0-9a-fA-F]{24}$/.test(currentOrder.transportType)) {
+        return currentOrder.transportType;
+      }
+      return defaultName;
+    }
+    return strVal;
+  };
+
+  const getSubcategoryDisplayName = () => {
+    if (!currentOrder?.deliveryman) return '';
+    const rawType = currentOrder.deliveryman.transport_type || currentOrder.deliveryman.subCategory || currentOrder.transportType;
+    return resolveSubcategoryName(rawType, currentOrder.transportType || 'Serviço de Transporte');
   };
 
   useEffect(() => { 
@@ -548,14 +578,32 @@ const OrderDetail = ({ navigation }) => {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
 
-        {/* Status Card */}
-        <View style={[styles.statusCard, { borderColor: statusColor, backgroundColor: statusBg }]}>
-          <View>
-            <Text style={styles.statusLabel}>Estado do Pedido</Text>
+        {/* Status Card — Modern Glassmorphic CSS Styling */}
+        <View style={[styles.statusCard, { borderColor: statusColor + '50', backgroundColor: statusBg }]}>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              <View style={[styles.statusLiveDot, { backgroundColor: statusColor }]} />
+              <Text style={styles.statusLabel}>ESTADO DO PEDIDO</Text>
+            </View>
             <Text style={[styles.statusValue, { color: statusColor }]}>{currentOrder.status}</Text>
+            {currentOrder.status === 'Pendente' && (
+              <Text style={styles.statusSubtext}>Aguardando confirmação do fornecedor</Text>
+            )}
+            {currentOrder.status === 'Aceito' && (
+              <Text style={styles.statusSubtext}>Pedido aceite — em preparação de estoque</Text>
+            )}
+            {currentOrder.status === 'Em trânsito' && (
+              <Text style={styles.statusSubtext}>Pedido a caminho do cliente / entregador</Text>
+            )}
+            {currentOrder.status === 'Entregue' && (
+              <Text style={styles.statusSubtext}>Entregue e concluído com sucesso</Text>
+            )}
+            {currentOrder.status === 'Cancelado' && (
+              <Text style={styles.statusSubtext}>Pedido cancelado</Text>
+            )}
           </View>
-          <View style={[styles.statusIcon, { backgroundColor: statusColor + '30' }]}>
-            <MaterialCommunityIcons name="package-variant" size={26} color={statusColor} />
+          <View style={[styles.statusIcon, { backgroundColor: statusColor + '20', borderColor: statusColor + '40', borderWidth: 1 }]}>
+            <MaterialCommunityIcons name="package-variant-closed" size={28} color={statusColor} />
           </View>
         </View>
 
@@ -592,7 +640,7 @@ const OrderDetail = ({ navigation }) => {
           <InfoRow label="Método de pagamento" value={currentOrder.paymentMethod} />
           <InfoRow label="Pagamento efectuado" value={currentOrder.isPaid ? '✅ Sim' : '❌ Não'} />
           {currentOrder.isPaid && <InfoRow label="Data de pagamento" value={formatDate(currentOrder.paidAt)} />}
-          <InfoRow label="Taxa de entrega" value={`${currentOrder.addressPrice} MT`} />
+          <InfoRow label="Taxa de entrega estimada" value={`${currentOrder.addressPrice} MT`} />
           <InfoRow label="Transporte Solicitado" value={currentOrder.transportType || 'N/A'} />
           <InfoRow label="Valor recebido" value={`${currentOrder.totalPrice} MT`} highlight />
           {currentOrder.stepStatus === 8 && currentOrder.canceledReason && (
@@ -648,7 +696,7 @@ const OrderDetail = ({ navigation }) => {
                   {currentOrder.deliveryman.name}
                 </Text>
                 <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>
-                  {currentOrder.deliveryman.transport_type || 'Transporte'} • {currentOrder.deliveryman.transport_registration || 'Sem Matrícula'}
+                  {getSubcategoryDisplayName()} • {currentOrder.deliveryman.transport_registration || 'Sem Matrícula'}
                 </Text>
               </View>
               {currentOrder.deliveryman.phoneNumber && (
@@ -770,6 +818,7 @@ const OrderDetail = ({ navigation }) => {
           </View>
         )}
 
+
         {(currentOrder.stepStatus === 4 || currentOrder.status === 'Em trânsito') && !currentOrder.isDelivered && (
           <View style={styles.actionRow}>
             <TouchableOpacity
@@ -781,7 +830,7 @@ const OrderDetail = ({ navigation }) => {
                 <>
                   <Ionicons name="checkmark-done-circle-outline" size={20} color="#fff" />
                   <Text style={styles.actionBtnText}>
-                    {currentOrder.isUserWantDelivery === false ? 'Confirmar Levantamento Concluído' : 'Marcar como Entregue'}
+                    {currentOrder.isUserWantDelivery === false ? 'Confirmar Entrega ao Cliente' : 'Marcar como Entregue'}
                   </Text>
                 </>
               )}
@@ -851,22 +900,39 @@ const OrderDetail = ({ navigation }) => {
                       key={s._id}
                       style={{
                         width: '48%',
-                        backgroundColor: isSelected ? COLORS.primaryGlow : COLORS.surface2,
+                        backgroundColor: isSelected ? 'rgba(127, 0, 255, 0.12)' : COLORS.surface2,
                         borderColor: isSelected ? COLORS.primary : COLORS.borderLight,
-                        borderWidth: 1.5,
+                        borderWidth: isSelected ? 2 : 1.5,
                         borderRadius: 16,
                         padding: 12,
                         alignItems: 'center',
                         justifyContent: 'center',
                         minHeight: 120,
+                        position: 'relative',
                         shadowColor: isSelected ? COLORS.primary : 'transparent',
                         shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: isSelected ? 0.15 : 0,
+                        shadowOpacity: isSelected ? 0.2 : 0,
                         shadowRadius: 6,
                         elevation: isSelected ? 4 : 0,
                       }}
                       onPress={() => setSelectedTransport(s._id)}
+                      activeOpacity={0.8}
                     >
+                      {isSelected && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          backgroundColor: COLORS.primary,
+                          borderRadius: 10,
+                          width: 20,
+                          height: 20,
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <Ionicons name="checkmark" size={14} color="#FFF" />
+                        </View>
+                      )}
                       <View style={{
                         width: 48,
                         height: 48,
@@ -1231,93 +1297,129 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.lg,
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.xl,
     backgroundColor: COLORS.surface2,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
   },
   deleteBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.lg,
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.xl,
     backgroundColor: COLORS.errorBg,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.error + '40',
   },
   headerTitle: {
     fontSize: SIZES.lg,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -0.3,
   },
   statusCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    marginBottom: 12,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  statusLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   statusLabel: {
-    fontSize: SIZES.sm,
+    fontSize: 11,
+    fontWeight: '800',
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   statusValue: {
-    fontSize: SIZES.xl,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  statusSubtext: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+    marginTop: 4,
   },
   statusIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: RADIUS.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
     backgroundColor: COLORS.surfaceCard,
-    borderRadius: RADIUS.lg,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
-    ...SHADOWS.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardTitle: {
-    fontSize: SIZES.base,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: COLORS.text,
-    marginBottom: 12,
+    marginBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
     paddingBottom: 10,
+    letterSpacing: -0.2,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border + '80',
+    borderBottomColor: COLORS.borderLight + '60',
   },
   infoLabel: {
     fontSize: SIZES.sm,
     color: COLORS.textSecondary,
+    fontWeight: '500',
     flex: 1,
   },
   infoValue: {
     fontSize: SIZES.sm,
     color: COLORS.text,
-    fontWeight: '500',
+    fontWeight: '700',
     textAlign: 'right',
     flex: 1,
   },
@@ -1331,9 +1433,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timelineDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: COLORS.surface2,
     borderWidth: 2,
     borderColor: COLORS.border,
@@ -1348,36 +1450,39 @@ const styles = StyleSheet.create({
   timelineDotActive: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primaryGlow,
+    borderWidth: 3,
   },
   timelineLine: {
     position: 'absolute',
-    top: 9,
+    top: 10,
     left: '60%',
     right: '-60%',
-    height: 2,
+    height: 3,
     backgroundColor: COLORS.border,
     zIndex: -1,
+    borderRadius: 2,
   },
   timelineLineDone: {
     backgroundColor: COLORS.primary,
   },
   timelineLabel: {
-    fontSize: 9,
+    fontSize: 10,
+    fontWeight: '600',
     color: COLORS.textMuted,
     textAlign: 'center',
   },
   productRow: {
     flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 12,
+    gap: 14,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border + '60',
+    borderBottomColor: COLORS.borderLight + '80',
     alignItems: 'flex-start',
   },
   productImage: {
-    width: 70,
-    height: 70,
-    borderRadius: RADIUS.lg,
+    width: 72,
+    height: 72,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
     backgroundColor: COLORS.surface2,
@@ -1386,7 +1491,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   productName: {
     fontSize: SIZES.base,
@@ -1397,12 +1502,12 @@ const styles = StyleSheet.create({
   productMeta: {
     fontSize: SIZES.sm,
     color: COLORS.textSecondary,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   saleBadge: {
     backgroundColor: COLORS.warningBg,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.warning,
@@ -1410,22 +1515,26 @@ const styles = StyleSheet.create({
   saleBadgeText: {
     color: COLORS.warning,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   actionRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 8,
+    marginTop: 10,
   },
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: RADIUS.full,
+    paddingVertical: 16,
+    borderRadius: 24,
     gap: 8,
-    ...SHADOWS.glow,
+    elevation: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   acceptBtn: {
     backgroundColor: COLORS.success,
@@ -1435,12 +1544,13 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: SIZES.sm,
+    fontWeight: '800',
+    fontSize: SIZES.sm + 1,
+    letterSpacing: 0.2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'flex-end',
   },
   modalBox: {
@@ -1448,30 +1558,37 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
-    borderTopWidth: 1,
+    borderTopWidth: 1.5,
     borderColor: COLORS.borderLight,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
   },
   modalTitle: {
     fontSize: SIZES.xl,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text,
     marginBottom: 6,
+    letterSpacing: -0.3,
   },
   modalSubtitle: {
     fontSize: SIZES.sm,
     color: COLORS.textSecondary,
     marginBottom: 16,
+    lineHeight: 20,
   },
   modalInput: {
     backgroundColor: COLORS.surface2,
-    borderRadius: RADIUS.lg,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     color: COLORS.text,
     fontSize: SIZES.base,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.borderLight,
     marginBottom: 16,
-    minHeight: 80,
+    minHeight: 90,
     textAlignVertical: 'top',
   },
   modalBtns: {

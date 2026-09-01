@@ -27,6 +27,11 @@ export type Trip = {
   paymentMethod?: string;
   isScheduled?: boolean;
   scheduledAt?: string;
+  negotiationState?: string;
+  negotiationHistory?: any[];
+  maxNegotiationRounds?: number;
+  negotiationRoundCount?: number;
+  isNegotiationAllowed?: boolean;
 };
 
 export type WebSocketOrderData = {

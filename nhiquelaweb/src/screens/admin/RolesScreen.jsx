@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShieldAlt, faEdit, faTrash, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faShieldAlt, faEdit, faTrash, faPlus, faTimes, faSync } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 
@@ -12,6 +12,18 @@ const AVAILABLE_PERMISSIONS = [
   { id: 'manage_orders', label: 'Gerir Encomendas' },
   { id: 'manage_settings', label: 'Gerir Configurações' },
   { id: 'view_finance', label: 'Ver Finanças' },
+  { id: 'DASHBOARD_VIEW', label: 'Ver Painel / Dashboard' },
+  { id: 'KPI_VIEW', label: 'Ver Indicadores (KPIs)' },
+  { id: 'DRIVER_VIEW', label: 'Ver Frotas & Motoristas' },
+  { id: 'DRIVER_CREATE', label: 'Registar Motoristas' },
+  { id: 'DRIVER_UPDATE', label: 'Editar Motoristas' },
+  { id: 'SELLER_VIEW', label: 'Ver Fornecedores & Lojas' },
+  { id: 'SELLER_CREATE', label: 'Registar Fornecedores' },
+  { id: 'SELLER_UPDATE', label: 'Editar Fornecedores' },
+  { id: 'ORDER_VIEW', label: 'Ver Pedidos & Viagens' },
+  { id: 'ORDER_CANCEL', label: 'Cancelar Pedidos' },
+  { id: 'REPORT_VIEW', label: 'Ver Relatórios' },
+  { id: 'REPORT_EXPORT', label: 'Exportar Relatórios' },
 ];
 
 export default function RolesScreen() {
@@ -28,10 +40,22 @@ export default function RolesScreen() {
   const fetchRoles = async () => {
     try {
       const { data } = await api.get('/roles');
-      setRoles(data || []);
+      setRoles(Array.isArray(data) ? data : data.roles || []);
     } catch (error) {
       toast.error('Erro ao carregar papéis (roles)');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSeed = async () => {
+    try {
+      setLoading(true);
+      await api.post('/roles/seed');
+      toast.success('Papéis padrão inicializados com sucesso!');
+      fetchRoles();
+    } catch (error) {
+      toast.error('Erro ao inicializar papéis padrão');
       setLoading(false);
     }
   };
@@ -100,9 +124,14 @@ export default function RolesScreen() {
           <h2 className="fw-bold m-0 text-dark">Gestão de Papéis (Roles)</h2>
           <span className="text-muted small">Crie e defina permissões de acesso dinâmico (RBAC)</span>
         </div>
-        <button className="btn btn-primary bg-primary-custom border-0 rounded-pill px-4 shadow-sm" onClick={() => handleOpenModal()}>
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Papel
-        </button>
+        <div className="d-flex gap-2">
+          <button className="btn btn-outline-primary rounded-pill px-3 shadow-sm" onClick={handleSeed} title="Inicializar papéis padrão">
+            <FontAwesomeIcon icon={faSync} className="me-2" /> Gerar Roles Padrão
+          </button>
+          <button className="btn btn-primary bg-primary-custom border-0 rounded-pill px-4 shadow-sm" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Papel
+          </button>
+        </div>
       </div>
 
       <div className="card shadow-sm-custom border-0 rounded-4">
@@ -121,7 +150,14 @@ export default function RolesScreen() {
                 {loading ? (
                   <tr><td colSpan="4" className="text-center py-5 text-muted">A carregar roles...</td></tr>
                 ) : roles.length === 0 ? (
-                  <tr><td colSpan="4" className="text-center py-5 text-muted">Nenhuma role encontrada.</td></tr>
+                  <tr>
+                    <td colSpan="4" className="text-center py-5">
+                      <p className="text-muted mb-3">Nenhuma role encontrada na base de dados.</p>
+                      <button className="btn btn-primary bg-primary-custom border-0 rounded-pill px-4 shadow-sm" onClick={handleSeed}>
+                        <FontAwesomeIcon icon={faSync} className="me-2" /> Gerar 6 Roles Padrão de Fábrica
+                      </button>
+                    </td>
+                  </tr>
                 ) : roles.map(role => (
                   <tr key={role._id}>
                     <td className="px-4 fw-bold text-dark">
@@ -132,7 +168,7 @@ export default function RolesScreen() {
                     <td className="text-muted small">{role.description || '-'}</td>
                     <td>
                       <div className="d-flex flex-wrap gap-1">
-                        {role.permissions.map(p => (
+                        {(role.permissions || []).map(p => (
                           <span key={p} className="badge bg-light text-dark border">{p}</span>
                         ))}
                       </div>

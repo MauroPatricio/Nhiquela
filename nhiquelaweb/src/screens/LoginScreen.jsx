@@ -25,9 +25,11 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (userInfo) {
-      if (userInfo.isAdmin) {
+      if (userInfo.isAdmin || userInfo.role === 'ADMIN') {
         navigate('/admin/dashboard');
-      } else if (userInfo.isSeller) {
+      } else if (userInfo.role === 'PARTNER' || userInfo.isPartner) {
+        navigate('/partner/dashboard');
+      } else if (userInfo.isSeller || userInfo.role === 'SELLER') {
         navigate('/supplier/dashboard');
       } else {
         navigate(redirect);
@@ -55,9 +57,11 @@ export default function LoginScreen() {
       dispatch(setUserLogin(data));
       toast.success(`Bem-vindo de volta, ${data.name}!`);
 
-      if (data.isAdmin) {
+      if (data.isAdmin || data.role === 'ADMIN') {
         navigate('/admin/dashboard');
-      } else if (data.isSeller) {
+      } else if (data.role === 'PARTNER' || data.isPartner) {
+        navigate('/partner/dashboard');
+      } else if (data.isSeller || data.role === 'SELLER') {
         navigate('/supplier/dashboard');
       } else {
         navigate(redirect);
