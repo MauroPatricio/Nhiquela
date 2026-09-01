@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -36,6 +37,8 @@ const EditProductView = () => {
   const [selectedColors, setSelectedColors] = useState(selectedProduct.color || []);
   const [selectedSizes, setSelectedSizes] = useState(selectedProduct.size || []);
   const [userData, setUserData] = useState(null);
+   const [userLogin,setUserLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     checkIfUserExist();
@@ -101,25 +104,40 @@ const EditProductView = () => {
     fetchData();
   }, []);
 
-  const checkIfUserExist = async () => {
-    const id = await AsyncStorage.getItem('id');
-    const userId = `user${JSON.parse(id)}`;
+ 
 
-    try {
-      const currentUser = await AsyncStorage.getItem(userId);
-      if (currentUser !== null) {
-        const parseData = JSON.parse(currentUser);
-        setUserData(parseData);
+const checkIfUserExist = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    const storedUserId = await AsyncStorage.getItem('id');
+
+    if (storedUserData && storedUserId) {
+      const parsedUserData = JSON.parse(storedUserData);
+
+      if (parsedUserData._id === storedUserId) {
+        setUserData(parsedUserData); 
+        setUserLogin(true);
+      } else {
+        setIsLoading(false); // ✅ Para o loading se inconsistente
       }
-    } catch (error) {
-      console.error(error);
+    } else {
+      setIsLoading(false); // ✅ Para o loading se não logado
     }
-  };
+  } catch (error) {
+    setIsLoading(false); // ✅ Garante parada mesmo em erro
+  }
+};
 
   const handleImagePicker = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Erro', 'Permissão para acessar a galeria é necessária!');
+      showMessage({
+        message: 'Erro',
+        description: 'Permissão para acessar a galeria é necessária!',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       return;
     }
 
@@ -155,7 +173,13 @@ const EditProductView = () => {
       setImage(data.secure_url);
       return data.secure_url;
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao enviar a imagem.');
+      showMessage({
+        message: 'Erro',
+        description: 'Falha ao enviar a imagem.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -188,6 +212,7 @@ const EditProductView = () => {
       values.color = selectedColors;
       values.size = selectedSizes;
       values.priceFromSeller = values.price;
+      values.province = (values.province && values.province.trim() !== '') ? values.province : null;
       
 
       const response = await api.put(`products/${selectedProduct._id}`, values, {
@@ -195,6 +220,13 @@ const EditProductView = () => {
       });
 
       if (response.status === 200) {
+        // Notificação de Atualização
+        await api.post('notifications/broadcast', { 
+          title: 'Produto actualizado', 
+          body: `O produto ${values.nome} foi actualizado. Confira!`, 
+          data: response.data?.product || values 
+        }, { headers: { Authorization: `Bearer ${userData.token}` } }).catch(e => console.log('Erro broadcast:', e.message));
+
         Toast.show({
           type: 'success',
           text1: 'Sucesso',
@@ -241,7 +273,12 @@ const EditProductView = () => {
     price: Yup.number().typeError('O preço deve ser um número').required('O preço é obrigatório'),
     image: Yup.string().required('A imagem do produto é obrigatória'),
     category: Yup.string().required('A categoria é obrigatória'),
-    province: Yup.string().required('A localização é obrigatória'),
+    productType: Yup.string(),
+    province: Yup.string().when('productType', {
+      is: 'DIGITAL',
+      then: (schema) => schema.optional().nullable(),
+      otherwise: (schema) => schema.required('A localização é obrigatória'),
+    }),
     countInStock: Yup.number().typeError('A quantidade em estoque deve ser um número').required('A quantidade em estoque é obrigatória'),
     description: Yup.string().required('A descrição é obrigatória'),
     brand: Yup.string().required('A Marca ou sabor do produto é obrigatório'),
@@ -261,9 +298,12 @@ const EditProductView = () => {
 
       {userData && userData.isApproved ? (
         <Formik
+          enableReinitialize
           initialValues={{
             nome: selectedProduct.nome,
             name: selectedProduct.name,
+            productType: productType,
+            digitalInstructions: digitalInstructions,
             slug: selectedProduct.slug,
             image: selectedProduct.image,
             price: selectedProduct.price.toString(),
@@ -284,6 +324,60 @@ const EditProductView = () => {
         >
           {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
             <>
+              {/* Tipo de Produto (Físico vs Digital) */}
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B', marginTop: 10, marginBottom: 8 }}>Tipo de Produto</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                <TouchableOpacity
+                  style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FAFAFA', borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12, padding: 12 }, values.productType === 'PHYSICAL' && { borderColor: '#7F00FF', backgroundColor: '#F5F0FF' }]}
+                  onPress={() => {
+                    setFieldValue('productType', 'PHYSICAL');
+                    setProductType('PHYSICAL');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Text style={[{ fontSize: 13, fontWeight: '600', color: '#1E293B' }, values.productType === 'PHYSICAL' && { color: '#7F00FF', fontWeight: '700' }]}>
+                      📦 Produto Físico
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FAFAFA', borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12, padding: 12 }, values.productType === 'DIGITAL' && { borderColor: '#7F00FF', backgroundColor: '#F5F0FF' }]}
+                  onPress={() => {
+                    setFieldValue('productType', 'DIGITAL');
+                    setProductType('DIGITAL');
+                    setFieldValue('province', '');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Text style={[{ fontSize: 13, fontWeight: '600', color: '#1E293B' }, values.productType === 'DIGITAL' && { color: '#7F00FF', fontWeight: '700' }]}>
+                      🔑 Produto Digital
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {values.productType === 'DIGITAL' && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>
+                    Instruções de resgate/ativação (opcional)
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { height: 75, textAlignVertical: 'top', paddingTop: 10 }]}
+                    placeholder="Instruções de resgate/ativação (ex: chave de ativação, link de acesso, etc.)"
+                    value={values.digitalInstructions || ''}
+                    onChangeText={(t) => {
+                      setFieldValue('digitalInstructions', t);
+                      setDigitalInstructions(t);
+                    }}
+                    onBlur={handleBlur('digitalInstructions')}
+                    multiline
+                  />
+                </View>
+              )}
+
               <Picker
                 selectedValue={values.category || ''}
                 onValueChange={(itemValue) => setFieldValue('category', itemValue)}
@@ -297,18 +391,37 @@ const EditProductView = () => {
               </Picker>
               {touched.category && errors.category && <Text style={styles.error}>{errors.category}</Text>}
 
-              <Picker
-                selectedValue={values.province || ''}
-                onValueChange={(itemValue) => setFieldValue('province', itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Localização do produto" value="" />
-                {provinces &&
-                  provinces.map((province) => (
-                    <Picker.Item key={province._id} label={province.name} value={province._id} />
-                  ))}
-              </Picker>
-              {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
+              {values.productType === 'DIGITAL' ? (
+                <View style={{
+                  padding: 14,
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 8,
+                  marginVertical: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569' }}>
+                    Localização do produto: Não aplicável
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#94A3B8' }}>🔒 Digital</Text>
+                </View>
+              ) : (
+                <>
+                  <Picker
+                    selectedValue={values.province || ''}
+                    onValueChange={(itemValue) => setFieldValue('province', itemValue)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Localização do produto" value="" />
+                    {provinces &&
+                      provinces.map((province) => (
+                        <Picker.Item key={province._id} label={province.name} value={province._id} />
+                      ))}
+                  </Picker>
+                  {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
+                </>
+              )}
 
               <Picker
                 selectedValue={null}

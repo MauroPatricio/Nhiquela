@@ -1,6 +1,6 @@
 
 const COLORS ={
-principal: "#3e2465"
+principal: "#7F00FF"
 }
 
 

@@ -37,6 +37,7 @@ const ProductDetail = ({navigation}) => {
       const countInStock=item.item.countInStock
       const sellerDetail = item.item.sellerDetails
       const seller = sellerDetail.seller.name
+      const discount = item.item.discount
 
         const _id = id
         const dispatch = useDispatch();
@@ -63,6 +64,7 @@ const ProductDetail = ({navigation}) => {
                 onSale,
                 countInStock,
                 seller,
+                discount,
                 quantity: currentQuantity + 1 // Increase quantity by 1 when adding
 
                 }));
@@ -82,7 +84,7 @@ const ProductDetail = ({navigation}) => {
       <View style={styles.container}>
       {/* <View style={styles.upperRow}>
             <TouchableOpacity onPress={()=>navigation.goBack()}>
-                <Ionicons name='chevron-back-circle' color={'#3e2465'} size={35} style={styles.icon} />
+                <Ionicons name='chevron-back-circle' color={'#7F00FF'} size={35} style={styles.icon} />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={()=>navigation.goBack()}>

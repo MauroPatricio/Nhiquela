@@ -1,0 +1,100 @@
+                  <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+                )}
+              </View>
+
+              {/* Foto de Perfil GRANDE */}
+              <ImageUpload
+                title="Foto de Perfil"
+                image={profileImage}
+                onPickImage={() => pickImage(setProfileImage)}
+                onTakePhoto={() => takePhoto(setProfileImage)}
+              />
+            </View>
+
+                          {/* Input + botão de submissão */}
+                          <Text style={[styles.label, { marginBottom: 6 }]}>Novo Preço (MT)</Text>
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TextInput
+                              style={[styles.input, { flex: 1 }]}
+                              placeholder="Ex: 500"
+                              keyboardType="numeric"
+                              value={customPriceInput}
+                              onChangeText={setCustomPriceInput}
+                              editable={priceStatus !== 'Pendente'}
+                            />
+                            <TouchableOpacity
+                              style={{
+                                backgroundColor: COLORS.primary,
+                                borderRadius: 8,
+                                paddingHorizontal: 16,
+                                justifyContent: 'center',
+                                opacity: submittingPrice || !customPriceInput || priceStatus === 'Pendente' ? 0.5 : 1,
+                              }}
+                              disabled={submittingPrice || !customPriceInput || priceStatus === 'Pendente'}
+                              onPress={async () => {
+                                const price = parseFloat(customPriceInput);
+                                if (!price || price <= 0) return;
+                                setSubmittingPrice(true);
+                                try {
+                                  const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('authToken');
+                                  const res = await fetch(`${API_BASE_URL}/drivers/price-request`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify({ requestedPrice: price }),
+                                  });
+                                  if (res.ok) {
+                                    if (updateUser) updateUser({ ...user, deliveryman: { ...user.deliveryman, priceRequestStatus: 'Pendente', pendingCustomPrice: price } });
+                                    showMessage({ message: '✅ Pedido enviado!', description: 'Aguardando aprovação do admin.', type: 'success', duration: 3500 });
+                                  } else {
+                                    const d = await res.json();
+                                    showMessage({ message: 'Erro', description: d.message || 'Erro ao submeter pedido.', type: 'danger', duration: 3500 });
+                                  }
+                                } catch (e) {
+                                  showMessage({ message: 'Erro', description: 'Sem conexão.', type: 'danger', duration: 3000 });
+                                } finally {
+                                  setSubmittingPrice(false);
+                                }
+                              }}
+                            >
+                              {submittingPrice
+                                ? <ActivityIndicator size="small" color="#fff" />
+                                : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Solicitar</Text>}
+                            </TouchableOpacity>
+                          </View>
+                          <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>O preço fica ativo após aprovação do administrador.</Text>
+                        </View>
+                      ) : (
+                        <View style={{ backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }}>
+                          <Text style={{ color: '#6B7280', fontSize: 13 }}>💡 Preço calculado automaticamente pela plataforma com base na distância e tarifas vigentes.</Text>
+                        </View>
+                      )}
+                    </View>
+
+                  </View>
+                  <View style={styles.inputRow}>
+                    <View style={[styles.inputGroup, styles.flex1]}>
+                      <Text style={styles.label}>Cor</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ex: Azul"
+                        value={values.transport_color}
+                        onChangeText={handleChange('transport_color')}
+                        onBlur={handleBlur('transport_color')}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Matrícula</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: AB-123-CD"
+                      value={values.transport_registration}
+                      onChangeText={handleChange('transport_registration')}
+                      onBlur={handleBlur('transport_registration')}
+                    />
+                  </View>
+
+                  {/* Foto do Veículo GRANDE */}
+                  <ImageUpload
+                    title="Foto do Veículo"

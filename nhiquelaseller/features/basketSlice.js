@@ -29,6 +29,14 @@ const basketSlice = createSlice({
 
 export const { addToBasket, removeFromBasket, addTotalToPay } = basketSlice.actions;
 
+function calculateValues(item) {
+  const price = item?.onSale ? item?.discount || 0 : item?.price || 0;
+  const discount = item?.onSale ? item?.discount || 0 : 0;
+  const earnings = item?.sellerEarningsAfterDiscount || 0;
+  
+  return { price, discount, earnings };
+}
+
 // Selectors
 export const selectBasketItems = (state) => state.basket.items;
 
