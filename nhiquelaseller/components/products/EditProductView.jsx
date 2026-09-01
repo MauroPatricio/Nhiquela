@@ -212,6 +212,7 @@ const checkIfUserExist = async () => {
       values.color = selectedColors;
       values.size = selectedSizes;
       values.priceFromSeller = values.price;
+      values.province = (values.province && values.province.trim() !== '') ? values.province : null;
       
 
       const response = await api.put(`products/${selectedProduct._id}`, values, {
@@ -272,7 +273,12 @@ const checkIfUserExist = async () => {
     price: Yup.number().typeError('O preço deve ser um número').required('O preço é obrigatório'),
     image: Yup.string().required('A imagem do produto é obrigatória'),
     category: Yup.string().required('A categoria é obrigatória'),
-    province: Yup.string().required('A localização é obrigatória'),
+    productType: Yup.string(),
+    province: Yup.string().when('productType', {
+      is: 'DIGITAL',
+      then: (schema) => schema.optional().nullable(),
+      otherwise: (schema) => schema.required('A localização é obrigatória'),
+    }),
     countInStock: Yup.number().typeError('A quantidade em estoque deve ser um número').required('A quantidade em estoque é obrigatória'),
     description: Yup.string().required('A descrição é obrigatória'),
     brand: Yup.string().required('A Marca ou sabor do produto é obrigatório'),
@@ -292,9 +298,12 @@ const checkIfUserExist = async () => {
 
       {userData && userData.isApproved ? (
         <Formik
+          enableReinitialize
           initialValues={{
             nome: selectedProduct.nome,
             name: selectedProduct.name,
+            productType: productType,
+            digitalInstructions: digitalInstructions,
             slug: selectedProduct.slug,
             image: selectedProduct.image,
             price: selectedProduct.price.toString(),
@@ -315,6 +324,60 @@ const checkIfUserExist = async () => {
         >
           {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, touched, errors }) => (
             <>
+              {/* Tipo de Produto (Físico vs Digital) */}
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B', marginTop: 10, marginBottom: 8 }}>Tipo de Produto</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                <TouchableOpacity
+                  style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FAFAFA', borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12, padding: 12 }, values.productType === 'PHYSICAL' && { borderColor: '#7F00FF', backgroundColor: '#F5F0FF' }]}
+                  onPress={() => {
+                    setFieldValue('productType', 'PHYSICAL');
+                    setProductType('PHYSICAL');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Text style={[{ fontSize: 13, fontWeight: '600', color: '#1E293B' }, values.productType === 'PHYSICAL' && { color: '#7F00FF', fontWeight: '700' }]}>
+                      📦 Produto Físico
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FAFAFA', borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 12, padding: 12 }, values.productType === 'DIGITAL' && { borderColor: '#7F00FF', backgroundColor: '#F5F0FF' }]}
+                  onPress={() => {
+                    setFieldValue('productType', 'DIGITAL');
+                    setProductType('DIGITAL');
+                    setFieldValue('province', '');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Text style={[{ fontSize: 13, fontWeight: '600', color: '#1E293B' }, values.productType === 'DIGITAL' && { color: '#7F00FF', fontWeight: '700' }]}>
+                      🔑 Produto Digital
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {values.productType === 'DIGITAL' && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>
+                    Instruções de resgate/ativação (opcional)
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { height: 75, textAlignVertical: 'top', paddingTop: 10 }]}
+                    placeholder="Instruções de resgate/ativação (ex: chave de ativação, link de acesso, etc.)"
+                    value={values.digitalInstructions || ''}
+                    onChangeText={(t) => {
+                      setFieldValue('digitalInstructions', t);
+                      setDigitalInstructions(t);
+                    }}
+                    onBlur={handleBlur('digitalInstructions')}
+                    multiline
+                  />
+                </View>
+              )}
+
               <Picker
                 selectedValue={values.category || ''}
                 onValueChange={(itemValue) => setFieldValue('category', itemValue)}
@@ -328,18 +391,37 @@ const checkIfUserExist = async () => {
               </Picker>
               {touched.category && errors.category && <Text style={styles.error}>{errors.category}</Text>}
 
-              <Picker
-                selectedValue={values.province || ''}
-                onValueChange={(itemValue) => setFieldValue('province', itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Localização do produto" value="" />
-                {provinces &&
-                  provinces.map((province) => (
-                    <Picker.Item key={province._id} label={province.name} value={province._id} />
-                  ))}
-              </Picker>
-              {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
+              {values.productType === 'DIGITAL' ? (
+                <View style={{
+                  padding: 14,
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 8,
+                  marginVertical: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569' }}>
+                    Localização do produto: Não aplicável
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#94A3B8' }}>🔒 Digital</Text>
+                </View>
+              ) : (
+                <>
+                  <Picker
+                    selectedValue={values.province || ''}
+                    onValueChange={(itemValue) => setFieldValue('province', itemValue)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Localização do produto" value="" />
+                    {provinces &&
+                      provinces.map((province) => (
+                        <Picker.Item key={province._id} label={province.name} value={province._id} />
+                      ))}
+                  </Picker>
+                  {touched.province && errors.province && <Text style={styles.error}>{errors.province}</Text>}
+                </>
+              )}
 
               <Picker
                 selectedValue={null}

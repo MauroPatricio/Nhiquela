@@ -30,7 +30,7 @@ const ProductDetail = () => {
     name = itemData?.name,
     image = itemData?.image,
     description,
-    rating = itemData.rating || 0,
+    rating = itemData?.rating || 0,
     numReviews = itemData?.numReviews || 0,
     countInStock = itemData?.countInStock || 0,
     priceFromSeller = itemData?.priceFromSeller,
@@ -42,10 +42,48 @@ const ProductDetail = () => {
     isOrdered = itemData?.isOrdered,
     orderPeriod = itemData?.orderPeriod,
     province = itemData?.province,
+    productType = itemData?.productType || item?.productType,
+    isDigital = itemData?.isDigital || item?.isDigital,
   } = itemData;
+
+  const isDigitalProduct = 
+    String(productType || '').toUpperCase() === 'DIGITAL' ||
+    isDigital === true ||
+    itemData?.digitalType !== undefined ||
+    item?.digitalType !== undefined;
+
+  const effectiveProductType = isDigitalProduct ? 'DIGITAL' : 'PHYSICAL';
 
   const seller = itemData?.sellerDetails || itemData?.seller;
   const sellerName = seller?.seller?.name || seller?.name || 'Fornecedor N/A';
+
+  // Resolve seller location text from multiple possible fields
+  const getSellerLocationText = () => {
+    // 1. Province populated on the product itself
+    if (province?.name) return province.name;
+
+    const s = seller?.seller || seller || {};
+    const userSeller = seller?.userId?.seller || {};
+
+    // 2. Address from seller embedded object (user.seller.address)
+    if (userSeller.address) return userSeller.address;
+
+    // 3. Province name from user.seller.province (if populated)
+    if (userSeller.province?.name) return userSeller.province.name;
+
+    // 4. Direct fields on seller provider document
+    if (s.address) return s.address;
+    if (s.location?.address) return s.location.address;
+    if (s.district) return s.district;
+    if (s.city) return s.city;
+
+    // 5. User-level address (less likely but fallback)
+    const u = seller?.userId || {};
+    if (u.address) return u.address;
+
+    return null;
+  };
+  const sellerLocationText = getSellerLocationText();
 
   const [count, setCount] = useState(0);
   const [activeTab, setActiveTab] = useState('detalhes'); // 'detalhes' ou 'fornecedor'
@@ -174,6 +212,10 @@ const ProductDetail = () => {
       _id, nome, name, image, description, rating, numReviews, countInStock,
       priceFromSeller, price, onSale, seller, sellerName, discount,
       comissionPercentage, sellerEarningsAfterDiscount,
+      productType: effectiveProductType,
+      isDigital: isDigitalProduct,
+      digitalInstructions: itemData?.digitalInstructions || item?.digitalInstructions || '',
+      digitalType: itemData?.digitalType || item?.digitalType,
       quantity: currentQuantity + count + 1,
     }));
     
@@ -280,6 +322,11 @@ const ProductDetail = () => {
                 <Text style={styles.badgeText}>Esgotado</Text>
               </View>
             )}
+            <View style={[styles.badge, { backgroundColor: isDigitalProduct ? '#9333EA' : '#2563EB' }]}>
+              <Text style={styles.badgeText}>
+                {isDigitalProduct ? '🔑 Digital' : '📦 Físico'}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -320,13 +367,13 @@ const ProductDetail = () => {
           </View>
           <View style={styles.supplierInfo}>
             <Text style={styles.supplierName}>{sellerName}</Text>
-            {province?.name ? (
+            {sellerLocationText ? (
               <Text style={styles.supplierLocation}>
-                <Ionicons name="location" size={12} color="#666" /> {province.name}
+                <Ionicons name="location" size={12} color="#666" /> {sellerLocationText}
               </Text>
             ) : (
               <Text style={styles.supplierLocation}>
-                <Ionicons name="location" size={12} color="#666" /> Localização Indisponível
+                <Ionicons name="location" size={12} color="#666" /> Maputo
               </Text>
             )}
           </View>

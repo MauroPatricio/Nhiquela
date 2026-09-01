@@ -1,4 +1,4 @@
-// navigation/AppNavigator.tsx
+﻿// navigation/AppNavigator.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -21,6 +21,7 @@ import WalletScreen from "../screens/WalletScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import BanAppealScreen from "../screens/BanAppealScreen";
 import TripChatScreen from "../screens/TripChatScreen";
+import MultiStopTripScreen from "../screens/MultiStopTripScreen";
 
 import BottomMenu from "../components/BottomMenu";
 import RegisterDriverScreen from "../screens/RegisterDriverScreen";
@@ -263,6 +264,13 @@ export default function AppNavigator() {
         name={ROUTES.TRIP_CHAT}
         component={TripChatScreen}
         options={{ headerShown: true, title: 'Chat da Viagem' }}
+      />
+
+      {/* Multi-Paragens - acessivel durante viagem com multiplas paragens */}
+      <Stack.Screen
+        name="MultiStopTrip"
+        component={MultiStopTripScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

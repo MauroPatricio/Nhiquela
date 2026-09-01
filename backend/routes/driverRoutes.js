@@ -205,10 +205,17 @@ router.put(
 
     // Integrar Motor Financeiro (verificação de saldo antes de ficar online)
     if (availability === 'active') {
-      const { hasSufficientBalance } = await import('../services/walletService.js');
+      const { hasSufficientBalance, checkAndDisableDriverIfLowBalance } = await import('../services/walletService.js');
       const canGoOnline = await hasSufficientBalance(req.user._id, driver);
       if (!canGoOnline) {
         return res.status(402).send({ message: 'Saldo insuficiente. Faça um recarregamento para voltar a receber pedidos.' });
+      } else {
+        // Self-Healing: Se o saldo é suficiente, reativar o motorista na BD caso estivesse Inativo por saldo
+        await checkAndDisableDriverIfLowBalance(driver._id);
+        const updatedDriver = await User.findById(driver._id);
+        if (updatedDriver) {
+          driver.status = updatedDriver.status;
+        }
       }
 
       // Bloquear se o motorista tem um serviço ativo aguardando confirmação do cliente

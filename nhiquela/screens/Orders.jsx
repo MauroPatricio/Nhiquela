@@ -57,6 +57,7 @@ const Orders = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [deleteModalId, setDeleteModalId] = useState(null);
+  const [currentTimes, setCurrentTimes] = useState({});
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
@@ -97,8 +98,12 @@ const Orders = () => {
 
 
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status, negotiationState) => {
+    if (negotiationState && negotiationState !== 'NONE') {
+      return '#7C3AED'; // Purple para negociação
+    }
     switch (status) {
+      case 'Em negociação': return '#7C3AED';
       case 'Pendente': return '#F59E0B'; // Amber
       case 'Em trânsito': return '#3B82F6'; // Blue
       case 'Entregue': 
@@ -109,6 +114,13 @@ const Orders = () => {
       case 'Cancelado': return '#EF4444'; // Red
       default: return '#9333EA'; // Purple
     }
+  };
+
+  const getStatusText = (item) => {
+    if (item?.negotiationState && item?.negotiationState !== 'NONE') {
+      return 'Em negociação';
+    }
+    return item?.status ?? 'Pendente';
   };
 
   const formatDate = (dateString) => {
@@ -356,13 +368,13 @@ const Orders = () => {
           <View style={[
               styles.statusBadge, 
               { 
-                backgroundColor: getStatusColor(item.status) + '15',
-                borderColor: getStatusColor(item.status) + '30',
+                backgroundColor: getStatusColor(item.status, item.negotiationState) + '18',
+                borderColor: getStatusColor(item.status, item.negotiationState) + '40',
                 borderWidth: 1
               }
             ]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {item.status ?? 'Pendente'}
+            <Text style={[styles.statusText, { color: getStatusColor(item.status, item.negotiationState) }]}>
+              {getStatusText(item)}
             </Text>
           </View>
         </View>
@@ -462,7 +474,7 @@ const Orders = () => {
                 {/* Linha do motorista */}
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Image
-                    source={{ uri: item.deliveryman.photo || 'https://via.placeholder.com/40' }}
+                    source={{ uri: item.deliveryman.photo || item.deliveryman.profileImage || item.deliveryman.image || item.deliveryman.user?.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
                     style={styles.deliverymanPhoto}
                   />
                   <View style={{ flex: 1 }}>

@@ -99,7 +99,27 @@ const Home = () => {
       const response = await api.get('/wallet/balance', {
         headers: { authorization: `Bearer ${user.token}` },
       });
-      setWalletBalance(Number(response.data?.available_balance ?? response.data?.balance) || 0);
+      const bal = Number(response.data?.available_balance ?? response.data?.balance) || 0;
+      setWalletBalance(bal);
+
+      const freeSaleUsed = user.seller?.hasUsedFreeSale || user.seller?.free_sale_available === false;
+      if (freeSaleUsed && bal < 50 && user.seller?.openstore) {
+        try {
+          await api.patch(
+            `/users/seller-status/${user._id}`,
+            { isOpenStore: false },
+            { headers: { Authorization: `Bearer ${user.token}` } }
+          );
+          const updatedUser = { 
+            ...user, 
+            seller: { ...user.seller, openstore: false, storeStatus: 'CLOSED_LOW_BALANCE' } 
+          };
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+          setUserData(updatedUser);
+        } catch (closeErr) {
+          console.log('Erro ao fechar loja automaticamente:', closeErr.message);
+        }
+      }
     } catch (error) {
       if (error.response?.status === 401) {
         stopPolling();
@@ -334,18 +354,36 @@ const Home = () => {
       }
     };
 
+    const handleNewChatMessage = (payload) => {
+      if (payload) {
+        showMessage({
+          message: `💬 Mensagem de ${payload.senderName || 'Cliente'}`,
+          description: payload.message || 'Nova mensagem enviada no chat.',
+          type: 'info',
+          duration: 5000,
+          onPress: () => {
+            if (payload.orderId) {
+              navigation.navigate('OrderChat', { orderId: payload.orderId });
+            }
+          }
+        });
+      }
+    };
+
     socket.on('userStatusChanged', handleUserStatusChanged);
     socket.on('new_order_pending', handleIncomingOrder);
     socket.on('new_order', handleIncomingOrder);
     socket.on('walletUpdated', handleWalletUpdated);
+    socket.on('new_chat_message', handleNewChatMessage);
 
     return () => {
       socket.off('userStatusChanged', handleUserStatusChanged);
       socket.off('new_order_pending', handleIncomingOrder);
       socket.off('new_order', handleIncomingOrder);
       socket.off('walletUpdated', handleWalletUpdated);
+      socket.off('new_chat_message', handleNewChatMessage);
     };
-  }, [socket, userData, fetchData, fetchWalletBalance]);
+  }, [socket, userData, validateAndSetUser, fetchData, fetchWalletBalance]);
 
   // Countdown timer para o modal de pedido incoming
   useEffect(() => {
@@ -485,16 +523,16 @@ const Home = () => {
               <View style={styles.orderInfoDivider} />
 
               <View style={styles.orderMetaRow}>
-                <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} />
+                <Ionicons name="person-outline" size={16} color="#94A3B8" />
                 <Text style={styles.orderMetaText}>
-                  Cliente: <Text style={{ color: COLORS.text, fontWeight: '700' }}>{incomingOrder?.user?.name || incomingOrder?.deliveryAddress?.fullName || 'Cliente'}</Text>
+                  Cliente: <Text style={{ color: '#F8FAFC', fontWeight: '700' }}>{incomingOrder?.user?.name || incomingOrder?.userName || incomingOrder?.user?.nome || incomingOrder?.deliveryAddress?.fullName || 'Cliente'}</Text>
                 </Text>
               </View>
 
               <View style={styles.orderMetaRow}>
-                <Ionicons name="bicycle-outline" size={16} color={COLORS.textSecondary} />
+                <Ionicons name="bicycle-outline" size={16} color="#94A3B8" />
                 <Text style={styles.orderMetaText}>
-                  Tipo: <Text style={{ color: COLORS.text, fontWeight: '700' }}>{incomingOrder?.isUserWantDelivery ? 'Entrega ao Domicílio' : 'Retirada no Estabelecimento'}</Text>
+                  Tipo: <Text style={{ color: '#F8FAFC', fontWeight: '700' }}>{incomingOrder?.isUserWantDelivery !== false ? 'Entrega ao Domicílio' : 'Retirada no Estabelecimento'}</Text>
                 </Text>
               </View>
 
@@ -710,80 +748,107 @@ const Home = () => {
           </LinearGradient>
         )}
         
-        {userData && userData.isApproved && userData.seller?.hasUsedFreeSale && walletBalance <= 0 && (
+        {userData && userData.isApproved && (userData.seller?.hasUsedFreeSale || userData.seller?.free_sale_available === false) && (walletBalance < 50 || userData.seller?.storeStatus === 'CLOSED_LOW_BALANCE') && (
           <LinearGradient
-            colors={['#FEF3C7', '#FDE68A']}
+            colors={['#271800', '#3D2400', '#1A1000']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.warningBanner, { 
-              backgroundColor: 'transparent',
-              borderColor: '#F59E0B', 
-              borderWidth: 1.5,
-              borderRadius: 16,
-              padding: 16,
+            style={{
               marginHorizontal: 20,
-              marginTop: 16,
+              marginTop: 18,
+              borderRadius: 24,
+              padding: 20,
+              borderWidth: 1.5,
+              borderColor: '#F59E0B',
               shadowColor: '#F59E0B',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 10,
-              elevation: 4,
-            }]}
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.25,
+              shadowRadius: 16,
+              elevation: 8,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
           >
+            {/* Ambient Background Glow Effect */}
             <View style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
+              position: 'absolute',
+              top: -30,
+              right: -30,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
               backgroundColor: 'rgba(245, 158, 11, 0.15)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: 'rgba(245, 158, 11, 0.3)'
-            }}>
-              <Ionicons name="wallet" size={24} color="#D97706" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={{ 
-                color: '#78350F', 
-                fontSize: 15, 
-                fontWeight: '800', 
-                letterSpacing: 0.3,
-                marginBottom: 2
+            }} />
+
+            {/* Top Pill Tag */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(239, 68, 68, 0.4)'
               }}>
-                Saldo Insuficiente
-              </Text>
-              <Text style={{ 
-                color: '#92400E', 
-                fontSize: 12, 
-                lineHeight: 18,
-                fontWeight: '500'
-              }}>
-                Seu saldo está baixo. Recarregue a sua carteira para manter os seus produtos visíveis.
-              </Text>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 6 }} />
+                <Text style={{ color: '#FCA5A5', fontSize: 10, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                  LOJA FECHADA • SALDO BAIXO
+                </Text>
+              </View>
             </View>
+
+            {/* Main Content */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{
+                width: 52,
+                height: 52,
+                borderRadius: 20,
+                backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1.5,
+                borderColor: 'rgba(245, 158, 11, 0.4)'
+              }}>
+                <Ionicons name="wallet-outline" size={26} color="#FBBF24" />
+              </View>
+
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: -0.3, marginBottom: 4 }}>
+                  Saldo Insuficiente ({walletBalance.toFixed(2)} MT)
+                </Text>
+                <Text style={{ color: '#D1D5DB', fontSize: 12, lineHeight: 18, fontWeight: '500' }}>
+                  O seu saldo pré-pago é inferior a 50.00 MT. Recarregue a sua carteira para reativar a loja e exibir produtos aos clientes.
+                </Text>
+              </View>
+            </View>
+
+            {/* Action CTA Button */}
             <TouchableOpacity 
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               style={{
-                backgroundColor: '#D97706',
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 12,
-                marginLeft: 10,
-                shadowColor: '#D97706',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 3,
+                marginTop: 16,
+                backgroundColor: '#F59E0B',
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#F59E0B',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
+                elevation: 4,
               }} 
               onPress={() => navigation.navigate('Wallet')}
             >
-              <Text style={{
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: '800',
-              }}>
-                Recarregar
+              <Ionicons name="flash-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 0.3 }}>
+                Recarregar Carteira
               </Text>
+              <Ionicons name="chevron-forward" size={16} color="#FFF" style={{ marginLeft: 6 }} />
             </TouchableOpacity>
           </LinearGradient>
         )}

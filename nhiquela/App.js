@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
-import { Platform, View, Text, TouchableOpacity } from 'react-native';
+import { Platform, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
@@ -151,24 +151,30 @@ export default function App() {
             const userName = userData?.name || "Client";
 
             if (userId) {
-              // Init ZegoCloud Prebuilt Call Service
-              ZegoUIKitPrebuiltCallService.init(
-                zegoConfig.appID,
-                zegoConfig.appSign,
-                userId,
-                userName,
-                (ZIM && ZPNs) ? [ZIM, ZPNs] : [],
-                {
-                  ringtoneConfig: {
-                    incomingCallFileName: 'zego_incoming.mp3',
-                    outgoingCallFileName: 'zego_outgoing.mp3',
-                  },
-                  androidNotificationConfig: {
-                    channelID: "ZegoUIKit",
-                    channelName: "ZegoUIKit",
-                  },
+              // Safely Init ZegoCloud Prebuilt Call Service if available
+              if (typeof ZegoUIKitPrebuiltCallService !== 'undefined' && typeof zegoConfig !== 'undefined') {
+                try {
+                  ZegoUIKitPrebuiltCallService.init(
+                    zegoConfig.appID,
+                    zegoConfig.appSign,
+                    userId,
+                    userName,
+                    (typeof ZIM !== 'undefined' && typeof ZPNs !== 'undefined') ? [ZIM, ZPNs] : [],
+                    {
+                      ringtoneConfig: {
+                        incomingCallFileName: 'zego_incoming.mp3',
+                        outgoingCallFileName: 'zego_outgoing.mp3',
+                      },
+                      androidNotificationConfig: {
+                        channelID: "ZegoUIKit",
+                        channelName: "ZegoUIKit",
+                      },
+                    }
+                  );
+                } catch (e) {
+                  console.log('⚠️ Zego init skipped:', e.message);
                 }
-              );
+              }
 
               await api.post('/notifications/savedevicetoken', {
                 deviceToken,
@@ -204,8 +210,15 @@ export default function App() {
   const forceUpdate = appConfig && isVersionObsolete(currentVersion, appConfig.minAppVersionClient);
   const inMaintenance = appConfig && appConfig.isMaintenanceModeClient;
 
-  // Wait for first launch check
-  if (isFirstLaunch === null) return null;
+  // Render a proper Loading ActivityIndicator instead of a white blank screen (return null)
+  if (configLoading || isFirstLaunch === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <StatusBar style="dark" />
+        <ActivityIndicator size="large" color="#6f42c1" />
+      </View>
+    );
+  }
 
   // Ecrã de bloqueio
   if (!configLoading && (forceUpdate || inMaintenance)) {

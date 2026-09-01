@@ -9,20 +9,42 @@ export default function PaginationControls({
   onPrev, 
   totalItems, 
   indexOfFirstItem, 
-  indexOfLastItem 
+  indexOfLastItem,
+  itemsPerPage,
+  onItemsPerPageChange
 }) {
-  if (totalPages <= 1) return null;
+  if (!totalItems || totalItems === 0) return null;
 
   return (
     <div className="d-flex flex-column flex-md-row justify-content-between align-items-center px-4 py-3 bg-white border-top rounded-bottom-4 gap-3">
-      <span className="text-muted small">
-        Mostrando {Math.min(indexOfFirstItem + 1, totalItems)} a {Math.min(indexOfLastItem, totalItems)} de {totalItems} registos
-      </span>
+      <div className="d-flex align-items-center gap-3">
+        <span className="text-muted small">
+          Mostrando {Math.min(indexOfFirstItem + 1, totalItems)} a {Math.min(indexOfLastItem, totalItems)} de {totalItems} registos
+        </span>
+        {onItemsPerPageChange && (
+          <div className="d-flex align-items-center gap-2">
+            <span className="text-muted small">| Por página:</span>
+            <select 
+              className="form-select form-select-sm bg-light border-0 rounded-3 text-dark fw-bold px-2 py-1"
+              style={{ width: '70px', cursor: 'pointer' }}
+              value={itemsPerPage || 10}
+              onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        )}
+      </div>
       <div className="btn-group shadow-sm">
         <button 
           className="btn btn-light border-0 text-primary-custom px-3" 
           disabled={currentPage === 1} 
           onClick={onPrev}
+          title="Página Anterior"
         >
           <FontAwesomeIcon icon={faChevronLeft} />
         </button>
@@ -31,8 +53,9 @@ export default function PaginationControls({
         </div>
         <button 
           className="btn btn-light border-0 text-primary-custom px-3" 
-          disabled={currentPage === totalPages} 
+          disabled={currentPage >= totalPages} 
           onClick={onNext}
+          title="Próxima Página"
         >
           <FontAwesomeIcon icon={faChevronRight} />
         </button>

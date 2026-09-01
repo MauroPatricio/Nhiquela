@@ -71,7 +71,27 @@ const ProductSellerDetail = () => {
                         </View>
                         <View style={styles.attributeItem}>
                             <Ionicons name="location-outline" size={16} color="#666" />
-                            <Text style={styles.attributeText}>{product?.province?.name || 'Localização não definida'}</Text>
+                            <Text style={styles.attributeText}>
+                                {product?.productType === 'DIGITAL' ? 'Não aplicável' : (product?.province?.name || 'Localização não definida')}
+                            </Text>
+                        </View>
+                        <View style={[
+                            styles.attributeItem,
+                            product?.productType === 'DIGITAL' 
+                                ? { backgroundColor: '#F3E8FF', borderWidth: 1, borderColor: '#D8B4FE' } 
+                                : { backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE' }
+                        ]}>
+                            <Ionicons 
+                                name={product?.productType === 'DIGITAL' ? "key-outline" : "cube-outline"} 
+                                size={16} 
+                                color={product?.productType === 'DIGITAL' ? "#9333EA" : "#2563EB"} 
+                            />
+                            <Text style={[
+                                styles.attributeText, 
+                                { color: product?.productType === 'DIGITAL' ? "#7E22CE" : "#1E40AF", fontWeight: '700' }
+                            ]}>
+                                {product?.productType === 'DIGITAL' ? 'Produto Digital' : 'Produto Físico'}
+                            </Text>
                         </View>
                     </View>
 
@@ -262,7 +282,8 @@ const styles = StyleSheet.create({
     attributesRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 15,
+        flexWrap: 'wrap',
+        gap: 8,
         marginBottom: 20,
     },
     attributeItem: {

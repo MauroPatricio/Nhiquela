@@ -49,6 +49,8 @@ const PaymentMethod = () => {
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadedProofUrl, setUploadedProofUrl] = useState("");
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [digitalRecipientEmail, setDigitalRecipientEmail] = useState("");
+  const [digitalRecipientPhone, setDigitalRecipientPhone] = useState("");
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertDesc, setAlertDesc] = useState("");
@@ -80,9 +82,13 @@ const PaymentMethod = () => {
   const selectedVehicle = passedVehicle || null;
 
   const activeSeller = passedSeller || sellers[0] || items[0]?.seller || null;
-  const isUserWantDelivery = passedDelivery !== undefined ? passedDelivery : true;
-  const distanceKm = passedDistanceKm || 0;
-  const estimatedDeliveryFee = deliveryPrice || 0;
+  const hasDigitalItems = useMemo(() => {
+    return items && items.some(i => i.productType === 'DIGITAL' || i.isDigital);
+  }, [items]);
+
+  const isUserWantDelivery = hasDigitalItems ? false : (passedDelivery !== undefined ? passedDelivery : true);
+  const distanceKm = hasDigitalItems ? 0 : (passedDistanceKm || 0);
+  const estimatedDeliveryFee = hasDigitalItems ? 0 : (deliveryPrice || 0);
 
   const filterMethodsBySeller = (methodsList, sData) => {
     if (!methodsList || methodsList.length === 0) return [];
@@ -426,8 +432,8 @@ const PaymentMethod = () => {
         totalPrice: parseFloat(totalToPay.toFixed(2)),
         itemsPrice: parseFloat((itemsPrice || 0).toFixed(2)),
         ivaTax: parseFloat((iva || 0).toFixed(2)),
-        addressPrice: parseFloat((deliveryPrice || 0).toFixed(2)),
-        itemsPriceForSeller: parseFloat((totalSellerEarningsAfterDiscount + deliveryPrice).toFixed(2)),
+        addressPrice: hasDigitalItems ? 0 : parseFloat((deliveryPrice || 0).toFixed(2)),
+        itemsPriceForSeller: parseFloat((totalSellerEarningsAfterDiscount || 0).toFixed(2)),
         isPaid: false,
         user: { _id: userData._id, name: userData.name, phoneNumber: userData.phoneNumber },
         customerId: userData._id,
@@ -435,7 +441,9 @@ const PaymentMethod = () => {
         stepStatus: 1,
         transportTypeId: selectedVehicle?._id || null,
         transportType: selectedVehicle?.name || null,
-        paymentProof: proofUrl || undefined
+        paymentProof: proofUrl || undefined,
+        digitalRecipientEmail: digitalRecipientEmail.trim() || undefined,
+        digitalRecipientPhone: digitalRecipientPhone.trim() || undefined
       };
 
       const { data } = await api.post('/orders', orderPayload, { 
@@ -619,6 +627,44 @@ const PaymentMethod = () => {
               <Text style={styles.deliveryBannerNoteText}>
                 Este valor é apenas uma <Text style={{ fontWeight: '700' }}>estimativa informativa</Text>. Não está incluído no total a pagar agora. O valor da entrega é pago <Text style={{ fontWeight: '700' }}>diretamente ao estafeta</Text> no momento da chegada da encomenda.
               </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Digital Product Recipient Contact Card */}
+        {hasDigitalItems && (
+          <View style={styles.digitalCard}>
+            <View style={styles.digitalCardHeader}>
+              <Ionicons name="mail-unread-outline" size={22} color="#16A34A" />
+              <Text style={styles.digitalCardTitle}>Destinatário do Produto Digital</Text>
+            </View>
+            <Text style={styles.digitalCardDesc}>
+              Indique o e-mail ou contacto telefónico alternativo para receber a chave/acesso. Se deixar em branco, o envio será feito para o seu e-mail de conta.
+            </Text>
+
+            <View style={styles.digitalInputWrap}>
+              <Text style={styles.digitalInputLabel}>E-mail do Destinatário (Opcional)</Text>
+              <TextInput
+                style={styles.digitalInput}
+                placeholder="ex: amigo@email.com"
+                placeholderTextColor="#94A3B8"
+                value={digitalRecipientEmail}
+                onChangeText={setDigitalRecipientEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.digitalInputWrap}>
+              <Text style={styles.digitalInputLabel}>Contacto Telefónico / WhatsApp (Opcional)</Text>
+              <TextInput
+                style={styles.digitalInput}
+                placeholder="ex: 841234567"
+                placeholderTextColor="#94A3B8"
+                value={digitalRecipientPhone}
+                onChangeText={setDigitalRecipientPhone}
+                keyboardType="phone-pad"
+              />
             </View>
           </View>
         )}
@@ -1292,5 +1338,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  digitalCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  digitalCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  digitalCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  digitalCardDesc: {
+    fontSize: 12,
+    color: '#15803D',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  digitalInputWrap: {
+    marginBottom: 12,
+  },
+  digitalInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 4,
+  },
+  digitalInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0F172A',
   },
 });

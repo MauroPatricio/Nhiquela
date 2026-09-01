@@ -145,7 +145,6 @@ const SellerCard = ({
             <View style={styles.rating}>
               <StarIcon color="#F59E0B" size={16} />
               <Text style={styles.ratingText}>{rating}</Text>
-              <Text style={styles.reviewsText}>({numReviews})</Text>
             </View>
             <View style={styles.distanceBadge}>
               <Ionicons name="location" size={12} color="#9333EA" />

@@ -40,7 +40,7 @@ export const getById = asyncHandler(async (req, res) => {
 // POST /api/provider-subcategories
 export const create = asyncHandler(async (req, res) => {
   try {
-    const { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, serviceFee } = req.body;
+    const { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, maxNegotiationRounds, serviceFee } = req.body;
     
     // Auto-reorder: Se já existir algum com esta ordem, empurra todos para baixo
     const parsedOrder = order !== undefined ? parseInt(order, 10) : 0;
@@ -52,7 +52,7 @@ export const create = asyncHandler(async (req, res) => {
       );
     }
 
-    const newSub = new ProviderSubcategory({ name, order: parsedOrder, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, serviceFee });
+    const newSub = new ProviderSubcategory({ name, order: parsedOrder, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, maxNegotiationRounds, serviceFee });
     await newSub.save();
   
   const io = req.app.get('io');
@@ -70,7 +70,7 @@ export const create = asyncHandler(async (req, res) => {
 // PUT /api/provider-subcategories/:id
 export const update = asyncHandler(async (req, res) => {
   try {
-    const { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, serviceFee } = req.body;
+    const { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, maxNegotiationRounds, serviceFee } = req.body;
     
     // Auto-reorder: Se a ordem mudou ou mudou de tipo, precisamos de empurrar os existentes para baixo
     if (order !== undefined) {
@@ -91,7 +91,7 @@ export const update = asyncHandler(async (req, res) => {
 
     const updated = await ProviderSubcategory.findByIdAndUpdate(
       req.params.id,
-      { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, serviceFee },
+      { name, order, providerTypeId, description, isActive, metadata, iconUrl, motives, originFloors, loadingHelpOptions, requiresPhotos, vehicleTypes, pricingMode, serviceCommission, allowNegotiation, maxNegotiationRounds, serviceFee },
       { new: true }
     )
     .populate({

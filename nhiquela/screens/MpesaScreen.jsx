@@ -166,7 +166,7 @@ const MpesaScreen = () => {
         itemsPrice,
         ivaTax: iva,
         addressPrice: deliveryPrice,
-        itemsPriceForSeller: totalSellerEarningsAfterDiscount + deliveryPrice,
+        itemsPriceForSeller: totalSellerEarningsAfterDiscount,
         isPaid: true,
         paidAt: Date.now(),
         user: userData,

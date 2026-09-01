@@ -280,32 +280,21 @@ const handleToggleStatus = async (product) => {
               <View style={styles.kpiRow}>
                 <View style={styles.kpiCard}>
                   <View style={[styles.kpiIconBox, { backgroundColor: '#E3F2FD' }]}>
-                    <Ionicons name="cube" size={24} color="#1976D2" />
+                    <Ionicons name="cube" size={20} color="#1976D2" />
                   </View>
                   <Text style={styles.kpiValue}>{productsOfSeller.length}</Text>
-                  <Text style={styles.kpiLabel}>Total Produtos</Text>
+                  <Text style={styles.kpiLabel}>Total</Text>
                 </View>
-                <View style={styles.kpiCard}>
-                  <View style={[styles.kpiIconBox, { backgroundColor: '#E8F5E9' }]}>
-                    <Ionicons name="cash" size={24} color="#388E3C" />
-                  </View>
-                  <Text style={styles.kpiValue}>
-                    {productsOfSeller.reduce((sum, p) => sum + ((p.priceFromSeller || 0) * (p.countInStock || 0)), 0).toLocaleString()} MT
-                  </Text>
-                  <Text style={styles.kpiLabel}>Valor em Stock</Text>
-                </View>
-              </View>
-              <View style={styles.kpiRow}>
                 <View style={styles.kpiCard}>
                   <View style={[styles.kpiIconBox, { backgroundColor: '#FFF3E0' }]}>
-                    <MaterialCommunityIcons name="tag-multiple" size={24} color="#F57C00" />
+                    <MaterialCommunityIcons name="tag-multiple" size={20} color="#F57C00" />
                   </View>
                   <Text style={styles.kpiValue}>{productsOfSeller.filter(p => p.isActive).length}</Text>
                   <Text style={styles.kpiLabel}>Ativos</Text>
                 </View>
                 <View style={styles.kpiCard}>
                   <View style={[styles.kpiIconBox, { backgroundColor: '#FFEBEE' }]}>
-                    <Ionicons name="alert-circle" size={24} color="#D32F2F" />
+                    <Ionicons name="alert-circle" size={20} color="#D32F2F" />
                   </View>
                   <Text style={styles.kpiValue}>{productsOfSeller.filter(p => p.countInStock === 0).length}</Text>
                   <Text style={styles.kpiLabel}>Sem Stock</Text>
@@ -505,13 +494,15 @@ const styles = StyleSheet.create({
   kpiRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 12,
   },
   kpiCard: {
+    flex: 1,
     backgroundColor: '#FFF',
-    width: '48%',
     borderRadius: RADIUS.lg,
-    padding: 16,
+    padding: 12,
+    alignItems: 'center',
     ...SHADOWS.light,
   },
   kpiIconBox: {

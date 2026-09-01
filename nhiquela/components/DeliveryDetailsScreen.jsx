@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   addAddress,
   selectBasketTotal,
+  selectBasketItems,
   addTotalToPay,
   addDeliverPrice,
   addIva,
@@ -34,7 +35,12 @@ const DeliveryDetailsScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const basketTotal = useSelector(selectBasketTotal);
+  const basketItems = useSelector(selectBasketItems);
   const sellers = useSelector(selectSellers);
+
+  const hasDigitalItems = useMemo(() => {
+    return basketItems && basketItems.some(i => i.productType === 'DIGITAL' || i.isDigital);
+  }, [basketItems]);
 
   const rawSeller = sellers[0];
   const [dbSeller, setDbSeller] = useState(null);
@@ -51,6 +57,15 @@ const DeliveryDetailsScreen = () => {
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
+
+  // Sincronizar produtos digitais: força sem entrega
+  useEffect(() => {
+    if (hasDigitalItems) {
+      setIsUserWantDelivery(false);
+      setLoadingLocation(false);
+      setLoadingVehicles(false);
+    }
+  }, [hasDigitalItems]);
 
   // Fetch full seller details from db if only ID is present, or for secure fallback coordinates
   useEffect(() => {
@@ -359,7 +374,7 @@ const DeliveryDetailsScreen = () => {
   }, [address, totalToPay, distanceToPay, selectedVehicle, updateRedux]);
 
   const handleFinalize = useCallback(() => {
-    if (isUserWantDelivery && (!userLocation?.latitude || !userLocation?.longitude)) {
+    if (!hasDigitalItems && isUserWantDelivery && (!userLocation?.latitude || !userLocation?.longitude)) {
       Alert.alert('Erro', 'Por favor, forneça sua localização antes de prosseguir com a entrega.');
       return;
     }
@@ -367,13 +382,13 @@ const DeliveryDetailsScreen = () => {
     navigation.replace('PaymentMethod', { 
       tipoEstabelecimentoId: tipoEstId,
       seller: sellerObj,
-      isUserWantDelivery,
-      selectedVehicle,
-      deliveryPrice: isUserWantDelivery ? distanceToPay : 0,
-      distanceKm: isUserWantDelivery ? distance : 0,
+      isUserWantDelivery: hasDigitalItems ? false : isUserWantDelivery,
+      selectedVehicle: hasDigitalItems ? null : selectedVehicle,
+      deliveryPrice: hasDigitalItems ? 0 : (isUserWantDelivery ? distanceToPay : 0),
+      distanceKm: hasDigitalItems ? 0 : (isUserWantDelivery ? distance : 0),
       totalToPay,
     });
-  }, [navigation, userLocation, sellerObj, isUserWantDelivery, selectedVehicle, distanceToPay, totalToPay]);
+  }, [isUserWantDelivery, userLocation, sellerObj, navigation, selectedVehicle, distanceToPay, distance, totalToPay, hasDigitalItems]);
 
   return (
     <KeyboardAvoidingView
@@ -413,159 +428,174 @@ const DeliveryDetailsScreen = () => {
             </View>
           </View>
 
-          {/* Location Card Status */}
-          <View style={styles.locationCard}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="location" size={20} color="#7F00FF" />
+          {/* Se for produto digital, não exibe GPS, rota, transporte ou endereço físico */}
+          {hasDigitalItems ? (
+            <View style={styles.pickupCard}>
+              <View style={styles.pickupHeader}>
+                <Ionicons name="mail-open" size={24} color="#7F00FF" />
+                <Text style={styles.pickupTitle}>⚡ Envio por E-mail (Produto Digital)</Text>
               </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.locationTitle}>{address ? address : 'Seu Endereço / GPS'}</Text>
-                <Text style={styles.locationSub}>
-                  {userLocation ? 'Localização de entrega detectada' : 'Buscando sua localização...'}
-                </Text>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: userLocation ? '#DCFCE7' : '#FEF9C3' }]}>
-                <Text style={[styles.statusBadgeText, { color: userLocation ? '#16A34A' : '#CA8A04' }]}>
-                  {userLocation ? 'Destino Ativo' : 'Carregando'}
-                </Text>
-              </View>
+              <Text style={styles.pickupText}>
+                Os produtos digitais são enviados por e-mail e disponibilizados na sua conta após a confirmação do pagamento. Não há custos nem necessidade de transporte/entrega.
+              </Text>
             </View>
-          </View>
-
-          {/* Visual Route Representation */}
-          {vehicleTypes.length > 0 && userLocation && (
-            <View style={styles.routeVisual}>
-              <View style={styles.routeNode}>
-                <Ionicons name="storefront" size={16} color="#10B981" />
-                <Text style={styles.routeNodeText} numberOfLines={1}>
-                  {sellerName}
-                </Text>
-              </View>
-              <View style={styles.routeLineContainer}>
-                <View style={styles.routeLine} />
-                <View style={styles.routeBadge}>
-                  <Text style={styles.routeBadgeText}>
-                    {distance !== null ? `${distance.toFixed(2)} km` : '...'}
-                  </Text>
-                </View>
-                <View style={styles.routeLine} />
-              </View>
-              <View style={styles.routeNode}>
-                <Ionicons name="home" size={16} color="#7F00FF" />
-                <Text style={styles.routeNodeText} numberOfLines={1}>
-                  {address ? address : 'Seu Destino'}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Delivery Toggle segmented pill control */}
-          {vehicleTypes.length > 0 && (
-            <View style={styles.segmentContainer}>
-              <TouchableOpacity
-                style={[styles.segmentBtn, isUserWantDelivery && styles.segmentBtnActive]}
-                onPress={() => setIsUserWantDelivery(true)}
-                disabled={loadingLocation}
-              >
-                <Ionicons name="bicycle" size={18} color={isUserWantDelivery ? '#FFF' : '#64748B'} />
-                <Text style={[styles.segmentText, isUserWantDelivery && styles.segmentTextActive]}>
-                  Receber em Casa
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.segmentBtn, !isUserWantDelivery && styles.segmentBtnActive]}
-                onPress={() => setIsUserWantDelivery(false)}
-                disabled={loadingLocation}
-              >
-                <Ionicons name="storefront" size={18} color={!isUserWantDelivery ? '#FFF' : '#64748B'} />
-                <Text style={[styles.segmentText, !isUserWantDelivery && styles.segmentTextActive]}>
-                  Levantar na Loja
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {vehicleTypes.length > 0 ? (
-            isUserWantDelivery ? (
-              <>
-                {/* Vehicle Types Selector */}
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Escolha o Transporte</Text>
-                  <Text style={styles.sectionSub}>Opções de veículos para entrega</Text>
-                </View>
-
-                {loadingVehicles ? (
-                  <View style={styles.loaderBox}>
-                    <ActivityIndicator size="small" color="#7F00FF" />
-                    <Text style={styles.loaderText}>Buscando transportes disponíveis...</Text>
+          ) : (
+            <>
+              {/* Location Card Status */}
+              <View style={styles.locationCard}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="location" size={20} color="#7F00FF" />
                   </View>
-                ) : vehicleTypes.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vehicleList}>
-                    {vehicleTypes.map((v) => {
-                      const isSelected = selectedVehicle?._id === v._id;
-                      let vehicleIcon = 'car';
-                      if (v.name.toLowerCase().includes('mota') || v.name.toLowerCase().includes('moto')) {
-                        vehicleIcon = 'bicycle';
-                      } else if (v.name.toLowerCase().includes('camin')) {
-                        vehicleIcon = 'bus';
-                      }
-
-                      return (
-                        <TouchableOpacity
-                          key={v._id}
-                          style={[styles.vehicleCard, isSelected && styles.vehicleCardSelected]}
-                          onPress={() => setSelectedVehicle(v)}
-                        >
-                          <View style={[styles.vehicleIconCircle, isSelected && styles.vehicleIconCircleActive]}>
-                            <Ionicons name={vehicleIcon} size={24} color={isSelected ? '#7F00FF' : '#64748B'} />
-                          </View>
-                          <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]} numberOfLines={1}>
-                            {v.name}
-                          </Text>
-                          <Text style={[styles.vehicleRate, isSelected && styles.vehicleRateSelected]}>
-                            {v.pricePerKm > 0
-                              ? `~${(systemBaseFee + (distance > 0 ? distance : 1) * v.pricePerKm).toFixed(0)} MT`
-                              : `~${systemBaseFee} MT`}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                ) : (
-                  <Text style={styles.statusText}>Nenhum transporte disponível no momento.</Text>
-                )}
-
-                {/* Input Address Card */}
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Endereço Completo</Text>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.locationTitle}>{address ? address : 'Seu Endereço / GPS'}</Text>
+                    <Text style={styles.locationSub}>
+                      {userLocation ? 'Localização de entrega detectada' : 'Buscando sua localização...'}
+                    </Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: userLocation ? '#DCFCE7' : '#FEF9C3' }]}>
+                    <Text style={[styles.statusBadgeText, { color: userLocation ? '#16A34A' : '#CA8A04' }]}>
+                      {userLocation ? 'Destino Ativo' : 'Carregando'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.addressInputCard}>
-                  <MaterialCommunityIcons name="map-marker-radius" size={20} color="#7F00FF" style={styles.addressIcon} />
-                  <TextInput
-                    style={styles.addressInput}
-                    placeholder="Indique a rua, nº do edifício, ponto de referência..."
-                    placeholderTextColor="#94A3B8"
-                    multiline
-                    value={address}
-                    onChangeText={setAddress}
-                    editable={!loadingLocation}
-                  />
-                </View>
-              </>
-            ) : (
-              <View style={styles.pickupCard}>
-                <View style={styles.pickupHeader}>
-                  <Ionicons name="information-circle" size={24} color="#7F00FF" />
-                  <Text style={styles.pickupTitle}>Levantamento na Loja</Text>
-                </View>
-                <Text style={styles.pickupText}>
-                  Deverá deslocar-se pessoalmente ao estabelecimento do fornecedor para levantar a sua encomenda. Nenhum custo de transporte será aplicado.
-                </Text>
               </View>
-            )
-          ) : null}
+
+              {/* Visual Route Representation */}
+              {vehicleTypes.length > 0 && userLocation && (
+                <View style={styles.routeVisual}>
+                  <View style={styles.routeNode}>
+                    <Ionicons name="storefront" size={16} color="#10B981" />
+                    <Text style={styles.routeNodeText} numberOfLines={1}>
+                      {sellerName}
+                    </Text>
+                  </View>
+                  <View style={styles.routeLineContainer}>
+                    <View style={styles.routeLine} />
+                    <View style={styles.routeBadge}>
+                      <Text style={styles.routeBadgeText}>
+                        {distance !== null ? `${distance.toFixed(2)} km` : '...'}
+                      </Text>
+                    </View>
+                    <View style={styles.routeLine} />
+                  </View>
+                  <View style={styles.routeNode}>
+                    <Ionicons name="home" size={16} color="#7F00FF" />
+                    <Text style={styles.routeNodeText} numberOfLines={1}>
+                      {address ? address : 'Seu Destino'}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Delivery Toggle segmented pill control */}
+              {vehicleTypes.length > 0 && (
+                <View style={styles.segmentContainer}>
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, isUserWantDelivery && styles.segmentBtnActive]}
+                    onPress={() => setIsUserWantDelivery(true)}
+                    disabled={loadingLocation}
+                  >
+                    <Ionicons name="bicycle" size={18} color={isUserWantDelivery ? '#FFF' : '#64748B'} />
+                    <Text style={[styles.segmentText, isUserWantDelivery && styles.segmentTextActive]}>
+                      Receber em Casa
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, !isUserWantDelivery && styles.segmentBtnActive]}
+                    onPress={() => setIsUserWantDelivery(false)}
+                    disabled={loadingLocation}
+                  >
+                    <Ionicons name="storefront" size={18} color={!isUserWantDelivery ? '#FFF' : '#64748B'} />
+                    <Text style={[styles.segmentText, !isUserWantDelivery && styles.segmentTextActive]}>
+                      Levantar na Loja
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {vehicleTypes.length > 0 ? (
+                isUserWantDelivery ? (
+                  <>
+                    {/* Vehicle Types Selector */}
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={styles.sectionTitle}>Escolha o Transporte</Text>
+                      <Text style={styles.sectionSub}>Opções de veículos para entrega</Text>
+                    </View>
+
+                    {loadingVehicles ? (
+                      <View style={styles.loaderBox}>
+                        <ActivityIndicator size="small" color="#7F00FF" />
+                        <Text style={styles.loaderText}>Buscando transportes disponíveis...</Text>
+                      </View>
+                    ) : vehicleTypes.length > 0 ? (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vehicleList}>
+                        {vehicleTypes.map((v) => {
+                          const isSelected = selectedVehicle?._id === v._id;
+                          let vehicleIcon = 'car';
+                          if (v.name.toLowerCase().includes('mota') || v.name.toLowerCase().includes('moto')) {
+                            vehicleIcon = 'bicycle';
+                          } else if (v.name.toLowerCase().includes('camin')) {
+                            vehicleIcon = 'bus';
+                          }
+
+                          return (
+                            <TouchableOpacity
+                              key={v._id}
+                              style={[styles.vehicleCard, isSelected && styles.vehicleCardSelected]}
+                              onPress={() => setSelectedVehicle(v)}
+                            >
+                              <View style={[styles.vehicleIconCircle, isSelected && styles.vehicleIconCircleActive]}>
+                                <Ionicons name={vehicleIcon} size={24} color={isSelected ? '#7F00FF' : '#64748B'} />
+                              </View>
+                              <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]} numberOfLines={1}>
+                                {v.name}
+                              </Text>
+                              <Text style={[styles.vehicleRate, isSelected && styles.vehicleRateSelected]}>
+                                {v.pricePerKm > 0
+                                  ? `~${(systemBaseFee + (distance > 0 ? distance : 1) * v.pricePerKm).toFixed(0)} MT`
+                                  : `~${systemBaseFee} MT`}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    ) : (
+                      <Text style={styles.statusText}>Nenhum transporte disponível no momento.</Text>
+                    )}
+
+                    {/* Input Address Card */}
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={styles.sectionTitle}>Endereço Completo</Text>
+                    </View>
+                    <View style={styles.addressInputCard}>
+                      <MaterialCommunityIcons name="map-marker-radius" size={20} color="#7F00FF" style={styles.addressIcon} />
+                      <TextInput
+                        style={styles.addressInput}
+                        placeholder="Indique a rua, nº do edifício, ponto de referência..."
+                        placeholderTextColor="#94A3B8"
+                        multiline
+                        value={address}
+                        onChangeText={setAddress}
+                        editable={!loadingLocation}
+                      />
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.pickupCard}>
+                    <View style={styles.pickupHeader}>
+                      <Ionicons name="information-circle" size={24} color="#7F00FF" />
+                      <Text style={styles.pickupTitle}>Levantamento na Loja</Text>
+                    </View>
+                    <Text style={styles.pickupText}>
+                      Deverá deslocar-se pessoalmente ao estabelecimento do fornecedor para levantar a sua encomenda. Nenhum custo de transporte será aplicado.
+                    </Text>
+                  </View>
+                )
+              ) : null}
+            </>
+          )}
 
           {/* Receipt Summary Card */}
           <View style={styles.summaryCard}>

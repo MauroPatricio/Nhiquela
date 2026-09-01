@@ -18,6 +18,7 @@ const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [userLogin, setUserLogin] = useState(false);
   const [isStoreOpen, setIsStoreOpen] = useState(false);
+  const [showLowBalanceModal, setShowLowBalanceModal] = useState(false);
 
   React.useEffect(() => {
     const listener = DeviceEventEmitter.addListener('userDataUpdated', (newUserData) => {
@@ -238,10 +239,29 @@ const Profile = () => {
   };
 
   const toggleStoreStatus = async () => {
+    const newStatus = !isStoreOpen;
+
+    let currentBal = 0;
+    try {
+      const { data: balData } = await api.get('/wallet/balance', {
+        headers: { authorization: `Bearer ${userData?.token}` }
+      });
+      currentBal = Number(balData?.available_balance ?? balData?.balance) || 0;
+    } catch (e) {
+      console.log('Error fetching wallet balance in Profile:', e?.message);
+    }
+
+    const freeSaleUsed = userData?.seller?.hasUsedFreeSale || userData?.seller?.free_sale_available === false;
+
+    if (newStatus && freeSaleUsed && currentBal < 50) {
+      setIsStoreOpen(false);
+      setShowLowBalanceModal(true);
+      return;
+    }
+
     setUpdatingStore(true);
     try {
       const id = await AsyncStorage.getItem('id');
-      const newStatus = !isStoreOpen;
       const response = await api.patch(
         `/users/seller-status/${id}`,
         { isOpenStore: newStatus },
@@ -249,7 +269,10 @@ const Profile = () => {
       );
       if (response?.status === 200) {
         setIsStoreOpen(newStatus);
-        const updatedUser = { ...userData, seller: { ...userData.seller, openstore: newStatus } };
+        const updatedUser = { 
+          ...userData, 
+          seller: { ...userData.seller, openstore: newStatus, storeStatus: newStatus ? 'OPEN' : 'CLOSED_BY_SUPPLIER' } 
+        };
         await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
         setUserData(updatedUser);
         showMessage({
@@ -260,7 +283,7 @@ const Profile = () => {
         });
       }
     } catch (error) {
-      console.error('Erro ao atualizar estado da loja:', error);
+      setIsStoreOpen(!newStatus);
       const errMsg = error.response?.data?.message || 'Não foi possível atualizar o estado da loja.';
       showMessage({ 
         message: 'Aviso Financeiro', 
@@ -621,6 +644,115 @@ const Profile = () => {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Modal Premium de Saldo Insuficiente */}
+      <Modal visible={showLowBalanceModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <LinearGradient
+            colors={['#271800', '#3D2400', '#1A1000']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              borderRadius: 28,
+              padding: 24,
+              borderWidth: 1.5,
+              borderColor: '#F59E0B',
+              shadowColor: '#F59E0B',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.35,
+              shadowRadius: 20,
+              elevation: 10,
+              alignItems: 'center',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Ambient Background Glow Effect */}
+            <View style={{
+              position: 'absolute',
+              top: -30,
+              right: -30,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+            }} />
+
+            {/* Icon Header Box */}
+            <View style={{
+              width: 64,
+              height: 64,
+              borderRadius: 24,
+              backgroundColor: 'rgba(245, 158, 11, 0.2)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: 1.5,
+              borderColor: 'rgba(245, 158, 11, 0.4)',
+              marginBottom: 16,
+              shadowColor: '#F59E0B',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+            }}>
+              <Ionicons name="wallet-outline" size={32} color="#FBBF24" />
+            </View>
+
+            {/* Title & Subtitle */}
+            <Text style={{ fontSize: 20, fontWeight: '900', color: '#FFF', textAlign: 'center', marginBottom: 8, letterSpacing: -0.3 }}>
+              Saldo Insuficiente
+            </Text>
+
+            <Text style={{ fontSize: 13, color: '#D1D5DB', textAlign: 'center', lineHeight: 20, fontWeight: '500', marginBottom: 24 }}>
+              Não é possível abrir a loja. O seu saldo pré-pago é inferior ao mínimo de segurança (50.00 MT). Efetue uma recarga para reabrir a loja.
+            </Text>
+
+            {/* Buttons Row */}
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setShowLowBalanceModal(false)}
+              >
+                <Text style={{ color: '#E5E7EB', fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1.2,
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  backgroundColor: '#F59E0B',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  shadowColor: '#F59E0B',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
+                onPress={() => {
+                  setShowLowBalanceModal(false);
+                  navigation.navigate('TopUp');
+                }}
+              >
+                <Ionicons name="flash-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 14 }}>Recarregar</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
         </View>
       </Modal>
     </SafeAreaView>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api, { SOCKET_URL } from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -79,7 +79,7 @@ export default function UsersScreen() {
   const fetchRoles = async () => {
     try {
       const { data } = await api.get('/roles');
-      setRoles(data || []);
+      setRoles(Array.isArray(data) ? data : data.roles || []);
     } catch (error) {
       console.warn('Roles não carregadas', error);
     }
@@ -119,19 +119,38 @@ export default function UsersScreen() {
     }
   };
 
-  const handleOpenModal = (user) => {
-    setIsEditing(true);
-    setCurrentId(user._id || user.id);
-    setFormData({ 
-      name: user.name || '', 
-      email: user.email || '', 
-      isAdmin: user.isAdmin || false, 
-      isSeller: user.isSeller || false,
-      isDeliveryMan: user.isDeliveryMan || false,
-      roleId: user.roleId ? (typeof user.roleId === 'object' ? user.roleId._id : user.roleId) : '',
-      planId: user.planId || '',
-      services: user.services || []
-    });
+  const handleOpenModal = (user = null) => {
+    if (user) {
+      setIsEditing(true);
+      setCurrentId(user._id || user.id);
+      setFormData({ 
+        name: user.name || '', 
+        email: user.email || '', 
+        phoneNumber: user.phoneNumber || user.phone || '',
+        password: '',
+        isAdmin: user.isAdmin || false, 
+        isSeller: user.isSeller || false,
+        isDeliveryMan: user.isDeliveryMan || false,
+        roleId: user.roleId ? (typeof user.roleId === 'object' ? user.roleId._id : user.roleId) : '',
+        planId: user.planId || '',
+        services: user.services || []
+      });
+    } else {
+      setIsEditing(false);
+      setCurrentId(null);
+      setFormData({ 
+        name: '', 
+        email: '', 
+        phoneNumber: '',
+        password: '',
+        isAdmin: false, 
+        isSeller: false,
+        isDeliveryMan: false,
+        roleId: '',
+        planId: '',
+        services: []
+      });
+    }
     setShowModal(true);
   };
 
@@ -142,12 +161,17 @@ export default function UsersScreen() {
     if (!formData.name || !formData.email) return toast.error('Nome e Email são obrigatórios');
     
     try {
-      await api.put(`/users/${currentId}`, formData);
-      toast.success('Permissões do utilizador atualizadas com sucesso!');
+      if (isEditing) {
+        await api.put(`/users/${currentId}`, formData);
+        toast.success('Permissões do utilizador atualizadas com sucesso!');
+      } else {
+        await api.post('/users', formData);
+        toast.success('Novo utilizador criado com sucesso!');
+      }
       fetchUsers();
       handleCloseModal();
     } catch (error) {
-      toast.error('Erro ao guardar utilizador');
+      toast.error(error.response?.data?.message || 'Erro ao guardar utilizador');
     }
   };
 
@@ -186,7 +210,8 @@ export default function UsersScreen() {
 
   const {
     currentPage, searchQuery, setSearchQuery, currentData: currentUsers,
-    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem
+    totalPages, nextPage, prevPage, totalItems, indexOfFirstItem, indexOfLastItem,
+    itemsPerPage, setItemsPerPage
   } = usePagination(users, 10, ['name', 'email']);
 
   return (
@@ -209,6 +234,9 @@ export default function UsersScreen() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 shadow-sm fw-bold py-2" onClick={() => handleOpenModal()}>
+            <FontAwesomeIcon icon={faPlus} className="me-2" /> Novo Utilizador
+          </button>
         </div>
       </div>
 
@@ -337,23 +365,24 @@ export default function UsersScreen() {
             currentPage={currentPage} totalPages={totalPages} 
             onNext={nextPage} onPrev={prevPage} 
             totalItems={totalItems} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+            itemsPerPage={itemsPerPage} onItemsPerPageChange={setItemsPerPage}
           />
         </div>
       </div>
 
       {showModal && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
-          <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
-            <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">Editar Permissões da Conta</h5>
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '550px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="card-header bg-white border-0 p-4 pb-2 d-flex justify-content-between align-items-center">
+              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Permissões da Conta' : 'Registar Novo Utilizador'}</h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}>
                 <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
-            <div className="card-body p-4">
+            <div className="card-body p-4" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
               <form onSubmit={handleSave}>
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted mb-1">Nome</label>
+                  <label className="form-label fw-bold small text-muted mb-1">Nome *</label>
                   <input 
                     type="text" 
                     className="form-control bg-light border-0 py-2 rounded-3" 
@@ -362,14 +391,36 @@ export default function UsersScreen() {
                     required
                   />
                 </div>
-                <div className="mb-4">
-                  <label className="form-label fw-bold small text-muted mb-1">Email</label>
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted mb-1">Email *</label>
                   <input 
                     type="email" 
                     className="form-control bg-light border-0 py-2 rounded-3" 
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted mb-1">Telefone</label>
+                  <input 
+                    type="text" 
+                    className="form-control bg-light border-0 py-2 rounded-3" 
+                    placeholder="Ex: 841234567"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="form-label fw-bold small text-muted mb-1">
+                    {isEditing ? 'Palavra-passe (deixe em branco para não alterar)' : 'Palavra-passe Inicial (Padrão: password123)'}
+                  </label>
+                  <input 
+                    type="password" 
+                    className="form-control bg-light border-0 py-2 rounded-3" 
+                    placeholder={isEditing ? '••••••••' : 'password123'}
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
                   />
                 </div>
                 

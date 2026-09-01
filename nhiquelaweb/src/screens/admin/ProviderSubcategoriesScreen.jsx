@@ -174,6 +174,7 @@ export default function ProviderSubcategoriesScreen() {
         pricingMode: item.pricingMode || 'AUTO',
         serviceCommission: item.serviceCommission || 0,
         allowNegotiation: item.allowNegotiation || false,
+        maxNegotiationRounds: item.maxNegotiationRounds || 3,
         serviceFee: item.serviceFee || 0,
         order: item.order !== undefined ? item.order : 0,
       });
@@ -194,6 +195,7 @@ export default function ProviderSubcategoriesScreen() {
         pricingMode: 'AUTO',
         serviceCommission: 0,
         allowNegotiation: false,
+        maxNegotiationRounds: 3,
         serviceFee: 0,
         order: 0,
       });
@@ -718,6 +720,20 @@ export default function ProviderSubcategoriesScreen() {
                       Permite Negociação?
                     </label>
                   </div>
+
+                  {formData.allowNegotiation && (
+                    <div className="mb-3 ms-4 ps-1">
+                      <label className="form-label fw-bold small text-muted mb-1">Limite de Rondas de Negociação</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        className="form-control bg-light border-0 py-2 rounded-3"
+                        value={formData.maxNegotiationRounds || 3}
+                        onChange={e => setFormData({ ...formData, maxNegotiationRounds: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                      />
+                    </div>
+                  )}
 
                   <div className="form-check mb-2">
                   <input

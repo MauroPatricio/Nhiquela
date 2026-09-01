@@ -232,53 +232,132 @@ export default function MapScreen({ route, navigation }: any) {
   // 🔥 LISTENER PARA ATUALIZAÇÕES DO BACKEND (CANCELAMENTO / ENTREGUE)
   useEffect(() => {
     const handleOrderCancelled = async (data: any) => {
-      if (data && (data.orderId === tripData?.id || data._id === tripData?.id || data.id === tripData?.id)) {
-        await AsyncStorage.removeItem("acceptedTrip");
-        setTripData(null);
-        Alert.alert("Viagem Cancelada", "O cliente cancelou esta viagem.");
-        navigation.navigate('Home');
-      }
+      await AsyncStorage.removeItem("acceptedTrip");
+      setTripData(null);
+      setShowNoLocationModal(false);
+      Alert.alert("Viagem Cancelada", "O cliente cancelou esta viagem.");
+      navigation.navigate('Home');
     };
 
     const handleOrderUpdated = async (data: any) => {
       // O backend pode enviar os dados diretamente ou dentro de { order: data }
-      const order = data.order || data;
+      const order = data?.order || data;
       
-      if (order && (order._id === tripData?.id || order.id === tripData?.id)) {
-        const status = order.status || "";
-        const isTerminalStatus = (
-          status === 'Entregue' || 
-          status === 'Finalizado' || 
-          status === 'Concluído' || 
-          status === 'Concluido' || 
-          status === 'Cancelado' || 
-          status === 'Motorista indisponível' || 
-          order.isCanceled || 
-          order.deleted ||
-          order.stepStatus >= 7
-        );
+      if (order) {
+        const orderId = order._id || order.id;
+        const currentTripId = tripData?.id;
+        
+        if (!currentTripId || orderId === currentTripId || String(orderId) === String(currentTripId)) {
+          const status = order.status || "";
+          const isTerminalStatus = (
+            status === 'Entregue' || 
+            status === 'Finalizado' || 
+            status === 'Concluído' || 
+            status === 'Concluido' || 
+            status === 'Cancelado' || 
+            status === 'Recusado' ||
+            status === 'Motorista indisponível' || 
+            order.isCanceled || 
+            order.deleted ||
+            order.stepStatus >= 7
+          );
 
-        if (isTerminalStatus) {
-          await AsyncStorage.removeItem("acceptedTrip");
-          setTripData(null);
-          
-          if (status === 'Cancelado' || order.isCanceled) {
-             Alert.alert("Viagem Cancelada", "Esta viagem foi cancelada pelo cliente.");
+          if (isTerminalStatus) {
+            await AsyncStorage.removeItem("acceptedTrip");
+            setTripData(null);
+            setShowNoLocationModal(false);
+            
+            if (status === 'Cancelado' || order.isCanceled) {
+               Alert.alert("Viagem Cancelada", "Esta viagem foi cancelada pelo cliente.");
+            }
+            
+            navigation.navigate('Home');
           }
-          
-          navigation.navigate('Home');
         }
       }
     };
 
     websocketService.on('order_cancelled', handleOrderCancelled);
     websocketService.on('order_updated', handleOrderUpdated);
+    websocketService.on('service_released', handleOrderCancelled);
 
     return () => {
       websocketService.off('order_cancelled');
       websocketService.off('order_updated');
+      websocketService.off('service_released');
     };
-  }, [tripData]);
+  }, [tripData, navigation]);
+
+  // 🔥 POLLING DE VERIFICAÇÃO EM TEMPO REAL DO ESTADO DA VIAGEM
+  useEffect(() => {
+    let pollingInterval: any = null;
+
+    const checkLiveTripStatus = async () => {
+      try {
+        const storedTripString = await AsyncStorage.getItem("acceptedTrip");
+        if (!storedTripString) return;
+
+        const storedTrip = JSON.parse(storedTripString);
+        if (!storedTrip?.id) return;
+
+        const token = await AsyncStorage.getItem("authToken");
+        const baseUrl = API_BASE_URL;
+
+        let res = await fetch(`${baseUrl}/request-services/${storedTrip.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+
+        if (!res.ok) {
+          res = await fetch(`${baseUrl}/orders/${storedTrip.id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+        }
+
+        if (res.ok) {
+          const liveOrder = await res.json();
+          const orderData = liveOrder.order || liveOrder;
+          const status = orderData.status || "";
+
+          const isCancelled = (
+            status === 'Cancelado' ||
+            status === 'Recusado' ||
+            status === 'Finalizado' ||
+            status === 'Entregue' ||
+            status === 'Concluído' ||
+            status === 'Concluido' ||
+            status === 'Motorista indisponível' ||
+            orderData.isCanceled ||
+            orderData.deleted ||
+            orderData.stepStatus >= 7
+          );
+
+          if (isCancelled) {
+            await AsyncStorage.removeItem("acceptedTrip");
+            setTripData(null);
+            setShowNoLocationModal(false);
+            if (status === 'Cancelado' || orderData.isCanceled) {
+              Alert.alert("Viagem Cancelada", "Esta viagem foi cancelada pelo cliente.");
+            }
+            navigation.navigate('Home');
+          }
+        } else if (res.status === 404) {
+          await AsyncStorage.removeItem("acceptedTrip");
+          setTripData(null);
+          setShowNoLocationModal(false);
+          navigation.navigate('Home');
+        }
+      } catch (err) {
+        console.log("Erro no polling de verificação da viagem:", err);
+      }
+    };
+
+    checkLiveTripStatus();
+    pollingInterval = setInterval(checkLiveTripStatus, 3500);
+
+    return () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
+  }, [navigation]);
   
   // 🔥 FUNÇÃO startTrip ATUALIZADA
   const startTrip = async (trip: any) => {
@@ -492,6 +571,31 @@ export default function MapScreen({ route, navigation }: any) {
                 await finalizeOrder(tripId, isRequestService);
                 // Atualiza o estado local para parar o cronómetro no TripMap (que apenas conta em 4, 5, ou 6)
                 setTripData(prev => prev ? { ...prev, stepStatus: 7 } : null);
+
+                // 🔴 COLOCAR O MOTORISTA OFFLINE APÓS CONCLUIR A VIAGEM
+                try {
+                  const token = await AsyncStorage.getItem('authToken');
+                  if (token) {
+                    fetch(`${API_BASE_URL}/drivers/availability`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ availability: 'paused' })
+                    }).catch(err => console.log('Erro ao alterar disponibilidade para offline:', err));
+                  }
+
+                  const userStr = await AsyncStorage.getItem('@app:user');
+                  if (userStr) {
+                    const u = JSON.parse(userStr);
+                    u.availability = 'paused';
+                    u.isOnline = false;
+                    await AsyncStorage.setItem('@app:user', JSON.stringify(u));
+                  }
+                } catch (e) {
+                  console.log('Erro ao atualizar disponibilidade local:', e);
+                }
               }
               await AsyncStorage.removeItem("acceptedTrip");
               setShowFinishSuccessModal(true);
@@ -757,7 +861,13 @@ export default function MapScreen({ route, navigation }: any) {
             <TouchableOpacity 
               style={styles.premiumWarningConfirmButton}
               activeOpacity={0.85}
-              onPress={() => setShowNoLocationModal(false)}
+              onPress={async () => {
+                setShowNoLocationModal(false);
+                const storedTripString = await AsyncStorage.getItem("acceptedTrip");
+                if (!storedTripString || !tripData) {
+                  navigation.navigate('Home');
+                }
+              }}
             >
               <LinearGradient
                 colors={['#F59E0B', '#D97706']}

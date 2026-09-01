@@ -13,10 +13,12 @@ import {
   Switch,
   Vibration,
   AppState,
+  RefreshControl,
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
+import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -77,6 +79,16 @@ export default function HomeScreen({ navigation, route }: any) {
   const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
   
   const [isToggling, setIsToggling] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadAllOrders();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadAllOrders]);
   const [showTripAcceptedModal, setShowTripAcceptedModal] = useState(false);
   const [showOrderTakenModal, setShowOrderTakenModal] = useState(false);
   const [tripToStart, setTripToStart] = useState<Trip | null>(null);
@@ -122,27 +134,78 @@ export default function HomeScreen({ navigation, route }: any) {
     };
   }, []);
 
+  const [activeNegotiatingId, setActiveNegotiatingId] = useState<string | null>(null);
+  const activeNegotiatingIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeNegotiatingIdRef.current = activeNegotiatingId;
+  }, [activeNegotiatingId]);
+
   // Play/Stop sound depending on pending trips
   useEffect(() => {
-    if (alertSound) {
-      const hasPending = allTrips.some(t => (t.stepStatus === 1 || t.stepStatus === 3));
-      if (hasPending && user?.availability === 'active') {
-        alertSound.playAsync();
-        // Vibrate repeatedly (Wait 500ms, Vibrate 1000ms, Wait 500ms)
-        const PATTERN = [500, 1000, 500];
-        Vibration.vibrate(PATTERN, true); // true for looping
-      } else {
-        alertSound.stopAsync();
-        Vibration.cancel();
+    const hasPending = allTrips.some(t => {
+      const tAny = t as any;
+      const isNeg = 
+        (tAny.negotiationState && tAny.negotiationState !== 'NONE') ||
+        (tAny.originalData?.negotiationState && tAny.originalData?.negotiationState !== 'NONE') ||
+        (tAny.negotiationHistory && tAny.negotiationHistory.length > 0) ||
+        (tAny.originalData?.negotiationHistory && tAny.originalData?.negotiationHistory.length > 0) ||
+        tAny.isNegotiating === true ||
+        activeNegotiatingId === t.id ||
+        activeNegotiatingId === tAny._id;
+
+      return (t.stepStatus === 1 || t.stepStatus === 3) && !isNeg;
+    });
+
+    if (hasPending && user?.availability === 'active' && !activeNegotiatingId) {
+      if (alertSound) {
+        alertSound.playAsync().catch(() => {});
       }
+      if (soundRef.current) {
+        soundRef.current.playAsync().catch(() => {});
+      }
+      const PATTERN = [500, 1000, 500];
+      Vibration.vibrate(PATTERN, true); // true for looping
+    } else {
+      if (alertSound) {
+        alertSound.stopAsync().catch(() => {});
+      }
+      if (soundRef.current) {
+        soundRef.current.stopAsync().catch(() => {});
+      }
+      Vibration.cancel();
     }
     
     return () => {
       Vibration.cancel();
     };
-  }, [allTrips, alertSound, user?.availability]);
+  }, [allTrips, alertSound, user?.availability, activeNegotiatingId]);
 
   const isMounted = useRef(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function syncUserStatus() {
+        try {
+          const token = await AsyncStorage.getItem('authToken');
+          if (token) {
+            const res = await fetch(`${API_BASE_URL}/drivers/me`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const latestUser = await res.json();
+              if (latestUser && updateUser) {
+                updateUser(latestUser);
+                await AsyncStorage.setItem('@app:user', JSON.stringify(latestUser));
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Erro ao sincronizar perfil do motorista:', e);
+        }
+      }
+      syncUserStatus();
+    }, [updateUser])
+  );
 
   // 🔥 PROCESSAR AÇÕES AUTOMÁTICAS VINDAS DA NOTIFICAÇÃO PUSH
   useEffect(() => {
@@ -340,8 +403,8 @@ export default function HomeScreen({ navigation, route }: any) {
           
           const newTrip = formatOrder(data);
           
-          // Tocar ringtone imediatamente se for um pedido pendente
-          if (newTrip && newTrip.stepStatus === 3) {
+          // Tocar ringtone imediatamente se for um pedido pendente e o motorista NÃO estiver negociando
+          if (newTrip && newTrip.stepStatus === 3 && !activeNegotiatingIdRef.current) {
              console.log("🔔 Novo pedido recebido via socket!");
 
              // Tocar som instantaneamente via ref (replayAsync garante que reinicia do início)
@@ -934,6 +997,13 @@ export default function HomeScreen({ navigation, route }: any) {
       const formattedOrders = ordersData
         .map((order: any) => formatOrder(order, currentPosition))
         .filter((order: any) => {
+          const hasGPS = (
+            (order.destinationLocation?.latitude !== 0 && order.destinationLocation?.longitude !== 0) ||
+            (order.originLat !== 0 && order.originLng !== 0) ||
+            (order.distance && order.distance !== "Distância não disponível")
+          );
+          if (!hasGPS) return false;
+
           const tripStatus = order.status ? order.status.toLowerCase() : "";
           const isCompleted = tripStatus === "concluída" || tripStatus === "completed" || tripStatus === "entregue" || tripStatus === "delivered" || tripStatus === "cancelado" || tripStatus === "canceled" || tripStatus === "cancelled" || tripStatus === "motorista indisponível" || order.stepStatus === 6 || order.stepStatus === 7;
           return !isCompleted || order.stepStatus === 5 || order.stepStatus === 6 || order.isAcceptedByDeliveryman;
@@ -1007,71 +1077,128 @@ export default function HomeScreen({ navigation, route }: any) {
   
   const formatOrder = (order: any, currentPosition?: any): Trip => {
     // Para requestService, usar destinationDetails. Se nao, os outros.
-    const destinationLat = order.destinationDetails?.lat || 
+    const destinationLat = Number(
+      order.destinationDetails?.lat || 
       order.deliveryAddress?.latitude || 
+      order.deliveryAddress?.lat || 
       order.deliveryAddress?.location?.lat ||
       order.destinationLocation?.latitude ||
       order.seller?.location?.lat ||
       order.sellerInfo?.location?.lat ||
       order.seller?.latitude ||
       order.sellerInfo?.latitude || 
-      order.latitude || 0;
+      order.latitude || 0
+    );
 
-    const destinationLon = order.destinationDetails?.lng || 
+    const destinationLon = Number(
+      order.destinationDetails?.lng || 
       order.deliveryAddress?.longitude || 
+      order.deliveryAddress?.lng || 
       order.deliveryAddress?.location?.lng ||
       order.destinationLocation?.longitude ||
       order.seller?.location?.lng ||
       order.sellerInfo?.location?.lng ||
       order.seller?.longitude ||
       order.sellerInfo?.longitude || 
-      order.longitude || 0;
+      order.longitude || 0
+    );
 
     // 📍 origem do pedido (onde o motorista vai buscar o cliente/produto)
-    const originLat = order.originDetails?.lat || order.seller?.location?.lat || order.seller?.latitude || order.latitude || 0;
-    const originLon = order.originDetails?.lng || order.seller?.location?.lng || order.seller?.longitude || order.longitude || 0;
-  
+    const originLat = Number(
+      order.originDetails?.lat || 
+      order.seller?.location?.lat || 
+      order.sellerInfo?.location?.lat ||
+      order.seller?.location?.coordinates?.[1] ||
+      order.seller?.latitude || 
+      order.sellerInfo?.latitude || 
+      order.originLat ||
+      order.latitude || 0
+    );
+
+    const originLon = Number(
+      order.originDetails?.lng || 
+      order.seller?.location?.lng || 
+      order.sellerInfo?.location?.lng ||
+      order.seller?.location?.coordinates?.[0] ||
+      order.seller?.longitude || 
+      order.sellerInfo?.longitude || 
+      order.originLng ||
+      order.longitude || 0
+    );
+
     let distance = 0;
-    let timeStr = "Tempo não disponvel";
+    let timeStr = "Tempo não disponível";
 
     // 1. Tentar usar o distanceKm do pricing (calculado pelo backend via OSRM)
-    if (order.pricing && order.pricing.distanceKm) {
-      distance = order.pricing.distanceKm;
+    if (order.pricing && Number(order.pricing.distanceKm) > 0) {
+      distance = Number(order.pricing.distanceKm);
       if (order.pricing.breakdown && order.pricing.breakdown.durationMin) {
         timeStr = `${Math.round(order.pricing.breakdown.durationMin)} min`;
       }
     } 
-    // 2. Fallback: Calcular distncia em linha reta (origem para destino)
+    // 2. Fallback: Calcular distância em linha reta (origem para destino)
     else if (originLat !== 0 && originLon !== 0 && destinationLat !== 0 && destinationLon !== 0) {
       distance = getDistanceFromLatLonInKm(originLat, originLon, destinationLat, destinationLon);
     }
-    // 3. Fallback final: Calcular da posiao atual para o destino (caso antigo)
-    else if (currentPosition && destinationLat && destinationLon &&
-      currentPosition.latitude !== 0 && currentPosition.longitude !== 0) {
-      distance = getDistanceFromLatLonInKm(
-        currentPosition.latitude,
-        currentPosition.longitude,
-        destinationLat,
-        destinationLon
-      );
+    // 3. Fallback final: Calcular da posição atual para o destino ou origem
+    else if (currentPosition && (currentPosition.latitude !== 0 && currentPosition.longitude !== 0)) {
+      const targetLat = destinationLat !== 0 ? destinationLat : originLat;
+      const targetLon = destinationLon !== 0 ? destinationLon : originLon;
+      if (targetLat !== 0 && targetLon !== 0) {
+        distance = getDistanceFromLatLonInKm(
+          currentPosition.latitude,
+          currentPosition.longitude,
+          targetLat,
+          targetLon
+        );
+      }
     }
 
-    if (distance > 0 && timeStr === "Tempo não disponvel") {
-      timeStr = `${Math.round(distance / 40 * 60)} min`;
+    if (distance > 0 && (timeStr === "Tempo não disponível" || timeStr.includes("não dispon"))) {
+      timeStr = `${Math.round((distance / 40) * 60)} min`;
     }
-  
-    // ?? CORREAO DEFINITIVA: Lgica EXATA para verificar aceitaao
+
+    // 💰 REWARD / FARE CALCULATION (VALOR DA DESLOCAÇÃO)
+    let fareValue = 0;
+    if (order.addressPrice && Number(order.addressPrice) > 0) {
+      fareValue = Number(order.addressPrice);
+    } else if (order.deliveryFee && Number(order.deliveryFee) > 0) {
+      fareValue = Number(order.deliveryFee);
+    } else if (order.pricing?.totalPrice && Number(order.pricing.totalPrice) > 0) {
+      fareValue = Number(order.pricing.totalPrice);
+    } else if (order.pricing?.finalFare && Number(order.pricing.finalFare) > 0) {
+      fareValue = Number(order.pricing.finalFare);
+    } else if (order.deliveryPrice && Number(order.deliveryPrice) > 0) {
+      fareValue = Number(order.deliveryPrice);
+    } else if (order.reward && Number(order.reward) > 0) {
+      fareValue = Number(order.reward);
+    } else if (order.totalPrice && Number(order.totalPrice) > 0 && (!order.items || order.items.length === 0)) {
+      fareValue = Number(order.totalPrice);
+    } else {
+      fareValue = Math.round(distance > 0 ? distance * 25 : 150);
+    }
+
+    // 📍 PICKUP & DESTINATION ADDRESS CLEANUP
+    let rawPickup = order.originDetails?.address || order.seller?.location?.address || order.seller?.address || order.sellerInfo?.address || order.seller?.name || order.sellerInfo?.name || order.origin || order.pickupAddress || "Local de origem";
+    if (typeof rawPickup === 'string' && /^[0-9a-fA-F]{24}$/.test(rawPickup.trim())) {
+      rawPickup = order.seller?.name || order.sellerInfo?.name || "Estabelecimento do Fornecedor";
+    }
+
+    let rawDestination = order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino";
+    if (typeof rawDestination === 'string' && /^[0-9a-fA-F]{24}$/.test(rawDestination.trim())) {
+      rawDestination = order.deliveryAddress?.city ? `Entrega em ${order.deliveryAddress.city}` : "Destino do Cliente";
+    }
+
+    const passengerPhone = order.passengerPhone || order.phoneNumber || order.user?.phoneNumber || order.deliveryAddress?.phoneNumber || "Não disponível";
+
     const currentUserId = user?._id;
     const orderDeliverymanId = order.deliveryman?._id || order.deliveryman?.id || order.deliverymanId;
-    
-    // ?? LOGICA CORRIGIDA: 
-    // - Se stepStatus  5 (em trnsito), considerar como "aceito" independente do deliveryman
-    // - Caso contrrio, verificar se foi aceito pelo entregador atual
     const isInTransit = order.stepStatus === 5 || order.stepStatus === 6;
     const isAcceptedByDeliveryman = isInTransit || (
       orderDeliverymanId === currentUserId &&
       order.stepStatus === 4  
     );
+
     const isReq = order.goodType !== undefined || order.type === 'requestService';
     let serviceNameStr;
     if (isReq) {
@@ -1084,16 +1211,16 @@ export default function HomeScreen({ navigation, route }: any) {
 
     return {
       id: order._id || order.id,
-      passengerId: order.user?._id || order.user?.id || order.userId || "0",
+      passengerId: passengerPhone !== "Não disponível" ? passengerPhone : (order.user?._id || order.user?.id || order.userId || "0"),
+      passengerPhone: passengerPhone,
       serviceName: serviceNameStr,
       serviceMotive: order.reason || order.description || order.goodType || undefined,
       passenger: order.passengerName || order.user?.name || order.deliveryAddress?.fullName || order.clientName || "Cliente",
       passengerImage: order.passengerImage || order.user?.profileImage || order.user?.photo || null,
-      passengerPhone: order.passengerPhone || order.phoneNumber || order.user?.phoneNumber || "Não disponível",
-      pickup: order.originDetails?.address || order.seller?.location?.address || order.seller?.name || order.seller?.address || order.origin || order.pickupAddress || "Local de origem",
-      destination: order.destinationDetails?.address || order.deliveryAddress?.address || order.destination || "Destino",
-      reward: `MZN ${order.pricing?.totalPrice || order.deliveryPrice || order.totalPrice || order.reward || Math.round(distance * 25)}`,
-      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distncia não disponvel",
+      pickup: rawPickup,
+      destination: rawDestination,
+      reward: `MZN ${fareValue.toFixed(2)}`,
+      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distância não disponível",
       time: timeStr,
       destinationLocation: {
         latitude: destinationLat,
@@ -1497,6 +1624,31 @@ const proceedStartTrip = async (trip: Trip) => {
     setAllTrips(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const handleStartNegotiation = useCallback((tripId: string) => {
+    Vibration.cancel();
+    if (alertSound) {
+      alertSound.stopAsync().catch(() => {});
+    }
+    if (soundRef.current) {
+      soundRef.current.stopAsync().catch(() => {});
+    }
+    setActiveNegotiatingId(tripId);
+    setAllTrips(prev => prev.map(t => {
+      if (t.id === tripId || (t as any)._id === tripId) {
+        return { 
+          ...t, 
+          negotiationState: 'NEGOTIATING',
+          isNegotiating: true,
+          originalData: {
+            ...((t as any).originalData || {}),
+            negotiationState: 'NEGOTIATING'
+          }
+        };
+      }
+      return t;
+    }));
+  }, [alertSound]);
+
   const renderTripCard = useCallback(({ item }: { item: Trip }) => {
     return (
       <TripCard
@@ -1512,9 +1664,10 @@ const proceedStartTrip = async (trip: Trip) => {
         acceptTrip={acceptTrip}
         onViewRoute={onViewRoute}
         onExpire={handleTripExpire}
+        onStartNegotiation={handleStartNegotiation}
       />
     );
-  }, [acceptingTripId, startingTripId, cancelingTripId, acceptedTrip, isSharingLocation, isTripStarted, startTrip, cancelTrip, acceptTrip, onViewRoute, handleTripExpire]);
+  }, [acceptingTripId, startingTripId, cancelingTripId, acceptedTrip, isSharingLocation, isTripStarted, startTrip, cancelTrip, acceptTrip, onViewRoute, handleTripExpire, handleStartNegotiation]);
 
   if (loading) {
     return (
@@ -1531,6 +1684,14 @@ const proceedStartTrip = async (trip: Trip) => {
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         {/* Chamada de atenção destacada - Conta em análise */}
         {!isDriverApproved && (

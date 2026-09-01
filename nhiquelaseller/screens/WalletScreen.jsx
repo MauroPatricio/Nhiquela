@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../hooks/createConnectionApi';
 import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
@@ -200,31 +201,83 @@ const WalletScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Status do Saldo */}
-            <View style={styles.statusBox}>
-              <View style={styles.statusHeader}>
-                <Ionicons 
-                  name={balance >= minRecommendedBalance ? "checkmark-circle" : "warning"} 
-                  size={20} 
-                  color={balance >= minRecommendedBalance ? COLORS.success : COLORS.warning} 
-                />
-                <Text style={[styles.statusTitle, { color: balance >= minRecommendedBalance ? COLORS.success : COLORS.warning }]}>
-                  {balance >= minRecommendedBalance ? "Saldo adequado" : "Saldo abaixo do recomendado"}
-                </Text>
-              </View>
-              <View style={styles.statusRow}>
-                <Text style={styles.statusLabel}>Saldo mínimo recomendado:</Text>
-                <Text style={styles.statusValue}>{minRecommendedBalance.toFixed(2)} MT</Text>
-              </View>
-              {userData?.seller?.storeStatus === 'CLOSED_LOW_BALANCE' && (
-                <View style={styles.alertBox}>
-                  <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-                  <Text style={styles.alertText}>
-                    Loja fechada por saldo insuficiente. Recarregue a sua carteira para poder reactivar a loja.
+            {/* Status do Saldo Card Premium */}
+            {balance < minRecommendedBalance ? (
+              <LinearGradient
+                colors={['#271800', '#3D2400', '#1A1000']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  borderRadius: 22,
+                  padding: 18,
+                  marginBottom: 16,
+                  borderWidth: 1.5,
+                  borderColor: '#F59E0B',
+                  shadowColor: '#F59E0B',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 12,
+                  elevation: 6,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: 'rgba(239, 68, 68, 0.4)'
+                  }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 6 }} />
+                    <Text style={{ color: '#FCA5A5', fontSize: 10, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                      SALDO BAIXO • LOJA DESATIVADA
+                    </Text>
+                  </View>
+                  <Text style={{ color: '#FBBF24', fontSize: 11, fontWeight: '700' }}>
+                    Mín: {minRecommendedBalance.toFixed(2)} MT
                   </Text>
                 </View>
-              )}
-            </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 16,
+                    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(245, 158, 11, 0.4)'
+                  }}>
+                    <Ionicons name="warning-outline" size={24} color="#FBBF24" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '800', marginBottom: 2 }}>
+                      Saldo Abaixo do Recomendado
+                    </Text>
+                    <Text style={{ color: '#D1D5DB', fontSize: 12, lineHeight: 17, fontWeight: '500' }}>
+                      O seu saldo atual ({balance.toFixed(2)} MT) é insuficiente. Recarregue para reativar a loja e visibilidade dos seus produtos.
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.statusBox}>
+                <View style={styles.statusHeader}>
+                  <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+                  <Text style={[styles.statusTitle, { color: COLORS.success }]}>
+                    Saldo adequado
+                  </Text>
+                </View>
+                <View style={styles.statusRow}>
+                  <Text style={styles.statusLabel}>Saldo mínimo recomendado:</Text>
+                  <Text style={styles.statusValue}>{minRecommendedBalance.toFixed(2)} MT</Text>
+                </View>
+              </View>
+            )}
 
             {/* Botão de Recarga */}
             <TouchableOpacity

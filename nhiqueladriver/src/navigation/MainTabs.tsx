@@ -16,7 +16,10 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   const { user } = useAuth();
-  const driverBalance = user?.deliveryman?.balance || 0;
+  const rawBalance = user?.deliveryman?.balance;
+  const driverBalance = (rawBalance !== undefined && rawBalance !== null)
+    ? (String(rawBalance).startsWith('MT') ? String(rawBalance) : `MT ${Number(rawBalance).toFixed(2)}`)
+    : "MT 0.00";
   const driverTrips = user?.deliveryman?.totalTrips || 0;
   const driverEarnings = user?.deliveryman?.todayEarnings || 0;
   return (
@@ -28,7 +31,7 @@ export default function MainTabs() {
         profileImage="https://via.placeholder.com/150"
         todayEarnings={!isNaN(Number(driverEarnings)) ? `MT ${Number(driverEarnings).toFixed(2)}` : "MT 0.00"}
         totalPassengers={driverTrips}
-        credit={driverBalance ? String(driverBalance) : "MT 0,00"}
+        credit={driverBalance}
         currentLocation="Maputo, Moçambique"
         userRating={Number(user?.deliveryman?.averageRating ? user.deliveryman.averageRating.toFixed(1) : (user?.deliveryman?.rating || 5.0))}
         batteryLevel={92}

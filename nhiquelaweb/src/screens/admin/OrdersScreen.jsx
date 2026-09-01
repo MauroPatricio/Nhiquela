@@ -406,6 +406,18 @@ export default function OrdersScreen() {
                         ) : (
                           <span className="badge bg-info text-dark"><FontAwesomeIcon icon={faBolt} className="me-1"/>Agora</span>
                         )}
+                        {order.negotiationState && order.negotiationState !== 'NONE' && (
+                          <span className={`badge ms-1 ${order.negotiationState === 'ACCEPTED' ? 'bg-success' : order.negotiationState.startsWith('PENDING') ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                            <FontAwesomeIcon icon={faExchangeAlt} className="me-1"/>
+                            {order.negotiationState === 'ACCEPTED' ? `Negociado: ${order.finalAgreedPrice || order.deliveryPrice} MT` : order.negotiationState.startsWith('PENDING') ? `Negociação (Ronda ${order.negotiationRoundCount || 1})` : 'Negociação Rejeitada'}
+                          </span>
+                        )}
+                        {order.deliveryStops && order.deliveryStops.length > 0 && (
+                          <span className="badge bg-purple text-white ms-1 shadow-sm" style={{ backgroundColor: '#6f42c1' }}>
+                            <FontAwesomeIcon icon={faMapMarkerAlt} className="me-1"/>
+                            Multi-Destino ({order.deliveryStops.length} paragens)
+                          </span>
+                        )}
                       </div>
                       <div className="text-muted small">
                         {new Date(order.createdAt).toLocaleString('pt-PT')}
@@ -417,7 +429,7 @@ export default function OrdersScreen() {
                         {order.user?.name || order.name || customersMap[order.user]?.name || customersMap[order.customerId]?.name || 'Cliente Desconhecido'}
                       </div>
                       <div className="text-muted small text-truncate" style={{maxWidth: '220px'}} title={`${order.pickupAddress?.address || order.origin} -> ${order.deliveryAddress?.address || order.destination}`}>
-                        {(order.pickupAddress?.address || order.origin || 'N/A').split(',')[0]} <FontAwesomeIcon icon={faMapMarkerAlt} className="mx-1 text-primary-custom"/> {(order.deliveryAddress?.address || order.destination || 'N/A').split(',')[0]}
+                        {(order.pickupAddress?.address || order.origin || 'N/A').split(',')[0]} <FontAwesomeIcon icon={faMapMarkerAlt} className="mx-1 text-primary-custom"/> {order.deliveryStops && order.deliveryStops.length > 0 ? `${order.deliveryStops.length} paragens` : (order.deliveryAddress?.address || order.destination || 'N/A').split(',')[0]}
                       </div>
                     </td>
                     <td>
@@ -434,7 +446,13 @@ export default function OrdersScreen() {
                       )}
                     </td>
                     <td>
-                      <div className="fw-bold text-dark fs-5"><FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-1" /> {Number(order.totalPrice || order.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</div>
+                      <div className="fw-bold text-dark fs-6">
+                        <FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-1" /> 
+                        {Number(order.itemsPrice || order.totalPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                      </div>
+                      <small className="text-muted d-block" style={{ fontSize: '0.78rem' }}>
+                        🛵 Entrega: {Number(order.addressPrice || order.deliveryFee || order.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                      </small>
                     </td>
                     <td>
                       <span className={`badge rounded-pill px-3 py-2 fw-bold ${getStatusBadgeClass(order.status)}`}>
@@ -501,10 +519,18 @@ export default function OrdersScreen() {
                       <span className="badge bg-info text-dark"><FontAwesomeIcon icon={faBolt} className="me-1"/>Para agora</span>
                     )}
                   </div>
-                  <span className={`badge rounded-pill px-3 py-2 fw-bold ${getStatusBadgeClass(selectedOrder.status)}`}>
-                    <FontAwesomeIcon icon={getStatusIcon(selectedOrder.status)} className="me-2" />
-                    {selectedOrder.status}
-                  </span>
+                  <div className="d-flex align-items-center gap-2">
+                    <button 
+                      className="btn btn-outline-primary btn-sm rounded-pill fw-bold"
+                      onClick={() => window.open(`${api.defaults.baseURL || 'http://localhost:5000/api'}/orders/${selectedOrder._id}/receipt`, '_blank')}
+                    >
+                      <FontAwesomeIcon icon={faFileAlt} className="me-1" /> Descarregar Recibo (PDF)
+                    </button>
+                    <span className={`badge rounded-pill px-3 py-2 fw-bold ${getStatusBadgeClass(selectedOrder.status)}`}>
+                      <FontAwesomeIcon icon={getStatusIcon(selectedOrder.status)} className="me-2" />
+                      {selectedOrder.status}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="row g-4 mb-4">
@@ -636,6 +662,164 @@ export default function OrdersScreen() {
                     </div>
                   )}
                 </div>
+
+                {/* Paragens de Entrega Multi-Destino (Se existirem) */}
+                {selectedOrder.deliveryStops && selectedOrder.deliveryStops.length > 0 && (
+                  <div className="mb-4">
+                    <h6 className="fw-bold mb-3 text-secondary">
+                      <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2 text-primary-custom"/>
+                      Itinerário de Paragens Multi-Destino ({selectedOrder.deliveryStops.length} Paragens)
+                    </h6>
+                    <div className="bg-light rounded-4 p-3 border">
+                      <div className="table-responsive">
+                        <table className="table table-sm table-bordered bg-white align-middle m-0 small">
+                          <thead className="table-light">
+                            <tr>
+                              <th>#</th>
+                              <th>Endereço do Destino</th>
+                              <th>Destinatário</th>
+                              <th>Contacto</th>
+                              <th>Volumes</th>
+                              <th>Estado Paragem</th>
+                              <th>Comprovativo / OTP</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedOrder.deliveryStops.map((stop, sIdx) => (
+                              <tr key={stop._id || sIdx}>
+                                <td className="fw-bold text-center">{stop.sequence || sIdx + 1}</td>
+                                <td>{stop.address}</td>
+                                <td className="fw-bold text-dark">{stop.recipientName}</td>
+                                <td>{stop.recipientPhone}</td>
+                                <td><span className="badge bg-purple text-white px-2 py-1" style={{ backgroundColor: '#6f42c1' }}>{stop.packages || 1} vol</span></td>
+                                <td>
+                                  <span className={`badge px-2 py-1 ${
+                                    stop.status === 'DELIVERED' ? 'bg-success' :
+                                    stop.status === 'FAILED' ? 'bg-danger' :
+                                    stop.status === 'ARRIVED' ? 'bg-info text-dark' : 'bg-secondary'
+                                  }`}>
+                                    {stop.status === 'DELIVERED' ? 'ENTREGUE ✓' :
+                                     stop.status === 'FAILED' ? `FALHOU (${stop.failureReason || 'Ocorrência'})` :
+                                     stop.status === 'ARRIVED' ? 'NO LOCAL' : 'PENDENTE'}
+                                  </span>
+                                </td>
+                                <td>
+                                  {stop.proofOfDelivery?.otpVerified ? (
+                                    <span className="text-success fw-bold">✓ OTP Validado ({stop.proofOfDelivery.otp})</span>
+                                  ) : stop.proofOfDelivery?.otp ? (
+                                    <span className="text-muted">OTP: {stop.proofOfDelivery.otp}</span>
+                                  ) : (
+                                    <span className="text-muted">Pendente</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fotografias do Veículo (Se existirem) */}
+                {selectedOrder.vehiclePhotos && (
+                  <div className="mb-4">
+                    <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faCar} className="me-2"/>Fotografias do Veículo (4 Lados)</h6>
+                    <div className="bg-light rounded-4 p-3 border">
+                      <div className="row g-3">
+                        {[
+                          { label: 'Frente', url: selectedOrder.vehiclePhotos.front },
+                          { label: 'Traseira', url: selectedOrder.vehiclePhotos.rear },
+                          { label: 'Lado Esquerdo', url: selectedOrder.vehiclePhotos.leftSide },
+                          { label: 'Lado Direito', url: selectedOrder.vehiclePhotos.rightSide },
+                        ].map((photo, pIdx) => (
+                          <div key={pIdx} className="col-6 col-md-3 text-center">
+                            {photo.url ? (
+                              <a href={photo.url} target="_blank" rel="noreferrer" className="d-block text-decoration-none">
+                                <img src={photo.url} alt={photo.label} className="img-thumbnail rounded-3 shadow-sm mb-1" style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                                <span className="small text-muted fw-bold d-block">{photo.label}</span>
+                              </a>
+                            ) : (
+                              <div className="bg-white rounded-3 p-3 border text-muted small">{photo.label}: Indisponível</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Histórico e Monitoria de Negociação de Valor */}
+                {(selectedOrder.negotiationHistory?.length > 0 || (selectedOrder.negotiationState && selectedOrder.negotiationState !== 'NONE')) && (
+                  <div className="mb-4">
+                    <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faExchangeAlt} className="me-2"/>Histórico e Monitoria de Negociação</h6>
+                    <div className="bg-light rounded-4 p-3 border">
+                      <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-3 border-bottom gap-2">
+                        <div>
+                          <span className="text-muted small d-block">Estado da Negociação</span>
+                          <span className={`badge px-3 py-2 fw-bold ${selectedOrder.negotiationState === 'ACCEPTED' ? 'bg-success' : selectedOrder.negotiationState?.startsWith('PENDING') ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                            {selectedOrder.negotiationState === 'ACCEPTED' ? 'Aceite / Concluída' : selectedOrder.negotiationState === 'PENDING_CUSTOMER' ? 'Aguardando Resposta do Cliente' : selectedOrder.negotiationState === 'PENDING_PROVIDER' ? 'Aguardando Resposta do Prestador' : 'Rejeitada / Expirada'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted small d-block">Preço Base Inicial</span>
+                          <span className="fw-bold text-dark fs-6">{(selectedOrder.basePrice || selectedOrder.deliveryPrice || 0).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
+                        </div>
+                        {selectedOrder.finalAgreedPrice > 0 && (
+                          <div>
+                            <span className="text-muted small d-block">Preço Final Acordado</span>
+                            <span className="fw-bold text-success fs-5">{selectedOrder.finalAgreedPrice.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-muted small d-block">Rondas Efetuadas</span>
+                          <span className="badge bg-primary-custom px-3 py-2">{selectedOrder.negotiationRoundCount || 0} / {selectedOrder.maxNegotiationRounds || 3}</span>
+                        </div>
+                      </div>
+
+                      {selectedOrder.negotiationHistory && selectedOrder.negotiationHistory.length > 0 ? (
+                        <div className="table-responsive">
+                          <table className="table table-sm table-bordered bg-white align-middle m-0 small">
+                            <thead className="table-light">
+                              <tr>
+                                <th>#</th>
+                                <th>Proposto Por</th>
+                                <th>Valor Proposto</th>
+                                <th>Nota / Motivo</th>
+                                <th>Estado</th>
+                                <th>Data / Hora</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedOrder.negotiationHistory.map((h, hIdx) => (
+                                <tr key={hIdx}>
+                                  <td className="fw-bold text-muted">{hIdx + 1}</td>
+                                  <td className="fw-bold">
+                                    {h.proposedBy === 'CUSTOMER' ? (
+                                      <span className="text-primary"><FontAwesomeIcon icon={faUser} className="me-1"/>Cliente</span>
+                                    ) : (
+                                      <span className="text-warning text-dark"><FontAwesomeIcon icon={faMotorcycle} className="me-1"/>Prestador/Motorista</span>
+                                    )}
+                                  </td>
+                                  <td className="fw-bold text-dark">{Number(h.amount).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</td>
+                                  <td className="text-muted">{h.note || 'Sem nota'}</td>
+                                  <td>
+                                    <span className={`badge ${h.status === 'ACCEPTED' ? 'bg-success' : h.status === 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                                      {h.status === 'ACCEPTED' ? 'Aceite' : h.status === 'REJECTED' ? 'Rejeitado' : 'Pendente'}
+                                    </span>
+                                  </td>
+                                  <td className="text-muted">{new Date(h.timestamp || Date.now()).toLocaleString('pt-PT')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-muted small text-center py-2">Sem histórico de rondas registadas.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Produtos (Se existirem) */}
                 {selectedOrder.products && selectedOrder.products.length > 0 && (

@@ -1,4 +1,4 @@
-// src/navigation/routes.ts
+﻿// src/navigation/routes.ts
 export type RootStackParamList = {
   Login: undefined;
   Onboarding: undefined;
@@ -15,6 +15,7 @@ export type RootStackParamList = {
   EditProfile?: undefined;
   BanAppeal: { banReason?: string } | undefined;
   TripChat: { tripId: string; tripRef?: string };
+  MultiStopTrip: { trip: any };
 };
 
 
@@ -33,4 +34,5 @@ export const ROUTES = {
   UPDATE_PROFILE: "EditProfile",
   BAN_APPEAL: "BanAppeal",
   TRIP_CHAT: "TripChat",
+  MULTI_STOP_TRIP: "MultiStopTrip",
 } as const;

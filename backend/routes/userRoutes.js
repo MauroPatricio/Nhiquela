@@ -1,5 +1,6 @@
 import express from 'express';
 import User from '../models/UserModel.js';
+import Role from '../models/roleModel.js';
 import { baseUrl, generateToken, isAdmin, isAuth, isDeliveryMan, sendAdminNotificationEmail, sendUserBlockStatusEmail } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
@@ -22,23 +23,122 @@ userRouter.get(
   // isAdmin,
   expressAsyncHandler(async (req, res) => {
     try {
-      const page = req.query.page || 1;
-      const pageSize = 10;
+      if (req.query.page || req.query.limit) {
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.limit) || 10;
 
-      const users = await User.find({ isDeleted: { $ne: true } })
-        .skip(pageSize * (page - 1))
-        .limit(pageSize)
-        .sort({ createdAt: -1 })
-        .populate('seller.tipoEstabelecimento'); // Adicionado populate para tipoEstabelecimento
+        const users = await User.find({ isDeleted: { $ne: true } })
+          .skip(pageSize * (page - 1))
+          .limit(pageSize)
+          .sort({ createdAt: -1 })
+          .populate('roleId')
+          .populate('seller.tipoEstabelecimento');
 
-      const countUsers = await User.countDocuments({ isDeleted: { $ne: true } });
-      const pages = Math.ceil(countUsers / pageSize);
+        const countUsers = await User.countDocuments({ isDeleted: { $ne: true } });
+        const pages = Math.ceil(countUsers / pageSize);
 
-      res.send({ users, pages });
+        res.send({ users, pages, page, totalUsers: countUsers });
+      } else {
+        const users = await User.find({ isDeleted: { $ne: true } })
+          .sort({ createdAt: -1 })
+          .populate('roleId')
+          .populate('seller.tipoEstabelecimento');
+
+        res.send({ users, pages: 1, totalUsers: users.length });
+      }
     } catch (e) {
       console.log(e);
-      res.status(500).send({ message: 'Erro ao buscar usu�rios' });
+      res.status(500).send({ message: 'Erro ao buscar utilizadores' });
     }
+  })
+);
+
+// Notify Admin for Approval
+userRouter.post(
+  '/notify-approval',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        if (user.isApproved) {
+          return res.status(400).send({ message: 'A sua conta já se encontra aprovada.' });
+        }
+        
+        const subject = 'Novo pedido de aprovação pendente';
+        const textHtml = `O utilizador <strong>${user.name}</strong> (${user.email}) acabou de notificar a administração e aguarda a aprovação da sua conta para poder começar a operar.<br/><br/>Por favor, aceda ao painel de administração para rever os dados do utilizador.`;
+        
+        await sendAdminNotificationEmail(subject, textHtml);
+        
+        res.send({ message: 'Administração notificada com sucesso.' });
+      } else {
+        res.status(404).send({ message: 'Utilizador não encontrado.' });
+      }
+    } catch (error) {
+      console.error('Error notifying admin:', error);
+      res.status(500).send({ message: 'Erro ao notificar a administração.' });
+    }
+  })
+);
+
+// Admin Create User
+userRouter.post(
+  '/',
+  isAuth,
+  isAdmin,
+  expressAsyncHandler(async (req, res) => {
+    const { name, email, phoneNumber, password, roleId, isAdmin: adminRole, isSeller, isDeliveryMan, isShopper, planId, services } = req.body;
+    
+    if (!name || !email) {
+      return res.status(400).send({ message: 'Nome e Email são obrigatórios.' });
+    }
+    const userExist = await User.findOne({ email });
+    if (userExist) {
+      return res.status(409).send({ message: 'Já existe um utilizador registado com este email.' });
+    }
+
+    let assignedRole = null;
+    if (roleId && mongoose.Types.ObjectId.isValid(roleId)) {
+      const roleDoc = await Role.findById(roleId);
+      if (roleDoc) assignedRole = roleDoc.code;
+    }
+
+    const rawPassword = password || 'password123';
+    const newUser = new User({
+      name,
+      email,
+      phoneNumber: phoneNumber || '',
+      password: bcrypt.hashSync(rawPassword, 8),
+      roleId: roleId && mongoose.Types.ObjectId.isValid(roleId) ? roleId : null,
+      role: assignedRole || (Boolean(adminRole) ? 'ADMIN' : (Boolean(isSeller) ? 'SELLER' : (Boolean(isDeliveryMan) ? 'DRIVER' : 'CLIENT'))),
+      isAdmin: Boolean(adminRole),
+      isSeller: Boolean(isSeller),
+      isDeliveryMan: Boolean(isDeliveryMan),
+      isShopper: Boolean(isShopper),
+      planId: planId || null,
+      services: services || [],
+      isApproved: true
+    });
+
+    if (newUser.isSeller) {
+      newUser.seller = {
+        name: name,
+        openstore: false
+      };
+    }
+
+    if (newUser.isDeliveryMan) {
+      newUser.deliveryman = {
+        name: name,
+        phoneNumber: phoneNumber || '',
+        register_conformance: "CONFORMANCE"
+      };
+      newUser.status = 'Disponível';
+      newUser.availability = 'active';
+    }
+
+    const createdUser = await newUser.save();
+    res.status(201).send({ message: 'Utilizador criado com sucesso.', user: createdUser });
   })
 );
 
@@ -161,10 +261,25 @@ userRouter.get(
       }
 
       // Filtrar por carteira: saldo mínimo de 50 MT (exceto se primeira venda gratuita)
+      const Provider = mongoose.model('Provider');
       const Wallet = mongoose.model('Wallet');
-      const sellerIds = uniqueSellers.map(s => s._id);
-      const wallets = await Wallet.find({ ownerId: { $in: sellerIds }, ownerType: 'seller' });
-      const walletMap = new Map(wallets.map(w => [w.ownerId.toString(), w]));
+      const sellerUserIds = uniqueSellers.map(s => s._id);
+
+      const providers = await Provider.find({ userId: { $in: sellerUserIds } }, '_id userId');
+      const providerIds = providers.map(p => p._id);
+
+      const wallets = await Wallet.find({
+        $or: [
+          { ownerId: { $in: [...sellerUserIds, ...providerIds] } },
+          { userId: { $in: sellerUserIds } }
+        ]
+      });
+
+      const walletMap = new Map();
+      wallets.forEach(w => {
+        if (w.userId) walletMap.set(w.userId.toString(), w);
+        if (w.ownerId) walletMap.set(w.ownerId.toString(), w);
+      });
 
       const visibleSellers = uniqueSellers.filter(s => {
         if (!s.seller?.hasUsedFreeSale) return true; // Primeira venda gratuita
@@ -330,6 +445,87 @@ userRouter.delete(
     }
   })
 );
+
+// PUT /api/users/seller/location (Permite editar/atualizar a localização do estabelecimento do vendedor)
+userRouter.put(
+  '/seller/location',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+      if (!user) {
+        return res.status(404).send({ message: 'Usuário não encontrado.' });
+      }
+
+      if (!user.isSeller) {
+        return res.status(400).send({ message: 'A conta do utilizador não é um perfil de vendedor.' });
+      }
+
+      const { address, province, latitude, longitude } = req.body;
+
+      if (!user.seller) user.seller = {};
+
+      if (address !== undefined) user.seller.address = address;
+      if (province !== undefined) {
+        if (mongoose.Types.ObjectId.isValid(province)) {
+          user.seller.province = province;
+        } else {
+          const Province = mongoose.model('Province');
+          const foundProv = await Province.findOne({ name: { $regex: new RegExp(`^${province}$`, 'i') } });
+          if (foundProv) user.seller.province = foundProv._id;
+        }
+      }
+      if (latitude !== undefined) user.seller.latitude = String(latitude);
+      if (longitude !== undefined) user.seller.longitude = String(longitude);
+
+      // Sincronizar localização geográfica no modelo User
+      const latNum = parseFloat(user.seller.latitude);
+      const lngNum = parseFloat(user.seller.longitude);
+      if (!isNaN(latNum) && !isNaN(lngNum)) {
+        user.latitude = String(latNum);
+        user.longitude = String(lngNum);
+        user.location = user.seller.address || user.location;
+        user.locationGeo = {
+          type: 'Point',
+          coordinates: [lngNum, latNum]
+        };
+      }
+
+      await user.save();
+
+      // Sincronizar no Provider vinculado
+      try {
+        const Provider = mongoose.model('Provider');
+        let provider = await Provider.findOne({ $or: [{ userId: user._id }, { ownerId: user._id }] });
+        if (provider) {
+          provider.location = {
+            lat: user.seller.latitude,
+            lng: user.seller.longitude,
+            address: user.seller.address,
+            province: user.seller.province
+          };
+          await provider.save();
+        }
+      } catch (provErr) {
+        console.error('Erro ao sincronizar Provider location:', provErr);
+      }
+
+      const updatedUser = await User.findById(user._id)
+        .populate('seller.province')
+        .populate('seller.tipoEstabelecimento');
+
+      res.send({
+        message: 'Localização do estabelecimento atualizada com sucesso.',
+        seller: updatedUser.seller,
+        locationGeo: updatedUser.locationGeo
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar localização do vendedor:', error);
+      res.status(500).send({ message: 'Erro ao atualizar a localização do estabelecimento.', error: error.message });
+    }
+  })
+);
+
 userRouter.put(
   '/profile',
   isAuth,
@@ -370,12 +566,30 @@ userRouter.put(
             alternativeAccountType: req.body.alternativeAccountType || req.body.seller?.alternativeAccountType || currentSeller.alternativeAccountType,
             alternativeAccountNumber: req.body.alternativeAccountNumber || req.body.seller?.alternativeAccountNumber || currentSeller.alternativeAccountNumber,
             workDayAndTime: req.body.workDaysWithTime || req.body.seller?.workDayAndTime || currentSeller.workDayAndTime,
-            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento || currentSeller.tipoEstabelecimento
+            tipoEstabelecimento: req.body.tipoEstabelecimento || req.body.seller?.tipoEstabelecimento || currentSeller.tipoEstabelecimento,
+            openstore: req.body.openstore !== undefined ? Boolean(req.body.openstore) : (req.body.seller?.openstore !== undefined ? Boolean(req.body.seller.openstore) : (currentSeller.openstore !== false))
           };
+
+          if (req.body.openstore !== undefined) {
+            user.seller.storeStatus = req.body.openstore ? 'OPEN' : 'CLOSED_BY_SUPPLIER';
+          }
+
+          // Sincronizar localização geográfica no modelo User
+          const latNum = parseFloat(user.seller.latitude);
+          const lngNum = parseFloat(user.seller.longitude);
+          if (!isNaN(latNum) && !isNaN(lngNum)) {
+            user.latitude = String(latNum);
+            user.longitude = String(lngNum);
+            user.location = user.seller.address || user.location;
+            user.locationGeo = {
+              type: 'Point',
+              coordinates: [lngNum, latNum]
+            };
+          }
 
           try {
             const Provider = mongoose.model('Provider');
-            let provider = await Provider.findOne({ userId: user._id, providerType: 'BUSINESS' });
+            let provider = await Provider.findOne({ userId: user._id });
             if (!provider) {
               provider = new Provider({ userId: user._id, providerType: 'BUSINESS', status: 'active' });
             }
@@ -487,6 +701,19 @@ userRouter.put(
       user.isDeliveryMan = Boolean(req.body.isDeliveryMan !== undefined ? req.body.isDeliveryMan : user.isDeliveryMan);
       user.isApproved = Boolean(req.body.isApproved !== undefined ? req.body.isApproved : user.isApproved);
       user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
+
+      if (req.body.roleId !== undefined) {
+        if (req.body.roleId && mongoose.Types.ObjectId.isValid(req.body.roleId)) {
+          user.roleId = req.body.roleId;
+          const roleDoc = await Role.findById(req.body.roleId);
+          if (roleDoc) {
+            user.role = roleDoc.code;
+          }
+        } else {
+          user.roleId = null;
+          user.role = user.isAdmin ? 'ADMIN' : (user.isSeller ? 'SELLER' : (user.isDeliveryMan ? 'DRIVER' : 'CLIENT'));
+        }
+      }
 
       // Se o Admin atualizar os dados do Seller (Fornecedor)
       if (user.isSeller && req.body.seller) {
@@ -770,8 +997,8 @@ userRouter.put(
         const isFreeSaleAvailable = user.seller?.free_sale_available !== false && !user.seller?.free_sale_used;
 
         if (!isFreeSaleAvailable) {
-          const Wallet = mongoose.model('Wallet');
-          const wallet = await Wallet.findOne({ ownerId: user._id, ownerType: 'seller' });
+          const { getWallet } = await import('../services/walletService.js');
+          const wallet = await getWallet(user._id, 'seller');
           if (!wallet || wallet.balance < minBalance) {
             return res.status(400).send({ 
               message: `Não é possível abrir a loja. O saldo mínimo de segurança da sua carteira deve ser de ${minBalance.toFixed(2)} MT. Efetue um carregamento para poder receber pedidos.` 
@@ -895,8 +1122,8 @@ userRouter.patch(
       const isFreeSaleAvailable = user.seller?.free_sale_available !== false && !user.seller?.free_sale_used;
 
       if (!isFreeSaleAvailable) {
-        const Wallet = mongoose.model('Wallet');
-        const wallet = await Wallet.findOne({ ownerId: user._id, ownerType: 'seller' });
+        const { getWallet } = await import('../services/walletService.js');
+        const wallet = await getWallet(user._id, 'seller');
         if (!wallet || wallet.balance < minBalance) {
           return res.status(400).json({ 
             message: `Não é possível abrir a loja. O saldo mínimo de segurança da sua carteira deve ser de ${minBalance.toFixed(2)} MT. Efetue um carregamento para poder receber pedidos.` 
@@ -1136,7 +1363,9 @@ userRouter.post('/verify-otp', expressAsyncHandler(async (req, res) => {
     photo: user.photo,
     email: user.email,
     phoneNumber: user.phoneNumber,
-    isDeliveryMan: user.isDeliveryMan,
+    role: user.role || (user.isAdmin ? 'ADMIN' : (user.isSeller ? 'SELLER' : (user.isDeliveryMan ? 'DRIVER' : 'CLIENT'))),
+    roleId: user.roleId || null,
+    isDeliveryMan: user.isDeliveryMan || user.role === 'DRIVER',
     deliveryman: user.deliveryman,
     savedLocations: user.savedLocations || [],
     createdAt: user.createdAt,
@@ -1286,13 +1515,15 @@ userRouter.post(
     const userObj = {
       _id: user._id,
       email: user.email,
+      role: user.role || (user.isAdmin ? 'ADMIN' : (user.isSeller ? 'SELLER' : (user.isDeliveryMan ? 'DRIVER' : 'CLIENT'))),
+      roleId: user.roleId || null,
       photo: user.profileImage || user.photo || null,       // compatibilidade com apps antigas
       profileImage: user.profileImage || user.photo || null, // campo real da BD
-      isAdmin: user.isAdmin,
+      isAdmin: user.isAdmin || user.role === 'ADMIN',
       isApproved: user.isApproved,
       isBanned: user.isBanned,
-      isDeliveryMan: user.isDeliveryMan,
-      isSeller: user.isSeller,
+      isDeliveryMan: user.isDeliveryMan || user.role === 'DRIVER',
+      isSeller: user.isSeller || user.role === 'SELLER',
       isShopper: user.isShopper || false,
       assignedEstablishments: user.assignedEstablishments || [],
       name: user.name,
@@ -1377,14 +1608,23 @@ userRouter.post(
         if (!req.body.password) {
           return res.status(400).send({ message: 'A palavra-passe � obrigat�ria' });
         }
+        let defaultRoleCode = 'CLIENT';
+        if (req.body.isDeliveryMan) defaultRoleCode = 'DRIVER';
+        else if (req.body.isSeller) defaultRoleCode = 'SELLER';
+        else if (req.body.isPartner) defaultRoleCode = 'PARTNER';
+
+        const roleDoc = await Role.findOne({ code: defaultRoleCode });
+
         const newUser = new User({
           name: req.body.name,
           phoneNumber: req.body.phoneNumber,
           email: req.body.email,
           password: bcrypt.hashSync(req.body.password),
-          isSeller: req.body.isSeller,
-          isDeliveryMan: req.body.isDeliveryMan,
-          isShopper: req.body.isShopper,
+          role: defaultRoleCode,
+          roleId: roleDoc ? roleDoc._id : null,
+          isSeller: Boolean(req.body.isSeller),
+          isDeliveryMan: Boolean(req.body.isDeliveryMan),
+          isShopper: Boolean(req.body.isShopper),
           profileImage: req.body.profileImage || null,
         });
 

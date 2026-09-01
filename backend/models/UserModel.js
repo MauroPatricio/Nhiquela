@@ -16,7 +16,15 @@ const modelSchema = new mongoose.Schema({
     isAdmin: { type: Boolean, default: false },
     isDeliveryMan: { type: Boolean, default: false },
     isSeller: { type: Boolean, default: false },
-    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' }, // Nova referência para Role dinâmica
+    isOperator: { type: Boolean, default: false },
+    isPartner: { type: Boolean, default: false },
+    role: {
+        type: String,
+        enum: ['CLIENT', 'DRIVER', 'SELLER', 'OPERATOR', 'PARTNER', 'ADMIN'],
+        default: 'CLIENT'
+    },
+    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' }, // Referência para Role dinâmica
+    partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', default: null }, // Vinculação a um parceiro único
     preferredPaymentMethod: { type: mongoose.Schema.Types.ObjectId, ref: 'PaymentMethod' },
     // Reputation counters (denormalized for fast access)
     totalOrders: { type: Number, default: 0 },

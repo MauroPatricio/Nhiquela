@@ -151,6 +151,14 @@ export default function WalletScreen({ navigation, route }: any) {
         });
         setDailyEarnings(earningsRes.value.data.dailyEarnings || []);
       }
+
+      // Sincronizar o perfil global no AuthContext
+      api.get('/drivers/me', { headers }).then(res => {
+        if (res.data && updateUser) {
+          updateUser(res.data);
+          AsyncStorage.setItem('@app:user', JSON.stringify(res.data));
+        }
+      }).catch(() => {});
     } catch (error: any) {
       console.error('Erro ao buscar dados da carteira:', error.message);
     } finally {

@@ -151,39 +151,60 @@ export default function ServicesTab() {
       // Buscar todas as subcategorias de provedores em vez do antigo catálogo
       const { data } = await api.get('/provider-subcategories');
       
-      // Agrupar subcategorias pelo seu ProviderType (ex: "Serviços Domésticos", "Motoristas", etc)
       const grouped = {};
+      const itemsList = Array.isArray(data) ? data : [];
       
-      data.forEach((sub) => {
+      itemsList.forEach((sub) => {
         // Ignorar categorias inativas
         if (sub.isActive === false) return;
 
-        // Filtrar opcionalmente apenas as que pertencem a "Service"
-        const classif = sub.providerTypeId?.classificationId?.name?.toLowerCase();
-        if (classif === 'service' || classif === 'serviços' || classif === 'serviço') {
-          let typeName = sub.providerTypeId?.name || "Outros Serviços";
-          if (typeName.toLowerCase() === 'motoristas' || typeName.toLowerCase() === 'motorista') {
-            typeName = 'Serviços disponíveis';
-          }
-          const typeId = sub.providerTypeId?._id || typeName;
-          
-          if (!grouped[typeId]) {
-            grouped[typeId] = { _id: typeId, name: typeName, services: [] };
-          }
-          
-          // Mapear para o formato esperado pelo layout antigo
-          grouped[typeId].services.push({
-            ...sub,
-            description: (sub.description && sub.description.trim()) || (sub.providerTypeId && sub.providerTypeId.description && sub.providerTypeId.description.trim()) || ' ',
-            icon: sub.iconUrl || sub.icon || 'toolbox-outline'
-          });
+        let typeName = "Serviços disponíveis";
+        const typeId = 'services_group';
+        
+        if (!grouped[typeId]) {
+          grouped[typeId] = { _id: typeId, name: typeName, services: [] };
         }
+        
+        grouped[typeId].services.push({
+          ...sub,
+          description: (sub.description && sub.description.trim()) || (sub.providerTypeId && sub.providerTypeId.description && sub.providerTypeId.description.trim()) || 'Serviço disponível',
+          icon: sub.iconUrl || sub.icon || 'toolbox-outline'
+        });
       });
+
+      let finalCatalog = Object.values(grouped);
+
+      // Fallback caso a base de dados não tenha subcategorias cadastradas ainda
+      if (finalCatalog.length === 0) {
+        finalCatalog = [
+          {
+            _id: 'default_cat',
+            name: 'Serviços Disponíveis',
+            services: [
+              { _id: 's_reboque', name: 'Reboque Auto', description: 'Assistência rápida de reboque na estrada 24/7', icon: 'tow-truck' },
+              { _id: 's_mudancas', name: 'Mudanças & Cargas', description: 'Transporte de móveis e mercadorias com segurança', icon: 'truck-outline' },
+              { _id: 's_gas', name: 'Gás Doméstico', description: 'Entrega rápida de botijões de gás em casa', icon: 'gas-cylinder' },
+              { _id: 's_entregas', name: 'Entregas Rápidas', description: 'Envio de encomendas e documentos em minutos', icon: 'package-variant-closed' }
+            ]
+          }
+        ];
+      }
       
-      setCatalog(Object.values(grouped));
+      setCatalog(finalCatalog);
     } catch (error) {
-      console.error('Erro ao buscar o catálogo de serviços:', error);
-      toast.show('Erro ao carregar serviços.', { type: 'danger' });
+      console.error('Erro ao buscar o catálogo de serviços, a usar catálogo de reserva:', error);
+      setCatalog([
+        {
+          _id: 'default_cat',
+          name: 'Serviços Disponíveis',
+          services: [
+            { _id: 's_reboque', name: 'Reboque Auto', description: 'Assistência rápida de reboque na estrada 24/7', icon: 'tow-truck' },
+            { _id: 's_mudancas', name: 'Mudanças & Cargas', description: 'Transporte de móveis e mercadorias com segurança', icon: 'truck-outline' },
+            { _id: 's_gas', name: 'Gás Doméstico', description: 'Entrega rápida de botijões de gás em casa', icon: 'gas-cylinder' },
+            { _id: 's_entregas', name: 'Entregas Rápidas', description: 'Envio de encomendas e documentos em minutos', icon: 'package-variant-closed' }
+          ]
+        }
+      ]);
     } finally {
       setLoading(false);
     }

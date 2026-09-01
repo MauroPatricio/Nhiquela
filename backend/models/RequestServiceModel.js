@@ -27,6 +27,49 @@ const requestServiceSchema = new mongoose.Schema(
       lat: { type: Number },
       lng: { type: Number }
     }],
+    deliveryStops: [{
+      sequence: { type: Number, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      address: { type: String, required: true },
+      recipientName: { type: String, required: true },
+      recipientPhone: { type: String, required: true },
+      packages: { type: Number, default: 1 },
+      description: { type: String },
+      notes: { type: String },
+      status: {
+        type: String,
+        enum: ['PENDING', 'ARRIVING', 'ARRIVED', 'IN_DELIVERY', 'DELIVERED', 'FAILED', 'SKIPPED', 'CANCELLED'],
+        default: 'PENDING'
+      },
+      estimatedArrival: { type: Date },
+      actualArrival: { type: Date },
+      deliveredAt: { type: Date },
+      failureReason: { type: String },
+      failureNotes: { type: String },
+      proofOfDelivery: {
+        otp: { type: String },
+        otpVerified: { type: Boolean, default: false },
+        photo: { type: String },
+        signature: { type: String },
+        latitude: { type: Number },
+        longitude: { type: Number },
+        timestamp: { type: Date }
+      }
+    }],
+    multiStopStatus: {
+      type: String,
+      enum: ['DRAFT', 'PENDING', 'SEARCHING_DRIVER', 'DRIVER_ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'IN_PROGRESS', 'PARTIALLY_DELIVERED', 'DELIVERED', 'CANCELLED'],
+      default: 'PENDING'
+    },
+    auditTrail: [{
+      action: { type: String },
+      oldState: { type: mongoose.Schema.Types.Mixed },
+      newState: { type: mongoose.Schema.Types.Mixed },
+      performedBy: { type: String },
+      reason: { type: String },
+      timestamp: { type: Date, default: Date.now }
+    }],
     paymentOption: { type: String, require: true },
     description: { type: String, require: true },
     paymentMethod: { type: String, require: true },
@@ -92,6 +135,35 @@ const requestServiceSchema = new mongoose.Schema(
       transport_registration: {type: String},
       pricetopay: { type: Number },
     },
+
+    // ==========================================
+    // FOTOS DO VEÍCULO E NEGOCIAÇÃO DE VALOR
+    // ==========================================
+    vehiclePhotos: {
+      front: { type: String },
+      rear: { type: String },
+      leftSide: { type: String },
+      rightSide: { type: String }
+    },
+
+    basePrice: { type: Number },
+    finalAgreedPrice: { type: Number },
+    negotiationState: {
+      type: String,
+      enum: ['NONE', 'NEGOTIATING', 'PENDING_CUSTOMER', 'PENDING_PROVIDER', 'ACCEPTED', 'REJECTED', 'EXPIRED'],
+      default: 'NONE'
+    },
+    negotiationRoundCount: { type: Number, default: 0 },
+    maxNegotiationRounds: { type: Number, default: 3 },
+    negotiationHistory: [
+      {
+        proposedBy: { type: String, enum: ['PROVIDER', 'CUSTOMER'] },
+        amount: { type: Number, required: true },
+        note: { type: String },
+        status: { type: String, enum: ['PROPOSED', 'ACCEPTED', 'REJECTED'] },
+        timestamp: { type: Date, default: Date.now }
+      }
+    ],
 
     // ==========================================
     // PRICING SNAPSHOT (calculado server-side no momento da criação — IMUTÁVEL)

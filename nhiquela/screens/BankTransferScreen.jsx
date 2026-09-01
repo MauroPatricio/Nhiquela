@@ -95,7 +95,7 @@ const BankTransferScreen = () => {
         itemsPrice,
         ivaTax: iva,
         addressPrice: deliveryPrice,
-        itemsPriceForSeller: totalSellerEarningsAfterDiscount + deliveryPrice,
+        itemsPriceForSeller: totalSellerEarningsAfterDiscount,
         isPaid: false,
         user: userData,
         customerId: userData,
