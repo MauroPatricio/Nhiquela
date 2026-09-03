@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
-  Alert, Modal, TextInput, StatusBar, ActivityIndicator, Animated, Linking
+  Alert, Modal, TextInput, StatusBar, ActivityIndicator, Animated, Linking, Platform
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,6 +75,71 @@ const OrderDetail = ({ navigation }) => {
   const [radius, setRadius] = useState(5);
   const [rejectedDriverIds, setRejectedDriverIds] = useState([]);
   const [selectedDriverForRequest, setSelectedDriverForRequest] = useState(null);
+
+  const [digitalKeyInput, setDigitalKeyInput] = useState('');
+  const [digitalInstructionsInput, setDigitalInstructionsInput] = useState('');
+  const [sendingDigitalKey, setSendingDigitalKey] = useState(false);
+
+  // Auto-prefill digital instructions recorded during product registration
+  useEffect(() => {
+    const prefillDigitalInstructions = async () => {
+      if (!currentOrder || !currentOrder.orderItems || currentOrder.orderItems.length === 0) return;
+
+      const firstItem = currentOrder.orderItems[0];
+      let instructions = firstItem.digitalInstructions || 
+                         firstItem.product?.digitalInstructions || 
+                         currentOrder.digitalInstructions || '';
+
+      if (!instructions) {
+        const prodId = firstItem.product?._id || firstItem.product || firstItem._id || firstItem.id;
+        if (prodId && typeof prodId === 'string') {
+          try {
+            const res = await api.get(`/products/${prodId}`);
+            if (res.data && res.data.digitalInstructions) {
+              instructions = res.data.digitalInstructions;
+            }
+          } catch (err) {
+            console.log('Error fetching product digital instructions:', err.message);
+          }
+        }
+      }
+
+      if (instructions) {
+        setDigitalInstructionsInput(instructions);
+      }
+    };
+
+    prefillDigitalInstructions();
+  }, [currentOrder]);
+
+  const handleDeliverDigitalKey = async () => {
+    if (!digitalKeyInput.trim() && !digitalInstructionsInput.trim()) {
+      toast.show('Insira a chave/senha ou instruções de ativação.', { type: 'warning', placement: 'top' });
+      return;
+    }
+    setSendingDigitalKey(true);
+    try {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      const token = storedUserData ? JSON.parse(storedUserData).token : '';
+      const { data } = await api.post(`/orders/${currentOrder._id}/deliver-digital-key`, {
+        key: digitalKeyInput.trim(),
+        digitalInstructions: digitalInstructionsInput.trim(),
+        productName: currentOrder.orderItems?.[0]?.name || 'Produto Digital'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setCurrentOrder(data.order);
+      setDigitalKeyInput('');
+      setDigitalInstructionsInput('');
+      toast.show('Acessos e instruções enviados para o e-mail do cliente com sucesso!', { type: 'success', duration: 4000, placement: 'top' });
+    } catch (err) {
+      console.log('Error delivering digital key:', err);
+      toast.show('Erro ao enviar acessos digitais.', { type: 'danger', placement: 'top' });
+    } finally {
+      setSendingDigitalKey(false);
+    }
+  };
 
   const searchTimerRef = React.useRef(null);
   const pollIntervalRef = React.useRef(null);
@@ -556,6 +621,19 @@ const OrderDetail = ({ navigation }) => {
   };
   const currentStep = getCalculatedStep(currentOrder);
 
+  const getStatusIconName = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s.includes('entregue') || s.includes('finaliz') || s.includes('concl')) return 'check-decagram';
+    if (s.includes('trânsito') || s.includes('transito') || s.includes('caminho')) return 'truck-fast';
+    if (s.includes('dispon') || s.includes('pronto')) return 'store-check';
+    if (s.includes('aceit') || s.includes('prepar')) return 'package-variant-closed-check';
+    if (s.includes('cancel')) return 'close-circle-outline';
+    return 'clock-outline';
+  };
+
+  const isDigital = currentOrder?.isDigitalOrder || (currentOrder?.orderItems && currentOrder.orderItems.some(i => i.productType === 'DIGITAL'));
+  const hasSentDigitalKeys = (currentOrder?.digitalDeliveredItems && currentOrder.digitalDeliveredItems.length > 0) || currentOrder?.status === 'Entregue' || currentOrder?.isDelivered;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
@@ -578,14 +656,16 @@ const OrderDetail = ({ navigation }) => {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
 
-        {/* Status Card — Modern Glassmorphic CSS Styling */}
-        <View style={[styles.statusCard, { borderColor: statusColor + '50', backgroundColor: statusBg }]}>
-          <View style={{ flex: 1, paddingRight: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+        {/* Status Card — Clean Flat Modern Design */}
+        <View style={[styles.statusCard, { borderColor: statusColor + '30', backgroundColor: statusBg }]}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
               <View style={[styles.statusLiveDot, { backgroundColor: statusColor }]} />
               <Text style={styles.statusLabel}>ESTADO DO PEDIDO</Text>
             </View>
+
             <Text style={[styles.statusValue, { color: statusColor }]}>{currentOrder.status}</Text>
+            
             {currentOrder.status === 'Pendente' && (
               <Text style={styles.statusSubtext}>Aguardando confirmação do fornecedor</Text>
             )}
@@ -602,8 +682,9 @@ const OrderDetail = ({ navigation }) => {
               <Text style={styles.statusSubtext}>Pedido cancelado</Text>
             )}
           </View>
-          <View style={[styles.statusIcon, { backgroundColor: statusColor + '20', borderColor: statusColor + '40', borderWidth: 1 }]}>
-            <MaterialCommunityIcons name="package-variant-closed" size={28} color={statusColor} />
+
+          <View style={[styles.statusIcon, { backgroundColor: statusColor + '15' }]}>
+            <MaterialCommunityIcons name={getStatusIconName(currentOrder.status)} size={26} color={statusColor} />
           </View>
         </View>
 
@@ -748,6 +829,87 @@ const OrderDetail = ({ navigation }) => {
           ))}
         </View>
 
+        {/* Cartão de Produto Digital / Envio de Acessos — Exibido apenas APÓS a confirmação/aceite do pedido */}
+        {isDigital && currentOrder.status !== 'Pendente' && currentOrder.status !== 'Cancelado' && (
+          <View style={[styles.card, { borderColor: '#9333EA', borderWidth: 1.5, backgroundColor: '#FAF5FF' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Ionicons name="key" size={24} color="#9333EA" style={{ marginRight: 8 }} />
+              <Text style={[styles.cardTitle, { color: '#7E22CE', marginBottom: 0 }]}>
+                Acesso & Activação Digital
+              </Text>
+            </View>
+
+            {/* Acessos já entregues */}
+            {currentOrder.digitalDeliveredItems && currentOrder.digitalDeliveredItems.length > 0 && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#6B21A8', marginBottom: 6 }}>
+                  Acessos Entregues ao Cliente:
+                </Text>
+                {currentOrder.digitalDeliveredItems.map((deliv, idx) => (
+                  <View key={idx} style={{ backgroundColor: '#FFF', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#E9D5FF', marginBottom: 6 }}>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#6B21A8' }}>{deliv.productName || 'Produto Digital'}</Text>
+                    {deliv.key ? <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 13, fontWeight: 'bold', color: '#7E22CE', marginTop: 2 }}>Chave/Senha: {deliv.key}</Text> : null}
+                    {deliv.digitalInstructions ? <Text style={{ fontSize: 12, color: '#4B5563', marginTop: 2 }}>Instruções: {deliv.digitalInstructions}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Se os acessos JÁ FORAM ENVIADOS, oculta o formulário e exibe o selo VERDE ENVIADO */}
+            {hasSentDigitalKeys ? (
+              <View style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981', borderWidth: 1.5, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 4 }}>
+                <Ionicons name="checkmark-circle" size={22} color="#10B981" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#065F46', fontWeight: 'bold', fontSize: 15 }}>
+                  Enviado com Sucesso
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Formulário para enviar nova chave / instruções */}
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#4C1D95', marginBottom: 6 }}>
+                  Enviar Chave / Código / Senha de Ativação:
+                </Text>
+                <TextInput
+                  style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D8B4FE', borderRadius: 8, padding: 10, fontSize: 14, color: '#1E293B', marginBottom: 10 }}
+                  placeholder="Ex: XYZ-12345-ABC ou Senha123"
+                  placeholderTextColor="#9CA3AF"
+                  value={digitalKeyInput}
+                  onChangeText={setDigitalKeyInput}
+                />
+
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#4C1D95', marginBottom: 6 }}>
+                  Instruções de Resgate / Activação (Do Registo do Produto):
+                </Text>
+                <TextInput
+                  style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D8B4FE', borderRadius: 8, padding: 10, fontSize: 14, color: '#1E293B', height: 80, textAlignVertical: 'top', marginBottom: 12 }}
+                  placeholder="Instruções de resgate/ativação cadastradas no produto..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  value={digitalInstructionsInput}
+                  onChangeText={setDigitalInstructionsInput}
+                />
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#9333EA', paddingVertical: 12, borderRadius: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
+                  onPress={handleDeliverDigitalKey}
+                  disabled={sendingDigitalKey}
+                >
+                  {sendingDigitalKey ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="mail" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>
+                        Enviar Acessos por E-mail ao Cliente
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
         {/* Botões de Ação */}
         {(currentOrder.stepStatus === 1 || currentOrder.status === 'Pendente') && (
           <View style={styles.actionRow}>
@@ -770,7 +932,8 @@ const OrderDetail = ({ navigation }) => {
           </View>
         )}
 
-        {(currentOrder.stepStatus === 2 || currentOrder.status === 'Aceite') && (
+        {/* Botões de Ação para Produtos FÍSICOS: "Disponível p/ entrega" e "Cancelar" (REMOVIDOS para produtos DIGITAIS) */}
+        {!isDigital && (currentOrder.stepStatus === 2 || currentOrder.status === 'Aceite') && (
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.acceptBtn]}
@@ -791,7 +954,7 @@ const OrderDetail = ({ navigation }) => {
           </View>
         )}
 
-        {(currentOrder.stepStatus === 3 || currentOrder.status === 'Disponível para entrega' || currentOrder.status === 'Pronto') && (
+        {!isDigital && (currentOrder.stepStatus === 3 || currentOrder.status === 'Disponível para entrega' || currentOrder.status === 'Pronto') && (
           <View style={styles.actionRow}>
             {(!currentOrder.deliveryman || !currentOrder.deliveryman.name) && (
               <TouchableOpacity
@@ -890,71 +1053,92 @@ const OrderDetail = ({ navigation }) => {
             </Text>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
-                {subcategories.map((s) => {
-                  const isSelected = selectedTransport === s._id;
-                  const iconInfo = getServiceIconInfo(s.name);
-                  
-                  return (
-                    <TouchableOpacity
-                      key={s._id}
-                      style={{
-                        width: '48%',
-                        backgroundColor: isSelected ? 'rgba(127, 0, 255, 0.12)' : COLORS.surface2,
-                        borderColor: isSelected ? COLORS.primary : COLORS.borderLight,
-                        borderWidth: isSelected ? 2 : 1.5,
-                        borderRadius: 16,
-                        padding: 12,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: 120,
-                        position: 'relative',
-                        shadowColor: isSelected ? COLORS.primary : 'transparent',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: isSelected ? 0.2 : 0,
-                        shadowRadius: 6,
-                        elevation: isSelected ? 4 : 0,
-                      }}
-                      onPress={() => setSelectedTransport(s._id)}
-                      activeOpacity={0.8}
-                    >
-                      {isSelected && (
-                        <View style={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          backgroundColor: COLORS.primary,
-                          borderRadius: 10,
-                          width: 20,
-                          height: 20,
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+                {(() => {
+                  const reqType = String(currentOrder?.transportType || '').toLowerCase().trim();
+                  const requestedSubcategories = subcategories.filter((s) => {
+                    if (!reqType) return true;
+                    const catName = String(s.name || '').toLowerCase().trim();
+                    const catId = String(s._id || '').toLowerCase().trim();
+                    return (
+                      catId === reqType ||
+                      catName === reqType ||
+                      catName.includes(reqType) ||
+                      reqType.includes(catName)
+                    );
+                  });
+
+                  const categoriesToDisplay = requestedSubcategories.length > 0
+                    ? requestedSubcategories
+                    : (subcategories.filter(s => s._id === selectedTransport || selectedTransport === s.name).length > 0
+                        ? subcategories.filter(s => s._id === selectedTransport || selectedTransport === s.name)
+                        : subcategories);
+
+                  return categoriesToDisplay.map((s) => {
+                    const isSelected = selectedTransport === s._id || selectedTransport === s.name || categoriesToDisplay.length === 1;
+                    const iconInfo = getServiceIconInfo(s.name);
+                    
+                    return (
+                      <TouchableOpacity
+                        key={s._id}
+                        style={{
+                          width: categoriesToDisplay.length === 1 ? '100%' : '48%',
+                          backgroundColor: isSelected ? 'rgba(127, 0, 255, 0.12)' : COLORS.surface2,
+                          borderColor: isSelected ? COLORS.primary : COLORS.borderLight,
+                          borderWidth: isSelected ? 2 : 1.5,
+                          borderRadius: 16,
+                          padding: 16,
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          minHeight: 120,
+                          position: 'relative',
+                          shadowColor: isSelected ? COLORS.primary : 'transparent',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: isSelected ? 0.2 : 0,
+                          shadowRadius: 6,
+                          elevation: isSelected ? 4 : 0,
+                        }}
+                        onPress={() => setSelectedTransport(s._id)}
+                        activeOpacity={0.8}
+                      >
+                        {isSelected && (
+                          <View style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            backgroundColor: COLORS.primary,
+                            borderRadius: 10,
+                            width: 22,
+                            height: 22,
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <Ionicons name="checkmark" size={16} color="#FFF" />
+                          </View>
+                        )}
+                        <View style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 26,
+                          backgroundColor: iconInfo.bg,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginBottom: 10,
                         }}>
-                          <Ionicons name="checkmark" size={14} color="#FFF" />
+                          <MaterialCommunityIcons name={iconInfo.icon} size={30} color={iconInfo.color} />
                         </View>
-                      )}
-                      <View style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 24,
-                        backgroundColor: iconInfo.bg,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        marginBottom: 10,
-                      }}>
-                        <MaterialCommunityIcons name={iconInfo.icon} size={28} color={iconInfo.color} />
-                      </View>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: isSelected ? COLORS.primary : COLORS.text, textAlign: 'center', marginBottom: 4 }} numberOfLines={1}>
-                        {s.name}
-                      </Text>
-                      {s.description && (
-                        <Text style={{ fontSize: 10, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 14 }} numberOfLines={2}>
-                          {s.description}
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: isSelected ? COLORS.primary : COLORS.text, textAlign: 'center', marginBottom: 4 }}>
+                          {s.name}
                         </Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                        {s.description && (
+                          <Text style={{ fontSize: 11, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 15 }}>
+                            {s.description}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  });
+                })()}
               </View>
             </ScrollView>
 
@@ -1127,7 +1311,51 @@ const OrderDetail = ({ navigation }) => {
                 } else if (driver.deliveryman?.assigned_base_fee) {
                   baseFare = driver.deliveryman.assigned_base_fee;
                 }
-                const driverRating = Number(driver.deliveryman?.averageRating || driver.rating || 5.0).toFixed(1);
+
+                // Fix rating calculation to prevent NaN
+                const rawRating = parseFloat(driver.deliveryman?.averageRating ?? driver.rating ?? driver.averageRating);
+                const driverRating = isNaN(rawRating) || rawRating <= 0 ? '5.0' : rawRating.toFixed(1);
+
+                // Resolving driver photo safely with full base URL fallback
+                let rawPhoto = driver.profileImage || 
+                               driver.deliveryman?.photo || 
+                               driver.deliveryman?.profileImage || 
+                               driver.photo || 
+                               driver.avatar || 
+                               driver.image || 
+                               driver.photoUrl || 
+                               driver.profilePic || 
+                               driver.userId?.profileImage || 
+                               driver.userId?.photo;
+
+                let photoUri = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+                if (rawPhoto && typeof rawPhoto === 'string' && rawPhoto.trim().length > 0) {
+                  if (rawPhoto.startsWith('http://') || rawPhoto.startsWith('https://')) {
+                    photoUri = rawPhoto;
+                  } else {
+                    const cleanBase = (api.defaults.baseURL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+                    photoUri = rawPhoto.startsWith('/') ? `${cleanBase}${rawPhoto}` : `${cleanBase}/${rawPhoto}`;
+                  }
+                }
+
+                // Resolving transport type safely without raw ObjectIds
+                let transportName = driver.deliveryman?.transport_type || driver.transportType || 'Serviço de Entrega';
+                if (/^[0-9a-fA-F]{24}$/.test(String(transportName))) {
+                  transportName = driver.deliveryman?.transportTypeName || driver.deliveryman?.vehicleType || 'Serviço de Entrega';
+                }
+
+                // Resolving license plate (matrícula) safely
+                let plateNumber = driver.deliveryman?.plateNumber || 
+                                  driver.deliveryman?.plate_number || 
+                                  driver.deliveryman?.licensePlate || 
+                                  driver.deliveryman?.matricula || 
+                                  driver.deliveryman?.transport_registration ||
+                                  driver.plateNumber || 
+                                  driver.matricula || '';
+
+                if (/^[0-9a-fA-F]{24}$/.test(String(plateNumber))) {
+                  plateNumber = '';
+                }
 
                 return (
                   <TouchableOpacity
@@ -1136,42 +1364,60 @@ const OrderDetail = ({ navigation }) => {
                     onPress={() => sendRequestToDriver(driver)}
                     style={{
                       padding: 16,
-                      borderWidth: 1,
+                      borderWidth: 1.5,
                       borderColor: '#E5E7EB',
                       borderRadius: 20,
                       marginBottom: 12,
-                      backgroundColor: '#F9FAFB',
+                      backgroundColor: '#FFFFFF',
                       flexDirection: 'row',
                       alignItems: 'center',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 6,
+                      elevation: 2,
                     }}
                   >
+                    {/* Foto do Motorista */}
                     <Image
-                      source={
-                        driver.profileImage
-                          ? { uri: driver.profileImage }
-                          : { uri: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }
-                      }
-                      style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#E5E7EB' }}
+                      source={{ uri: photoUri }}
+                      style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#E5E7EB', borderWidth: 1.5, borderColor: COLORS.primaryGlow }}
                     />
-                    <View style={{ flex: 1, marginLeft: 16 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#1F2937' }} numberOfLines={1}>
-                        {driver.name}
+
+                    {/* Detalhes do Motorista */}
+                    <View style={{ flex: 1, marginLeft: 14, paddingRight: 6 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: '#1F2937', marginBottom: 3 }} numberOfLines={1}>
+                        {driver.name || driver.fullName || driver.deliveryman?.name || 'Prestador'}
                       </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+
+                      {/* Estrelas + Tipo de Transporte */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: plateNumber ? 4 : 0 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, borderWidth: 0.5, borderColor: '#F59E0B' }}>
                           <MaterialCommunityIcons name="star" size={14} color="#D97706" />
-                          <Text style={{ fontSize: 12, color: '#D97706', marginLeft: 3, fontWeight: '700' }}>
+                          <Text style={{ fontSize: 12, color: '#D97706', marginLeft: 3, fontWeight: '800' }}>
                             {driverRating}
                           </Text>
                         </View>
                         <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
-                        <Text style={{ fontSize: 13, color: '#4B5563', fontWeight: '500' }}>
-                          {driver.deliveryman?.transport_type || 'Motorista'}
+                        <Text style={{ fontSize: 12, color: '#4B5563', fontWeight: '600' }} numberOfLines={1}>
+                          {transportName}
                         </Text>
                       </View>
+
+                      {/* Matrícula do Veículo (Número de Telefone Ocultado conforme solicitado) */}
+                      {plateNumber ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' }}>
+                          <Ionicons name="car-outline" size={13} color="#4B5563" style={{ marginRight: 4 }} />
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#1F2937' }}>
+                            Matrícula: {plateNumber}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                    <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
-                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontWeight: '500' }}>Base</Text>
+
+                    {/* Preço / Taxa Base */}
+                    <View style={{ alignItems: 'flex-end', justifyContent: 'center', minWidth: 70 }}>
+                      <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '600', textTransform: 'uppercase' }}>Taxa Base</Text>
                       <Text style={{ fontSize: 15, fontWeight: '800', color: COLORS.primary, marginTop: 2 }}>
                         {baseFare > 0 ? `${baseFare.toFixed(2)} MT` : 'Grátis'}
                       </Text>
@@ -1338,15 +1584,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 1.5,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
   },
   statusLiveDot: {
     width: 8,
@@ -1362,20 +1603,21 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   statusValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.5,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    marginTop: 2,
   },
   statusSubtext: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     color: COLORS.textMuted,
-    marginTop: 4,
+    marginTop: 2,
   },
   statusIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

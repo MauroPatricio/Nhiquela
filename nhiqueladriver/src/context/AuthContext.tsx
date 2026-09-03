@@ -120,10 +120,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateUser = useCallback((userData: Partial<User>) => {
     setUser(prevUser => {
-      const updatedUser = prevUser ? { ...prevUser, ...userData } : null;
-      if (updatedUser) {
-        AsyncStorage.setItem('@app:user', JSON.stringify(updatedUser));
-      }
+      if (!prevUser) return userData as User;
+      const updatedUser = {
+        ...prevUser,
+        ...userData,
+        token: userData.token || prevUser.token,
+        deliveryman: {
+          ...prevUser.deliveryman,
+          ...userData.deliveryman
+        }
+      };
+      AsyncStorage.setItem('@app:user', JSON.stringify(updatedUser));
       return updatedUser;
     });
   }, []);

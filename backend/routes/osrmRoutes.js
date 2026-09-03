@@ -7,37 +7,88 @@ import PricingEngine from '../models/PricingEngineModel.js';
 const osrmRouter = express.Router();
 
 /**
- * Helper to calculate ETA using OSRM or fallback Haversine.
+ * Helper to calculate dynamic traffic multiplier based on time, day, and weather
  */
-export const calculateETA = async (origin, destination) => {
+export const getTrafficMultiplier = (isRaining = false) => {
+  const now = new Date();
+  const hour = now.getHours() + (now.getMinutes() / 60);
+  const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+  let multiplier = 1.0;
+  let status = 'Trânsito Fluido 🟢';
+  let badgeColor = '#10B981';
+
+  const isWeekend = day === 0 || day === 6;
+
+  if (!isWeekend) {
+    if ((hour >= 7.0 && hour <= 9.25) || (hour >= 16.5 && hour <= 19.25)) {
+      multiplier = 1.38;
+      status = 'Trânsito Intenso 🔴';
+      badgeColor = '#EF4444';
+    } else if ((hour >= 11.5 && hour <= 14.0) || (hour >= 16.0 && hour <= 16.5)) {
+      multiplier = 1.18;
+      status = 'Trânsito Moderado 🟡';
+      badgeColor = '#F59E0B';
+    }
+  } else if (day === 6 && hour >= 10.0 && hour <= 14.0) {
+    multiplier = 1.15;
+    status = 'Trânsito Moderado 🟡';
+    badgeColor = '#F59E0B';
+  }
+
+  if (isRaining) {
+    multiplier *= 1.25;
+    status = 'Chuva & Trânsito Intenso 🌧️';
+    badgeColor = '#3B82F6';
+  }
+
+  return { multiplier, status, badgeColor };
+};
+
+/**
+ * Helper to calculate ETA using OSRM or fallback Haversine with dynamic traffic multiplier.
+ */
+export const calculateETA = async (origin, destination, isRaining = false) => {
+  const traffic = getTrafficMultiplier(isRaining);
+  let distanceKm = 0;
+  let rawDurationMin = 0;
+
   try {
     const osrmBaseUrl = process.env.OSRM_BASE_URL || process.env.OSRM_URL || 'http://localhost:5000';
     const osrmUrl = `${osrmBaseUrl}/route/v1/driving/${origin};${destination}?overview=false`;
     const response = await axios.get(osrmUrl);
     if (response.data && response.data.routes && response.data.routes.length > 0) {
       const route = response.data.routes[0];
-      return {
-        distanceKm: (route.distance / 1000).toFixed(2),
-        durationMin: (route.duration / 60).toFixed(0),
-      };
+      distanceKm = parseFloat((route.distance / 1000).toFixed(2));
+      rawDurationMin = parseFloat((route.duration / 60).toFixed(0));
     }
   } catch (error) {
     console.error('OSRM error, falling back to Haversine:', error.message);
+    const [olng, olat] = origin.split(',').map(Number);
+    const [dlng, dlat] = destination.split(',').map(Number);
+    const toRad = v => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(dlat - olat);
+    const dLng = toRad(dlng - olng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(olat)) * Math.cos(toRad(dlat)) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    const avgSpeed = 35; // km/h assumed
+    distanceKm = parseFloat(distance.toFixed(2));
+    rawDurationMin = Math.round((distance / avgSpeed) * 60);
   }
-  // Fallback Haversine implementation
-  const [olng, olat] = origin.split(',').map(Number);
-  const [dlng, dlat] = destination.split(',').map(Number);
-  const toRad = v => (v * Math.PI) / 180;
-  const R = 6371; // Earth radius km
-  const dLat = toRad(dlat - olat);
-  const dLng = toRad(dlng - olng);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(olat)) * Math.cos(toRad(dlat)) * Math.sin(dLng / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  const avgSpeed = 40; // km/h assumed
+
+  const durationMin = Math.max(1, Math.round(rawDurationMin * traffic.multiplier));
+  const arrivalDate = new Date(Date.now() + durationMin * 60 * 1000);
+  const etaFormattedTime = arrivalDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
   return {
-    distanceKm: distance.toFixed(2),
-    durationMin: Math.round((distance / avgSpeed) * 60).toString(),
+    distanceKm: distanceKm.toFixed(2),
+    durationMin: durationMin.toString(),
+    trafficStatus: traffic.status,
+    trafficBadgeColor: traffic.badgeColor,
+    etaFormattedTime,
+    etaMessage: `Entrega prevista às ${etaFormattedTime} (~${durationMin} min)`
   };
 };
 
@@ -171,9 +222,20 @@ osrmRouter.get(
     // Arredondar preço (opcional) para ficar bonito
     price = Math.ceil(price);
 
+    const trafficInfo = getTrafficMultiplier(isRaining);
+    const adjustedDurationMin = Math.max(1, Math.round(durationMin * trafficInfo.multiplier));
+    const arrivalDate = new Date(Date.now() + adjustedDurationMin * 60 * 1000);
+    const etaFormattedTime = arrivalDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
     res.send({
       distanceKm: distanceKm.toFixed(2),
-      durationMin: durationMin.toFixed(0),
+      durationMin: adjustedDurationMin.toFixed(0),
+      rawDurationMin: durationMin.toFixed(0),
+      trafficStatus: trafficInfo.status,
+      trafficBadgeColor: trafficInfo.badgeColor,
+      trafficMultiplier: trafficInfo.multiplier,
+      etaFormattedTime,
+      etaMessage: `Entrega prevista às ${etaFormattedTime} (~${adjustedDurationMin} min)`,
       price: price,
       pricingModelUsed: config.model,
       isFallback

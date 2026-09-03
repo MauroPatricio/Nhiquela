@@ -13,13 +13,18 @@ import * as XLSX from '@e965/xlsx';
 
 const OrderTiming = ({ order }) => {
   const [elapsed, setElapsed] = useState('--');
-  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluído'].includes(order.status);
+  const [isExpired, setIsExpired] = useState(false);
+  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído'].includes(order.status);
 
   useEffect(() => {
     const calculateStaticDiff = () => {
       const end = order.deliveryDate ? new Date(order.deliveryDate) : new Date(order.updatedAt || order.createdAt);
-      const diff = Math.floor((end - new Date(order.createdAt)) / 1000);
+      let diff = Math.floor((end - new Date(order.createdAt)) / 1000);
       if (diff < 0) return '--';
+      if (diff >= 3600) {
+        setIsExpired(true);
+        diff = 3600;
+      }
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
@@ -34,6 +39,12 @@ const OrderTiming = ({ order }) => {
     const updateTime = () => {
       const diff = Math.floor((new Date() - new Date(order.createdAt)) / 1000);
       if (diff < 0) return;
+      if (diff >= 3600) {
+        // Parar contagem definitivamente após 1 hora (3600s)
+        setIsExpired(true);
+        setElapsed('1h 00m 00s (Expirado)');
+        return;
+      }
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
@@ -45,7 +56,7 @@ const OrderTiming = ({ order }) => {
   }, [order.createdAt, order.status, order.updatedAt, order.deliveryDate, isCompleted]);
 
   return (
-    <span className={isCompleted ? "text-success fw-bold" : "text-danger fw-bold"}>
+    <span className={isCompleted ? "text-success fw-bold" : (isExpired ? "text-secondary fw-bold" : "text-danger fw-bold")}>
       <FontAwesomeIcon icon={faClock} className="me-1" /> {elapsed}
     </span>
   );
@@ -664,11 +675,11 @@ export default function OrdersScreen() {
                 </div>
 
                 {/* Paragens de Entrega Multi-Destino (Se existirem) */}
-                {selectedOrder.deliveryStops && selectedOrder.deliveryStops.length > 0 && (
+                {(selectedOrder.deliveryStops?.length > 0 || selectedOrder.stops?.length > 0) && (
                   <div className="mb-4">
                     <h6 className="fw-bold mb-3 text-secondary">
                       <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2 text-primary-custom"/>
-                      Itinerário de Paragens Multi-Destino ({selectedOrder.deliveryStops.length} Paragens)
+                      Itinerário de Paragens Multi-Destino ({(selectedOrder.deliveryStops || selectedOrder.stops).length} Paragens)
                     </h6>
                     <div className="bg-light rounded-4 p-3 border">
                       <div className="table-responsive">
@@ -685,7 +696,7 @@ export default function OrdersScreen() {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedOrder.deliveryStops.map((stop, sIdx) => (
+                            {(selectedOrder.deliveryStops || selectedOrder.stops).map((stop, sIdx) => (
                               <tr key={stop._id || sIdx}>
                                 <td className="fw-bold text-center">{stop.sequence || sIdx + 1}</td>
                                 <td>{stop.address}</td>

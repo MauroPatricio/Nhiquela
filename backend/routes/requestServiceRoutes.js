@@ -116,6 +116,20 @@ requestServiceer.post(
     }
 
 
+    let subcatObj = null;
+    if (req.body.serviceId && mongoose.Types.ObjectId.isValid(req.body.serviceId)) {
+      try {
+        const ProviderSubcategory = mongoose.model('ProviderSubcategory');
+        subcatObj = await ProviderSubcategory.findById(req.body.serviceId).lean();
+      } catch (err) {}
+    }
+
+    const isNegotiationAllowed = Boolean(
+      req.body.isNegotiationAllowed === true ||
+      req.body.allowNegotiation === true ||
+      subcatObj?.allowNegotiation === true
+    );
+
     const newOrder = new RequestService({
       name: req.body.name,
       phoneNumber: req.body.phoneNumber,
@@ -125,6 +139,10 @@ requestServiceer.post(
       reason: req.body.reason,
       origin: req.body.origin,
       destination: req.body.destination,
+      vehiclePhotos: req.body.vehiclePhotos || undefined,
+      allowNegotiation: isNegotiationAllowed,
+      isNegotiationAllowed: isNegotiationAllowed,
+      maxNegotiationRounds: req.body.maxNegotiationRounds || subcatObj?.maxNegotiationRounds || 3,
       originDetails: req.body.originDetails || null,
       destinationDetails: req.body.destinationDetails || null,
       stops: (req.body.stops || []).map(s => ({
@@ -1092,6 +1110,23 @@ requestServiceer.put(
           };
         }
 
+        if ((!order.deliveryman || !order.deliveryman.id) && (order.targetDriverId || order.driverId)) {
+          const fallbackDriverId = order.targetDriverId || order.driverId;
+          const fallbackDriver = await User.findById(fallbackDriverId).session(session);
+          if (fallbackDriver) {
+            order.deliveryman = {
+              id: fallbackDriver._id.toString(),
+              _id: fallbackDriver._id,
+              photo: fallbackDriver.profileImage || fallbackDriver.photo || fallbackDriver.deliveryman?.photo || '',
+              name: fallbackDriver.name || fallbackDriver.deliveryman?.name || 'Motorista',
+              phoneNumber: fallbackDriver.phoneNumber || fallbackDriver.deliveryman?.phoneNumber || '',
+              transport_type: fallbackDriver.deliveryman?.transport_type || '',
+              transport_color: fallbackDriver.deliveryman?.transport_color || '',
+              transport_registration: fallbackDriver.deliveryman?.transport_registration || ''
+            };
+          }
+        }
+
         if (order.deliveryman && order.deliveryman.id) {
           const commissionAmount = await calculateDynamicCommission(order);
 
@@ -1647,6 +1682,38 @@ requestServiceer.post(
     order.deliveryPrice = lastProposal.amount;
     if (order.pricing) {
       order.pricing.totalPrice = lastProposal.amount;
+    }
+
+    // 🔥 CORREÇÃO DEFINITIVA: Associar o motorista à viagem e atualizar deliveryman
+    const driverIdToAssign = order.targetDriverId || order.driverId || (lastProposal.proposedBy === 'PROVIDER' || lastProposal.proposedBy === 'DRIVER' ? (lastProposal.driverId || req.user._id) : req.user._id);
+
+    if (driverIdToAssign) {
+      const driverUser = await User.findById(driverIdToAssign);
+      if (driverUser) {
+        order.deliveryman = {
+          id: driverUser._id.toString(),
+          _id: driverUser._id,
+          photo: driverUser.profileImage || driverUser.photo || driverUser.deliveryman?.photo || '',
+          name: driverUser.name || driverUser.deliveryman?.name || 'Motorista',
+          phoneNumber: driverUser.phoneNumber || driverUser.deliveryman?.phoneNumber || '',
+          transport_type: driverUser.deliveryman?.transport_type || '',
+          transport_color: driverUser.deliveryman?.transport_color || '',
+          transport_registration: driverUser.deliveryman?.transport_registration || '',
+        };
+        order.targetDriverId = driverUser._id.toString();
+        order.driverId = driverUser._id.toString();
+        if (!order.isAccepted) order.isAccepted = true;
+        if (order.status === 'Pendente' || order.status === 'EM NEGOCIAÇÃO' || !order.status) {
+          order.status = 'Pedido aceite';
+          order.stepStatus = 4;
+        }
+
+        // Marcar motorista como ocupado se a viagem continuar ativa
+        await User.updateOne(
+          { _id: driverUser._id },
+          { $set: { 'deliveryman.hasActiveService': true } }
+        );
+      }
     }
 
     await order.save();

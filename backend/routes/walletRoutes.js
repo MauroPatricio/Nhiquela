@@ -250,6 +250,45 @@ walletRouter.post('/notify-finance', isAuth, async (req, res) => {
 });
 
 /**
+ * Helper robusto para encontrar ou criar a Carteira do utilizador (suporta String e ObjectId)
+ */
+async function findWalletForUser(userId, ownerType = 'driver') {
+  if (!userId) return null;
+  const userIdStr = userId.toString();
+  let userObjId = null;
+  try {
+    if (mongoose.Types.ObjectId.isValid(userIdStr)) {
+      userObjId = new mongoose.Types.ObjectId(userIdStr);
+    }
+  } catch (e) {}
+
+  const conditions = [
+    { ownerId: userIdStr },
+    { userId: userIdStr }
+  ];
+  if (userObjId) {
+    conditions.push({ ownerId: userObjId }, { userId: userObjId });
+  }
+
+  let wallet = await Wallet.findOne({ $or: conditions });
+  if (!wallet) {
+    try {
+      wallet = await Wallet.create({
+        ownerId: userObjId || userIdStr,
+        userId: userObjId || userIdStr,
+        ownerType: ownerType,
+        balance: 0
+      });
+    } catch (err) {
+      if (err.code === 11000) {
+        wallet = await Wallet.findOne({ $or: conditions });
+      }
+    }
+  }
+  return wallet;
+}
+
+/**
  * Consultar saldo
  */
 walletRouter.get('/balance', isAuth, async (req, res) => {
@@ -266,7 +305,7 @@ walletRouter.get('/balance', isAuth, async (req, res) => {
       return res.json({ available_balance, pending_balance, currency: 'MZN' });
     }
 
-    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
+    const wallet = await findWalletForUser(req.user._id, 'driver');
     const pendingTrans = await Transaction.find({ walletId: wallet?._id, status: 'pendente' });
     const pending_balance = pendingTrans.reduce((acc, t) => acc + (t.amount || 0), 0);
 
@@ -294,7 +333,7 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
     const { getFinancialConfig } = await import('../services/walletService.js');
     const config = await getFinancialConfig();
 
-    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
+    const wallet = await findWalletForUser(req.user._id, 'driver');
     const balance = wallet?.balance || 0;
     
     // Calcular estatísticas usando transações
@@ -392,7 +431,7 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
       return res.json(transactions);
     }
 
-    const wallet = await Wallet.findOne({ $or: [{ ownerId: req.user._id }, { userId: req.user._id }] });
+    const wallet = await findWalletForUser(req.user._id, 'driver');
     let transactions = wallet ? await Transaction.find({ walletId: wallet._id }).sort({ createdAt: -1 }).lean() : [];
     
     // Se o utilizador for um Fornecedor/Seller, incluir as Vendas Entregues como Movimentos de Entrada
@@ -406,7 +445,7 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
     if (provider) {
       const sellerOrders = await Order.find({
         seller: provider._id,
-        isDelivered: true,
+        status: { $ne: 'Cancelado' },
         deleted: { $ne: true }
       }).lean();
 
@@ -415,24 +454,103 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
       );
 
       const salesMovements = sellerOrders.map(order => {
-        const amount = order.itemsPrice ?? order.orderItems?.reduce((acc, item) => acc + ((item.price || item.priceFromSeller || 0) * (item.quantity || 1)), 0) ?? order.itemsPriceForSeller ?? 0;
+        const amount = order.itemsPrice ?? 
+                       order.totalPrice ?? 
+                       order.orderItems?.reduce((acc, item) => acc + ((item.price || item.priceFromSeller || 0) * (item.quantity || 1)), 0) ?? 
+                       order.itemsPriceForSeller ?? 0;
+
+        const isConfirmed = order.isDelivered || order.isPaid || order.status === 'Entregue';
+        const txStatus = isConfirmed ? 'confirmado' : 'pendente';
+        const txDescription = isConfirmed 
+          ? `Receita da venda #${order.code}` 
+          : `Novo pedido recebido #${order.code} (${order.status || 'Pendente'})`;
+
         return {
           _id: `sale_${order._id}`,
           type: 'credit',
           transaction_type: 'PAYMENT',
           amount: amount,
           method: order.paymentMethod || 'venda',
-          description: `Receita da venda #${order.code}`,
-          status: 'confirmado',
-          createdAt: order.deliveredAt || order.createdAt,
-          date: order.deliveredAt || order.createdAt,
+          description: txDescription,
+          status: txStatus,
+          createdAt: order.createdAt || order.paidAt || order.deliveredAt,
+          date: order.createdAt || order.paidAt || order.deliveredAt,
           referenceId: order._id
         };
       }).filter(s => !existingRefIds.has(s.referenceId.toString()));
 
       transactions = [...transactions, ...salesMovements];
-      transactions.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
     }
+
+    // Se o utilizador for um Motorista (ou tiver viagens), incluir as Viagens como Movimentos de Entrada
+    const driverIdStr = req.user._id.toString();
+    let driverObjId = null;
+    try {
+      if (mongoose.Types.ObjectId.isValid(driverIdStr)) {
+        driverObjId = new mongoose.Types.ObjectId(driverIdStr);
+      }
+    } catch (e) {}
+
+    const driverMatchConditions = [
+      { 'deliveryman.id': driverIdStr },
+      { 'deliveryman._id': driverIdStr },
+      { targetDriverId: driverIdStr },
+      { driverId: driverIdStr },
+      { driver: driverIdStr }
+    ];
+    if (driverObjId) {
+      driverMatchConditions.push(
+        { 'deliveryman.id': driverObjId },
+        { 'deliveryman._id': driverObjId },
+        { targetDriverId: driverObjId },
+        { driverId: driverObjId },
+        { driver: driverObjId }
+      );
+    }
+
+    const driverTripsQuery = {
+      $or: driverMatchConditions,
+      deleted: { $ne: true }
+    };
+
+    const RequestServiceModel = mongoose.model('RequestService');
+    const OrderModel = mongoose.model('Order');
+
+    const [driverOrders, driverRequests] = await Promise.all([
+      OrderModel.find(driverTripsQuery).lean(),
+      RequestServiceModel.find(driverTripsQuery).lean()
+    ]);
+
+    const existingRefIds = new Set(
+      transactions.map(t => (t.referenceId || t.reference_id || '').toString()).filter(Boolean)
+    );
+
+    const allDriverTrips = [...driverOrders, ...driverRequests];
+    const tripMovements = allDriverTrips.map(trip => {
+      const amount = trip.finalAgreedPrice || trip.deliveryPrice || trip.pricing?.totalPrice || trip.addressPrice || trip.deliveryman?.pricetopay || 0;
+      const isConfirmed = trip.isDelivered || trip.status === 'Concluído' || trip.status === 'Entregue' || trip.stepStatus === 7;
+      const txStatus = isConfirmed ? 'confirmado' : 'pendente';
+      const codeStr = trip.code || trip._id.toString().slice(-6).toUpperCase();
+      const txDescription = isConfirmed
+        ? `Receita da viagem #${codeStr}`
+        : `Serviço em andamento #${codeStr} (${trip.status || 'Pendente'})`;
+
+      return {
+        _id: `trip_${trip._id}`,
+        type: 'credit',
+        transaction_type: 'PAYMENT',
+        amount: Number(amount),
+        method: trip.paymentMethod || 'dinheiro',
+        description: txDescription,
+        status: txStatus,
+        createdAt: trip.deliveredAt || trip.updatedAt || trip.createdAt,
+        date: trip.deliveredAt || trip.updatedAt || trip.createdAt,
+        referenceId: trip._id
+      };
+    }).filter(t => !existingRefIds.has(t.referenceId.toString()));
+
+    transactions = [...transactions, ...tripMovements];
+    transactions.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
 
     res.json(transactions);
   } catch (error) {
@@ -885,19 +1003,56 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
     const Order = mongoose.model('Order');
     const RequestService = mongoose.model('RequestService');
 
-    // Busca encomendas normais (Orders)
-    const ordersPromise = Order.find({
-      'deliveryman.id': driverId,
-      isDelivered: true,
-      deliveredAt: { $gte: startOfWeek }
-    }).populate('user', 'name profileImage');
+    const driverIdStr = driverId ? driverId.toString() : '';
+    let driverObjId = null;
+    try {
+      if (mongoose.Types.ObjectId.isValid(driverIdStr)) {
+        driverObjId = new mongoose.Types.ObjectId(driverIdStr);
+      }
+    } catch (e) {}
 
-    // Busca serviços de transporte directo (RequestService)
-    const requestsPromise = RequestService.find({
-      'deliveryman.id': driverId,
-      isDelivered: true,
-      deliveredAt: { $gte: startOfWeek }
-    }).populate('user', 'name profileImage');
+    const driverMatchConditions = [
+      { 'deliveryman.id': driverIdStr },
+      { 'deliveryman._id': driverIdStr },
+      { targetDriverId: driverIdStr },
+      { driverId: driverIdStr },
+      { driver: driverIdStr }
+    ];
+    if (driverObjId) {
+      driverMatchConditions.push(
+        { 'deliveryman.id': driverObjId },
+        { 'deliveryman._id': driverObjId },
+        { targetDriverId: driverObjId },
+        { driverId: driverObjId },
+        { driver: driverObjId }
+      );
+    }
+
+    const completedTripsQuery = {
+      $and: [
+        { $or: driverMatchConditions },
+        {
+          $or: [
+            { isDelivered: true },
+            { status: 'Concluído' },
+            { status: 'Entregue' },
+            { stepStatus: 7 }
+          ]
+        }
+      ],
+      deleted: { $ne: true }
+    };
+
+    // Total de Viagens Concluídas (Histórico Global)
+    const [allOrdersTotal, allRequestsTotal] = await Promise.all([
+      Order.countDocuments(completedTripsQuery),
+      RequestService.countDocuments(completedTripsQuery)
+    ]);
+    const grandTotalTrips = allOrdersTotal + allRequestsTotal;
+
+    // Busca encomendas normais (Orders) e serviços (RequestService)
+    const ordersPromise = Order.find(completedTripsQuery).populate('user', 'name profileImage').lean();
+    const requestsPromise = RequestService.find(completedTripsQuery).populate('user', 'name profileImage').lean();
 
     const [orders, requestServices] = await Promise.all([ordersPromise, requestsPromise]);
     const allTrips = [...orders, ...requestServices];
@@ -915,14 +1070,16 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
     }
 
     allTrips.forEach(trip => {
-      const deliveryPrice = trip.pricing?.totalPrice || trip.deliveryPrice || trip.deliveryman?.pricetopay || 0;
-      const tripDate = new Date(trip.deliveredAt);
+      const deliveryPrice = Number(trip.finalAgreedPrice || trip.deliveryPrice || trip.pricing?.totalPrice || trip.addressPrice || trip.deliveryman?.pricetopay || 0);
+      const tripDate = new Date(trip.deliveredAt || trip.updatedAt || trip.createdAt || Date.now());
       
       if (tripDate >= startOfToday) {
         todayEarnings += deliveryPrice;
         tripsToday++;
       }
-      weekEarnings += deliveryPrice;
+      if (tripDate >= startOfWeek) {
+        weekEarnings += deliveryPrice;
+      }
 
       const dStr = `${tripDate.getFullYear()}-${String(tripDate.getMonth() + 1).padStart(2, '0')}-${String(tripDate.getDate()).padStart(2, '0')}`;
       if (dailyStatsMap[dStr]) {
@@ -952,7 +1109,7 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
       today: todayEarnings,
       week: weekEarnings,
       tripsToday: tripsToday,
-      totalTrips: allTrips.length,
+      totalTrips: grandTotalTrips > 0 ? grandTotalTrips : allTrips.length,
       dailyEarnings: Object.values(dailyStatsMap).sort((a, b) => new Date(a.date) - new Date(b.date))
     });
   } catch (error) {
@@ -987,12 +1144,12 @@ walletRouter.get('/seller-earnings', isAuth, async (req, res) => {
       return res.status(404).json({ message: 'Fornecedor não encontrado.' });
     }
 
-    // Busca encomendas entregues nos últimos 7 dias vinculadas a este fornecedor
+    // Busca encomendas activas nos últimos 7 dias vinculadas a este fornecedor
     const orders = await Order.find({
       seller: provider._id,
-      isDelivered: true,
+      status: { $ne: 'Cancelado' },
       deleted: { $ne: true },
-      deliveredAt: { $gte: startOfWeek }
+      createdAt: { $gte: startOfWeek }
     }).populate('user', 'name profileImage');
 
     let todayEarnings = 0;
@@ -1008,8 +1165,11 @@ walletRouter.get('/seller-earnings', isAuth, async (req, res) => {
     }
 
     orders.forEach(order => {
-      const orderAmount = order.itemsPrice ?? order.orderItems?.reduce((acc, item) => acc + ((item.price || item.priceFromSeller || 0) * (item.quantity || 1)), 0) ?? order.itemsPriceForSeller ?? 0;
-      const orderDate = new Date(order.deliveredAt || order.createdAt);
+      const orderAmount = order.totalPrice ?? 
+                          order.itemsPrice ?? 
+                          order.orderItems?.reduce((acc, item) => acc + ((item.price || item.priceFromSeller || 0) * (item.quantity || 1)), 0) ?? 
+                          order.itemsPriceForSeller ?? 0;
+      const orderDate = new Date(order.createdAt || order.deliveredAt || order.paidAt || Date.now());
       
       if (orderDate >= startOfToday) {
         todayEarnings += orderAmount;
@@ -1030,12 +1190,12 @@ walletRouter.get('/seller-earnings', isAuth, async (req, res) => {
           code: order.code || order._id.toString().slice(-6).toUpperCase(),
           time: orderDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
           amount: orderAmount,
-          type: 'Venda',
+          type: order.status === 'Entregue' ? 'Venda Entregue' : `Venda (${order.status || 'Pendente'})`,
           clientName: order.user?.name || order.name || 'Cliente Desconhecido',
           clientImage: order.user?.profileImage || null,
           origin,
           destination,
-          reason: order.canceledReason || 'Venda concluída com sucesso'
+          reason: order.canceledReason || (order.status === 'Entregue' ? 'Venda concluída com sucesso' : `Pedido ${order.status || 'em andamento'}`)
         });
       }
     });

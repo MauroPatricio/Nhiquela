@@ -27,7 +27,7 @@ export default function CheckoutScreen() {
 
   // Detect digital products
   const hasDigitalItems = cartItems.some(
-    item => item.productType === 'DIGITAL' || item.isDigital || item.digitalType
+    item => item.productType === 'DIGITAL'
   );
 
   // GPS State

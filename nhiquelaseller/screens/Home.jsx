@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo, memo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl, StatusBar, Modal, DeviceEventEmitter } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, RefreshControl, StatusBar, Modal, DeviceEventEmitter, Vibration } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import api from '../hooks/createConnectionApi';
@@ -339,6 +339,36 @@ const Home = () => {
         const elapsedSecs = Math.floor((Date.now() - createdAt) / 1000);
         const remaining = Math.max(0, 900 - elapsedSecs);
         setOrderModalTimeLeft(remaining);
+
+        // 🔥 Notificação Sonora, Vibração e Push em tempo real (como no NhiquelaDriver)
+        try {
+          Vibration.vibrate([0, 500, 200, 500, 200, 500]);
+        } catch (vErr) {}
+
+        try {
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🚨 NOVO PEDIDO PENDENTE!',
+              body: `Você recebeu um novo pedido nº ${data.order.code || ''}. Toque para responder.`,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.MAX,
+              data: { orderId: data.order._id },
+            },
+            trigger: null,
+          });
+        } catch (nErr) {}
+
+        showMessage({
+          message: `🚨 NOVO PEDIDO PENDENTE #${data.order.code || ''}`,
+          description: `Novo pedido no valor de ${data.order.totalPrice || 0} MT. Toque para responder!`,
+          type: "danger",
+          duration: 7000,
+          icon: "auto",
+          onPress: () => {
+            setIncomingOrder(data.order);
+            setOrderModalVisible(true);
+          }
+        });
       }
       fetchData(userData, true);
       fetchWalletBalance(userData);
@@ -487,16 +517,19 @@ const Home = () => {
   };
 
   const pendingCount = orders.filter(o => o.status === 'Pendente').length;
-  const deliveredOrders = orders.filter(o => o.status === 'Entregue');
-  const revenueTotal = deliveredOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  const activeOrders = orders.filter(o => o.status !== 'Cancelado');
+  const revenueTotal = activeOrders.reduce((sum, o) => sum + (Number(o.totalPrice || o.itemsPrice || o.price) || 0), 0);
   
   const todaysOrders = orders.filter(o => {
     if (!o.createdAt) return false;
     const orderDate = new Date(o.createdAt);
     const today = new Date();
-    return orderDate.getDate() === today.getDate() && orderDate.getMonth() === today.getMonth() && orderDate.getFullYear() === today.getFullYear();
+    return orderDate.getDate() === today.getDate() && 
+           orderDate.getMonth() === today.getMonth() && 
+           orderDate.getFullYear() === today.getFullYear() &&
+           o.status !== 'Cancelado';
   });
-  const revenueToday = todaysOrders.filter(o => o.status === 'Entregue').reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+  const revenueToday = todaysOrders.reduce((sum, o) => sum + (Number(o.totalPrice || o.itemsPrice || o.price) || 0), 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -925,7 +958,7 @@ const Home = () => {
 
         {/* KPI Performance Section */}
         <View style={styles.kpiSection}>
-          <Text style={styles.kpiSectionTitle}>Performance de Vendas (Entregues)</Text>
+          <Text style={styles.kpiSectionTitle}>Performance de Vendas</Text>
           <View style={styles.kpiRow}>
             <View style={styles.kpiCard}>
                <View style={[styles.kpiIconBox, { backgroundColor: COLORS.primaryGlow }]}>

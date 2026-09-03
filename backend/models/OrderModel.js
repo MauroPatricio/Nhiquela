@@ -236,17 +236,10 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.post('save', async function(doc) {
+  const isCanceled = ['Cancelado', 'Rejeitado'].includes(doc.status) || doc.isCanceled === true;
   const isCompleted = ['Entregue', 'Finalizado'].includes(doc.status) || doc.isDelivered;
-  if (isCompleted && !doc.isCommissionProcessed) {
-    try {
-      const { processSellerOrderFinancials } = await import('../services/walletService.js');
-      processSellerOrderFinancials(doc._id).catch(err => {
-        console.error('[Mongoose Hook] Erro ao processar financeiro do fornecedor:', err.message);
-      });
-    } catch (err) {
-      console.error('[Mongoose Hook] Erro ao carregar walletService:', err.message);
-    }
-  } else if (!isCompleted && doc.isCommissionProcessed) {
+
+  if (isCanceled && doc.isCommissionProcessed) {
     try {
       const { reverseSellerOrderFinancials } = await import('../services/walletService.js');
       reverseSellerOrderFinancials(doc._id).catch(err => {
@@ -254,6 +247,15 @@ orderSchema.post('save', async function(doc) {
       });
     } catch (err) {
       console.error('[Mongoose Hook] Erro ao carregar walletService para estorno:', err.message);
+    }
+  } else if (isCompleted && !doc.isCommissionProcessed) {
+    try {
+      const { processSellerOrderFinancials } = await import('../services/walletService.js');
+      processSellerOrderFinancials(doc._id).catch(err => {
+        console.error('[Mongoose Hook] Erro ao processar financeiro do fornecedor:', err.message);
+      });
+    } catch (err) {
+      console.error('[Mongoose Hook] Erro ao carregar walletService:', err.message);
     }
   }
 });

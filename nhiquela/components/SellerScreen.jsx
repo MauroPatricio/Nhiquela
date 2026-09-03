@@ -283,6 +283,10 @@ const SellerScreen = () => {
             discount={product.discount}
             comissionPercentage={product.comissionPercentage}
             sellerEarningsAfterDiscount={product.sellerEarningsAfterDiscount}
+            productType={product.productType}
+            isDigital={product.isDigital}
+            digitalInstructions={product.digitalInstructions}
+            digitalType={product.digitalType}
             isSellerOpen={product.isSellerOpen !== undefined ? product.isSellerOpen : (openstore !== false)}
             isOrdered={product.isOrdered}
             orderPeriod={product.orderPeriod}

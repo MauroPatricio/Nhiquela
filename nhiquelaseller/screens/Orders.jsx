@@ -159,6 +159,9 @@ const Orders = () => {
                   <Text style={styles.code}>#{order?.code}</Text>
                   <Text style={styles.price}>{order?.totalPrice} MT</Text>
                 </View>
+                <Text style={styles.clientName}>
+                  <Ionicons name="person-outline" size={14} color={COLORS.textSecondary} /> {order?.user?.name || 'Cliente Desconhecido'}
+                </Text>
                 <Text style={styles.date}>{formatDate(order?.createdAt)}</Text>
                 <View style={[styles.statusPill, { backgroundColor: getStatusBg(order?.status), borderColor: getStatusColor(order?.status) }]}>
                   <Text style={[styles.statusText, { color: getStatusColor(order?.status) }]}>{order?.status}</Text>
@@ -287,7 +290,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  clientName: {
+    fontSize: SIZES.sm,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   code: {
     fontSize: SIZES.base,

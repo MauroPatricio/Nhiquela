@@ -112,10 +112,21 @@ export default function ProductDetailScreen() {
           
           {/* Detalhes */}
           <div className="col-md-6 p-5 d-flex flex-column">
-            <span className="badge bg-light text-dark align-self-start mb-3 fs-6">
-              <FontAwesomeIcon icon={faStar} className="text-warning me-1"/>
-              {product.rating || 0} ({product.numReviews || 0} avaliações)
-            </span>
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <span className="badge bg-light text-dark fs-6">
+                <FontAwesomeIcon icon={faStar} className="text-warning me-1"/>
+                {product.rating || 0} ({product.numReviews || 0} avaliações)
+              </span>
+              {product.productType === 'DIGITAL' ? (
+                <span className="badge bg-purple text-white fs-6" style={{ backgroundColor: '#9333EA' }}>
+                  ⚡ Produto Digital / Licença
+                </span>
+              ) : (
+                <span className="badge bg-secondary-subtle text-dark fs-6">
+                  📦 Produto Físico (com entrega)
+                </span>
+              )}
+            </div>
             
             <h2 className="fw-bold mb-2">{product.nome || product.name}</h2>
             <p className="text-muted mb-1">

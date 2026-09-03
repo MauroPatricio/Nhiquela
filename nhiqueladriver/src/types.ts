@@ -32,6 +32,10 @@ export type Trip = {
   maxNegotiationRounds?: number;
   negotiationRoundCount?: number;
   isNegotiationAllowed?: boolean;
+  allowNegotiation?: boolean;
+  vehiclePhotos?: any;
+  photos?: string[];
+  stops?: any[];
 };
 
 export type WebSocketOrderData = {

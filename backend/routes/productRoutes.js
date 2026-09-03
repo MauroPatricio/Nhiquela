@@ -179,6 +179,11 @@ const getFilteredProducts = async (query, additionalFilters = {}, showAllIsActiv
     if (p.seller && typeof p.seller === 'object' && p.seller.userId && typeof p.seller.userId === 'object') {
       p.isSellerOpen = p.seller.userId.seller?.openstore !== false;
     }
+    // Normalizar productType se não estiver explícito
+    if (!p.productType) {
+      p.productType = (p.isDigital === true || p.digitalType) ? 'DIGITAL' : 'PHYSICAL';
+    }
+    p.isDigital = String(p.productType).toUpperCase() === 'DIGITAL';
     return p;
   });
 

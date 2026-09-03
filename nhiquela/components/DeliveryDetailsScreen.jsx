@@ -39,7 +39,15 @@ const DeliveryDetailsScreen = () => {
   const sellers = useSelector(selectSellers);
 
   const hasDigitalItems = useMemo(() => {
-    return basketItems && basketItems.some(i => i.productType === 'DIGITAL' || i.isDigital);
+    return basketItems && basketItems.some(i => {
+      const type = String(i?.productType || '').toUpperCase().trim();
+      if (type === 'PHYSICAL') return false;
+      if (type === 'DIGITAL') return true;
+      if (i?.isDigital === false || i?.isDigital === 'false') return false;
+      if (i?.isDigital === true || i?.isDigital === 'true') return true;
+      if (i?.digitalType && String(i.digitalType).trim() !== '') return true;
+      return false;
+    });
   }, [basketItems]);
 
   const rawSeller = sellers[0];

@@ -230,27 +230,83 @@ export default function TripMap({
     if (origin && destination && shouldDrawRoute) {
       const fetchRoute = async () => {
         try {
-          const result = await getRoute(origin.latitude, origin.longitude, destination.latitude, destination.longitude);
-          if (result && result.coordinates) {
-            setDuration(result.durationMinutes);
-            setDistance(result.distanceKm);
+          const stops = tripData?.stops || [];
+          const validStops = Array.isArray(stops) ? stops.filter((s: any) => s && (s.latitude || s.lat) && (s.longitude || s.lng)) : [];
 
-            // OSRM devolve [lng, lat], o MapView precisa de {latitude, longitude}
-            const coords = result.coordinates.map((coord: [number, number]) => ({
-              latitude: coord[1],
-              longitude: coord[0]
+          let waypoints: any[] = [];
+          if (validStops.length > 0) {
+            // Optimizar rota: Nearest Neighbor
+            let currentLoc = { lat: origin.latitude, lng: origin.longitude };
+            let unvisited = validStops.map((s: any) => ({
+              ...s,
+              lat: parseFloat(s.latitude || s.lat),
+              lng: parseFloat(s.longitude || s.lng)
             }));
-
-            setRouteCoordinates(coords);
-            if (coords.length > 0) {
-              setSnappedLocation(coords[0]);
+            
+            waypoints.push(currentLoc);
+            
+            while(unvisited.length > 0) {
+              let nearestIdx = 0;
+              let minDistance = Infinity;
+              
+              for (let i = 0; i < unvisited.length; i++) {
+                const stop = unvisited[i];
+                const dx = stop.lng - currentLoc.lng;
+                const dy = stop.lat - currentLoc.lat;
+                const distSq = dx*dx + dy*dy;
+                
+                if (distSq < minDistance) {
+                  minDistance = distSq;
+                  nearestIdx = i;
+                }
+              }
+              
+              const nearestStop = unvisited[nearestIdx];
+              waypoints.push({ lat: nearestStop.lat, lng: nearestStop.lng });
+              currentLoc = { lat: nearestStop.lat, lng: nearestStop.lng };
+              unvisited.splice(nearestIdx, 1);
             }
+            
+            waypoints.push({ lat: destination.latitude, lng: destination.longitude });
+          } else {
+            waypoints = [
+              { lat: origin.latitude, lng: origin.longitude },
+              { lat: destination.latitude, lng: destination.longitude }
+            ];
+          }
+
+          let allCoords: any[] = [];
+          let totalDist = 0;
+          let totalDur = 0;
+
+          // Fetch routing for each segment
+          for (let i = 0; i < waypoints.length - 1; i++) {
+            const startPoint = waypoints[i];
+            const endPoint = waypoints[i+1];
+            
+            const result = await getRoute(startPoint.lat, startPoint.lng, endPoint.lat, endPoint.lng);
+            if (result && result.coordinates) {
+              totalDist += result.distanceKm || 0;
+              totalDur += result.durationMinutes || 0;
+              const coords = result.coordinates.map((coord: [number, number]) => ({
+                latitude: coord[1],
+                longitude: coord[0]
+              }));
+              allCoords = [...allCoords, ...coords];
+            }
+          }
+
+          if (allCoords.length > 0) {
+            setDuration(totalDur);
+            setDistance(totalDist);
+            setRouteCoordinates(allCoords);
+            setSnappedLocation(allCoords[0]);
 
             if (onRouteReady) onRouteReady();
 
-            if (coords.length > 1) {
-              const routeHeading = calculateHeading(coords);
-              updateCamera(coords[0], routeHeading); // Center on snapped location
+            if (allCoords.length > 1) {
+              const routeHeading = calculateHeading(allCoords);
+              updateCamera(allCoords[0], routeHeading);
             }
           }
         } catch (error) {
@@ -446,58 +502,63 @@ export default function TripMap({
         )}
 
         {/* 🔥 MARCADORES DE MULTI-PARAGENS DO MOTORISTA COM CORES DISTINTAS */}
-        {tripData && tripData.stops && Array.isArray(tripData.stops) && tripData.stops.map((stopItem: any, index: number) => {
-          const lat = parseFloat(stopItem.latitude || stopItem.lat);
-          const lng = parseFloat(stopItem.longitude || stopItem.lng);
-          if (isNaN(lat) || isNaN(lng)) return null;
+        {(() => {
+          const rawStops = tripData?.deliveryStops?.length > 0 ? tripData.deliveryStops : (tripData?.stops || []);
+          if (!rawStops || !Array.isArray(rawStops)) return null;
 
-          const colors = ['#F97316', '#9333EA', '#0284C7', '#D97706', '#EC4899', '#10B981'];
-          const stopColor = stopItem.status === 'DELIVERED' || stopItem.status === 'ENTREGUE' ? '#10B981' : colors[index % colors.length];
-          const stopSeq = stopItem.sequence || index + 1;
+          return rawStops.map((stopItem: any, index: number) => {
+            const lat = parseFloat(stopItem.latitude || stopItem.lat);
+            const lng = parseFloat(stopItem.longitude || stopItem.lng);
+            if (isNaN(lat) || isNaN(lng)) return null;
 
-          return (
-            <Marker
-              key={stopItem._id || stopItem.id || index}
-              coordinate={{ latitude: lat, longitude: lng }}
-              title={`Paragem #${stopSeq}: ${stopItem.recipientName || stopItem.address || 'Destino'}`}
-              description={stopItem.address || ''}
-            >
-              <View style={{ alignItems: 'center' }}>
-                <View style={{
-                  backgroundColor: stopColor,
-                  paddingHorizontal: 8,
-                  paddingVertical: 5,
-                  borderRadius: 14,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  borderWidth: 2,
-                  borderColor: '#FFFFFF',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 3,
-                  elevation: 5
-                }}>
-                  <Ionicons name="location" size={14} color="#FFFFFF" style={{ marginRight: 3 }} />
-                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11 }}>#{stopSeq}</Text>
+            const colors = ['#F97316', '#9333EA', '#0284C7', '#D97706', '#EC4899', '#10B981'];
+            const stopColor = stopItem.status === 'DELIVERED' || stopItem.status === 'ENTREGUE' ? '#10B981' : colors[index % colors.length];
+            const stopSeq = stopItem.sequence || index + 1;
+
+            return (
+              <Marker
+                key={stopItem._id || stopItem.id || index}
+                coordinate={{ latitude: lat, longitude: lng }}
+                title={`Paragem #${stopSeq}: ${stopItem.recipientName || stopItem.address || 'Destino'}`}
+                description={stopItem.address || ''}
+              >
+                <View style={{ alignItems: 'center' }}>
+                  <View style={{
+                    backgroundColor: stopColor,
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderRadius: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 2,
+                    borderColor: '#FFFFFF',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 3,
+                    elevation: 5
+                  }}>
+                    <Ionicons name="location" size={14} color="#FFFFFF" style={{ marginRight: 3 }} />
+                    <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11 }}>#{stopSeq}</Text>
+                  </View>
+                  <View style={{
+                    width: 0,
+                    height: 0,
+                    backgroundColor: 'transparent',
+                    borderStyle: 'solid',
+                    borderLeftWidth: 5,
+                    borderRightWidth: 5,
+                    borderBottomWidth: 0,
+                    borderTopWidth: 6,
+                    borderLeftColor: 'transparent',
+                    borderRightColor: 'transparent',
+                    borderTopColor: stopColor,
+                  }} />
                 </View>
-                <View style={{
-                  width: 0,
-                  height: 0,
-                  backgroundColor: 'transparent',
-                  borderStyle: 'solid',
-                  borderLeftWidth: 5,
-                  borderRightWidth: 5,
-                  borderBottomWidth: 0,
-                  borderTopWidth: 6,
-                  borderLeftColor: 'transparent',
-                  borderRightColor: 'transparent',
-                  borderTopColor: stopColor,
-                }} />
-              </View>
-            </Marker>
-          );
-        })}
+              </Marker>
+            );
+          });
+        })()}
 
         {/* 🔥 ROTA OSRM CENTRALIZADA (APENAS SE DEVE DESENHAR E TEM ORIGEM+DESTINO) */}
         {origin && destination && shouldDrawRoute && routeCoordinates.length > 0 && (
@@ -610,6 +671,16 @@ export default function TripMap({
         <View style={styles.distanceBox}>
           <Ionicons name="speedometer" size={16} color="#FFF" style={styles.distanceIcon} />
           <Text style={styles.distanceText}>{distance.toFixed(1)} km</Text>
+        </View>
+      )}
+
+      {/* 🔥 ETA DINÂMICO & TRÂNSITO */}
+      {duration !== null && duration > 0 && shouldDrawRoute && stepStatus !== 7 && (
+        <View style={{ position: 'absolute', top: 100, alignSelf: 'center', backgroundColor: 'rgba(15, 23, 42, 0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
+          <Ionicons name="time" size={16} color="#A855F7" style={{ marginRight: 6 }} />
+          <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>
+            ETA ~{Math.round(duration)} min
+          </Text>
         </View>
       )}
 

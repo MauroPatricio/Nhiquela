@@ -37,6 +37,7 @@ import colorRoutes from './routes/colorRoutes.js';
 import sizeRoutes from './routes/sizeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import requestServiceRoutes from './routes/requestServiceRoutes.js';
+import osrmRoutes from './routes/osrmRoutes.js';
 import bodyParser from 'body-parser';
 import cartRoutes from './routes/cartRoutes.js';
 import { fileURLToPath } from 'url';
@@ -117,9 +118,10 @@ app.set('trust proxy', 1);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.BASE_URL, 'https://nhiquelaservicos.com', 'https://www.nhiquelaservicos.com'] 
-    : '*',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    return callback(null, origin);
+  },
   credentials: true
 }));
 
@@ -195,6 +197,7 @@ app.use('/api/request-services', requestServiceRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/tipo-estabelecimento', tipoEstabelecimentoRoutes);
 app.use('/api/establishment-types', establishmentTypeRoutes);
+app.use('/api/osrm', osrmRoutes);
 app.use('/api/trip-chat', tripChatRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/payments-emola', paymentRouterEmola);
@@ -261,7 +264,13 @@ let pubClient;
 
 // Iniciar serviço de agendamento automático de pedidos
 if (process.env.NODE_ENV !== 'test') {
-  const io = new Server(httpServer, { cors: { origin: '*' } });
+  const io = new Server(httpServer, {
+    cors: {
+      origin: (origin, callback) => callback(null, origin || '*'),
+      methods: ['GET', 'POST'],
+      credentials: true
+    }
+  });
   app.set('io', io);
 
   // Redis Adapter Configuration

@@ -147,7 +147,7 @@ const WalletScreen = ({ navigation }) => {
     );
   };
 
-  const totalIn = transactions.filter(t => t.type === 'credit' && t.status === 'confirmado').reduce((s, t) => s + (t.amount || 0), 0);
+  const totalIn = transactions.filter(t => t.type === 'credit' && (t.status === 'confirmado' || t.status === 'pendente')).reduce((s, t) => s + (t.amount || 0), 0);
   const totalOut = transactions.filter(t => t.type === 'debit' && t.status === 'confirmado').reduce((s, t) => s + (t.amount || 0), 0);
 
   if (loading) {
@@ -279,16 +279,18 @@ const WalletScreen = ({ navigation }) => {
               </View>
             )}
 
-            {/* Botão de Recarga */}
-            <TouchableOpacity
-              style={styles.withdrawBtn}
-              onPress={() => navigation.navigate('TopUp')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="add-circle-outline" size={20} color="#fff" />
-              <Text style={styles.withdrawBtnText}>Recarregar Carteira</Text>
-              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
+            {/* Botão de Recarga — Ocultado se houver recarga em análise */}
+            {!(transactions.some(t => t.type === 'credit' && t.status === 'pendente' && (t.description?.includes('Recarga') || t.description?.includes('TopUp') || t.description?.includes('Depósito')))) && (
+              <TouchableOpacity
+                style={styles.withdrawBtn}
+                onPress={() => navigation.navigate('TopUp')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                <Text style={styles.withdrawBtnText}>Recarregar Carteira</Text>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
+              </TouchableOpacity>
+            )}
 
             {/* Sumário de Ganhos */}
             <Text style={styles.sectionTitle}>Sumário de Ganhos</Text>

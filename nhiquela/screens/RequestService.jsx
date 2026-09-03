@@ -222,6 +222,10 @@ export default function RequestServiceSimple() {
       Alert.alert('Valor Inválido', 'Introduza um valor válido para a proposta.');
       return;
     }
+    if (proposalNote && /(?:\+?258[\s.-]?)?\b8[2-7][\s.-]?\d{3}[\s.-]?\d{4}\b/i.test(proposalNote) || /\d{8,}/.test(proposalNote || '')) {
+      Alert.alert('Contacto Não Permitido', 'Por razões de segurança, não é permitido incluir números de telefone no motivo da proposta.');
+      return;
+    }
     const orderId = currentRequestServiceId || activeTripData?._id;
     if (!orderId) return;
 
@@ -248,6 +252,9 @@ export default function RequestServiceSimple() {
     }
   };
 
+  const [showProposalAcceptedModal, setShowProposalAcceptedModal] = useState(false);
+  const [acceptedProposalPrice, setAcceptedProposalPrice] = useState(0);
+
   const handleAcceptProposal = async () => {
     const orderId = currentRequestServiceId || activeTripData?._id;
     if (!orderId) return;
@@ -258,7 +265,10 @@ export default function RequestServiceSimple() {
       const { data } = await api.post(`/request-service/${orderId}/negotiate/accept`, {}, {
         headers: { authorization: `Bearer ${token}` }
       });
-      Alert.alert('Proposta Aceite', 'O valor final do serviço foi acordado com sucesso!');
+      const price = data.order?.deliveryPrice || data.order?.pricing?.totalPrice || 0;
+      setAcceptedProposalPrice(price);
+      setShowProposalAcceptedModal(true);
+      setShowNegotiationModal(false);
       if (data.order) setActiveTripData(data.order);
     } catch (err) {
       console.log('Erro ao aceitar proposta:', err);
@@ -321,7 +331,10 @@ export default function RequestServiceSimple() {
         headers: { authorization: `Bearer ${token}` }
       });
 
-      Alert.alert('Proposta Aceite!', 'A proposta de preço foi aceite com sucesso. O motorista está a caminho!');
+      const price = data.order?.deliveryPrice || data.order?.pricing?.totalPrice || orderToAccept?.deliveryPrice || 0;
+      setAcceptedProposalPrice(price);
+      setShowProposalAcceptedModal(true);
+      setShowNegotiationModal(false);
       setWaitingForDriver(false);
       setIsSearching(false);
       setActiveTripData(data.order || orderToAccept);
@@ -1064,6 +1077,9 @@ export default function RequestServiceSimple() {
         origin: originText,
         destination: destText,
         vehiclePhotos: requiresPhotos ? vehiclePhotos : undefined,
+        allowNegotiation: Boolean(subcatConfig?.allowNegotiation || service?.allowNegotiation || service?.isNegotiationAllowed),
+        isNegotiationAllowed: Boolean(subcatConfig?.allowNegotiation || service?.allowNegotiation || service?.isNegotiationAllowed),
+        maxNegotiationRounds: subcatConfig?.maxNegotiationRounds || service?.maxNegotiationRounds || 3,
         originDetails: {
           address: originText,
           lat: originCoord.lat,
@@ -1074,15 +1090,14 @@ export default function RequestServiceSimple() {
           lat: destCoord.lat,
           lng: destCoord.lng
         },
-        stops: [
-          { sequence: 1, address: destText, lat: destCoord.lat, lng: destCoord.lng },
-          ...additionalStops.filter(s => s.text && s.coord).map((s, idx) => ({
-            sequence: idx + 2,
+        stops: (additionalStops || [])
+          .filter(s => s.text && s.coord?.lat && s.coord?.lng)
+          .map((s, idx) => ({
+            sequence: idx + 1,
             address: s.text,
-            lat: s.coord.lat,
-            lng: s.coord.lng
-          }))
-        ],
+            lat: Number(s.coord.lat),
+            lng: Number(s.coord.lng)
+          })),
         paymentOption: preferredPaymentMethodName,
         reason: reason,
         description: reason,
@@ -1230,8 +1245,19 @@ export default function RequestServiceSimple() {
       });
 
       socket.on('negotiation_updated', (updatedOrder) => {
-        if (isMounted && updatedOrder._id === currentRequestServiceId) {
+        if (isMounted && (updatedOrder._id === currentRequestServiceId || updatedOrder._id === activeTripData?._id)) {
           setActiveNegotiationOrder(updatedOrder);
+          if (updatedOrder.negotiationState === 'PENDING_CUSTOMER') {
+            try { Vibration.vibrate([0, 500, 200, 500]); } catch (e) {}
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: "💬 Nova Proposta de Preço!",
+                body: `O motorista ${updatedOrder.deliveryman?.name || 'designado'} propôs o valor de ${updatedOrder.deliveryPrice || updatedOrder.pricing?.totalPrice} MT. Toque para responder.`,
+                sound: true,
+              },
+              trigger: null,
+            });
+          }
         }
       });
 
@@ -1632,6 +1658,79 @@ export default function RequestServiceSimple() {
             }}
             showsVerticalScrollIndicator={true}
           >
+            {/* FLOATING STAGE NOTIFICATION BANNER (BADGE DE ESTÁGIO DE NEGOCIAÇÃO / CHEGADA / VIAGEM) */}
+            {(() => {
+              const currentOrder = activeNegotiationOrder || activeTripData;
+              if (!currentOrder) return null;
+
+              const isPendingCustomer = currentOrder.negotiationState === 'PENDING_CUSTOMER';
+              const isDriverArrived = currentOrder.status === 'No destino indicado' || currentOrder.stepStatus === 5;
+              const isInTransit = currentOrder.status === 'Em andamento' || currentOrder.stepStatus === 6;
+
+              if (!isPendingCustomer && !isDriverArrived && !isInTransit) return null;
+
+              return (
+                <View style={{
+                  marginTop: 10,
+                  marginBottom: 12,
+                  borderRadius: 18,
+                  padding: 14,
+                  backgroundColor: isPendingCustomer ? '#FAF5FF' : (isDriverArrived ? '#F0FDF4' : '#EFF6FF'),
+                  borderWidth: 1.5,
+                  borderColor: isPendingCustomer ? '#C084FC' : (isDriverArrived ? '#4ADE80' : '#60A5FA'),
+                  shadowColor: isPendingCustomer ? '#7C3AED' : (isDriverArrived ? '#10B981' : '#3B82F6'),
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 10,
+                  elevation: 5
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons
+                        name={isPendingCustomer ? "chatbubbles-sharp" : (isDriverArrived ? "location-sharp" : "car-sport-sharp")}
+                        size={20}
+                        color={isPendingCustomer ? '#7C3AED' : (isDriverArrived ? '#059669' : '#2563EB')}
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={{ fontSize: 13, fontWeight: '900', color: isPendingCustomer ? '#5B21B6' : (isDriverArrived ? '#065F46' : '#1E40AF') }}>
+                        {isPendingCustomer ? '💬 Nova Proposta de Preço!' : (isDriverArrived ? '📍 Motorista Chegou ao Local!' : '🛵 Viagem em Andamento')}
+                      </Text>
+                    </View>
+
+                    <View style={{
+                      backgroundColor: isPendingCustomer ? '#7C3AED' : (isDriverArrived ? '#059669' : '#2563EB'),
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 12
+                    }}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFF' }}>
+                        {isPendingCustomer ? 'NEGOCIAÇÃO' : (isDriverArrived ? 'NO LOCAL' : 'EM TRÂNSITO')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={{ fontSize: 12, color: '#374151', lineHeight: 18, marginTop: 2 }}>
+                    {isPendingCustomer
+                      ? `O motorista propôs o novo valor de ${currentOrder.deliveryPrice || currentOrder.pricing?.totalPrice} MT.`
+                      : (isDriverArrived
+                          ? `O motorista ${currentOrder.deliveryman?.name || ''} já se encontra no local indicado. Vá ao encontro dele.`
+                          : `O motorista está a realizar o percurso.`)}
+                  </Text>
+
+                  {isPendingCustomer && (
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                      <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: '#7C3AED', paddingVertical: 10, borderRadius: 12, alignItems: 'center' }}
+                        onPress={() => setShowNegotiationModal(true)}
+                      >
+                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 13 }}>Responder / Ver Proposta</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
               <View>
                 <Text style={styles.label}>Serviço</Text>
@@ -1854,53 +1953,11 @@ export default function RequestServiceSimple() {
               )}
             </View>
 
-            {/* DESTINATION INPUT - FIXED HEIGHT */}
-            <View style={[styles.inputBlock, { marginTop: 12 }]}>
-              <Text style={styles.label}>Destino</Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  ref={destInputRef}
-                  style={styles.fixedInput}
-                  placeholder="Para onde vamos?"
-                  placeholderTextColor="#9CA3AF"
-                  value={destText}
-                  onFocus={() => {
-                    snapTo(SNAP_TOP);
-                    setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ y: requiresPhotos ? 680 : 350, animated: true });
-                    }, 350);
-                  }}
-                  onChangeText={(text) => {
-                    setDestText(text);
-                    setDestination(text);
-                    setDestCoord(null);
-                    fetchSuggestions(text, 'dest');
-                  }}
-                />
-              </View>
-              {/* Suggestions dropdown */}
-              {destSuggestions.length > 0 && (
-                <View style={styles.suggestionsBox}>
-                  {loadingDest && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
-                  {destSuggestions.map((item) => (
-                    <TouchableOpacity
-                      key={item.place_id}
-                      style={styles.suggestionRow}
-                      onPress={() => selectPlace(item.place_id, item.description, 'dest')}
-                    >
-                      <Ionicons name="location-outline" size={16} color="#EF4444" style={{ marginRight: 8 }} />
-                      <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* MULTI-STOP ADDITIONAL DESTINATIONS */}
+            {/* MULTI-STOP ADDITIONAL DESTINATIONS (PARAGENS INTERMEDIÁRIAS) */}
             {additionalStops.map((stopItem, index) => (
               <View key={stopItem.id} style={[styles.inputBlock, { marginTop: 12 }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={styles.label}>Paragem #{index + 2}</Text>
+                  <Text style={styles.label}>Paragem #{index + 1}</Text>
                   <TouchableOpacity onPress={() => handleRemoveStop(stopItem.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Ionicons name="trash-outline" size={18} color="#EF4444" />
                   </TouchableOpacity>
@@ -1908,7 +1965,7 @@ export default function RequestServiceSimple() {
                 <View style={styles.inputRow}>
                   <TextInput
                     style={styles.fixedInput}
-                    placeholder={`Ex: Endereço da paragem #${index + 2}`}
+                    placeholder={`Ex: Endereço da paragem #${index + 1}`}
                     placeholderTextColor="#9CA3AF"
                     value={stopItem.text}
                     onFocus={() => snapTo(SNAP_TOP)}
@@ -1955,6 +2012,48 @@ export default function RequestServiceSimple() {
                 + Adicionar Paragem {additionalStops.length > 0 ? `(${additionalStops.length + 1} Pontos)` : ''}
               </Text>
             </TouchableOpacity>
+
+            {/* DESTINATION INPUT - FIXED HEIGHT (DESTINO FINAL) */}
+            <View style={[styles.inputBlock, { marginTop: 12 }]}>
+              <Text style={styles.label}>Destino Final</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  ref={destInputRef}
+                  style={styles.fixedInput}
+                  placeholder="Para onde vamos?"
+                  placeholderTextColor="#9CA3AF"
+                  value={destText}
+                  onFocus={() => {
+                    snapTo(SNAP_TOP);
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollTo({ y: requiresPhotos ? 680 : 350, animated: true });
+                    }, 350);
+                  }}
+                  onChangeText={(text) => {
+                    setDestText(text);
+                    setDestination(text);
+                    setDestCoord(null);
+                    fetchSuggestions(text, 'dest');
+                  }}
+                />
+              </View>
+              {/* Suggestions dropdown */}
+              {destSuggestions.length > 0 && (
+                <View style={styles.suggestionsBox}>
+                  {loadingDest && <ActivityIndicator size="small" color="#A855F7" style={{ margin: 8 }} />}
+                  {destSuggestions.map((item) => (
+                    <TouchableOpacity
+                      key={item.place_id}
+                      style={styles.suggestionRow}
+                      onPress={() => selectPlace(item.place_id, item.description, 'dest')}
+                    >
+                      <Ionicons name="location-outline" size={16} color="#EF4444" style={{ marginRight: 8 }} />
+                      <Text style={styles.suggestionText} numberOfLines={1}>{item.description}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
             {/* Estimativa de tempo */}
             {duration !== null && !isSearching && (
@@ -3090,6 +3189,105 @@ export default function RequestServiceSimple() {
                 </>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🤝 MODAL ULTRA-PREMIUM "PROPOSTA ACEITE COM SUCESSO" */}
+      <Modal visible={showProposalAcceptedModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.84)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 32,
+            width: '100%',
+            maxWidth: 350,
+            padding: 28,
+            alignItems: 'center',
+            shadowColor: '#10B981',
+            shadowOffset: { width: 0, height: 16 },
+            shadowOpacity: 0.45,
+            shadowRadius: 32,
+            elevation: 20,
+            borderWidth: 1.5,
+            borderColor: '#A7F3D0'
+          }}>
+            {/* Glowing Icon Badge */}
+            <View style={{
+              width: 88,
+              height: 88,
+              borderRadius: 44,
+              backgroundColor: '#ECFDF5',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 18,
+              borderWidth: 2.5,
+              borderColor: '#34D399',
+              shadowColor: '#10B981',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.35,
+              shadowRadius: 14,
+              elevation: 8
+            }}>
+              <Ionicons name="checkmark-done-circle" size={48} color="#059669" />
+            </View>
+
+            <View style={{
+              backgroundColor: '#D1FAE5',
+              paddingHorizontal: 14,
+              paddingVertical: 5,
+              borderRadius: 20,
+              marginBottom: 12
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#065F46', letterSpacing: 1 }}>
+                ✨ ACORDO CONCLUÍDO COM SUCESSO
+              </Text>
+            </View>
+
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#064E3B', marginBottom: 8, textAlign: 'center' }}>
+              Proposta Aceite! 🤝
+            </Text>
+
+            <Text style={{ fontSize: 14, color: '#374151', textAlign: 'center', lineHeight: 22, marginBottom: 20 }}>
+              O valor final do serviço foi acordado com sucesso entre o cliente e o motorista. O serviço irá prosseguir.
+            </Text>
+
+            {/* Agreed Price Highlight Card */}
+            <View style={{
+              width: '100%',
+              backgroundColor: '#F0FDF4',
+              padding: 18,
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: '#A7F3D0',
+              alignItems: 'center',
+              marginBottom: 24
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
+                Valor Final Acordado
+              </Text>
+              <Text style={{ fontSize: 32, fontWeight: '900', color: '#059669' }}>
+                {Number(acceptedProposalPrice || activeTripData?.deliveryPrice || activeTripData?.pricing?.totalPrice || 0).toFixed(2)} MT
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                paddingVertical: 16,
+                borderRadius: 18,
+                backgroundColor: '#059669',
+                alignItems: 'center',
+                shadowColor: '#059669',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4,
+                shadowRadius: 14,
+                elevation: 8,
+              }}
+              onPress={() => setShowProposalAcceptedModal(false)}
+              activeOpacity={0.9}
+            >
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>Excelente! ✨</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

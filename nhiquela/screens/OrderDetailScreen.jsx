@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   Share,
   Linking,
-  Clipboard
+  Clipboard,
+  Platform
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -510,6 +511,34 @@ const OrderDetailsScreen = () => {
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [realtimeEta, setRealtimeEta] = useState(null);
+
+  useEffect(() => {
+    if (!currentOrder || currentOrder.isDigitalOrder) return;
+
+    const fetchOrderEta = async () => {
+      try {
+        const origLat = currentOrder.originDetails?.lat || currentOrder.seller?.latitude;
+        const origLng = currentOrder.originDetails?.lng || currentOrder.seller?.longitude;
+        const destLat = currentOrder.destinationDetails?.lat || currentOrder.deliveryAddress?.latitude;
+        const destLng = currentOrder.destinationDetails?.lng || currentOrder.deliveryAddress?.longitude;
+
+        if (origLat && origLng && destLat && destLng) {
+          const origin = `${origLng},${origLat}`;
+          const destination = `${destLng},${destLat}`;
+          const res = await api.get(`/osrm/route?origin=${origin}&destination=${destination}`);
+          if (res.data) {
+            setRealtimeEta(res.data);
+          }
+        }
+      } catch (err) {
+        console.log('Error fetching realtime ETA:', err.message);
+      }
+    };
+
+    fetchOrderEta();
+  }, [currentOrder?._id, currentOrder?.status]);
+
   const confirmDeleteOrder = (orderId) => {
     setShowDeleteModal(true);
   };
@@ -677,6 +706,73 @@ const OrderDetailsScreen = () => {
           </View>
         </View>
 
+        {/* Dynamic Traffic & Real-Time ETA Card */}
+        {realtimeEta && !currentOrder.isDigitalOrder && ['Em trânsito', 'A Caminho', 'No destino indicado', 'Pronto', 'Aceite', 'Pendente'].includes(currentOrder.status) && (
+          <View style={{ backgroundColor: '#EFF6FF', padding: 16, borderRadius: 16, marginBottom: 16, borderWidth: 1.5, borderColor: '#93C5FD' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="time" size={22} color="#1D4ED8" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#1E40AF' }}>
+                  Chegada Prevista
+                </Text>
+              </View>
+              <View style={{ backgroundColor: realtimeEta.trafficBadgeColor || '#10B981', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                <Text style={{ color: '#FFF', fontSize: 11, fontWeight: 'bold' }}>
+                  {realtimeEta.trafficStatus || 'Trânsito Fluido 🟢'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#1E3A8A', marginVertical: 4 }}>
+              {realtimeEta.etaFormattedTime ? `~ ${realtimeEta.etaFormattedTime}` : `${realtimeEta.durationMin} min`}
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#3B82F6' }}> ({realtimeEta.durationMin} min restantes)</Text>
+            </Text>
+
+            <Text style={{ fontSize: 12, color: '#1E40AF', marginTop: 2 }}>
+              📍 Distância percorrida/restante: {realtimeEta.distanceKm} km • Rota otimizada OSRM
+            </Text>
+          </View>
+        )}
+
+        {/* Cartão de Acessos Digitais Entregues */}
+        {(currentOrder.isDigitalOrder || (currentOrder.digitalDeliveredItems && currentOrder.digitalDeliveredItems.length > 0)) && (
+          <View style={{ backgroundColor: '#F0FDF4', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1.5, borderColor: '#86EFAC' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Ionicons name="key" size={24} color="#16A34A" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>
+                Seus Acessos Digitais
+              </Text>
+            </View>
+
+            {currentOrder.digitalDeliveredItems && currentOrder.digitalDeliveredItems.length > 0 ? (
+              currentOrder.digitalDeliveredItems.map((item, idx) => (
+                <View key={idx} style={{ backgroundColor: '#FFFFFF', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#15803D', marginBottom: 4 }}>
+                    {item.productName || 'Produto Digital'}
+                  </Text>
+                  {item.key ? (
+                    <View style={{ backgroundColor: '#F8FAFC', padding: 8, borderRadius: 6, borderWidth: 1, borderColor: '#CBD5E1', marginBottom: 6 }}>
+                      <Text style={{ fontSize: 11, color: '#64748B', fontWeight: 'bold' }}>CHAVE / CÓDIGO / SENHA:</Text>
+                      <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#0F172A', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', marginTop: 2 }} selectTextOnFocus>
+                        {item.key}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {item.digitalInstructions ? (
+                    <Text style={{ fontSize: 12, color: '#166534', marginTop: 2, lineHeight: 18 }}>
+                      💡 <Text style={{ fontWeight: 'bold' }}>Instruções de Ativação:</Text> {item.digitalInstructions}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            ) : (
+              <Text style={{ fontSize: 13, color: '#15803D' }}>
+                O fornecedor irá disponibilizar a chave/senha e instruções de ativação diretamente por e-mail e nesta tela.
+              </Text>
+            )}
+          </View>
+        )}
+
         {['No destino indicado', 'Em trânsito', 'Pronto'].includes(currentOrder.status) && !currentOrder.isDelivered && (
           <View style={{ marginBottom: 16 }}>
             <TouchableOpacity 
@@ -739,7 +835,89 @@ const OrderDetailsScreen = () => {
         <View style={styles.divider} />
 
         {/* Destination Details / Delivery Info */}
-        {!isRequestService ? (
+        {/* Trajeto do Serviço ou Multi-Destino */}
+        {(currentOrder.deliveryStops?.length > 0 || currentOrder.stops?.length > 0) ? (
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>Itinerário Multi-Destino</Text>
+              <View style={{ backgroundColor: '#FAF5FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#E9D5FF' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#7E22CE' }}>
+                  {(currentOrder.deliveryStops || currentOrder.stops).length} Paragens
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: '#E2E8F0' }}>
+              {/* Origem */}
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center', marginRight: 10, marginTop: 2 }}>
+                  <Ionicons name="location" size={16} color="#2563EB" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>Ponto de Recolha (Origem)</Text>
+                  <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '600', marginTop: 2 }}>
+                    {currentOrder.originDetails?.address || currentOrder.origin || currentOrder.pickupAddress?.address || currentOrder.seller?.address || 'Origem não especificada'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Paragens Intermediárias e Destinos */}
+              {(currentOrder.deliveryStops || currentOrder.stops).map((stop, index) => {
+                const isDelivered = stop.status === 'DELIVERED';
+                const isArrived = stop.status === 'ARRIVED';
+                const isFailed = stop.status === 'FAILED';
+
+                const statusBg = isDelivered ? '#DCFCE7' : isFailed ? '#FEE2E2' : isArrived ? '#DBEAFE' : '#FEF3C7';
+                const statusColor = isDelivered ? '#166534' : isFailed ? '#991B1B' : isArrived ? '#1E40AF' : '#92400E';
+                const statusLabel = isDelivered ? 'Entregue 🟢' : isFailed ? 'Falhou 🔴' : isArrived ? 'No Local 🔵' : 'Pendente 🟡';
+
+                return (
+                  <React.Fragment key={stop._id || index}>
+                    <View style={{ height: 1, backgroundColor: '#E2E8F0', marginLeft: 38 }} />
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#FAF5FF', justifyContent: 'center', alignItems: 'center', marginRight: 10, marginTop: 2, borderWidth: 1, borderColor: '#E9D5FF' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#9333EA' }}>{index + 1}</Text>
+                      </View>
+
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                          <Text style={{ fontSize: 11, color: '#9333EA', fontWeight: '800', textTransform: 'uppercase' }}>
+                            Paragem #{index + 1} {stop.recipientName ? `• ${stop.recipientName}` : ''}
+                          </Text>
+                          <View style={{ backgroundColor: statusBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: statusColor }}>{statusLabel}</Text>
+                          </View>
+                        </View>
+
+                        <Text style={{ fontSize: 14, color: '#334155', fontWeight: '600', marginTop: 2, lineHeight: 18 }}>
+                          {stop.address || stop.text || stop.addressLine || 'Endereço não especificado'}
+                        </Text>
+
+                        {stop.recipientPhone ? (
+                          <Text style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
+                            📞 Telemóvel: <Text style={{ fontWeight: '600', color: '#1E293B' }}>{stop.recipientPhone}</Text>
+                          </Text>
+                        ) : null}
+
+                        {stop.packages ? (
+                          <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                            📦 Volumes: <Text style={{ fontWeight: '600', color: '#1E293B' }}>{stop.packages} pacote(s)</Text>
+                          </Text>
+                        ) : null}
+
+                        {stop.notes ? (
+                          <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic', marginTop: 2 }}>
+                            📝 Obs: {stop.notes}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          </View>
+        ) : !isRequestService ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Dados de Entrega</Text>
             <View style={{ backgroundColor: '#F8FAFC', borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: '#F1F5F9' }}>
@@ -791,6 +969,21 @@ const OrderDetailsScreen = () => {
               
               <View style={{ height: 1, backgroundColor: '#E2E8F0', marginLeft: 28 }} />
               
+              {currentOrder.stops && currentOrder.stops.map((stop, index) => (
+                <React.Fragment key={stop._id || index}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <Ionicons name="radio-button-on" size={20} color="#A855F7" style={{ marginTop: 2, marginRight: 8 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Paragem #{index + 1}</Text>
+                      <Text style={{ fontSize: 14, color: '#334155', fontWeight: '500', marginTop: 2 }}>
+                        {stop.address || stop.text || 'Endereço não especificado'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ height: 1, backgroundColor: '#E2E8F0', marginLeft: 28 }} />
+                </React.Fragment>
+              ))}
+
               <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                 <Ionicons name="flag" size={20} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
                 <View style={{ flex: 1 }}>
@@ -865,6 +1058,38 @@ const OrderDetailsScreen = () => {
                     )}
                   </View>
                 </View>
+
+                {/* Botão para Ligar para o Motorista */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#10B981',
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginLeft: 8,
+                    shadowColor: '#10B981',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 5,
+                    elevation: 4,
+                  }}
+                  onPress={() => {
+                    const phone = currentOrder.deliveryman.phoneNumber || currentOrder.deliveryman.phone || currentOrder.deliveryman.user?.phoneNumber || currentOrder.deliverymanPhone;
+                    if (phone) {
+                      const cleanPhone = String(phone).replace(/\s+/g, '');
+                      Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+                        Alert.alert('Erro', 'Não foi possível efetuar a chamada no dispositivo.');
+                      });
+                    } else {
+                      Alert.alert('Contacto indisponível', 'O número de telefone do motorista não está disponível.');
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="call" size={20} color="#FFF" />
+                </TouchableOpacity>
               </View>
 
               {currentOrder.deliveryman?.transferPreferences ? (
@@ -962,8 +1187,8 @@ const OrderDetailsScreen = () => {
           </View>
         )}
 
-        {/* Live Stats Container (Velocidade, Distância, Tempo) */}
-        {(etaDistance !== null || driverSpeed !== null) && (
+        {/* Live Stats Container (Distância, Tempo de Chegada) */}
+        {(etaDistance !== null || etaDuration !== null) && (
           <View style={styles.liveStatsContainer}>
             {etaDistance !== null && (
               <View style={styles.liveStatBox}>
@@ -982,16 +1207,6 @@ const OrderDetailsScreen = () => {
                   {etaDuration >= 60 ? `${Math.round(etaDuration / 60)} min` : `${Math.round(etaDuration)} s`}
                 </Text>
                 <Text style={styles.liveStatLabel}>Tempo de Chegada</Text>
-              </View>
-            )}
-
-            {driverSpeed !== null && (
-              <View style={styles.liveStatBox}>
-                <Ionicons name="speedometer-outline" size={22} color="#9333EA" />
-                <Text style={styles.liveStatValue}>
-                  {Math.round(driverSpeed)} km/h
-                </Text>
-                <Text style={styles.liveStatLabel}>Velocidade</Text>
               </View>
             )}
           </View>
@@ -1084,7 +1299,34 @@ const OrderDetailsScreen = () => {
                         }}
                         onPress={() => {
                           Clipboard.setString(String(item.key));
-                          Alert.alert('Copiado!', 'Chave copiada para a área de transferência.');
+                          if (toast) {
+                            toast.show('✨ Chave/Senha copiada com sucesso!', {
+                              type: 'success',
+                              placement: 'top',
+                              duration: 2500,
+                              animationType: 'slide-in',
+                              style: {
+                                backgroundColor: '#064E3B',
+                                borderRadius: 14,
+                                paddingHorizontal: 18,
+                                paddingVertical: 12,
+                                borderWidth: 1.5,
+                                borderColor: '#10B981',
+                                shadowColor: '#10B981',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.35,
+                                shadowRadius: 10,
+                                elevation: 8,
+                              },
+                              textStyle: {
+                                fontSize: 14,
+                                fontWeight: '700',
+                                color: '#ECFDF5',
+                              }
+                            });
+                          } else {
+                            Alert.alert('✨ Copiado!', 'Chave copiada com sucesso para a área de transferência.');
+                          }
                         }}
                       >
                         <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 12 }}>Copiar</Text>

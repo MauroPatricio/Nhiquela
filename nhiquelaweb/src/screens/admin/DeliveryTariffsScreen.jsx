@@ -13,6 +13,7 @@ export default function DeliveryTariffsScreen() {
   const [pricePerKm, setPricePerKm] = useState(15);
   const [serviceFee, setServiceFee] = useState(20);
   const [driverCommissionRate, setDriverCommissionRate] = useState(15);
+  const [stopFee, setStopFee] = useState(20);
   const [step1Km, setStep1Km] = useState(3);
   const [step1Price, setStep1Price] = useState(80);
   const [step2Km, setStep2Km] = useState(7);
@@ -37,6 +38,7 @@ export default function DeliveryTariffsScreen() {
         if (s.key === 'delivery_price_per_km') setPricePerKm(Number(s.value));
         if (s.key === 'delivery_service_fee') setServiceFee(Number(s.value));
         if (s.key === 'driver_commission_rate') setDriverCommissionRate(Number(s.value));
+        if (s.key === 'stop_fee') setStopFee(Number(s.value));
         if (s.key === 'delivery_step_1_km') setStep1Km(Number(s.value));
         if (s.key === 'delivery_step_1_price') setStep1Price(Number(s.value));
         if (s.key === 'delivery_step_2_km') setStep2Km(Number(s.value));
@@ -85,6 +87,7 @@ export default function DeliveryTariffsScreen() {
       await saveSetting('delivery_price_per_km', pricePerKm, 'Valor cobrado por Quilómetro (MZN)');
       await saveSetting('delivery_service_fee', serviceFee, 'Taxa Fixa de Serviço da Plataforma (MZN)');
       await saveSetting('driver_commission_rate', driverCommissionRate, 'Comissão da Plataforma (%)');
+      await saveSetting('stop_fee', stopFee, 'Valor cobrado por paragem adicional (MZN)');
       await saveSetting('delivery_step_1_km', step1Km, 'Escalão 1 (Km)');
       await saveSetting('delivery_step_1_price', step1Price, 'Escalão 1 (Preço)');
       await saveSetting('delivery_step_2_km', step2Km, 'Escalão 2 (Km)');
@@ -193,6 +196,15 @@ export default function DeliveryTariffsScreen() {
                     <input type="number" className="form-control bg-light border-0 py-2" value={driverCommissionRate} onChange={(e) => setDriverCommissionRate(e.target.value)} />
                   </div>
                   <div className="form-text small">Percentagem cobrada ao motorista (ex: 15).</div>
+                </div>
+
+                <div className="col-md-6 mt-3">
+                  <label className="form-label fw-bold small text-muted">Custo por Paragem Adicional (MZN)</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-0"><FontAwesomeIcon icon={faMapMarkedAlt} className="text-muted"/></span>
+                    <input type="number" className="form-control bg-light border-0 py-2" value={stopFee} onChange={(e) => setStopFee(e.target.value)} />
+                  </div>
+                  <div className="form-text small">Valor adicional cobrado por cada paragem intermediária (ex: 20 MT).</div>
                 </div>
               </div>
             </div>

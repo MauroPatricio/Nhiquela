@@ -69,7 +69,20 @@ const ProductHomeView = ({
             </View>
           )}
 
-          {/* Badge de estoque/encomenda */}
+          {/* Badge de estoque/encomenda/digital */}
+          {(() => {
+            const type = String(item?.productType || '').toUpperCase().trim();
+            const isDig = item?.isDigital;
+            if (type === 'PHYSICAL') return null;
+            if (type === 'DIGITAL' || isDig === true || isDig === 'true') {
+              return (
+                <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#9333EA', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '700' }}>⚡ Digital</Text>
+                </View>
+              );
+            }
+            return null;
+          })()}
           {item.isOrdered ? (
             <View style={styles.badgeOrdered}>
               <Text style={styles.badgeText}>Por encomenda</Text>

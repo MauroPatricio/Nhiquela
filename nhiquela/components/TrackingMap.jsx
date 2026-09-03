@@ -11,7 +11,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
  * TrackingMap – displays the driver location in real time for a given order.
  * Now uses react-native-maps and OSRM routing.
  */
-export default function TrackingMap({ orderId, destination, origin, stepStatus, vehicleType, vehicleColor, onUpdateTracking, darkMode = false }) {
+export default function TrackingMap({ orderId, destination, origin, stepStatus, vehicleType, vehicleColor, stops = [], onUpdateTracking, darkMode = false }) {
   const [driverLocation, setDriverLocation] = useState(null);
   const [snappedDriverLocation, setSnappedDriverLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]); // Driver -> Target
@@ -337,6 +337,32 @@ export default function TrackingMap({ orderId, destination, origin, stepStatus, 
             </View>
           </Marker>
         )}
+
+        {/* Marcadores de Paragens Múltiplas (Stops) */}
+        {Array.isArray(stops) && stops.length > 0 && stops.map((stop, idx) => {
+          const lat = Number(stop.latitude ?? stop.lat);
+          const lng = Number(stop.longitude ?? stop.lng);
+          if (!lat || !lng) return null;
+
+          const isDelivered = stop.status === 'DELIVERED';
+          const isArrived = stop.status === 'ARRIVED';
+          const pinColor = isDelivered ? '#10B981' : (isArrived ? '#F59E0B' : '#3B82F6');
+
+          return (
+            <Marker
+              key={stop._id || idx}
+              coordinate={{ latitude: lat, longitude: lng }}
+              title={`Paragem ${stop.sequence || idx + 1}: ${stop.recipientName || 'Destino'}`}
+              description={stop.address}
+            >
+              <View style={[styles.teardropPin, { backgroundColor: pinColor }]}>
+                <View style={styles.teardropIconContainer}>
+                  <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>{stop.sequence || (idx + 1)}</Text>
+                </View>
+              </View>
+            </Marker>
+          );
+        })}
 
         {(snappedDriverLocation || driverLocation) && (
           <Marker
