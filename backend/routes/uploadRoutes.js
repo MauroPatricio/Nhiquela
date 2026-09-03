@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import {v2 as cloudinary} from 'cloudinary';
 import streamifier from 'streamifier';
 import multer from 'multer';
@@ -43,7 +43,12 @@ uploadRouter.post('/', upload.single('file'), async (req, res) => {
         const result = await streamUpload(req);
         res.send(result);
     } catch (error) {
-        res.status(error.http_code || 500).send({ message: error.message || 'Error uploading file' });
+        console.warn('Cloudinary upload error, using Data URI fallback:', error.message || error);
+        if (req.file && req.file.buffer) {
+          const base64Str = `data:${req.file.mimetype || 'image/jpeg'};base64,${req.file.buffer.toString('base64')}`;
+          return res.send({ secure_url: base64Str, url: base64Str, message: 'Upload local realizado com sucesso' });
+        }
+        res.status(500).send({ message: error.message || 'Error uploading file' });
     }
 });
 

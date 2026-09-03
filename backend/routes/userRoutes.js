@@ -378,22 +378,55 @@ userRouter.get(
 
       const user = await User.findById(req.params.id)
         .populate('seller.province')
-        .populate('seller.tipoEstabelecimento'); // Adicionado populate para tipoEstabelecimento
+        .populate('seller.tipoEstabelecimento');
 
       if (user) {
-        res.send({
+        return res.send({
           ...user.toObject(),
           seller: {
             ...(user.seller && typeof user.seller.toObject === 'function' ? user.seller.toObject() : user.seller),
-            tipoEstabelecimento: user.seller?.tipoEstabelecimento?.name || 'No especificado'
+            tipoEstabelecimento: user.seller?.tipoEstabelecimento?.name || 'Não especificado'
           }
         });
-      } else {
-        res.status(404).send({ message: 'Utilizador no encontrado' });
       }
+
+      // Se não encontrou o utilizador por ID, tenta procurar se o ID pertence a um Provider
+      const provider = await Provider.findById(req.params.id).populate('userId');
+      if (provider) {
+        if (provider.userId) {
+          const providerUser = await User.findById(provider.userId);
+          if (providerUser) {
+            return res.send({
+              ...providerUser.toObject(),
+              name: provider.name || providerUser.name,
+              seller: {
+                name: provider.name || providerUser.seller?.name,
+                logo: provider.logo || providerUser.seller?.logo,
+                address: provider.address || providerUser.seller?.address,
+                province: provider.province || providerUser.seller?.province || 'Maputo',
+                description: provider.description || providerUser.seller?.description
+              }
+            });
+          }
+        }
+        return res.send({
+          _id: provider._id,
+          name: provider.name,
+          email: provider.email || '',
+          seller: {
+            name: provider.name,
+            logo: provider.logo,
+            address: provider.address,
+            province: provider.province || 'Maputo',
+            description: provider.description
+          }
+        });
+      }
+
+      res.status(404).send({ message: 'Utilizador/Estabelecimento não encontrado' });
     } catch (error) {
-      console.error('Erro ao buscar usurio:', error);
-      res.status(500).send({ message: 'Erro interno ao buscar usurio' });
+      console.error('Erro ao buscar utilizador:', error);
+      res.status(500).send({ message: 'Erro interno ao buscar utilizador' });
     }
   })
 );

@@ -1,11 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faStar, faMapMarkerAlt, faShoppingBag, faEye, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faStar, faMapMarkerAlt, faShoppingBag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch } from 'react-redux';
 import { addToBasket } from '../store/features/basketSlice';
 import { toast } from 'react-toastify';
 import api from '../api';
+
+const DEFAULT_PRODUCT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%23F3F4F6"/><path d="M150 110 L190 170 L110 170 Z" fill="%239CA3AF"/><circle cx="125" cy="125" r="12" fill="%239CA3AF"/><text x="150" y="210" font-family="sans-serif" font-size="14" font-weight="bold" fill="%236B7280" text-anchor="middle">Nhiquela Marketplace</text></svg>`;
+
+export const getProductImageUrl = (product) => {
+  if (!product) return DEFAULT_PRODUCT_IMAGE;
+  if (typeof product.image === 'string' && product.image.trim()) return product.image;
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const firstImg = product.images[0];
+    if (typeof firstImg === 'string' && firstImg.trim()) return firstImg;
+    if (typeof firstImg === 'object' && firstImg !== null && firstImg.url) return firstImg.url;
+  }
+  return DEFAULT_PRODUCT_IMAGE;
+};
 
 export default function ProductsScreen() {
   const [products, setProducts] = useState([]);
@@ -31,19 +44,20 @@ export default function ProductsScreen() {
   }, []);
 
   const handleAddToCart = (product, e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-    // Normalizar objeto do vendedor para compatibilidade com o Redux basket
     const sellerObj = typeof product.seller === 'object' && product.seller !== null
       ? product.seller
       : { _id: product.seller || 'seller_default', name: product.vendor || 'Nhiquela Partner' };
 
     const formattedItem = {
       _id: product._id,
-      name: product.name,
+      name: product.nome || product.name,
       price: Number(product.price || 0),
-      image: product.images && product.images.length > 0 ? product.images[0].url : 'https://via.placeholder.com/150?text=Sem+Imagem',
+      image: getProductImageUrl(product),
       seller: sellerObj,
       onSale: Boolean(product.onSale),
       discount: Number(product.discount || 0),
@@ -52,7 +66,7 @@ export default function ProductsScreen() {
     };
 
     dispatch(addToBasket(formattedItem));
-    toast.success(`${product.name} adicionado ao carrinho!`);
+    toast.success(`${formattedItem.name} adicionado ao carrinho!`);
   };
 
   const handleBuyNow = (product, e) => {
@@ -85,12 +99,15 @@ export default function ProductsScreen() {
           {products.map((product) => (
             <div className="col-12 col-md-6 col-lg-4 col-xl-3" key={product._id}>
               <div className="bg-white border rounded-4 p-3 h-100 hover-shadow transition-all d-flex flex-column">
-                <div className="position-relative mb-3">
+                <div className="position-relative mb-3 rounded-3 overflow-hidden bg-light" style={{ height: '190px' }}>
                   <img
-                    src={product.images && product.images.length > 0 ? product.images[0].url : 'https://via.placeholder.com/300?text=Sem+Imagem'}
-                    alt={product.name}
-                    className="img-fluid rounded-3 w-100"
-                    style={{ height: '190px', objectFit: 'cover' }}
+                    src={getProductImageUrl(product)}
+                    alt={product.nome || product.name}
+                    className="img-fluid rounded-3 w-100 h-100 object-fit-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = DEFAULT_PRODUCT_IMAGE;
+                    }}
                   />
                   {product.countInStock < 5 && (
                     <span className="badge bg-danger position-absolute" style={{ top: '10px', left: '10px' }}>
@@ -102,7 +119,7 @@ export default function ProductsScreen() {
                 <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>
                   {product.seller?.name || product.vendor || 'Nhiquela Partner'}
                 </small>
-                <h5 className="fw-bold text-black mb-auto mt-1">{product.name}</h5>
+                <h5 className="fw-bold text-black mb-auto mt-1">{product.nome || product.name}</h5>
 
                 <div className="d-flex align-items-center gap-3 text-muted small fw-bold my-2">
                   <span className="text-primary-custom"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.8'}</span>
@@ -110,7 +127,7 @@ export default function ProductsScreen() {
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center my-2">
-                  <span className="fw-black text-black fs-4">{product.price} MT</span>
+                  <span className="fw-black text-black fs-4">{Number(product.price || 0).toLocaleString('pt-PT')} MT</span>
                 </div>
 
                 <div className="d-flex gap-2 mt-2">

@@ -901,6 +901,7 @@ router.get(
         code: `#${o.code || o._id.toString().slice(-6)}`,
         date: new Date(o.createdAt).toLocaleString('pt-PT'),
         type: 'Encomenda (Loja)',
+        clientName: o.user?.name || o.clientName || o.customer?.name || 'Cliente',
         driverName: o.deliveryman?.name || driverMap.get(String(o.deliveryman?.id)) || 'N/A',
         sellerName: providerMap.get(String(o.seller)) || 'Loja Parceira',
         status: o.status || 'Pendente',
@@ -918,6 +919,7 @@ router.get(
         code: `#SERV-${r._id.toString().slice(-6)}`,
         date: new Date(r.createdAt).toLocaleString('pt-PT'),
         type: 'Viagem / Transporte',
+        clientName: r.user?.name || r.clientName || r.customerName || 'Cliente',
         driverName: r.deliveryman?.name || driverMap.get(String(r.targetDriverId)) || driverMap.get(String(r.deliveryman?.id)) || 'N/A',
         sellerName: 'N/A (Corrida Directa)',
         status: r.status || 'Pendente',
@@ -933,10 +935,10 @@ router.get(
     // Formato XLS / CSV (Excel)
     if (format === 'excel' || format === 'xls' || format === 'csv') {
       const BOM = '\uFEFF';
-      let csvContent = BOM + 'Código;Data e Hora;Tipo;Motorista;Fornecedor;Estado;Valor Total (MT);Comissão Plataforma (MT);Valor Líquido (MT);Método de Pagamento\n';
+      let csvContent = BOM + 'Código;Data e Hora;Tipo;Cliente Atendido;Motorista;Fornecedor;Estado;Valor Total (MT);Comissão Plataforma (MT);Valor Líquido (MT);Método de Pagamento\n';
 
       records.forEach(r => {
-        csvContent += `"${r.code}";"${r.date}";"${r.type}";"${r.driverName}";"${r.sellerName}";"${r.status}";"${r.totalPrice}";"${r.commission}";"${r.netAmount}";"${r.paymentMethod}"\n`;
+        csvContent += `"${r.code}";"${r.date}";"${r.type}";"${r.clientName}";"${r.driverName}";"${r.sellerName}";"${r.status}";"${r.totalPrice}";"${r.commission}";"${r.netAmount}";"${r.paymentMethod}"\n`;
       });
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');

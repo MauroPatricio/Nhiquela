@@ -14,6 +14,8 @@ import CartScreen from './screens/CartScreen';
 import CheckoutScreen from './screens/CheckoutScreen';
 import SellerProfileScreen from './screens/SellerProfileScreen';
 import TermsScreen from './screens/TermsScreen';
+import SearchScreen from './screens/SearchScreen';
+import CustomerPortalScreen from './screens/CustomerPortalScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import ReturnPolicyScreen from './screens/ReturnPolicyScreen';
 import DashboardScreen from './screens/admin/DashboardScreen';
@@ -81,6 +83,9 @@ function App() {
         {/* Rotas Públicas (Marketplace) */}
         <Route path="/shop" element={<PublicLayout />}>
           <Route index element={<HomeScreen />} />
+          <Route path="search" element={<SearchScreen />} />
+          <Route path="account" element={<CustomerPortalScreen />} />
+          <Route path="orders" element={<CustomerPortalScreen />} />
           <Route path="product/:id" element={<ProductDetailScreen />} />
           <Route path="cart" element={<CartScreen />} />
           <Route path="checkout" element={<CheckoutScreen />} />
