@@ -67,6 +67,8 @@ const TripCard = React.memo(function TripCard({
   const [proposalNote, setProposalNote] = useState('');
   const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ uri: string; label: string } | null>(null);
+  const [showProposalSuccessModal, setShowProposalSuccessModal] = useState(false);
+  const [sentProposalAmount, setSentProposalAmount] = useState<number | string>(0);
 
   useEffect(() => {
     if (showNegotiateModal) {
@@ -82,9 +84,25 @@ const TripCard = React.memo(function TripCard({
   const currentRounds = itemAny.negotiationRoundCount || item.originalData?.negotiationRoundCount || negotiationHistory.length;
   const remainingProposals = Math.max(0, maxRounds - currentRounds);
   const hasProposals = negotiationHistory && negotiationHistory.length > 0;
-  const isNegotiationAllowed = itemAny.isNegotiationAllowed !== undefined 
-    ? Boolean(itemAny.isNegotiationAllowed) 
-    : (item.originalData?.isNegotiationAllowed !== undefined ? Boolean(item.originalData?.isNegotiationAllowed) : true);
+  const isNegotiationAllowed = Boolean(
+    itemAny.allowNegotiation === true ||
+    itemAny.isNegotiationAllowed === true ||
+    itemAny.isNegotiable === true ||
+    itemAny.allowBidding === true ||
+    item.originalData?.allowNegotiation === true ||
+    item.originalData?.isNegotiationAllowed === true ||
+    item.originalData?.isNegotiable === true ||
+    item.originalData?.allowBidding === true ||
+    item.originalData?.serviceId?.allowNegotiation === true ||
+    item.originalData?.serviceId?.isNegotiationAllowed === true ||
+    (typeof item.serviceName === 'string' && item.serviceName.toLowerCase().includes('reboque')) ||
+    (typeof item.serviceMotive === 'string' && item.serviceMotive.toLowerCase().includes('reboque'))
+  );
+
+  const lastProposal = negotiationHistory && negotiationHistory.length > 0 ? negotiationHistory[negotiationHistory.length - 1] : null;
+  const isCustomerAccepted = negotiationState === 'ACCEPTED' || lastProposal?.status === 'ACCEPTED';
+  const agreedPriceValue = itemAny.finalAgreedPrice || itemAny.deliveryPrice || itemAny.pricing?.totalPrice || item.originalData?.finalAgreedPrice || item.originalData?.deliveryPrice || item.originalData?.pricing?.totalPrice || lastProposal?.amount || 0;
+  const agreedPriceFormatted = Number(agreedPriceValue).toFixed(2);
 
   const [driverName, setDriverName] = useState('Motorista');
 
@@ -125,9 +143,25 @@ const TripCard = React.memo(function TripCard({
     }
   };
 
+  const containsPhoneNumber = (text: string) => {
+    if (!text) return false;
+    const phoneRegex = /(?:\+?258[\s.-]?)?\b8[2-7][\s.-]?\d{3}[\s.-]?\d{4}\b/i;
+    const genericPhoneRegex = /\b(?:\+?\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4}\b/;
+    const continuousDigits = /\d{8,}/;
+    return phoneRegex.test(text) || genericPhoneRegex.test(text) || continuousDigits.test(text);
+  };
+
   const handleSendDriverProposal = async () => {
     if (!proposedPrice || isNaN(Number(proposedPrice)) || Number(proposedPrice) <= 0) {
       Alert.alert('Valor Inválido', 'Introduza um valor numérico válido para a sua proposta.');
+      return;
+    }
+
+    if (proposalNote && containsPhoneNumber(proposalNote)) {
+      Alert.alert(
+        'Contacto Não Permitido',
+        'Por razões de segurança, não é permitido incluir números de telefone no motivo do reajuste. Descreva apenas o motivo do reajuste (ex: trânsito, chuva, bagagem pesada).'
+      );
       return;
     }
 
@@ -154,7 +188,8 @@ const TripCard = React.memo(function TripCard({
         throw new Error(data.message || 'Erro ao enviar proposta.');
       }
 
-      Alert.alert('Proposta Enviada!', 'A sua proposta de preço foi enviada ao cliente com sucesso.');
+      setSentProposalAmount(proposedPrice);
+      setShowProposalSuccessModal(true);
       setShowNegotiateModal(false);
       setProposalNote('');
     } catch (err: any) {
@@ -264,6 +299,27 @@ const TripCard = React.memo(function TripCard({
                 </View>
               )}
             </View>
+
+            {/* 🟢 LABEL INFORMANDO QUE O CLIENTE ACEITOU A PROPOSTA */}
+            {isCustomerAccepted && (
+              <View style={{
+                backgroundColor: '#D1FAE5',
+                borderWidth: 1.5,
+                borderColor: '#34D399',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 8,
+                marginBottom: 2
+              }}>
+                <Ionicons name="checkmark-circle" size={15} color="#059669" style={{ marginRight: 5 }} />
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#065F46' }}>
+                  O cliente aceitou a proposta de: <Text style={{ color: '#047857', fontWeight: '900' }}>{agreedPriceFormatted} MT</Text>
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -296,6 +352,30 @@ const TripCard = React.memo(function TripCard({
             <Text style={styles.locationText} numberOfLines={2}>{item.pickup}</Text>
           </View>
           
+          {(() => {
+            const rawStops = item.stops || item.originalData?.stops || item.originalData?.deliveryStops || [];
+            const validStops = Array.isArray(rawStops) ? rawStops.filter((s: any) => s && (s.address || s.text)) : [];
+            if (validStops.length === 0) return null;
+
+            return validStops.map((stopItem: any, idx: number) => {
+              const stopAddr = stopItem.address || stopItem.text || `Paragem #${idx + 1}`;
+              return (
+                <React.Fragment key={idx}>
+                  <View style={styles.dashedLine} />
+                  <View style={styles.locationItem}>
+                    <View style={[styles.iconBoxPrimary, { backgroundColor: '#F3E8FF' }]}>
+                      <Ionicons name="navigate-circle" size={14} color="#9333EA" />
+                    </View>
+                    <Text style={styles.locationText} numberOfLines={2}>
+                      <Text style={{ fontWeight: '700', color: '#9333EA' }}>Paragem #{idx + 1}: </Text>
+                      {stopAddr}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              );
+            });
+          })()}
+
           <View style={styles.dashedLine} />
           
           <View style={styles.locationItem}>
@@ -333,6 +413,60 @@ const TripCard = React.memo(function TripCard({
               </Text>
             </View>
           )}
+
+          {/* Fotos do Veículo / Fotos Anexadas pelo Cliente (ex: Reboque) */}
+          {(() => {
+            const vPhotos = item.vehiclePhotos || item.originalData?.vehiclePhotos;
+            let photoList: string[] = [];
+            if (vPhotos) {
+              if (typeof vPhotos === 'object') {
+                photoList = [vPhotos.front, vPhotos.rear, vPhotos.leftSide, vPhotos.rightSide].filter(Boolean);
+              } else if (Array.isArray(vPhotos)) {
+                photoList = vPhotos.filter(Boolean);
+              }
+            }
+            if (photoList.length === 0 && Array.isArray(item.photos || item.originalData?.photos)) {
+              photoList = (item.photos || item.originalData?.photos).filter(Boolean);
+            }
+
+            if (photoList.length === 0) return null;
+
+            return (
+              <View style={{ marginTop: 10, padding: 8, backgroundColor: '#FAF5FF', borderRadius: 10, borderWidth: 1, borderColor: '#E9D5FF' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B21A8', marginBottom: 6 }}>
+                  📷 Fotos do Veículo ({photoList.length}):
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', gap: 8 }}>
+                  {photoList.map((photoUri: string, pIdx: number) => (
+                    <TouchableOpacity
+                      key={pIdx}
+                      onPress={() => setPreviewImage({ uri: photoUri, label: `Foto do Veículo #${pIdx + 1}` })}
+                      activeOpacity={0.8}
+                      style={{ position: 'relative' }}
+                    >
+                      <Image
+                        source={{ uri: photoUri }}
+                        style={{ width: 60, height: 60, borderRadius: 10, borderWidth: 1, borderColor: '#C084FC', backgroundColor: '#F3E8FF' }}
+                      />
+                      <View style={{
+                        position: 'absolute',
+                        top: 3,
+                        right: 3,
+                        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+                        <Ionicons name="eye" size={12} color="#FFF" />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            );
+          })()}
         </View>
       </View>
 
@@ -539,6 +673,34 @@ const TripCard = React.memo(function TripCard({
 
               {/* Stream / Chat de Propostas com CSS Ultra-Premium */}
               <View style={{ padding: 16, backgroundColor: '#FAF5FF' }}>
+                {isCustomerAccepted && (
+                  <View style={{
+                    backgroundColor: '#ECFDF5',
+                    borderColor: '#34D399',
+                    borderWidth: 1.5,
+                    borderRadius: 16,
+                    padding: 14,
+                    marginBottom: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    shadowColor: '#10B981',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    elevation: 4
+                  }}>
+                    <Ionicons name="checkmark-done-circle" size={26} color="#059669" style={{ marginRight: 10 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '900', color: '#065F46' }}>
+                        Proposta Aceite pelo Cliente! 🎉
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#047857', marginTop: 2 }}>
+                        O cliente aceitou a proposta de: {agreedPriceFormatted} MT
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
                 {hasProposals ? (
                   negotiationHistory.map((proposal: any, idx: number) => {
                     const isFromDriver = proposal.proposedBy === 'PROVIDER' || proposal.proposedBy === 'DRIVER';
@@ -682,9 +844,186 @@ const TripCard = React.memo(function TripCard({
                 </TouchableOpacity>
               </View>
             </ScrollView>
-
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal para Maximizar a Foto do Veículo em Tela Cheia */}
+      <Modal
+        visible={!!previewImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImage(null)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.95)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 16
+        }}>
+          {/* Header com título e botão de fechar */}
+          <View style={{
+            position: 'absolute',
+            top: Platform.OS === 'ios' ? 50 : 40,
+            left: 20,
+            right: 20,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 10
+          }}>
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>
+              {previewImage?.label || 'Foto do Veículo'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setPreviewImage(null)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Ionicons name="close" size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Imagem Maximizada */}
+          {previewImage?.uri && (
+            <Image
+              source={{ uri: previewImage.uri }}
+              style={{
+                width: Dimensions.get('window').width - 32,
+                height: Dimensions.get('window').height * 0.72,
+                borderRadius: 16,
+              }}
+              resizeMode="contain"
+            />
+          )}
+
+          {/* Botão Fechar no rodapé */}
+          <TouchableOpacity
+            onPress={() => setPreviewImage(null)}
+            style={{
+              position: 'absolute',
+              bottom: 40,
+              backgroundColor: '#7C3AED',
+              paddingVertical: 14,
+              paddingHorizontal: 32,
+              borderRadius: 30,
+              shadowColor: '#7C3AED',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.4,
+              shadowRadius: 8,
+              elevation: 6
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 15 }}>Fechar Visualização</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* 🚀 MODAL ULTRA-PREMIUM "PROPOSTA ENVIADA COM SUCESSO" */}
+      <Modal visible={showProposalSuccessModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.82)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 32,
+            width: '100%',
+            maxWidth: 350,
+            padding: 28,
+            alignItems: 'center',
+            shadowColor: '#7C3AED',
+            shadowOffset: { width: 0, height: 16 },
+            shadowOpacity: 0.4,
+            shadowRadius: 32,
+            elevation: 20,
+            borderWidth: 1,
+            borderColor: '#F3E8FF'
+          }}>
+            {/* Glowing Icon Badge */}
+            <View style={{
+              width: 84,
+              height: 84,
+              borderRadius: 42,
+              backgroundColor: '#F3E8FF',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 18,
+              borderWidth: 2,
+              borderColor: '#C084FC',
+              shadowColor: '#7C3AED',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 8
+            }}>
+              <Ionicons name="paper-plane" size={42} color="#7C3AED" />
+            </View>
+
+            <View style={{
+              backgroundColor: '#EDE9FE',
+              paddingHorizontal: 14,
+              paddingVertical: 5,
+              borderRadius: 20,
+              marginBottom: 12
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#6D28D9', letterSpacing: 1 }}>
+                ✨ ENVIADA COM SUCESSO
+              </Text>
+            </View>
+
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#1E1B4B', marginBottom: 8, textAlign: 'center' }}>
+              Proposta Enviada! 🎉
+            </Text>
+
+            <Text style={{ fontSize: 14, color: '#4B5563', textAlign: 'center', lineHeight: 22, marginBottom: 18 }}>
+              A sua proposta de reajuste de preço foi submetida e notificada ao cliente com sucesso.
+            </Text>
+
+            {/* Price Highlight Card */}
+            <View style={{
+              width: '100%',
+              backgroundColor: '#FAF5FF',
+              padding: 16,
+              borderRadius: 18,
+              borderWidth: 1.5,
+              borderColor: '#DDD6FE',
+              alignItems: 'center',
+              marginBottom: 24
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B21A8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                Valor Proposto pelo Motorista
+              </Text>
+              <Text style={{ fontSize: 28, fontWeight: '900', color: '#7C3AED' }}>
+                {Number(sentProposalAmount).toFixed(2)} MT
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                paddingVertical: 16,
+                borderRadius: 18,
+                backgroundColor: '#7C3AED',
+                alignItems: 'center',
+                shadowColor: '#7C3AED',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4,
+                shadowRadius: 14,
+                elevation: 8,
+              }}
+              onPress={() => setShowProposalSuccessModal(false)}
+              activeOpacity={0.9}
+            >
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>Excelente!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </TouchableOpacity>
   );

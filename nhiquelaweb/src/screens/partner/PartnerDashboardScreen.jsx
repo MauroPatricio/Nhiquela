@@ -1,13 +1,17 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { selectUser } from '../../store/features/userSlice';
 import api from '../../api';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from '@e965/xlsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faMotorcycle, faStore, faCheckCircle,
   faMoneyBillWave, faChartLine, faFilter, faFileExcel,
   faFilePdf, faSync, faPercent, faTruck, faList,
-  faExclamationTriangle, faStar, faSearch, faBoxes, faEye, faPhone
+  faExclamationTriangle, faStar, faSearch, faBoxes, faEye, faPhone, faUser
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
@@ -25,6 +29,8 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-PT', { day:'2-digi
 const fmtMT = (v) => `${Number(v || 0).toLocaleString('pt-PT', { minimumFractionDigits:2, maximumFractionDigits:2 })} MT`;
 
 export default function PartnerDashboardScreen() {
+  const location = useLocation();
+  const isReportsView = location.pathname.includes('/reports');
   const userInfo  = useSelector(selectUser) || {};
   const partnerId = userInfo.partnerId || userInfo._id;
 
@@ -105,15 +111,85 @@ export default function PartnerDashboardScreen() {
     finally { setMemberKpisLoading(false); }
   };
 
-  const handleExport = (format) => {
-    const qp = new URLSearchParams({ format });
-    if (startDate) qp.append('startDate', startDate);
-    if (endDate)   qp.append('endDate', endDate);
-    if (selectedDriver) qp.append('driverId', selectedDriver);
-    if (selectedSeller) qp.append('sellerId', selectedSeller);
-    if (selectedStatus && selectedStatus !== 'Todos') qp.append('status', selectedStatus);
-    const url = `${api.defaults.baseURL}/partners/${partnerId}/reports/export?${qp}`;
-    format === 'pdf' || format === 'html' ? window.open(url, '_blank') : (window.location.href = url);
+  const exportClientSide = (format) => {
+    const reportData = (recentTrips || []).concat(recentOrders || []).map(item => ({
+      ID: item.code || item._id,
+      Data: fmtDate(item.createdAt),
+      Tipo: item.type === 'requestService' || item.origin ? 'Viagem' : 'Pedido Loja',
+      Cliente: item.user?.name || item.clientName || item.customer?.name || item.userName || 'N/A',
+      Associado: item._memberName || item.deliveryman?.name || 'N/A',
+      Origem: item.origin || item.pickupAddress?.address || 'N/A',
+      Destino: item.destination || item.deliveryAddress?.address || 'N/A',
+      Valor: Number(item.totalPrice || item.addressPrice || item.finalAgreedPrice || 0),
+      Estado: item.status || 'N/A'
+    }));
+
+    if (format === 'excel' || format === 'xls') {
+      const worksheet = XLSX.utils.json_to_sheet(reportData.length ? reportData : [{ Informacao: "Nenhum registo encontrado com os filtros selecionados." }]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio");
+      XLSX.writeFile(workbook, `relatorio_parceiro_${Date.now()}.xlsx`);
+      toast.success('Relatório Excel gerado com sucesso!');
+    } else {
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("Relatório Operacional do Parceiro", 14, 20);
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-PT')}`, 14, 28);
+
+      const tableColumn = ["ID", "Data", "Tipo", "Cliente", "Associado", "Valor (MT)", "Estado"];
+      const tableRows = reportData.map(r => [
+        String(r.ID).slice(-8), r.Data, r.Tipo, r.Cliente, r.Associado, `${r.Valor.toFixed(2)} MT`, r.Estado
+      ]);
+
+      if (doc.autoTable) {
+        doc.autoTable({
+          startY: 35,
+          head: [tableColumn],
+          body: tableRows.length ? tableRows : [["-", "-", "Sem dados", "-", "-", "-"]],
+          theme: 'striped',
+          headStyles: { fillColor: [138, 43, 226] }
+        });
+      }
+      doc.save(`relatorio_parceiro_${Date.now()}.pdf`);
+      toast.success('Relatório PDF gerado com sucesso!');
+    }
+  };
+
+  const handleExport = async (format) => {
+    try {
+      toast.info(`A gerar relatório em formato ${format.toUpperCase()}...`);
+      const qp = new URLSearchParams({ format });
+      if (startDate) qp.append('startDate', startDate);
+      if (endDate)   qp.append('endDate', endDate);
+      if (selectedDriver) qp.append('driverId', selectedDriver);
+      if (selectedSeller) qp.append('sellerId', selectedSeller);
+      if (selectedStatus && selectedStatus !== 'Todos') qp.append('status', selectedStatus);
+
+      const response = await api.get(`/partners/${partnerId}/reports/export?${qp}`, {
+        responseType: 'blob'
+      });
+
+      if (response.data && response.data.size > 0) {
+        const blob = new Blob([response.data], { 
+          type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', `relatorio_parceiro_${Date.now()}.${format === 'pdf' ? 'pdf' : 'xlsx'}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+        toast.success('Relatório descarregado com sucesso!');
+        return;
+      }
+      exportClientSide(format);
+    } catch (error) {
+      console.warn('Exportação por API falhou, a alternar para exportação local:', error);
+      exportClientSide(format);
+    }
   };
 
   const kpis = data?.kpis || {
@@ -141,11 +217,16 @@ export default function PartnerDashboardScreen() {
         <div>
           <span className="badge px-3 py-2 rounded-pill mb-2"
                 style={{ backgroundColor:'rgba(138,43,226,0.1)', color:'#8a2be2', fontWeight:'bold' }}>
-            <FontAwesomeIcon icon={faChartLine} className="me-2" /> Painel do Parceiro
+            <FontAwesomeIcon icon={isReportsView ? faFilePdf : faChartLine} className="me-2" /> 
+            {isReportsView ? 'Exportação de Relatórios' : 'Painel do Parceiro'}
           </span>
-          <h3 className="fw-bold m-0 text-dark">{data?.partnerName || userInfo.name || 'Parceiro'}</h3>
+          <h3 className="fw-bold m-0 text-dark">
+            {isReportsView ? 'Relatórios & Exportação' : (data?.partnerName || userInfo.name || 'Parceiro')}
+          </h3>
           <p className="text-muted small m-0 mt-1">
-            Visibilidade total das viagens, pedidos e desempenho dos associados.
+            {isReportsView 
+              ? 'Filtre e exporte relatórios detalhados da sua frota e fornecedores em formato Excel ou PDF.'
+              : 'Visibilidade total das viagens, pedidos e desempenho dos associados.'}
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap">
@@ -221,45 +302,47 @@ export default function PartnerDashboardScreen() {
         </div>
       ) : (
         <>
-          {/* KPI CARDS */}
-          <div className="row g-3 mb-4">
-            {[
-              { label:'Receita Total', value: fmtMT(kpis.totalRevenue), icon: faMoneyBillWave, color:'#8a2be2', bg:'rgba(138,43,226,0.1)', sub:`Comissao: ${fmtMT(kpis.totalCommissions)}` },
-              { label:'Lucro Liquido', value: fmtMT(kpis.netAmount), icon: faCheckCircle, gradient: true, sub:`Apos ${fmtMT(kpis.totalCommissions)} de comissao` },
-              { label:'Viagens Concluidas', value: kpis.completedTrips, icon: faMotorcycle, color:'#8a2be2', bg:'rgba(138,43,226,0.1)', sub:`Receita: ${fmtMT(kpis.tripsRevenue)}` },
-              { label:'Pedidos de Loja', value: kpis.completedStoreOrders, icon: faStore, color:'#ffc107', bg:'rgba(255,193,7,0.15)', sub:`Receita: ${fmtMT(kpis.storeRevenue)}` },
-              { label:'Motoristas na Frota', value: `${kpis.onlineDrivers} Online`, icon: faTruck, color:'#17a2b8', bg:'rgba(23,162,184,0.1)', sub:`${kpis.totalDrivers} associados` },
-              { label:'Taxa de Conclusao', value: `${kpis.completionRate}%`, icon: faPercent, color:'#28a745', bg:'rgba(40,167,69,0.1)', sub:`${kpis.completedOrders} de ${kpis.totalOrders}` },
-            ].map((k, i) => (
-              <div key={i} className="col-12 col-sm-6 col-xl-4">
-                <div className={`card border-0 shadow-sm rounded-4 h-100 ${k.gradient ? '' : 'bg-white'}`}
-                     style={k.gradient ? { background:'linear-gradient(135deg,#2b8a3e,#1e5e2a)', color:'#fff' } : {}}>
-                  <div className="card-body p-4">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <span className={`text-uppercase small fw-bold ${k.gradient ? 'opacity-75' : 'text-muted'}`}>{k.label}</span>
-                      <div className="rounded-circle d-flex align-items-center justify-content-center"
-                           style={{ width:48, height:48, backgroundColor: k.gradient ? 'rgba(255,255,255,0.2)' : k.bg, color: k.gradient ? '#fff' : k.color }}>
-                        <FontAwesomeIcon icon={k.icon} style={{ fontSize:'1.2rem' }} />
+          {/* KPI CARDS (Omitidos na vista de Relatórios) */}
+          {!isReportsView && (
+            <div className="row g-3 mb-4">
+              {[
+                { label:'Facturacao (Receita Total)', value: fmtMT(kpis.totalRevenue), icon: faMoneyBillWave, color:'#8a2be2', bg:'rgba(138,43,226,0.1)', sub:`Comissao: ${fmtMT(kpis.totalCommissions)}` },
+                { label:'Servicos Realizados', value: kpis.completedTrips, icon: faMotorcycle, color:'#8a2be2', bg:'rgba(138,43,226,0.1)', sub:`Receita Viagens: ${fmtMT(kpis.tripsRevenue)}` },
+                { label:'Entregas Concluidas', value: kpis.completedStoreOrders, icon: faCheckCircle, gradient: true, sub:`Receita Lojas: ${fmtMT(kpis.storeRevenue)}` },
+                { label:'Motoristas Activos', value: `${kpis.onlineDrivers}`, icon: faUser, color:'#17a2b8', bg:'rgba(23,162,184,0.1)', sub:`De um total de ${kpis.totalDrivers}` },
+                { label:'Viaturas Utilizadas', value: `${kpis.activeVehicles || kpis.onlineDrivers}`, icon: faTruck, color:'#6f42c1', bg:'rgba(111,66,193,0.1)', sub:`Veículos alocados hoje` },
+                { label:'Entregas em Atraso', value: `${kpis.delayedOrders || 0}`, icon: faExclamationTriangle, color:'#dc3545', bg:'rgba(220,53,69,0.1)', sub:`Em Risco de Incumprimento` },
+              ].map((k, i) => (
+                <div key={i} className="col-12 col-sm-6 col-xl-4">
+                  <div className={`card border-0 shadow-sm rounded-4 h-100 ${k.gradient ? '' : 'bg-white'}`}
+                       style={k.gradient ? { background:'linear-gradient(135deg,#2b8a3e,#1e5e2a)', color:'#fff' } : {}}>
+                    <div className="card-body p-4">
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <span className={`text-uppercase small fw-bold ${k.gradient ? 'opacity-75' : 'text-muted'}`}>{k.label}</span>
+                        <div className="rounded-circle d-flex align-items-center justify-content-center"
+                             style={{ width:48, height:48, backgroundColor: k.gradient ? 'rgba(255,255,255,0.2)' : k.bg, color: k.gradient ? '#fff' : k.color }}>
+                          <FontAwesomeIcon icon={k.icon} style={{ fontSize:'1.2rem' }} />
+                        </div>
                       </div>
+                      <h2 className={`fw-bold mb-1 ${k.gradient ? '' : 'text-dark'}`}>{k.value}</h2>
+                      <small className={k.gradient ? 'opacity-75' : 'text-muted'}>{k.sub}</small>
                     </div>
-                    <h2 className={`fw-bold mb-1 ${k.gradient ? '' : 'text-dark'}`}>{k.value}</h2>
-                    <small className={k.gradient ? 'opacity-75' : 'text-muted'}>{k.sub}</small>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* DISTRIBUICAO OPERACIONAL */}
           <div className="card border-0 shadow-sm rounded-4 mb-4">
             <div className="card-body p-4">
-              <h6 className="fw-bold mb-4 text-dark">Distribuicao Operacional</h6>
+              <h6 className="fw-bold mb-4 text-dark">Distribuicao Operacional & Desempenho por Período</h6>
               <div className="row g-3 mb-3">
                 {[
-                  { label:'Concluidas', value: kpis.completedOrders, cls:'success' },
-                  { label:'Em Andamento', value: kpis.inProgressOrders, cls:'primary' },
-                  { label:'Canceladas', value: kpis.cancelledOrders, cls:'danger' },
-                  { label:'Rejeitadas', value: kpis.rejectedOrders, cls:'secondary' },
+                  { label:'Serviços Concluidos', value: kpis.completedOrders, cls:'success' },
+                  { label:'Serviços Pendentes', value: kpis.inProgressOrders, cls:'primary' },
+                  { label:'Serviços Cancelados', value: kpis.cancelledOrders, cls:'danger' },
+                  { label:'Rejeitadas/Ignoradas', value: kpis.rejectedOrders, cls:'secondary' },
                 ].map((s, i) => (
                   <div key={i} className="col-6 col-md-3">
                     <div className="p-3 rounded-3 border bg-light text-center">
@@ -273,7 +356,7 @@ export default function PartnerDashboardScreen() {
                 <div className="progress-bar bg-success rounded-pill" style={{ width:`${kpis.completionRate}%` }} />
               </div>
               <div className="d-flex justify-content-between small text-muted mt-1">
-                <span>Taxa de conclusao: {kpis.completionRate}%</span>
+                <span>Taxa de conclusao (Desempenho Geral): {kpis.completionRate}%</span>
                 <span>{kpis.completedOrders} / {kpis.totalOrders}</span>
               </div>
             </div>
@@ -316,22 +399,23 @@ export default function PartnerDashboardScreen() {
                   <table className="table table-hover align-middle mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th>Ref.</th><th>Motorista</th><th>Origem</th><th>Destino</th>
+                        <th>Ref.</th><th>Cliente</th><th>Motorista</th><th>Origem</th><th>Destino</th>
                         <th>Paragens</th><th>Preco</th><th>Estado</th><th>Data</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filtered(recentTrips).length === 0
-                        ? <tr><td colSpan={8} className="text-center py-4 text-muted">Nenhuma viagem encontrada.</td></tr>
+                        ? <tr><td colSpan={9} className="text-center py-4 text-muted">Nenhuma viagem encontrada.</td></tr>
                         : filtered(recentTrips).map((t, i) => (
                           <tr key={t._id || i}>
                             <td><span className="badge bg-light text-dark border">{t.code || t._id?.slice(-6) || '-'}</span></td>
+                            <td className="fw-bold small">{t.user?.name || t.clientName || t.customer?.name || t.userName || 'Cliente'}</td>
                             <td className="fw-bold small">{t._memberName || t.deliveryman?.name || '-'}</td>
                             <td className="small text-muted" style={{ maxWidth:140 }}>{t.origin || t.originDetails?.address || '-'}</td>
                             <td className="small text-muted" style={{ maxWidth:140 }}>{t.destination || t.destinationDetails?.address || t.deliveryAddress?.address || '-'}</td>
                             <td className="text-center">
-                              {t.deliveryStops?.length > 0
-                                ? <span className="badge" style={{ backgroundColor:'#A855F7', color:'#fff' }}>{t.deliveryStops.length} paragens</span>
+                              {(t.deliveryStops?.length > 0 || t.stops?.length > 0)
+                                ? <span className="badge" style={{ backgroundColor:'#A855F7', color:'#fff' }}>{t.deliveryStops?.length || t.stops?.length} paragens</span>
                                 : <span className="text-muted small">-</span>}
                             </td>
                             <td className="fw-bold text-success small">{fmtMT(t.deliveryPrice || t.finalAgreedPrice || t.addressPrice)}</td>

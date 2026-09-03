@@ -12,7 +12,104 @@ import DeliverymanUpdateRequest from '../models/DeliverymanUpdateRequestModel.js
 
 const router = express.Router();
 
-// Get all drivers (delivery men)
+// Obter dados do motorista autenticado (/api/drivers/me)
+router.get(
+  '/me',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).send({ message: 'Motorista não encontrado' });
+    }
+
+    const driverIdStr = user._id.toString();
+    let driverObjId = user._id;
+
+    // 1. Obter Saldo da Carteira
+    const Wallet = mongoose.model('Wallet');
+    const wallet = await Wallet.findOne({
+      $or: [
+        { ownerId: driverObjId },
+        { ownerId: driverIdStr },
+        { userId: driverObjId },
+        { userId: driverIdStr }
+      ]
+    });
+    const balanceVal = wallet ? (wallet.balance || 0) : 0;
+
+    // 2. Obter Estatísticas de Viagens (Hoje e Total)
+    const Order = mongoose.model('Order');
+    const RequestService = mongoose.model('RequestService');
+
+    const driverMatchConditions = [
+      { 'deliveryman.id': driverIdStr },
+      { 'deliveryman.id': driverObjId },
+      { 'deliveryman._id': driverIdStr },
+      { 'deliveryman._id': driverObjId },
+      { targetDriverId: driverIdStr },
+      { targetDriverId: driverObjId },
+      { driverId: driverIdStr },
+      { driverId: driverObjId },
+      { driver: driverIdStr },
+      { driver: driverObjId }
+    ];
+
+    const completedTripsQuery = {
+      $and: [
+        { $or: driverMatchConditions },
+        {
+          $or: [
+            { isDelivered: true },
+            { status: 'Concluído' },
+            { status: 'Entregue' },
+            { stepStatus: 7 }
+          ]
+        }
+      ],
+      deleted: { $ne: true }
+    };
+
+    const [orders, requests] = await Promise.all([
+      Order.find(completedTripsQuery).lean(),
+      RequestService.find(completedTripsQuery).lean()
+    ]);
+
+    const allTrips = [...orders, ...requests];
+    const totalTripsCount = allTrips.length;
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    let todayEarningsVal = 0;
+    allTrips.forEach(trip => {
+      const tripDate = new Date(trip.deliveredAt || trip.updatedAt || trip.createdAt || Date.now());
+      const amount = Number(trip.finalAgreedPrice || trip.deliveryPrice || trip.pricing?.totalPrice || trip.addressPrice || trip.deliveryman?.pricetopay || 0);
+      if (tripDate >= startOfToday) {
+        todayEarningsVal += amount;
+      }
+    });
+
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    const deliverymanObj = {
+      ...(userObj.deliveryman || {}),
+      balance: balanceVal,
+      totalTrips: totalTripsCount,
+      todayEarnings: todayEarningsVal,
+      rating: userObj.deliveryman?.averageRating || userObj.rating || 5.0
+    };
+
+    res.send({
+      ...userObj,
+      deliveryman: deliverymanObj,
+      photo: user.profileImage || user.photo || user.deliveryman?.photo || null,
+      profileImage: user.profileImage || user.photo || user.deliveryman?.photo || null,
+      token: req.headers.authorization ? req.headers.authorization.split(' ')[1] : null
+    });
+  })
+);
+
 // Get all drivers (delivery men) with pagination and optional search
 router.get(
   '/',

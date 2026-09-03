@@ -89,7 +89,7 @@ export const isAuth = (req, res, next) => {
 };
 
 export const isAdmin = (req, res, next) => {
-  if (req.user && (req.user.isAdmin || req.user.role === 'ADMIN')) {
+  if (req.user && (req.user.isAdmin || req.user.role === 'ADMIN' || req.user.isOperator || req.user.role === 'OPERATOR')) {
     next();
   } else {
     res.status(403).send({ message: 'Acesso negado. Requer perfil de Administrador.' });
@@ -108,7 +108,7 @@ export const isPartner = (req, res, next) => {
   if (req.user && (req.user.isPartner || req.user.role === 'PARTNER' || req.user.isAdmin || req.user.role === 'ADMIN')) {
     next();
   } else {
-    res.status(403).send({ message: 'Acesso negado. Requer perfil de Parceiro ou Admin.' });
+    res.status(403).send({ message: 'Acesso negado. Requer perfil de Parceiro.' });
   }
 };
 
@@ -121,10 +121,10 @@ export const isSeller = (req, res, next) => {
 };
 
 export const isSellerOrAdmin = (req, res, next) => {
-  if (req.user && (req.user.isSeller || req.user.role === 'SELLER' || req.user.isAdmin || req.user.role === 'ADMIN')) {
+  if (req.user && (req.user.isSeller || req.user.role === 'SELLER' || req.user.isAdmin || req.user.role === 'ADMIN' || req.user.isPartner || req.user.role === 'PARTNER' || req.user.isOperator || req.user.role === 'OPERATOR')) {
     next();
   } else {
-    res.status(403).send({ message: 'Acesso negado. Requer perfil de Vendedor ou Admin.' });
+    res.status(403).send({ message: 'Acesso negado. Requer perfil de Vendedor, Parceiro ou Admin.' });
   }
 };
 

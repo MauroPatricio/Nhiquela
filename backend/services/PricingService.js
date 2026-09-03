@@ -59,7 +59,8 @@ class PricingService {
         }
       ],
       minFareDelivery: await getSetting('min_fare_delivery', 80, 'Tarifa mnima (MT): Entregas e Txi'),
-      minFareService: await getSetting('min_fare_service', 100, 'Tarifa mnima (MT): Servios (ex: Eletricista)'),
+      minFareService: await getSetting('min_fare_service', 100, 'Tarifa mnima (MT): Servicos (ex: Delivery de pessoas)'),
+      stopFee: await getSetting('stop_fee', 20, 'Valor cobrado por paragem adicional (MZN)'),
       
       weatherMultipliers: {
         clear: 1.0,
@@ -125,11 +126,11 @@ class PricingService {
         };
       }
 
-      // Waypoints: Origem -> Destino -> Paragem 1 -> Paragem 2...
+      // Waypoints: Origem -> Paragem 1 -> Paragem 2... -> Destino
       const waypoints = [
         originLoc,
-        destLoc,
-        ...validStops.map(s => ({ lat: s.latitude || s.lat, lng: s.longitude || s.lng }))
+        ...validStops.map(s => ({ lat: s.latitude || s.lat, lng: s.longitude || s.lng })),
+        destLoc
       ];
 
       let totalDistance = 0;
@@ -306,6 +307,10 @@ class PricingService {
 
     if (hasHelper && service.supportsHelpers) extras += 200; 
     if (vehicle && vehicle.includesLoading) extras += vehicle.loadingFee;
+    
+    const validStopsCount = Array.isArray(stops) ? stops.filter(s => s && (s.latitude || s.lat) && (s.longitude || s.lng)).length : 0;
+    const stopsFee = validStopsCount * (engineConfig.stopFee || 20);
+    extras += stopsFee;
 
     let distanceSubtotal = actualBaseFare + distanceCost + timeCost + extras;
 
@@ -360,6 +365,8 @@ class PricingService {
         distanceCost,
         timeCost,
         extras,
+        stopsCount: validStopsCount,
+        stopsFee,
         distanceKm,
         durationMin,
         multipliers: {

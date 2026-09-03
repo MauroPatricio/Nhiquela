@@ -49,6 +49,15 @@ const ProductCard = ({ id, name, logo, description, rating, numReviews, seller, 
           ) : (
             <Badge style={styles.badgeOutOfStock}>Sem estoque</Badge>
           )}
+          {(() => {
+            const type = String(item.item?.productType || '').toUpperCase().trim();
+            const isDig = item.item?.isDigital;
+            if (type === 'PHYSICAL') return null;
+            if (type === 'DIGITAL' || isDig === true || isDig === 'true') {
+              return <Badge style={{ backgroundColor: '#9333EA', color: '#FFF', fontWeight: '700', fontSize: 10, marginLeft: 4 }}>⚡ Digital</Badge>;
+            }
+            return null;
+          })()}
         </View>
 
         <View style={styles.priceRow}>

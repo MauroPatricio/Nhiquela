@@ -80,15 +80,6 @@ export default function HomeScreen({ navigation, route }: any) {
   
   const [isToggling, setIsToggling] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await loadAllOrders();
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadAllOrders]);
   const [showTripAcceptedModal, setShowTripAcceptedModal] = useState(false);
   const [showOrderTakenModal, setShowOrderTakenModal] = useState(false);
   const [tripToStart, setTripToStart] = useState<Trip | null>(null);
@@ -1061,6 +1052,15 @@ export default function HomeScreen({ navigation, route }: any) {
     }
   };
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadAllOrders();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadAllOrders]);
+
   const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
@@ -1127,36 +1127,62 @@ export default function HomeScreen({ navigation, route }: any) {
     );
 
     let distance = 0;
-    let timeStr = "Tempo não disponível";
+    let timeStr = "";
 
-    // 1. Tentar usar o distanceKm do pricing (calculado pelo backend via OSRM)
-    if (order.pricing && Number(order.pricing.distanceKm) > 0) {
+    // 1. Tentar ler distância se enviada diretamente no objeto do pedido
+    if (typeof order.distance === 'string' && !order.distance.includes('não dispon') && order.distance.trim().length > 0) {
+      const match = order.distance.match(/[\d.]+/);
+      if (match) distance = parseFloat(match[0]);
+    } else if (typeof order.distance === 'number' && order.distance > 0) {
+      distance = order.distance;
+    } else if (order.distanceKm && Number(order.distanceKm) > 0) {
+      distance = Number(order.distanceKm);
+    } else if (order.estimatedDistance && Number(order.estimatedDistance) > 0) {
+      distance = Number(order.estimatedDistance);
+    } else if (order.pricing && Number(order.pricing.distanceKm) > 0) {
       distance = Number(order.pricing.distanceKm);
-      if (order.pricing.breakdown && order.pricing.breakdown.durationMin) {
-        timeStr = `${Math.round(order.pricing.breakdown.durationMin)} min`;
-      }
-    } 
-    // 2. Fallback: Calcular distância em linha reta (origem para destino)
-    else if (originLat !== 0 && originLon !== 0 && destinationLat !== 0 && destinationLon !== 0) {
-      distance = getDistanceFromLatLonInKm(originLat, originLon, destinationLat, destinationLon);
     }
-    // 3. Fallback final: Calcular da posição atual para o destino ou origem
-    else if (currentPosition && (currentPosition.latitude !== 0 && currentPosition.longitude !== 0)) {
-      const targetLat = destinationLat !== 0 ? destinationLat : originLat;
-      const targetLon = destinationLon !== 0 ? destinationLon : originLon;
-      if (targetLat !== 0 && targetLon !== 0) {
-        distance = getDistanceFromLatLonInKm(
-          currentPosition.latitude,
-          currentPosition.longitude,
-          targetLat,
-          targetLon
-        );
+
+    // 2. Tentar ler tempo/duração se enviado diretamente no objeto do pedido
+    if (typeof order.time === 'string' && !order.time.includes('não dispon') && order.time.trim().length > 0) {
+      timeStr = order.time;
+    } else if (typeof order.duration === 'string' && !order.duration.includes('não dispon') && order.duration.trim().length > 0) {
+      timeStr = order.duration;
+    } else if (typeof order.duration === 'number' && order.duration > 0) {
+      timeStr = `${Math.round(order.duration)} min`;
+    } else if (order.estimatedDuration) {
+      timeStr = typeof order.estimatedDuration === 'number' ? `${Math.round(order.estimatedDuration)} min` : String(order.estimatedDuration);
+    } else if (order.pricing?.breakdown?.durationMin) {
+      timeStr = `${Math.round(order.pricing.breakdown.durationMin)} min`;
+    }
+
+    // 3. Fallback: Calcular distância em linha reta caso continue 0
+    if (distance === 0) {
+      if (originLat !== 0 && originLon !== 0 && destinationLat !== 0 && destinationLon !== 0) {
+        distance = getDistanceFromLatLonInKm(originLat, originLon, destinationLat, destinationLon);
+      } else if (currentPosition && (currentPosition.latitude !== 0 && currentPosition.longitude !== 0)) {
+        const targetLat = destinationLat !== 0 ? destinationLat : originLat;
+        const targetLon = destinationLon !== 0 ? destinationLon : originLon;
+        if (targetLat !== 0 && targetLon !== 0) {
+          distance = getDistanceFromLatLonInKm(
+            currentPosition.latitude,
+            currentPosition.longitude,
+            targetLat,
+            targetLon
+          );
+        }
       }
     }
 
-    if (distance > 0 && (timeStr === "Tempo não disponível" || timeStr.includes("não dispon"))) {
-      timeStr = `${Math.round((distance / 40) * 60)} min`;
+    // 4. Fallback: Calcular tempo a partir da distância se tempo não estiver disponível
+    if (distance > 0 && (!timeStr || timeStr.includes("não dispon"))) {
+      const estimatedMins = Math.max(3, Math.round((distance / 30) * 60));
+      timeStr = `${estimatedMins} min`;
+    } else if (!timeStr || timeStr.includes("não dispon")) {
+      timeStr = "10-15 min";
     }
+
+    const finalDistanceStr = distance > 0 ? `${distance.toFixed(1)} km` : "2.5 km";
 
     // 💰 REWARD / FARE CALCULATION (VALOR DA DESLOCAÇÃO)
     let fareValue = 0;
@@ -1209,6 +1235,19 @@ export default function HomeScreen({ navigation, route }: any) {
       }
     }
 
+    const hasNegotiationAllowed = Boolean(
+      order.allowNegotiation === true || 
+      order.isNegotiable === true || 
+      order.isNegotiationAllowed === true || 
+      order.allowBidding === true ||
+      order.serviceId?.allowNegotiation === true ||
+      order.serviceId?.isNegotiationAllowed === true ||
+      order.subcategoryId?.allowNegotiation === true ||
+      (typeof serviceNameStr === 'string' && serviceNameStr.toLowerCase().includes('reboque')) ||
+      (typeof order.reason === 'string' && order.reason.toLowerCase().includes('reboque')) ||
+      (typeof order.goodType === 'string' && order.goodType.toLowerCase().includes('reboque'))
+    );
+
     return {
       id: order._id || order.id,
       passengerId: passengerPhone !== "Não disponível" ? passengerPhone : (order.user?._id || order.user?.id || order.userId || "0"),
@@ -1220,8 +1259,12 @@ export default function HomeScreen({ navigation, route }: any) {
       pickup: rawPickup,
       destination: rawDestination,
       reward: `MZN ${fareValue.toFixed(2)}`,
-      distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distância não disponível",
+      distance: finalDistanceStr,
       time: timeStr,
+      allowNegotiation: hasNegotiationAllowed,
+      isNegotiationAllowed: hasNegotiationAllowed,
+      vehiclePhotos: order.vehiclePhotos || undefined,
+      photos: order.vehiclePhotos ? [order.vehiclePhotos.front, order.vehiclePhotos.rear, order.vehiclePhotos.leftSide, order.vehiclePhotos.rightSide].filter(Boolean) : (order.photos || []),
       destinationLocation: {
         latitude: destinationLat,
         longitude: destinationLon,
@@ -1234,6 +1277,7 @@ export default function HomeScreen({ navigation, route }: any) {
       paymentMethod: order.paymentMethod || 'Dinheiro',
       isScheduled: order.isScheduled || false,
       scheduledAt: order.scheduledAt || undefined,
+      stops: (Array.isArray(order.stops) && order.stops.length > 0 ? order.stops : (Array.isArray(order.deliveryStops) ? order.deliveryStops : [])),
       originalData: order
     };
   };

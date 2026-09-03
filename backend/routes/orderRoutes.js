@@ -118,6 +118,64 @@ export const processDigitalOrderDelivery = async (order) => {
   return order;
 };
 
+// POST /orders/:id/deliver-digital-key (Fornecedor envia/entrega chave ou instruções digitais ao cliente)
+orderRouter.post(
+  '/:id/deliver-digital-key',
+  isAuth,
+  expressAsyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).send({ message: 'Pedido não encontrado' });
+    }
+
+    const { key, digitalInstructions, productName } = req.body;
+
+    if (!order.digitalDeliveredItems) {
+      order.digitalDeliveredItems = [];
+    }
+
+    const newItem = {
+      productId: req.body.productId || (order.orderItems[0] ? order.orderItems[0]._id : null),
+      productName: productName || (order.orderItems[0] ? order.orderItems[0].name : 'Produto Digital'),
+      key: key || '',
+      digitalInstructions: digitalInstructions || '',
+      deliveredAt: new Date()
+    };
+
+    order.digitalDeliveredItems.push(newItem);
+    order.isDigitalOrder = true;
+    order.status = 'Entregue';
+    order.isDelivered = true;
+    order.deliveredAt = order.deliveredAt || new Date();
+
+    await order.save();
+
+    // Enviar e-mail com as instruções / chave de ativação ao cliente
+    let emailSent = false;
+    try {
+      const buyerUser = await User.findById(order.user);
+      const targetEmail = order.digitalRecipientEmail || (buyerUser && buyerUser.email ? buyerUser.email : null);
+      if (targetEmail) {
+        await sendDigitalKeyDeliveryEmail({
+          toEmail: targetEmail,
+          recipientName: buyerUser ? buyerUser.name : 'Cliente',
+          orderCode: order.code,
+          digitalItems: [newItem]
+        });
+        emailSent = true;
+      }
+    } catch (emailErr) {
+      console.error('[Manual Digital Email Error]:', emailErr.message);
+    }
+
+    res.send({
+      message: 'Chave / Instruções digitais enviadas com sucesso ao cliente!',
+      emailSent,
+      order
+    });
+  })
+);
+
 orderRouter.get('/debug/driver/:id', async (req, res) => {
   try {
     const User = (await import('../models/UserModel.js')).default;
@@ -1164,106 +1222,107 @@ orderRouter.put(
       order.isCanceled = false;
       order.stepStatus = 2;
       order.status = 'Aceite';
-      order.isCommissionProcessed = true;
-
       // --- SELLER WALLET DEDUCTION LOGIC ---
-      const sellerUser = await getSellerUser(order.seller);
-      if (sellerUser && sellerUser.isSeller) {
-        if (!sellerUser.seller.hasUsedFreeSale) {
-          // First sale is free
-          sellerUser.seller.hasUsedFreeSale = true;
-          await sellerUser.save();
-          console.log(`[respond] Primeira venda do fornecedor ${sellerUser.name} - isenção de comissão ativada.`);
-        } else {
-          // Calculate and deduct fee
-          let feePercentage = 0.15; // Default is now 15%
-          try {
-            const Settings = mongoose.model('Settings');
-            const commSetting = await Settings.findOne({ key: 'platform_commission_rate' });
-            if (commSetting && commSetting.value !== undefined) {
-              feePercentage = Number(commSetting.value) / 100;
+      if (!order.isCommissionProcessed) {
+        order.isCommissionProcessed = true;
+        const sellerUser = await getSellerUser(order.seller);
+        if (sellerUser && sellerUser.isSeller) {
+          if (!sellerUser.seller.hasUsedFreeSale) {
+            // First sale is free
+            sellerUser.seller.hasUsedFreeSale = true;
+            await sellerUser.save();
+            console.log(`[respond] Primeira venda do fornecedor ${sellerUser.name} - isenção de comissão ativada.`);
+          } else {
+            // Calculate and deduct fee
+            let feePercentage = 0.15; // Default is now 15%
+            try {
+              const Settings = mongoose.model('Settings');
+              const commSetting = await Settings.findOne({ key: 'platform_commission_rate' });
+              if (commSetting && commSetting.value !== undefined) {
+                feePercentage = Number(commSetting.value) / 100;
+              }
+            } catch (err) {
+              console.log('Error fetching platform_commission_rate from settings:', err.message);
             }
-          } catch (err) {
-            console.log('Error fetching platform_commission_rate from settings:', err.message);
-          }
 
-          // If provider subcategory has a specific commission rate configured, override
-          const Provider = mongoose.model('Provider');
-          const provider = await Provider.findById(order.seller);
-          const subcategoryRefId = provider?.subcategoryId || sellerUser.seller.tipoEstabelecimento;
-          if (subcategoryRefId) {
-            const subcategory = await ProviderSubcategory.findById(subcategoryRefId);
-            if (subcategory && subcategory.serviceCommission > 0) {
-              feePercentage = subcategory.serviceCommission / 100;
-            } else if (subcategory && subcategory.percentageFee > 0) {
-              feePercentage = subcategory.percentageFee / 100;
-            }
-          }
-
-          const basePrice = order.itemsPrice || order.totalPrice || 0;
-          const feeAmount = basePrice * feePercentage;
-
-          if (feeAmount > 0) {
-            let sellerWallet = await Wallet.findOne({ $or: [{ ownerId: order.seller }, { ownerId: sellerUser._id }, { userId: sellerUser._id }] });
-            if (!sellerWallet) {
-              sellerWallet = new Wallet({
-                ownerId: sellerUser._id,
-                ownerType: 'seller',
-                userId: sellerUser._id,
-                balance: 0,
-              });
-            }
-            sellerWallet.balance -= feeAmount;
-            sellerWallet.updatedAt = new Date();
-            await sellerWallet.save();
-
-            await Transaction.create({
-              walletId: sellerWallet._id,
-              type: 'debit',
-              amount: feeAmount,
-              method: 'commission',
-              description: `Comissão da venda - Pedido #${order.code}`,
-              status: 'confirmado'
-            });
-
-            console.log(`[respond] Comissão de ${feeAmount} MT (${(feePercentage * 100).toFixed(0)}%) debitada do fornecedor ${sellerUser.name}. Novo saldo: ${sellerWallet.balance} MT`);
-
-            // Auto-close store if balance is below 50 MT
-            if (sellerWallet.balance < 50) {
-              sellerUser.seller.openstore = false;
-              await sellerUser.save();
-
-              const targetSellerId = provider ? provider._id : sellerUser._id;
-              const Product = mongoose.model('Product');
-              await Product.updateMany(
-                { seller: targetSellerId },
-                { isSellerOpen: false }
-              );
-
-              console.log(`[respond] ⚠️ Fornecedor ${sellerUser.name} fechado automaticamente devido a saldo baixo (${sellerWallet.balance} MT < 50 MT).`);
-
-              // Emitir evento pelo socket de status alterado
-              const io = req.app.get('io');
-              if (io) {
-                io.emit('storeStatusChanged', {
-                  sellerId: targetSellerId,
-                  userId: sellerUser._id,
-                  sellerName: sellerUser.seller?.name || sellerUser.name,
-                  isOpen: false,
-                });
+            // If provider subcategory has a specific commission rate configured, override
+            const Provider = mongoose.model('Provider');
+            const provider = await Provider.findById(order.seller);
+            const subcategoryRefId = provider?.subcategoryId || sellerUser.seller.tipoEstabelecimento;
+            if (subcategoryRefId) {
+              const subcategory = await ProviderSubcategory.findById(subcategoryRefId);
+              if (subcategory && subcategory.serviceCommission > 0) {
+                feePercentage = subcategory.serviceCommission / 100;
+              } else if (subcategory && subcategory.percentageFee > 0) {
+                feePercentage = subcategory.percentageFee / 100;
               }
             }
 
-            // Emit walletUpdated socket event instantly!
-            const io = req.app.get('io');
-            if (io) {
-              const userId = sellerUser._id.toString();
-              io.to(`user_${userId}`).emit('walletUpdated', {
-                message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+            const basePrice = order.itemsPrice || order.totalPrice || 0;
+            const feeAmount = basePrice * feePercentage;
+
+            if (feeAmount > 0) {
+              let sellerWallet = await Wallet.findOne({ $or: [{ ownerId: order.seller }, { ownerId: sellerUser._id }, { userId: sellerUser._id }] });
+              if (!sellerWallet) {
+                sellerWallet = new Wallet({
+                  ownerId: sellerUser._id,
+                  ownerType: 'seller',
+                  userId: sellerUser._id,
+                  balance: 0,
+                });
+              }
+              sellerWallet.balance -= feeAmount;
+              sellerWallet.updatedAt = new Date();
+              await sellerWallet.save();
+
+              await Transaction.create({
+                walletId: sellerWallet._id,
+                type: 'debit',
+                amount: feeAmount,
+                method: 'commission',
+                description: `Comissão da venda - Pedido #${order.code}`,
+                status: 'confirmado'
               });
-              io.to(`seller_${userId}`).emit('walletUpdated', {
-                message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
-              });
+
+              console.log(`[respond] Comissão de ${feeAmount} MT (${(feePercentage * 100).toFixed(0)}%) debitada do fornecedor ${sellerUser.name}. Novo saldo: ${sellerWallet.balance} MT`);
+
+              // Auto-close store if balance is below 50 MT
+              if (sellerWallet.balance < 50) {
+                sellerUser.seller.openstore = false;
+                await sellerUser.save();
+
+                const targetSellerId = provider ? provider._id : sellerUser._id;
+                const Product = mongoose.model('Product');
+                await Product.updateMany(
+                  { seller: targetSellerId },
+                  { isSellerOpen: false }
+                );
+
+                console.log(`[respond] ⚠️ Fornecedor ${sellerUser.name} fechado automaticamente devido a saldo baixo (${sellerWallet.balance} MT < 50 MT).`);
+
+                // Emitir evento pelo socket de status alterado
+                const io = req.app.get('io');
+                if (io) {
+                  io.emit('storeStatusChanged', {
+                    sellerId: targetSellerId,
+                    userId: sellerUser._id,
+                    sellerName: sellerUser.seller?.name || sellerUser.name,
+                    isOpen: false,
+                  });
+                }
+              }
+
+              // Emit walletUpdated socket event instantly!
+              const io = req.app.get('io');
+              if (io) {
+                const userId = sellerUser._id.toString();
+                io.to(`user_${userId}`).emit('walletUpdated', {
+                  message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+                });
+                io.to(`seller_${userId}`).emit('walletUpdated', {
+                  message: `Dedução de comissão (${(feePercentage * 100).toFixed(0)}%): -${feeAmount.toFixed(2)} MT`
+                });
+              }
             }
           }
         }
@@ -2635,35 +2694,56 @@ orderRouter.get(
   expressAsyncHandler(async (req, res) => {
     const deliverymanId = req.params.id;
     const page = parseInt(req.query.page) || 1;
+    const pageSize = 20;
 
-    console.log("Chegou ate aqui", deliverymanId)
-    const pageSize = 10;
+    const driverIdStr = deliverymanId ? deliverymanId.toString() : '';
+    let driverObjId = null;
+    try {
+      if (mongoose.Types.ObjectId.isValid(driverIdStr)) {
+        driverObjId = new mongoose.Types.ObjectId(driverIdStr);
+      }
+    } catch (e) {}
+
+    const driverMatchConditions = [
+      { 'deliveryman.id': driverIdStr },
+      { 'deliveryman._id': driverIdStr },
+      { targetDriverId: driverIdStr },
+      { driverId: driverIdStr },
+      { driver: driverIdStr }
+    ];
+
+    if (driverObjId) {
+      driverMatchConditions.push(
+        { 'deliveryman.id': driverObjId },
+        { 'deliveryman._id': driverObjId },
+        { targetDriverId: driverObjId },
+        { driverId: driverObjId },
+        { driver: driverObjId }
+      );
+    }
+
+    const queryFilter = {
+      $or: driverMatchConditions,
+      deleted: { $ne: true }
+    };
 
     // Buscar Orders normais
-    const ordersPromise = Order.find({
-      'deliveryman.id': deliverymanId,
-      deleted: false
-    })
+    const ordersPromise = Order.find(queryFilter)
       .populate('user', 'name profileImage phoneNumber')
       .populate('sellers', 'name')
       .lean();
 
     // Buscar RequestServices (Encomendas independentes)
-    const requestServicesPromise = RequestService.find({
-      'deliveryman.id': deliverymanId,
-      deleted: false
-    })
+    const requestServicesPromise = RequestService.find(queryFilter)
       .populate('user', 'name profileImage phoneNumber')
       .populate('serviceId', 'name')
       .lean();
 
     const [ordersResult, requestServicesResult] = await Promise.all([ordersPromise, requestServicesPromise]);
 
-    // Identificar de onde veio para o Frontend saber renderizar (caso precise)
     const formattedOrders = ordersResult.map(o => ({ ...o, type: 'order' }));
     const formattedRequests = requestServicesResult.map(r => ({ ...r, type: 'requestService' }));
 
-    // Combinar, ordenar por data e fazer paginaï¿½ï¿½o em memï¿½ria
     let combined = [...formattedOrders, ...formattedRequests];
     combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

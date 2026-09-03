@@ -126,13 +126,13 @@ const requestServiceSchema = new mongoose.Schema(
     scheduledNotified: { type: Boolean, default: false }, // true quando a notificação de 45min/30min foi enviada
 
     deliveryman: {
-      id:{type: mongoose.Schema.Types.ObjectId, ref: 'Provider'},
+      id: { type: mongoose.Schema.Types.Mixed },
       photo: { type: String },
-      name: { type: String},
-      phoneNumber: {type: Number},
-      transport_type: {type: String},
-      transport_color: {type: String},
-      transport_registration: {type: String},
+      name: { type: String },
+      phoneNumber: { type: mongoose.Schema.Types.Mixed },
+      transport_type: { type: String },
+      transport_color: { type: String },
+      transport_registration: { type: String },
       pricetopay: { type: Number },
     },
 

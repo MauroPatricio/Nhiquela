@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView, ActivityIndicator, Alert, Image, Clipboard, Modal } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView, ActivityIndicator, Alert, Image, Clipboard, Modal, TextInput, Platform } from 'react-native';
 import React, { useEffect, useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../hooks/createConnectionApi';
@@ -83,7 +83,15 @@ const PaymentMethod = () => {
 
   const activeSeller = passedSeller || sellers[0] || items[0]?.seller || null;
   const hasDigitalItems = useMemo(() => {
-    return items && items.some(i => i.productType === 'DIGITAL' || i.isDigital);
+    return items && items.some(i => {
+      const type = String(i?.productType || '').toUpperCase().trim();
+      if (type === 'PHYSICAL') return false;
+      if (type === 'DIGITAL') return true;
+      if (i?.isDigital === false || i?.isDigital === 'false') return false;
+      if (i?.isDigital === true || i?.isDigital === 'true') return true;
+      if (i?.digitalType && String(i.digitalType).trim() !== '') return true;
+      return false;
+    });
   }, [items]);
 
   const isUserWantDelivery = hasDigitalItems ? false : (passedDelivery !== undefined ? passedDelivery : true);
@@ -311,20 +319,43 @@ const PaymentMethod = () => {
 
           const formData = new FormData();
           formData.append('file', {
-            uri: imageUri,
+            uri: Platform.OS === 'android' ? imageUri : imageUri.replace('file://', ''),
             name: filename,
             type: mimeType,
           });
 
-          // Usar axios (mesma instância com baseURL e token) — mais fiável em React Native
-          const uploadResponse = await api.post('/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-            timeout: 30000,
-          });
+          console.log('[Upload] Iniciando upload do comprovativo:', filename);
 
-          const uploadData = uploadResponse.data;
-          const url = uploadData.secure_url || uploadData.url || '';
-          if (!url) throw new Error('Upload bem sucedido mas URL não retornada');
+          let uploadData = null;
+          try {
+            // 1. Tentar via Axios sem forçar 'Content-Type': 'multipart/form-data' (evita apagar o boundary no React Native)
+            const uploadResponse = await api.post('/upload', formData, {
+              headers: { 'Accept': 'application/json' },
+              transformRequest: [(data) => data],
+              timeout: 45000,
+            });
+            uploadData = uploadResponse.data;
+          } catch (axiosErr) {
+            console.log('[Upload] Axios falhou, executando fallback com fetch nativo:', axiosErr.message);
+            // 2. Fallback nativo via fetch (garante a criação nativa do header multipart/form-data; boundary=...)
+            const storedUser = await AsyncStorage.getItem('userData');
+            const token = storedUser ? JSON.parse(storedUser).token : '';
+            const baseUrl = api.defaults.baseURL || 'http://localhost:5000/api';
+            const fetchRes = await fetch(`${baseUrl}/upload`, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              },
+            });
+            if (!fetchRes.ok) {
+              throw new Error(`Servidor retornou código ${fetchRes.status}`);
+            }
+            uploadData = await fetchRes.json();
+          }
+
+          const url = uploadData?.secure_url || uploadData?.url || '';
+          if (!url) throw new Error('Upload concluído mas URL não retornada');
           setUploadedProofUrl(url);
           toast.show("Comprovativo carregado com sucesso!", { type: 'success', placement: 'top' });
         } catch (uploadErr) {
@@ -343,7 +374,30 @@ const PaymentMethod = () => {
 
   const handleCopy = (text, label) => {
     Clipboard.setString(String(text));
-    toast.show(`${label} copiado para a área de transferência!`, { type: 'success', placement: 'top' });
+    toast.show(`✨ ${label} copiado com sucesso!`, {
+      type: 'success',
+      placement: 'top',
+      duration: 2500,
+      animationType: 'slide-in',
+      style: {
+        backgroundColor: '#064E3B',
+        borderRadius: 14,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderWidth: 1.5,
+        borderColor: '#10B981',
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 8,
+      },
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#ECFDF5',
+      }
+    });
   };
 
   const isSubmitting = React.useRef(false);

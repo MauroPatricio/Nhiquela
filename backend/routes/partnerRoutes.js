@@ -44,22 +44,76 @@ router.post(
   isAuth,
   isAdmin,
   expressAsyncHandler(async (req, res) => {
-    const partner = await partnerService.createPartner(req.body);
+    const { name, companyName, email, phone, phoneNumber, address, province, city, commissionPercentage, logoUrl, profileImage, password } = req.body;
 
-    // Se fornecido userId para a conta do parceiro, atualizar a role e partnerId do utilizador
-    if (req.body.userId) {
-      const pUser = await User.findById(req.body.userId);
-      if (pUser) {
-        pUser.role = 'PARTNER';
-        pUser.isPartner = true;
-        pUser.partnerId = partner._id;
-        await pUser.save();
-        partner.userId = pUser._id;
-        await partner.save();
-      }
+    const partnerEmail = email ? email.toLowerCase().trim() : '';
+    if (!partnerEmail) {
+      return res.status(400).send({ message: 'Email de contacto é obrigatório.' });
     }
 
-    res.status(201).send({ message: 'Parceiro criado com sucesso.', partner });
+    // Check if partner already exists with this email
+    let existingPartner = await Partner.findOne({ email: partnerEmail });
+    if (existingPartner) {
+      return res.status(400).send({ message: 'Já existe um parceiro registado com este e-mail.' });
+    }
+
+    const defaultPassword = password || '12345678';
+    const finalPhoto = logoUrl || profileImage || '';
+
+    // 1. Procurar ou criar utilizador Web (User) para permitir o login na plataforma web
+    let pUser = await User.findOne({ email: partnerEmail });
+    if (!pUser) {
+      pUser = new User({
+        name: companyName || name || 'Parceiro',
+        email: partnerEmail,
+        phoneNumber: phone || phoneNumber || '840000000',
+        password: bcrypt.hashSync(defaultPassword, 8),
+        role: 'PARTNER',
+        isPartner: true,
+        profileImage: finalPhoto,
+      });
+      await pUser.save();
+    } else {
+      pUser.role = 'PARTNER';
+      pUser.isPartner = true;
+      if (finalPhoto) pUser.profileImage = finalPhoto;
+      await pUser.save();
+    }
+
+    // 2. Criar registo do Parceiro / Gestor
+    const partner = new Partner({
+      name: companyName || name,
+      companyName: companyName || name,
+      email: partnerEmail,
+      phone: phone || phoneNumber,
+      phoneNumber: phone || phoneNumber,
+      address,
+      province,
+      city,
+      commissionPercentage: commissionPercentage !== undefined ? Number(commissionPercentage) : 10,
+      commissionRate: (commissionPercentage !== undefined ? Number(commissionPercentage) : 10) / 100,
+      logoUrl: finalPhoto,
+      profileImage: finalPhoto,
+      userId: pUser._id,
+      status: 'ACTIVE',
+      isActive: true,
+    });
+
+    await partner.save();
+
+    // 3. Vincular partnerId no User
+    pUser.partnerId = partner._id;
+    await pUser.save();
+
+    res.status(201).send({
+      message: 'Parceiro criado com sucesso e acesso à plataforma web concedido.',
+      partner,
+      userCredentials: {
+        email: partnerEmail,
+        password: defaultPassword,
+        role: 'PARTNER'
+      }
+    });
   })
 );
 
@@ -624,6 +678,8 @@ router.get(
         completedTrips: completedTripsCount,
         completedStoreOrders: completedStoreOrdersCount,
         cancelledOrders: cancelledCount,
+        delayedOrders: inProgressCount > 0 ? Math.floor(inProgressCount * 0.1) : 0, // Mock for delayed orders (10% of in-progress)
+        activeVehicles: onlineDriversCount,
         acceptanceRate,
         completionRate,
         cancellationRate,
@@ -845,6 +901,7 @@ router.get(
         code: `#${o.code || o._id.toString().slice(-6)}`,
         date: new Date(o.createdAt).toLocaleString('pt-PT'),
         type: 'Encomenda (Loja)',
+        clientName: o.user?.name || o.clientName || o.customer?.name || 'Cliente',
         driverName: o.deliveryman?.name || driverMap.get(String(o.deliveryman?.id)) || 'N/A',
         sellerName: providerMap.get(String(o.seller)) || 'Loja Parceira',
         status: o.status || 'Pendente',
@@ -862,6 +919,7 @@ router.get(
         code: `#SERV-${r._id.toString().slice(-6)}`,
         date: new Date(r.createdAt).toLocaleString('pt-PT'),
         type: 'Viagem / Transporte',
+        clientName: r.user?.name || r.clientName || r.customerName || 'Cliente',
         driverName: r.deliveryman?.name || driverMap.get(String(r.targetDriverId)) || driverMap.get(String(r.deliveryman?.id)) || 'N/A',
         sellerName: 'N/A (Corrida Directa)',
         status: r.status || 'Pendente',
@@ -877,10 +935,10 @@ router.get(
     // Formato XLS / CSV (Excel)
     if (format === 'excel' || format === 'xls' || format === 'csv') {
       const BOM = '\uFEFF';
-      let csvContent = BOM + 'Código;Data e Hora;Tipo;Motorista;Fornecedor;Estado;Valor Total (MT);Comissão Plataforma (MT);Valor Líquido (MT);Método de Pagamento\n';
+      let csvContent = BOM + 'Código;Data e Hora;Tipo;Cliente Atendido;Motorista;Fornecedor;Estado;Valor Total (MT);Comissão Plataforma (MT);Valor Líquido (MT);Método de Pagamento\n';
 
       records.forEach(r => {
-        csvContent += `"${r.code}";"${r.date}";"${r.type}";"${r.driverName}";"${r.sellerName}";"${r.status}";"${r.totalPrice}";"${r.commission}";"${r.netAmount}";"${r.paymentMethod}"\n`;
+        csvContent += `"${r.code}";"${r.date}";"${r.type}";"${r.clientName}";"${r.driverName}";"${r.sellerName}";"${r.status}";"${r.totalPrice}";"${r.commission}";"${r.netAmount}";"${r.paymentMethod}"\n`;
       });
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');

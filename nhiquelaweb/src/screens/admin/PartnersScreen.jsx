@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faHandshake, faUsers, faStore, faMotorcycle, faSearch, faPlus, 
   faEye, faEdit, faTrash, faSpinner, faTimes, faSave, faCheckCircle, 
-  faPhone, faEnvelope, faMapMarkerAlt, faBuilding, faUserPlus, faUserMinus
+  faPhone, faEnvelope, faMapMarkerAlt, faBuilding, faUserPlus, faUserMinus,
+  faCamera, faUpload
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
@@ -19,6 +20,7 @@ export default function PartnersScreen() {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,8 +30,30 @@ export default function PartnersScreen() {
     province: 'Maputo',
     city: 'Maputo',
     commissionPercentage: 10,
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    logoUrl: '',
+    profileImage: ''
   });
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+    setUploadingImage(true);
+    try {
+      const { data } = await api.post('/upload', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const url = data.secure_url || data.url;
+      setFormData(prev => ({ ...prev, logoUrl: url, profileImage: url }));
+      toast.success('Foto de perfil / Logótipo carregado com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao carregar imagem.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Members Modal state (for inspecting drivers & sellers)
   const [showMembersModal, setShowMembersModal] = useState(false);
@@ -44,9 +68,27 @@ export default function PartnersScreen() {
   const [assignSearch, setAssignSearch] = useState('');
   const [loadingUnassigned, setLoadingUnassigned] = useState(false);
 
+  const [provinces, setProvinces] = useState([]);
+
   useEffect(() => {
     fetchPartners();
+    fetchProvinces();
   }, []);
+
+  const fetchProvinces = async () => {
+    try {
+      const { data } = await api.get('/provinces?pageSize=100');
+      const list = data?.provinces || data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        setProvinces(list.map(p => typeof p === 'string' ? p : (p.name || p.provincia || p._id)));
+      } else {
+        setProvinces(['Maputo Cidade', 'Maputo Província', 'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Niassa', 'Cabo Delgado']);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar províncias:', error);
+      setProvinces(['Maputo Cidade', 'Maputo Província', 'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Niassa', 'Cabo Delgado']);
+    }
+  };
 
   const fetchPartners = async () => {
     setLoading(true);
@@ -72,7 +114,9 @@ export default function PartnersScreen() {
       province: 'Maputo',
       city: 'Maputo',
       commissionPercentage: 10,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      logoUrl: '',
+      profileImage: ''
     });
     setShowModal(true);
   };
@@ -80,6 +124,7 @@ export default function PartnersScreen() {
   const handleOpenEdit = (partner) => {
     setIsEditing(true);
     setCurrentId(partner._id);
+    const photo = partner.logoUrl || partner.profileImage || partner.userId?.profileImage || '';
     setFormData({
       name: partner.name || '',
       email: partner.email || partner.userId?.email || '',
@@ -89,7 +134,9 @@ export default function PartnersScreen() {
       province: partner.province || 'Maputo',
       city: partner.city || 'Maputo',
       commissionPercentage: partner.commissionPercentage || 10,
-      status: partner.status || 'ACTIVE'
+      status: partner.status || 'ACTIVE',
+      logoUrl: photo,
+      profileImage: photo
     });
     setShowModal(true);
   };
@@ -101,8 +148,8 @@ export default function PartnersScreen() {
         await api.put(`/partners/${currentId}`, formData);
         toast.success('Parceiro atualizado com sucesso!');
       } else {
-        await api.post('/partners', formData);
-        toast.success('Novo Parceiro / Gestor registado com sucesso!');
+        const { data } = await api.post('/partners', formData);
+        toast.success(`Parceiro registado com sucesso! Acesso Web ativado (Email: ${formData.email} | Passe: 12345678)`);
       }
       setShowModal(false);
       fetchPartners();
@@ -309,9 +356,18 @@ export default function PartnersScreen() {
                   <tr key={partner._id}>
                     <td className="ps-4">
                       <div className="d-flex align-items-center">
-                        <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold shadow-sm" style={{ width: 44, height: 44 }}>
-                          {(partner.name || partner.companyName || 'P').charAt(0).toUpperCase()}
-                        </div>
+                        {partner.logoUrl || partner.profileImage || partner.userId?.profileImage ? (
+                          <img 
+                            src={partner.logoUrl || partner.profileImage || partner.userId?.profileImage} 
+                            alt="Foto do Parceiro" 
+                            className="rounded-circle me-3 border shadow-sm" 
+                            style={{ width: 44, height: 44, objectFit: 'cover' }} 
+                          />
+                        ) : (
+                          <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold shadow-sm" style={{ width: 44, height: 44 }}>
+                            {(partner.name || partner.companyName || 'P').charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <div>
                           <div className="fw-bold text-dark">{partner.companyName || partner.name}</div>
                           <div className="small text-muted">{partner.email || partner.userId?.email || 'Sem email'}</div>
@@ -412,6 +468,49 @@ export default function PartnersScreen() {
               <form onSubmit={handleSavePartner}>
                 <div className="modal-body p-4">
                   <div className="row g-3">
+                    {/* Campo Foto de Perfil / Logótipo */}
+                    <div className="col-12 text-center mb-2">
+                      <label className="form-label fw-bold text-dark small d-block">Foto de Perfil / Logótipo da Empresa</label>
+                      <div className="d-flex justify-content-center align-items-center flex-column">
+                        <div 
+                          className="rounded-circle border border-2 border-primary d-flex justify-content-center align-items-center overflow-hidden position-relative mb-2 shadow-sm"
+                          style={{ width: '84px', height: '84px', backgroundColor: '#F8FAFC', cursor: 'pointer' }}
+                          onClick={() => document.getElementById('partnerPhotoInput').click()}
+                        >
+                          {formData.profileImage || formData.logoUrl ? (
+                            <img 
+                              src={formData.profileImage || formData.logoUrl} 
+                              alt="Foto de Perfil" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                          ) : (
+                            <FontAwesomeIcon icon={faCamera} size="2x" className="text-secondary" />
+                          )}
+                          {uploadingImage && (
+                            <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center">
+                              <FontAwesomeIcon icon={faSpinner} spin className="text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <button 
+                          type="button" 
+                          className="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
+                          onClick={() => document.getElementById('partnerPhotoInput').click()}
+                          disabled={uploadingImage}
+                        >
+                          <FontAwesomeIcon icon={uploadingImage ? faSpinner : faUpload} spin={uploadingImage} className="me-1" />
+                          {formData.profileImage || formData.logoUrl ? 'Alterar Foto' : 'Carregar Foto de Perfil'}
+                        </button>
+                        <input 
+                          type="file" 
+                          id="partnerPhotoInput" 
+                          className="d-none" 
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                        />
+                      </div>
+                    </div>
+
                     <div className="col-12">
                       <label className="form-label fw-bold text-dark small">Nome da Empresa / Parceiro</label>
                       <input 
@@ -455,16 +554,12 @@ export default function PartnersScreen() {
                         value={formData.province}
                         onChange={(e) => setFormData({ ...formData, province: e.target.value })}
                       >
-                        <option value="Maputo">Maputo</option>
-                        <option value="Gaza">Gaza</option>
-                        <option value="Inhambane">Inhambane</option>
-                        <option value="Sofala">Sofala</option>
-                        <option value="Manica">Manica</option>
-                        <option value="Tete">Tete</option>
-                        <option value="Zambézia">Zambézia</option>
-                        <option value="Nampula">Nampula</option>
-                        <option value="Niassa">Niassa</option>
-                        <option value="Cabo Delgado">Cabo Delgado</option>
+                        <option value="">Selecione a Província</option>
+                        {provinces.map((prov, idx) => (
+                          <option key={idx} value={prov}>
+                            {prov}
+                          </option>
+                        ))}
                       </select>
                     </div>
 

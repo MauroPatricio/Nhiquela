@@ -49,6 +49,19 @@ const SearchTile = ({ item }) => {
                     <Text style={styles.badgeText}>Promoção</Text>
                 </View>
             )}
+            {(() => {
+                const type = String(product?.productType || '').toUpperCase().trim();
+                const isDig = product?.isDigital;
+                if (type === 'PHYSICAL') return null;
+                if (type === 'DIGITAL' || isDig === true || isDig === 'true') {
+                    return (
+                        <View style={[styles.badge, { backgroundColor: '#9333EA' }]}>
+                            <Text style={styles.badgeText}>⚡ Digital</Text>
+                        </View>
+                    );
+                }
+                return null;
+            })()}
         </View>
       </View>
 

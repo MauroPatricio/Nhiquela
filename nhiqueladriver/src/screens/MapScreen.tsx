@@ -749,10 +749,22 @@ export default function MapScreen({ route, navigation }: any) {
                     {tripData.pickup || tripData.originalData?.originDetails?.address || tripData.originalData?.origin || 'Não especificada'}
                   </Text>
                 </View>
+
+                {/* 🔥 PARAGENS INTERMEDIÁRIAS */}
+                {tripData.stops && tripData.stops.map((stop: any, index: number) => (
+                  <View key={stop._id || index} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <Ionicons name="radio-button-on" size={16} color="#A855F7" style={{ marginTop: 2, marginRight: 8 }} />
+                    <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
+                      <Text style={{ fontWeight: '600' }}>Paragem #{index + 1}: </Text>
+                      {stop.address || stop.recipientName || `Paragem ${index + 1}`}
+                    </Text>
+                  </View>
+                ))}
+
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                   <Ionicons name="flag" size={16} color="#10B981" style={{ marginTop: 2, marginRight: 8 }} />
                   <Text style={{ fontSize: 13, color: '#475569', flex: 1 }}>
-                    <Text style={{ fontWeight: '600' }}>Destino: </Text>
+                    <Text style={{ fontWeight: '600' }}>Destino Final: </Text>
                     {tripData.destination || 'Não especificado'}
                   </Text>
                 </View>

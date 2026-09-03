@@ -105,7 +105,6 @@ export default function LandingPage() {
           <div className="d-flex gap-2">
             <Link to="/shop" className="btn btn-outline-dark rounded-pill px-4 fw-bold">Marketplace Web</Link>
             <Link to="/login" className="btn btn-outline-primary rounded-pill px-4">Entrar</Link>
-            <Link to="/signup?type=seller" className="btn bg-primary-custom text-white rounded-pill px-4">Ser Parceiro</Link>
           </div>
         </div>
       </nav>
@@ -115,7 +114,7 @@ export default function LandingPage() {
         <div className="row align-items-center">
           <div className="col-lg-6 mb-5 mb-lg-0">
             <span className="badge bg-purple-light text-primary-custom px-3 py-2 rounded-pill fw-bold mb-3" style={{ backgroundColor: '#F3E8FF' }}>
-              🚀 O Ecossistema de Entregas nº 1 de Moçambique
+Conectamos quem precisa mover, a quem sabe entregar.
             </span>
             <h1 className="display-4 fw-bold text-dark mb-4" style={{ letterSpacing: '-1.5px', lineHeight: '1.1' }}>
               Tudo em suas mãos, entregue em <span className="text-primary-custom">minutos.</span>
@@ -126,9 +125,6 @@ export default function LandingPage() {
             <div className="d-flex flex-wrap gap-3">
               <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-3 fw-bold fs-5 shadow-sm">
                 Acessar Marketplace Web <FontAwesomeIcon icon={faShoppingBag} className="ms-2" />
-              </Link>
-              <Link to="/signup?type=seller" className="btn btn-outline-dark rounded-pill px-4 py-3 fw-bold fs-5">
-                Vender na Nhiquela <FontAwesomeIcon icon={faStore} className="ms-2" />
               </Link>
             </div>
             <div className="mt-4 text-muted small d-flex align-items-center gap-3">
@@ -158,9 +154,9 @@ export default function LandingPage() {
       <div className="bg-white py-5 border-top border-bottom">
         <div className="container py-4">
           <div className="text-center mb-5">
-            <span className="text-uppercase fw-bold small text-primary-custom" style={{ letterSpacing: '2px' }}>Ecossistema Conetado</span>
+            <span className="text-uppercase fw-bold small text-primary-custom" style={{ letterSpacing: '2px' }}>Ecossistema integrado</span>
             <h2 className="display-5 fw-bold text-dark mt-2" style={{ letterSpacing: '-1px' }}>
-              Uma plataforma, 3 aplicações a trabalhar juntas.
+              Uma plataforma que conecta três aplicações em perfeita sintonia.
             </h2>
             <p className="lead text-muted mx-auto" style={{ maxWidth: '650px' }}>
               Explore como o Cliente navega e pede serviços, o Fornecedor faz a gestão e o Motorista realiza a entrega em tempo real.
@@ -236,11 +232,8 @@ export default function LandingPage() {
                 </div>
 
                 <div className="pt-2">
-                  <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold me-2">
+                  <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold">
                     Testar no Marketplace Web
-                  </Link>
-                  <Link to="/signup?type=seller" className="btn btn-outline-dark rounded-pill px-4 py-2 fw-bold">
-                    Registar o Seu Negócio
                   </Link>
                 </div>
               </div>

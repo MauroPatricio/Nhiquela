@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faMotorcycle, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute, faCreditCard } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faMotorcycle, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute, faCreditCard, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -13,13 +13,18 @@ import * as XLSX from '@e965/xlsx';
 
 const OrderTiming = ({ order }) => {
   const [elapsed, setElapsed] = useState('--');
-  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído', 'Concluído'].includes(order.status);
+  const [isExpired, setIsExpired] = useState(false);
+  const isCompleted = ['Entregue', 'Cancelada', 'Cancelado', 'Finalizado', 'Concluído'].includes(order.status);
 
   useEffect(() => {
     const calculateStaticDiff = () => {
       const end = order.deliveryDate ? new Date(order.deliveryDate) : new Date(order.updatedAt || order.createdAt);
-      const diff = Math.floor((end - new Date(order.createdAt)) / 1000);
+      let diff = Math.floor((end - new Date(order.createdAt)) / 1000);
       if (diff < 0) return '--';
+      if (diff >= 3600) {
+        setIsExpired(true);
+        diff = 3600;
+      }
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
@@ -34,6 +39,12 @@ const OrderTiming = ({ order }) => {
     const updateTime = () => {
       const diff = Math.floor((new Date() - new Date(order.createdAt)) / 1000);
       if (diff < 0) return;
+      if (diff >= 3600) {
+        // Parar contagem definitivamente após 1 hora (3600s)
+        setIsExpired(true);
+        setElapsed('1h 00m 00s (Expirado)');
+        return;
+      }
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
@@ -45,7 +56,7 @@ const OrderTiming = ({ order }) => {
   }, [order.createdAt, order.status, order.updatedAt, order.deliveryDate, isCompleted]);
 
   return (
-    <span className={isCompleted ? "text-success fw-bold" : "text-danger fw-bold"}>
+    <span className={isCompleted ? "text-success fw-bold" : (isExpired ? "text-secondary fw-bold" : "text-danger fw-bold")}>
       <FontAwesomeIcon icon={faClock} className="me-1" /> {elapsed}
     </span>
   );
@@ -539,12 +550,35 @@ export default function OrdersScreen() {
                     <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faUser} className="me-2"/>Dados do Cliente</h6>
                     <div className="bg-light rounded-4 p-3 border h-100">
                       <div className="d-flex align-items-center">
-                        <img 
-                          src={selectedOrder.user?.profileImage || customersMap[selectedOrder.user]?.profileImage || customersMap[selectedOrder.customerId]?.profileImage || 'https://via.placeholder.com/60'} 
-                          alt="User" 
-                          className="rounded-circle me-3 border" 
-                          style={{ width: '50px', height: '50px', objectFit: 'cover' }} 
-                        />
+                        {(() => {
+                          const customerImg = selectedOrder.user?.profileImage || selectedOrder.user?.photo || customersMap[selectedOrder.user]?.profileImage || customersMap[selectedOrder.customerId]?.profileImage;
+                          if (customerImg) {
+                            return (
+                              <img 
+                                src={customerImg} 
+                                alt="Cliente" 
+                                className="rounded-circle me-3 border" 
+                                style={{ width: '50px', height: '50px', objectFit: 'cover' }} 
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
+                        <div 
+                          className="rounded-circle me-3 bg-secondary bg-opacity-10 text-primary-custom border d-flex align-items-center justify-content-center fw-bold" 
+                          style={{ 
+                            width: '50px', 
+                            height: '50px', 
+                            fontSize: '20px', 
+                            display: (selectedOrder.user?.profileImage || selectedOrder.user?.photo || customersMap[selectedOrder.user]?.profileImage || customersMap[selectedOrder.customerId]?.profileImage) ? 'none' : 'flex' 
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faUser} />
+                        </div>
                         <div>
                           <div className="fw-bold text-dark">{selectedOrder.user?.name || selectedOrder.name || customersMap[selectedOrder.user]?.name || customersMap[selectedOrder.customerId]?.name || 'Cliente Desconhecido'}</div>
                           <div className="text-muted small"><FontAwesomeIcon icon={faPhone} className="me-1"/>{selectedOrder.user?.phoneNumber || selectedOrder.phoneNumber || customersMap[selectedOrder.user]?.phoneNumber || customersMap[selectedOrder.customerId]?.phoneNumber || 'Sem número'}</div>
@@ -559,12 +593,35 @@ export default function OrdersScreen() {
                     <div className="bg-light rounded-4 p-3 border h-100">
                       {selectedOrder.deliveryman?.name || selectedOrder.driverId ? (
                         <div className="d-flex align-items-center">
-                          <img 
-                            src={selectedOrder.deliveryman?.profileImage || 'https://via.placeholder.com/60'} 
-                            alt="Driver" 
-                            className="rounded-circle me-3 border" 
-                            style={{ width: '50px', height: '50px', objectFit: 'cover' }} 
-                          />
+                          {(() => {
+                            const driverImg = selectedOrder.deliveryman?.photo || selectedOrder.deliveryman?.profileImage || selectedOrder.driver?.profileImage || selectedOrder.driver?.photo;
+                            if (driverImg) {
+                              return (
+                                <img 
+                                  src={driverImg} 
+                                  alt="Motorista" 
+                                  className="rounded-circle me-3 border" 
+                                  style={{ width: '50px', height: '50px', objectFit: 'cover' }} 
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                              );
+                            }
+                            return null;
+                          })()}
+                          <div 
+                            className="rounded-circle me-3 bg-primary bg-opacity-10 text-primary border d-flex align-items-center justify-content-center fw-bold" 
+                            style={{ 
+                              width: '50px', 
+                              height: '50px', 
+                              fontSize: '20px', 
+                              display: (selectedOrder.deliveryman?.photo || selectedOrder.deliveryman?.profileImage || selectedOrder.driver?.profileImage || selectedOrder.driver?.photo) ? 'none' : 'flex' 
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faMotorcycle} />
+                          </div>
                           <div>
                             <div className="fw-bold text-dark">{selectedOrder.deliveryman?.name || driversMap[selectedOrder.driverId]}</div>
                             {selectedOrder.deliveryman?.phoneNumber && (
@@ -664,11 +721,11 @@ export default function OrdersScreen() {
                 </div>
 
                 {/* Paragens de Entrega Multi-Destino (Se existirem) */}
-                {selectedOrder.deliveryStops && selectedOrder.deliveryStops.length > 0 && (
+                {(selectedOrder.deliveryStops?.length > 0 || selectedOrder.stops?.length > 0) && (
                   <div className="mb-4">
                     <h6 className="fw-bold mb-3 text-secondary">
                       <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2 text-primary-custom"/>
-                      Itinerário de Paragens Multi-Destino ({selectedOrder.deliveryStops.length} Paragens)
+                      Itinerário de Paragens Multi-Destino ({(selectedOrder.deliveryStops || selectedOrder.stops).length} Paragens)
                     </h6>
                     <div className="bg-light rounded-4 p-3 border">
                       <div className="table-responsive">
@@ -685,7 +742,7 @@ export default function OrdersScreen() {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedOrder.deliveryStops.map((stop, sIdx) => (
+                            {(selectedOrder.deliveryStops || selectedOrder.stops).map((stop, sIdx) => (
                               <tr key={stop._id || sIdx}>
                                 <td className="fw-bold text-center">{stop.sequence || sIdx + 1}</td>
                                 <td>{stop.address}</td>

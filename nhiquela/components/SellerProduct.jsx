@@ -12,6 +12,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { useToast } from 'react-native-toast-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const SellerProduct = ({
   id,
@@ -29,10 +30,26 @@ const SellerProduct = ({
   comissionPercentage,
   sellerEarningsAfterDiscount,
   onSale,
+  productType,
+  isDigital,
+  digitalInstructions,
+  digitalType,
   isSellerOpen,
   isOrdered,
   orderPeriod
 }) => {
+
+  const isDigitalProduct = (() => {
+    const type = String(productType || '').toUpperCase().trim();
+    if (type === 'PHYSICAL') return false;
+    if (type === 'DIGITAL') return true;
+    if (isDigital === false || isDigital === 'false') return false;
+    if (isDigital === true || isDigital === 'true') return true;
+    if (digitalType && String(digitalType).trim() !== '') return true;
+    if (digitalInstructions && String(digitalInstructions).trim() !== '') return true;
+    return false;
+  })();
+  const effectiveProductType = isDigitalProduct ? 'DIGITAL' : 'PHYSICAL';
 
   const selectItems = createSelector(
     (state) => state.basket.items,
@@ -77,6 +94,8 @@ const SellerProduct = ({
           image: image,
           description: description,
           price: price,
+          productType: effectiveProductType,
+          isDigital: isDigitalProduct,
           sellerName: sellerName || seller?.name || seller?.seller?.name
         };
         favs.push(productData);
@@ -106,6 +125,10 @@ const SellerProduct = ({
       onSale,
       comissionPercentage,
       sellerEarningsAfterDiscount,
+      productType: effectiveProductType,
+      isDigital: isDigitalProduct,
+      digitalInstructions: digitalInstructions || '',
+      digitalType: digitalType || 'KEY',
       quantity: items.length + 1,
     }));
     dispatch(addSellers({ seller }));
@@ -118,73 +141,113 @@ const SellerProduct = ({
     });
   };
 
+  const navigation = useNavigation();
+
   const removeItem = () => {
     if (items.length === 0) return;
     dispatch(removeFromBasket({ _id: id }));
   };
 
+  const handleOpenDetail = () => {
+    const itemData = {
+      _id: id,
+      id,
+      nome: name || nome,
+      name: name || nome,
+      image,
+      images,
+      description,
+      countInStock,
+      priceFromSeller,
+      price,
+      seller,
+      sellerName,
+      discount,
+      onSale,
+      comissionPercentage,
+      sellerEarningsAfterDiscount,
+      productType: effectiveProductType,
+      isDigital: isDigitalProduct,
+      digitalInstructions,
+      digitalType,
+      isSellerOpen,
+      isOrdered,
+      orderPeriod
+    };
+    navigation.navigate('ProductDetail', { item: itemData });
+  };
+
   return (
     <View style={styles.card}>
-      <View style={{ position: 'relative' }}>
-        <Image source={{ uri: image }} style={styles.image} />
-        
-        {/* Favorite Button */}
-        <TouchableOpacity 
-          style={styles.favoriteButton} 
-          onPress={toggleFavorite}
-          activeOpacity={0.8}
-        >
-          <Ionicons 
-            name={isFavorite ? "heart" : "heart-outline"} 
-            size={20} 
-            color={isFavorite ? "#EF4444" : "#9CA3AF"} 
-          />
-        </TouchableOpacity>
+      <TouchableOpacity onPress={handleOpenDetail} activeOpacity={0.85} style={{ flex: 1 }}>
+        <View style={{ position: 'relative' }}>
+          <Image source={{ uri: image }} style={styles.image} />
+          
+          {/* Favorite Button */}
+          <TouchableOpacity 
+            style={styles.favoriteButton} 
+            onPress={toggleFavorite}
+            activeOpacity={0.8}
+          >
+            <Ionicons 
+              name={isFavorite ? "heart" : "heart-outline"} 
+              size={20} 
+              color={isFavorite ? "#EF4444" : "#9CA3AF"} 
+            />
+          </TouchableOpacity>
 
-        {/* Loja fechada */}
-        {!isSellerOpen && (
-          <View style={styles.overlay}>
-            <Text style={styles.overlayText}>Fechado</Text>
-          </View>
-        )}
-
-        {/* Badges */}
-        <View style={styles.badgeContainer}>
-          {onSale && (
-            <View style={styles.saleBadge}>
-              <Text style={styles.saleText}>Promo</Text>
+          {/* Loja fechada */}
+          {!isSellerOpen && (
+            <View style={styles.overlay}>
+              <Text style={styles.overlayText}>Fechado</Text>
             </View>
           )}
-          {isOrdered && orderPeriod && (
-            <View style={styles.orderBadge}>
-              <Text style={styles.orderText}>Enc: {orderPeriod}</Text>
+
+          {/* Badges */}
+          <View style={styles.badgeContainer}>
+            {onSale && (
+              <View style={styles.saleBadge}>
+                <Text style={styles.saleText}>Promo</Text>
+              </View>
+            )}
+            {isOrdered && orderPeriod && (
+              <View style={styles.orderBadge}>
+                <Text style={styles.orderText}>Enc: {orderPeriod}</Text>
+              </View>
+            )}
+            {isDigitalProduct && (
+              <View style={[styles.saleBadge, { backgroundColor: '#9333EA' }]}>
+                <Text style={styles.saleText}>⚡ Digital</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Sem estoque */}
+          {countInStock === 0 && (
+            <View style={styles.outOfStockBadge}>
+              <Text style={styles.outOfStockText}>Esgotado</Text>
             </View>
           )}
         </View>
 
-        {/* Sem estoque */}
-        {countInStock === 0 && (
-          <View style={styles.outOfStockBadge}>
-            <Text style={styles.outOfStockText}>Esgotado</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Conteúdo */}
-      <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={2}>{name}</Text>
-        <Text style={styles.price}>
-          {onSale
-            ? `${parseFloat(discount).toFixed(2)} MT`
-            : `${parseFloat(price).toFixed(2)} MT`}
-        </Text>
-        
-        {onSale && (
-          <Text style={styles.originalPrice}>
-            {parseFloat(price).toFixed(2)} MT
+        {/* Conteúdo */}
+        <View style={styles.content}>
+          <Text style={styles.name} numberOfLines={2}>{name}</Text>
+          <Text style={styles.price}>
+            {onSale
+              ? `${parseFloat(discount).toFixed(2)} MT`
+              : `${parseFloat(price).toFixed(2)} MT`}
           </Text>
-        )}
-      </View>
+          
+          {onSale && (
+            <Text style={styles.originalPrice}>
+              {parseFloat(price).toFixed(2)} MT
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Ações / Controlos de Carrinho */}
 
       {/* Ações / Controlos de Carrinho */}
       <View style={styles.actionsContainer}>

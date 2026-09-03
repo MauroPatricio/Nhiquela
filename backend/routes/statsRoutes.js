@@ -144,32 +144,42 @@ statsRouter.get(
 statsRouter.get(
   '/admin-badges',
   expressAsyncHandler(async (req, res) => {
-    // 1. Pending Recharges (Transactions with type credit/deposit and status pendente)
-    // Considering all 'pendente' transactions might be enough, or specifically 'credit'
-    const pendingRecharges = await Transaction.countDocuments({ status: 'pendente', type: 'credit' });
-    
-    // 2. Pending Drivers
-    const pendingDrivers = await User.countDocuments({ isDeliveryMan: true, status: 'Pendente', isDeleted: { $ne: true } });
-    
-    // 3. Pending Orders (status: Pendente or Nova)
-    const pendingOrders = await Order.countDocuments({ status: 'Pendente', deleted: false });
- 
-    // 4. Pending Sellers (registo via nhiquelaseller app)
-    const pendingSellers = await User.countDocuments({ 
-      isSeller: true, 
-      isApproved: false, 
-      isBanned: false,
-      registeredFrom: 'nhiquelaseller',
-      isDeleted: { $ne: true }
-    });
- 
-    // 5. Pending Providers (todos os fornecedores pendentes, qualquer origem)
-    const pendingProviders = await User.countDocuments({ 
-      isSeller: true, 
-      isApproved: false, 
-      isBanned: false,
-      isDeleted: { $ne: true }
-    });
+    let pendingRecharges = 0;
+    let pendingDrivers = 0;
+    let pendingOrders = 0;
+    let pendingSellers = 0;
+    let pendingProviders = 0;
+
+    try {
+      pendingRecharges = await Transaction.countDocuments({ status: 'pendente', type: 'credit' });
+    } catch (e) { console.error('Error counting pendingRecharges:', e.message); }
+
+    try {
+      pendingDrivers = await User.countDocuments({ isDeliveryMan: true, status: 'Pendente', isDeleted: { $ne: true } });
+    } catch (e) { console.error('Error counting pendingDrivers:', e.message); }
+
+    try {
+      pendingOrders = await Order.countDocuments({ status: 'Pendente', deleted: { $ne: true } });
+    } catch (e) { console.error('Error counting pendingOrders:', e.message); }
+
+    try {
+      pendingSellers = await User.countDocuments({ 
+        isSeller: true, 
+        isApproved: false, 
+        isBanned: false,
+        registeredFrom: 'nhiquelaseller',
+        isDeleted: { $ne: true }
+      });
+    } catch (e) { console.error('Error counting pendingSellers:', e.message); }
+
+    try {
+      pendingProviders = await User.countDocuments({ 
+        isSeller: true, 
+        isApproved: false, 
+        isBanned: false,
+        isDeleted: { $ne: true }
+      });
+    } catch (e) { console.error('Error counting pendingProviders:', e.message); }
 
     res.send({
       pendingRecharges,

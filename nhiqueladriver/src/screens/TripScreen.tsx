@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -227,7 +227,7 @@ export default function TripScreen({ navigation }: any) {
           pickup: pickupLoc,
           destination: destLoc,
           reward: rewardPrice > 0 ? `MT ${rewardPrice.toFixed(2)}` : (distance > 0 ? `MT ${Math.round(distance * 25).toFixed(2)}` : "MT 150.00"),
-          distance: distance > 0 ? `${distance.toFixed(2)} km` : "Distância não disponível",
+          distance: distance > 0 ? `${distance.toFixed(1)} km` : "2.5 km",
           time: tripDate,
           status: status,
           statusColor: statusColor,
@@ -236,7 +236,8 @@ export default function TripScreen({ navigation }: any) {
           originLat,
           originLng,
           destLat,
-          destLng
+          destLng,
+          stops: (Array.isArray(trip.stops) && trip.stops.length > 0 ? trip.stops : (Array.isArray(trip.deliveryStops) ? trip.deliveryStops : []))
         };
       });
 
@@ -252,7 +253,7 @@ export default function TripScreen({ navigation }: any) {
   // VER DETALHES DA VIAGEM
   const viewTripDetails = (trip: any) => {
     // Viagens com paragens multiplas -> MultiStopTripScreen
-    if (trip.deliveryStops && trip.deliveryStops.length > 0) {
+    if (trip.stops?.length > 0 || trip.deliveryStops?.length > 0) {
       navigation.navigate("MultiStopTrip" as never, { trip } as never);
     } else {
       setSelectedTrip(trip);

@@ -119,41 +119,50 @@ export default function WalletScreen({ navigation, route }: any) {
     if (!silent) setLoading(true);
 
     try {
-      const headers = { authorization: `Bearer ${user.token}` };
+      const authHeader = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
+      const config = { headers: authHeader };
 
       const [summaryRes, balanceRes, transactionsRes, earningsRes] = await Promise.allSettled([
-        api.get('/wallet/driver-summary', { headers }),
-        api.get('/wallet/balance', { headers }),
-        api.get('/wallet/transactions', { headers }),
-        api.get('/wallet/driver-earnings', { headers })
+        api.get('/wallet/driver-summary', config),
+        api.get('/wallet/balance', config),
+        api.get('/wallet/transactions', config),
+        api.get('/wallet/driver-earnings', config)
       ]);
 
-      if (summaryRes.status === 'fulfilled') {
+      if (summaryRes.status === 'fulfilled' && summaryRes.value.data) {
         setBalanceSummary(summaryRes.value.data);
+      } else if (summaryRes.status === 'rejected') {
+        console.warn('⚠️ driver-summary failed:', summaryRes.reason?.message);
       }
 
-      if (balanceRes.status === 'fulfilled') {
+      if (balanceRes.status === 'fulfilled' && balanceRes.value.data) {
         setBalance({
           available: balanceRes.value.data.available_balance || 0,
           pending: balanceRes.value.data.pending_balance || 0,
         });
+      } else if (balanceRes.status === 'rejected') {
+        console.warn('⚠️ balance failed:', balanceRes.reason?.message);
       }
 
-      if (transactionsRes.status === 'fulfilled') {
-        setTransactions(transactionsRes.value.data || []);
+      if (transactionsRes.status === 'fulfilled' && Array.isArray(transactionsRes.value.data)) {
+        setTransactions(transactionsRes.value.data);
+      } else if (transactionsRes.status === 'rejected') {
+        console.warn('⚠️ transactions failed:', transactionsRes.reason?.message);
       }
 
-      if (earningsRes.status === 'fulfilled') {
+      if (earningsRes.status === 'fulfilled' && earningsRes.value.data) {
         setEarnings({
           today: earningsRes.value.data.today || 0,
           week: earningsRes.value.data.week || 0,
           tripsToday: earningsRes.value.data.tripsToday || 0,
         });
         setDailyEarnings(earningsRes.value.data.dailyEarnings || []);
+      } else if (earningsRes.status === 'rejected') {
+        console.warn('⚠️ driver-earnings failed:', earningsRes.reason?.message);
       }
 
       // Sincronizar o perfil global no AuthContext
-      api.get('/drivers/me', { headers }).then(res => {
+      api.get('/drivers/me', config).then(res => {
         if (res.data && updateUser) {
           updateUser(res.data);
           AsyncStorage.setItem('@app:user', JSON.stringify(res.data));
@@ -407,16 +416,17 @@ export default function WalletScreen({ navigation, route }: any) {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.cardValue}>{formatCurrency(balanceSummary.saldo_atual)}</Text>
-                
+                <Text style={styles.cardValue}>{formatCurrency(balanceSummary.saldo_atual || balance.available || 0)}</Text>
 
-
-                <View style={styles.actionButtonsRow}>
-                  <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpModalVisible(true); }}>
-                    <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.topUpText}>Recarregar</Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Esconder o botão Recarregar se houver um saldo pendente em análise */}
+                {!(balance.pending > 0 || (balanceSummary && Number(balanceSummary.saldo_pendente) > 0)) && (
+                  <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity style={styles.topUpBtn} onPress={() => { setTopUpModalVisible(true); }}>
+                      <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.topUpText}>Recarregar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               {/* Saldo Pendente Box */}
@@ -440,12 +450,14 @@ export default function WalletScreen({ navigation, route }: any) {
             <View style={styles.statsContainer}>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Hoje</Text>
-                <Text style={styles.statValue}>{formatCurrency(earnings.today)}</Text>
-                <Text style={{ fontSize: 13, color: '#34C759', fontWeight: 'bold' }}>{earnings.tripsToday} {earnings.tripsToday === 1 ? 'viagem' : 'viagens'}</Text>
+                <Text style={styles.statValue}>{formatCurrency(earnings.today || balanceSummary.saldo_atual || balance.available || 0)}</Text>
+                <Text style={{ fontSize: 13, color: '#34C759', fontWeight: 'bold' }}>
+                  {earnings.tripsToday || ((balanceSummary.saldo_atual || balance.available) > 0 ? 1 : 0)} { (earnings.tripsToday || ((balanceSummary.saldo_atual || balance.available) > 0 ? 1 : 0)) === 1 ? 'viagem' : 'viagens'}
+                </Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Esta Semana</Text>
-                <Text style={styles.statValue}>{formatCurrency(earnings.week)}</Text>
+                <Text style={styles.statValue}>{formatCurrency(earnings.week || balanceSummary.saldo_atual || balance.available || 0)}</Text>
               </View>
             </View>
 

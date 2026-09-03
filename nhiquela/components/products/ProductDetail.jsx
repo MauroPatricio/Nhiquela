@@ -46,11 +46,19 @@ const ProductDetail = () => {
     isDigital = itemData?.isDigital || item?.isDigital,
   } = itemData;
 
-  const isDigitalProduct = 
-    String(productType || '').toUpperCase() === 'DIGITAL' ||
-    isDigital === true ||
-    itemData?.digitalType !== undefined ||
-    item?.digitalType !== undefined;
+  const isDigitalProduct = (() => {
+    const type = String(productType || itemData?.productType || item?.productType || '').toUpperCase().trim();
+    if (type === 'PHYSICAL') return false;
+    if (type === 'DIGITAL') return true;
+    const isDig = isDigital ?? itemData?.isDigital ?? item?.isDigital;
+    if (isDig === false || isDig === 'false') return false;
+    if (isDig === true || isDig === 'true') return true;
+    const digType = itemData?.digitalType || item?.digitalType;
+    if (digType && String(digType).trim() !== '') return true;
+    const digInst = itemData?.digitalInstructions || item?.digitalInstructions;
+    if (digInst && String(digInst).trim() !== '') return true;
+    return false;
+  })();
 
   const effectiveProductType = isDigitalProduct ? 'DIGITAL' : 'PHYSICAL';
 

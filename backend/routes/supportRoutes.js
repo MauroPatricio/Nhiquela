@@ -5,13 +5,16 @@ import { isAuth, isAdmin, sendAdminNotificationEmail } from '../utils.js';
 
 const supportRouter = express.Router();
 
-// Get all support tickets (Admin)
+// Get support tickets (Admin/Operator see all, others see their own)
 supportRouter.get(
   '/',
   isAuth,
-  isAdmin,
   expressAsyncHandler(async (req, res) => {
-    const tickets = await Support.find().populate('user assignedTo');
+    let query = {};
+    if (!req.user.isAdmin && req.user.role !== 'ADMIN' && !req.user.isOperator && req.user.role !== 'OPERATOR') {
+      query.user = req.user._id;
+    }
+    const tickets = await Support.find(query).populate('user assignedTo replies.user').sort({ createdAt: -1 });
     res.send(tickets);
   })
 );

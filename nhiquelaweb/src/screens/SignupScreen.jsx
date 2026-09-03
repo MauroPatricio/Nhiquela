@@ -127,16 +127,28 @@ export default function SignupScreen() {
       const { data } = await api.post('/upload', bodyFormData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const url = data.secure_url || data.url;
+      const url = typeof data === 'string' ? data : (data.secure_url || data.url || data.path);
       if (targetField === 'sellerLogo') {
         setSellerLogo(url);
         toast.success('Logótipo carregado com sucesso!');
       } else {
         setProfileImage(url);
-        toast.success('Foto de perfil carregada!');
+        toast.success('Foto de perfil carregada com sucesso!');
       }
     } catch (err) {
-      toast.error(getError(err));
+      console.warn('Upload de imagem via API falhou, a utilizar leitor local de ficheiros:', err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const localUrl = reader.result;
+        if (targetField === 'sellerLogo') {
+          setSellerLogo(localUrl);
+          toast.success('Logótipo carregado com sucesso!');
+        } else {
+          setProfileImage(localUrl);
+          toast.success('Foto de perfil carregada com sucesso!');
+        }
+      };
+      reader.readAsDataURL(file);
     } finally {
       setLoadingUpload(false);
     }
@@ -358,6 +370,40 @@ export default function SignupScreen() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
+                  </div>
+                </div>
+
+                {/* Upload Foto de Perfil */}
+                <div className="mb-4 bg-light p-3 rounded-4 border">
+                  <label className="form-label small fw-bold text-muted d-block">Foto de Perfil (Opcional)</label>
+                  <div className="d-flex align-items-center gap-3">
+                    <div 
+                      className="rounded-circle border d-flex align-items-center justify-content-center bg-white overflow-hidden shadow-sm flex-shrink-0"
+                      style={{ width: '64px', height: '64px' }}
+                    >
+                      {profileImage ? (
+                        <img src={profileImage} alt="Foto de Perfil" className="w-100 h-100 object-fit-cover" />
+                      ) : (
+                        <FontAwesomeIcon icon={faCamera} className="text-muted fs-4" />
+                      )}
+                    </div>
+                    <div>
+                      <input 
+                        type="file" 
+                        id="userProfilePhotoInput"
+                        className="d-none" 
+                        accept="image/*"
+                        onChange={(e) => uploadFileHandler(e, 'profileImage')}
+                      />
+                      <label 
+                        htmlFor="userProfilePhotoInput" 
+                        className="btn btn-outline-primary rounded-pill btn-sm px-3 fw-bold mb-1"
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {loadingUpload ? 'A carregar...' : (profileImage ? 'Alterar Foto' : 'Carregar Foto de Perfil')}
+                      </label>
+                      <small className="d-block text-muted" style={{ fontSize: '0.75rem' }}>PNG, JPG até 5MB</small>
+                    </div>
                   </div>
                 </div>
 

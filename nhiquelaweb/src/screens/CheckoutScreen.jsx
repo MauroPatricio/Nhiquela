@@ -27,7 +27,7 @@ export default function CheckoutScreen() {
 
   // Detect digital products
   const hasDigitalItems = cartItems.some(
-    item => item.productType === 'DIGITAL' || item.isDigital || item.digitalType
+    item => item.productType === 'DIGITAL'
   );
 
   // GPS State
@@ -55,7 +55,10 @@ export default function CheckoutScreen() {
   const [uploadingProof, setUploadingProof] = useState(false);
   const proofInputRef = useRef(null);
 
-  const isTransferMethod = ['Transferência bancária', 'M-Pesa', 'e-Mola'].includes(paymentMethod);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState([]);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+
+  const isTransferMethod = paymentMethod && !paymentMethod.toLowerCase().includes('dinheiro');
 
   // Enforce login
   useEffect(() => {
@@ -113,6 +116,22 @@ export default function CheckoutScreen() {
       .finally(() => setLoadingSeller(false));
   }, [cartItems]);
 
+  // Fetch payment methods from API
+  useEffect(() => {
+    setLoadingPaymentMethods(true);
+    api.get('/payment-methods')
+      .catch(() => api.get('/payments'))
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : (data?.data || data?.paymentMethods || []);
+        const activeList = list.filter(pm => pm.status === 'Ativo' || pm.status === undefined || pm.isActive !== false);
+        if (activeList.length > 0) {
+          setAvailablePaymentMethods(activeList);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPaymentMethods(false));
+  }, []);
+
   useEffect(() => {
     if (userInfo) {
       if (!fullName) setFullName(userInfo.name || '');
@@ -121,8 +140,9 @@ export default function CheckoutScreen() {
     }
   }, [userInfo]);
 
-  const deliveryFee = (isUserWantDelivery && !hasDigitalItems) ? deliveryFeeCalculated : 0;
-  const totalPrice = cartTotal + deliveryFee;
+  // A taxa de transporte não é somada ao total da compra; é paga diretamente ao estafeta na recepção do produto
+  const deliveryFee = 0;
+  const totalPrice = cartTotal;
 
   const handleQuickLogin = async (e) => {
     e.preventDefault();
@@ -180,15 +200,15 @@ export default function CheckoutScreen() {
     }
 
     if (hasDigitalItems) {
-      if (!digitalRecipientEmail || !digitalRecipientEmail.includes('@')) {
+      if (!digitalRecipientEmail || !String(digitalRecipientEmail).includes('@')) {
         toast.error('Por favor, indique um e-mail válido para envio do produto digital.');
         return;
       }
-    } else if (isUserWantDelivery && (!address || !address.trim())) {
+    } else if (isUserWantDelivery && (!address || !String(address).trim())) {
       toast.error('Por favor, indique o endereço de entrega.');
       return;
     }
-    if (!phoneNumber || !phoneNumber.trim()) {
+    if (!phoneNumber || !String(phoneNumber).trim()) {
       toast.error('Por favor, indique o número de telemóvel para contacto.');
       return;
     }
@@ -253,7 +273,16 @@ export default function CheckoutScreen() {
       });
       
       const newOrder = data.order || data;
-      setOrderCreatedSuccess(newOrder);
+      setOrderCreatedSuccess({
+        ...newOrder,
+        items: orderItems,
+        totalAmount: totalPrice,
+        deliveryType: hasDigitalItems ? 'Envio Digital (E-mail)' : (isUserWantDelivery ? 'Entrega ao Domicílio' : 'Levantamento no Estabelecimento'),
+        paymentMethodName: paymentMethod,
+        recipientAddress: finalAddress,
+        recipientPhone: String(phoneNumber || userInfo?.phoneNumber || ''),
+        recipientName: fullName || userInfo?.name || 'Cliente'
+      });
       dispatch(clearBasket());
       toast.success('Pedido realizado com sucesso!');
     } catch (error) {
@@ -265,38 +294,105 @@ export default function CheckoutScreen() {
   };
 
   if (orderCreatedSuccess) {
+    const orderCode = orderCreatedSuccess.code || (orderCreatedSuccess._id ? orderCreatedSuccess._id.substring(18).toUpperCase() : 'N/A');
+    const orderItemsList = orderCreatedSuccess.items || orderCreatedSuccess.orderItems || [];
+
     return (
-      <div className="container py-5 my-5 text-center" style={{ maxWidth: '650px' }}>
-        <div className="bg-white p-5 rounded-5 shadow border">
-          <div className="bg-success text-white rounded-circle d-flex justify-content-center align-items-center mx-auto mb-4" style={{ width: '80px', height: '80px' }}>
-            <FontAwesomeIcon icon={faCheckCircle} size="3x" />
-          </div>
-          <h2 className="fw-bold text-dark mb-2">Pedido Confirmado!</h2>
-          <p className="text-muted fs-5 mb-4">
-            O seu pedido <span className="fw-bold text-primary-custom">#{orderCreatedSuccess.code || orderCreatedSuccess._id}</span> foi recebido com sucesso e enviado ao fornecedor.
-          </p>
-
-          <div className="bg-light p-4 rounded-4 text-start mb-4 border">
-            <div className="d-flex justify-content-between mb-2">
-              <span className="text-muted">Tipo de Entrega:</span>
-              <span className="fw-bold">{orderCreatedSuccess.isUserWantDelivery ? 'Entrega ao Domicílio' : 'Levantamento no Estabelecimento'}</span>
+      <div className="container py-5 my-3" style={{ maxWidth: '780px' }}>
+        <div className="bg-white p-4 p-md-5 rounded-5 shadow-sm border">
+          {/* Ícone & Título de Sucesso */}
+          <div className="text-center mb-4">
+            <div className="bg-success text-white rounded-circle d-flex justify-content-center align-items-center mx-auto mb-3 shadow-sm" style={{ width: '75px', height: '75px' }}>
+              <FontAwesomeIcon icon={faCheckCircle} size="3x" />
             </div>
-            <div className="d-flex justify-content-between mb-2">
-              <span className="text-muted">Método de Pagamento:</span>
-              <span className="fw-bold">{orderCreatedSuccess.paymentMethod || paymentMethod}</span>
-            </div>
-            <div className="d-flex justify-content-between mb-0">
-              <span className="text-muted">Valor Total:</span>
-              <span className="fw-bold text-success fs-5">{orderCreatedSuccess.totalPrice || totalPrice} MT</span>
-            </div>
+            <h2 className="fw-black text-dark mb-1">Pedido Confirmado!</h2>
+            <p className="text-muted mb-2">
+              O seu pedido foi registado e enviado para processamento pelo fornecedor.
+            </p>
+            <span className="badge bg-purple-light text-primary-custom px-3 py-2 rounded-pill fs-6 fw-bold border border-primary-subtle" style={{ backgroundColor: '#F3E8FF' }}>
+              Código do Pedido: #{orderCode}
+            </span>
           </div>
 
-          <div className="d-flex gap-3 justify-content-center">
-            <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-3 fw-bold">
-              Continuar a Comprar
+          {/* BANNER DE SEGUIMENTO NO APLICATIVO MOBILE (PLAY STORE) */}
+          <div className="alert border-0 rounded-4 p-4 mb-4 shadow-sm" style={{ backgroundColor: '#F3E8FF', borderLeft: '5px solid #7F00FF' }}>
+            <div className="d-flex align-items-start gap-3">
+              <div className="rounded-circle bg-primary-custom text-white p-2 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '48px', height: '48px' }}>
+                <FontAwesomeIcon icon={faMobileAlt} size="lg" />
+              </div>
+              <div>
+                <h6 className="fw-bold text-dark mb-1">
+                  📱 Acompanhe o estado do seu pedido no App Mobile
+                </h6>
+                <p className="text-muted small mb-0" style={{ lineHeight: '1.5' }}>
+                  O estado do seu pedido em tempo real (preparação, atribuição do estafeta e mapa de rastreamento) pode ser acompanhado no aplicativo mobile disponível na <strong>Play Store</strong> com o nome <strong className="text-primary-custom">nhiquela</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* DETALHES COMPLETOS DO PEDIDO */}
+          <div className="bg-light p-4 rounded-4 mb-4 border">
+            <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
+              <FontAwesomeIcon icon={faShoppingCart} className="me-2 text-primary-custom" />
+              Produtos do Pedido ({orderItemsList.length})
+            </h6>
+
+            <div className="d-flex flex-column gap-3 mb-4">
+              {orderItemsList.map((item, idx) => (
+                <div key={idx} className="d-flex align-items-center justify-content-between bg-white p-3 rounded-3 border">
+                  <div className="d-flex align-items-center gap-3">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="rounded-3 object-fit-cover" style={{ width: '50px', height: '50px' }} />
+                    ) : (
+                      <div className="bg-light rounded-3 d-flex align-items-center justify-content-center text-muted fw-bold" style={{ width: '50px', height: '50px' }}>📦</div>
+                    )}
+                    <div>
+                      <h6 className="fw-bold text-dark mb-0 small text-truncate" style={{ maxWidth: '280px' }}>{item.name}</h6>
+                      <small className="text-muted">Qtd: {item.quantity || 1} x {Number(item.price || 0).toLocaleString('pt-PT')} MT</small>
+                    </div>
+                  </div>
+                  <span className="fw-bold text-dark">
+                    {(Number(item.price || 0) * (item.quantity || 1)).toLocaleString('pt-PT')} MT
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
+              <FontAwesomeIcon icon={faUser} className="me-2 text-primary-custom" />
+              Informações de Entrega & Pagamento
+            </h6>
+
+            <div className="row g-2 small text-muted mb-3">
+              <div className="col-12 col-md-6">
+                <span className="d-block">Cliente: <strong className="text-dark">{orderCreatedSuccess.recipientName}</strong></span>
+                <span className="d-block">Telemóvel: <strong className="text-dark">{orderCreatedSuccess.recipientPhone}</strong></span>
+              </div>
+              <div className="col-12 col-md-6">
+                <span className="d-block">Modalidade: <strong className="text-dark">{orderCreatedSuccess.deliveryType}</strong></span>
+                <span className="d-block">Pagamento: <strong className="text-dark">{orderCreatedSuccess.paymentMethodName}</strong></span>
+              </div>
+              <div className="col-12 mt-2">
+                <span className="d-block">Endereço / Destino: <strong className="text-dark">{orderCreatedSuccess.recipientAddress}</strong></span>
+              </div>
+            </div>
+
+            <div className="border-top pt-3 d-flex justify-content-between align-items-center">
+              <span className="fw-bold fs-5 text-dark">Total do Pedido:</span>
+              <span className="fw-black fs-4 text-primary-custom">
+                {Number(orderCreatedSuccess.totalAmount || orderCreatedSuccess.totalPrice || totalPrice).toLocaleString('pt-PT')} MT
+              </span>
+            </div>
+          </div>
+
+          {/* BOTÕES DE AÇÃO */}
+          <div className="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+            <Link to="/shop/account" className="btn btn-outline-dark rounded-pill px-4 py-3 fw-bold flex-grow-1">
+              Ver Meus Pedidos
             </Link>
-            <Link to="/" className="btn btn-outline-dark rounded-pill px-4 py-3 fw-bold">
-              Voltar ao Início
+            <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-3 fw-bold flex-grow-1 shadow-sm">
+              Continuar a Comprar
             </Link>
           </div>
         </div>
@@ -411,7 +507,7 @@ export default function CheckoutScreen() {
                     >
                       <FontAwesomeIcon icon={faMotorcycle} className="fs-3 mb-2 text-primary-custom" />
                       <h6 className="fw-bold m-0 text-dark">Entrega ao Domicílio</h6>
-                      <small className="text-muted">Entregue na sua morada (350 MT)</small>
+                      <small className="text-muted">Entregue na sua morada (Valor do transporte pago ao estafeta no momento da entrega)</small>
                     </div>
                   </div>
                   <div className="col-6">
@@ -685,34 +781,66 @@ export default function CheckoutScreen() {
                   </div>
                 )}
                 <div className="d-flex flex-column gap-3 mb-4">
-                  <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'M-Pesa' ? 'border-primary bg-light' : ''}`}>
-                    <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'M-Pesa'} onChange={() => setPaymentMethod('M-Pesa')} />
-                    <div className="flex-grow-1">
-                      <h6 className="fw-bold m-0 text-dark">M-Pesa</h6>
-                      <small className="text-muted">Pagamento móvel rápido e seguro</small>
+                  {loadingPaymentMethods ? (
+                    <div className="text-center py-3">
+                      <FontAwesomeIcon icon={faSpinner} spin className="text-primary-custom" />
+                      <span className="ms-2 text-muted small">A carregar formas de pagamento disponíveis...</span>
                     </div>
-                  </label>
-                  <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'e-Mola' ? 'border-primary bg-light' : ''}`}>
-                    <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'e-Mola'} onChange={() => setPaymentMethod('e-Mola')} />
-                    <div className="flex-grow-1">
-                      <h6 className="fw-bold m-0 text-dark">e-Mola</h6>
-                      <small className="text-muted">Pague via carteira e-Mola</small>
-                    </div>
-                  </label>
-                  <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'Transferência bancária' ? 'border-primary bg-light' : ''}`}>
-                    <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'Transferência bancária'} onChange={() => setPaymentMethod('Transferência bancária')} />
-                    <div className="flex-grow-1">
-                      <h6 className="fw-bold m-0 text-dark">Transferência Bancária / Móvel</h6>
-                      <small className="text-muted">Transferência direta para o fornecedor</small>
-                    </div>
-                  </label>
-                  <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'Dinheiro' ? 'border-primary bg-light' : ''}`}>
-                    <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'Dinheiro'} onChange={() => setPaymentMethod('Dinheiro')} />
-                    <div className="flex-grow-1">
-                      <h6 className="fw-bold m-0 text-dark">Dinheiro / Na Entrega</h6>
-                      <small className="text-muted">Pagamento presencial em numerário</small>
-                    </div>
-                  </label>
+                  ) : availablePaymentMethods.length > 0 ? (
+                    availablePaymentMethods.map((pm) => {
+                      const pmName = pm.name || pm.title || 'Forma de Pagamento';
+                      const pmDesc = pm.description || 'Método de pagamento ativo na plataforma';
+                      return (
+                        <label 
+                          key={pm._id || pmName} 
+                          className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === pmName ? 'border-primary bg-light shadow-sm' : ''}`}
+                        >
+                          <input 
+                            type="radio" 
+                            name="payment" 
+                            className="form-check-input me-3" 
+                            checked={paymentMethod === pmName} 
+                            onChange={() => setPaymentMethod(pmName)} 
+                          />
+                          <div className="flex-grow-1">
+                            <h6 className="fw-bold m-0 text-dark">{pmName}</h6>
+                            <small className="text-muted">{pmDesc}</small>
+                          </div>
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <>
+                      <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'M-Pesa' ? 'border-primary bg-light' : ''}`}>
+                        <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'M-Pesa'} onChange={() => setPaymentMethod('M-Pesa')} />
+                        <div className="flex-grow-1">
+                          <h6 className="fw-bold m-0 text-dark">M-Pesa</h6>
+                          <small className="text-muted">Pagamento móvel rápido e seguro</small>
+                        </div>
+                      </label>
+                      <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'e-Mola' ? 'border-primary bg-light' : ''}`}>
+                        <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'e-Mola'} onChange={() => setPaymentMethod('e-Mola')} />
+                        <div className="flex-grow-1">
+                          <h6 className="fw-bold m-0 text-dark">e-Mola</h6>
+                          <small className="text-muted">Pague via carteira e-Mola</small>
+                        </div>
+                      </label>
+                      <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'Transferência bancária' ? 'border-primary bg-light' : ''}`}>
+                        <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'Transferência bancária'} onChange={() => setPaymentMethod('Transferência bancária')} />
+                        <div className="flex-grow-1">
+                          <h6 className="fw-bold m-0 text-dark">Transferência Bancária / Móvel</h6>
+                          <small className="text-muted">Transferência direta para o fornecedor</small>
+                        </div>
+                      </label>
+                      <label className={`border rounded-4 p-3 d-flex align-items-center cursor-pointer ${paymentMethod === 'Dinheiro' ? 'border-primary bg-light' : ''}`}>
+                        <input type="radio" name="payment" className="form-check-input me-3" checked={paymentMethod === 'Dinheiro'} onChange={() => setPaymentMethod('Dinheiro')} />
+                        <div className="flex-grow-1">
+                          <h6 className="fw-bold m-0 text-dark">Dinheiro / Na Entrega</h6>
+                          <small className="text-muted">Pagamento presencial em numerário</small>
+                        </div>
+                      </label>
+                    </>
+                  )}
                 </div>
 
                 <div className="d-flex gap-2">
@@ -745,11 +873,22 @@ export default function CheckoutScreen() {
                 <span className="fw-bold text-dark">{cartTotal.toLocaleString()} MT</span>
               </div>
               <div className="d-flex justify-content-between mb-3 small text-muted">
-                <span>Entrega</span>
-                <span className="fw-bold text-dark">
-                  {hasDigitalItems ? 'Grátis (Envio por E-mail)' : isUserWantDelivery ? `${deliveryFee} MT` : 'Grátis (Levantamento)'}
+                <span>Entrega / Transporte</span>
+                <span className="fw-bold">
+                  {hasDigitalItems ? (
+                    <span className="text-dark">Grátis (Envio por E-mail)</span>
+                  ) : isUserWantDelivery ? (
+                    <span className="text-primary-custom fw-bold">Pago ao estafeta na entrega</span>
+                  ) : (
+                    <span className="text-dark">Grátis (Levantamento na Loja)</span>
+                  )}
                 </span>
               </div>
+              {!hasDigitalItems && isUserWantDelivery && (
+                <div className="alert alert-light border rounded-3 p-2 mb-3 text-muted small" style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                  ℹ️ <strong>Nota:</strong> O valor do transporte não é cobrado no checkout e será pago diretamente ao estafeta no momento da entrega do produto.
+                </div>
+              )}
               <hr />
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-bold fs-5 text-dark">Total</span>

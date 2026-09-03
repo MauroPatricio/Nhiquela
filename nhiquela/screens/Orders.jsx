@@ -413,6 +413,26 @@ const Orders = () => {
                 </Text>
               </View>
               <Ionicons name="arrow-down" size={16} color="#9CA3AF" style={{ marginLeft: 2, marginVertical: 4 }} />
+              
+              {(() => {
+                const allStops = (item.deliveryStops && item.deliveryStops.length > 0) ? item.deliveryStops : (item.stops || []);
+                if (!allStops || allStops.length === 0) return null;
+
+                return allStops.map((stop, idx) => (
+                  <React.Fragment key={stop._id || idx}>
+                    <View style={styles.routePoint}>
+                      <Ionicons name="radio-button-on" size={16} color="#A855F7" />
+                      <Text style={styles.routeText} numberOfLines={2}>
+                        <Text style={{ fontWeight: '700', color: '#9333EA' }}>Paragem #{idx + 1}: </Text>
+                        {stop.address || stop.text || stop.addressLine || 'Endereço não definido'}
+                        {stop.recipientName ? ` (${stop.recipientName})` : ''}
+                      </Text>
+                    </View>
+                    <Ionicons name="arrow-down" size={16} color="#9CA3AF" style={{ marginLeft: 2, marginVertical: 4 }} />
+                  </React.Fragment>
+                ));
+              })()}
+
               <View style={styles.routePoint}>
                 <Ionicons name="location" size={16} color="#10B981" />
                 <Text style={styles.routeText} numberOfLines={2}>
