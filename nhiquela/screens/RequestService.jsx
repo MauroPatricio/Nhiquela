@@ -1500,22 +1500,12 @@ export default function RequestServiceSimple() {
 
 
         {routeCoords.length > 0 && (
-          <>
-            {/* Sombra da rota - efeito de profundidade */}
-            <Polyline
-              coordinates={routeCoords}
-              strokeWidth={8}
-              strokeColor="rgba(107,33,168,0.20)"
-              zIndex={1}
-            />
-            {/* Linha lilas principal */}
-            <Polyline
-              coordinates={routeCoords}
-              strokeWidth={5}
-              strokeColor="#A855F7"
-              zIndex={2}
-            />
-          </>
+          <Polyline
+            coordinates={routeCoords}
+            strokeWidth={5}
+            strokeColor="#A855F7"
+            zIndex={2}
+          />
         )}
 
 

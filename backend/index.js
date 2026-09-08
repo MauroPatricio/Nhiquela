@@ -83,6 +83,8 @@ import appConfigRouter from './routes/appConfigRoutes.js';
 import { initScheduledOrderService } from './services/scheduledOrderService.js';
 
 
+import cargoTypeRoutes from './routes/cargoTypeRoutes.js';
+
 // Conectar ao MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
@@ -93,8 +95,24 @@ mongoose
     retryWrites: true, // ? Re-tentar escritas
     w: 'majority' // ? Write concern
   })
-  .then(() => {
+  .then(async () => {
     console.log('? Conectei me ao MongoDB com SUCESSO');
+    try {
+      const CargoType = (await import('./models/CargoTypeModel.js')).default;
+      const count = await CargoType.countDocuments();
+      if (count === 0) {
+        await CargoType.insertMany([
+          { name: 'Carga Geral & Encomendas', icon: '📦', description: 'Encomendas padrão, caixas e pacotes gerais', order: 1 },
+          { name: 'Contentores & Mercadoria Portuária', icon: '🏗️', description: 'Contentores marítimos e carga pesada portuária', order: 2 },
+          { name: 'Produtos Agrícolas nas Machambas', icon: '🌾', description: 'Colheitas, sacos de cereais e produtos agrícolas', order: 3 },
+          { name: 'Maquinaria Pesada & Construção', icon: '🚜', description: 'Equipamentos de construção e máquinas industriais', order: 4 },
+          { name: 'Mudanças Residenciais / Escritório', icon: '🛋️', description: 'Móveis, mudanças de casa e escritório', order: 5 }
+        ]);
+        console.log('✓ Tipos de Carga iniciais criados com sucesso.');
+      }
+    } catch (e) {
+      console.error('Erro ao semear tipos de carga:', e.message);
+    }
   })
   .catch((err) => {
     console.log('? ERRO INICIAL MongoDB:', err.message);
@@ -213,6 +231,7 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/vehicle-types', vehicleTypeRoutes);
+app.use('/api/cargo-types', cargoTypeRoutes);
 app.use('/api/vehicle-colors', vehicleColorRoutes);
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/marketing', marketingRoutes);

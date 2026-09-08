@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faSearch, faBolt, faShieldAlt, faHeadset, faMapMarkerAlt, faStar, faArrowRight,
   faShoppingBag, faWrench, faSpinner, faStore, faMotorcycle, faPlus, faCheckCircle,
-  faTag, faFilter, faClock, faRedo, faHeart, faFire, faThumbsUp
+  faTag, faFilter, faClock, faRedo, faHeart, faFire, faThumbsUp, faTruck,
+  faChevronLeft, faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -44,6 +45,55 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const logisticsSlides = useMemo(() => [
+    {
+      id: 'freightliners',
+      title: 'Camiões Freightliners & Carga Pesada',
+      subtitle: 'Frotas articuladas de grande capacidade para transporte pesado de longa distância entre Maputo, Beira, Tete e Nacala com monitoria em tempo real.',
+      image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
+      tag: '',
+      tagBg: '#8A2BE2',
+      highlight: 'Frotas de Longa Distância'
+    },
+    {
+      id: 'port_cargo',
+      title: 'Logística Portuária & Cargas no Porto',
+      subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos de Maputo, Beira e Nacala para contentores de importação e exportação.',
+      image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
+      tag: '',
+      tagBg: '#2563EB',
+      highlight: 'Importação & Exportação'
+    },
+    {
+      id: 'machambas',
+      title: 'Produtores nas Machambas & Escoamento Agrícola',
+      subtitle: 'Recolha direta de colheitas agrícolas rurais (milho, castanha de caju, gergelim, hortícolas) conectando os pequenos e grandes produtores aos mercados urbanos.',
+      image: 'https://images.unsplash.com/photo-1595838788566-a3d8ecbc7e39?auto=format&fit=crop&w=1200&q=80',
+      tag: '',
+      tagBg: '#059669',
+      highlight: 'Campo ao Mercado'
+    },
+    {
+      id: 'machinery',
+      title: 'Maquinaria Pesada & Equipamento de Construção',
+      subtitle: 'Mobilização de retroescavadoras, camiões basculantes e matérias-primas pesadas para grandes obras e projetos de infraestrutura nacional.',
+      image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
+      tag: '',
+      tagBg: '#D97706',
+      highlight: 'Cargas Especiais'
+    }
+  ], []);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % logisticsSlides.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [isPaused, logisticsSlides.length]);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -180,124 +230,282 @@ export default function HomeScreen() {
   };
 
   return (
-    <div className="pb-5 container">
-      
-      {/* SECÇÃO HERO & PESQUISA INTELIGENTE */}
-      <section className="py-4 my-md-3">
-        <div className="row align-items-center">
-          <div className="col-lg-8 col-xl-7">
-            <span className="badge bg-primary-custom text-white px-3 py-2 rounded-pill fw-bold mb-3 d-inline-flex align-items-center gap-2">
-              <FontAwesomeIcon icon={faBolt} /> O Maior Marketplace Multi-Loja de Moçambique
-            </span>
-            <h1 className="fw-black mb-3 text-black" style={{ fontSize: '3.5rem', lineHeight: '1.1', letterSpacing: '-2px' }}>
-              Tudo o que precisa, entregue à <i className="text-primary-custom" style={{ fontFamily: 'serif' }}>distância</i> de um clique.
-            </h1>
-            <p className="lead text-muted mb-4 pe-lg-5" style={{ fontSize: '1.15rem' }}>
-              Compre produtos de dezenas de lojas parceiras, acompanhe entregas em tempo real e receba onde estiver.
+    <div className="pb-5">
+      {/* 🚛 SECÇÃO CORPORATIVA: CARROSSEL DE LOGÍSTICA DE CARGA PESADA (PRIMEIRA NA PÁGINA) */}
+      <section className="mb-5" style={{ backgroundColor: '#F1F5F9', color: '#0F172A', paddingTop: '40px', position: 'relative', overflow: 'hidden' }}>
+        {/* Título & Cabeçalho da Seção em Container */}
+        <div className="container position-relative mb-4" style={{ zIndex: 2 }}>
+          <div className="text-center">
+         
+            <h2 className="display-5 fw-bold mb-3" style={{ letterSpacing: '-1px', color: '#0F172A' }}>
+              Conectamos a Cadeia de Suprimentos de Moçambique
+            </h2>
+            <p className="lead mx-auto mb-0" style={{ maxWidth: '800px', color: '#475569' }}>
+              Do escoamento agrícola nas machambas rurais ao transporte de contentores no porto e fretes pesados interprovinciais com frotas de Freightliners.
             </p>
-            
-            {/* Barra de Pesquisa Avançada */}
-            <div className="bg-white p-2 rounded-pill-custom shadow-sm border d-flex align-items-center mb-4">
-              <FontAwesomeIcon icon={faSearch} className="text-muted ms-3 me-2" />
-              <input 
-                type="text" 
-                className="form-control border-0 shadow-none bg-transparent fs-6" 
-                placeholder="Pesquisar por produto (ex: Cîroc, Whisky, Coca-Cola)..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button 
-                className="btn bg-primary-custom text-white rounded-pill-custom px-4 py-2 fw-bold"
-                onClick={() => searchQuery.trim() && navigate(`/shop/search?q=${encodeURIComponent(searchQuery)}`)}
-              >
-                Pesquisar
-              </button>
-            </div>
           </div>
         </div>
-      </section>
 
-      {/* 🚀 COMPRAR NOVAMENTE (Para Utilizadores Autenticados com Pedidos Anteriores) */}
-      {previousOrders.length > 0 && (
-        <section className="mb-5">
-          <div className="card border-0 shadow-sm rounded-4 p-4 bg-gradient-primary text-white" style={{ background: 'linear-gradient(135deg, #4338ca 0%, #312e81 100%)' }}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <span className="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold mb-1">
-                  <FontAwesomeIcon icon={faRedo} className="me-1 text-primary-custom" /> Recorrência
+        {/* CARROSSEL PONTA A PONTA (EDGE-TO-EDGE FULL WIDTH) */}
+        <div
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          style={{
+            position: 'relative',
+            width: '100%',
+            overflow: 'hidden',
+            backgroundColor: '#1E293B'
+          }}
+        >
+          {/* CONTAINER DO SLIDE ATUAL - FULL WIDTH */}
+          <div style={{ position: 'relative', minHeight: '440px', display: 'flex', alignItems: 'center', width: '100%' }}>
+            {/* IMAGEM DE FUNDO DO SLIDE ATUAL (PONTA A PONTA) */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url(${logisticsSlides[carouselIndex].image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                transition: 'all 0.6s ease-in-out',
+                filter: 'brightness(0.42)',
+                width: '100%'
+              }}
+            />
+
+            {/* CONTEÚDO DO SLIDE CENTRALIZADO */}
+            <div className="container p-4 p-md-5 position-relative" style={{ zIndex: 3 }}>
+              <div style={{ maxWidth: '850px' }}>
+                <span
+                  className="badge px-3 py-2 rounded-pill fw-bold mb-3 shadow"
+                  style={{ backgroundColor: logisticsSlides[carouselIndex].tagBg, color: '#FFFFFF', fontSize: '12px' }}
+                >
+                  {logisticsSlides[carouselIndex].tag}
                 </span>
-                <h4 className="fw-black m-0 text-white">Comprar Novamente</h4>
-                <small className="text-white-50">Comprou estes produtos nos seus últimos pedidos</small>
+
+                <h3 className="display-6 fw-extrabold text-white mb-2" style={{ letterSpacing: '-0.5px' }}>
+                  {logisticsSlides[carouselIndex].title}
+                </h3>
+
+                <p className="lead text-slate-200 mb-4" style={{ color: '#E2E8F0', fontSize: '1.05rem', lineHeight: '1.5', maxWidth: '750px' }}>
+                  {logisticsSlides[carouselIndex].subtitle}
+                </p>
+
+                <div className="d-flex flex-wrap gap-3 align-items-center">
+                  
+                  <span className="badge px-3 py-2 rounded-pill fw-semibold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(6px)', color: '#FFFFFF' }}>
+                    <FontAwesomeIcon icon={faTruck} className="me-2" /> {logisticsSlides[carouselIndex].highlight}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="row g-3">
-              {previousOrders.slice(0, 3).map((order) => (
-                <div key={order._id} className="col-md-4">
-                  <div className="bg-white text-dark rounded-3 p-3 h-100 d-flex flex-column shadow-sm">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <span className="fw-bold text-truncate small" style={{ maxWidth: '150px' }}>
-                        Pedido #{String(order.code || order._id).slice(-6)}
-                      </span>
-                      <small className="text-muted">{new Date(order.createdAt).toLocaleDateString('pt-PT')}</small>
-                    </div>
-                    <div className="small text-muted mb-3 flex-grow-1">
-                      {order.orderItems?.map(i => i.name).join(', ') || 'Produtos Variados'}
-                    </div>
-                    <div className="d-flex justify-content-between align-items-center pt-2 border-top">
-                      <span className="fw-bold text-primary-custom">{Number(order.totalPrice || 0).toLocaleString('pt-PT')} MT</span>
-                      <button 
-                        className="btn btn-outline-primary btn-sm rounded-pill fw-bold"
-                        onClick={() => handleReorderAll(order)}
-                      >
-                        <FontAwesomeIcon icon={faRedo} className="me-1" /> Reordenar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            {/* BOTÃO ANTERIOR */}
+            <button
+              type="button"
+              onClick={() => setCarouselIndex((prev) => (prev - 1 + logisticsSlides.length) % logisticsSlides.length)}
+              style={{
+                position: 'absolute',
+                left: '20px',
+                zIndex: 4,
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+
+            {/* BOTÃO SEGUINTE */}
+            <button
+              type="button"
+              onClick={() => setCarouselIndex((prev) => (prev + 1) % logisticsSlides.length)}
+              style={{
+                position: 'absolute',
+                right: '20px',
+                zIndex: 4,
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          </div>
+
+          {/* BARRA DE BULLETS DO CARROSSEL (PONTA A PONTA) */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              padding: '14px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              flexWrap: 'wrap',
+              borderTop: '1px solid #E2E8F0',
+              width: '100%'
+            }}
+          >
+            {logisticsSlides.map((slide, idx) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setCarouselIndex(idx)}
+                style={{
+                  backgroundColor: idx === carouselIndex ? slide.tagBg : '#F1F5F9',
+                  color: idx === carouselIndex ? '#FFFFFF' : '#475569',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '7px 18px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: idx === carouselIndex ? '#FFFFFF' : '#94A3B8' }} />
+                {slide.tag}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="container">
+        {/* SECÇÃO HERO & PESQUISA INTELIGENTE */}
+        <section className="py-4 my-md-3">
+          <div className="row align-items-center">
+            <div className="col-lg-8 col-xl-7">
+            
+              <h1 className="fw-black mb-3 text-black" style={{ fontSize: '3.5rem', lineHeight: '1.1', letterSpacing: '-2px' }}>
+                Tudo o que precisa, entregue à <i className="text-primary-custom" style={{ fontFamily: 'serif' }}>distância</i> de um clique.
+              </h1>
+              <p className="lead text-muted mb-4 pe-lg-5" style={{ fontSize: '1.15rem' }}>
+                Compre produtos de dezenas de lojas parceiras, acompanhe entregas em tempo real e receba onde estiver.
+              </p>
+              
+              {/* Barra de Pesquisa Avançada */}
+              <div className="bg-white p-2 rounded-pill-custom shadow-sm border d-flex align-items-center mb-4">
+                <FontAwesomeIcon icon={faSearch} className="text-muted ms-3 me-2" />
+                <input 
+                  type="text" 
+                  className="form-control border-0 shadow-none bg-transparent fs-6" 
+                  placeholder="Pesquisar por produto (ex: Cîroc, Whisky, Coca-Cola)..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button 
+                  className="btn bg-primary-custom text-white rounded-pill-custom px-4 py-2 fw-bold"
+                  onClick={() => searchQuery.trim() && navigate(`/shop/search?q=${encodeURIComponent(searchQuery)}`)}
+                >
+                  Pesquisar
+                </button>
+              </div>
             </div>
           </div>
         </section>
-      )}
 
-      {/* 🏷️ CATEGORIAS POPULARES */}
-      <section className="mb-5">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h4 className="fw-bold text-dark m-0 d-flex align-items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="text-primary-custom" /> Categorias Populares
-          </h4>
-          <span className="text-muted small fw-bold">{categories.length} categorias</span>
-        </div>
+        {/* 🚀 COMPRAR NOVAMENTE (Para Utilizadores Autenticados com Pedidos Anteriores) */}
+        {previousOrders.length > 0 && (
+          <section className="mb-5">
+            <div className="card border-0 shadow-sm rounded-4 p-4 bg-gradient-primary text-white" style={{ background: 'linear-gradient(135deg, #4338ca 0%, #312e81 100%)' }}>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <span className="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold mb-1">
+                    <FontAwesomeIcon icon={faRedo} className="me-1 text-primary-custom" /> Recorrência
+                  </span>
+                  <h4 className="fw-black m-0 text-white">Comprar Novamente</h4>
+                  <small className="text-white-50">Comprou estes produtos nos seus últimos pedidos</small>
+                </div>
+              </div>
 
-        <div className="d-flex flex-wrap gap-2 pb-2">
-          <button
-            className={`btn rounded-pill px-4 py-2 fw-bold text-nowrap transition-all ${
-              selectedCategory === 'ALL'
-                ? 'bg-black text-white shadow-sm'
-                : 'bg-light text-dark border hover-bg-cream'
-            }`}
-            onClick={() => setSelectedCategory('ALL')}
-          >
-            Todas as Categorias
-          </button>
+              <div className="row g-3">
+                {previousOrders.slice(0, 3).map((order) => (
+                  <div key={order._id} className="col-md-4">
+                    <div className="bg-white text-dark rounded-3 p-3 h-100 d-flex flex-column shadow-sm">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="fw-bold text-truncate small" style={{ maxWidth: '150px' }}>
+                          Pedido #{String(order.code || order._id).slice(-6)}
+                        </span>
+                        <small className="text-muted">{new Date(order.createdAt).toLocaleDateString('pt-PT')}</small>
+                      </div>
+                      <div className="small text-muted mb-3 flex-grow-1">
+                        {order.orderItems?.map(i => i.name).join(', ') || 'Produtos Variados'}
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <span className="fw-bold text-primary-custom">{Number(order.totalPrice || 0).toLocaleString('pt-PT')} MT</span>
+                        <button 
+                          className="btn btn-outline-primary btn-sm rounded-pill fw-bold"
+                          onClick={() => handleReorderAll(order)}
+                        >
+                          <FontAwesomeIcon icon={faRedo} className="me-1" /> Reordenar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
-          {categories.map((cat) => (
+        {/* 🏷️ CATEGORIAS POPULARES */}
+        <section className="mb-5">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h4 className="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+              <FontAwesomeIcon icon={faFilter} className="text-primary-custom" /> Categorias Populares
+            </h4>
+            <span className="text-muted small fw-bold">{categories.length} categorias</span>
+          </div>
+
+          <div className="d-flex flex-wrap gap-2 pb-2">
             <button
-              key={cat._id}
-              className={`btn rounded-pill px-4 py-2 fw-bold text-nowrap d-flex align-items-center gap-2 transition-all ${
-                selectedCategory === cat._id || selectedCategory === cat.name
-                  ? 'bg-primary-custom text-white shadow-sm'
-                  : 'bg-white text-dark border hover-bg-light'
+              className={`btn rounded-pill px-4 py-2 fw-bold text-nowrap transition-all ${
+                selectedCategory === 'ALL'
+                  ? 'bg-black text-white shadow-sm'
+                  : 'bg-light text-dark border hover-bg-cream'
               }`}
-              onClick={() => setSelectedCategory(cat._id)}
+              onClick={() => setSelectedCategory('ALL')}
             >
-              <span>{cat.icon}</span>
-              <span>{cat.name}</span>
+              Todas as Categorias
             </button>
-          ))}
-        </div>
-      </section>
+
+            {categories.map((cat) => (
+              <button
+                key={cat._id}
+                className={`btn rounded-pill px-4 py-2 fw-bold text-nowrap d-flex align-items-center gap-2 transition-all ${
+                  selectedCategory === cat._id || selectedCategory === cat.name
+                    ? 'bg-primary-custom text-white shadow-sm'
+                    : 'bg-white text-dark border hover-bg-light'
+                }`}
+                onClick={() => setSelectedCategory(cat._id)}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
       {/* 🔥 OFERTAS DO DIA */}
       {dailyDeals.length > 0 && (
@@ -484,6 +692,7 @@ export default function HomeScreen() {
         )}
       </section>
 
+      </div>
     </div>
   );
 }

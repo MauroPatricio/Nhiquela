@@ -4,11 +4,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBox, faHeart, faMapMarkerAlt, faCreditCard, faBell, faTicketAlt,
   faStar, faUser, faCog, faRedo, faSignOutAlt, faCheckCircle, faClock,
-  faSpinner, faTruck, faChevronRight, faSearch, faPlus, faEye, faMobileAlt, faShoppingCart
+  faSpinner, faTruck, faChevronRight, faSearch, faPlus, faEye, faMobileAlt,
+  faShoppingCart, faSave, faLock, faPhone, faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectUser, logout } from '../store/features/userSlice';
+import { selectUser, logout, setUserLogin } from '../store/features/userSlice';
 import { addToBasket } from '../store/features/basketSlice';
 import api from '../api';
 
@@ -21,6 +22,23 @@ export default function CustomerPortalScreen() {
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Estados de edição do Perfil do Cliente
+  const [profileName, setProfileName] = useState(userInfo?.name || '');
+  const [profilePhone, setProfilePhone] = useState(userInfo?.phoneNumber || '');
+  const [profileEmail, setProfileEmail] = useState(userInfo?.email || '');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Sincroniza campos do formulário quando userInfo é carregado/atualizado
+  useEffect(() => {
+    if (userInfo) {
+      setProfileName(userInfo.name || '');
+      setProfilePhone(userInfo.phoneNumber || '');
+      setProfileEmail(userInfo.email || '');
+    }
+  }, [userInfo]);
 
   // Enforce Login
   useEffect(() => {
@@ -76,6 +94,51 @@ export default function CustomerPortalScreen() {
     navigate('/shop/cart');
   };
 
+  // Atualizar dados de Perfil do Cliente (mesmos campos do App Mobile)
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      toast.warn('O nome completo é obrigatório.');
+      return;
+    }
+    if (profilePassword && profilePassword !== profileConfirmPassword) {
+      toast.error('As palavras-passes não coincidem.');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${userInfo.token}` }
+      };
+
+      const payload = {
+        name: profileName,
+        phoneNumber: profilePhone,
+        email: profileEmail,
+        ...(profilePassword ? { password: profilePassword } : {})
+      };
+
+      const { data } = await api.put('/users/profile', payload, config);
+
+      const updatedUser = {
+        ...userInfo,
+        ...data,
+        token: data.token || userInfo.token
+      };
+
+      dispatch(setUserLogin(updatedUser));
+      toast.success('Perfil atualizado com sucesso!');
+      setProfilePassword('');
+      setProfileConfirmPassword('');
+    } catch (err) {
+      console.error('Erro ao atualizar perfil:', err);
+      toast.error(err.response?.data?.message || 'Erro ao guardar as alterações.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (!userInfo) return null;
 
   return (
@@ -84,7 +147,7 @@ export default function CustomerPortalScreen() {
       <div className="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
         <div className="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
           <div className="d-flex align-items-center gap-3">
-            <div className="rounded-circle bg-primary-custom text-white fw-bold d-flex justify-content-center align-items-center fs-3 shadow-sm" style={{ width: '65px', height: '65px' }}>
+            <div className="rounded-circle text-white fw-bold d-flex justify-content-center align-items-center fs-3 shadow-sm" style={{ width: '65px', height: '65px', backgroundColor: '#7F00FF' }}>
               {userInfo.name ? userInfo.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
@@ -105,37 +168,43 @@ export default function CustomerPortalScreen() {
           <div className="card border-0 shadow-sm rounded-4 p-3 bg-white sticky-top" style={{ top: '20px' }}>
             <div className="nav flex-column nav-pills gap-2">
               <button 
-                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'orders' ? 'bg-primary-custom text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'orders' ? 'text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                style={activeTab === 'orders' ? { backgroundColor: '#7F00FF' } : {}}
                 onClick={() => setActiveTab('orders')}
               >
                 Meus Pedidos ({orders.length})
               </button>
               <button 
-                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'favorites' ? 'bg-primary-custom text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'favorites' ? 'text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                style={activeTab === 'favorites' ? { backgroundColor: '#7F00FF' } : {}}
                 onClick={() => setActiveTab('favorites')}
               >
                 Favoritos
               </button>
               <button 
-                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'addresses' ? 'bg-primary-custom text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'addresses' ? 'text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                style={activeTab === 'addresses' ? { backgroundColor: '#7F00FF' } : {}}
                 onClick={() => setActiveTab('addresses')}
               >
                 Endereços
               </button>
               <button 
-                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'payments' ? 'bg-primary-custom text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'payments' ? 'text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                style={activeTab === 'payments' ? { backgroundColor: '#7F00FF' } : {}}
                 onClick={() => setActiveTab('payments')}
               >
                 Pagamentos
               </button>
               <button 
-                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'coupons' ? 'bg-primary-custom text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'coupons' ? 'text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                style={activeTab === 'coupons' ? { backgroundColor: '#7F00FF' } : {}}
                 onClick={() => setActiveTab('coupons')}
               >
                 Cupons
               </button>
               <button 
-                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'profile' ? 'bg-primary-custom text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                className={`nav-link text-start rounded-3 fw-bold p-3 transition-all ${activeTab === 'profile' ? 'text-white shadow-sm' : 'text-dark hover-bg-light'}`}
+                style={activeTab === 'profile' ? { backgroundColor: '#7F00FF' } : {}}
                 onClick={() => setActiveTab('profile')}
               >
                 Perfil & Conta
@@ -152,13 +221,13 @@ export default function CustomerPortalScreen() {
 
               {loadingOrders ? (
                 <div className="text-center py-5 text-muted">
-                  <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary-custom mb-3" />
+                  <FontAwesomeIcon icon={faSpinner} spin size="2x" style={{ color: '#7F00FF' }} className="mb-3" />
                   <div>A carregar o seu histórico de pedidos...</div>
                 </div>
               ) : orders.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <h5>Ainda não efetuou nenhum pedido.</h5>
-                  <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 mt-3 fw-bold">
+                  <Link to="/shop" className="btn text-white rounded-pill px-4 mt-3 fw-bold" style={{ backgroundColor: '#7F00FF' }}>
                     Fazer a Primeira Compra
                   </Link>
                 </div>
@@ -192,11 +261,11 @@ export default function CustomerPortalScreen() {
                         ))}
                       </div>
 
-                      {/* Footer do Pedido com Botão Ver Detalhes (Olho) e Comprar Novamente */}
+                      {/* Footer do Pedido */}
                       <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pt-2 gap-2">
                         <div>
                           <span className="text-muted small me-2">Total Pago:</span>
-                          <span className="fw-black text-primary-custom fs-5">{Number(order.totalPrice || 0).toLocaleString('pt-PT')} MT</span>
+                          <span className="fw-black fs-5" style={{ color: '#7F00FF' }}>{Number(order.totalPrice || 0).toLocaleString('pt-PT')} MT</span>
                         </div>
 
                         <div className="d-flex gap-2">
@@ -208,7 +277,8 @@ export default function CustomerPortalScreen() {
                             <FontAwesomeIcon icon={faEye} /> Ver Detalhes
                           </button>
                           <button 
-                            className="btn btn-outline-primary rounded-pill btn-sm fw-bold px-3 d-flex align-items-center gap-1 shadow-sm"
+                            className="btn rounded-pill btn-sm fw-bold px-3 d-flex align-items-center gap-1 shadow-sm text-white"
+                            style={{ backgroundColor: '#7F00FF' }}
                             onClick={() => handleReorder(order)}
                           >
                             <FontAwesomeIcon icon={faRedo} /> Comprar Novamente
@@ -235,7 +305,7 @@ export default function CustomerPortalScreen() {
             <div className="card border-0 shadow-sm rounded-4 p-4 bg-white">
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4 className="fw-black text-dark m-0">Meus Endereços</h4>
-                <button className="btn btn-primary bg-primary-custom rounded-pill btn-sm fw-bold px-3">
+                <button className="btn text-white rounded-pill btn-sm fw-bold px-3" style={{ backgroundColor: '#7F00FF' }}>
                   <FontAwesomeIcon icon={faPlus} className="me-1" /> Adicionar Novo
                 </button>
               </div>
@@ -282,32 +352,111 @@ export default function CustomerPortalScreen() {
             </div>
           )}
 
+          {/* TAB PERFIL & CONFIGURAÇÕES (INTERATIVO COM BACKEND & REDUX) */}
           {activeTab === 'profile' && (
             <div className="card border-0 shadow-sm rounded-4 p-4 bg-white">
               <h4 className="fw-black text-dark mb-4">Perfil & Configurações</h4>
-              <form onSubmit={(e) => e.preventDefault()}>
+
+              <form onSubmit={handleSaveProfile}>
                 <div className="row g-3 mb-3">
                   <div className="col-md-6">
                     <label className="form-label small fw-bold text-muted">Nome Completo</label>
-                    <input type="text" className="form-control" defaultValue={userInfo.name} readOnly />
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0"><FontAwesomeIcon icon={faUser} className="text-muted" /></span>
+                      <input 
+                        type="text" 
+                        className="form-control border-start-0 bg-light" 
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        required
+                        placeholder="Insira o seu nome"
+                      />
+                    </div>
                   </div>
+
                   <div className="col-md-6">
                     <label className="form-label small fw-bold text-muted">Telemóvel</label>
-                    <input type="text" className="form-control" defaultValue={userInfo.phoneNumber} readOnly />
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0"><FontAwesomeIcon icon={faPhone} className="text-muted" /></span>
+                      <input 
+                        type="tel" 
+                        className="form-control border-start-0 bg-light" 
+                        value={profilePhone}
+                        onChange={(e) => setProfilePhone(e.target.value)}
+                        placeholder="Ex: 840575992"
+                      />
+                    </div>
                   </div>
+
                   <div className="col-md-12">
                     <label className="form-label small fw-bold text-muted">E-mail</label>
-                    <input type="email" className="form-control" defaultValue={userInfo.email} readOnly />
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0"><FontAwesomeIcon icon={faEnvelope} className="text-muted" /></span>
+                      <input 
+                        type="email" 
+                        className="form-control border-start-0 bg-light" 
+                        value={profileEmail}
+                        onChange={(e) => setProfileEmail(e.target.value)}
+                        required
+                        placeholder="teste2@gmail.com"
+                      />
+                    </div>
                   </div>
                 </div>
-                <button className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold">Guardar Alterações</button>
+
+                <h6 className="fw-bold text-dark mt-4 mb-3">
+                  <FontAwesomeIcon icon={faLock} className="text-muted me-2" /> Alterar Palavra-Passe (Opcional)
+                </h6>
+
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold text-muted">Nova Palavra-Passe</label>
+                    <input 
+                      type="password" 
+                      className="form-control bg-light"
+                      placeholder="Mínimo 6 caracteres"
+                      value={profilePassword}
+                      onChange={(e) => setProfilePassword(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold text-muted">Confirmar Palavra-Passe</label>
+                    <input 
+                      type="password" 
+                      className="form-control bg-light"
+                      placeholder="Repita a palavra-passe"
+                      value={profileConfirmPassword}
+                      onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={savingProfile}
+                  className="btn text-white rounded-pill px-4 py-2.5 fw-bold shadow-sm"
+                  style={{ backgroundColor: '#7F00FF' }}
+                >
+                  {savingProfile ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
+                      A guardar alterações...
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faSave} className="me-2" />
+                      Guardar Alterações
+                    </>
+                  )}
+                </button>
               </form>
             </div>
           )}
         </div>
       </div>
 
-      {/* MODAL DE DETALHES DO PEDIDO (AO CLICAR NO OLHO) */}
+      {/* MODAL DE DETALHES DO PEDIDO */}
       {selectedOrder && (
         <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1055 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">
@@ -316,7 +465,7 @@ export default function CustomerPortalScreen() {
               <div className="modal-header bg-white border-bottom p-4">
                 <div>
                   <h5 className="modal-title fw-black text-dark m-0">
-                    <FontAwesomeIcon icon={faEye} className="text-primary-custom me-2" />
+                    <FontAwesomeIcon icon={faEye} className="me-2" style={{ color: '#7F00FF' }} />
                     Detalhes do Pedido #{selectedOrder.code || String(selectedOrder._id).slice(-6)}
                   </h5>
                   <small className="text-muted">Realizado em {new Date(selectedOrder.createdAt).toLocaleString('pt-PT')}</small>
@@ -326,7 +475,6 @@ export default function CustomerPortalScreen() {
 
               {/* Corpo do Modal */}
               <div className="modal-body p-4 bg-light" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-                {/* Badge de Estado */}
                 <div className="d-flex align-items-center justify-content-between bg-white p-3 rounded-4 border mb-3 shadow-sm">
                   <span className="fw-bold text-dark">Estado Atual:</span>
                   <span className={`badge rounded-pill px-3 py-2 fw-bold ${selectedOrder.isDelivered ? 'bg-success' : 'bg-warning text-dark'}`}>
@@ -334,20 +482,18 @@ export default function CustomerPortalScreen() {
                   </span>
                 </div>
 
-                {/* Banner App Mobile Rastreamento */}
                 <div className="alert border-0 rounded-4 p-3 mb-3 shadow-sm" style={{ backgroundColor: '#F3E8FF', borderLeft: '4px solid #7F00FF' }}>
                   <div className="d-flex align-items-center gap-3">
-                    <FontAwesomeIcon icon={faMobileAlt} className="text-primary-custom fs-3 flex-shrink-0" />
+                    <FontAwesomeIcon icon={faMobileAlt} style={{ color: '#7F00FF' }} className="fs-3 flex-shrink-0" />
                     <small className="text-dark" style={{ lineHeight: '1.4' }}>
                       📱 O acompanhamento em tempo real (preparação, motorista e localização no mapa) está disponível no app <strong>Nhiquela</strong> na <strong>Play Store</strong>.
                     </small>
                   </div>
                 </div>
 
-                {/* Lista de Produtos do Pedido */}
                 <div className="bg-white p-3 rounded-4 border mb-3 shadow-sm">
                   <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
-                    <FontAwesomeIcon icon={faShoppingCart} className="me-2 text-primary-custom" />
+                    <FontAwesomeIcon icon={faShoppingCart} className="me-2" style={{ color: '#7F00FF' }} />
                     Produtos ({selectedOrder.orderItems?.length || 0})
                   </h6>
                   <div className="d-flex flex-column gap-2">
@@ -366,10 +512,9 @@ export default function CustomerPortalScreen() {
                   </div>
                 </div>
 
-                {/* Dados de Entrega & Pagamento */}
                 <div className="bg-white p-3 rounded-4 border shadow-sm">
                   <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
-                    <FontAwesomeIcon icon={faTruck} className="me-2 text-primary-custom" />
+                    <FontAwesomeIcon icon={faTruck} className="me-2" style={{ color: '#7F00FF' }} />
                     Entrega & Pagamento
                   </h6>
                   <div className="row g-2 small text-muted">
@@ -384,7 +529,7 @@ export default function CustomerPortalScreen() {
                   </div>
                   <div className="border-top mt-3 pt-3 d-flex justify-content-between align-items-center">
                     <span className="fw-bold text-dark">Total Pago:</span>
-                    <span className="fw-black text-primary-custom fs-4">{Number(selectedOrder.totalPrice || 0).toLocaleString('pt-PT')} MT</span>
+                    <span className="fw-black fs-4" style={{ color: '#7F00FF' }}>{Number(selectedOrder.totalPrice || 0).toLocaleString('pt-PT')} MT</span>
                   </div>
                 </div>
               </div>
@@ -394,7 +539,7 @@ export default function CustomerPortalScreen() {
                 <button className="btn btn-outline-secondary rounded-pill px-4 fw-bold btn-sm" onClick={() => setSelectedOrder(null)}>
                   Fechar
                 </button>
-                <button className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold btn-sm shadow-sm" onClick={() => { setSelectedOrder(null); handleReorder(selectedOrder); }}>
+                <button className="btn text-white rounded-pill px-4 fw-bold btn-sm shadow-sm" style={{ backgroundColor: '#7F00FF' }} onClick={() => { setSelectedOrder(null); handleReorder(selectedOrder); }}>
                   <FontAwesomeIcon icon={faRedo} className="me-1" /> Comprar Novamente
                 </button>
               </div>

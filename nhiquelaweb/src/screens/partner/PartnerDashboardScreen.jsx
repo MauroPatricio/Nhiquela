@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { selectUser } from '../../store/features/userSlice';
 import api from '../../api';
 import jsPDF from 'jspdf';
@@ -30,6 +30,7 @@ const fmtMT = (v) => `${Number(v || 0).toLocaleString('pt-PT', { minimumFraction
 
 export default function PartnerDashboardScreen() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isReportsView = location.pathname.includes('/reports');
   const userInfo  = useSelector(selectUser) || {};
   const partnerId = userInfo.partnerId || userInfo._id;
@@ -400,12 +401,12 @@ export default function PartnerDashboardScreen() {
                     <thead className="table-light">
                       <tr>
                         <th>Ref.</th><th>Cliente</th><th>Motorista</th><th>Origem</th><th>Destino</th>
-                        <th>Paragens</th><th>Preco</th><th>Estado</th><th>Data</th>
+                        <th>Paragens</th><th>Preco</th><th>Estado</th><th>Data</th><th>Ação</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filtered(recentTrips).length === 0
-                        ? <tr><td colSpan={9} className="text-center py-4 text-muted">Nenhuma viagem encontrada.</td></tr>
+                        ? <tr><td colSpan={10} className="text-center py-4 text-muted">Nenhuma viagem encontrada.</td></tr>
                         : filtered(recentTrips).map((t, i) => (
                           <tr key={t._id || i}>
                             <td><span className="badge bg-light text-dark border">{t.code || t._id?.slice(-6) || '-'}</span></td>
@@ -421,6 +422,15 @@ export default function PartnerDashboardScreen() {
                             <td className="fw-bold text-success small">{fmtMT(t.deliveryPrice || t.finalAgreedPrice || t.addressPrice)}</td>
                             <td>{statusBadge(t.status)}</td>
                             <td className="small text-muted">{fmtDate(t.createdAt)}</td>
+                            <td>
+                              <button
+                                onClick={() => navigate(`/partner/orders/${t._id || 'NQ-2026-00851'}`)}
+                                className="btn btn-sm text-white rounded-3 fw-bold px-2 py-1"
+                                style={{ backgroundColor: '#7F00FF', fontSize: '11px' }}
+                              >
+                                Rastrear
+                              </button>
+                            </td>
                           </tr>
                         ))}
                     </tbody>

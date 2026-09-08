@@ -4,7 +4,7 @@ import asyncHandler from 'express-async-handler';
 // GET /api/provider-subcategories
 export const list = asyncHandler(async (req, res) => {
   try {
-    const subcategories = await ProviderSubcategory.find()
+    let subcategories = await ProviderSubcategory.find()
       .populate({
         path: 'providerTypeId',
         select: 'name classificationId description',
@@ -12,6 +12,25 @@ export const list = asyncHandler(async (req, res) => {
       })
       .populate('vehicleTypes')
       .sort({ order: 1 });
+
+    const requestedType = req.query.type ? String(req.query.type).toUpperCase() : null;
+    if (requestedType) {
+      subcategories = subcategories.filter(sub => {
+        const clsName = (sub.providerTypeId?.classificationId?.name || '').toUpperCase();
+        const ptName = (sub.providerTypeId?.name || '').toUpperCase();
+        const subName = (sub.name || '').toUpperCase();
+
+        const isBusinessStore = ptName.includes('SUPERMERCADO') || ptName.includes('FARMÁCIA') || ptName.includes('BOTTLE') || subName.includes('MINIMERCADO') || clsName.includes('BUSINESS');
+
+        if (requestedType === 'SERVICE') {
+          return !isBusinessStore || clsName.includes('SERVICE');
+        } else if (requestedType === 'BUSINESS') {
+          return isBusinessStore || clsName.includes('BUSINESS');
+        }
+        return true;
+      });
+    }
+
     res.json(subcategories);
   } catch (error) {
     console.error('Error listing subcategories', error);

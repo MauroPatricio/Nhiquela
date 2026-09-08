@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faUsers, faMotorcycle, faFileDownload, faSignOutAlt, faBars, faTimes, faShieldAlt, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faUsers, faMotorcycle, faFileDownload, faSignOutAlt, faBars, faTimes, faShieldAlt, faArrowLeft, faUser } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectUser, setUserLogout } from '../../store/features/userSlice';
 
@@ -26,6 +26,7 @@ export default function PartnerLayout() {
     { name: 'Dashboard (KPIs)', path: '/partner/dashboard', icon: faChartLine },
     { name: 'Minha Frota', path: '/partner/members', icon: faUsers },
     { name: 'Exportar Relatórios', path: '/partner/reports', icon: faFileDownload },
+    { name: 'Meu Perfil', path: '/partner/profile', icon: faUser },
   ];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -65,14 +66,27 @@ export default function PartnerLayout() {
         </div>
         
         {/* Foto e Perfil do Parceiro */}
-        <div className="p-4 text-center border-bottom" style={{ background: 'linear-gradient(135deg, rgba(138,43,226,0.05) 0%, rgba(138,43,226,0.12) 100%)' }}>
-          <div className="text-white rounded-circle d-flex justify-content-center align-items-center mx-auto mb-2 shadow-sm" 
-               style={{ width: '60px', height: '60px', fontSize: '24px', backgroundColor: '#8a2be2' }}>
-            <FontAwesomeIcon icon={faShieldAlt} />
+        <NavLink 
+          to="/partner/profile" 
+          onClick={() => setSidebarOpen(false)}
+          className="p-4 text-center border-bottom text-decoration-none d-block cursor-pointer" 
+          style={{ background: 'linear-gradient(135deg, rgba(138,43,226,0.05) 0%, rgba(138,43,226,0.12) 100%)' }}
+        >
+          <div className="rounded-circle overflow-hidden d-flex justify-content-center align-items-center mx-auto mb-2 shadow-sm border border-2 border-purple" 
+               style={{ width: '60px', height: '60px', backgroundColor: '#8a2be2' }}>
+            {(userInfo.profileImage || userInfo.sellerLogo || userInfo.seller?.logo || userInfo.logo) ? (
+              <img 
+                src={userInfo.profileImage || userInfo.sellerLogo || userInfo.seller?.logo || userInfo.logo} 
+                alt={userInfo.name || 'Parceiro'} 
+                className="w-100 h-100 object-fit-cover" 
+              />
+            ) : (
+              <div className="text-white fs-4"><FontAwesomeIcon icon={faShieldAlt} /></div>
+            )}
           </div>
           <h6 className="fw-bold m-0 text-dark text-truncate">{userInfo.name || 'Gestor de Frota'}</h6>
-          <small className="badge mt-1" style={{ backgroundColor: '#8a2be2', color: '#fff' }}>Parceiro Oficial</small>
-        </div>
+          <small className="badge mt-1" style={{ backgroundColor: '#8a2be2', color: '#fff' }}>Parceiro Oficial 🛡️</small>
+        </NavLink>
 
         <nav className="nav flex-column flex-grow-1 p-3 gap-2">
           {menuItems.map((item, idx) => (

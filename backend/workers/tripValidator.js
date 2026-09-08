@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import cron from 'node-cron';
 import RequestService from '../models/RequestServiceModel.js';
 import User from '../models/UserModel.js';
@@ -6,9 +7,16 @@ import createNotification from '../utils/createNotification.js';
 export const startTripValidator = (io, users) => {
   console.log('🛡️ Trip Validator Started');
 
+  let isRunning = false;
+
   // Corre a cada 5 minutos
   cron.schedule('*/5 * * * *', async () => {
+    if (isRunning) return;
+    isRunning = true;
     try {
+      if (mongoose.connection.readyState !== 1) {
+        return;
+      }
       const now = new Date();
       // Validação a -30 minutos da viagem: Verifica se o motorista está online
       const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60000);
@@ -72,6 +80,8 @@ export const startTripValidator = (io, users) => {
 
     } catch (error) {
       console.error('Erro no Trip Validator:', error);
+    } finally {
+      isRunning = false;
     }
   });
 };
