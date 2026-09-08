@@ -572,23 +572,25 @@ userRouter.put(
         }
         user.name = req.body.name || user.name;
         user.email = req.body.email || user.email;
-        user.profileImage = req.body.profileImage || user.profileImage;
-        user.isSeller = req.body.isSeller;
+        if (req.body.phoneNumber !== undefined) user.phoneNumber = req.body.phoneNumber;
+        if (req.body.address !== undefined) user.address = req.body.address;
+        if (req.body.profileImage !== undefined) user.profileImage = req.body.profileImage;
+        if (req.body.isSeller !== undefined) user.isSeller = Boolean(req.body.isSeller);
         
         if (req.body.preferredPaymentMethod) {
             user.preferredPaymentMethod = req.body.preferredPaymentMethod;
         }
 
-        if (req.body.isSeller) {
+        if (user.isSeller) {
           const currentSeller = user.seller || {};
           user.seller = {
             name: req.body.sellerName || req.body.seller?.name || currentSeller.name || user.name,
             description: req.body.sellerDescription || req.body.seller?.description || currentSeller.description,
-            logo: req.body.sellerLogo || req.body.seller?.logo || currentSeller.logo,
+            logo: req.body.sellerLogo || req.body.profileImage || req.body.seller?.logo || currentSeller.logo,
             opentime: req.body.opentime || req.body.seller?.opentime || currentSeller.opentime,
             closetime: req.body.closetime || req.body.seller?.closetime || currentSeller.closetime,
             province: req.body.sellerLocation || req.body.seller?.province || currentSeller.province,
-            address: req.body.sellerAddress || req.body.seller?.address || currentSeller.address,
+            address: req.body.sellerAddress || req.body.seller?.address || currentSeller.address || user.address,
             phoneNumberAccount: req.body.phoneNumberAccount || req.body.seller?.phoneNumberAccount || currentSeller.phoneNumberAccount,
             alternativePhoneNumberAccount: req.body.alternativePhoneNumberAccount || req.body.seller?.alternativePhoneNumberAccount || currentSeller.alternativePhoneNumberAccount,
             bankAccount: req.body.bankAccount || req.body.seller?.bankAccount || currentSeller.bankAccount,
@@ -645,8 +647,8 @@ userRouter.put(
           } catch (e) {
             console.log('Erro ao sincronizar Provider: ', e);
           }
-        } else {
-          // Limpa os dados do seller se no for mais um vendedor
+        } else if (req.body.isSeller === false) {
+          // Limpa os dados do seller apenas se for explicitamente desativado
           user.seller = {
             name: "",
             description: "",
@@ -662,7 +664,7 @@ userRouter.put(
             alternativeAccountType: "",
             alternativeAccountNumber: "",
             workDayAndTime: [],
-            tipoEstabelecimento: null // Adicionado tipoEstabelecimento
+            tipoEstabelecimento: null
           };
         }
 
@@ -692,7 +694,13 @@ userRouter.put(
           _id: updatedUser._id,
           name: updatedUser.name,
           email: updatedUser.email,
+          phoneNumber: updatedUser.phoneNumber,
+          address: updatedUser.address,
           profileImage: updatedUser.profileImage,
+          sellerLogo: updatedUser.seller?.logo || updatedUser.profileImage,
+          role: updatedUser.role,
+          partnerId: updatedUser.partnerId,
+          isPartner: updatedUser.role === 'PARTNER' || Boolean(updatedUser.isPartner),
           isAdmin: updatedUser.isAdmin,
           isDeliveryMan: updatedUser.isDeliveryMan,
           isSeller: updatedUser.isSeller,

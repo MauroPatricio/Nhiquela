@@ -47,6 +47,7 @@ import ProvincesScreen from './screens/admin/ProvincesScreen';
 import PriceRequestsPanel from './screens/admin/PriceRequestsPanel';
 import DocRequestsPanel from './screens/admin/DocRequestsPanel';
 import VehicleTypesScreen from './screens/admin/VehicleTypesScreen';
+import CargoTypesScreen from './screens/admin/CargoTypesScreen';
 import VehicleColorsScreen from './screens/admin/VehicleColorsScreen';
 import PushNotificationsScreen from './screens/admin/PushNotificationsScreen';
 import UsersScreen from './screens/admin/UsersScreen';
@@ -57,6 +58,7 @@ import SupplierProductsScreen from './screens/supplier/SupplierProductsScreen';
 import SupplierProfileScreen from './screens/supplier/SupplierProfileScreen';
 import PartnerDashboardScreen from './screens/partner/PartnerDashboardScreen';
 import PartnerMembersScreen from './screens/partner/PartnerMembersScreen';
+import PartnerProfileScreen from './screens/partner/PartnerProfileScreen';
 import ProviderSubcategoriesScreen from './screens/admin/ProviderSubcategoriesScreen.jsx';
 import StatsScreen from './screens/admin/StatsScreen';
 import LiveMapScreen from './screens/admin/LiveMapScreen';
@@ -64,6 +66,8 @@ import AdminKYC from './screens/admin/AdminKYC';
 import AdminSupport from './screens/admin/AdminSupport';
 
 import MultiStopTripDetailScreen from './screens/admin/MultiStopTripDetailScreen';
+
+import CustomerServicesScreen from './screens/ServicesScreen';
 
 function App() {
   return (
@@ -76,6 +80,7 @@ function App() {
         <Route path="/terms" element={<TermsScreen />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
         <Route path="/return-policy" element={<ReturnPolicyScreen />} />
+        <Route path="/logistics" element={<MultiStopTripDetailScreen />} />
         {/* Redirecionar rotas antigas sem /shop para a rota correcta */}
         <Route path="/checkout" element={<Navigate to="/shop/checkout" replace />} />
         <Route path="/" element={<LandingPage />} />
@@ -83,6 +88,7 @@ function App() {
         {/* Rotas Públicas (Marketplace) */}
         <Route path="/shop" element={<PublicLayout />}>
           <Route index element={<HomeScreen />} />
+          <Route path="services" element={<CustomerServicesScreen />} />
           <Route path="search" element={<SearchScreen />} />
           <Route path="account" element={<CustomerPortalScreen />} />
           <Route path="orders" element={<CustomerPortalScreen />} />
@@ -111,6 +117,7 @@ function App() {
           <Route path="dashboard" element={<PartnerDashboardScreen />} />
           <Route path="members" element={<PartnerMembersScreen />} />
           <Route path="reports" element={<PartnerDashboardScreen />} />
+          <Route path="profile" element={<PartnerProfileScreen />} />
           <Route path="orders/:id" element={<MultiStopTripDetailScreen />} />
         </Route>
 
@@ -145,6 +152,7 @@ function App() {
           <Route path="cancellation-policies" element={<CancellationPoliciesScreen />} />
           <Route path="provinces" element={<ProvincesScreen />} />
           <Route path="vehicle-types" element={<VehicleTypesScreen />} />
+          <Route path="cargo-types" element={<CargoTypesScreen />} />
           <Route path="vehicle-colors" element={<VehicleColorsScreen />} />
           <Route path="push-notifications" element={<PushNotificationsScreen />} />
           <Route path="marketing" element={<MarketingScreen />} />

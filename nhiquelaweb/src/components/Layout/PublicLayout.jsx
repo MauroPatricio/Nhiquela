@@ -11,6 +11,8 @@ import { selectUser, setUserLogout } from '../../store/features/userSlice';
 import { selectTotalItems } from '../../store/features/basketSlice';
 import { toast } from 'react-toastify';
 
+import ChatbotWidget from '../ChatbotWidget';
+
 export default function PublicLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -51,10 +53,10 @@ export default function PublicLayout() {
               <nav className="d-none d-lg-flex gap-4">
                 <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Categorias</Link>
                 <Link to="/products" className="text-muted text-decoration-none fw-bold small">Produtos</Link>
-                <Link to="/shop" className="text-muted text-decoration-none fw-bold small">Serviços</Link>
-                <Link to="/signup?type=seller" className="text-primary-custom text-decoration-none fw-bold small">
-                  <FontAwesomeIcon icon={faStore} className="me-1" /> Vender na Nhiquela
+                <Link to="/shop/services" className="text-primary-custom text-decoration-none fw-bold small">
+                  Serviços
                 </Link>
+               
               </nav>
             </div>
             
@@ -127,7 +129,7 @@ export default function PublicLayout() {
                   </Link>
 
                   <Link to="/signup?type=seller" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold small shadow-sm">
-                    Criar Loja Fornecedor
+                    Tornar-se fornecedor
                   </Link>
                 </>
               )}
@@ -149,15 +151,8 @@ export default function PublicLayout() {
         <Outlet />
       </main>
       
-      {/* Botão Flutuante */}
-      <div className="position-fixed" style={{ bottom: '30px', right: '30px', zIndex: 1000 }}>
-        <button className="btn bg-primary-custom text-white rounded-circle shadow-lg d-flex justify-content-center align-items-center position-relative" style={{ width: '60px', height: '60px' }}>
-          <FontAwesomeIcon icon={faCommentAlt} size="lg" />
-          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style={{ fontSize: '10px' }}>
-            1
-          </span>
-        </button>
-      </div>
+      {/* Chatbot de Suporte Flutuante */}
+      <ChatbotWidget />
 
       {/* Footer Global Institucional */}
       <footer className="bg-white border-top mt-auto py-5">

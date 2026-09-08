@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import cron from 'node-cron';
 import RequestService from '../models/RequestServiceModel.js';
 import User from '../models/UserModel.js';
@@ -22,9 +23,16 @@ const getSearchWindowMinutes = (goodType) => {
 export const startSchedulingEngine = (io, users) => {
   console.log('🤖 Scheduling Engine Started');
 
+  let isRunning = false;
+
   // Corre a cada 1 minuto
   cron.schedule('* * * * *', async () => {
+    if (isRunning) return;
+    isRunning = true;
     try {
+      if (mongoose.connection.readyState !== 1) {
+        return;
+      }
       const now = new Date();
       
       // 1. Encontrar todos os pedidos AGENDADOS que ainda não têm `searchWindowStart`
@@ -70,6 +78,8 @@ export const startSchedulingEngine = (io, users) => {
 
     } catch (error) {
       console.error('Erro no Scheduling Engine:', error);
+    } finally {
+      isRunning = false;
     }
   });
 };

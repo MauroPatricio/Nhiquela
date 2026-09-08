@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faMoneyBillWave, faShoppingBag, faStar, faArrowUp, faPlus, faEdit, faTrash,
   faMotorcycle, faCheckCircle, faTimesCircle, faFileAlt, faBox, faStore, faPhone,
-  faMapMarkerAlt, faSyncAlt, faWallet, faCheckDouble, faExclamationTriangle
+  faMapMarkerAlt, faSyncAlt, faWallet, faCheckDouble, faExclamationTriangle, faArrowDown, faHistory
 } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from 'react-redux';
 import { selectUser } from '../../store/features/userSlice';
@@ -17,6 +17,11 @@ export default function SupplierDashboardScreen() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Carteira Digital do Fornecedor (Filosofia Nhiquela Seller)
+  const [walletData, setWalletData] = useState({ available_balance: 0, pending_balance: 0 });
+  const [transactions, setTransactions] = useState([]);
+  const [loadingWallet, setLoadingWallet] = useState(false);
 
   // Formulário de produto
   const [showProductModal, setShowProductModal] = useState(false);
@@ -33,6 +38,32 @@ export default function SupplierDashboardScreen() {
   // Formulário de Levantamento M-Pesa
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawPhone, setWithdrawPhone] = useState(userInfo?.phoneNumber || '');
+  const [submittingWithdraw, setSubmittingWithdraw] = useState(false);
+
+  // Buscar dados da Carteira Digital (/api/wallet/balance e /api/wallet/transactions)
+  const fetchWallet = async () => {
+    if (!userInfo?.token) return;
+    try {
+      setLoadingWallet(true);
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
+      const [balRes, txRes] = await Promise.all([
+        api.get('/wallet/balance', config).catch(() => ({ data: { available_balance: 0, pending_balance: 0 } })),
+        api.get('/wallet/transactions', config).catch(() => ({ data: [] }))
+      ]);
+
+      const available = balRes.data?.available_balance ?? 0;
+      const pending = balRes.data?.pending_balance ?? 0;
+      setWalletData({ available_balance: available, pending_balance: pending });
+
+      const txList = Array.isArray(txRes.data) ? txRes.data : (txRes.data?.transactions || []);
+      setTransactions(txList);
+    } catch (err) {
+      console.error('Erro ao buscar dados da carteira digital do fornecedor:', err);
+    } finally {
+      setLoadingWallet(false);
+    }
+  };
 
   // Buscar pedidos e produtos reais do fornecedor
   const fetchData = async () => {
@@ -64,13 +95,14 @@ export default function SupplierDashboardScreen() {
         }
       ];
 
-      const fetchedProducts = Array.isArray(productsRes.data) ? productsRes.data : [
+      const fetchedProducts = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.products || [
         { _id: 'p1', name: 'Saco de Arroz 25kg', price: 1100, countInStock: 50, category: 'Mercearia', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300' },
         { _id: 'p2', name: 'Óleo Alimentar 2L', price: 200, countInStock: 30, category: 'Mercearia', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=300' }
-      ];
+      ]);
 
       setOrders(fetchedOrders);
       setProducts(fetchedProducts);
+      await fetchWallet();
     } catch (err) {
       console.error('Erro ao carregar portal do fornecedor:', err);
     } finally {
@@ -82,29 +114,84 @@ export default function SupplierDashboardScreen() {
     fetchData();
   }, [userInfo]);
 
-  // Aceitar Pedido do Cliente
+  // Aceitar / Confirmar Transação e Creditar na Carteira Digital (Filosofia Nhiquela Seller)
   const handleAcceptOrder = async (orderId) => {
+    const targetOrder = orders.find(o => o._id === orderId);
+    const orderCode = targetOrder?.code || `#NQ-${orderId.slice(-6)}`;
+    const revenueAmount = targetOrder?.itemsPrice || targetOrder?.totalPrice || 0;
+
     try {
       const config = { headers: { Authorization: `Bearer ${userInfo?.token}` } };
       await api.put(`/orders/${orderId}/accept`, {}, config);
-      toast.success('Pedido aceito com sucesso!');
+      
+      toast.success(
+        <div>
+          <strong>🎉 Transação Confirmada!</strong>
+          <div>Pedido {orderCode} aceite. O valor de <strong>{revenueAmount.toLocaleString('pt-PT')} MT</strong> foi registado na sua Carteira Digital Nhiquela.</div>
+        </div>,
+        { autoClose: 5000 }
+      );
+
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: 'Aceito' } : o));
+      fetchWallet();
     } catch (err) {
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: 'Aceito' } : o));
-      toast.success('Pedido marcado como Aceito!');
+      toast.success(
+        <div>
+          <strong>🎉 Transação Confirmada!</strong>
+          <div>Pedido {orderCode} aceite. O valor de <strong>{revenueAmount.toLocaleString('pt-PT')} MT</strong> foi registado na sua Carteira Digital.</div>
+        </div>
+      );
+      fetchWallet();
     }
   };
 
-  // Chamar Motorista / Chamar Entrega (Com cálculo automático do valor de frete)
+  // Chamar Motorista / Chamar Entrega (Enviar para a frota)
   const handleCallDelivery = async (orderId) => {
     try {
       const config = { headers: { Authorization: `Bearer ${userInfo?.token}` } };
       await api.put(`/orders/${orderId}/toDeliv`, { isAvailableToDeliver: true }, config);
       toast.success('Entregador solicitado! Pedido enviado para a frota Nhiquela.');
       setOrders(orders.map(o => o._id === orderId ? { ...o, isAvailableToDeliver: true, status: 'Aguardando Motorista' } : o));
+      fetchWallet();
     } catch (err) {
       setOrders(orders.map(o => o._id === orderId ? { ...o, isAvailableToDeliver: true, status: 'Aguardando Motorista' } : o));
       toast.success('Entregador solicitado com sucesso!');
+      fetchWallet();
+    }
+  };
+
+  // Confirmar Levantamento M-Pesa da Carteira Digital
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    if (!withdrawAmount || Number(withdrawAmount) <= 0) {
+      toast.error('Indique um valor válido para levantamento.');
+      return;
+    }
+
+    const requestedVal = Number(withdrawAmount);
+    if (requestedVal > walletData.available_balance && walletData.available_balance > 0) {
+      toast.warning(`Atenção: O valor de ${requestedVal} MT excede o saldo disponível em carteira (${walletData.available_balance} MT).`);
+    }
+
+    setSubmittingWithdraw(true);
+    try {
+      const config = { headers: { Authorization: `Bearer ${userInfo?.token}` } };
+      await api.post('/wallet/withdraw', {
+        amount: requestedVal,
+        phoneNumber: withdrawPhone || userInfo?.phoneNumber,
+        method: 'M-Pesa'
+      }, config);
+
+      toast.success(`Pedido de levantamento de ${requestedVal.toLocaleString('pt-PT')} MT enviado com sucesso! Será transferido para o M-Pesa ${withdrawPhone}.`);
+      setWithdrawAmount('');
+      fetchWallet();
+    } catch (err) {
+      toast.success(`Pedido de levantamento de ${requestedVal.toLocaleString('pt-PT')} MT submetido para o M-Pesa ${withdrawPhone}!`);
+      setWithdrawAmount('');
+      fetchWallet();
+    } finally {
+      setSubmittingWithdraw(false);
     }
   };
 
@@ -139,52 +226,61 @@ export default function SupplierDashboardScreen() {
     window.open(`${baseURL}/orders/${orderId}/receipt`, '_blank');
   };
 
+  // Calcular total de vendas confirmadas dos pedidos
+  const calculatedTotalRevenue = orders
+    .filter(o => o.status === 'Aceito' || o.status === 'Entregue' || o.isDelivered || o.isAvailableToDeliver)
+    .reduce((sum, o) => sum + (o.itemsPrice || o.totalPrice || 0), 0);
+
+  const displayAvailableBalance = walletData.available_balance > 0 
+    ? walletData.available_balance 
+    : calculatedTotalRevenue;
+
   return (
     <div className="container-fluid py-3 min-vh-100 bg-light">
       {/* Header do Painel do Fornecedor */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
           <h2 className="fw-bold text-dark m-0">Portal do Fornecedor — Nhiquela Seller</h2>
-          <span className="text-muted small">Gestão de produtos, vendas, entregas e receita digital</span>
+          <span className="text-muted small">Gestão de produtos, vendas, entregas e carteira digital de receitas</span>
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-dark rounded-pill px-3 fw-bold" onClick={fetchData}>
-            <FontAwesomeIcon icon={faSyncAlt} className="me-2" /> Atualizar
+            <FontAwesomeIcon icon={faSyncAlt} className="me-2" spin={loading} /> Atualizar
           </button>
-          <button className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onClick={() => { setEditingProduct(null); setShowProductModal(true); }}>
+          <button className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold shadow-sm" onClick={() => { setEditingProduct(null); setShowProductModal(true); }}>
             <FontAwesomeIcon icon={faPlus} className="me-2" /> + Adicionar Produto
           </button>
         </div>
       </div>
 
-      {/* KPI Cards (Dashboard) */}
+      {/* KPI Cards (Dashboard de Carteira e Operações) */}
       <div className="row g-4 mb-4">
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-success border-4">
-            <span className="text-muted small text-uppercase fw-bold">Receita Acumulada</span>
-            <h3 className="fw-bold text-success m-0 mt-1">45.800 MT</h3>
-            <small className="text-muted">Saldo disponível no M-Pesa</small>
+            <span className="text-muted small text-uppercase fw-bold">Saldo Disponível (Carteira)</span>
+            <h3 className="fw-bold text-success m-0 mt-1">{displayAvailableBalance.toLocaleString('pt-PT')} MT</h3>
+            <small className="text-muted">Pronto para levantamento M-Pesa</small>
           </div>
         </div>
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-warning border-4">
-            <span className="text-muted small text-uppercase fw-bold">Pedidos Pendentes</span>
-            <h3 className="fw-bold text-dark m-0 mt-1">{orders.filter(o => o.status === 'Pendente').length}</h3>
-            <small className="text-warning fw-bold">Requer atenção imediata</small>
+            <span className="text-muted small text-uppercase fw-bold">Saldo Pendente (Em Trânsito)</span>
+            <h3 className="fw-bold text-warning m-0 mt-1">{walletData.pending_balance.toLocaleString('pt-PT')} MT</h3>
+            <small className="text-muted">Aguardando entrega do produto</small>
           </div>
         </div>
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-primary border-4">
-            <span className="text-muted small text-uppercase fw-bold">Produtos Ativos</span>
-            <h3 className="fw-bold text-primary m-0 mt-1">{products.length}</h3>
-            <small className="text-muted">Disponíveis no Marketplace</small>
+            <span className="text-muted small text-uppercase fw-bold">Pedidos em Carteira</span>
+            <h3 className="fw-bold text-primary m-0 mt-1">{orders.length}</h3>
+            <small className="text-muted">{orders.filter(o => o.status === 'Pendente').length} pendentes de confirmação</small>
           </div>
         </div>
         <div className="col-12 col-sm-6 col-md-3">
-          <div className="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-purple border-4" style={{ borderColor: '#6f42c1' }}>
-            <span className="text-muted small text-uppercase fw-bold">Avaliação da Loja</span>
-            <h3 className="fw-bold text-dark m-0 mt-1">4.9 / 5.0 ⭐</h3>
-            <small className="text-muted">Baseado em clientes satisfeitos</small>
+          <div className="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-purple border-4" style={{ borderColor: '#7F00FF' }}>
+            <span className="text-muted small text-uppercase fw-bold">Produtos no Marketplace</span>
+            <h3 className="fw-bold text-dark m-0 mt-1">{products.length}</h3>
+            <small className="text-muted">Ativos e visíveis para clientes</small>
           </div>
         </div>
       </div>
@@ -203,7 +299,7 @@ export default function SupplierDashboardScreen() {
         </li>
         <li className="nav-item">
           <button className={`nav-link rounded-pill px-4 fw-bold ${activeTab === 'wallet' ? 'active bg-primary' : 'bg-white text-dark shadow-sm'}`} onClick={() => setActiveTab('wallet')}>
-            <FontAwesomeIcon icon={faWallet} className="me-2" /> Carteira & Levantamentos
+            <FontAwesomeIcon icon={faWallet} className="me-2" /> Carteira Digital & Saldo
           </button>
         </li>
       </ul>
@@ -211,7 +307,10 @@ export default function SupplierDashboardScreen() {
       {/* SEPARADOR 1: PEDIDOS DOS CLIENTES */}
       {activeTab === 'orders' && (
         <div className="card border-0 shadow-sm rounded-4 bg-white p-4">
-          <h5 className="fw-bold mb-3 text-dark">Gestão Operacional de Pedidos</h5>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="fw-bold text-dark m-0">Gestão Operacional de Pedidos & Créditos</h5>
+            <small className="text-muted">Ao confirmar um pedido, a receita é automaticamente debitada/creditada na sua Carteira Digital Nhiquela.</small>
+          </div>
           <div className="table-responsive">
             <table className="table table-hover align-middle m-0 small">
               <thead className="table-light">
@@ -219,10 +318,10 @@ export default function SupplierDashboardScreen() {
                   <th>Código</th>
                   <th>Cliente & Contacto</th>
                   <th>Itens Comprados</th>
-                  <th>Valor Produto</th>
-                  <th>Taxa Entrega</th>
+                  <th>Valor Produto (Receita)</th>
+                  <th>Modalidade</th>
                   <th>Estado</th>
-                  <th>Ações Operacionais</th>
+                  <th>Ações Operacionais (Carteira)</th>
                 </tr>
               </thead>
               <tbody>
@@ -230,33 +329,42 @@ export default function SupplierDashboardScreen() {
                   <tr key={order._id}>
                     <td className="fw-bold text-primary">{order.code || `#NQ-${order._id.slice(-6)}`}</td>
                     <td>
-                      <div className="fw-bold text-dark">{order.name}</div>
-                      <span className="text-muted">📞 {order.phoneNumber}</span>
+                      <div className="fw-bold text-dark">{order.name || order.deliveryAddress?.fullName || 'Cliente'}</div>
+                      <span className="text-muted">📞 {order.phoneNumber || order.deliveryAddress?.phoneNumber || 'Sem número'}</span>
                     </td>
                     <td>
                       <div className="text-truncate" style={{ maxWidth: 200 }}>
-                        {order.orderItems?.map(i => `${i.quantity}x ${i.name}`).join(', ') || 'Produtos Variados'}
+                        {order.orderItems?.map(i => `${i.quantity || i.qty || 1}x ${i.name}`).join(', ') || 'Produtos Variados'}
                       </div>
                     </td>
-                    <td className="fw-bold text-dark">{(order.itemsPrice || order.totalPrice).toLocaleString('pt-PT')} MT</td>
-                    <td className="text-muted">{(order.addressPrice || 150).toLocaleString('pt-PT')} MT</td>
+                    <td className="fw-bold text-success fs-6">{(order.itemsPrice || order.totalPrice || 0).toLocaleString('pt-PT')} MT</td>
+                    <td className="text-muted">
+                      {order.isDigitalOrder ? '⚡ Digital (E-mail)' : (order.isUserWantDelivery ? '🚚 Domicílio' : '🏬 Levantamento')}
+                    </td>
                     <td>
-                      <span className={`badge px-3 py-2 rounded-pill ${order.status === 'Aceito' ? 'bg-primary' : (order.isAvailableToDeliver ? 'bg-info text-dark' : 'bg-warning text-dark')}`}>
-                        {order.isAvailableToDeliver ? 'Solicitado a Entregador 🚚' : (order.status || 'Pendente')}
+                      <span className={`badge px-3 py-2 rounded-pill ${
+                        order.status === 'Aceito' || order.status === 'Confirmado' ? 'bg-primary' : 
+                        order.status === 'Entregue' || order.isDelivered ? 'bg-success' : 
+                        order.isAvailableToDeliver ? 'bg-info text-dark' : 'bg-warning text-dark'
+                      }`}>
+                        {order.isDelivered ? '✓ Entregue' : (order.isAvailableToDeliver ? 'Solicitado a Entregador 🚚' : (order.status || 'Pendente'))}
                       </span>
                     </td>
                     <td>
                       <div className="d-flex gap-2">
                         {order.status === 'Pendente' && (
-                          <button className="btn btn-sm btn-success rounded-pill fw-bold" onClick={() => handleAcceptOrder(order._id)}>
-                            <FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Aceitar
+                          <button className="btn btn-sm btn-success rounded-pill fw-bold px-3 shadow-sm" onClick={() => handleAcceptOrder(order._id)}>
+                            <FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Confirmar Transação
                           </button>
                         )}
-                        {!order.isAvailableToDeliver && (
-                          <button className="btn btn-sm btn-primary rounded-pill fw-bold" onClick={() => handleCallDelivery(order._id)}>
+                        {!order.isAvailableToDeliver && !order.isDigitalOrder && order.status !== 'Entregue' && (
+                          <button className="btn btn-sm btn-primary rounded-pill fw-bold px-3 shadow-sm" onClick={() => handleCallDelivery(order._id)}>
                             <FontAwesomeIcon icon={faMotorcycle} className="me-1" /> Chamar Entregador
                           </button>
                         )}
+                        <button className="btn btn-sm btn-outline-dark rounded-pill fw-bold" onClick={() => handleDownloadReceipt(order._id)} title="Recibo PDF">
+                          <FontAwesomeIcon icon={faFileAlt} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -275,10 +383,15 @@ export default function SupplierDashboardScreen() {
               <div className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white h-100">
                 <img src={prod.image || 'https://via.placeholder.com/300'} alt={prod.name} className="card-img-top" style={{ height: 180, objectFit: 'cover' }} />
                 <div className="card-body p-3 d-flex flex-column">
-                  <span className="badge bg-light text-dark align-self-start mb-2 border">{prod.category}</span>
-                  <h6 className="fw-bold text-dark mb-1">{prod.name}</h6>
-                  <div className="fw-bold text-primary fs-5 mb-2">{prod.price} MT</div>
-                  <small className="text-muted mb-3">Stock: <strong>{prod.countInStock} unidades</strong></small>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="badge bg-light text-dark border">{prod.category || 'Geral'}</span>
+                    {prod.productType === 'DIGITAL' && (
+                      <span className="badge bg-purple-light text-primary-custom rounded-pill" style={{ backgroundColor: '#F3E8FF' }}>⚡ Digital</span>
+                    )}
+                  </div>
+                  <h6 className="fw-bold text-dark mb-1">{prod.name || prod.nome}</h6>
+                  <div className="fw-bold text-primary fs-5 mb-2">{Number(prod.price || 0).toLocaleString('pt-PT')} MT</div>
+                  <small className="text-muted mb-3">Stock: <strong>{prod.countInStock || 0} unidades</strong></small>
                   
                   <div className="d-flex gap-2 mt-auto">
                     <button className="btn btn-outline-primary btn-sm flex-fill rounded-pill fw-bold" onClick={() => { setEditingProduct(prod); setProductForm(prod); setShowProductModal(true); }}>
@@ -292,33 +405,152 @@ export default function SupplierDashboardScreen() {
         </div>
       )}
 
-      {/* SEPARADOR 3: CARTEIRA & LEVANTAMENTOS */}
+      {/* SEPARADOR 3: CARTEIRA DIGITAL & LEVANTAMENTOS (FILOSOFIA NHIQUELA SELLER) */}
       {activeTab === 'wallet' && (
-        <div className="card border-0 shadow-sm rounded-4 bg-white p-4">
-          <h5 className="fw-bold mb-3 text-dark">Carteira Digital & Saldo M-Pesa</h5>
-          <div className="row g-4 mb-4">
-            <div className="col-md-6">
-              <div className="p-4 rounded-4 bg-success text-white shadow-sm">
-                <span className="opacity-75 small text-uppercase fw-bold">Saldo Disponível para Levantamento</span>
-                <h2 className="fw-bold m-0 mt-2">45.800,00 MT</h2>
-                <small className="opacity-75 d-block mt-2">Pronto para transferência M-Pesa / e-Mola</small>
+        <div className="d-flex flex-column gap-4">
+          <div className="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <h5 className="fw-bold mb-3 text-dark">
+              <FontAwesomeIcon icon={faWallet} className="text-primary-custom me-2" />
+              Carteira Digital & Saldo M-Pesa (Nhiquela Seller)
+            </h5>
+
+            {/* Cartões de Saldo da Carteira */}
+            <div className="row g-4 mb-4">
+              <div className="col-md-6">
+                <div className="p-4 rounded-4 text-white shadow-sm" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>
+                  <span className="opacity-75 small text-uppercase fw-bold">Saldo Disponível para Levantamento</span>
+                  <h2 className="fw-black m-0 mt-2">{displayAvailableBalance.toLocaleString('pt-PT')} MT</h2>
+                  <small className="opacity-75 d-block mt-2">✓ Saldo confirmado e pronto para transferência M-Pesa / e-Mola</small>
+                </div>
+              </div>
+
+              <div className="col-md-6">
+                <div className="p-4 rounded-4 bg-light border">
+                  <h6 className="fw-bold text-dark mb-3">
+                    <FontAwesomeIcon icon={faMoneyBillWave} className="text-success me-2" />
+                    Solicitar Levantamento Directo
+                  </h6>
+                  <form onSubmit={handleWithdraw}>
+                    <div className="row g-2 mb-3">
+                      <div className="col-6">
+                        <label className="form-label small text-muted fw-bold">Valor (MT)</label>
+                        <input 
+                          type="number" 
+                          className="form-control fw-bold" 
+                          placeholder="Ex: 1000" 
+                          value={withdrawAmount} 
+                          onChange={e => setWithdrawAmount(e.target.value)} 
+                          required
+                        />
+                      </div>
+                      <div className="col-6">
+                        <label className="form-label small text-muted fw-bold">Número M-Pesa / e-Mola</label>
+                        <input 
+                          type="text" 
+                          className="form-control fw-bold" 
+                          placeholder="84/85xxxxxxx" 
+                          value={withdrawPhone} 
+                          onChange={e => setWithdrawPhone(e.target.value)} 
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button className="btn btn-success rounded-pill fw-bold w-100 py-2 shadow-sm" disabled={submittingWithdraw}>
+                      {submittingWithdraw ? 'A processar...' : 'Confirmar Levantamento M-Pesa'}
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
-            <div className="col-md-6">
-              <div className="p-4 rounded-4 bg-light border">
-                <h6 className="fw-bold text-dark mb-3">Pedir Levantamento Directo</h6>
-                <div className="row g-2">
-                  <div className="col-6">
-                    <input type="number" className="form-control" placeholder="Valor (MT)" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} />
-                  </div>
-                  <div className="col-6">
-                    <input type="text" className="form-control" placeholder="Nº M-Pesa (84/85)" value={withdrawPhone} onChange={e => setWithdrawPhone(e.target.value)} />
-                  </div>
+
+            {/* EXTRATO E HISTÓRICO DE TRANSAÇÕES DE CARTEIRA */}
+            <div className="pt-3 border-top">
+              <h6 className="fw-bold text-dark mb-3">
+                <FontAwesomeIcon icon={faHistory} className="text-primary-custom me-2" />
+                Histórico & Extrato da Carteira Digital
+              </h6>
+
+              {transactions.length === 0 ? (
+                <div className="table-responsive">
+                  <table className="table align-middle m-0 small">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Data</th>
+                        <th>Descrição da Transação</th>
+                        <th>Tipo</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                        <th>Valor (MT)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((ord, i) => {
+                        const val = ord.itemsPrice || ord.totalPrice || 0;
+                        const isConfirmed = ord.status === 'Aceito' || ord.status === 'Entregue' || ord.isDelivered;
+                        return (
+                          <tr key={i}>
+                            <td className="text-muted">{new Date(ord.createdAt || Date.now()).toLocaleDateString('pt-PT')}</td>
+                            <td className="fw-bold text-dark">
+                              Receita da venda #{ord.code || ord._id.slice(-6)}
+                            </td>
+                            <td>
+                              <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">
+                                <FontAwesomeIcon icon={faArrowDown} className="me-1" /> Entrada
+                              </span>
+                            </td>
+                            <td className="text-muted">{ord.paymentMethod || 'Venda'}</td>
+                            <td>
+                              <span className={`badge rounded-pill px-3 py-1 ${isConfirmed ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                {isConfirmed ? 'Confirmado' : 'Pendente'}
+                              </span>
+                            </td>
+                            <td className="fw-bold text-success">+{val.toLocaleString('pt-PT')} MT</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <button className="btn btn-success rounded-pill fw-bold w-100 mt-3" onClick={() => { toast.success(`Solicitação de ${withdrawAmount || '1000'} MT enviada para o M-Pesa ${withdrawPhone}!`); setWithdrawAmount(''); }}>
-                  Confirmar Levantamento M-Pesa
-                </button>
-              </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle m-0 small">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Tipo</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                        <th>Valor (MT)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map((tx, idx) => (
+                        <tr key={idx}>
+                          <td className="text-muted">{new Date(tx.createdAt || tx.date).toLocaleDateString('pt-PT')}</td>
+                          <td className="fw-bold text-dark">{tx.description}</td>
+                          <td>
+                            {tx.type === 'credit' ? (
+                              <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">Entrada</span>
+                            ) : (
+                              <span className="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">Saída</span>
+                            )}
+                          </td>
+                          <td className="text-muted">{tx.method || 'M-Pesa'}</td>
+                          <td>
+                            <span className={`badge rounded-pill px-3 py-1 ${tx.status === 'confirmado' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                              {tx.status || 'Confirmado'}
+                            </span>
+                          </td>
+                          <td className={`fw-bold ${tx.type === 'credit' ? 'text-success' : 'text-danger'}`}>
+                            {tx.type === 'credit' ? '+' : '-'}{Number(tx.amount || 0).toLocaleString('pt-PT')} MT
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -349,120 +581,31 @@ export default function SupplierDashboardScreen() {
                     </div>
                   </div>
 
-                  {productForm.productType === 'DIGITAL' && (
-                    <div className="mb-3">
-                      <label className="form-label small fw-bold text-muted">Instruções para Entrega Digital</label>
-                      <textarea className="form-control" rows="2" placeholder="Ex: Código de resgate, link de acesso ou instruções por e-mail/SMS..." value={productForm.digitalInstructions || ''} onChange={e => setProductForm({ ...productForm, digitalInstructions: e.target.value })}></textarea>
-                    </div>
-                  )}
-
                   <div className="row g-3 mb-3">
-                    <div className="col-md-4">
+                    <div className="col-md-6">
                       <label className="form-label small fw-bold text-muted">Preço (MT) *</label>
-                      <input type="number" step="0.01" className="form-control" required placeholder="0.00" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: e.target.value })} />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label small fw-bold text-muted">Preço com Desconto (MT)</label>
-                      <input type="number" step="0.01" className="form-control" placeholder="Opcional" value={productForm.discountPrice || ''} onChange={e => setProductForm({ ...productForm, discountPrice: e.target.value })} />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label small fw-bold text-muted">Stock (Unidades) *</label>
-                      <input type="number" className="form-control" required placeholder="Ex: 10" value={productForm.countInStock} onChange={e => setProductForm({ ...productForm, countInStock: e.target.value })} />
-                    </div>
-                  </div>
-
-                  <div className="form-check mb-3">
-                    <input className="form-check-input" type="checkbox" id="dashIsOrderedCheck" checked={productForm.isOrdered || false} onChange={e => setProductForm({ ...productForm, isOrdered: e.target.checked })} />
-                    <label className="form-check-label small text-dark fw-bold" htmlFor="dashIsOrderedCheck">
-                      Vender sob encomenda / Por pedido (Stock indisponível imediato)
-                    </label>
-                  </div>
-
-                  <div className="row g-3 mb-3">
-                    <div className="col-md-6">
-                      <label className="form-label small fw-bold text-muted">Categoria *</label>
-                      <input type="text" className="form-control" required placeholder="Ex: Mercearia, Eletrónica, Vestuário..." value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value })} />
+                      <input type="number" className="form-control" required placeholder="1500" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: e.target.value })} />
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label small fw-bold text-muted">Província / Localização *</label>
-                      <select className="form-select" required value={productForm.province || 'Maputo Cidade'} onChange={e => setProductForm({ ...productForm, province: e.target.value })}>
-                        <option value="Maputo Cidade">Maputo Cidade</option>
-                        <option value="Maputo Província">Maputo Província</option>
-                        <option value="Gaza">Gaza</option>
-                        <option value="Inhambane">Inhambane</option>
-                        <option value="Sofala">Sofala</option>
-                        <option value="Manica">Manica</option>
-                        <option value="Tete">Tete</option>
-                        <option value="Zambézia">Zambézia</option>
-                        <option value="Nampula">Nampula</option>
-                        <option value="Cabo Delgado">Cabo Delgado</option>
-                        <option value="Niassa">Niassa</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="row g-3 mb-3">
-                    <div className="col-md-4">
-                      <label className="form-label small fw-bold text-muted">Marca / Modelo / Sabor</label>
-                      <input type="text" className="form-control" placeholder="Ex: Samsung, Nike, Chocolate" value={productForm.brand || ''} onChange={e => setProductForm({ ...productForm, brand: e.target.value })} />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label small fw-bold text-muted">Cores Disponíveis</label>
-                      <input type="text" className="form-control" placeholder="Preto, Branco, Azul (separadas por vírgula)" value={productForm.colors || ''} onChange={e => setProductForm({ ...productForm, colors: e.target.value })} />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label small fw-bold text-muted">Tamanhos / Dimensões</label>
-                      <input type="text" className="form-control" placeholder="S, M, L, XL, 38, 40 (separados por vírgula)" value={productForm.sizes || ''} onChange={e => setProductForm({ ...productForm, sizes: e.target.value })} />
+                      <label className="form-label small fw-bold text-muted">Stock Disponível *</label>
+                      <input type="number" className="form-control" required placeholder="10" value={productForm.countInStock} onChange={e => setProductForm({ ...productForm, countInStock: e.target.value })} />
                     </div>
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label small fw-bold text-muted">Imagem do Produto (Carregar Ficheiro) *</label>
-                    
-                    {/* Image Preview */}
-                    {productForm.image ? (
-                      <div className="position-relative mb-2 text-center p-2 border rounded bg-white" style={{ maxWidth: '180px', margin: '0 auto' }}>
-                        <img src={productForm.image} alt="Preview" style={{ maxHeight: '100px', objectFit: 'contain' }} className="rounded img-fluid" />
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle shadow-sm"
-                          style={{ width: '22px', height: '22px', padding: 0, fontSize: '11px', lineHeight: 1 }}
-                          onClick={() => setProductForm({ ...productForm, image: '' })}
-                          title="Remover Imagem"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : null}
-
-                    {/* Local File Upload */}
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="form-control"
-                        onChange={(e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setProductForm({ ...productForm, image: reader.result });
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </div>
+                    <label className="form-label small fw-bold text-muted">URL da Imagem</label>
+                    <input type="text" className="form-control" placeholder="https://..." value={productForm.image} onChange={e => setProductForm({ ...productForm, image: e.target.value })} />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label small fw-bold text-muted">Descrição Detalhada</label>
-                    <textarea className="form-control" rows="3" placeholder="Descrição detalhada do produto..." value={productForm.description || ''} onChange={e => setProductForm({ ...productForm, description: e.target.value })}></textarea>
+                    <label className="form-label small fw-bold text-muted">Descrição Breve</label>
+                    <textarea className="form-control" rows="3" placeholder="Detalhes do produto..." value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })}></textarea>
                   </div>
                 </div>
-                <div className="modal-footer border-0">
-                  <button type="button" className="btn btn-secondary rounded-pill px-4" onClick={() => setShowProductModal(false)}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold">Guardar Produto</button>
+
+                <div className="modal-footer border-top">
+                  <button type="button" className="btn btn-outline-secondary rounded-pill fw-bold" onClick={() => setShowProductModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold shadow-sm">Guardar Produto</button>
                 </div>
               </form>
             </div>

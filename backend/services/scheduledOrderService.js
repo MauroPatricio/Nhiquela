@@ -7,6 +7,7 @@
  * 3. Aos 0 minutos, iniciar o dispatch normal se ainda não tiver motorista atribuido
  */
 
+import mongoose from 'mongoose';
 import RequestService from '../models/RequestServiceModel.js';
 import User from '../models/UserModel.js';
 import createNotification from '../utils/createNotification.js';
@@ -23,8 +24,15 @@ export function initScheduledOrderService(socketIo) {
   runScheduledCheck();
 }
 
+let isRunningCheck = false;
+
 async function runScheduledCheck() {
+  if (isRunningCheck) return;
+  isRunningCheck = true;
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return;
+    }
     const now = new Date();
     const in44min = new Date(now.getTime() + 44 * 60 * 1000);
     const in46min = new Date(now.getTime() + 46 * 60 * 1000);
@@ -107,6 +115,8 @@ async function runScheduledCheck() {
     }
   } catch (err) {
     console.error('[ScheduledOrderService] Erro durante verificacao:', err);
+  } finally {
+    isRunningCheck = false;
   }
 }
 

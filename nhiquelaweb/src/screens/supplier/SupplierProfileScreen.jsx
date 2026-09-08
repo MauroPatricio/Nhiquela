@@ -135,9 +135,11 @@ export default function SupplierProfileScreen() {
         name: data.name || name,
         email: data.email || email,
         sellerLogo: sellerLogo || data.sellerLogo,
+        profileImage: sellerLogo || data.profileImage || data.sellerLogo,
         seller: {
           ...userInfo.seller,
           ...(data.seller || {}),
+          logo: sellerLogo || data.seller?.logo,
           nomeEstabelecimento: nomeEstabelecimento || data.seller?.name || userInfo.seller?.nomeEstabelecimento,
           openstore: isStoreOpen
         }

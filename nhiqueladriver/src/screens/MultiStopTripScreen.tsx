@@ -298,22 +298,12 @@ export default function MultiStopTripScreen({ route, navigation }: any) {
           ))}
 
           {routeCoords.length > 0 ? (
-            <>
-              {/* Sombra lilás */}
-              <Polyline
-                coordinates={routeCoords}
-                strokeWidth={8}
-                strokeColor="rgba(107,33,168,0.18)"
-                zIndex={1}
-              />
-              {/* Rota lilás principal */}
-              <Polyline
-                coordinates={routeCoords}
-                strokeWidth={5}
-                strokeColor="#A855F7"
-                zIndex={2}
-              />
-            </>
+            <Polyline
+              coordinates={routeCoords}
+              strokeWidth={5}
+              strokeColor="#A855F7"
+              zIndex={2}
+            />
           ) : (
             <Polyline
               coordinates={stops.map((s: any) => ({ latitude: s.latitude, longitude: s.longitude }))}

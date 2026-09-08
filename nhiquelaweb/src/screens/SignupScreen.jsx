@@ -156,6 +156,10 @@ export default function SignupScreen() {
 
   // Validação do Passo 1 (Dados Pessoais)
   const validateStep1 = () => {
+    if (!profileImage) {
+      toast.error('A foto de perfil é obrigatória. Por favor, carregue a sua foto.');
+      return false;
+    }
     if (!name.trim()) {
       toast.error('Por favor, preencha o seu nome.');
       return false;
@@ -273,11 +277,33 @@ export default function SignupScreen() {
     if (userInfo) navigate(redirect);
   }, [navigate, redirect, userInfo]);
 
+  const clientBg = '/images/client_receiving_package.jpg';
+  const sellerBg = '/images/supplier_distributing_products.jpg';
+  const currentBg = isSeller ? sellerBg : clientBg;
+
   return (
-    <div className="container py-5 d-flex justify-content-center align-items-center min-vh-100">
-      <Helmet><title>Registo Web — Nhiquela</title></Helmet>
+    <div 
+      className="min-vh-100 d-flex justify-content-center align-items-center py-5 px-3 position-relative overflow-hidden"
+      style={{
+        backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0%, rgba(88, 28, 135, 0.65) 100%), url(${currentBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        transition: 'all 0.5s ease-in-out'
+      }}
+    >
+      <Helmet><title>{isSeller ? 'Registo de Fornecedor — Nhiquela' : 'Registo de Cliente — Nhiquela'}</title></Helmet>
       
-      <div className="card shadow-lg border-0 rounded-5 position-relative w-100" style={{ maxWidth: isSeller ? '820px' : '580px' }}>
+      <div 
+        className="card shadow-2xl border-0 rounded-5 position-relative w-100 overflow-hidden"
+        style={{
+          maxWidth: isSeller ? '840px' : '600px',
+          backgroundColor: 'rgba(255, 255, 255, 0.96)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.4) inset',
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+      >
         <button 
           onClick={() => navigate(-1)}
           className="btn text-muted position-absolute border-0 rounded-circle d-flex justify-content-center align-items-center shadow-sm hover-bg-light"
@@ -325,6 +351,43 @@ export default function SignupScreen() {
               <div className="animation-fade-in">
                 <h6 className="fw-bold text-dark mb-3 border-bottom pb-2">Informação Pessoal & Acesso</h6>
                 
+                {/* Upload Foto de Perfil (Obrigatória & Antes do Nome) */}
+                <div className="mb-4 bg-light p-3 rounded-4 border">
+                  <label className="form-label small fw-bold text-dark d-block">
+                    Foto de Perfil * <span className="text-danger fw-normal">(Obrigatória)</span>
+                  </label>
+                  <div className="d-flex align-items-center gap-3">
+                    <div 
+                      className="rounded-circle border d-flex align-items-center justify-content-center bg-white overflow-hidden shadow-sm flex-shrink-0"
+                      style={{ width: '64px', height: '64px', borderColor: profileImage ? '#10B981' : '#E2E8F0' }}
+                    >
+                      {profileImage ? (
+                        <img src={profileImage} alt="Foto de Perfil" className="w-100 h-100 object-fit-cover" />
+                      ) : (
+                        <FontAwesomeIcon icon={faCamera} className="text-muted fs-4" />
+                      )}
+                    </div>
+                    <div>
+                      <input 
+                        type="file" 
+                        id="userProfilePhotoInput"
+                        className="d-none" 
+                        accept="image/*"
+                        onChange={(e) => uploadFileHandler(e, 'profileImage')}
+                        required
+                      />
+                      <label 
+                        htmlFor="userProfilePhotoInput" 
+                        className="btn btn-outline-primary rounded-pill btn-sm px-3 fw-bold mb-1"
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {loadingUpload ? 'A carregar...' : (profileImage ? 'Alterar Foto de Perfil' : 'Carregar Foto de Perfil *')}
+                      </label>
+                      <small className="d-block text-muted" style={{ fontSize: '0.75rem' }}>PNG, JPG até 5MB</small>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="row g-3 mb-3">
                   <div className="col-md-6 position-relative">
                     <label className="form-label small fw-bold text-muted">Nome do Responsável *</label>
@@ -370,40 +433,6 @@ export default function SignupScreen() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
-                  </div>
-                </div>
-
-                {/* Upload Foto de Perfil */}
-                <div className="mb-4 bg-light p-3 rounded-4 border">
-                  <label className="form-label small fw-bold text-muted d-block">Foto de Perfil (Opcional)</label>
-                  <div className="d-flex align-items-center gap-3">
-                    <div 
-                      className="rounded-circle border d-flex align-items-center justify-content-center bg-white overflow-hidden shadow-sm flex-shrink-0"
-                      style={{ width: '64px', height: '64px' }}
-                    >
-                      {profileImage ? (
-                        <img src={profileImage} alt="Foto de Perfil" className="w-100 h-100 object-fit-cover" />
-                      ) : (
-                        <FontAwesomeIcon icon={faCamera} className="text-muted fs-4" />
-                      )}
-                    </div>
-                    <div>
-                      <input 
-                        type="file" 
-                        id="userProfilePhotoInput"
-                        className="d-none" 
-                        accept="image/*"
-                        onChange={(e) => uploadFileHandler(e, 'profileImage')}
-                      />
-                      <label 
-                        htmlFor="userProfilePhotoInput" 
-                        className="btn btn-outline-primary rounded-pill btn-sm px-3 fw-bold mb-1"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {loadingUpload ? 'A carregar...' : (profileImage ? 'Alterar Foto' : 'Carregar Foto de Perfil')}
-                      </label>
-                      <small className="d-block text-muted" style={{ fontSize: '0.75rem' }}>PNG, JPG até 5MB</small>
-                    </div>
                   </div>
                 </div>
 
