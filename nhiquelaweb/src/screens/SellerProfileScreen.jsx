@@ -10,7 +10,9 @@ import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToBasket } from '../store/features/basketSlice';
 import { selectUser } from '../store/features/userSlice';
-import api from '../api';
+import { io } from 'socket.io-client';
+import api, { SOCKET_URL } from '../api';
+import { isStoreOpen } from './ProductsScreen';
 
 const DEFAULT_PRODUCT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%23F3F4F6"/><path d="M150 110 L190 170 L110 170 Z" fill="%239CA3AF"/><circle cx="125" cy="125" r="12" fill="%239CA3AF"/><text x="150" y="210" font-family="sans-serif" font-size="14" font-weight="bold" fill="%236B7280" text-anchor="middle">Nhiquela Marketplace</text></svg>`;
 
@@ -36,6 +38,27 @@ export default function SellerProfileScreen() {
   const [loadingSeller, setLoadingSeller] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [activeCategoryTab, setActiveCategoryTab] = useState('ALL'); // 'ALL', 'BEST', 'PROMO', or category name
+  const [etaDisplay, setEtaDisplay] = useState('25-40 min');
+
+  useEffect(() => {
+    if (!seller) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          const sData = typeof seller === 'object' ? (seller.seller || seller) : {};
+          const sLat = parseFloat(sData.latitude || seller.latitude || (seller.locationGeo?.coordinates ? seller.locationGeo.coordinates[1] : 0)) || -25.9535;
+          const sLng = parseFloat(sData.longitude || seller.longitude || (seller.locationGeo?.coordinates ? seller.locationGeo.coordinates[0] : 0)) || 32.5892;
+
+          const { data } = await api.get(`/osrm/route?origin=${pos.coords.longitude},${pos.coords.latitude}&destination=${sLng},${sLat}`);
+          if (data && data.durationMin) {
+            setEtaDisplay(`~${data.durationMin} min`);
+          }
+        } catch (err) {
+          // Fallback
+        }
+      }, () => {});
+    }
+  }, [seller]);
 
   useEffect(() => {
     if (!sellerId) return;
@@ -45,6 +68,16 @@ export default function SellerProfileScreen() {
       .then(({ data }) => setSeller(data))
       .catch(() => toast.error('Não foi possível carregar os dados da loja.'))
       .finally(() => setLoadingSeller(false));
+
+    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
+    socket.on('storeStatusChanged', ({ userId, isOpen, openstore }) => {
+      const statusValue = isOpen !== undefined ? isOpen : openstore;
+      if (String(sellerId) === String(userId)) {
+        setSeller(prev => prev ? { ...prev, openstore: statusValue, seller: { ...prev?.seller, openstore: statusValue } } : prev);
+      }
+    });
+
+    return () => socket.disconnect();
   }, [sellerId]);
 
   useEffect(() => {
@@ -90,7 +123,13 @@ export default function SellerProfileScreen() {
     return products;
   }, [products, activeCategoryTab]);
 
+  const storeOpen = isStoreOpen(seller);
+
   const handleAddToCart = (product) => {
+    if (!storeOpen) {
+      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      return;
+    }
     dispatch(addToBasket({
       _id: product._id,
       name: product.nome || product.name,
@@ -140,7 +179,9 @@ export default function SellerProfileScreen() {
               <span>•</span>
               <span><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1" /> {address}</span>
               <span>•</span>
-              <span><FontAwesomeIcon icon={faClock} className="me-1" /> Entrega em 25–40 min</span>
+              <span className={`px-3 py-1 rounded-pill fw-bold shadow-sm ${storeOpen ? 'bg-success text-white' : 'bg-danger text-white'}`}>
+                {storeOpen ? '🟢 Estamos Abertos' : '🔴 Loja Fechada de Momento'}
+              </span>
             </div>
           </div>
         </div>
@@ -196,6 +237,13 @@ export default function SellerProfileScreen() {
                         PROMOÇÃO
                       </span>
                     )}
+                    {!storeOpen && (
+                      <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 z-2 rounded-3">
+                        <span className="badge bg-danger text-white px-2 py-1 fw-bold shadow-sm">
+                          🔴 Loja Fechada
+                        </span>
+                      </div>
+                    )}
                     <img 
                       src={getProductImageUrl(product)} 
                       alt={product.nome || product.name} 
@@ -212,16 +260,20 @@ export default function SellerProfileScreen() {
                       {product.price?.toLocaleString('pt-PT')} MT
                     </span>
                   </div>
-                  <div className="small text-muted fw-bold mb-3">
-                    <FontAwesomeIcon icon={faClock} className="me-1" /> 25-40 min
+                  <div className="d-flex align-items-center justify-content-between text-muted small fw-bold mb-3">
+                    <span><FontAwesomeIcon icon={faClock} className="me-1" /> {etaDisplay}</span>
+                    <span className={`badge ${storeOpen ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} fw-bold px-2 py-1 rounded-2`} style={{ fontSize: '11px' }}>
+                      {storeOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                    </span>
                   </div>
                 </Link>
 
                 <button 
-                  className="btn bg-primary-custom text-white fw-bold rounded-3 py-2 small w-100 mt-auto"
+                  className={`btn fw-bold rounded-3 py-2 small w-100 mt-auto ${storeOpen ? 'bg-primary-custom text-white' : 'btn-secondary text-white opacity-75'}`}
                   onClick={() => handleAddToCart(product)}
+                  disabled={!storeOpen}
                 >
-                  <FontAwesomeIcon icon={faPlus} className="me-1" /> Adicionar ao Carrinho
+                  <FontAwesomeIcon icon={faPlus} className="me-1" /> {storeOpen ? 'Adicionar ao Carrinho' : 'Loja Fechada'}
                 </button>
               </div>
             </div>

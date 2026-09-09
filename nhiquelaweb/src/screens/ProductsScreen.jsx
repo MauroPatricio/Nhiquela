@@ -20,6 +20,16 @@ export const getProductImageUrl = (product) => {
   return DEFAULT_PRODUCT_IMAGE;
 };
 
+export const isStoreOpen = (seller) => {
+  if (!seller) return true;
+  const sellerData = typeof seller === 'object' ? (seller.seller || seller) : {};
+  if (sellerData.openstore !== undefined) return Boolean(sellerData.openstore);
+  if (seller.openstore !== undefined) return Boolean(seller.openstore);
+  if (sellerData.status === 'Fechado' || seller.status === 'Fechado') return false;
+  if (sellerData.status === 'Aberto' || seller.status === 'Aberto') return true;
+  return true;
+};
+
 export default function ProductsScreen() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +57,11 @@ export default function ProductsScreen() {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+    }
+
+    if (!isStoreOpen(product.seller)) {
+      toast.warning('Esta loja encontra-se de momento fechada para novos pedidos.');
+      return;
     }
 
     const sellerObj = typeof product.seller === 'object' && product.seller !== null
@@ -96,57 +111,69 @@ export default function ProductsScreen() {
         </div>
       ) : (
         <div className="row g-4">
-          {products.map((product) => (
-            <div className="col-12 col-md-6 col-lg-4 col-xl-3" key={product._id}>
-              <div className="bg-white border rounded-4 p-3 h-100 hover-shadow transition-all d-flex flex-column">
-                <div className="position-relative mb-3 rounded-3 overflow-hidden bg-light" style={{ height: '190px' }}>
-                  <img
-                    src={getProductImageUrl(product)}
-                    alt={product.nome || product.name}
-                    className="img-fluid rounded-3 w-100 h-100 object-fit-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = DEFAULT_PRODUCT_IMAGE;
-                    }}
-                  />
-                  {product.countInStock < 5 && (
-                    <span className="badge bg-danger position-absolute" style={{ top: '10px', left: '10px' }}>
-                      Pouco Stock
+          {products.map((product) => {
+            const sellerOpen = isStoreOpen(product.seller);
+
+            return (
+              <div className="col-12 col-md-6 col-lg-4 col-xl-3" key={product._id}>
+                <div className="bg-white border rounded-4 p-3 h-100 hover-shadow transition-all d-flex flex-column">
+                  <div className="position-relative mb-3 rounded-3 overflow-hidden bg-light" style={{ height: '190px' }}>
+                    <img
+                      src={getProductImageUrl(product)}
+                      alt={product.nome || product.name}
+                      className="img-fluid rounded-3 w-100 h-100 object-fit-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = DEFAULT_PRODUCT_IMAGE;
+                      }}
+                    />
+                    {!sellerOpen && (
+                      <span className="badge bg-danger text-white position-absolute shadow-sm" style={{ top: '10px', right: '10px', zIndex: 5, fontSize: '11px' }}>
+                        🔴 Loja Fechada
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <small className="text-muted text-uppercase fw-bold text-truncate" style={{ fontSize: '0.7rem', maxWidth: '170px' }}>
+                      {product.seller?.name || product.vendor || 'Nhiquela Partner'}
+                    </small>
+                    <span className={`badge rounded-pill px-2 py-0.5 small ${sellerOpen ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger'}`} style={{ fontSize: '9.5px' }}>
+                      {sellerOpen ? '🟢 Aberto' : '🔴 Fechado'}
                     </span>
-                  )}
-                </div>
+                  </div>
 
-                <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>
-                  {product.seller?.name || product.vendor || 'Nhiquela Partner'}
-                </small>
-                <h5 className="fw-bold text-black mb-auto mt-1">{product.nome || product.name}</h5>
+                  <h5 className="fw-bold text-black mb-auto mt-1">{product.nome || product.name}</h5>
 
-                <div className="d-flex align-items-center gap-3 text-muted small fw-bold my-2">
-                  <span className="text-primary-custom"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.8'}</span>
-                  <span><FontAwesomeIcon icon={faMapMarkerAlt} className="text-muted" /> Maputo</span>
-                </div>
+                  <div className="d-flex align-items-center gap-3 text-muted small fw-bold my-2">
+                    <span className="text-primary-custom"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.8'}</span>
+                    <span><FontAwesomeIcon icon={faMapMarkerAlt} className="text-muted" /> Maputo</span>
+                  </div>
 
-                <div className="d-flex justify-content-between align-items-center my-2">
-                  <span className="fw-black text-black fs-4">{Number(product.price || 0).toLocaleString('pt-PT')} MT</span>
-                </div>
+                  <div className="d-flex justify-content-between align-items-center my-2">
+                    <span className="fw-black text-black fs-4">{Number(product.price || 0).toLocaleString('pt-PT')} MT</span>
+                  </div>
 
-                <div className="d-flex gap-2 mt-2">
-                  <button 
-                    className="btn btn-outline-dark flex-grow-1 fw-bold rounded-3 py-2 small"
-                    onClick={(e) => handleAddToCart(product, e)}
-                  >
-                    + Carrinho
-                  </button>
-                  <button 
-                    className="btn bg-primary-custom text-white flex-grow-1 fw-bold rounded-3 py-2 small"
-                    onClick={(e) => handleBuyNow(product, e)}
-                  >
-                    Comprar
-                  </button>
+                  <div className="d-flex gap-2 mt-2">
+                    <button 
+                      className={`btn ${sellerOpen ? 'btn-outline-dark' : 'btn-light text-muted'} flex-grow-1 fw-bold rounded-3 py-2 small`}
+                      onClick={(e) => handleAddToCart(product, e)}
+                      disabled={!sellerOpen}
+                    >
+                      {sellerOpen ? '+ Carrinho' : 'Fechado'}
+                    </button>
+                    <button 
+                      className={`btn ${sellerOpen ? 'bg-primary-custom text-white' : 'btn-secondary'} flex-grow-1 fw-bold rounded-3 py-2 small`}
+                      onClick={(e) => handleBuyNow(product, e)}
+                      disabled={!sellerOpen}
+                    >
+                      Comprar
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

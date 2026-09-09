@@ -88,12 +88,15 @@ import cargoTypeRoutes from './routes/cargoTypeRoutes.js';
 // Conectar ao MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 30000, // ? 30 segundos timeout
-    socketTimeoutMS: 45000, // ? 45 segundos socket
+    serverSelectionTimeoutMS: 30000, // 30 segundos timeout para seleção de servidor
+    socketTimeoutMS: 45000, // 45 segundos socket
+    connectTimeoutMS: 30000, // 30 segundos tempo limite de conexão inicial
+    heartbeatFrequencyMS: 30000, // Evita clearing de pool por oscilação de pings no Atlas (30s)
     maxPoolSize: 100, // Elevado para 100 para produção
-    minPoolSize: 5, // ? Mnimo de conexes
-    retryWrites: true, // ? Re-tentar escritas
-    w: 'majority' // ? Write concern
+    minPoolSize: 5, // Mínimo de conexões
+    retryWrites: true, // Re-tentar escritas em caso de falha de rede
+    retryReads: true, // Re-tentar leituras em caso de falha de rede
+    w: 'majority' // Write concern
   })
   .then(async () => {
     console.log('? Conectei me ao MongoDB com SUCESSO');

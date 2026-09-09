@@ -77,7 +77,11 @@ export const startSchedulingEngine = (io, users) => {
       }
 
     } catch (error) {
-      console.error('Erro no Scheduling Engine:', error);
+      if (error.name === 'MongoPoolClearedError' || error.name === 'MongoNetworkError' || error.message?.includes('timed out') || error.message?.includes('cleared')) {
+        console.warn('⚠️ [SchedulingEngine] Conexão MongoDB instável ou a reconectar. A aguardar próximo ciclo.');
+      } else {
+        console.error('Erro no Scheduling Engine:', error);
+      }
     } finally {
       isRunning = false;
     }

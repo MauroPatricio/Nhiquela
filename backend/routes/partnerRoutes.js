@@ -344,54 +344,60 @@ router.post(
 
 /**
  * POST & DELETE /api/partners/:partnerId/remove-member
+ * POST & DELETE /api/partners/:partnerId/remove-member/:memberId
  * Remove a associação do motorista ou fornecedor com o parceiro.
  */
-router.post(
-  '/:partnerId/remove-member',
-  isAuth,
-  expressAsyncHandler(async (req, res) => {
-    const { partnerId: rawPartnerId } = req.params;
-    const { memberId, userId } = req.body;
-    const targetUserId = memberId || userId;
-    const myPId = await getPartnerIdForUser(req);
+const removeMemberHandler = expressAsyncHandler(async (req, res) => {
+  const { partnerId: rawPartnerId, memberId: paramMemberId } = req.params;
+  const { memberId: bodyMemberId, userId } = req.body || {};
+  const targetUserId = paramMemberId || bodyMemberId || userId;
+  const myPId = await getPartnerIdForUser(req);
 
-    let partner = await Partner.findOne({ $or: [{ _id: rawPartnerId }, { userId: rawPartnerId }, { _id: myPId }] });
-    if (!partner && myPId) {
-      partner = await Partner.findById(myPId);
+  let partner = await Partner.findOne({ $or: [{ _id: rawPartnerId }, { userId: rawPartnerId }, { _id: myPId }] });
+  if (!partner && myPId) {
+    partner = await Partner.findById(myPId);
+  }
+
+  if (!partner) {
+    return res.status(404).send({ message: 'Parceiro não encontrado.' });
+  }
+
+  if (!req.user.isAdmin && req.user.role !== 'ADMIN') {
+    if (String(myPId) !== String(partner._id)) {
+      return res.status(403).send({ message: 'Acesso negado. Não pode gerir membros de outro parceiro.' });
     }
+  }
 
-    if (!partner) {
-      return res.status(404).send({ message: 'Parceiro não encontrado.' });
-    }
+  if (!targetUserId) {
+    return res.status(400).send({ message: 'ID do membro a desvincular é obrigatório.' });
+  }
 
-    if (!req.user.isAdmin && req.user.role !== 'ADMIN') {
-      if (String(myPId) !== String(partner._id)) {
-        return res.status(403).send({ message: 'Acesso negado. Não pode gerir membros de outro parceiro.' });
-      }
-    }
+  const member = await User.findById(targetUserId);
+  if (!member) {
+    return res.status(404).send({ message: 'Utilizador não encontrado.' });
+  }
 
-    const member = await User.findById(targetUserId);
-    if (!member) {
-      return res.status(404).send({ message: 'Utilizador não encontrado.' });
-    }
+  member.partnerId = null;
+  await member.save();
 
-    member.partnerId = null;
-    await member.save();
+  try {
+    await AuditLog.create({
+      performedBy: req.user._id,
+      performedByName: req.user.name,
+      action: 'PARTNER_REMOVE_MEMBER',
+      targetUserId: member._id,
+      targetUserName: member.name,
+      details: { previousPartnerId: partner._id }
+    });
+  } catch (e) {}
 
-    try {
-      await AuditLog.create({
-        performedBy: req.user._id,
-        performedByName: req.user.name,
-        action: 'PARTNER_REMOVE_MEMBER',
-        targetUserId: member._id,
-        targetUserName: member.name,
-        details: { previousPartnerId: partner._id }
-      });
-    } catch (e) {}
+  res.send({ message: `Associação do utilizador '${member.name}' removida com sucesso.`, member });
+});
 
-    res.send({ message: `Associação do utilizador '${member.name}' removida com sucesso.`, member });
-  })
-);
+router.post('/:partnerId/remove-member', isAuth, removeMemberHandler);
+router.post('/:partnerId/remove-member/:memberId', isAuth, removeMemberHandler);
+router.delete('/:partnerId/remove-member', isAuth, removeMemberHandler);
+router.delete('/:partnerId/remove-member/:memberId', isAuth, removeMemberHandler);
 
 /**
  * GET /api/partners/:partnerId/members

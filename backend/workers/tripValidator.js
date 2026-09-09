@@ -79,7 +79,11 @@ export const startTripValidator = (io, users) => {
       }
 
     } catch (error) {
-      console.error('Erro no Trip Validator:', error);
+      if (error.name === 'MongoPoolClearedError' || error.name === 'MongoNetworkError' || error.message?.includes('timed out') || error.message?.includes('cleared')) {
+        console.warn('⚠️ [TripValidator] Conexão MongoDB instável ou a reconectar. A aguardar próximo ciclo.');
+      } else {
+        console.error('Erro no Trip Validator:', error);
+      }
     } finally {
       isRunning = false;
     }

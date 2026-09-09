@@ -114,7 +114,11 @@ async function runScheduledCheck() {
       }
     }
   } catch (err) {
-    console.error('[ScheduledOrderService] Erro durante verificacao:', err);
+    if (err.name === 'MongoPoolClearedError' || err.name === 'MongoNetworkError' || err.message?.includes('timed out') || err.message?.includes('cleared')) {
+      console.warn('⚠️ [ScheduledOrderService] Conexão MongoDB instável ou a reconectar. A aguardar próximo ciclo.');
+    } else {
+      console.error('[ScheduledOrderService] Erro durante verificacao:', err);
+    }
   } finally {
     isRunningCheck = false;
   }
