@@ -124,7 +124,7 @@ router.get(
   expressAsyncHandler(async (req, res) => {
     if (req.user.isAdmin || req.user.role === 'ADMIN') {
       const partners = await Partner.find({}).populate('userId', 'name email phoneNumber').lean();
-      
+
       const partnersWithCounts = await Promise.all(
         partners.map(async (p) => {
           const [totalDrivers, totalSellers, totalProviders] = await Promise.all([
@@ -140,7 +140,7 @@ router.get(
           };
         })
       );
-      
+
       return res.send(partnersWithCounts);
     }
     const partnerId = await getPartnerIdForUser(req);
@@ -155,10 +155,10 @@ router.get(
   isAuth,
   expressAsyncHandler(async (req, res) => {
     let targetId = req.params.partnerId;
-    
+
     // Resolve partner document by ID or User ID
     let partner = await Partner.findOne({ $or: [{ _id: targetId }, { userId: targetId }] }).populate('userId', 'name email phoneNumber');
-    
+
     // Auto-create Partner document if user is a PARTNER and missing a partner record
     if (!partner && (req.user._id.toString() === targetId || req.user.role === 'PARTNER' || req.user.isPartner)) {
       partner = await Partner.create({
@@ -270,7 +270,7 @@ router.post(
         targetUserName: driver.name,
         details: { partnerId: partner._id, partnerName: partner.name }
       });
-    } catch (e) {}
+    } catch (e) { }
 
     res.send({ message: `Motorista '${driver.name}' associado com sucesso ao parceiro '${partner.name}'.`, driver });
   })
@@ -336,7 +336,7 @@ router.post(
         targetUserName: seller.name,
         details: { partnerId: partner._id, partnerName: partner.name }
       });
-    } catch (e) {}
+    } catch (e) { }
 
     res.send({ message: `Fornecedor '${seller.name}' associado com sucesso ao parceiro '${partner.name}'.`, seller });
   })
@@ -389,7 +389,7 @@ const removeMemberHandler = expressAsyncHandler(async (req, res) => {
       targetUserName: member.name,
       details: { previousPartnerId: partner._id }
     });
-  } catch (e) {}
+  } catch (e) { }
 
   res.send({ message: `Associação do utilizador '${member.name}' removida com sucesso.`, member });
 });
@@ -751,9 +751,9 @@ router.get(
 
     const totalOrders = orders.length + requestServices.length;
     const completedCount = orders.filter(o => o.status === 'Entregue' || o.status === 'Finalizado').length +
-                           requestServices.filter(r => r.status === 'Entregue' || r.status === 'Finalizado').length;
+      requestServices.filter(r => r.status === 'Entregue' || r.status === 'Finalizado').length;
     const cancelledCount = orders.filter(o => o.status === 'Cancelado').length +
-                           requestServices.filter(r => r.status === 'Cancelado').length;
+      requestServices.filter(r => r.status === 'Cancelado').length;
 
     let revenue = 0;
     orders.forEach(o => { if (o.status === 'Entregue') revenue += (o.totalPrice || 0); });
@@ -1042,7 +1042,7 @@ router.get(
       </table>
 
       <div class="footer">
-        Documento gerado automaticamente pelo Sistema Nhiquela. Todos os direitos reservados.
+        Documento gerado automaticamente pelo Sistema nhiquela. Todos os direitos reservados.
       </div>
 
       <script>

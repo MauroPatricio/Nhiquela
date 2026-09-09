@@ -1,14 +1,20 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMotorcycle, faStore, faShoppingBag, faMobileAlt, faStar, faCheckCircle, faMapMarkerAlt, faWallet, faListCheck, faMap, faTruck, faChevronLeft, faChevronRight, faArrowRight } from '@fortawesome/free-solid-svg-icons';
-import { useState, useEffect } from 'react';
+import {
+  faMotorcycle, faStore, faShoppingBag, faMobileAlt, faStar, faCheckCircle,
+  faMapMarkerAlt, faWallet, faListCheck, faMap, faTruck, faChevronLeft, faChevronRight,
+  faArrowRight, faUtensils, faBox, faGasPump, faWrench, faBuilding, faHandshake,
+  faQrcode, faChartLine, faShieldAlt, faTimes, faPaperPlane, faCapsules, faCar,
+  faHardHat, faUsers, faPhone, faEnvelope
+} from '@fortawesome/free-solid-svg-icons';
 import api from '../api';
 
 const logisticsSlides = [
   {
     id: 'freightliners',
-    title: 'Camiões Freightliners & Carga Pesada',
-    subtitle: 'Frotas articuladas de grande capacidade para o transporte de pesados entre Maputo, Beira, Tete e Nacala com monitoramento contínuo.',
+    title: 'Camiões & Carga',
+    subtitle: 'Frotas articuladas de grande capacidade para o transporte de pesados com monitoramento contínuo.',
     image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
     tag: '',
     tagBg: '#8A2BE2',
@@ -16,9 +22,9 @@ const logisticsSlides = [
   },
   {
     id: 'port_cargo',
-    title: 'Logística Portuária & Cargas no Porto',
-    subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos de Maputo, Beira e Nacala para contentores de importação e exportação.',
-    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
+    title: 'Logística Portuária & Cargas',
+    subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos para contentores.',
+    image: '/images/cargasportuarias.jpg',
     tag: '',
     tagBg: '#2563EB',
     highlight: 'Importação & Exportação'
@@ -26,20 +32,20 @@ const logisticsSlides = [
   {
     id: 'machambas',
     title: 'Produtores nas Machambas & Escoamento Agrícola',
-    subtitle: 'Recolha direta de colheitas agrícolas rurais (milho, castanha de caju, gergelim, hortícolas) conectando os pequenos e grandes produtores aos mercados urbanos.',
-    image: 'https://images.unsplash.com/photo-1595838788566-a3d8ecbc7e39?auto=format&fit=crop&w=1200&q=80',
+    subtitle: 'Recolha direta de colheitas agrícolas rurais conectando os pequenos e grandes produtores aos mercados urbanos.',
+    image: '/images/milho.jpg',
     tag: '',
     tagBg: '#059669',
     highlight: 'Campo ao Mercado'
   },
   {
     id: 'machinery',
-    title: 'Maquinaria Pesada & Equipamento de Construção',
-    subtitle: 'Mobilização de retroescavadoras, camiões basculantes e matérias-primas pesadas para grandes obras e projetos de infraestrutura nacional.',
-    image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
+    title: 'Entregas rápidas',
+    subtitle: 'Entrega de forma rápida e segura de produtos e serviços no seu dia a dia.',
+    image: '/images/deliver.jfif',
     tag: '',
     tagBg: '#D97706',
-    highlight: 'Cargas Especiais'
+    highlight: 'Entregas rápidas'
   }
 ];
 
@@ -93,14 +99,14 @@ export default function LandingPage() {
   const mockups = {
     client: {
       title: 'App Cliente — Catálogo de Serviços & Produtos',
-      subtitle: 'Encontre profissionais, logística, assistência técnica, reformas, mudanças e produtos num só lugar.',
+      subtitle: 'Encontre profissionais, logística, mudanças e produtos num só lugar.',
       image: '/images/mockups/client_app_services_mockup.png',
       badge: 'App Cliente',
       badgeBg: '#7F00FF',
       bullets: [
-        'Acesso direto ao Catálogo de Serviços e Mercado Multi-Serviços',
-        'Serviço de Logística, Assistência Técnica, Reformas e Mudanças',
-        'Navegação intuitiva com acompanhamento e pagamentos M-Pesa / e-Mola'
+        'Acesso direto ao Catálogo de Serviços e Mercado',
+        'Serviço de Logística',
+        'Navegação intuitiva com acompanhamento e pagamentos'
       ]
     },
     order: {
@@ -156,16 +162,122 @@ export default function LandingPage() {
   const currentMockup = mockups[activeTab];
 
   return (
-    <div className="bg-light min-vh-100">
-      {/* Navbar Institucional */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 sticky-top">
+    <div className="nhiquela-landing-root min-vh-100 position-relative">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        
+        .nhiquela-landing-root {
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #0F172A;
+          background-color: #F8FAFC;
+          overflow-x: hidden;
+          letter-spacing: -0.2px;
+        }
+        
+        .navbar-glass-sticky {
+          background: rgba(255, 255, 255, 0.92) !important;
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+          box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+        }
+
+        .corporate-badge-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 16px;
+          border-radius: 9999px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
+        }
+
+        .gradient-text-purple {
+          background: linear-gradient(135deg, #6D28D9 0%, #2563EB 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .card-corporate-pro {
+          background: #FFFFFF !important;
+          border: 1px solid #E2E8F0 !important;
+          box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04) !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .card-corporate-pro:hover {
+          transform: translateY(-6px) !important;
+          box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.12) !important;
+          border-color: rgba(109, 40, 217, 0.3) !important;
+        }
+
+        .btn-corporate-primary {
+          background: linear-gradient(135deg, #6D28D9 0%, #4F46E5 100%) !important;
+          color: #FFFFFF !important;
+          box-shadow: 0 10px 25px -5px rgba(109, 40, 217, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
+          transition: all 0.25s ease !important;
+        }
+        .btn-corporate-primary:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 14px 32px -5px rgba(109, 40, 217, 0.55) !important;
+          color: #FFFFFF !important;
+        }
+
+        .btn-corporate-outline {
+          background: #FFFFFF !important;
+          color: #0F172A !important;
+          border: 1.5px solid #CBD5E1 !important;
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+          transition: all 0.25s ease !important;
+        }
+        .btn-corporate-outline:hover {
+          background: #F8FAFC !important;
+          border-color: #0F172A !important;
+          transform: translateY(-2px) !important;
+        }
+
+        .badge-soft-purple {
+          background-color: #F3E8FF !important;
+          color: #6D28D9 !important;
+          border: 1px solid rgba(109, 40, 217, 0.2) !important;
+        }
+      `}</style>
+
+      {/* Top Banner Corporativo de Anúncios B2B */}
+      <div style={{ background: '#0F172A', color: '#94A3B8', fontSize: '0.82rem', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
+        <div className="container d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div className="d-flex align-items-center gap-2">
+
+            <span style={{ color: '#E2E8F0', fontWeight: '500' }}>
+              Plataforma integrada de entregas, mobilidade e transporte corporativo em Moçambique.
+            </span>
+          </div>
+          <div className="d-flex align-items-center gap-3">
+            <a href="mailto:parcerias@nhiquela.co.mz" className="text-decoration-none fw-bold d-flex align-items-center gap-1" style={{ color: '#CBD5E1' }}>
+              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: '11px' }} />
+              <span>Contactar Parcerias</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Navbar Institucional Glassmorphism */}
+      <nav className="navbar navbar-expand-lg navbar-light py-3 sticky-top navbar-glass-sticky">
         <div className="container">
           <Link className="text-decoration-none" to="/">
-            <h3 className="m-0 text-black fw-extrabold" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
+            <h3 className="m-0 text-dark fw-extrabold" style={{ letterSpacing: '-1.2px', fontSize: '1.75rem' }}>nhiquela<span style={{ color: '#6D28D9' }}>.</span></h3>
           </Link>
-          <div className="d-flex gap-2">
-            <Link to="/shop" className="btn btn-outline-dark rounded-pill px-4 fw-bold">Marketplace Web</Link>
-            <Link to="/login" className="btn btn-outline-primary rounded-pill px-4">Entrar</Link>
+          <div className="d-flex align-items-center gap-2">
+            <Link to="/shop" className="btn btn-corporate-outline rounded-pill px-4 py-2 fw-bold small transition-all d-flex align-items-center gap-2">
+              <FontAwesomeIcon icon={faShoppingBag} />
+              <span>Marketplace</span>
+            </Link>
+            <Link to="/login" className="btn btn-corporate-primary rounded-pill px-4 py-2 fw-bold small d-flex align-items-center gap-2">
+              <span>Entrar</span>
+              <FontAwesomeIcon icon={faArrowRight} style={{ fontSize: '12px' }} />
+            </Link>
           </div>
         </div>
       </nav>
@@ -179,13 +291,12 @@ export default function LandingPage() {
         {/* Título & Cabeçalho da Seção em Container */}
         <div className="container position-relative mb-4" style={{ zIndex: 2 }}>
           <div className="text-center">
-            
+
             <h2 className="display-5 fw-extrabold mb-3" style={{ letterSpacing: '-1.5px', color: '#0F172A' }}>
               Conectamos a Cadeia de Suprimentos de Moçambique
             </h2>
             <p className="lead mx-auto mb-0" style={{ maxWidth: '820px', color: '#475569', fontSize: '1.15rem', lineHeight: '1.6' }}>
-              Do escoamento agrícola nas machambas rurais ao transporte de contentores no porto e fretes pesados interprovinciais com frotas de Freightliners.
-            </p>
+  Da machamba à cidade. Do físico ao digital. A nhiquela conecta produtos, negócios e pessoas.            </p>
           </div>
         </div>
 
@@ -235,7 +346,7 @@ export default function LandingPage() {
                 </p>
 
                 <div className="d-flex flex-wrap gap-3 align-items-center pt-2">
-                  
+
                   <span className="badge px-3 py-2 rounded-pill fw-semibold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(6px)', color: '#FFFFFF' }}>
                     <FontAwesomeIcon icon={faTruck} className="me-2" /> {logisticsSlides[carouselIndex].highlight}
                   </span>
@@ -336,310 +447,799 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Hero Section com Imagem do Cliente */}
-      <div className="py-5 my-2 position-relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)' }}>
-        <div className="container py-4">
-          <div className="row align-items-center g-5">
-            <div className="col-lg-6">
-              <span className="badge px-3 py-2 rounded-pill fw-bold mb-3 shadow-sm d-inline-flex align-items-center gap-2" style={{ backgroundColor: '#F3E8FF', color: '#7F00FF', border: '1px solid rgba(127, 0, 255, 0.2)', fontSize: '0.88rem' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#7F00FF', display: 'inline-block' }}></span>
-                Conectamos quem precisa a quem tem a solução.
-              </span>
-              
-              <h1 className="display-4 fw-extrabold text-dark mb-4" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
-                Tudo em suas mãos, entregue em <span className="text-primary-custom" style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>minutos.</span>
-              </h1>
-              
-              <p className="lead text-secondary mb-4 fs-5" style={{ lineHeight: '1.6', maxWidth: '540px' }}>
-                Nhiquela é a plataforma integrada que conecta Clientes, Fornecedores e Motoristas num único ecossistema inteligente de marketplace e entregas.
-              </p>
-              
-              <div className="d-flex flex-wrap gap-3 mb-4">
-                <Link 
-                  to="/shop" 
-                  className="btn text-white rounded-pill px-4 py-3 fw-extrabold fs-5 transition-all d-inline-flex align-items-center justify-content-center gap-3 shadow-lg"
-                  style={{
-                    background: 'linear-gradient(135deg, #7F00FF 0%, #9333EA 50%, #6366F1 100%)',
-                    boxShadow: '0 14px 35px -6px rgba(127, 0, 255, 0.55), 0 4px 14px rgba(127, 0, 255, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    letterSpacing: '-0.3px',
-                    paddingLeft: '28px',
-                    paddingRight: '20px'
-                  }}
-                >
-                  <span>Acessar Marketplace Web</span>
-                  <span 
-                    className="rounded-circle d-inline-flex align-items-center justify-content-center text-white" 
-                    style={{ 
-                      width: '38px', 
-                      height: '38px', 
-                      backgroundColor: 'rgba(255, 255, 255, 0.22)',
-                      backdropFilter: 'blur(6px)',
-                      boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4)'
+
+
+      {/* ========================================================================= */}
+      {/* 2. "O QUE POSSO FAZER COM A NHIQUELA?" — O ECOSSISTEMA COMPLETO           */}
+      {/* ========================================================================= */}
+      <section className="py-5 bg-white border-top border-bottom position-relative overflow-hidden">
+        <div className="container py-4 position-relative" style={{ zIndex: 2 }}>
+          <div className="text-center mb-5">
+
+            <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px' }}>
+              O que posso fazer com a <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>nhiquela?</span>
+            </h2>
+            <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '750px', fontSize: '1.15rem' }}>
+              Conectamos todas as suas necessidades do dia a dia num único ecossistema digital inteligente, rápido e confiável em Moçambique.
+            </p>
+          </div>
+
+          <div className="row g-4 justify-content-center">
+            {/* 🛍️ COMPRAR */}
+            <div className="col-12 col-md-6 col-lg-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%)',
+                  border: '1px solid rgba(127, 0, 255, 0.15)',
+                  transition: 'all 0.35s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(127, 0, 255, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                }}
+              >
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      background: 'linear-gradient(135deg, #7F00FF 0%, #9333EA 100%)'
                     }}
                   >
-                    <FontAwesomeIcon icon={faShoppingBag} style={{ fontSize: '16px' }} />
-                  </span>
-                </Link>
-              </div>
-
-              {/* Trust Badges Bar */}
-              <div className="p-3 bg-white rounded-4 shadow-sm border d-inline-flex flex-wrap align-items-center gap-3">
-                <div className="d-flex align-items-center gap-2">
-                  <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '34px', height: '34px', backgroundColor: '#F3E8FF', color: '#7F00FF' }}>
-                    <FontAwesomeIcon icon={faMobileAlt} />
+                    <FontAwesomeIcon icon={faShoppingBag} size="lg" />
                   </div>
-                  <span className="fw-semibold text-dark small">Android & iOS</span>
+                  <div>
+                    <h4 className="fw-extrabold text-dark mb-0">Comprar</h4>
+                    <span className="badge bg-light text-primary-custom border rounded-pill small" style={{ fontSize: '11px' }}>Mercado & Lojas</span>
+                  </div>
                 </div>
-                <div className="vr d-none d-sm-block" style={{ height: '20px', opacity: 0.2 }} />
-                <div className="d-flex align-items-center gap-2">
-                  <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '34px', height: '34px', backgroundColor: '#D1FAE5', color: '#059669' }}>
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                  </div>
-                  <span className="fw-semibold text-dark small">Pagamentos M-Pesa & e-Mola</span>
+                <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
+                  Produtos de lojas e estabelecimentos de parceiros confiáveis.
+                </p>
+                <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    Solicitar pedido
+                  </span>
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    Compra de produtos
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="col-lg-6 text-center d-flex justify-content-center align-items-center">
-              {/* CARROSSEL INTERATIVO DE MOCKUPS DAS APPS E ECOSSISTEMA */}
-              <div 
-                className="position-relative p-3 bg-white rounded-5 shadow-lg border text-center" 
-                style={{ maxWidth: '370px', transition: 'all 0.3s ease' }}
-                onMouseEnter={() => setHeroPaused(true)}
-                onMouseLeave={() => setHeroPaused(false)}
+            {/* 📦 ENVIAR */}
+            <div className="col-12 col-md-6 col-lg-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%)',
+                  border: '1px solid rgba(37, 99, 235, 0.15)',
+                  transition: 'all 0.35s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(37, 99, 235, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                }}
               >
-                {/* CONTAINER DO MOCKUP COM TRANSIÇÃO */}
-                <div className="position-relative overflow-hidden rounded-4">
-                  <img 
-                    key={heroMockupKeys[heroMockupIndex]}
-                    src={mockups[heroMockupKeys[heroMockupIndex]]?.image || '/images/mockups/client_app_services_mockup.png'} 
-                    alt={mockups[heroMockupKeys[heroMockupIndex]]?.title || 'Mockup App'} 
-                    className="img-fluid rounded-4 shadow-sm" 
-                    style={{ maxHeight: '490px', width: '100%', objectFit: 'cover', transition: 'all 0.4s ease-in-out' }} 
-                  />
-
-                  {/* BOTÃO ANTERIOR DO CARROSSEL */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const prevIdx = (heroMockupIndex - 1 + heroMockupKeys.length) % heroMockupKeys.length;
-                      setHeroMockupIndex(prevIdx);
-                      setActiveTab(heroMockupKeys[prevIdx]);
-                    }}
-                    className="btn btn-sm text-white rounded-circle position-absolute top-50 start-0 translate-middle-y ms-2 border-0 d-flex align-items-center justify-content-center shadow"
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0"
                     style={{
-                      width: '36px',
-                      height: '36px',
-                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-                      backdropFilter: 'blur(6px)',
-                      zIndex: 5
+                      width: '60px',
+                      height: '60px',
+                      background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)'
                     }}
-                    title="Anterior"
                   >
-                    <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-                  </button>
-
-                  {/* BOTÃO SEGUINTE DO CARROSSEL */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextIdx = (heroMockupIndex + 1) % heroMockupKeys.length;
-                      setHeroMockupIndex(nextIdx);
-                      setActiveTab(heroMockupKeys[nextIdx]);
-                    }}
-                    className="btn btn-sm text-white rounded-circle position-absolute top-50 end-0 translate-middle-y me-2 border-0 d-flex align-items-center justify-content-center shadow"
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-                      backdropFilter: 'blur(6px)',
-                      zIndex: 5
-                    }}
-                    title="Seguinte"
-                  >
-                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
-                  </button>
-
-                  {/* RÓTULO FLUTUANTE DA APLICAÇÃO ATUAL */}
-                  <div 
-                    className="position-absolute bottom-0 start-50 translate-middle-x mb-3 text-white px-3 py-2 rounded-pill shadow-lg small fw-bold border border-secondary d-flex align-items-center justify-content-center gap-2" 
-                    style={{ width: '90%', backdropFilter: 'blur(12px)', backgroundColor: 'rgba(15, 23, 42, 0.88)', zIndex: 6, fontSize: '13px' }}
-                  >
-                    <span>📱</span> {mockups[heroMockupKeys[heroMockupIndex]]?.badge}
+                    <FontAwesomeIcon icon={faBox} size="lg" />
+                  </div>
+                  <div>
+                    <h4 className="fw-extrabold text-dark mb-0">Enviar</h4>
+                    <span className="badge bg-light text-primary border rounded-pill small" style={{ fontSize: '11px' }}>Encomendas Expressas</span>
                   </div>
                 </div>
+                <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
+                  Documentos, encomendas e mercadorias com envio seguro.
+                </p>
+                <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    📄 Documentos
+                  </span>
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    ✉️ Encomendas rápidas
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                {/* PONTOS INDICADORES (DOTS) */}
-                <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
-                  {heroMockupKeys.map((key, idx) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setHeroMockupIndex(idx);
-                        setActiveTab(key);
-                      }}
-                      style={{
-                        width: idx === heroMockupIndex ? '24px' : '9px',
-                        height: '9px',
-                        borderRadius: '10px',
-                        backgroundColor: idx === heroMockupIndex ? '#7F00FF' : '#CBD5E1',
-                        border: 'none',
-                        transition: 'all 0.3s ease',
-                        padding: 0,
-                        cursor: 'pointer'
-                      }}
-                      title={mockups[key]?.badge}
-                    />
-                  ))}
+            {/* 🚚 TRANSPORTAR */}
+            <div className="col-12 col-md-6 col-lg-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)',
+                  border: '1px solid rgba(30, 41, 59, 0.15)',
+                  transition: 'all 0.35s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(30, 41, 59, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                }}
+              >
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      background: 'linear-gradient(135deg, #0F172A 0%, #334155 100%)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTruck} size="lg" />
+                  </div>
+                  <div>
+                    <h4 className="fw-extrabold text-dark mb-0">Transportar</h4>
+                    <span className="badge bg-light text-dark border rounded-pill small" style={{ fontSize: '11px' }}>Fretes & Logística</span>
+                  </div>
+                </div>
+                <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
+                  Carga, mudanças e materiais corporativos ou residenciais.
+                </p>
+                <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    📦 Mudanças
+                  </span>
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    🚛 Cargas pesadas
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 🏍️ MOBILIDADE */}
+            <div className="col-12 col-md-6 col-lg-6">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #ECFDF5 100%)',
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                  transition: 'all 0.35s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(16, 185, 129, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                }}
+              >
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faMotorcycle} size="lg" />
+                  </div>
+                  <div>
+                    <h4 className="fw-extrabold text-dark mb-0">Mobilidade</h4>
+                    <span className="badge bg-light text-success border rounded-pill small" style={{ fontSize: '11px' }}>Transporte Urbano</span>
+                  </div>
+                </div>
+                <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
+                  Moto-táxi, transporte rápido de passageiros e outros serviços de mobilidade.
+                </p>
+                <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    🛵 Moto-Táxi
+                  </span>
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    Deslocação Rápida
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ⛽ SERVIÇOS */}
+            <div className="col-12 col-md-6 col-lg-6">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%)',
+                  border: '1px solid rgba(245, 158, 11, 0.15)',
+                  transition: 'all 0.35s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(245, 158, 11, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                }}
+              >
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faGasPump} size="lg" />
+                  </div>
+                  <div>
+                    <h4 className="fw-extrabold text-dark mb-0">Serviços</h4>
+                    <span className="badge bg-light text-warning border rounded-pill small" style={{ fontSize: '11px' }}>Assistência 24/7</span>
+                  </div>
+                </div>
+                <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
+                  Reboque, aluguer de viaturas e outros serviços de suporte na estrada.
+                </p>
+                <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    Reboque
+                  </span>
+                  <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
+                    Aluguer de Viaturas
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ECOSSISTEMA MOCKUP SHOWCASE SECTION */}
-      <div className="bg-white py-5 border-top border-bottom">
-        <div className="container py-4">
+      {/* ECOSSISTEMA MOCKUP SHOWCASE SECTION (DESIGN ULTRA PROFISSIONAL) */}
+      <section className="py-5 position-relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%)' }}>
+        <div className="container py-4 position-relative" style={{ zIndex: 2 }}>
+          {/* CABEÇALHO DA SEÇÃO */}
           <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold text-dark mt-2" style={{ letterSpacing: '-1px' }}>
-              Uma plataforma que conecta soluções em perfeita sintonia.
+
+            <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
+              Uma plataforma que conecta <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>soluções em perfeita sintonia.</span>
             </h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '650px' }}>
-              Explore como o Cliente navega e solicita serviços, o Fornecedor faz a gestão e o Motorista realiza as entregas em tempo real.
+            <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '760px', fontSize: '1.15rem', lineHeight: '1.65' }}>
+              Explore como o Cliente navega e solicita serviços, o Fornecedor faz a gestão completa do negócio e o Motorista realiza as entregas com rastreamento GPS ativo em tempo real.
             </p>
 
-            {/* Tab Selectors */}
-            <div className="d-flex justify-content-center flex-wrap gap-2 mt-4">
-              <button 
-                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'client' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
-                onClick={() => setActiveTab('client')}
-              >
-                <FontAwesomeIcon icon={faShoppingBag} className="me-2" /> App Cliente (Serviços)
-              </button>
-              <button 
-                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'order' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
-                onClick={() => setActiveTab('order')}
-              >
-                <FontAwesomeIcon icon={faListCheck} className="me-2" /> Acompanhar Pedido
-              </button>
-              <button 
-                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'seller' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
-                onClick={() => setActiveTab('seller')}
-              >
-                <FontAwesomeIcon icon={faStore} className="me-2" /> App Fornecedor
-              </button>
-              <button 
-                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'driver' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
-                onClick={() => setActiveTab('driver')}
-              >
-                <FontAwesomeIcon icon={faMotorcycle} className="me-2" /> App Motorista
-              </button>
-              <button 
-                className={`btn rounded-pill px-4 py-2 fw-bold transition-all ${activeTab === 'map' ? 'bg-primary-custom text-white shadow' : 'btn-outline-secondary'}`}
-                onClick={() => setActiveTab('map')}
-              >
-                <FontAwesomeIcon icon={faMap} className="me-2" /> Trajeto GPS
-              </button>
+            {/* BARRA DE SELEÇÃO DE ABAS INTERATIVAS */}
+            <div className="d-flex justify-content-center flex-wrap gap-2 mt-4 pt-2">
+              {[
+                { id: 'client', label: 'App Cliente (Serviços)', icon: faShoppingBag, activeBg: '#7F00FF' },
+                { id: 'order', label: 'Acompanhar Pedido', icon: faListCheck, activeBg: '#8B5CF6' },
+                { id: 'seller', label: 'App Fornecedor', icon: faStore, activeBg: '#10B981' },
+                { id: 'driver', label: 'App Motorista', icon: faMotorcycle, activeBg: '#059669' },
+                { id: 'map', label: 'Trajeto GPS', icon: faMap, activeBg: '#2563EB' }
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className="btn rounded-pill px-4 py-2.5 fw-bold transition-all d-inline-flex align-items-center gap-2 border"
+                    style={{
+                      backgroundColor: isActive ? tab.activeBg : '#FFFFFF',
+                      color: isActive ? '#FFFFFF' : '#475569',
+                      borderColor: isActive ? tab.activeBg : '#E2E8F0',
+                      boxShadow: isActive ? `0 10px 25px -5px ${tab.activeBg}66` : '0 2px 5px rgba(0,0,0,0.03)',
+                      fontSize: '0.92rem',
+                      transform: isActive ? 'scale(1.03)' : 'scale(1)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={tab.icon} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Active Mockup Display Card */}
-          <div className="bg-light rounded-5 p-4 p-md-5 border shadow-sm">
-            <div className="row align-items-center g-4">
+          {/* DISPLAY CARD PRINCIPAL DA APLICAÇÃO */}
+          <div
+            className="card border-0 rounded-5 p-4 p-md-5 overflow-hidden position-relative"
+            style={{
+              background: '#FFFFFF',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.12), 0 0 40px rgba(127, 0, 255, 0.06)',
+              border: '1px solid rgba(226, 232, 240, 0.8)'
+            }}
+          >
+            <div className="row align-items-center g-5 position-relative" style={{ zIndex: 2 }}>
+              {/* COLUNA ESQUERDA: MOCKUP INTERATIVO */}
               <div className="col-lg-5 text-center">
-                <div className="position-relative d-inline-block bg-white p-2 rounded-5 shadow border">
-                  <img 
-                    src={currentMockup.image} 
-                    alt={currentMockup.title} 
-                    className="img-fluid rounded-4 transition-all" 
-                    style={{ maxHeight: '480px', objectFit: 'cover' }} 
-                  />
-                  <span 
-                    className="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2 shadow"
-                    style={{ backgroundColor: currentMockup.badgeBg, fontSize: '0.85rem' }}
-                  >
-                    {currentMockup.badge}
-                  </span>
+                <div
+                  className="position-relative d-inline-block p-3 rounded-5 bg-white shadow-lg border overflow-hidden"
+                  style={{ maxWidth: '340px', width: '100%', transition: 'all 0.4s ease' }}
+                >
+                  <div className="position-relative rounded-4 overflow-hidden">
+                    <img
+                      src={currentMockup.image}
+                      alt={currentMockup.title}
+                      className="img-fluid rounded-4 transition-all"
+                      style={{ maxHeight: '460px', width: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80';
+                      }}
+                    />
+
+                    {/* FLUTUANTE BADGE DA INTERFACE */}
+                    <span
+                      className="position-absolute top-0 start-50 translate-middle-x mt-3 badge rounded-pill px-4 py-2 shadow-lg fw-bold text-white border border-white"
+                      style={{
+                        backgroundColor: currentMockup.badgeBg || '#7F00FF',
+                        fontSize: '0.82rem',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.25)'
+                      }}
+                    >
+                      {currentMockup.badge}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="col-lg-7">
-                <h3 className="fw-bold text-dark mb-3">{currentMockup.title}</h3>
-                <p className="lead text-muted mb-4 fs-5">{currentMockup.subtitle}</p>
 
+              {/* COLUNA DIREITA: DETALHES & DESTAQUES TÉCNICOS */}
+              <div className="col-lg-7">
+
+
+                <h3 className="display-6 fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.8px' }}>
+                  {currentMockup.title}
+                </h3>
+
+                <p className="lead text-secondary mb-4 fs-5" style={{ lineHeight: '1.65' }}>
+                  {currentMockup.subtitle}
+                </p>
+
+                {/* LISTA DE DESTAQUES EM MICRO-CARDS PROFISSIONAIS */}
                 <div className="d-flex flex-column gap-3 mb-4">
                   {currentMockup.bullets.map((bullet, idx) => (
-                    <div key={idx} className="d-flex align-items-start gap-3">
-                      <div className="bg-white text-primary-custom rounded-circle p-1 shadow-sm d-flex justify-content-center align-items-center" style={{ width: '28px', height: '28px' }}>
-                        <FontAwesomeIcon icon={faCheckCircle} />
+                    <div
+                      key={idx}
+                      className="d-flex align-items-start gap-3 p-3 rounded-4 bg-light border transition-all"
+                      style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9' }}
+                    >
+                      <div
+                        className="rounded-circle text-white d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)'
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faCheckCircle} style={{ fontSize: '14px' }} />
                       </div>
-                      <span className="text-dark fw-medium fs-6">{bullet}</span>
+                      <div className="flex-grow-1">
+                        <span className="text-dark fw-bold fs-6" style={{ lineHeight: '1.5', display: 'block' }}>
+                          {bullet}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="pt-2">
-                  <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold">
-                    Acessar no Marketplace
+                {/* AÇÕES E BOTÃO CTA DA ABA */}
+                <div className="pt-2 d-flex flex-wrap align-items-center gap-3">
+                  <Link
+                    to="/shop"
+                    className="btn text-white rounded-pill px-4 py-3 fw-extrabold shadow-lg transition-all d-inline-flex align-items-center gap-2"
+                    style={{
+                      background: 'linear-gradient(135deg, #7F00FF 0%, #9333EA 50%, #6366F1 100%)',
+                      boxShadow: '0 10px 25px -5px rgba(127, 0, 255, 0.45)'
+                    }}
+                  >
+                    <span>Explorar no Marketplace</span>
+                    <FontAwesomeIcon icon={faArrowRight} />
                   </Link>
+
+
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
 
 
-      {/* Serviços / Features */}
-      <div className="bg-white py-5">
-        <div className="container py-4">
-          <h2 className="text-center fw-bold mb-5">Junte-se à nhiquela</h2>
-          
-          <div className="row g-4">
-            <div className="col-md-4">
-              <div className="card h-100 border-0 shadow-sm-custom rounded-4 text-center p-4">
-                <div className="card-body">
-                  <div className="bg-light text-primary-custom rounded-circle d-flex justify-content-center align-items-center mx-auto mb-4" style={{ width: '80px', height: '80px' }}>
+      {/* SEÇÃO CTA MULTI-FUNIL PREMIUM: JUNTE-SE À NHIQUELA */}
+      <section className="py-5 position-relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%)' }}>
+        <div className="container py-4 position-relative" style={{ zIndex: 2 }}>
+          <div className="text-center mb-5">
+
+            <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px' }}>
+              Junte-se à nhiquela<span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.</span>
+            </h2>
+            <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '680px', fontSize: '1.15rem' }}>
+              Escolha o seu perfil de utilização e descubra como a nossa plataforma integrada transforma o seu negócio, os seus ganhos e a sua conveniência diária.
+            </p>
+          </div>
+
+          <div className="row g-4 justify-content-center">
+            {/* CARD 1: PARA FORNECEDORES */}
+            <div className="col-12 col-md-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 text-center transition-all position-relative overflow-hidden"
+                style={{
+                  background: '#FFFFFF',
+                  boxShadow: '0 20px 40px -15px rgba(127, 0, 255, 0.15)',
+                  border: '1px solid rgba(127, 0, 255, 0.12)',
+                  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.boxShadow = '0 30px 60px -20px rgba(127, 0, 255, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(127, 0, 255, 0.15)';
+                }}
+              >
+                <div className="card-body d-flex flex-column align-items-center p-2">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white mb-4 shadow-lg"
+                    style={{
+                      width: '76px',
+                      height: '76px',
+                      background: 'linear-gradient(135deg, #7F00FF 0%, #9333EA 100%)',
+                      boxShadow: '0 10px 25px rgba(127, 0, 255, 0.4)'
+                    }}
+                  >
                     <FontAwesomeIcon icon={faStore} size="2x" />
                   </div>
-                  <h4 className="fw-bold mb-3">Para Fornecedores</h4>
-                  <p className="text-muted mb-4">Multiplique as suas vendas. Exponha os seus produtos a milhares de clientes sem pagar custos fixos de plataforma.</p>
-                  <Link to="/signup?type=seller" className="text-primary-custom fw-bold text-decoration-none">Criar Loja Grátis &rarr;</Link>
+
+
+
+                  <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
+                    Para Fornecedores
+                  </h3>
+
+                  <p className="text-secondary mb-4 small" style={{ lineHeight: '1.65', minHeight: '64px' }}>
+                    Multiplique as suas vendas. Exponha os seus produtos a milhares de clientes sem pagar custos fixos de plataforma.
+                  </p>
+
+                  <div className="w-100 pt-3 border-top mt-auto">
+                    <Link
+                      to="/signup?type=seller"
+                      className="btn text-white rounded-pill w-100 py-3 fw-extrabold shadow-md transition-all d-flex align-items-center justify-content-center gap-2"
+                      style={{
+                        background: 'linear-gradient(135deg, #7F00FF 0%, #8A2BE2 100%)',
+                        boxShadow: '0 8px 20px rgba(127, 0, 255, 0.3)'
+                      }}
+                    >
+                      <span>Criar Loja Grátis</span>
+                      <FontAwesomeIcon icon={faArrowRight} />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="col-md-4">
-              <div className="card h-100 border-0 shadow-sm-custom rounded-4 text-center p-4">
-                <div className="card-body">
-                  <div className="bg-light text-success rounded-circle d-flex justify-content-center align-items-center mx-auto mb-4" style={{ width: '80px', height: '80px' }}>
+            {/* CARD 2: PARA MOTORISTAS */}
+            <div className="col-12 col-md-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 text-center transition-all position-relative overflow-hidden"
+                style={{
+                  background: '#FFFFFF',
+                  boxShadow: '0 20px 40px -15px rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.boxShadow = '0 30px 60px -20px rgba(16, 185, 129, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(16, 185, 129, 0.15)';
+                }}
+              >
+                <div className="card-body d-flex flex-column align-items-center p-2">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white mb-4 shadow-lg"
+                    style={{
+                      width: '76px',
+                      height: '76px',
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)'
+                    }}
+                  >
                     <FontAwesomeIcon icon={faMotorcycle} size="2x" />
                   </div>
-                  <h4 className="fw-bold mb-3">Para Motoristas</h4>
-                  <p className="text-muted mb-4">Seja seu próprio chefe. Faça entregas com a Nhiquela e receba os seus ganhos diretamente na sua carteira.</p>
-                  <Link to="/signup?type=driver" className="text-success fw-bold text-decoration-none">Seja um Motorista &rarr;</Link>
+
+                  <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
+                    Para Motoristas
+                  </h3>
+
+                  <p className="text-secondary mb-4 small" style={{ lineHeight: '1.65', minHeight: '64px' }}>
+                    Seja seu próprio chefe. Faça entregas com a Nhiquela e receba os seus ganhos diretamente na sua carteira.
+                  </p>
+
+                  <div className="w-100 pt-3 border-top mt-auto">
+                    <Link
+                      to="/signup?type=driver"
+                      className="btn text-white rounded-pill w-100 py-3 fw-extrabold shadow-md transition-all d-flex align-items-center justify-content-center gap-2"
+                      style={{
+                        background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)',
+                        boxShadow: '0 8px 20px rgba(16, 185, 129, 0.3)'
+                      }}
+                    >
+                      <span>Seja um Motorista</span>
+                      <FontAwesomeIcon icon={faArrowRight} />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="col-md-4">
-              <div className="card h-100 border-0 shadow-sm-custom rounded-4 text-center p-4">
-                <div className="card-body">
-                  <div className="bg-light text-warning rounded-circle d-flex justify-content-center align-items-center mx-auto mb-4" style={{ width: '80px', height: '80px' }}>
+            {/* CARD 3: PARA CLIENTES */}
+            <div className="col-12 col-md-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 text-center transition-all position-relative overflow-hidden"
+                style={{
+                  background: '#FFFFFF',
+                  boxShadow: '0 20px 40px -15px rgba(37, 99, 235, 0.15)',
+                  border: '1px solid rgba(37, 99, 235, 0.15)',
+                  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.boxShadow = '0 30px 60px -20px rgba(37, 99, 235, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(37, 99, 235, 0.15)';
+                }}
+              >
+                <div className="card-body d-flex flex-column align-items-center p-2">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white mb-4 shadow-lg"
+                    style={{
+                      width: '76px',
+                      height: '76px',
+                      background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                      boxShadow: '0 10px 25px rgba(37, 99, 235, 0.4)'
+                    }}
+                  >
                     <FontAwesomeIcon icon={faShoppingBag} size="2x" />
                   </div>
-                  <h4 className="fw-bold mb-3">Para Clientes</h4>
-                  <p className="text-muted mb-4">Tudo o que você precisa, onde quer que você esteja. Pague fácil via M-Pesa e e-Mola.</p>
-                  <Link to="/shop" className="text-warning fw-bold text-decoration-none">Explorar Catálogo &rarr;</Link>
+
+
+                  <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
+                    Para Clientes
+                  </h3>
+
+                  <p className="text-secondary mb-4 small" style={{ lineHeight: '1.65', minHeight: '64px' }}>
+                    Tudo o que você precisa, onde quer que você esteja. Pague fácil via M-Pesa e e-Mola.
+                  </p>
+
+                  <div className="w-100 pt-3 border-top mt-auto">
+                    <Link
+                      to="/shop"
+                      className="btn text-white rounded-pill w-100 py-3 fw-extrabold shadow-md transition-all d-flex align-items-center justify-content-center gap-2"
+                      style={{
+                        background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+                        boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)'
+                      }}
+                    >
+                      <span>Explorar Catálogo</span>
+                      <FontAwesomeIcon icon={faArrowRight} />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 10. SEÇÃO MOBILE APP + GOOGLE PLAY & QR CODES (CORPORATE HIGH-TECH)       */}
+      {/* ========================================================================= */}
+      <section className="py-5 bg-white border-top border-bottom position-relative overflow-hidden">
+        <div className="container py-4 position-relative" style={{ zIndex: 2 }}>
+          <div className="text-center mb-5">
+
+            <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
+              A nhiquela está no seu <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>telemóvel.</span>
+            </h2>
+            <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '750px', fontSize: '1.15rem', lineHeight: '1.65' }}>
+              Faça download da aplicação na Google Play Store ou escaneie o QR Code correspondente para acessar à experiência completa.
+            </p>
+          </div>
+
+          <div className="row g-4 justify-content-center">
+            {/* APP CLIENTE & MARKETPLACE */}
+            <div className="col-12 col-md-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 text-center transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%)',
+                  border: '1px solid rgba(127, 0, 255, 0.15)'
+                }}
+              >
+                <div className="card-body d-flex flex-column align-items-center p-2">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white mb-3 shadow-md"
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      background: 'linear-gradient(135deg, #7F00FF 0%, #9333EA 100%)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faShoppingBag} size="xl" />
+                  </div>
+
+                  <h4 className="fw-extrabold text-dark mb-2">Cliente & Mercado</h4>
+                  <p className="text-secondary small mb-4" style={{ lineHeight: '1.6' }}>
+                    Compre produtos, solicite entregas, transporte e acompanhe o seu pedido ao vivo.
+                  </p>
+
+                  {/* QR CODE CONTAINER */}
+                  <div className="p-3 bg-white rounded-4 shadow-sm border mb-4 d-inline-block">
+                    <img
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://play.google.com/store/apps/details?id=com.mpatricio.nhiquelaa"
+                      alt="QR Code App Cliente"
+                      className="img-fluid rounded-3"
+                      style={{ width: '140px', height: '140px' }}
+                    />
+                    <div className="mt-2 text-muted small fw-bold" style={{ fontSize: '11px' }}>
+                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> Apontar Câmara
+                    </div>
+                  </div>
+
+                  {/* GOOGLE PLAY & APP STORE BUTTONS */}
+                  <div className="w-100 d-flex flex-column gap-2 mt-auto">
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.mpatricio.nhiquelaa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-dark rounded-pill py-2.5 px-3 fw-bold small d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z" />
+                      </svg>
+                      <span>Google Play</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* APP FORNECEDOR / LOJA */}
+            <div className="col-12 col-md-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 text-center transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%)',
+                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                }}
+              >
+                <div className="card-body d-flex flex-column align-items-center p-2">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white mb-3 shadow-md"
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faStore} size="xl" />
+                  </div>
+
+                  <h4 className="fw-extrabold text-dark mb-2">Fornecedor</h4>
+                  <p className="text-secondary small mb-4" style={{ lineHeight: '1.6' }}>
+                    Gerencie a sua loja, aceite novos pedidos, controle stock e acompanhe relatórios.
+                  </p>
+
+                  {/* QR CODE CONTAINER */}
+                  <div className="p-3 bg-white rounded-4 shadow-sm border mb-4 d-inline-block">
+                    <img
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://play.google.com/store/apps/details?id=com.mpatricio.nhiquelap"
+                      alt="QR Code App Fornecedor"
+                      className="img-fluid rounded-3"
+                      style={{ width: '140px', height: '140px' }}
+                    />
+                    <div className="mt-2 text-muted small fw-bold" style={{ fontSize: '11px' }}>
+                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> Apontar Câmara
+                    </div>
+                  </div>
+
+                  {/* GOOGLE PLAY & APP STORE BUTTONS */}
+                  <div className="w-100 d-flex flex-column gap-2 mt-auto">
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.mpatricio.nhiquelap"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-dark rounded-pill py-2.5 px-3 fw-bold small d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z" />
+                      </svg>
+                      <span>Google Play</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* APP MOTORISTA / ESTAFETA */}
+            <div className="col-12 col-md-4">
+              <div
+                className="card h-100 border-0 rounded-5 p-4 text-center transition-all position-relative shadow-sm"
+                style={{
+                  background: 'linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 100%)',
+                  border: '1px solid rgba(37, 99, 235, 0.15)'
+                }}
+              >
+                <div className="card-body d-flex flex-column align-items-center p-2">
+                  <div
+                    className="rounded-4 d-flex align-items-center justify-content-center text-white mb-3 shadow-md"
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faMotorcycle} size="xl" />
+                  </div>
+
+                  <h4 className="fw-extrabold text-dark mb-2">Motorista</h4>
+                  <p className="text-secondary small mb-4" style={{ lineHeight: '1.6' }}>
+                    Receba solicitações de transporte, navegue via GPS e ganhe diretamente na sua carteira.
+                  </p>
+
+                  {/* QR CODE CONTAINER */}
+                  <div className="p-3 bg-white rounded-4 shadow-sm border mb-4 d-inline-block">
+                    <img
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://play.google.com/store/apps/details?id=com.nhiquela.driver"
+                      alt="QR Code App Motorista"
+                      className="img-fluid rounded-3"
+                      style={{ width: '140px', height: '140px' }}
+                    />
+                    <div className="mt-2 text-muted small fw-bold" style={{ fontSize: '11px' }}>
+                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> Apontar Câmara
+                    </div>
+                  </div>
+
+                  {/* GOOGLE PLAY & APP STORE BUTTONS */}
+                  <div className="w-100 d-flex flex-column gap-2 mt-auto">
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.nhiquela.driver"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-dark rounded-pill py-2.5 px-3 fw-bold small d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z" />
+                      </svg>
+                      <span>Google Play</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Secção CTA (Call to Action) Ultra Premium com Cor Principal Nhiquela */}
       <div className="container py-4 my-4">
@@ -668,14 +1268,14 @@ export default function LandingPage() {
             <p className="lead mb-5" style={{ color: '#F3E8FF', fontSize: '1.25rem', lineHeight: '1.6', maxWidth: '680px', margin: '0 auto' }}>
               A sua próxima entrega, o seu próximo serviço, o seu próximo cliente — tudo a começar agora.
             </p>
-            
+
             <div className="d-flex flex-column flex-sm-row justify-content-center gap-3 align-items-center">
               <Link
                 to="/shop"
                 className="btn bg-white text-primary-custom rounded-pill px-5 py-3 fw-extrabold shadow-lg fs-5 transition-all d-flex align-items-center justify-content-center gap-2"
                 style={{ minWidth: '260px', color: '#7F00FF' }}
               >
-                Marketplace Web <FontAwesomeIcon icon={faArrowRight} />
+                Marketplace <FontAwesomeIcon icon={faArrowRight} />
               </Link>
 
               <Link
@@ -707,7 +1307,7 @@ export default function LandingPage() {
                 </h3>
               </Link>
               <p className="small text-slate-400 mb-4" style={{ color: '#94A3B8', lineHeight: '1.7', maxWidth: '320px' }}>
-                Ecossistema tecnológico que conecta clientes, fornecedores e frotas de logística corporativa de carga pesada em todo o país.
+                Ecossistema tecnológico que conecta clientes, fornecedores e logística de cargas em todo o país.
               </p>
             </div>
 
@@ -718,7 +1318,7 @@ export default function LandingPage() {
               </h6>
               <ul className="list-unstyled d-flex flex-column gap-2 small">
                 <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Marketplace</Link></li>
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Cargas Pesados & Freightliners</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Cargas Pesadas</Link></li>
                 <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Logística Portuária & Contentores</Link></li>
                 <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Escoamento Agrícola nas Machambas</Link></li>
               </ul>

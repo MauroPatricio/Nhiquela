@@ -368,13 +368,63 @@ export default function LoginScreen() {
           </form>
 
           {/* Link para Registro */}
-          <div style={{ textAlign: 'center', marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #F1F5F9' }}>
+          <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
               Ainda não possui uma conta?{' '}
               <Link to={signupClientUrl} style={{ color: '#8A2BE2', fontWeight: '800', textDecoration: 'none' }}>
                 Registar-se aqui
               </Link>
             </p>
+          </div>
+
+          {/* SEÇÃO DOWNLOAD DOS APLICATIVOS GOOGLE PLAY */}
+          <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #E2E8F0', textAlign: 'center' }}>
+            <span className="badge px-3 py-1.5 rounded-pill mb-2 fw-bold text-uppercase" style={{ backgroundColor: '#F3E8FF', color: '#7F00FF', fontSize: '11px', letterSpacing: '0.5px' }}>
+              📱 Aplicações Móveis Oficial
+            </span>
+            <h6 className="fw-bold text-dark mb-3" style={{ fontSize: '14px' }}>
+              Baixe a Nhiquela na Google Play
+            </h6>
+            <div className="d-flex flex-wrap justify-content-center gap-2">
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-dark rounded-pill py-2 px-3 fw-bold small d-inline-flex align-items-center gap-2 shadow-sm"
+                style={{ fontSize: '12px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z"/>
+                </svg>
+                <span>App Cliente</span>
+              </a>
+
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline-dark rounded-pill py-2 px-3 fw-bold small d-inline-flex align-items-center gap-2 shadow-sm"
+                style={{ fontSize: '12px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z"/>
+                </svg>
+                <span>App Fornecedor</span>
+              </a>
+
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline-dark rounded-pill py-2 px-3 fw-bold small d-inline-flex align-items-center gap-2 shadow-sm"
+                style={{ fontSize: '12px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z"/>
+                </svg>
+                <span>App Motorista</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

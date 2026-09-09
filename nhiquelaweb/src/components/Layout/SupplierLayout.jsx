@@ -63,7 +63,7 @@ export default function SupplierLayout() {
             )}
           </div>
           <h6 className="fw-bold m-0 text-truncate">{userInfo.seller?.nomeEstabelecimento || userInfo.seller?.name || userInfo.name || 'Minha Loja'}</h6>
-          {userInfo.seller?.openstore !== false ? (
+          {Boolean(userInfo.seller?.openstore) ? (
             <small className="text-success fw-bold d-block mt-1">🟢 Loja Ativa</small>
           ) : (
             <small className="text-danger fw-bold d-block mt-1">🔴 Loja Fechada</small>
