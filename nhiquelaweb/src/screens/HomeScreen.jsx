@@ -37,6 +37,16 @@ export const getStoreLogoUrl = (seller) => {
   return `${SOCKET_URL}${formattedPath}`;
 };
 
+export const isStoreOpen = (seller) => {
+  if (!seller) return true;
+  const sellerData = typeof seller === 'object' ? (seller.seller || seller) : {};
+  if (sellerData.openstore !== undefined) return Boolean(sellerData.openstore);
+  if (seller.openstore !== undefined) return Boolean(seller.openstore);
+  if (sellerData.status === 'Fechado' || seller.status === 'Fechado') return false;
+  if (sellerData.status === 'Aberto' || seller.status === 'Aberto') return true;
+  return true;
+};
+
 export default function HomeScreen() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [sellers, setSellers] = useState([]);
@@ -47,6 +57,8 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
+  const [sellerEtas, setSellerEtas] = useState({});
 
   const logisticsSlides = useMemo(() => [
     {
@@ -88,12 +100,68 @@ export default function HomeScreen() {
   ], []);
 
   useEffect(() => {
-    if (isPaused) return;
-    const timer = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % logisticsSlides.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [isPaused, logisticsSlides.length]);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setUserCoords({ lat: -25.9692, lng: 32.5732 }),
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setUserCoords({ lat: -25.9692, lng: 32.5732 });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!featuredProducts || featuredProducts.length === 0 || !userCoords) return;
+
+    const sellersToFetch = new Map();
+    featuredProducts.forEach(p => {
+      if (p.seller) {
+        const sId = typeof p.seller === 'object' ? (p.seller._id || p.seller.id) : p.seller;
+        if (sId && !sellersToFetch.has(String(sId))) {
+          sellersToFetch.set(String(sId), p.seller);
+        }
+      }
+    });
+
+    sellersToFetch.forEach(async (sellerObj, sIdStr) => {
+      try {
+        const sData = typeof sellerObj === 'object' ? (sellerObj.seller || sellerObj) : {};
+        const sLat = parseFloat(sData.latitude || sellerObj.latitude || (sellerObj.locationGeo?.coordinates ? sellerObj.locationGeo.coordinates[1] : 0)) || -25.9535;
+        const sLng = parseFloat(sData.longitude || sellerObj.longitude || (sellerObj.locationGeo?.coordinates ? sellerObj.locationGeo.coordinates[0] : 0)) || 32.5892;
+
+        const { data } = await api.get(`/osrm/route?origin=${userCoords.lng},${userCoords.lat}&destination=${sLng},${sLat}`);
+        if (data && data.durationMin) {
+          setSellerEtas(prev => ({ ...prev, [sIdStr]: `~${data.durationMin} min` }));
+        }
+      } catch (err) {
+        // Fallback handled silently
+      }
+    });
+  }, [featuredProducts, userCoords]);
+
+  const getEtaDisplay = (seller) => {
+    if (!seller) return '25-35 min';
+    const sId = typeof seller === 'object' ? String(seller._id || seller.id) : String(seller);
+    if (sellerEtas[sId]) return sellerEtas[sId];
+
+    const sData = typeof seller === 'object' ? (seller.seller || seller) : {};
+    const sLat = parseFloat(sData.latitude || seller.latitude || (seller.locationGeo?.coordinates ? seller.locationGeo.coordinates[1] : 0)) || -25.9535;
+    const sLng = parseFloat(sData.longitude || seller.longitude || (seller.locationGeo?.coordinates ? seller.locationGeo.coordinates[0] : 0)) || 32.5892;
+    const uLat = userCoords?.lat || -25.9692;
+    const uLng = userCoords?.lng || 32.5732;
+
+    const toRad = v => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(sLat - uLat);
+    const dLng = toRad(sLng - uLng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(uLat)) * Math.cos(toRad(sLat)) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distanceKm = R * c;
+    const driveMin = Math.round((distanceKm / 35) * 60);
+    const totalMin = Math.max(15, driveMin + 12);
+    return `~${totalMin} min`;
+  };
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -107,6 +175,31 @@ export default function HomeScreen() {
 
     socket.on('newProduct', (newProduct) => {
       setFeaturedProducts((prev) => [newProduct, ...prev.slice(0, 19)]);
+    });
+
+    socket.on('storeStatusChanged', ({ userId, isOpen, openstore }) => {
+      const statusValue = isOpen !== undefined ? isOpen : openstore;
+      setSellers((prev) =>
+        prev.map((s) => {
+          const sId = s._id || s.id || s.userId?._id || s.userId;
+          if (String(sId) === String(userId)) {
+            return { ...s, openstore: statusValue, seller: { ...s.seller, openstore: statusValue } };
+          }
+          return s;
+        })
+      );
+      setFeaturedProducts((prev) =>
+        prev.map((p) => {
+          const pSellerId = p.seller?._id || p.seller?.id || p.seller;
+          if (String(pSellerId) === String(userId)) {
+            return {
+              ...p,
+              seller: typeof p.seller === 'object' ? { ...p.seller, openstore: statusValue } : p.seller
+            };
+          }
+          return p;
+        })
+      );
     });
 
     const loadData = async () => {
@@ -185,6 +278,14 @@ export default function HomeScreen() {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+    }
+
+    if (!isStoreOpen(product.seller)) {
+      toast.warning('Esta loja encontra-se de momento fechada para novos pedidos.', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
     }
 
     const sellerObj = typeof product.seller === 'object' && product.seller !== null
@@ -565,14 +666,25 @@ export default function HomeScreen() {
           </div>
 
           <div className="row g-4">
-            {sellers.slice(0, 4).map((seller) => {
+            {sellers.slice(0, 8).map((seller) => {
               const storeLogoUrl = getStoreLogoUrl(seller);
               const storeProvince = seller.seller?.province || seller.province || seller.seller?.address || 'Maputo';
+              const open = isStoreOpen(seller);
 
               return (
                 <div key={seller._id} className="col-12 col-sm-6 col-md-3">
-                  <div className="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white text-center hover-lift">
-                    <div className="d-flex justify-content-center mb-3">
+                  <div className="card h-100 border-0 shadow-sm rounded-4 p-3 bg-white text-center hover-lift position-relative overflow-hidden">
+                    {/* Status Badge Aberto/Fechado */}
+                    <div className="position-absolute top-0 start-0 m-3 z-1">
+                      <span 
+                        className={`badge rounded-pill px-2.5 py-1 fw-bold shadow-sm ${open ? 'bg-success text-white' : 'bg-danger text-white'}`}
+                        style={{ fontSize: '10.5px' }}
+                      >
+                        {open ? '🟢 Aberto' : '🔴 Fechado'}
+                      </span>
+                    </div>
+
+                    <div className="d-flex justify-content-center mb-3 mt-2">
                       {storeLogoUrl ? (
                         <img 
                           src={storeLogoUrl} 
@@ -634,60 +746,76 @@ export default function HomeScreen() {
           </div>
         ) : (
           <div className="row g-4">
-            {filteredProducts.map((product) => (
-              <div key={product._id} className="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div className="card h-100 border-0 shadow-sm-custom rounded-4 p-3 d-flex flex-column bg-white position-relative hover-lift">
-                  <Link to={`/shop/product/${product.slug || product._id}`} className="text-decoration-none text-dark flex-grow-1">
-                    <div className="position-relative mb-3 overflow-hidden rounded-3 bg-light" style={{ height: '180px' }}>
-                      <img 
-                        src={getProductImageUrl(product)} 
-                        alt={product.nome || product.name} 
-                        className="img-fluid rounded-3 w-100 h-100 object-fit-cover" 
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = DEFAULT_PRODUCT_IMAGE;
-                        }}
-                      />
-                    </div>
-                    
-                    <div className="text-muted small d-flex align-items-center gap-1 mb-1">
-                      <FontAwesomeIcon icon={faStore} className="text-primary-custom" />
-                      <span className="fw-bold text-truncate" style={{ maxWidth: '180px' }}>
-                        {product.seller?.name || product.vendor || 'Fornecedor Nhiquela'}
-                      </span>
-                    </div>
+            {filteredProducts.map((product) => {
+              const sellerOpen = isStoreOpen(product.seller);
 
-                    <h6 className="fw-bold text-black mb-2 text-truncate">{product.nome || product.name}</h6>
-                    
-                    <div className="d-flex align-items-baseline gap-2 mb-2">
-                      <span className="fw-black text-black fs-5">
-                        {product.price?.toLocaleString('pt-PT')} MT
-                      </span>
-                    </div>
-                    
-                    <div className="d-flex align-items-center gap-3 text-muted small fw-bold mb-3">
-                      <span className="text-warning"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.8'}</span>
-                      <span><FontAwesomeIcon icon={faClock} className="me-1" /> 30-45 min</span>
-                    </div>
-                  </Link>
+              return (
+                <div key={product._id} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                  <div className="card h-100 border-0 shadow-sm-custom rounded-4 p-3 d-flex flex-column bg-white position-relative hover-lift">
+                    <Link to={`/shop/product/${product.slug || product._id}`} className="text-decoration-none text-dark flex-grow-1">
+                      <div className="position-relative mb-3 overflow-hidden rounded-3 bg-light" style={{ height: '180px' }}>
+                        <img 
+                          src={getProductImageUrl(product)} 
+                          alt={product.nome || product.name} 
+                          className="img-fluid rounded-3 w-100 h-100 object-fit-cover" 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = DEFAULT_PRODUCT_IMAGE;
+                          }}
+                        />
+                        {!sellerOpen && (
+                          <span className="badge bg-danger text-white position-absolute shadow-sm" style={{ top: '10px', right: '10px', zIndex: 5, fontSize: '11px' }}>
+                            🔴 Loja Fechada
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="text-muted small d-flex align-items-center justify-content-between gap-1 mb-1">
+                        <div className="d-flex align-items-center gap-1 text-truncate" style={{ maxWidth: '160px' }}>
+                          <FontAwesomeIcon icon={faStore} className="text-primary-custom" />
+                          <span className="fw-bold text-truncate">
+                            {product.seller?.name || product.vendor || 'Fornecedor Nhiquela'}
+                          </span>
+                        </div>
+                        <span className={`badge rounded-pill px-2 py-0.5 small ${sellerOpen ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger'}`} style={{ fontSize: '9.5px' }}>
+                          {sellerOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                        </span>
+                      </div>
 
-                  <div className="d-flex gap-2 mt-auto pt-2 border-top">
-                    <button 
-                      className="btn btn-outline-dark flex-grow-1 fw-bold rounded-3 py-2 small"
-                      onClick={(e) => handleAddToCart(product, e)}
-                    >
-                      <FontAwesomeIcon icon={faPlus} className="me-1" /> Carrinho
-                    </button>
-                    <button 
-                      className="btn bg-primary-custom text-white flex-grow-1 fw-bold rounded-3 py-2 small"
-                      onClick={(e) => handleBuyNow(product, e)}
-                    >
-                      <FontAwesomeIcon icon={faShoppingBag} className="me-1" /> Comprar
-                    </button>
+                      <h6 className="fw-bold text-black mb-2 text-truncate">{product.nome || product.name}</h6>
+                      
+                      <div className="d-flex align-items-baseline gap-2 mb-2">
+                        <span className="fw-black text-black fs-5">
+                          {product.price?.toLocaleString('pt-PT')} MT
+                        </span>
+                      </div>
+                      
+                      <div className="d-flex align-items-center gap-3 text-muted small fw-bold mb-3">
+                        <span className="text-warning"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.8'}</span>
+                        <span><FontAwesomeIcon icon={faClock} className="me-1" /> {getEtaDisplay(product.seller)}</span>
+                      </div>
+                    </Link>
+
+                    <div className="d-flex gap-2 mt-auto pt-2 border-top">
+                      <button 
+                        className={`btn ${sellerOpen ? 'btn-outline-dark' : 'btn-light text-muted'} flex-grow-1 fw-bold rounded-3 py-2 small`}
+                        onClick={(e) => handleAddToCart(product, e)}
+                        disabled={!sellerOpen}
+                      >
+                        <FontAwesomeIcon icon={faPlus} className="me-1" /> {sellerOpen ? 'Carrinho' : 'Fechado'}
+                      </button>
+                      <button 
+                        className={`btn ${sellerOpen ? 'bg-primary-custom text-white' : 'btn-secondary'} flex-grow-1 fw-bold rounded-3 py-2 small`}
+                        onClick={(e) => handleBuyNow(product, e)}
+                        disabled={!sellerOpen}
+                      >
+                        <FontAwesomeIcon icon={faShoppingBag} className="me-1" /> Comprar
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

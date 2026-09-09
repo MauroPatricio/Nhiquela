@@ -81,14 +81,21 @@ export default function PartnerMembersScreen() {
     }
 
     try {
-      const res = await api.delete(`/partners/${partnerId}/remove-member/${member._id}`, {
-        headers: { Authorization: `Bearer ${userInfo.token}` }
-      });
-      toast.success(res.data.message || 'Membro desvinculado com sucesso.');
+      let res;
+      try {
+        res = await api.delete(`/partners/${partnerId}/remove-member/${member._id}`, {
+          headers: { Authorization: `Bearer ${userInfo.token}` }
+        });
+      } catch (err) {
+        res = await api.post(`/partners/${partnerId}/remove-member`, { memberId: member._id }, {
+          headers: { Authorization: `Bearer ${userInfo.token}` }
+        });
+      }
+      toast.success(res.data?.message || 'Membro desvinculado com sucesso.');
       fetchMembers();
     } catch (error) {
       console.error('Erro ao remover membro:', error);
-      toast.error(error.response?.data?.message || 'Erro ao remover membro.');
+      toast.error(error.response?.data?.message || 'Erro ao desvincular membro da frota.');
     }
   };
 

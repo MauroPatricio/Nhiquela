@@ -9,7 +9,9 @@ import {
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
 import { addToBasket } from '../store/features/basketSlice';
-import api from '../api';
+import { io } from 'socket.io-client';
+import api, { SOCKET_URL } from '../api';
+import { isStoreOpen } from './ProductsScreen';
 
 const DEFAULT_PRODUCT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%23F3F4F6"/><path d="M150 110 L190 170 L110 170 Z" fill="%239CA3AF"/><circle cx="125" cy="125" r="12" fill="%239CA3AF"/><text x="150" y="210" font-family="sans-serif" font-size="14" font-weight="bold" fill="%236B7280" text-anchor="middle">Nhiquela Marketplace</text></svg>`;
 
@@ -34,6 +36,15 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
 
+  const [etaData, setEtaData] = useState({
+    loading: false,
+    durationMin: null,
+    distanceKm: null,
+    etaFormattedTime: '',
+    etaMessage: '',
+    trafficStatus: ''
+  });
+
   useEffect(() => {
     const fetchProductDetails = async () => {
       setLoading(true);
@@ -53,7 +64,111 @@ export default function ProductDetailScreen() {
       }
     };
     if (id) fetchProductDetails();
+
+    const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
+    socket.on('storeStatusChanged', ({ userId, isOpen, openstore }) => {
+      const statusValue = isOpen !== undefined ? isOpen : openstore;
+      setProduct(prev => {
+        if (!prev) return prev;
+        const sObj = prev.seller;
+        if (sObj && typeof sObj === 'object') {
+          const sId = sObj._id || sObj.id;
+          if (String(sId) === String(userId)) {
+            return { ...prev, seller: { ...sObj, openstore: statusValue } };
+          }
+        }
+        return prev;
+      });
+    });
+
+    return () => socket.disconnect();
   }, [id]);
+
+  useEffect(() => {
+    if (!product || product.productType === 'DIGITAL') return;
+
+    let isMounted = true;
+    setEtaData(prev => ({ ...prev, loading: true }));
+
+    const fetchEtaFromCoordinates = async (userLat, userLng) => {
+      try {
+        const sellerObj = typeof product.seller === 'object' && product.seller !== null ? product.seller : {};
+        const sellerSub = sellerObj.seller || {};
+
+        // Coordenadas da Loja / Vendedor (com fallback para Maputo Centro se ausentes)
+        const sLat = parseFloat(sellerSub.latitude || sellerObj.latitude || (sellerObj.locationGeo?.coordinates ? sellerObj.locationGeo.coordinates[1] : 0)) || -25.9535;
+        const sLng = parseFloat(sellerSub.longitude || sellerObj.longitude || (sellerObj.locationGeo?.coordinates ? sellerObj.locationGeo.coordinates[0] : 0)) || 32.5892;
+
+        const origin = `${userLng},${userLat}`;
+        const destination = `${sLng},${sLat}`;
+
+        let durationMin = null;
+        let distanceKm = null;
+        let trafficStatus = '';
+        let etaMessage = '';
+
+        try {
+          const { data } = await api.get(`/osrm/route?origin=${origin}&destination=${destination}`);
+          durationMin = data.durationMin;
+          distanceKm = data.distanceKm;
+          trafficStatus = data.trafficStatus;
+          etaMessage = data.etaMessage;
+        } catch (apiErr) {
+          // Direct OSRM fallback
+          const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${origin};${destination}?overview=false`);
+          const osrmData = await osrmRes.json();
+          if (osrmData?.routes && osrmData.routes.length > 0) {
+            const route = osrmData.routes[0];
+            distanceKm = (route.distance / 1000).toFixed(2);
+            durationMin = Math.max(1, Math.round(route.duration / 60));
+            etaMessage = `Entrega prevista em ~${durationMin} min (${distanceKm} km)`;
+          }
+        }
+
+        if (isMounted) {
+          setEtaData({
+            loading: false,
+            durationMin: durationMin || '25-40',
+            distanceKm: distanceKm,
+            etaFormattedTime: '',
+            etaMessage: etaMessage || `Entregue por motorista verificado da Nhiquela em Maputo`,
+            trafficStatus: trafficStatus || ''
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao calcular OSRM ETA:', err);
+        if (isMounted) {
+          setEtaData({
+            loading: false,
+            durationMin: '30-45',
+            distanceKm: null,
+            etaFormattedTime: '',
+            etaMessage: 'Entregue por motorista verificado da Nhiquela em Maputo',
+            trafficStatus: ''
+          });
+        }
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          fetchEtaFromCoordinates(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          // Fallback para centro de Maputo
+          fetchEtaFromCoordinates(-25.9692, 32.5732);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      fetchEtaFromCoordinates(-25.9692, 32.5732);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product]);
 
   if (loading) {
     return (
@@ -78,8 +193,14 @@ export default function ProductDetailScreen() {
     : { _id: product.seller || 'seller_default', name: product.vendor || 'Nhiquela Partner' };
 
   const isDigital = product.productType === 'DIGITAL';
+  const sellerOpen = isStoreOpen(product.seller);
 
   const handleAddToCart = () => {
+    if (!sellerOpen) {
+      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      return;
+    }
+
     for (let i = 0; i < quantity; i++) {
       dispatch(addToBasket({
         _id: product._id,
@@ -98,6 +219,10 @@ export default function ProductDetailScreen() {
   };
 
   const handleBuyNow = () => {
+    if (!sellerOpen) {
+      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      return;
+    }
     handleAddToCart();
     navigate('/shop/cart');
   };
@@ -146,9 +271,14 @@ export default function ProductDetailScreen() {
                 <span className="badge bg-light text-dark px-3 py-2 rounded-pill fw-bold border">
                   {product.category?.name || 'Geral'}
                 </span>
-                <Link to={`/shop/seller/${sellerObj._id}`} className="text-decoration-none text-muted small fw-bold">
-                  <FontAwesomeIcon icon={faStore} className="text-primary-custom me-1" /> {sellerObj.name || 'Loja Parceira'}
-                </Link>
+                <div className="d-flex align-items-center gap-2">
+                  <Link to={`/shop/seller/${sellerObj._id}`} className="text-decoration-none text-muted small fw-bold">
+                    <FontAwesomeIcon icon={faStore} className="text-primary-custom me-1" /> {sellerObj.name || 'Loja Parceira'}
+                  </Link>
+                  <span className={`badge ${sellerOpen ? 'bg-success text-white' : 'bg-danger text-white'} rounded-pill px-2 py-1 fw-bold`} style={{ fontSize: '10px' }}>
+                    {sellerOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                  </span>
+                </div>
               </div>
 
               {/* Título & Avaliação */}
@@ -185,15 +315,25 @@ export default function ProductDetailScreen() {
                   </div>
                   <div>
                     <div className="fw-bold text-dark">Entrega Digital Instantânea</div>
-                    <small className="text-muted">A chave/licença é enviada diretamente por e-mail após a confirmação do pagamento. <strong>Zero taxa de frete.</strong></small>
+                    <small className="text-muted">A chave/licença é enviada diretamente por e-mail após a confirmação do pagamento.</small>
                   </div>
                 </div>
               ) : (
-                <div className="alert alert-light border rounded-4 p-3 mb-4 d-flex align-items-center gap-3">
+                <div className="alert alert-light border rounded-4 p-3 mb-4 d-flex align-items-center gap-3 shadow-sm">
                   <FontAwesomeIcon icon={faTruck} className="text-primary-custom fs-3" />
                   <div>
-                    <div className="fw-bold text-dark">Entrega Estimada: 30–45 min</div>
-                    <small className="text-muted">Entregue por motorista verificado da Nhiquela em Maputo</small>
+                    <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                      Entrega Estimada: {etaData.loading ? 'A calcular rota...' : `${etaData.durationMin || '30-45'} min`}
+                      {etaData.trafficStatus && (
+                        <span className="badge rounded-pill small" style={{ fontSize: '11px', backgroundColor: '#F3E8FF', color: '#7F00FF' }}>
+                          {etaData.trafficStatus}
+                        </span>
+                      )}
+                    </div>
+                    <small className="text-muted">
+                      {etaData.distanceKm ? `Distância: ${etaData.distanceKm} km • ` : ''}
+                      {etaData.etaMessage || 'Entregue por motorista verificado da Nhiquela em Maputo'}
+                    </small>
                   </div>
                 </div>
               )}
@@ -282,16 +422,18 @@ export default function ProductDetailScreen() {
             {/* Botões de Ação */}
             <div className="d-flex gap-3 pt-3 border-top">
               <button 
-                className="btn btn-outline-dark flex-grow-1 py-3 rounded-pill fw-bold fs-6"
+                className={`btn flex-grow-1 py-3 rounded-pill fw-bold fs-6 ${sellerOpen ? 'btn-outline-dark' : 'btn-secondary text-white opacity-75'}`}
                 onClick={handleAddToCart}
+                disabled={!sellerOpen}
               >
-                <FontAwesomeIcon icon={faShoppingCart} className="me-2" /> Adicionar ao Carrinho
+                <FontAwesomeIcon icon={faShoppingCart} className="me-2" /> {sellerOpen ? 'Adicionar ao Carrinho' : 'Loja Fechada'}
               </button>
               <button 
-                className="btn bg-primary-custom text-white flex-grow-1 py-3 rounded-pill fw-bold fs-6 shadow-sm"
+                className={`btn flex-grow-1 py-3 rounded-pill fw-bold fs-6 shadow-sm ${sellerOpen ? 'bg-primary-custom text-white' : 'btn-secondary text-white opacity-75'}`}
                 onClick={handleBuyNow}
+                disabled={!sellerOpen}
               >
-                <FontAwesomeIcon icon={faShoppingBag} className="me-2" /> Comprar Agora
+                <FontAwesomeIcon icon={faShoppingBag} className="me-2" /> {sellerOpen ? 'Comprar Agora' : 'Loja Fechada'}
               </button>
             </div>
           </div>

@@ -54,6 +54,10 @@ export default function LandingPage() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  const heroMockupKeys = ['client', 'order', 'seller', 'driver', 'map'];
+  const [heroMockupIndex, setHeroMockupIndex] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
+
   useEffect(() => {
     if (isPaused) return;
     const timer = setInterval(() => {
@@ -61,6 +65,14 @@ export default function LandingPage() {
     }, 4500);
     return () => clearInterval(timer);
   }, [isPaused]);
+
+  useEffect(() => {
+    if (heroPaused) return;
+    const timer = setInterval(() => {
+      setHeroMockupIndex((prev) => (prev + 1) % heroMockupKeys.length);
+    }, 3800);
+    return () => clearInterval(timer);
+  }, [heroPaused, heroMockupKeys.length]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -116,7 +128,7 @@ export default function LandingPage() {
       ]
     },
     driver: {
-      title: 'App Motorista (nhiqueladriver) — Viagens & Entregas',
+      title: 'App Motorista  — Viagens & Entregas',
       subtitle: 'Receba solicitações de entregas com 1 toque e gira os seus ganhos diários na sua carteira.',
       image: '/images/mockups/driver_app_mockup.jpg',
       badge: 'Motorista / Entregador',
@@ -223,9 +235,7 @@ export default function LandingPage() {
                 </p>
 
                 <div className="d-flex flex-wrap gap-3 align-items-center pt-2">
-                  <Link to="/shop" className="btn btn-light rounded-pill px-4 py-3 fw-bold shadow-lg">
-                    Explorar Frota & Cotar Frete <FontAwesomeIcon icon={faArrowRight} className="ms-2" />
-                  </Link>
+                  
                   <span className="badge px-3 py-2 rounded-pill fw-semibold" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(6px)', color: '#FFFFFF' }}>
                     <FontAwesomeIcon icon={faTruck} className="me-2" /> {logisticsSlides[carouselIndex].highlight}
                   </span>
@@ -392,16 +402,97 @@ export default function LandingPage() {
             </div>
 
             <div className="col-lg-6 text-center d-flex justify-content-center align-items-center">
-              {/* Card Ilustrativo de Destaque com Efeito Glassmorphism & Shadow */}
-              <div className="position-relative p-3 bg-white rounded-5 shadow-lg border" style={{ maxWidth: '360px', transition: 'all 0.3s ease' }}>
-                <img 
-                  src="/images/mockups/client_app_services_mockup.png" 
-                  alt="App Cliente Nhiquela — Catálogo de Serviços" 
-                  className="img-fluid rounded-4 shadow-sm" 
-                  style={{ maxHeight: '500px', objectFit: 'cover' }} 
-                />
-                <div className="position-absolute bottom-0 start-50 translate-middle-x mb-4 text-white px-3 py-2 rounded-pill shadow-lg fs-6 fw-bold border border-secondary d-flex align-items-center justify-content-center gap-2" style={{ width: '92%', backdropFilter: 'blur(12px)', backgroundColor: 'rgba(15, 23, 42, 0.88)' }}>
-                  <span>📱</span> App Cliente Nhiquela — Catálogo de Serviços
+              {/* CARROSSEL INTERATIVO DE MOCKUPS DAS APPS E ECOSSISTEMA */}
+              <div 
+                className="position-relative p-3 bg-white rounded-5 shadow-lg border text-center" 
+                style={{ maxWidth: '370px', transition: 'all 0.3s ease' }}
+                onMouseEnter={() => setHeroPaused(true)}
+                onMouseLeave={() => setHeroPaused(false)}
+              >
+                {/* CONTAINER DO MOCKUP COM TRANSIÇÃO */}
+                <div className="position-relative overflow-hidden rounded-4">
+                  <img 
+                    key={heroMockupKeys[heroMockupIndex]}
+                    src={mockups[heroMockupKeys[heroMockupIndex]]?.image || '/images/mockups/client_app_services_mockup.png'} 
+                    alt={mockups[heroMockupKeys[heroMockupIndex]]?.title || 'Mockup App'} 
+                    className="img-fluid rounded-4 shadow-sm" 
+                    style={{ maxHeight: '490px', width: '100%', objectFit: 'cover', transition: 'all 0.4s ease-in-out' }} 
+                  />
+
+                  {/* BOTÃO ANTERIOR DO CARROSSEL */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prevIdx = (heroMockupIndex - 1 + heroMockupKeys.length) % heroMockupKeys.length;
+                      setHeroMockupIndex(prevIdx);
+                      setActiveTab(heroMockupKeys[prevIdx]);
+                    }}
+                    className="btn btn-sm text-white rounded-circle position-absolute top-50 start-0 translate-middle-y ms-2 border-0 d-flex align-items-center justify-content-center shadow"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                      backdropFilter: 'blur(6px)',
+                      zIndex: 5
+                    }}
+                    title="Anterior"
+                  >
+                    <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+                  </button>
+
+                  {/* BOTÃO SEGUINTE DO CARROSSEL */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextIdx = (heroMockupIndex + 1) % heroMockupKeys.length;
+                      setHeroMockupIndex(nextIdx);
+                      setActiveTab(heroMockupKeys[nextIdx]);
+                    }}
+                    className="btn btn-sm text-white rounded-circle position-absolute top-50 end-0 translate-middle-y me-2 border-0 d-flex align-items-center justify-content-center shadow"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                      backdropFilter: 'blur(6px)',
+                      zIndex: 5
+                    }}
+                    title="Seguinte"
+                  >
+                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
+                  </button>
+
+                  {/* RÓTULO FLUTUANTE DA APLICAÇÃO ATUAL */}
+                  <div 
+                    className="position-absolute bottom-0 start-50 translate-middle-x mb-3 text-white px-3 py-2 rounded-pill shadow-lg small fw-bold border border-secondary d-flex align-items-center justify-content-center gap-2" 
+                    style={{ width: '90%', backdropFilter: 'blur(12px)', backgroundColor: 'rgba(15, 23, 42, 0.88)', zIndex: 6, fontSize: '13px' }}
+                  >
+                    <span>📱</span> {mockups[heroMockupKeys[heroMockupIndex]]?.badge}
+                  </div>
+                </div>
+
+                {/* PONTOS INDICADORES (DOTS) */}
+                <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
+                  {heroMockupKeys.map((key, idx) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setHeroMockupIndex(idx);
+                        setActiveTab(key);
+                      }}
+                      style={{
+                        width: idx === heroMockupIndex ? '24px' : '9px',
+                        height: '9px',
+                        borderRadius: '10px',
+                        backgroundColor: idx === heroMockupIndex ? '#7F00FF' : '#CBD5E1',
+                        border: 'none',
+                        transition: 'all 0.3s ease',
+                        padding: 0,
+                        cursor: 'pointer'
+                      }}
+                      title={mockups[key]?.badge}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
@@ -491,7 +582,7 @@ export default function LandingPage() {
 
                 <div className="pt-2">
                   <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold">
-                    Testar no Marketplace Web
+                    Acessar no Marketplace
                   </Link>
                 </div>
               </div>
@@ -626,8 +717,8 @@ export default function LandingPage() {
                 Plataforma Web
               </h6>
               <ul className="list-unstyled d-flex flex-column gap-2 small">
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Marketplace Multi-Serviços</Link></li>
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Fretes Pesados & Freightliners</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Marketplace</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Cargas Pesados & Freightliners</Link></li>
                 <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Logística Portuária & Contentores</Link></li>
                 <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Escoamento Agrícola nas Machambas</Link></li>
               </ul>
@@ -641,8 +732,8 @@ export default function LandingPage() {
               <ul className="list-unstyled d-flex flex-column gap-2 small">
                 <li><Link to="/signup?type=seller" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Cadastrar Loja / Fornecedor</Link></li>
                 <li><Link to="/signup?type=driver" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Seja um Motorista Parceiro</Link></li>
-                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Portal Fornecedor (nhiquelaseller)</Link></li>
-                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>App Motorista (nhiqueladriver)</Link></li>
+                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Portal Fornecedor</Link></li>
+                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>App Motorista</Link></li>
               </ul>
             </div>
 
