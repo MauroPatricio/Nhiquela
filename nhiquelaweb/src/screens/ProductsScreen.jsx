@@ -21,13 +21,23 @@ export const getProductImageUrl = (product) => {
 };
 
 export const isStoreOpen = (seller) => {
-  if (!seller) return true;
+  if (!seller) return false;
+
+  if (typeof seller === 'object' && seller.isSellerOpen !== undefined) {
+    return Boolean(seller.isSellerOpen);
+  }
+
   const sellerData = typeof seller === 'object' ? (seller.seller || seller) : {};
+
+  const statusStr = sellerData.storeStatus || seller.storeStatus;
+  if (statusStr && statusStr !== 'OPEN') return false;
+
+  if (sellerData.status === 'Fechado' || seller.status === 'Fechado') return false;
+
   if (sellerData.openstore !== undefined) return Boolean(sellerData.openstore);
   if (seller.openstore !== undefined) return Boolean(seller.openstore);
-  if (sellerData.status === 'Fechado' || seller.status === 'Fechado') return false;
-  if (sellerData.status === 'Aberto' || seller.status === 'Aberto') return true;
-  return true;
+
+  return false;
 };
 
 export default function ProductsScreen() {

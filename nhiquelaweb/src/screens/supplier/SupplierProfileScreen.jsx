@@ -81,7 +81,7 @@ export default function SupplierProfileScreen() {
       setAddress(data.seller?.address || data.address || '');
       setOpenTime(data.seller?.openTime || '08:00');
       setCloseTime(data.seller?.closeTime || '18:00');
-      setIsStoreOpen(data.seller?.openstore !== false);
+      setIsStoreOpen(Boolean(data.seller?.openstore));
       setSellerLogo(data.seller?.logo || data.sellerLogo || data.profileImage || '');
       setNuit(data.seller?.nuit || '');
       setBankAccount(data.seller?.bankAccount || data.mpesaNumber || data.phoneNumber || '');
