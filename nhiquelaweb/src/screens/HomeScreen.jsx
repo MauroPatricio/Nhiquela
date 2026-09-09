@@ -82,7 +82,7 @@ export default function HomeScreen() {
     },
     {
       id: 'port_cargo',
-      title: 'Logística Portuária & Cargas no Porto',
+      title: 'Logística Portuária & Cargas',
       subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário para contentores de importação e exportação.',
       image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
       tag: '',

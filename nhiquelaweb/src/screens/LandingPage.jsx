@@ -22,8 +22,8 @@ const logisticsSlides = [
   },
   {
     id: 'port_cargo',
-    title: 'Logística Portuária & Cargas no Porto',
-    subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos de Maputo, Beira e Nacala para contentores de importação e exportação.',
+    title: 'Logística Portuária & Cargas',
+    subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos para contentores.',
     image: '/images/cargasportuarias.jpg',
     tag: '',
     tagBg: '#2563EB',
@@ -41,7 +41,7 @@ const logisticsSlides = [
   {
     id: 'machinery',
     title: 'Entregas rápidas',
-    subtitle: 'Entrega de forma rápida e segura de produtos e serviços no dia a dia.',
+    subtitle: 'Entrega de forma rápida e segura de produtos e serviços no seu dia a dia.',
     image: '/images/deliver.jfif',
     tag: '',
     tagBg: '#D97706',
@@ -447,169 +447,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Hero Section com Imagem do Cliente */}
-      <div className="py-5 my-2 position-relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)' }}>
-        <div className="container py-4">
-          <div className="row align-items-center g-5">
-            <div className="col-lg-6">
-              <span className="badge px-3 py-2 rounded-pill fw-bold mb-3 shadow-sm d-inline-flex align-items-center gap-2" style={{ backgroundColor: '#F3E8FF', color: '#7F00FF', border: '1px solid rgba(127, 0, 255, 0.2)', fontSize: '0.88rem' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#7F00FF', display: 'inline-block' }}></span>
-                Conectamos quem precisa a quem tem a solução.
-              </span>
 
-              <h1 className="display-4 fw-extrabold text-dark mb-4" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
-                Tudo em suas mãos, entregue em <span className="text-primary-custom" style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>minutos.</span>
-              </h1>
-
-              <p className="lead text-secondary mb-4 fs-5" style={{ lineHeight: '1.6', maxWidth: '540px' }}>
-                Nhiquela é a plataforma integrada que conecta Clientes, Fornecedores e Motoristas num único ecossistema inteligente de marketplace e entregas.
-              </p>
-
-              <div className="d-flex flex-wrap gap-3 mb-4">
-                <Link
-                  to="/shop"
-                  className="btn text-white rounded-pill px-4 py-3 fw-extrabold fs-5 transition-all d-inline-flex align-items-center justify-content-center gap-3 shadow-lg"
-                  style={{
-                    background: 'linear-gradient(135deg, #7F00FF 0%, #9333EA 50%, #6366F1 100%)',
-                    boxShadow: '0 14px 35px -6px rgba(127, 0, 255, 0.55), 0 4px 14px rgba(127, 0, 255, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    letterSpacing: '-0.3px',
-                    paddingLeft: '28px',
-                    paddingRight: '20px'
-                  }}
-                >
-                  <span>Acessar Marketplace</span>
-                  <span
-                    className="rounded-circle d-inline-flex align-items-center justify-content-center text-white"
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.22)',
-                      backdropFilter: 'blur(6px)',
-                      boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4)'
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faShoppingBag} style={{ fontSize: '16px' }} />
-                  </span>
-                </Link>
-              </div>
-
-              {/* Trust Badges Bar */}
-              <div className="p-3 bg-white rounded-4 shadow-sm border d-inline-flex flex-wrap align-items-center gap-3">
-                <div className="d-flex align-items-center gap-2">
-                  <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '34px', height: '34px', backgroundColor: '#F3E8FF', color: '#7F00FF' }}>
-                    <FontAwesomeIcon icon={faMobileAlt} />
-                  </div>
-                  <span className="fw-semibold text-dark small">Android & iOS</span>
-                </div>
-                <div className="vr d-none d-sm-block" style={{ height: '20px', opacity: 0.2 }} />
-                <div className="d-flex align-items-center gap-2">
-                  <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '34px', height: '34px', backgroundColor: '#D1FAE5', color: '#059669' }}>
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                  </div>
-                  <span className="fw-semibold text-dark small">Pagamentos M-Pesa & e-Mola</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-lg-6 text-center d-flex justify-content-center align-items-center">
-              {/* CARROSSEL INTERATIVO DE MOCKUPS DAS APPS E ECOSSISTEMA */}
-              <div
-                className="position-relative p-3 bg-white rounded-5 shadow-lg border text-center"
-                style={{ maxWidth: '370px', transition: 'all 0.3s ease' }}
-                onMouseEnter={() => setHeroPaused(true)}
-                onMouseLeave={() => setHeroPaused(false)}
-              >
-                {/* CONTAINER DO MOCKUP COM TRANSIÇÃO */}
-                <div className="position-relative overflow-hidden rounded-4">
-                  <img
-                    key={heroMockupKeys[heroMockupIndex]}
-                    src={mockups[heroMockupKeys[heroMockupIndex]]?.image || '/images/mockups/client_app_services_mockup.png'}
-                    alt={mockups[heroMockupKeys[heroMockupIndex]]?.title || 'Mockup App'}
-                    className="img-fluid rounded-4 shadow-sm"
-                    style={{ maxHeight: '490px', width: '100%', objectFit: 'cover', transition: 'all 0.4s ease-in-out' }}
-                  />
-
-                  {/* BOTÃO ANTERIOR DO CARROSSEL */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const prevIdx = (heroMockupIndex - 1 + heroMockupKeys.length) % heroMockupKeys.length;
-                      setHeroMockupIndex(prevIdx);
-                      setActiveTab(heroMockupKeys[prevIdx]);
-                    }}
-                    className="btn btn-sm text-white rounded-circle position-absolute top-50 start-0 translate-middle-y ms-2 border-0 d-flex align-items-center justify-content-center shadow"
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-                      backdropFilter: 'blur(6px)',
-                      zIndex: 5
-                    }}
-                    title="Anterior"
-                  >
-                    <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-                  </button>
-
-                  {/* BOTÃO SEGUINTE DO CARROSSEL */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextIdx = (heroMockupIndex + 1) % heroMockupKeys.length;
-                      setHeroMockupIndex(nextIdx);
-                      setActiveTab(heroMockupKeys[nextIdx]);
-                    }}
-                    className="btn btn-sm text-white rounded-circle position-absolute top-50 end-0 translate-middle-y me-2 border-0 d-flex align-items-center justify-content-center shadow"
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-                      backdropFilter: 'blur(6px)',
-                      zIndex: 5
-                    }}
-                    title="Seguinte"
-                  >
-                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
-                  </button>
-
-                  {/* RÓTULO FLUTUANTE DA APLICAÇÃO ATUAL */}
-                  <div
-                    className="position-absolute bottom-0 start-50 translate-middle-x mb-3 text-white px-3 py-2 rounded-pill shadow-lg small fw-bold border border-secondary d-flex align-items-center justify-content-center gap-2"
-                    style={{ width: '90%', backdropFilter: 'blur(12px)', backgroundColor: 'rgba(15, 23, 42, 0.88)', zIndex: 6, fontSize: '13px' }}
-                  >
-                    <span>📱</span> {mockups[heroMockupKeys[heroMockupIndex]]?.badge}
-                  </div>
-                </div>
-
-                {/* PONTOS INDICADORES (DOTS) */}
-                <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
-                  {heroMockupKeys.map((key, idx) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setHeroMockupIndex(idx);
-                        setActiveTab(key);
-                      }}
-                      style={{
-                        width: idx === heroMockupIndex ? '24px' : '9px',
-                        height: '9px',
-                        borderRadius: '10px',
-                        backgroundColor: idx === heroMockupIndex ? '#7F00FF' : '#CBD5E1',
-                        border: 'none',
-                        transition: 'all 0.3s ease',
-                        padding: 0,
-                        cursor: 'pointer'
-                      }}
-                      title={mockups[key]?.badge}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ========================================================================= */}
       {/* 2. "O QUE POSSO FAZER COM A NHIQUELA?" — O ECOSSISTEMA COMPLETO           */}
