@@ -16,7 +16,7 @@ const SubmitPaymentButton = ({Confirmar, selectedPayment}) => {
     // Neste momento devo apresentar a opcao de pagamento da tela do BCI
     // E para pagar com PCI devo apresentar o campo de confirmacao do pagamento por mensagem.
     // QUe por sua vez nos confirmamos a mensagem do pagamento.
-    // Colocando um cole a informacao desta transacao aqui. Onde iremos a valiar se deve ser ou nao validado o pagamento
+    // Colocando um cole a informacao desta transacao aqui. Onde iremos a valiar se deve ser ou não validado o pagamento
   }
 
   return (

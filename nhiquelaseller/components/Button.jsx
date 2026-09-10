@@ -1,34 +1,39 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
-import React from 'react'
-import { BackgroundImage } from 'react-native-elements/dist/config'
+// components/Button.js
+import React from 'react';
+import { TouchableOpacity, Text, ActivityIndicator, StyleSheet } from 'react-native';
 
-const Button = ({title, onPress, isValid, loader}) => {
-        return (
-   <TouchableOpacity onPress={onPress} style={styles.btnStyle(isValid)}>
-   {!loader? <Text style={styles.btnTxt}>{title}</Text>: <ActivityIndicator/>}
-   </TouchableOpacity>
-  )
-}
+const Button = ({ loader, title, onPress, isValid }) => {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        { backgroundColor: isValid ? '#7F00FF' : 'red' } // cor condicional
+      ]}
+      onPress={onPress}
+      disabled={loader || !isValid} // desabilita se carregando ou inválido
+    >
+      {loader ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <Text style={styles.text}>{title}</Text>
+      )}
+    </TouchableOpacity>
+  );
+};
 
-export default Button
+export default Button;
 
 const styles = StyleSheet.create({
-    btnTxt:{
-            color: 'grey',
-            fontSize: 18,
-            marginTop: 12,
-            color: "white",
-            fontWeight: "600"
-},
-btnStyle:(backgroundColor)=>({
-    
-        height: 50,
-        width: "100%",
-        marginVertical: 10,
-        backgroundColor: backgroundColor,
-        alignItems: "center",
-        borderRadius: 12
-    
-})
-}
-)
+  button: {
+    height: 50,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  text: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

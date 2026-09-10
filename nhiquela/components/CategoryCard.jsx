@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import React from 'react';
 
 const CategoryCard = ({ imgUrl, title, onPress }) => {
@@ -18,7 +19,7 @@ const styles = StyleSheet.create({
   cover: {
     height: 50,
     width: 50,
-    resizeMode: 'contain',
+    contentFit: 'contain',
     backgroundColor: 'white',
     borderRadius: 16,
   },
@@ -51,3 +52,4 @@ const styles = StyleSheet.create({
     color: '#4B0082',
   },
 });
+

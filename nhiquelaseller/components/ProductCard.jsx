@@ -23,6 +23,8 @@ const ProductCard = ({
   price,
   countInStock,
   seller,
+  onSale,
+  discount,
   item
 }) => {
   const navigation = useNavigation();
@@ -63,6 +65,7 @@ const ProductCard = ({
           price,
           onSale,
           countInStock,
+          discount,
           quantity: currentQuantity + 1 // Increase quantity by 1 when adding
           }));
   }

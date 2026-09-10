@@ -14,7 +14,7 @@ const SearchTile = (item) => {
         <View style={styles.textContainer}>
             <Text style={styles.productTitle}>{item.item.name.length<30?item.item.name: item.item.name.substring(0, 30)+`...`}</Text>
             
-            <Text style={styles.seller}>{item.item.seller.name.length<20?item.item.seller.name: item.item.seller.name.substring(0, 25)+`...`}
+            <Text style={styles.seller}>{item.item.seller.name.length<20?item.item.seller.nome: item.item.seller.nome.substring(0, 25)+`...`}
             </Text>
             <Text style={styles.price}>{item.item.price} MT</Text>
             

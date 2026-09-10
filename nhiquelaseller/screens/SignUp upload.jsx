@@ -1,3 +1,4 @@
+import { showMessage } from "react-native-flash-message";
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, StyleSheet, Image, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { Formik, FieldArray } from 'formik';
@@ -56,7 +57,13 @@ const SignUp = ({ navigation }) => {
   const handleImagePicker = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Erro', 'Permissão para acessar a galeria é necessária!');
+      showMessage({
+        message: 'Erro',
+        description: 'Permissão para acessar a galeria é necessária!',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -107,7 +114,13 @@ const SignUp = ({ navigation }) => {
       return data.secure_url; // Return the uploaded image URL
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Falha ao enviar a imagem.');
+      showMessage({
+        message: 'Erro',
+        description: 'Falha ao enviar a imagem.',
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
     }
   };
 
@@ -148,7 +161,13 @@ const SignUp = ({ navigation }) => {
               const { data } = await api.post('users/signup', values);
               navigation.navigate('Home');
             } catch (error) {
-              Alert.alert('Erro', error.message);
+              showMessage({
+        message: 'Erro',
+        description: error.message,
+        type: "danger",
+        icon: "auto",
+        duration: 3000,
+      });
             }
           }}
         >

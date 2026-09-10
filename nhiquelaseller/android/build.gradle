@@ -1,0 +1,87 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext {
+        minSdkVersion = 24
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        buildToolsVersion = "35.0.0"
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath('com.google.gms:google-services:4.4.1')
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    }
+}
+
+def reactNativeAndroidDir = new File(
+    providers.exec {
+        workingDir(rootDir)
+        commandLine("node", "--print", "require.resolve('react-native/package.json')")
+    }.standardOutput.asText.get().trim(),
+    "../android"
+)
+
+allprojects {
+    repositories {
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url(reactNativeAndroidDir)
+        }
+
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"
+
+def patchGraphicsConversions() {
+    try {
+        def gradleCacheDir = new File(System.getProperty("user.home"), ".gradle/caches")
+        if (gradleCacheDir.exists()) {
+            gradleCacheDir.eachDir { versionDir ->
+                if (versionDir.name.matches(/\d+\.\d+(\.\d+)?/)) {
+                    def transformsDir = new File(versionDir, "transforms")
+                    if (transformsDir.exists()) {
+                        transformsDir.eachFileRecurse { file ->
+                            if (file.name == "graphicsConversions.h") {
+                                try {
+                                    def content = file.text
+                                    if (content.contains('std::format("{}%", dimension.value)')) {
+                                        file.text = content.replace('std::format("{}%", dimension.value)', 'std::to_string(dimension.value) + "%"')
+                                        println("React Native Patch: Patched std::format in: " + file.absolutePath)
+                                    }
+                                } catch (Exception e) {
+                                    // ignore read/write errors
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (Exception e) {
+        println("React Native Patch Error: " + e.message)
+    }
+}
+
+allprojects {
+    tasks.configureEach { task ->
+        if (task.name.contains("CMake") || task.name.contains("generateCodegen") || task.name.contains("preBuild")) {
+            task.doFirst {
+                patchGraphicsConversions()
+            }
+        }
+    }
+}
+

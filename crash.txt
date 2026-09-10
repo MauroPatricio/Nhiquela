@@ -1,0 +1,1139 @@
+--------- beginning of main
+07-23 11:28:47.164  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+--------- beginning of system
+07-23 11:28:47.269 28457 28457 I SDHMS:LOAD: type: LoadsFreqs, value: 0:0:0:784000:2200000:725000:569999:2000000:500000:7:390:0
+07-23 11:28:47.324  1146  1195 E BatteryDump: !@new_battery_dump : 3892,1722,1900,3150,21,311,313,412,0,0,355,412,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,10200,0x8000,0x10010000,0x0,0,0,0000,0000,00000000,0,0,0,0,191,3750,2100,990,0,
+07-23 11:28:47.335 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:47.336 26444 26478 D [SS]BattFunctions: [sendRemainingChargingTimeChangedIntent]remainingChargingTime:7943 ,mLastRemainingChargingTime:7954
+07-23 11:28:47.337 26250 26250 I seh_thermal_service: getTemperaturesWithType SehTemperatureType: 3
+07-23 11:28:47.337  1146  1146 I sehhealth-service: updateLrpSysfs: write: 354
+07-23 11:28:47.343 27263 27263 I AODBatteryManager: updateBatteryData: ACTION_BATTERY_CHANGED: false, isSleepModeChanged:false ,isRemainingTimeChanged: true, isUSBRestriction: false
+07-23 11:28:47.343 27263 27263 I ChargingInfoManager: updateChargingInfo: newState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse], oldState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse]
+07-23 11:28:47.344 27263 27263 D PowerUI : Remaining charging time : 7943
+07-23 11:28:47.345 27263 27263 D PowerUI : Charging time is changed, check charging notification
+07-23 11:28:47.347 27263 27263 D PowerUI.Notification: showChargingNotice - Battery Level : 21 -> 21, Charging Type : 11 -> 11, Charging Time : 7954 -> 7943, Maximum protection : false -> false, Maximum threshold : 80 -> 80
+07-23 11:28:47.349 27263 27263 I NotificationManager: com.android.systemui: notify(2131364006, charging_state, Notification(channel=CHR shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE color=0x00000000 category=sys groupKey=CHARGING vis=PUBLIC semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+07-23 11:28:47.354 26444 27495 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:28:47.354 26444 27495 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:28:47.370 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4898, isSameBssidAndFreq true
+07-23 11:28:47.371 26444 26788 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,00 (5) / 72 / -61.0 || 100.0 : 72,00 / B (B) || 8d02cc192462: 0,214 / 37,389 / D || N N / 0 0 / Y 2.0 / Y X 0 / 499133880 0 || Invalid
+07-23 11:28:47.372 27263 27533 D Tile.WifiTile: handleUpdateState isTransient=false transientEnabling =false cb.isTransient=false state.state = 2 mStateBeforeClick.value =false enabled =true
+07-23 11:28:47.379  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:28:47.403  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.33 dur=3011.25 max=3011.25 min=3011.25
+07-23 11:28:47.409  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.664143,dur:3011.40,max:2911.02,min:100.38  
+07-23 11:28:47.412  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:47.412  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:47.412  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:47.500  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:47.517  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:47.517  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:47.521  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.33 dur=3023.50 max=3023.50 min=3023.50
+07-23 11:28:47.524  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:47.524  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:47.524  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:47.569 26444 26444 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+07-23 11:28:47.582  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:47.582  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:47.599 27776 30863 I HoneySpace.NotificationListener: onNotificationPosted com.android.systemui: -1|com.android.systemui|2131364006|charging_state|10063: 0
+07-23 11:28:47.600 27776 30863 I HoneySpace.NotificationListener: invalid notification: com.android.systemui UserHandle{-1}: canShowBadge is false
+07-23 11:28:47.603 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:47.615 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:28:47.615 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:28:47.641  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:47.641  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:47.641  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:47.681  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:47.695  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:47.695  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:47.742  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:47.743  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:47.743  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:47.765  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:47.765  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:47.796 27263 27263 D Bubbles : onEntryUpdated : shouldBubbleUp=false ,key=-1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.797 27263 27263 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.797 27263 27263 I {OngoingActivityController}: onEntryUpdated and OA data is empty. So update latest task info
+07-23 11:28:47.822 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:28:47.822 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.822 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.828 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:28:47.828 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:28:47.835 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:47.838 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:47.839 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:47.848 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:28:47.849  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:47.849  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:47.849  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:47.860 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.860 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.860 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.860 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.866 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:47.876 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:28:47.876 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.876 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:47.880 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:28:47.880 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:28:47.932  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:47.936  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:47.937  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:47.949  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:47.949  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:47.949  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:48.013  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:48.013  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:48.148   580   580 D io_stats: !@   8,32 r 380889475 7529708036 w 36072385 346255624 d 4489908 279654324 f 6744329 4391063 iot 60717952 0 th 0 0 0 pt 0 inp 0 0 499134.657
+07-23 11:28:48.149   580   580 D io_stats: !@ Read_top(KB): sh:normal(17478) 576 binder:26228_4:normal(26228) 124 ndroid.systemui:high(27263) 108
+07-23 11:28:48.149   580   580 D io_stats: !@ Write_top(KB): kworker/u32:0:/(6917) 108 vendor.samsung.:normal(1146) 8
+07-23 11:28:48.165  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:48.172 27263 27274 I ndroid.systemui: Background concurrent mark compact GC freed 21MB AllocSpace bytes, 119(2700KB) LOS objects, 23% free, 79MB/103MB, paused 621us,4.451ms total 359.503ms
+07-23 11:28:48.183  1179  1228 I SurfaceFlinger: onHandleDestroyed: layerId=133088, name=Surface(name=d4ebe2 com.mpatricio.nhiquelaa/com.mpatricio.nhiquelaa.MainActivity)/@0x9122763 - animation-leash of starting_reveal#133088
+07-23 11:28:48.183  1179  1228 I SurfaceFlinger: id=133088 Removed Surface(name=d4ebe2 com.mpatricio.nhiquelaa/com.mpatricio.nhiquelaa.MainActivity)/@0x9122763 - animation-leash of starting_reveal#133088 (207)
+07-23 11:28:48.190  1179  1179 I SurfaceFlinger: destroyed Surface(name=d4ebe2 com.mpatricio.nhiquelaa/com.mpatricio.nhiquelaa.MainActivity)/@0x9122763 - animation-leash of starting_reveal#133088
+07-23 11:28:48.191  1179  1179 I Layer   : id=133088 Destroyed Surface(name=d4ebe2 com.mpatricio.nhiquelaa/com.mpatricio.nhiquelaa.MainActivity)/@0x9122763 - animation-leash of starting_reveal#133088
+07-23 11:28:48.191 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.191 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.191 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.193 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.193 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.193 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.194  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:48.194  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:48.194  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:48.199 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.199 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.199 27263 27278 W System  : A resource failed to call release. 
+07-23 11:28:48.208 26444 26765 I ChimeraPolicyHandler: onPsiMonitorTriggered() - psiLevel: 0
+07-23 11:28:48.209 26444 26765 I ChimeraAggressivePolicyHandler: executePolicy() - triggerSource: TRIGGER_SOURCE_PSI_MEM_MONITOR
+07-23 11:28:48.210 26444 26765 I ChimeraAggressivePolicyHandler: available memory: 881852, free memory target: 747520, quit chimera
+07-23 11:28:48.231  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:48.237  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:48.237  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:48.296  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:48.296  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:48.296  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:48.313  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:48.313  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:48.616 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:48.887 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:48.961 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:48.962 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:48.969 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:48.969 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:49.167  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:49.312 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:49.313 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:49.872 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-86, periodicAdvInt=0x0
+07-23 11:28:49.875  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:28:49.876 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:49.877 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:49.895 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:49.908 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:9A:C7, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-96, periodicAdvInt=0x0
+07-23 11:28:49.912  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:28:50.146 26444 26715 W DeviceStorageMonitorService: updateBroadcasts(/data) oldLevel:0, newLevel:0, seq:1
+07-23 11:28:50.148 26444 26715 D DeviceStorageMonitorService: Available File Node Number is [13062434]
+07-23 11:28:50.148 26444 26715 W DeviceStorageMonitorService: updateBroadcasts_filenode(/data) fn_oldLevel:0, fn_newLevel:0, seq:1
+07-23 11:28:50.149   580   580 D io_stats: !@   8,32 r 380889642 7529714956 w 36072393 346255688 d 4489908 279654324 f 6744329 4391063 iot 60718004 0 th 0 0 0 pt 0 inp 1 0 499136.658
+07-23 11:28:50.161 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:50.168  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:50.385 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4899, isSameBssidAndFreq true
+07-23 11:28:50.390 27263 27533 D Tile.WifiTile: handleUpdateState isTransient=false transientEnabling =false cb.isTransient=false state.state = 2 mStateBeforeClick.value =false enabled =true
+07-23 11:28:50.402  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:28:50.425  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=1.32 dur=3022.56 max=2535.48 min=44.42
+07-23 11:28:50.431  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:2.978196,dur:3021.96,max:2189.47,min:42.98  
+07-23 11:28:50.435  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:50.435  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:50.435  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:50.520  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:50.526  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:50.526  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:50.530  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=1.33 dur=3009.71 max=2289.25 min=178.54
+07-23 11:28:50.535  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:50.535  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:50.535  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:50.602  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:50.603  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:50.651  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 63)
+07-23 11:28:50.936 26231  3372 W aurisys_controller: aurisys_get_parameter(), adb_cmd->adb_cmd_type 7 fail, need active handler!
+07-23 11:28:50.936 26231  3372 D AudioALSAHardware: -getParameters(), return "g_hw_speaker_amp_temp_spk=GET_FAIL"
+07-23 11:28:50.940 28457 30315 I SDHMS:x : SIOP:: AP:375 BAT:311 USB:313 CHG:411 PA:355 WIFI:353 BLK:0 SUBBAT:0 SKIN:353 SKINF:349 SKINB:353 LRP2:353 LRF2:349 LRB2:353 SPK:312 AP2:351 CHG2:353 MEM2:350 WIFI2:350 DNSPK:300 VAP:393 AVGCUR:1815 AVGSYS:0 POWER:7058
+07-23 11:28:50.940 28457 30315 I AudioManager: setParameters keyValuePairs = g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.942 26225 29752 D AudioFlinger: setParameters: filtered dev setParameters keyvalue g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.943 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.945 26231  3372 D AudioALSAHardware: +setParameters(): g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.945 26231  3372 W aurisys_controller: lib_name smartpa_aw88xxx, scene 9, no active handler!!
+07-23 11:28:50.945 26231  3372 D AudioALSAHardware: -setParameters(): g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.947 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.949 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=312
+07-23 11:28:50.949 26231  3372 D AHAL_ModuleBluetooth: setVendorParameters unrecognized parameter: g_hw_speaker_amp_temp_spk=312
+07-23 11:28:51.006 10095 10126 I Finsky  : [124] AIM: AppInfoManager-Perf > Destroying AppInfoManager ...
+07-23 11:28:51.098 26444 28193 I NSLocationMonitor: getGPSUsingApps() called
+07-23 11:28:51.099 28153 29071 I NSLocationManager_FLP: getGPSUsingApps, No change
+07-23 11:28:51.114 26444 28193 D FreecessHandler: freeze com.instagram.barcelona(10355) result : 33
+07-23 11:28:51.171  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:51.171  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of camera0\n"
+07-23 11:28:51.171  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:51.171  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of nrpa_ntc\n"
+07-23 11:28:51.172  1303  1313 E thermal_core: dump_thermal_log:"Error: sccanf error, ret=9\n"
+07-23 11:28:51.173  1303  1313 E thermal_core: node_read:"Failed to read /sys/class/thermal/thermal_zone2/temp: No data available\n"
+07-23 11:28:51.174  1303  1313 I thermal_core: "soc/nr/lte/ap_ntc/tpcb/conn/chg/cam/c_ttj/g_ttj/a_ttj=0/-274000/36684/72285/46000/37000/-274000/-274000/55000/55000/55000\n"
+07-23 11:28:51.174  1303  1313 I thermal_core: "[C(l)(c)(i)][G(l)(c)][A(l)(c)][TH][D]=[(2000/2200/666666)(500/725/6666)(0x0)][(666666)(666666)][(666666666)(666666666)][0][1600]\n"
+07-23 11:28:51.174  1303  1313 E thermal_core: node_read:"Failed to open /sys/kernel/helio-dvfsrc/dvfsrc_therm_info: No such file or directory\n"
+07-23 11:28:51.174  1303  1313 I thermal_core: "1600"
+07-23 11:28:51.176 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:51.447 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:51.468 10095 10121 I Finsky  : [120] AIM: AppInfoManager-Perf > Destroying AppInfoManager ...
+07-23 11:28:51.734 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-90, periodicAdvInt=0x0
+07-23 11:28:51.739  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:28:51.830 26444 11835 D PerProcessNandswap$NandswapHandler: nandswap start for non-activity com.google.android.apps.messaging(pid 16344) action:3 adj:250 type:2
+07-23 11:28:51.834 16344 16446 I BugleDataModel: ActionExecutorImpl: ACTION_EXECUTE_QUEUED_SendReportAction
+07-23 11:28:51.835 16344 16965 I BugleDataModel: running action SendReportAction
+07-23 11:28:51.836 16344 16965 I BugleDataModel: ActionExecutorImpl: ACTION_BACKGROUND_QUEUED_SendReportAction
+07-23 11:28:51.836 16344 16965 I BugleDataModel: finished running action SendReportAction in 1 ms
+07-23 11:28:51.837 16344 16861 W JobInfo : Job 'com.google.android.apps.messaging/.shared.datamodel.action.execution.ActionJobService#101' has a deadline with no functional constraints. The deadline won't improve job execution latency. Consider removing the deadline.
+07-23 11:28:51.838 26444 27096 W JobInfo : Job 'com.google.android.apps.messaging/.shared.datamodel.action.execution.ActionJobService#101' has a deadline with no functional constraints. The deadline won't improve job execution latency. Consider removing the deadline.
+07-23 11:28:51.841 16344 16861 I BugleDataModel: ActionExecutorImpl: ACTION_RESPONSE_QUEUED_SendReportAction
+07-23 11:28:51.846 26444 28541 W JobScheduler: Job didn't exist in JobStore: b1c0de9 #u0a236/101 com.google.android.apps.messaging/.shared.datamodel.action.execution.ActionJobService
+07-23 11:28:51.846 26444 11835 D PerProcessNandswapNative: enable WriteBooster
+07-23 11:28:51.856  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:28:51.858 16344 16389 I ForwardSyncCache: reclaimMemory: Clearing caches
+07-23 11:28:51.859 16344 16389 I BugleSpam: HadesBitmapStore: Purged 0 images during memory reclamation
+07-23 11:28:51.860 16344 16389 W Bugle   : TextClassifierLibManagerImpl: Reclaiming memory at level: 40
+07-23 11:28:51.874 26444 11835 D PerProcessNandswap$NandswapHandler: nandswap end for non-activity com.google.android.apps.messaging(pid 16344) ret:8680161280 adj:250
+07-23 11:28:51.902  4742 17447 I NearbyMediums: No BLE Fast/GATT advertisements found in the latest cycle.
+07-23 11:28:51.902  4742 17447 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing, NearbyConnections.TxAdvertisement}
+07-23 11:28:51.972 26874 26874 I wpa_supplicant: Heartbeat 5205
+07-23 11:28:52.143 26444 26478 I ActivityManager: Changes in 10355 11 to 19, 128 to 0
+07-23 11:28:52.148 26444 11835 D PerProcessNandswap$NandswapHandler: nandswap start for non-activity com.instagram.barcelona(pid 16603) action:14 adj:905 type:1
+07-23 11:28:52.150   580   580 D io_stats: !@   8,32 r 380889878 7529724356 w 36072410 346258276 d 4489908 279654324 f 6744329 4391063 iot 60718108 0 th 0 0 0 pt 0 inp 0 0 499138.659
+07-23 11:28:52.151   580   580 D io_stats: !@ Read_top(KB): .screenrecorder:high(12889) 8284 ocessService0:0:low(13007) 3368 kworker/u32:1:/(10612) 2208
+07-23 11:28:52.151   580   580 D io_stats: !@ Write_top(KB): kworker/u32:1:/(10612) 1824 kworker/u32:0:/(6917) 768 sait.sohservice:low(16432) 32
+07-23 11:28:52.175  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:52.349 26444 11835 D PerProcessNandswap$NandswapHandler: nandswap end for non-activity com.instagram.barcelona(pid 16603) ret:10737397760 adj:905
+07-23 11:28:52.457 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:52.726 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:52.730  1185  1208 D ccci_mdinit: (1):monitor_time_update_thread round:46715 ########
+07-23 11:28:53.177  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:53.400 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4900, isSameBssidAndFreq true
+07-23 11:28:53.629 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-85, periodicAdvInt=0x0
+07-23 11:28:53.635  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:28:53.735 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:54.007 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:54.169 12051 12051 I adbd    : adbd service requested 'shell,v2:export ANDROID_LOG_TAGS=''; exec logcat'
+07-23 11:28:54.179  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:54.691  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 60)
+07-23 11:28:54.794 10095 10095 I Finsky  : [2] SCH: job service start with id 9847.
+07-23 11:28:54.809 10095 17491 I Finsky  : [589] SCH: Satisfied jobs for 9847 are: 16-16161616
+07-23 11:28:54.816 10095 17490 I Finsky  : [588] SCH: Job 16-16161616 starting
+07-23 11:28:54.817 10095 10095 I Finsky  : [2] WM::SCH: Logging work start for 16-16161616
+07-23 11:28:54.844 10095 17493 I Finsky  : [591] Flushing event logs for [_ZtXkRZN4TRiiPwor8SSRjvkWfhcZ_9vgtrbga0mM_w]
+07-23 11:28:54.846 10095 17493 I Finsky  : [591] Flushing event logs for [kqbq7LmSLjcknGIRikzn5c_Y7wRZPQQHB0_mqciK_wA]
+07-23 11:28:54.847 10095 17493 I Finsky  : [591] Flushing event logs for [MUcQclxAY467IVZF6r2diD3Yqeqh8wWUIbtIGrdH3JI]
+07-23 11:28:54.848 10095 17493 I Finsky  : [591] Flushing event logs for [RYMhyIkJZvmjccK3GhXlPYb73Tpfn_80cnE7oKg6cZY]
+07-23 11:28:54.849 10095 17493 I Finsky  : [591] Flushing event logs for [UUr8ODBc4YyFQzsd93fto4wxonNBGDbM0QQmK8en8OQ]
+07-23 11:28:54.850 10095 10143 I PlayCommon: [137] Preparing logs for uploading
+07-23 11:28:54.867 10095 10143 I PlayCommon: [137] Connecting to server: https://play.googleapis.com/play/log?format=raw&proto_v2=true
+07-23 11:28:55.014 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:55.183  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:55.191 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10235(com.android.vending), SUCCESS, 315ms
+07-23 11:28:55.286 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:55.963 26444 26817 D WifiConnectivityMonitor.NetworkStatsAnalyzer: Backhaul result - RSSI:-61, CE:10, PE:8, TI:17, PTI:15, TW:1, PTW:1, Tx:23, Rx:16, TxS:19, RxS:13, RESULT:true, IC:0, ICT:5, WC:0, WCT:5, R:0, RC:0, IE:0, EC:0
+07-23 11:28:56.157   580   580 D io_stats: !@   8,32 r 380890026 7529726844 w 36072442 346258544 d 4489908 279654324 f 6744330 4391065 iot 60718180 0 th 0 0 0 pt 0 inp 0 0 499142.666
+07-23 11:28:56.158   580   580 D io_stats: !@ Read_top(KB): android.vending:high(10095) 1248 kworker/u32:0:/(6917) 812 system_server:high(26444) 180
+07-23 11:28:56.158   580   580 D io_stats: !@ Write_top(KB): kworker/u32:0:/(6917) 208 android.vending:high(10095) 44 system_server:high(26444) 12
+07-23 11:28:56.185  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:56.186 10095 10143 I PlayCommon: [137] Successfully uploaded logs.
+07-23 11:28:56.272 26224 26224 D Zygote  : Forked child process 17502
+07-23 11:28:56.273 26444 26482 I ActivityManager: Start proc 17502:com.android.vending:background/u0a235 for service {com.android.vending/com.google.frameworks.client.data.android.server.play.BackgroundProcessEndpointService}
+07-23 11:28:56.274 26444 26482 I ActivityManager: ProcessObserver broadcast disabled
+07-23 11:28:56.297 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:56.305 17502 17502 I ding:background: Using non-generational CollectorTypeCMC GC.
+07-23 11:28:56.316 17502 17502 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+07-23 11:28:56.319 17502 17502 D ActivityThread: setConscryptValidator
+07-23 11:28:56.319 17502 17502 D ActivityThread: setConscryptValidator - put
+07-23 11:28:56.334 17502 17502 D nativeloader: Load libstats_jni.so using APEX ns com_android_os_statsd for caller /apex/com.android.os.statsd/javalib/framework-statsd.jar: ok
+07-23 11:28:56.339 17502 17502 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
+07-23 11:28:56.339 17502 17502 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+07-23 11:28:56.339 17502 17502 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
+07-23 11:28:56.376 26444 17501 D WifiConnectivityMonitor.DnsThread:  [|209]
+07-23 11:28:56.376 26444 26817 D WifiConnectivityMonitor.NetworkStatsAnalyzer: DNS resultType : 0, responseTime : 209
+07-23 11:28:56.377 26444 26813 D OpenNetworkQos[4.00]: updateBssidLatestDnsResultType - result: 0
+07-23 11:28:56.377 26444 26813 D OpenNetworkQos[4.00]: updateBssidNoInternet: mBssidNoInternet = false
+07-23 11:28:56.377 26444 26813 D OpenNetworkQos[4.00]: getOpenNetworkQosNoInternetStatus: false[Private DNS is active. Result is ignored.]
+07-23 11:28:56.377 26444 26813 D OpenNetworkQos[4.00]: getOpenNetworkQosScores: 26 26 23 [Private DNS is active. Result is ignored.]
+07-23 11:28:56.377 26444 26813 I WifiProfileShare: network QoS data was changed (internet), updateQoSData networkType: true, qosData: false
+07-23 11:28:56.379 26444 28131 V WifiProfileShare.Caster: update wips network, size: 0
+07-23 11:28:56.379 26444 28131 D WifiProfileShare: nearby scanning settings run
+07-23 11:28:56.379 26444 28131 D WifiProfileShare: network score provider settings enabled
+07-23 11:28:56.379 26444 28131 D OpenNetworkQos[4.00]: getOpenNetworkQosScores: 26 26 23 [Private DNS is active. Result is ignored.]
+07-23 11:28:56.380 26444 28131 E SemWifiService: getCurrentNetworkScore - invalid score data
+07-23 11:28:56.380 26444 28131 V WifiProfileShare.Caster: current network score is empty
+07-23 11:28:56.380 26444 28131 E WifiProfileShare.Caster: failed to generate qos array, need to check network score data
+07-23 11:28:56.380 26444 28131 D WifiProfileShare.ScanMatcher: getMcfDataList size:1
+07-23 11:28:56.380 26444 28131 I WifiProfileShare.Caster: qos data was updated , before:null after:null
+07-23 11:28:56.383 26444 28131 I [MCFSDK_android_1.3.7026]_4_McfCasterImpl: isNetworkEnabled - type : 1 ret : true
+07-23 11:28:56.384 26444 28131 D WifiProfileShare.McfCast: -ME--- mIsNetworkEnabled :true
+07-23 11:28:56.384 26444 28131 D WifiProfileShare.MCF: stop sharing QosData, invalid data
+07-23 11:28:56.384 26444 28131 I [MCFSDK_android_1.3.7026]_4_McfCasterImpl: isNetworkEnabled - type : 1 ret : true
+07-23 11:28:56.385 26444 28131 D WifiProfileShare.McfCast: -ME--- mIsNetworkEnabled :true
+07-23 11:28:56.385 26444 28131 D WifiProfileShare.McfCast: -ME--- updatePasswordDate pwdData size:1
+07-23 11:28:56.400 17502 17502 W ding:background: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:56.402 17502 17502 W ding:background: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:56.403 17502 17502 W ding:background: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:56.404 17502 17502 W ding:background: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:56.406 17502 17502 W ding:background: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:56.408 17502 17502 W ding:background: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:56.410 17502 17502 D nativeloader: Configuring clns-9 for other apk /data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/base.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_config.arm64_v8a.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_config.pt.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_data_loader.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_data_loader.config.arm64_v8a.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_webrtc_native_lib.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_webrtc_native_lib.config.arm64_v8a.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/lib/arm64:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.and
+07-23 11:28:56.412 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4901, isSameBssidAndFreq true
+07-23 11:28:56.415 26444 26788 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,00 (25) / 72 / -61.0 || 100.0 : 72,00 / B (B) || 8d02cc192462: 0,214 / 37,389 / D || N N / 0 0 / Y 2.0 / Y X 0 / 499142922 0 || Invalid
+07-23 11:28:56.417 27263 27533 D Tile.WifiTile: handleUpdateState isTransient=false transientEnabling =false cb.isTransient=false state.state = 2 mStateBeforeClick.value =false enabled =true
+07-23 11:28:56.432 17502 17502 V GraphicsEnvironment: Currently set values for:
+07-23 11:28:56.432 17502 17502 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+07-23 11:28:56.432 17502 17502 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+07-23 11:28:56.432 17502 17502 V GraphicsEnvironment: com.android.vending is not listed in per-application setting
+07-23 11:28:56.432 17502 17502 V GraphicsEnvironment: ANGLE allowlist from config: com.dreamgames.royalmatch com.dts.freefiremax com.dxx.firenow com.gramgames.mergedragons com.ludo.king com.mojang.minecraftpe com.my.defense com.nintendo.zaka com.os.airforce com.playrix.fishdomdd.gplay io.teslatech.callbreak jp.konami.prospia net.peakgames.toonblast
+07-23 11:28:56.432 17502 17502 V GraphicsEnvironment: com.android.vending is not listed in ANGLE allowlist or settings, returning default
+07-23 11:28:56.433 17502 17502 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+07-23 11:28:56.436  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:28:56.459  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.17 dur=6033.43 max=6033.43 min=6033.43
+07-23 11:28:56.465  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.331477,dur:6033.61,max:5933.25,min:100.36  
+07-23 11:28:56.468  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:56.468  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:56.468  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:56.468 17502 17502 I Finsky:background: [2] Process created at version: 52.3.32-31 [0] [PR] 949272982
+07-23 11:28:56.506 17502 17502 I Finsky:background: [2] [BGP] Initializing early flags...
+07-23 11:28:56.506 17502 17502 I Finsky:background: [2] [BGP] Initializing Gservices...
+07-23 11:28:56.511 17502 17502 I Finsky:background: [2] [BGP] Initializing flags...
+07-23 11:28:56.540 17502 17502 I Finsky:background: [2] Finished reading experiment flags from file [0tGUNCGIkbk4o6-fQ335kUYSKwVj4lusnHT-A5Dsy08] numFlags=2475.
+07-23 11:28:56.543  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:56.549  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:56.550  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:56.553  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.17 dur=6022.70 max=6022.70 min=6022.70
+07-23 11:28:56.564 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:56.569  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:56.569  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:56.569  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:56.590 17502 17519 D nativeloader: Load /data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_config.arm64_v8a.apk!/lib/arm64-v8a/libmappedcountercacheversionjni.so using class loader ns clns-9 (caller=/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/base.apk): ok
+07-23 11:28:56.626  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:56.626  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:56.642 17502 17502 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+07-23 11:28:56.652 17502 17502 I Finsky:background: [2] Finished reading experiment flags from file [bJJs4z_gY3rR88Y0F6PJK0UIxfiIKQm5lRbRXZX6Bhs] numFlags=2064.
+07-23 11:28:56.660 17502 17502 I Finsky:background: [2] Finished reading experiment flags from file [cUhkN5RQdV-PgTyQ-tFu7HHpwJsOKard89Ep52zzkaY] numFlags=2064.
+07-23 11:28:56.668 17502 17502 I Finsky:background: [2] Finished reading experiment flags from file [QUeiktQU8AYSoET12rEJf7XG8Dw3wlVlcI206mMsrfs] numFlags=2064.
+07-23 11:28:56.676 17502 17502 I Finsky:background: [2] Finished reading experiment flags from file [GPtUezbtaY64WmehJH3nwPeodthD5u9vMmVT519V5k0] numFlags=2064.
+07-23 11:28:56.681 17502 17502 I Finsky:background: [2] Finished reading experiment flags from file [W-6l6rwamqcxIgelrkW4cMp7PAAyWSKAfXUsCNaQ3pc] numFlags=2064.
+07-23 11:28:56.692 17502 17502 I Finsky:background: [2] [BGP] Initializing crash detector...
+07-23 11:28:56.703 17502 17502 I Finsky:background: [2] akle - Registering in memory receiver for android.intent.action.PACKAGE_ADDED and android.intent.action.PACKAGE_REMOVED
+07-23 11:28:56.718 26444 26763 D BackgroundInstallControlService: Package event received: 0
+07-23 11:28:56.748 17502 17502 I Finsky:background: [2] This process start was not selected for Play memory metrics collection.
+07-23 11:28:56.774 17502 17527 W Settings: Setting download_manager_max_bytes_over_mobile has moved from android.provider.Settings.Secure to android.provider.Settings.Global.
+07-23 11:28:56.776 17502 17527 I Finsky:background: [128] SettingNotFoundException, fall through to G.downloadBytesOverMobileMaximum
+07-23 11:28:56.776 17502 17527 W Settings: Setting download_manager_recommended_max_bytes_over_mobile has moved from android.provider.Settings.Secure to android.provider.Settings.Global.
+07-23 11:28:56.777 17502 17527 I Finsky:background: [128] SettingNotFoundException, fall through to G.downloadBytesOverMobileRecommended
+07-23 11:28:56.778 17502 17527 I Finsky:background: [128] registerListener
+07-23 11:28:56.780 17502 17527 I Finsky:background: [128] DFS: Listener added for tki@a571aaf
+07-23 11:28:56.780 17502 17527 I Finsky:background: [128] registerListener
+07-23 11:28:56.786 17502 17527 I Finsky:background: [128] registerListener
+07-23 11:28:56.786 17502 17527 I Finsky:background: [128] DFS: Listener added for aoxb@16800fd
+07-23 11:28:56.811 17502 17527 I Finsky:background: [128] IV2: IQv2 is disabled. Recovering all active installs: []
+07-23 11:28:56.815 17502 17532 I Finsky:background: [132] Subscription detail: DataSubscriptionInfo{groupIdLevel1=null, serviceProviderName=[iB8If8q38we4MDuXpbhCj5wCjViG-QBJvbzoV5gXFAY], simCarrierId=1635}
+07-23 11:28:56.818 17502 17502 I Finsky:background: [2] onSubscriptionsChanged
+07-23 11:28:56.828 17502 17532 I Finsky:background: [132] Finished reading experiment flags from file [Se-xCc4LzNyh3UrKMIU2sUf-PUKz4oQEbpKZDMuaFno] numFlags=2052.
+07-23 11:28:56.828 17502 17532 I Finsky:background: [132] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:56.828 17502 17532 I Finsky:background: [132] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:56.853 17502 17539 D ConnectivityManager: StackLog: [android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)] [android.net.ConnectivityManager.registerDefaultNetworkCallbackForUid(ConnectivityManager.java:5469)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5436)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5410)] [adhk.call(PG:27)] [bota.a(PG:3)] [bosf.run(PG:19)] [botb.run(PG:5)] [java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1100)] [java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)] [vlp.run(PG:26)] [java.lang.Thread.run(Thread.java:1572)]
+07-23 11:28:56.856 26444 27096 D ConnectivityService: requestNetwork for uid/pid:10235/17502 activeRequest: null callbackRequest: 22253 [NetworkRequest [ REQUEST id=22254, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|LOST
+07-23 11:28:56.858 17502 17523 I Finsky:background: [124] Device is eligible for platform Cronet and will attempt to use it.
+07-23 11:28:56.858 17502 17532 I Finsky:background: [132] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:56.858 17502 17532 I Finsky:background: [132] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:56.858 26444 26705 D ConnectivityService:    accepting network in place of null for NetworkRequest [ REQUEST id=22254, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.862 26444 26694 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=22254, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.863 26444 26694 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=22254, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.864 26444 26694 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=22254, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.865 26444 26705 D ConnectivityService: Rematched networks [computed 0ms] [applied 4ms] [issued 4]
+07-23 11:28:56.865 26444 26705 D ConnectivityService: NetworkReassignment :
+07-23 11:28:56.865 26444 26705 D ConnectivityService:   22254 : null → 523
+07-23 11:28:56.865 26444 26694 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=22254, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.868 17502 17524 I Finsky:background: [125] IQ: start evaluating install requests.
+07-23 11:28:56.869 17502 17524 I Finsky:background: [125] IQ: no jobs active. Skipping
+07-23 11:28:56.874 17502 17532 I Finsky:background: [132] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:56.875 17502 17532 I Finsky:background: [132] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:56.888 17502 17532 I Finsky:background: [132] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:56.888 17502 17532 I Finsky:background: [132] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:56.895 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:56.895 17502 17539 I Finsky:background: [139] IQ: Pruning inactive install requests
+07-23 11:28:56.897 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:56.901 17502 17545 D HttpFlagsLoader: Not loading HTTP flags because they are disabled in the manifest
+07-23 11:28:56.902 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:56.903 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:56.908 17502 17545 D ConnectivityManager: StackLog: [android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)] [android.net.ConnectivityManager.registerDefaultNetworkCallbackForUid(ConnectivityManager.java:5469)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5436)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect$ConnectivityManagerDelegate.registerDefaultNetworkCallback(NetworkChangeNotifierAutoDetect.java:448)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect.register(NetworkChangeNotifierAutoDetect.java:1165)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect$RegistrationPolicy.register(NetworkChangeNotifierAutoDetect.java:932)] [android.net.http.internal.org.chromium.net.RegistrationPolicyAlwaysRegister.init(RegistrationPolicyAlwaysRegister.java:16)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect.<init>(NetworkChangeNotifierAutoDetect.java:1087)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifier.setAutoDetectConnectivityStateInternal(NetworkChangeNotifier.java:223)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifier.setAutoDetectConnectivityState(NetworkChangeNotifier.java:198)] [android.net.http.internal.org.chromium.net.impl.CronetLibraryLoader.initializeOnInitThread(CronetLibraryLoader.java:281)] [android.net.http.internal.org.chromium.net.impl.CronetLibraryLoader.lambda$ensureInitialized$0(CronetLibraryLoader.java:145)] [android.net.http.internal.org.chromium.net.impl.CronetLibraryLoader$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)]
+07-23 11:28:56.909 17502 17532 I Finsky:background: [132] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:56.909 26444 26478 D ConnectivityService: requestNetwork for uid/pid:10235/17502 activeRequest: null callbackRequest: 22255 [NetworkRequest [ REQUEST id=22256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|LOST|NC|LP
+07-23 11:28:56.909 17502 17532 I Finsky:background: [132] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:56.912 26444 26705 D ConnectivityService:    accepting network in place of null for NetworkRequest [ REQUEST id=22256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.913 17502 17545 D ConnectivityManager: StackLog: [android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)] [android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4912)] [android.net.ConnectivityManager.registerNetworkCallback(ConnectivityManager.java:5329)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect$ConnectivityManagerDelegate.registerNetworkCallback(NetworkChangeNotifierAutoDetect.java:434)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect.register(NetworkChangeNotifierAutoDetect.java:1191)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect$RegistrationPolicy.register(NetworkChangeNotifierAutoDetect.java:932)] [android.net.http.internal.org.chromium.net.RegistrationPolicyAlwaysRegister.init(RegistrationPolicyAlwaysRegister.java:16)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifierAutoDetect.<init>(NetworkChangeNotifierAutoDetect.java:1087)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifier.setAutoDetectConnectivityStateInternal(NetworkChangeNotifier.java:223)] [android.net.http.internal.org.chromium.net.NetworkChangeNotifier.setAutoDetectConnectivityState(NetworkChangeNotifier.java:198)] [android.net.http.internal.org.chromium.net.impl.CronetLibraryLoader.initializeOnInitThread(CronetLibraryLoader.java:281)] [android.net.http.internal.org.chromium.net.impl.CronetLibraryLoader.lambda$ensureInitialized$0(CronetLibraryLoader.java:145)] [android.net.http.internal.org.chromium.net.impl.CronetLibraryLoader$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)]
+07-23 11:28:56.915 26444 26694 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=22256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.916 26444 26694 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=22256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.916 26444 26705 D ConnectivityService: Rematched networks [computed 1ms] [applied 2ms] [issued 2]
+07-23 11:28:56.916 26444 26705 D ConnectivityService: NetworkReassignment :
+07-23 11:28:56.916 26444 26705 D ConnectivityService:   22256 : null → 523
+07-23 11:28:56.918 26444 26694 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=22256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.918 26444 26694 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=22256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10235 RequestorUid: 10235 RequestorPkg: com.android.vending UnderlyingNetworks: Null] ]
+07-23 11:28:56.919 17502 17524 I Finsky:background: [125] IQ: 0 scheduled install statuses found to proceed. 
+07-23 11:28:56.921 26444 26705 D ConnectivityService: Rematched networks [computed 1ms] [applied 1ms] [issued 2]
+07-23 11:28:56.921 26444 26705 D ConnectivityService: NetworkReassignment : no changes
+07-23 11:28:56.925 17502 17532 I Finsky:background: [132] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:56.925 17502 17532 I Finsky:background: [132] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:56.934 17502 17539 I Finsky:background: [139] Resetting scheduler db
+07-23 11:28:56.944 17502 17526 I Finsky:background: [127] SCH: Scheduling phonesky job Id: 3-139784, CT: 1784798715346, Constraints: [{ L: 0, D: 86400000, C: CHARGING_REQUIRED, I: IDLE_REQUIRED, N: NET_UNMETERED, B: BATTERY_ANY }]
+07-23 11:28:56.944 17502 17526 I Finsky:background: [127] SCH: Scheduling phonesky job Id: 47-15, CT: 1784768490247, Constraints: [{ L: 15920075, D: 37520075, C: CHARGING_NONE, I: IDLE_REQUIRED, N: NET_NONE, B: BATTERY_ANY }]
+07-23 11:28:56.944 17502 17526 I Finsky:background: [127] SCH: Scheduling phonesky job Id: 59-1, CT: 1784789137425, Constraints: [{ L: 9912832, D: 20052832, C: CHARGING_NONE, I: IDLE_NONE, N: NET_ANY, B: BATTERY_ANY }]
+07-23 11:28:56.951 17502 17523 I cn_CronetLibraryLoader: Cronet version: 147.0.7727.45, arch: aarch64
+07-23 11:28:56.958 17502 17526 I Finsky:background: [127] SCH: Scheduling 0 system job(s)
+07-23 11:28:56.959 17502 17523 I Finsky:background: [124] CronetEngine is present. Using Cronet for the networking stack.
+07-23 11:28:56.962 26224 26224 D Zygote  : Forked child process 17562
+07-23 11:28:56.963 26444 26482 I ActivityManager: Start proc 17562:com.android.vending:quick_launch/u0a235 for service {com.android.vending/com.google.frameworks.client.data.android.server.play.QuickLaunchProcessEndpointService}
+07-23 11:28:56.964 26444 26482 I ActivityManager: ProcessObserver broadcast disabled
+07-23 11:28:56.966 17502 17550 I Finsky:background: [147] SCH: Canceling job 3-139784
+07-23 11:28:56.966 17502 17550 I Finsky:background: [147] WM::SCH: Logging work end for 3-139784
+07-23 11:28:56.968 17502 17523 I Finsky:background: [124] PlayInstallAPI: Play install service listener is disabled by feature flag.
+07-23 11:28:56.969 17502 17524 I Finsky:background: [125] SCH: no pending jobs to schedule.
+07-23 11:28:56.976 17502 17539 I Finsky:background: [139] IQ: Creating job 139786, for (REQ_CHARGING, REQ_DEVICE_IDLE, REQ_GEARHEAD_PROJECTION_OFF, NETWORK=UNMETERED, PROVISIONING_STATE=PROVISIONED, BACKUP_MANAGER_STATE=BACKUP_READY, AUTHENTICATION_REQUIRED, PROCESS_IMPORTANCE_THRESHOLD=125)
+07-23 11:28:56.976 17502 17539 I Finsky:background: [139] IQ: Bulk scheduling created jobs
+07-23 11:28:56.978 17562 17562 I ng:quick_launch: Using non-generational CollectorTypeCMC GC.
+07-23 11:28:56.979 17502 17539 I Finsky:background: [139] SCH: Received scheduling request: Id: 3-139786, Constraints: [{ L: 0, D: 86400000, C: CHARGING_REQUIRED, I: IDLE_REQUIRED, N: NET_UNMETERED, B: BATTERY_ANY }]
+07-23 11:28:56.985 17562 17562 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+07-23 11:28:56.987 17562 17562 D ActivityThread: setConscryptValidator
+07-23 11:28:56.987 17562 17562 D ActivityThread: setConscryptValidator - put
+07-23 11:28:56.994 17502 17539 D WM-PackageManagerHelper: Skipping component enablement for androidx.work.impl.background.systemjob.SystemJobService
+07-23 11:28:56.994 17502 17539 D WM-Schedulers: Created SystemJobScheduler and enabled SystemJobService
+07-23 11:28:56.995 17502 17526 D WM-ForceStopRunnable: Is default app process = true
+07-23 11:28:56.998 17502 17526 D WM-ForceStopRunnable: Performing cleanup operations.
+07-23 11:28:56.999 17562 17562 D nativeloader: Load libstats_jni.so using APEX ns com_android_os_statsd for caller /apex/com.android.os.statsd/javalib/framework-statsd.jar: ok
+07-23 11:28:57.003 17562 17562 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
+07-23 11:28:57.003 17562 17562 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+07-23 11:28:57.003 17562 17562 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
+07-23 11:28:57.010 17502 17532 I Finsky:background: [132] SSM: Start staged session task with 3 tracked staged sessions
+07-23 11:28:57.016 17502 17532 I Finsky:background: [132] AMU: Is primary profile true
+07-23 11:28:57.016 17502 17532 I Finsky:background: [132] AMU: Is primary profile true
+07-23 11:28:57.016 17502 17532 I Finsky:background: [132] AMU: Is primary profile true
+07-23 11:28:57.033 17562 17562 W ng:quick_launch: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:57.034 17562 17562 W ng:quick_launch: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:57.034 17562 17562 W ng:quick_launch: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:57.035 17562 17562 W ng:quick_launch: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:57.036 17562 17562 W ng:quick_launch: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:57.036 17562 17562 W ng:quick_launch: Failed to find entry 'classes.dex': Entry not found
+07-23 11:28:57.037 17562 17562 D nativeloader: Configuring clns-9 for other apk /data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/base.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_config.arm64_v8a.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_config.pt.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_data_loader.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_data_loader.config.arm64_v8a.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_webrtc_native_lib.apk:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_phonesky_webrtc_native_lib.config.arm64_v8a.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/lib/arm64:/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.and
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment: Currently set values for:
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment: com.android.vending is not listed in per-application setting
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment: ANGLE allowlist from config: com.dreamgames.royalmatch com.dts.freefiremax com.dxx.firenow com.gramgames.mergedragons com.ludo.king com.mojang.minecraftpe com.my.defense com.nintendo.zaka com.os.airforce com.playrix.fishdomdd.gplay io.teslatech.callbreak jp.konami.prospia net.peakgames.toonblast
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment: com.android.vending is not listed in ANGLE allowlist or settings, returning default
+07-23 11:28:57.046 17562 17562 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+07-23 11:28:57.054 17502 17526 D WM-PackageManagerHelper: Skipping component enablement for androidx.work.impl.background.systemalarm.RescheduleReceiver
+07-23 11:28:57.054 17562 17562 I Finsky:quick_launch: [2] Process created at version: 52.3.32-31 [0] [PR] 949272982
+07-23 11:28:57.063 17562 17562 I Finsky:quick_launch: [2] Finished reading experiment flags from file [0tGUNCGIkbk4o6-fQ335kUYSKwVj4lusnHT-A5Dsy08] numFlags=2475.
+07-23 11:28:57.069 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10235(com.android.vending), SUCCESS, 57ms
+07-23 11:28:57.081 17562 17586 D nativeloader: Load /data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/split_config.arm64_v8a.apk!/lib/arm64-v8a/libmappedcountercacheversionjni.so using class loader ns clns-9 (caller=/data/app/~~vHYLOEtCJh2yuMbbnXOf8Q==/com.android.vending-v8AEjff9TdeCf7HT-eSZWA==/base.apk): ok
+07-23 11:28:57.100 17562 17562 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+07-23 11:28:57.105 17562 17562 I Finsky:quick_launch: [2] Finished reading experiment flags from file [bJJs4z_gY3rR88Y0F6PJK0UIxfiIKQm5lRbRXZX6Bhs] numFlags=2064.
+07-23 11:28:57.109 17562 17562 I Finsky:quick_launch: [2] Finished reading experiment flags from file [cUhkN5RQdV-PgTyQ-tFu7HHpwJsOKard89Ep52zzkaY] numFlags=2064.
+07-23 11:28:57.112 17562 17562 I Finsky:quick_launch: [2] Finished reading experiment flags from file [QUeiktQU8AYSoET12rEJf7XG8Dw3wlVlcI206mMsrfs] numFlags=2064.
+07-23 11:28:57.114 17562 17562 I Finsky:quick_launch: [2] Finished reading experiment flags from file [GPtUezbtaY64WmehJH3nwPeodthD5u9vMmVT519V5k0] numFlags=2064.
+07-23 11:28:57.115 26444 28193 I NSLocationMonitor: getGPSUsingApps() called
+07-23 11:28:57.116 17562 17562 I Finsky:quick_launch: [2] Finished reading experiment flags from file [W-6l6rwamqcxIgelrkW4cMp7PAAyWSKAfXUsCNaQ3pc] numFlags=2064.
+07-23 11:28:57.116 28153 29071 I NSLocationManager_FLP: getGPSUsingApps, No change
+07-23 11:28:57.121 26444 26763 D BackgroundInstallControlService: Package event received: 0
+07-23 11:28:57.126 17562 17562 I Finsky:quick_launch: [2] This process start was not selected for Play memory metrics collection.
+07-23 11:28:57.133 26444 28193 D FreecessController: FZ : com.instagram.barcelona(10355) [24685, 16603] reason: Bg [cached:O
+07-23 11:28:57.133 26444 28193 D FreecessHandler: freeze com.instagram.barcelona(10355) result : 0
+07-23 11:28:57.135 26444 28193 W LocationManagerService: onFreezeStateChanged, uid[10355]=true
+07-23 11:28:57.135 26444 28193 I PowerManagerService: [PWL] SetWakeLockEnableDisable uid = 10355 , disable= true
+07-23 11:28:57.135 26444 28193 I PowerManagerService: [PWL] can not change uid =  10355
+07-23 11:28:57.149 26444 26705 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+07-23 11:28:57.150 26444 26705 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+07-23 11:28:57.150 26444 26705 D InetDiagMessage: Destroyed live tcp sockets for uids={10355} in 2ms
+07-23 11:28:57.151 26444 26705 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+07-23 11:28:57.152 26444 26705 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+07-23 11:28:57.152 26444 26705 D InetDiagMessage: Destroyed live tcp sockets for uids={20355} in 3ms
+07-23 11:28:57.161 17562 17594 I Finsky:quick_launch: [126] Subscription detail: DataSubscriptionInfo{groupIdLevel1=null, serviceProviderName=[iB8If8q38we4MDuXpbhCj5wCjViG-QBJvbzoV5gXFAY], simCarrierId=1635}
+07-23 11:28:57.163 17562 17562 I Finsky:quick_launch: [2] onSubscriptionsChanged
+07-23 11:28:57.171 17562 17594 I Finsky:quick_launch: [126] Finished reading experiment flags from file [Se-xCc4LzNyh3UrKMIU2sUf-PUKz4oQEbpKZDMuaFno] numFlags=2052.
+07-23 11:28:57.171 17562 17594 I Finsky:quick_launch: [126] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:57.171 17562 17594 I Finsky:quick_launch: [126] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.186 17562 17594 I Finsky:quick_launch: [126] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:57.186 17562 17594 I Finsky:quick_launch: [126] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.186  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:57.187 17562 17598 I PlayCommon: [130] Preparing logs for uploading
+07-23 11:28:57.196 26444 26765 I ChimeraPolicyHandler: onPsiMonitorTriggered() - psiLevel: 0
+07-23 11:28:57.197 26444 26765 I ChimeraAggressivePolicyHandler: executePolicy() - triggerSource: TRIGGER_SOURCE_PSI_MEM_MONITOR
+07-23 11:28:57.198 17562 17598 I PlayCommon: [130] Connecting to server for timestamp: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.198 26444 26765 I ChimeraAggressivePolicyHandler: available memory: 855204, free memory target: 747520, quit chimera
+07-23 11:28:57.203 17562 17594 I Finsky:quick_launch: [126] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:57.203 17562 17594 I Finsky:quick_launch: [126] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.207 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10235(com.android.vending), SUCCESS, 3ms
+07-23 11:28:57.216 17562 17594 I Finsky:quick_launch: [126] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:57.217 17562 17594 I Finsky:quick_launch: [126] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.228 17562 17594 I Finsky:quick_launch: [126] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:57.228 17562 17594 I Finsky:quick_launch: [126] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.237 17562 17594 I Finsky:quick_launch: [126] playLoggingServerUrl: https://play.googleapis.com/play/log
+07-23 11:28:57.237 17562 17594 I Finsky:quick_launch: [126] playLoggingServerTimestampUrl: https://play.googleapis.com/play/log/timestamp
+07-23 11:28:57.379  1146  1195 E BatteryDump: !@new_battery_dump : 3888,1382,1900,3150,21,311,314,411,0,0,354,411,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,10200,0x8000,0x10010000,0x0,0,0,0000,0000,00000000,0,0,0,0,191,3750,2110,990,0,
+07-23 11:28:57.382 26250 26250 I seh_thermal_service: getTemperaturesWithType SehTemperatureType: 3
+07-23 11:28:57.383  1146  1146 I sehhealth-service: updateLrpSysfs: write: 353
+07-23 11:28:57.384 26444 28541 D [SS]BattFunctions: [sendRemainingChargingTimeChangedIntent]remainingChargingTime:7932 ,mLastRemainingChargingTime:7943
+07-23 11:28:57.391 27263 27263 D PowerUI : Remaining charging time : 7932
+07-23 11:28:57.392 27263 27263 D PowerUI : Charging time is changed, check charging notification
+07-23 11:28:57.397 27263 27263 D PowerUI.Notification: showChargingNotice - Battery Level : 21 -> 21, Charging Type : 11 -> 11, Charging Time : 7943 -> 7932, Maximum protection : false -> false, Maximum threshold : 80 -> 80
+07-23 11:28:57.400 27263 27263 I NotificationManager: com.android.systemui: notify(2131364006, charging_state, Notification(channel=CHR shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE color=0x00000000 category=sys groupKey=CHARGING vis=PUBLIC semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+07-23 11:28:57.403 26444 26478 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:28:57.403 26444 26478 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:28:57.406 27263 27263 I AODBatteryManager: updateBatteryData: ACTION_BATTERY_CHANGED: false, isSleepModeChanged:false ,isRemainingTimeChanged: true, isUSBRestriction: false
+07-23 11:28:57.407 27263 27263 I ChargingInfoManager: updateChargingInfo: newState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse], oldState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse]
+07-23 11:28:57.432 28457 28457 I SDHMS:LOAD: type: LoadsFreqs, value: 0:0:0:832500:2200000:725000:795999:2000000:500000:0:0:0
+07-23 11:28:57.517 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:57.516 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:57.562 17502 17517 I Finsky:background: [118] WM::SCH: Logging work initialize for 3-139786
+07-23 11:28:57.569 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:57.570 17502 17524 I Finsky:background: [125] SCH: Scheduling phonesky job Id: 3-139786, CT: 1784798936979, Constraints: [{ L: 0, D: 86400000, C: CHARGING_REQUIRED, I: IDLE_REQUIRED, N: NET_UNMETERED, B: BATTERY_ANY }]
+07-23 11:28:57.576 17502 17526 I Finsky:background: [127] SCH: Scheduling 0 system job(s)
+07-23 11:28:57.610 26444 26444 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+07-23 11:28:57.639 27776 30863 I HoneySpace.NotificationListener: onNotificationPosted com.android.systemui: -1|com.android.systemui|2131364006|charging_state|10063: 0
+07-23 11:28:57.639 27776 30863 I HoneySpace.NotificationListener: invalid notification: com.android.systemui UserHandle{-1}: canShowBadge is false
+07-23 11:28:57.647  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:28:57.668 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:28:57.668 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:28:57.691  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.81 dur=1232.99 max=1232.99 min=1232.99
+07-23 11:28:57.696  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:1.624002,dur:1231.53,max:1142.04,min:89.48  
+07-23 11:28:57.699  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:57.699  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:57.699  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:57.756  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:57.761  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:57.761  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:57.765  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.82 dur=1212.21 max=1212.21 min=1212.21
+07-23 11:28:57.803  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:57.803  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:57.803  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:57.833 27263 27263 D Bubbles : onEntryUpdated : shouldBubbleUp=false ,key=-1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.834 27263 27263 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.834 27263 27263 I {OngoingActivityController}: onEntryUpdated and OA data is empty. So update latest task info
+07-23 11:28:57.837  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:57.838  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:57.845 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:57.864 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:28:57.864 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.864 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.871 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:28:57.871 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:28:57.881 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:57.884 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:57.888 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:57.891 17562 17598 I PlayCommon: [130] Connecting to server: https://play.googleapis.com/play/log?format=raw&proto_v2=true
+07-23 11:28:57.899 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:28:57.902  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:57.902  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:57.902  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:57.914 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.914 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.914 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.914 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.917 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:28:57.923  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:57.926 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:28:57.926 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.926 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:28:57.929 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:28:57.929 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:28:57.939  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:57.939  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:57.949  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:57.949  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:58.004  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:58.004  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:58.004  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:58.024  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:28:58.041  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:28:58.041  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:58.058  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:28:58.104  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:28:58.105  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:28:58.105  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:28:58.107  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:28:58.108  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:28:58.129 17562 17598 I PlayCommon: [130] Successfully uploaded logs.
+07-23 11:28:58.135 26444 28193 E FreecessController: can't read /proc/24685/comm/proc/24685/comm: open failed: ENOENT (No such file or directory)
+07-23 11:28:58.152 10095 17493 I Finsky  : [591] SCH: jobFinished: 16-16161616. TimeElapsed: 3335ms.
+07-23 11:28:58.153 10095 17493 I Finsky  : [591] WM::SCH: Logging work end for 16-16161616
+07-23 11:28:58.162   580   580 D io_stats: !@   8,32 r 380892129 7529769192 w 36072530 346258852 d 4489908 279654324 f 6744336 4391078 iot 60718568 0 th 0 0 0 pt 0 inp 1 0 499144.671
+07-23 11:28:58.172 10095 10121 I Finsky  : [120] SCH: Scheduling phonesky job Id: 26-1414141414, CT: 1784786537635, Constraints: [{ L: 43200000, D: 44100000, C: CHARGING_NONE, I: IDLE_NONE, N: NET_NONE, B: BATTERY_ANY }]
+07-23 11:28:58.173 10095 10121 I Finsky  : [120] SCH: Scheduling phonesky job Id: 50-1029, CT: 1784798787019, Constraints: [{ L: 43163987, D: 44963987, C: CHARGING_NONE, I: IDLE_NONE, N: NET_NONE, B: BATTERY_ANY }]
+07-23 11:28:58.182 10095 10124 I Finsky  : [122] SCH: Scheduling 1 system job(s)
+07-23 11:28:58.182 10095 10124 W JobInfo : Job 'com.android.vending/com.google.android.finsky.scheduler.process.mainimpl.PhoneskyJobServiceMain#9850' has a deadline with no functional constraints. The deadline won't improve job execution latency. Consider removing the deadline.
+07-23 11:28:58.182 10095 10124 I Finsky  : [122] SCH: Scheduling system job Id: 9850, L: 30799453, D: 31699453, C: false, I: false, N: 0
+07-23 11:28:58.184 26444 26478 W JobInfo : Job 'com.android.vending/com.google.android.finsky.scheduler.process.mainimpl.PhoneskyJobServiceMain#9850' has a deadline with no functional constraints. The deadline won't improve job execution latency. Consider removing the deadline.
+07-23 11:28:58.189  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:58.198 10095 17490 I Finsky  : [588] SCH: job service finished with id 9847.
+07-23 11:28:58.320 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:28:58.324 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:28:58.855 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:59.074 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:9A:C7, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-96, periodicAdvInt=0x0
+07-23 11:28:59.080  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:28:59.125 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:28:59.128  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 57)
+07-23 11:28:59.131 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-92, periodicAdvInt=0x0
+07-23 11:28:59.137  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:28:59.191  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:28:59.430 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4902, isSameBssidAndFreq true
+07-23 11:28:59.433 26444 26788 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,00 (28) / 72 / -61.0 || 100.0 : 72,00 / B (B) || 8d02cc192462: 0,214 / 37,389 / D || N N / 0 0 / Y 2.0 / Y X 0 / 499145940 0 || Invalid
+07-23 11:28:59.963 26942 20746 D IpClient/wlan0: interfaceLinkStateChanged: ifindex 53 up
+07-23 11:29:00.007 27263 27794 D QSClockBellTower: onReceive(android.intent.action.TIME_TICK) mTimeZoneString:Africa/Maputo
+07-23 11:29:00.007 27263 27263 D ClockFaceEvents: onTimeTick. callers : com.android.keyguard.ClockEventController$keyguardUpdateMonitorCallback$1.refreshTime:19
+07-23 11:29:00.007 27263 27263 D ClockFaceEvents: com.android.keyguard.ClockEventController$keyguardUpdateMonitorCallback$1.onTimeChanged:1
+07-23 11:29:00.007 27263 27263 D ClockFaceEvents: com.android.keyguard.KeyguardUpdateMonitor$16.handleMessage:732
+07-23 11:29:00.008 27263 27263 D ClockFaceEvents: onTimeTick. callers : com.android.keyguard.ClockEventController$keyguardUpdateMonitorCallback$1.refreshTime:38
+07-23 11:29:00.008 27263 27263 D ClockFaceEvents: com.android.keyguard.ClockEventController$keyguardUpdateMonitorCallback$1.onTimeChanged:1
+07-23 11:29:00.008 27263 27263 D ClockFaceEvents: com.android.keyguard.KeyguardUpdateMonitor$16.handleMessage:732
+07-23 11:29:00.008 27263 27263 D FaceWidgetPagesController: onTimeChanged()
+07-23 11:29:00.008 27263 27794 I DateTimeView: updateAll - getTimeFormat
+07-23 11:29:00.009 26444 26444 I EyeComfortSolutionService: action  :  android.intent.action.TIME_TICK
+07-23 11:29:00.009 27263 27263 D QSClockBellTower: He is ready to ring the bell. (((QSClockBellSound - TimeText:11:29, TimeContentDescription:11:29, DateText:quinta, 23 de julho, ShortDateText:quinta, 23/07, Demo:false)))
+07-23 11:29:00.010 27263 27263 D QSClock : StatusBar clock=11:29 notifyTimeChanged(QSClockBellSound - TimeText:11:29, TimeContentDescription:11:29, DateText:quinta, 23 de julho, ShortDateText:quinta, 23/07, Demo:false) clockVisibleByPolicy=true, clockVisibleByUser=true, visible=true, parent=android.widget.LinearLayout{4ec7961 V.E...... ......ID 0,0-96,72 #7f0a069b app:id/left_clock_container} caller=com.android.systemui.statusbar.phone.fragment.CollapsedStatusBarFragment.animateShow:52 com.android.systemui.statusbar.phone.fragment.CollapsedStatusBarFragment.updateStatusBarVisibilitiesInner:230 com.android.systemui.statusbar.phone.fragment.CollapsedStatusBarFragment.updateStatusBarVisibilities:65 com.android.systemui.statusbar.phone.fragment.CollapsedStatusBarFragment.disable:71 com.android.systemui.statusbar.CommandQueue$H.handleMessage:2997  
+07-23 11:29:00.010 27263 27263 D QSClockBellTower: Everyone heard the bell. run(currentTime:1784798940009, getTime():Thu Jul 23 11:29:00 GMT+02:00 2026, getTimeZone():libcore.util.ZoneInfo[mDstSavings=0,mUseDst=false,mDelegate=[id="Africa/Maputo",mRawOffset=7200000,mEarliestRawOffset=7818000,transitions=1]])
+07-23 11:29:00.013  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:00.021 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:00.036  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=1.28 dur=2344.74 max=2089.83 min=66.71
+07-23 11:29:00.042  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:2.558478,dur:2345.14,max:1996.10,min:7.48  
+07-23 11:29:00.045  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:00.045  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:00.045  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:00.131  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:00.136 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:00.139  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:00.140  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:00.143  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=1.26 dur=2377.89 max=2098.63 min=103.64
+07-23 11:29:00.146  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:00.146  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:00.146  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:00.164   580   580 D io_stats: !@   8,32 r 380892133 7529769236 w 36072546 346258936 d 4489908 279654324 f 6744336 4391078 iot 60718588 0 th 0 0 0 pt 0 inp 1 0 499146.672
+07-23 11:29:00.164   580   580 D io_stats: !@ Read_top(KB): ding:background:high(17502) 34124 kworker/u32:0:/(6917) 3336 kworker/u32:1:/(10612) 2236
+07-23 11:29:00.165   580   580 D io_stats: !@ Write_top(KB): ding:background:high(17502) 184 android.vending:high(10095) 84 sait.sohservice:low(16432) 32
+07-23 11:29:00.195  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:00.213  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:00.213  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:00.943 26231  3372 W aurisys_controller: aurisys_get_parameter(), adb_cmd->adb_cmd_type 7 fail, need active handler!
+07-23 11:29:00.943 26231  3372 D AudioALSAHardware: -getParameters(), return "g_hw_speaker_amp_temp_spk=GET_FAIL"
+07-23 11:29:00.947 28457 30315 I SDHMS:x : SIOP:: AP:376 BAT:312 USB:314 CHG:412 PA:355 WIFI:353 BLK:0 SUBBAT:0 SKIN:353 SKINF:350 SKINB:353 LRP2:353 LRF2:350 LRB2:353 SPK:313 AP2:351 CHG2:353 MEM2:351 WIFI2:350 DNSPK:300 VAP:392 AVGCUR:1752 AVGSYS:0 POWER:6813
+07-23 11:29:00.948 28457 30315 I AudioManager: setParameters keyValuePairs = g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.950 26225 29483 D AudioFlinger: setParameters: filtered dev setParameters keyvalue g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.952 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.954 26231  3372 D AudioALSAHardware: +setParameters(): g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.955 26231  3372 W aurisys_controller: lib_name smartpa_aw88xxx, scene 9, no active handler!!
+07-23 11:29:00.955 26231  3372 D AudioALSAHardware: -setParameters(): g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.956 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.959 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:00.960 26231  3372 D AHAL_ModuleBluetooth: setVendorParameters unrecognized parameter: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:01.201  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:01.417 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:01.689 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:01.906  4742 17447 I NearbyMediums: No BLE Fast/GATT advertisements found in the latest cycle.
+07-23 11:29:01.906  4742 17447 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing, NearbyConnections.TxAdvertisement}
+07-23 11:29:01.977 26874 26874 I wpa_supplicant: Heartbeat 5206
+07-23 11:29:02.168   580   580 D io_stats: !@   8,32 r 380892138 7529769256 w 36072594 346259172 d 4489908 279654324 f 6744336 4391078 iot 60718616 0 th 0 0 0 pt 0 inp 0 0 499148.676
+07-23 11:29:02.203  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:02.204  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of camera0\n"
+07-23 11:29:02.204  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:02.204  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of nrpa_ntc\n"
+07-23 11:29:02.204  1303  1313 E thermal_core: dump_thermal_log:"Error: sccanf error, ret=9\n"
+07-23 11:29:02.205  1303  1313 E thermal_core: node_read:"Failed to read /sys/class/thermal/thermal_zone2/temp: No data available\n"
+07-23 11:29:02.206  1303  1313 I thermal_core: "soc/nr/lte/ap_ntc/tpcb/conn/chg/cam/c_ttj/g_ttj/a_ttj=0/-274000/36631/72428/46000/37000/-274000/-274000/55000/55000/55000\n"
+07-23 11:29:02.206  1303  1313 I thermal_core: "[C(l)(c)(i)][G(l)(c)][A(l)(c)][TH][D]=[(2000/2200/666666)(500/725/6666)(0x0)][(666666)(666666)][(666666666)(666666666)][0][1600]\n"
+07-23 11:29:02.206  1303  1313 E thermal_core: node_read:"Failed to open /sys/kernel/helio-dvfsrc/dvfsrc_therm_info: No such file or directory\n"
+07-23 11:29:02.206  1303  1313 I thermal_core: "1600"
+07-23 11:29:02.448 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4903, isSameBssidAndFreq true
+07-23 11:29:02.452 27263 27533 D Tile.WifiTile: handleUpdateState isTransient=false transientEnabling =false cb.isTransient=false state.state = 2 mStateBeforeClick.value =false enabled =true
+07-23 11:29:02.458  1179  1557 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:02.482  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.41 dur=2445.35 max=2445.35 min=2445.35
+07-23 11:29:02.489  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.817245,dur:2447.25,max:2344.87,min:102.37  
+07-23 11:29:02.492  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:02.492  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:02.492  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:02.576  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:02.583  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:02.584  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:02.587  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.41 dur=2444.26 max=2444.26 min=2444.26
+07-23 11:29:02.593  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:02.593  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:02.593  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:02.660  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:02.661  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:02.697 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:02.966 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:03.209  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:03.650  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 62)
+07-23 11:29:03.768  4742 17447 I GetConfigSnapshotOp: (REDACTED) Succeeded but not registered: %s
+07-23 11:29:03.974 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:04.161  4742 17447 I GetConfigSnapshotOp: (REDACTED) Succeeded but not registered: %s
+07-23 11:29:04.169   580   580 D io_stats: !@   8,32 r 380892274 7529771108 w 36072603 346259208 d 4489908 279654324 f 6744336 4391078 iot 60718672 0 th 0 0 0 pt 0 inp 0 0 499150.678
+07-23 11:29:04.170   580   580 D io_stats: !@ Read_top(KB): ding:background:high(17502) 1552 .gms.persistent:high(4742) 288 android.vending:high(10095) 12
+07-23 11:29:04.170   580   580 D io_stats: !@ Write_top(KB): kworker/u32:1:/(10612) 232 ding:background:high(17502) 20 ng:quick_launch:high(17562) 12
+07-23 11:29:04.214  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:04.246 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:04.753 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:9A:C7, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-96, periodicAdvInt=0x0
+07-23 11:29:04.759  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:04.941  1137  1157 D power@timer: [mtkPowerTimer] visRead:0
+07-23 11:29:05.094 26444 26478 D NetdEventListenerService: CSC Feature value: true
+07-23 11:29:05.094 26444 26478 D NetdEventListenerService: CSC Feature value: true
+07-23 11:29:05.095 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:05.100 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:05.106 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:05.107 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:05.217  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:05.257 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:05.457 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:05.464 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4904, isSameBssidAndFreq true
+07-23 11:29:05.467 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:05.526 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:05.974 26444 26817 D WifiConnectivityMonitor.NetworkStatsAnalyzer: Backhaul result - RSSI:-61, CE:10, PE:10, TI:17, PTI:17, TW:1, PTW:1, Tx:35, Rx:40, TxS:32, RxS:36, RESULT:true, IC:0, ICT:5, WC:0, WCT:5, R:0, RC:0, IE:0, EC:0
+07-23 11:29:05.999 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:06.008 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [                 contacts = {contacts=0, raw_contacts=0, data=0, account={secphone(1)=0, sim(2)=0, sim2(3)=0, agg(4)=0, vnd.sec.contact.phone_personal(5)=0}, trash=0, trash_acc={}, trash_sync=0, database=contacts2.db} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [               aggregated = {} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [                  request = {} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [                    calls = {types={}, database=calllog.db} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [                  profile = {contacts=0, raw_contacts=0, data=0, account={secphone(1)=0, sim(2)=0, sim2(3)=0, agg(4)=0, vnd.sec.contact.phone_personal(5)=0}, trash=0, trash_acc={}, trash_sync=0, database=profile.db} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [               sa_profile = {contacts=0, raw_contacts=0, data=0, account={secphone(1)=0, sim(2)=0, sim2(3)=0, agg(4)=0, vnd.sec.contact.phone_personal(5)=0}, trash=0, trash_acc={}, trash_sync=0, database=profile_sa.db} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: [                      etc = {binders=0, country_iso=MZ, version=15.6.28, db_version=2000, db_size=0, db_wal_size=0, csc=/, sec_enabled=false, is_roaming=false} ]
+07-23 11:29:06.080  3359  3457 V CpEventLog(u151): [P] cp_state: ------------------------------------------------------------------------------
+07-23 11:29:06.174   580   580 D io_stats: !@   8,32 r 380892274 7529771108 w 36072615 346259324 d 4489908 279654324 f 6744336 4391078 iot 60718676 0 th 0 0 0 pt 0 inp 0 0 499152.683
+07-23 11:29:06.222  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:06.494 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:9A:C7, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-97, periodicAdvInt=0x0
+07-23 11:29:06.500  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:06.528 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-100, periodicAdvInt=0x0
+07-23 11:29:06.534 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:06.536  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:07.226  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:07.463  1146  1195 E BatteryDump: !@new_battery_dump : 3894,1835,1900,3150,21,312,314,410,0,0,353,410,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,10200,0x8000,0x10010000,0x0,0,0,0000,0000,00000000,0,0,0,0,191,3750,2120,990,0,
+07-23 11:29:07.472 26444 26478 D [SS]BattFunctions: [sendRemainingChargingTimeChangedIntent]remainingChargingTime:7925 ,mLastRemainingChargingTime:7932
+07-23 11:29:07.473 26250 26250 I seh_thermal_service: getTemperaturesWithType SehTemperatureType: 3
+07-23 11:29:07.474  1146  1146 I sehhealth-service: updateLrpSysfs: write: 353
+07-23 11:29:07.478 27263 27263 I AODBatteryManager: updateBatteryData: ACTION_BATTERY_CHANGED: false, isSleepModeChanged:false ,isRemainingTimeChanged: true, isUSBRestriction: false
+07-23 11:29:07.479 27263 27263 I ChargingInfoManager: updateChargingInfo: newState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse], oldState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse]
+07-23 11:29:07.479 27263 27263 D PowerUI : Remaining charging time : 7925
+07-23 11:29:07.479 27263 27263 D PowerUI : Charging time is changed, check charging notification
+07-23 11:29:07.481 27263 27263 D PowerUI.Notification: showChargingNotice - Battery Level : 21 -> 21, Charging Type : 11 -> 11, Charging Time : 7932 -> 7925, Maximum protection : false -> false, Maximum threshold : 80 -> 80
+07-23 11:29:07.487 27263 27263 I NotificationManager: com.android.systemui: notify(2131364006, charging_state, Notification(channel=CHR shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE color=0x00000000 category=sys groupKey=CHARGING vis=PUBLIC semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+07-23 11:29:07.495 26444 28541 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:29:07.496 26444 28541 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:29:07.612 28457 28457 I SDHMS:LOAD: type: LoadsFreqs, value: 0:0:0:764000:1800000:725000:570999:2000000:500000:0:0:0
+07-23 11:29:07.646 26444 26813 D WifiConnectivityMonitor: Stop WCM Poll. cnt : 9
+07-23 11:29:07.647 26444 26813 I WifiConnectivityMonitor: LinkQualityMonitorCallback was not registered yet
+07-23 11:29:07.712 26444 26444 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+07-23 11:29:07.745 27776 30863 I HoneySpace.NotificationListener: onNotificationPosted com.android.systemui: -1|com.android.systemui|2131364006|charging_state|10063: 0
+07-23 11:29:07.745 27776 30863 I HoneySpace.NotificationListener: invalid notification: com.android.systemui UserHandle{-1}: canShowBadge is false
+07-23 11:29:07.747  1179  1557 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:07.769 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:07.770 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:07.793  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.19 dur=5311.37 max=5311.37 min=5311.37
+07-23 11:29:07.799  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.376622,dur:5310.36,max:5210.62,min:99.74  
+07-23 11:29:07.802  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:07.802  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:07.802  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:07.808  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 63)
+07-23 11:29:07.861  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:07.873  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:07.873  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:07.877  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.19 dur=5289.49 max=5289.49 min=5289.49
+07-23 11:29:07.904  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:07.904  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:07.904  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:07.938 27263 27263 D Bubbles : onEntryUpdated : shouldBubbleUp=false ,key=-1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:07.939 27263 27263 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:07.939 27263 27263 I {OngoingActivityController}: onEntryUpdated and OA data is empty. So update latest task info
+07-23 11:29:07.943  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:07.943  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:07.963 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:07.963 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:07.963 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:07.970 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:07.970 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:07.980 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:07.983 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:07.987 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:07.997 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:08.007  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:08.007  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:08.007  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:08.014 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:08.014 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:08.014 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:08.014 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:08.018 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:08.028 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:08.028 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:08.028 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:08.031 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:08.032 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:08.035  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:08.039  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:08.039  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:08.052  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:08.052  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:08.087 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:08.106  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:08.106  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:08.106  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:08.128  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:08.140  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:08.140  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:08.159  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:08.176   580   580 D io_stats: !@   8,32 r 380892274 7529771108 w 36072617 346259332 d 4489908 279654324 f 6744336 4391078 iot 60718680 0 th 0 0 0 pt 0 inp 0 0 499154.685
+07-23 11:29:08.177   580   580 D io_stats: !@ Write_top(KB): kworker/u32:2:/(10618) 108 vendor.samsung.:normal(1146) 8 ng:quick_launch:high(17562) 8
+07-23 11:29:08.206  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:08.207  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:08.207  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:08.209  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:08.210  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:08.228  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:08.478 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4905, isSameBssidAndFreq true
+07-23 11:29:08.479 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:9A:C7, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-96, periodicAdvInt=0x0
+07-23 11:29:08.484  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:08.506 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-86, periodicAdvInt=0x0
+07-23 11:29:08.511  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:09.096 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:09.232  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:09.367 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:10.057 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:10.168 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-90, periodicAdvInt=0x0
+07-23 11:29:10.174  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:10.234  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:10.647 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:10.951 26231  3372 W aurisys_controller: aurisys_get_parameter(), adb_cmd->adb_cmd_type 7 fail, need active handler!
+07-23 11:29:10.951 26231  3372 D AudioALSAHardware: -getParameters(), return "g_hw_speaker_amp_temp_spk=GET_FAIL"
+07-23 11:29:10.954 28457 30315 I SDHMS:x : SIOP:: AP:372 BAT:312 USB:314 CHG:410 PA:353 WIFI:351 BLK:0 SUBBAT:0 SKIN:352 SKINF:348 SKINB:352 LRP2:352 LRF2:348 LRB2:352 SPK:313 AP2:350 CHG2:352 MEM2:349 WIFI2:348 DNSPK:300 VAP:390 AVGCUR:1802 AVGSYS:0 POWER:7007
+07-23 11:29:10.955 28457 30315 I AudioManager: setParameters keyValuePairs = g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.957 26225 29752 D AudioFlinger: setParameters: filtered dev setParameters keyvalue g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.958 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.961 26231  3372 D AudioALSAHardware: +setParameters(): g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.962 26231  3372 W aurisys_controller: lib_name smartpa_aw88xxx, scene 9, no active handler!!
+07-23 11:29:10.962 26231  3372 D AudioALSAHardware: -setParameters(): g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.963 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.965 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:10.966 26231  3372 D AHAL_ModuleBluetooth: setVendorParameters unrecognized parameter: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:11.238  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:11.498 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4906, isSameBssidAndFreq true
+07-23 11:29:11.911  4742 17447 I NearbyMediums: No BLE Fast/GATT advertisements found in the latest cycle.
+07-23 11:29:11.911  4742 17447 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing, NearbyConnections.TxAdvertisement}
+07-23 11:29:11.979 26874 26874 I wpa_supplicant: Heartbeat 5207
+07-23 11:29:12.131  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 63)
+07-23 11:29:12.179   580   580 D io_stats: !@   8,32 r 380892274 7529771108 w 36072638 346259460 d 4489908 279654324 f 6744336 4391078 iot 60718684 0 th 0 0 0 pt 0 inp 0 0 499158.688
+07-23 11:29:12.180   580   580 D io_stats: !@ Write_top(KB): sait.sohservice:low(16432) 68 kworker/u32:1:/(10612) 60
+07-23 11:29:12.242  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:12.665 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:12.675 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:12.682 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:12.683 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:13.207 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:13.243  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:13.244  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of camera0\n"
+07-23 11:29:13.244  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:13.244  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of nrpa_ntc\n"
+07-23 11:29:13.244  1303  1313 E thermal_core: dump_thermal_log:"Error: sccanf error, ret=9\n"
+07-23 11:29:13.245  1303  1313 E thermal_core: node_read:"Failed to read /sys/class/thermal/thermal_zone2/temp: No data available\n"
+07-23 11:29:13.245  1303  1313 I thermal_core: "soc/nr/lte/ap_ntc/tpcb/conn/chg/cam/c_ttj/g_ttj/a_ttj=0/-274000/36421/72000/46000/37000/-274000/-274000/55000/55000/55000\n"
+07-23 11:29:13.245  1303  1313 I thermal_core: "[C(l)(c)(i)][G(l)(c)][A(l)(c)][TH][D]=[(2000/2200/666666)(750/725/6666)(0x0)][(666666)(666666)][(666666666)(666666666)][0][1200]\n"
+07-23 11:29:13.245  1303  1313 E thermal_core: node_read:"Failed to open /sys/kernel/helio-dvfsrc/dvfsrc_therm_info: No such file or directory\n"
+07-23 11:29:13.245  1303  1313 I thermal_core: "1200"
+07-23 11:29:13.381 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:13.388 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:13.797 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:13.804 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:13.896 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:14.181   580   580 D io_stats: !@   8,32 r 380892401 7529772232 w 36072641 346259476 d 4489908 279654324 f 6744336 4391078 iot 60718700 0 th 0 0 0 pt 0 inp 0 0 499160.690
+07-23 11:29:14.248  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:14.316 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:14.320 26444 26469 E Watchdog: !@Sync: 1693 heap(MB): 128 / 142 FD: 1564 [2026-07-23 11:29:14.319]
+07-23 11:29:14.322 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:14.511 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4907, isSameBssidAndFreq true
+07-23 11:29:14.516 27263 27533 D Tile.WifiTile: handleUpdateState isTransient=false transientEnabling =false cb.isTransient=false state.state = 2 mStateBeforeClick.value =false enabled =true
+07-23 11:29:14.526  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:14.550  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.44 dur=6756.53 max=6501.95 min=56.02
+07-23 11:29:14.556  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.888009,dur:6756.69,max:6410.39,min:6.96  
+07-23 11:29:14.560  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:14.560  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:14.560  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:14.641  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:14.653  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:14.653  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:14.657  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.44 dur=6779.60 max=6512.10 min=100.48
+07-23 11:29:14.661  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:14.661  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:14.661  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:14.726  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:14.726  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:15.176 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:15.251  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:15.764 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:15.985 26444 26817 D WifiConnectivityMonitor.NetworkStatsAnalyzer: Backhaul result - RSSI:-61, CE:10, PE:10, TI:17, PTI:17, TW:1, PTW:1, Tx:3, Rx:3, TxS:4, RxS:3, RESULT:true, IC:0, ICT:5, WC:0, WCT:5, R:0, RC:0, IE:0, EC:0
+07-23 11:29:16.137 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:16.185   580   580 D io_stats: !@   8,32 r 380892442 7529773240 w 36072644 346259672 d 4489908 279654324 f 6744336 4391078 iot 60718720 0 th 0 0 0 pt 0 inp 0 0 499162.693
+07-23 11:29:16.185   580   580 D io_stats: !@ Read_top(KB): gle.android.gms:high(10382) 1004 kworker/u32:0:/(6917) 904 .gms.persistent:high(4742) 120
+07-23 11:29:16.185   580   580 D io_stats: !@ Write_top(KB): kworker/u32:2:/(10618) 196 .gms.persistent:high(4742) 12 sait.sohservice:low(16432) 4
+07-23 11:29:16.257  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:16.851  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 60)
+07-23 11:29:17.047 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:17.117 26942 20746 D IpClient/wlan0: interfaceLinkStateChanged: ifindex 53 up
+07-23 11:29:17.261  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:17.416 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:17.528 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4908, isSameBssidAndFreq true
+07-23 11:29:17.587  1146  1195 E BatteryDump: !@new_battery_dump : 3890,1777,1900,3150,21,312,314,408,0,0,353,408,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,10200,0x8000,0x10010000,0x0,0,0,0000,0000,00000000,0,0,0,0,191,3751,2130,990,0,
+07-23 11:29:17.588 26444 28541 D [SS]BattFunctions: [sendRemainingChargingTimeChangedIntent]remainingChargingTime:7914 ,mLastRemainingChargingTime:7925
+07-23 11:29:17.588 26250 26250 I seh_thermal_service: getTemperaturesWithType SehTemperatureType: 3
+07-23 11:29:17.588  1146  1146 I sehhealth-service: updateLrpSysfs: write: 352
+07-23 11:29:17.595 27263 27263 I AODBatteryManager: updateBatteryData: ACTION_BATTERY_CHANGED: false, isSleepModeChanged:false ,isRemainingTimeChanged: true, isUSBRestriction: false
+07-23 11:29:17.595 27263 27263 I ChargingInfoManager: updateChargingInfo: newState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse], oldState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse]
+07-23 11:29:17.596 27263 27263 D PowerUI : Remaining charging time : 7914
+07-23 11:29:17.596 27263 27263 D PowerUI : Charging time is changed, check charging notification
+07-23 11:29:17.598 27263 27263 D PowerUI.Notification: showChargingNotice - Battery Level : 21 -> 21, Charging Type : 11 -> 11, Charging Time : 7925 -> 7914, Maximum protection : false -> false, Maximum threshold : 80 -> 80
+07-23 11:29:17.603 27263 27263 I NotificationManager: com.android.systemui: notify(2131364006, charging_state, Notification(channel=CHR shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE color=0x00000000 category=sys groupKey=CHARGING vis=PUBLIC semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+07-23 11:29:17.610 26444 26478 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:29:17.611 26444 26478 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:29:17.752 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:17.753 12187 12353 E msys    : E[N mns:TigonMNS]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:17.756 12187 12353 E msys    : E[N mns:TigonMNS]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:17.756 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:17.793 28457 28457 I SDHMS:LOAD: type: LoadsFreqs, value: 0:0:0:754499:2200000:725000:542999:2000000:500000:23:390:0
+07-23 11:29:17.826 26444 26444 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+07-23 11:29:17.860 27776 30863 I HoneySpace.NotificationListener: onNotificationPosted com.android.systemui: -1|com.android.systemui|2131364006|charging_state|10063: 0
+07-23 11:29:17.860 27776 30863 I HoneySpace.NotificationListener: invalid notification: com.android.systemui UserHandle{-1}: canShowBadge is false
+07-23 11:29:17.871  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:17.896 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:17.897 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:17.916  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.30 dur=3366.77 max=3366.77 min=3366.77
+07-23 11:29:17.923  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.594050,dur:3366.72,max:3264.97,min:101.76  
+07-23 11:29:17.925  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:17.925  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:17.925  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:17.985  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:17.996  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:17.997  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:18.000  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.30 dur=3343.49 max=3343.49 min=3343.49
+07-23 11:29:18.029  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:18.029  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:18.029  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:18.059 27263 27263 D Bubbles : onEntryUpdated : shouldBubbleUp=false ,key=-1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.061 27263 27263 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.061 27263 27263 I {OngoingActivityController}: onEntryUpdated and OA data is empty. So update latest task info
+07-23 11:29:18.067  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:18.068  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:18.086 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:18.087 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.087 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.094 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:18.094 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:18.103 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:18.106 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:18.109 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:18.119 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:18.128  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:18.128  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:18.128  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:18.134 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.134 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.134 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.134 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.137 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:18.145 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:18.146 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.146 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:18.147  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:18.149 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:18.149 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:18.163  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:18.163  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:18.186   580   580 D io_stats: !@   8,32 r 380892502 7529774020 w 36072649 346259688 d 4489908 279654324 f 6744337 4391079 iot 60718748 0 th 0 0 0 pt 0 inp 0 0 499164.695
+07-23 11:29:18.230  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:18.230  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:18.230  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:18.240  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:18.240  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:18.262  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [                 contacts = {contacts=2073, raw_contacts=4926, data=24456, account={secphone(1)=0, google(2)=1625, sim(3)=0, sim2(4)=0, agg(5)=0, duo(6)=112, samsung(7)=0, mobileservice(8)=0, whatsapp(9)=1357, coreapp(10)=30, com.yandex.passport(12)=0, www.instagram.barcelona(18)=0, google(21)=2, com.whatsapp.w4b(22)=1357, www.instagram.com(27)=0, www.instagram.com(101)=0, google(109)=0, google(134)=1, google(135)=442, www.instagram.com(142)=0, com.facebook.auth.login(171)=0}, trash=0, trash_acc={}, trash_sync=0, database=contacts2.db} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [               aggregated = {[134]=1, [135,10,9,22]=6, [135,22,9]=2, [135,22]=1, [135,9,22,10]=2, [135,9,22,6]=8, [135,9,22]=264, [135,9]=1, [135]=152, [2,10,6]=1, [2,10,9,22]=1, [2,10]=5, [2,135]=1, [2,22,9,6]=2, [2,22,9]=56, [2,22]=3, [2,6]=10, [2,9,10,22,6]=1, [2,9,10,22]=1, [2,9,22,10,6]=1, [2,9,22,10]=11, [2,9,22,135]=3, [2,9,22,6,10]=1, [2,9,22,6]=82, [2,9,22]=897, [2,9,6,22]=4, [2,9,6]=1, [2,9,9,22,22]=1, [2,9]=1, [21,22,9]=1, [21,9,22]=1, [22]=1, [2]=542, [9,135]=2, [9,22,6]=1, [9,22]=5} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [                  request = {} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [                    calls = {types={[100]=427, [500]=1, [1000]=1572}, database=calllog.db} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [                  profile = {contacts=0, raw_contacts=0, data=0, account={secphone(1)=0, google(2)=0, sim(3)=0, sim2(4)=0, agg(5)=0, duo(6)=0, samsung(7)=0, mobileservice(8)=0, whatsapp(9)=0, coreapp(10)=0, com.yandex.passport(12)=0, www.instagram.barcelona(18)=0, google(21)=0, com.whatsapp.w4b(22)=0, www.instagram.com(27)=0, www.instagram.com(101)=0, google(108)=0, google(129)=0, google(130)=0, www.instagram.com(135)=0, com.facebook.auth.login(155)=0}, trash=0, trash_acc={}, trash_sync=0, database=profile.db} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [               sa_profile = {contacts=0, raw_contacts=0, data=0, account={secphone(1)=0, google(2)=0, sim(3)=0, sim2(4)=0, agg(5)=0, duo(6)=0, samsung(7)=0, mobileservice(8)=0, whatsapp(9)=0, coreapp(10)=0, com.yandex.passport(12)=0, www.instagram.barcelona(18)=0, google(21)=0, com.whatsapp.w4b(22)=0, www.instagram.com(27)=0, www.instagram.com(101)=0, google(108)=0, google(129)=0, google(130)=0, www.instagram.com(135)=0, com.facebook.auth.login(155)=0}, trash=0, trash_acc={}, trash_sync=0, database=profile_sa.db} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: [                      etc = {binders=0, country_iso=MZ, version=15.6.28, db_version=2000, db_size=34, db_wal_size=0, csc=/, sec_enabled=false, is_roaming=false} ]
+07-23 11:29:18.312 13943 13981 V CpEventLog(u0): [P] cp_state: ------------------------------------------------------------------------------
+07-23 11:29:18.323 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:18.697 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:19.266  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:19.606 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:19.895 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:19.900 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:19.906 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:19.906 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:19.977 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:20.189   580   580 D io_stats: !@   8,32 r 380892567 7529775908 w 36072654 346259712 d 4489908 279654324 f 6744337 4391079 iot 60718772 0 th 0 0 0 pt 0 inp 0 0 499166.698
+07-23 11:29:20.190   580   580 D io_stats: !@ Read_top(KB): hbox:interactor:high(28380) 1484 stagram.android:low(12187) 696 d.process.acore:low(13943) 384
+07-23 11:29:20.190   580   580 D io_stats: !@ Write_top(KB): sait.sohservice:low(16432) 24 system_server:high(26444) 8 vendor.samsung.:normal(1146) 8
+07-23 11:29:20.270  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:20.549 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4909, isSameBssidAndFreq true
+07-23 11:29:20.553 27263 27533 D Tile.WifiTile: handleUpdateState isTransient=false transientEnabling =false cb.isTransient=false state.state = 2 mStateBeforeClick.value =false enabled =true
+07-23 11:29:20.561  1179  1228 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:20.584  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=1.12 dur=2667.50 max=2423.50 min=56.70
+07-23 11:29:20.590  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:1.499769,dur:2667.08,max:2423.32,min:59.80  
+07-23 11:29:20.592  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:20.592  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:20.592  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:20.675  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:20.685  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:20.686  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:20.689  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.74 dur=2689.03 max=2523.32 min=165.72
+07-23 11:29:20.692  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:20.692  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:20.692  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:20.759  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:20.760  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:20.887 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:20.958 26231  3372 W aurisys_controller: aurisys_get_parameter(), adb_cmd->adb_cmd_type 7 fail, need active handler!
+07-23 11:29:20.959 26231  3372 D AudioALSAHardware: -getParameters(), return "g_hw_speaker_amp_temp_spk=GET_FAIL"
+07-23 11:29:20.963 28457 30315 I SDHMS:x : SIOP:: AP:371 BAT:312 USB:314 CHG:408 PA:351 WIFI:349 BLK:0 SUBBAT:0 SKIN:351 SKINF:347 SKINB:351 LRP2:351 LRF2:347 LRB2:351 SPK:313 AP2:348 CHG2:351 MEM2:348 WIFI2:347 DNSPK:300 VAP:388 AVGCUR:1782 AVGSYS:0 POWER:6930
+07-23 11:29:20.964 28457 30315 I AudioManager: setParameters keyValuePairs = g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.966 26225 29483 D AudioFlinger: setParameters: filtered dev setParameters keyvalue g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.966 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.968 26231  3372 D AudioALSAHardware: +setParameters(): g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.969 26231  3372 W aurisys_controller: lib_name smartpa_aw88xxx, scene 9, no active handler!!
+07-23 11:29:20.969 26231  3372 D AudioALSAHardware: -setParameters(): g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.970 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.972 26230 26230 D Audio_ParameterParser: parseVendorParameters: scope: MODULE, keys/values: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.973 26231  3372 D AHAL_ModuleBluetooth: setVendorParameters unrecognized parameter: g_hw_speaker_amp_temp_spk=313
+07-23 11:29:20.991 28457 28676 E SDHMS:i : e = /sys/class/rtc/rtc0/date: open failed: EACCES (Permission denied)
+07-23 11:29:20.992 28457 28676 E SDHMS:i : e = /sys/class/rtc/rtc0/time: open failed: EACCES (Permission denied)
+07-23 11:29:20.994 28457 28676 E SDHMS:i : e = /sys/class/rtc/rtc0/since_epoch: open failed: EACCES (Permission denied)
+07-23 11:29:21.070 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:21.075 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:21.257 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:21.272  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:21.512 27612 27951 I ScanController: onScanResult to scannerId: 4- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:C4:A0, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-97, periodicAdvInt=0x0
+07-23 11:29:21.518  4742 15399 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+07-23 11:29:21.570  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 55)
+07-23 11:29:21.608 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:21.613 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:21.880 26444 26838 D NetdEventListenerService: DNS Requested by 523, 10328(com.instagram.android), 4(FAIL), isBlocked=true, 0ms
+07-23 11:29:21.885 12187 12392 E msys    : E[N mns:DGWClient]_LogError(328)=>Failed to resolve using system DNS resolver, getaddrinfo(): No address associated with hostname
+07-23 11:29:21.917  4742 17651 I NearbyMediums: No BLE Fast/GATT advertisements found in the latest cycle.
+07-23 11:29:21.917  4742 17651 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing, NearbyConnections.TxAdvertisement}
+07-23 11:29:21.983 26874 26874 I wpa_supplicant: Heartbeat 5208
+07-23 11:29:22.194   580   580 D io_stats: !@   8,32 r 380892596 7529776108 w 36072668 346259784 d 4489908 279654324 f 6744337 4391082 iot 60718792 0 th 0 0 0 pt 0 inp 0 0 499168.702
+07-23 11:29:22.275  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:22.535 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:22.763  1185  1208 D ccci_mdinit: (1):monitor_time_update_thread round:46716 ########
+07-23 11:29:23.151 12051 12051 I adbd    : adbd service requested 'shell,v2:export ANDROID_LOG_TAGS=''; exec logcat '-d''
+07-23 11:29:23.277  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:23.446 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:23.567 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4910, isSameBssidAndFreq true
+07-23 11:29:23.815 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:24.195   580   580 D io_stats: !@   8,32 r 380892598 7529776116 w 36072668 346259784 d 4489908 279654324 f 6744337 4391082 iot 60718796 0 th 0 0 0 pt 0 inp 0 0 499170.704
+07-23 11:29:24.196   580   580 D io_stats: !@ Read_top(KB): c.android.sdhms:high(28457) 124 system_server:high(26444) 72 sait.sohservice:low(16432) 8
+07-23 11:29:24.196   580   580 D io_stats: !@ Write_top(KB): kworker/u32:1:/(10612) 48 system_server:high(26444) 24
+07-23 11:29:24.281  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:24.281  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of camera0\n"
+07-23 11:29:24.281  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:24.281  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of nrpa_ntc\n"
+07-23 11:29:24.281  1303  1313 E thermal_core: dump_thermal_log:"Error: sccanf error, ret=9\n"
+07-23 11:29:24.283  1303  1313 E thermal_core: node_read:"Failed to read /sys/class/thermal/thermal_zone2/temp: No data available\n"
+07-23 11:29:24.284  1303  1313 I thermal_core: "soc/nr/lte/ap_ntc/tpcb/conn/chg/cam/c_ttj/g_ttj/a_ttj=0/-274000/36263/71750/46000/37000/-274000/-274000/55000/55000/55000\n"
+07-23 11:29:24.284  1303  1313 I thermal_core: "[C(l)(c)(i)][G(l)(c)][A(l)(c)][TH][D]=[(2000/2200/666666)(500/725/6666)(0x0)][(666666)(666666)][(666666666)(666666666)][0][1600]\n"
+07-23 11:29:24.284  1303  1313 E thermal_core: node_read:"Failed to open /sys/kernel/helio-dvfsrc/dvfsrc_therm_info: No such file or directory\n"
+07-23 11:29:24.284  1303  1313 I thermal_core: "1600"
+07-23 11:29:24.461 12051 12051 I adbd    : adbd service requested 'shell,v2:export ANDROID_LOG_TAGS=''; exec logcat '-d''
+07-23 11:29:24.727 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:25.098 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:25.286  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:25.998 26444 26817 D WifiConnectivityMonitor.NetworkStatsAnalyzer: Backhaul result - RSSI:-61, CE:9, PE:10, TI:17, PTI:17, TW:1, PTW:1, Tx:3, Rx:1, TxS:5, RxS:1, RESULT:true, IC:0, ICT:5, WC:0, WCT:5, R:0, RC:0, IE:0, EC:0
+07-23 11:29:26.007 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:26.060 12051 12051 I adbd    : adbd service requested 'shell,v2:export ANDROID_LOG_TAGS=''; exec logcat '-d''
+07-23 11:29:26.200   580   580 D io_stats: !@   8,32 r 380892622 7529776384 w 36072678 346259972 d 4489908 279654324 f 6744337 4391082 iot 60718812 0 th 0 0 0 pt 0 inp 0 0 499172.708
+07-23 11:29:26.289  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:26.581 26444 29009 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 4911, isSameBssidAndFreq true
+07-23 11:29:26.611  1377 31475 D AALLightSensor: oldLux=61 [SA:-1 LA:-1] newLux=61 (oriLux: 58)
+07-23 11:29:27.288 26885 27014 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+07-23 11:29:27.291  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:27.694  1146  1195 E BatteryDump: !@new_battery_dump : 3895,1775,1900,3150,21,312,315,407,0,0,352,407,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,10200,0x8000,0x10010000,0x0,0,0,0000,0000,00000000,0,0,0,0,191,3751,2140,990,0,
+07-23 11:29:27.704 26444 28541 D [SS]BattFunctions: [sendRemainingChargingTimeChangedIntent]remainingChargingTime:7907 ,mLastRemainingChargingTime:7914
+07-23 11:29:27.704 26250 26250 I seh_thermal_service: getTemperaturesWithType SehTemperatureType: 3
+07-23 11:29:27.705  1146  1146 I sehhealth-service: updateLrpSysfs: write: 351
+07-23 11:29:27.710 27263 27263 D PowerUI : Remaining charging time : 7907
+07-23 11:29:27.711 27263 27263 D PowerUI : Charging time is changed, check charging notification
+07-23 11:29:27.716 27263 27263 D PowerUI.Notification: showChargingNotice - Battery Level : 21 -> 21, Charging Type : 11 -> 11, Charging Time : 7914 -> 7907, Maximum protection : false -> false, Maximum threshold : 80 -> 80
+07-23 11:29:27.721 27263 27263 I NotificationManager: com.android.systemui: notify(2131364006, charging_state, Notification(channel=CHR shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|ONLY_ALERT_ONCE color=0x00000000 category=sys groupKey=CHARGING vis=PUBLIC semFlags=0x0 semPriority=0 semMissedCount=0)) as user
+07-23 11:29:27.728 26444 28541 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:29:27.728 26444 28541 W PermissionService: getPermissionFlags: Unknown user -1
+07-23 11:29:27.731 27263 27263 I AODBatteryManager: updateBatteryData: ACTION_BATTERY_CHANGED: false, isSleepModeChanged:false ,isRemainingTimeChanged: true, isUSBRestriction: false
+07-23 11:29:27.732 27263 27263 I ChargingInfoManager: updateChargingInfo: newState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse], oldState = AOD ChargingInfo [mState=BATTERY_AND_REMAIN_TIME, mIsCharging=true, mIsPlugged=true, mIsFullyCharged=false, mIsBatteryProtectMode=false, mBetteryLevel=21, mBetteryProtectModeType0, mIsSlowChargingfalse]
+07-23 11:29:27.946 26444 26444 I Telecom : SamsungTelecomServiceImpl : isInManagedCall - callingPackage : android / callingUser : UserHandle{0} / hasCrossUserAccess : true
+07-23 11:29:27.982 27776 30863 I HoneySpace.NotificationListener: onNotificationPosted com.android.systemui: -1|com.android.systemui|2131364006|charging_state|10063: 0
+07-23 11:29:27.982 28457 28457 I SDHMS:LOAD: type: LoadsFreqs, value: 0:0:0:791500:2200000:725000:540000:2000000:500000:0:0:0
+07-23 11:29:27.982 27776 30863 I HoneySpace.NotificationListener: invalid notification: com.android.systemui UserHandle{-1}: canShowBadge is false
+07-23 11:29:27.996  1179  1557 I VSyncReactor: Current= 90, Period= 90, hwcPeriod= 90
+07-23 11:29:28.020 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:28.021 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:28.041  1179  1179 I BufferQueueProducer: [StatusBar$_27263#120127](this:0xb400007558096638,id:-1,api:0,p:-1,c:1179) queueBuffer: fps=0.13 dur=7456.89 max=7456.89 min=7456.89
+07-23 11:29:28.047  1116  1472 I hwcomposer: [HWCDisplay] (0 updateFps():4131), (type:1, mode:2) fps:0.268206,dur:7456.95,max:7356.39,min:100.56  
+07-23 11:29:28.049  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:28.050  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:28.050  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:28.107  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:28.118  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:28.119  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:28.122  1179  1179 I BufferQueueProducer: [FramebufferSurface](this:0xb40000757f2f0370,id:-1,api:1,p:1179,c:1179) queueBuffer: fps=0.13 dur=7433.19 max=7433.19 min=7433.19
+07-23 11:29:28.153  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:28.153  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:28.153  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:28.182 27263 27263 D Bubbles : onEntryUpdated : shouldBubbleUp=false ,key=-1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.184 27263 27263 D InterruptionStateProvider:  no Heads up : edgelighting enabled app. -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.185 27263 27263 I {OngoingActivityController}: onEntryUpdated and OA data is empty. So update latest task info
+07-23 11:29:28.189  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:28.189  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:28.201   580   580 D io_stats: !@   8,32 r 380892626 7529776400 w 36072680 346259980 d 4489908 279654324 f 6744337 4391082 iot 60718824 0 th 0 0 0 pt 0 inp 0 0 499174.710
+07-23 11:29:28.202   580   580 D io_stats: !@ Read_top(KB): .sec.imsservice:high(27082) 144 .gms.persistent:high(4742) 60 ding:background:high(17502) 40
+07-23 11:29:28.202   580   580 D io_stats: !@ Write_top(KB): kworker/u32:0:/(6917) 188 vendor.samsung.:normal(1146) 8
+07-23 11:29:28.207 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:28.208 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.208 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.214 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:28.215 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:28.222 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:28.226 27263 27803 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:28.228 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:28.241 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:28.252  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:28.252  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:28.252  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:28.258 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.258 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.258 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.258 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.261 27263 27263 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+07-23 11:29:28.269 27263 27263 W RefactorFlag: New code path expects SceneContainerFlag to be enabled.
+07-23 11:29:28.269 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.269 27263 27263 D ExpandableNotifRow: mMaxSmallHeight different before reInflateViews mMaxSmallHeight: 203 mTempSmallHeight:0 -1|com.android.systemui|2131364006|charging_state|10063
+07-23 11:29:28.272 27263 27263 I LockscreenNotificationIconsOnlyController: onNotificationInfoUpdated 0
+07-23 11:29:28.273 27263 27263 I AODNotificationManager: updateNotification() 
+07-23 11:29:28.294  1303  1313 E thermal_core: find_tz_idx_by_name:"Failed to find thermal zone index of mtk-master-charger\n"
+07-23 11:29:28.349  1116  1495 I hwcomposer: [HWC] (0)fire a callback of refresh to SF[4]  
+07-23 11:29:28.355  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:28.355  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:28.355  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)
+07-23 11:29:28.364  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:1
+07-23 11:29:28.364  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:28.431  1137  1156 I mtkpower@impl: [setMode] type:6, enabled:0
+07-23 11:29:28.432  1137  1156 E mtkpower@impl: [setMode] unknown type
+07-23 11:29:28.446 12051 12051 I adbd    : adbd service requested 'shell,v2:export ANDROID_LOG_TAGS=''; exec logcat '-d''
+07-23 11:29:28.457  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.android.vending/com.android.vending.AssetBrowserActivity$_10095#133090(seamlessTransition:0)
+07-23 11:29:28.457  1179  1540 I SurfaceFlinger: Capture layer list: 	 Dim Layer for - Task=1040#133108(seamlessTransition:0)
+07-23 11:29:28.457  1179  1540 I SurfaceFlinger: Capture layer list: 	 com.samsung.android.lool/com.samsung.android.sm.iafd.dialog.AppErrorDialogActivity$_17066#133103(seamlessTransition:0)

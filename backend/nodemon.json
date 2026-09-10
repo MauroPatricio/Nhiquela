@@ -1,0 +1,20 @@
+{
+  "watch": [
+    "index.js",
+    "models/**/*.js",
+    "routes/**/*.js",
+    "services/**/*.js",
+    "utils/**/*.js",
+    "workers/**/*.js",
+    ".env"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "tests/**",
+    "coverage/**",
+    "scripts/**",
+    "*.test.js",
+    "error_log.txt"
+  ],
+  "delay": "1000"
+}

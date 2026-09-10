@@ -1,14 +1,13 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Image } from 'expo-image';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import {useNavigation} from '@react-navigation/native'
-import {EXPO_GOOGLE_MAPS_APIKEY} from "@env";
+import { EXPO_GOOGLE_MAPS_APIKEY, EXPO_PUBLIC_GOOGLE_PLACES_APIKEY } from "@env";
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectDestination, selectOrigin, setDestination, setOrigin } from '../features/navSlice';
 import TransportType from './TransportType';
 import { Button } from 'react-native';
-
-
 
 const NavOptions = () => {
     const dispatch = useDispatch();
@@ -17,7 +16,6 @@ const NavOptions = () => {
     const destination = useSelector(selectDestination);
 
     return (
-
       <>
       <Text style={styles.title}>Solicitar transporte</Text>
 
@@ -33,7 +31,7 @@ const NavOptions = () => {
         dispatch(setDestination(null));
       }}
       query={{
-        key: EXPO_GOOGLE_MAPS_APIKEY,
+        key: EXPO_PUBLIC_GOOGLE_PLACES_APIKEY,
         language: 'pt',
       }}
       fetchDetails={true}
@@ -51,7 +49,7 @@ const NavOptions = () => {
        minLength={2}
        enablePoweredByContainer={false}
        query={{
-        key: EXPO_GOOGLE_MAPS_APIKEY,
+        key: EXPO_PUBLIC_GOOGLE_PLACES_APIKEY,
         language: 'pt'
        }}
        onPress={(data, details=null)=>{
@@ -65,11 +63,9 @@ const NavOptions = () => {
        />
 }
 {origin && destination && 
-
 <Button title='Solicitar' onPress={()=>navigation.navigate('MapScreen')}></Button>
 }
       </>
-
   )
 }
 

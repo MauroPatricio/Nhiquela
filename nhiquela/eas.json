@@ -6,14 +6,34 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "22.18.0",
+      "env": {
+        "EXPO_ANDROID_ENABLE_16K_PAGE_SUPPORT": "true"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "22.18.0",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_ANDROID_ENABLE_16K_PAGE_SUPPORT": "true"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "environment": "production"
+      "node": "22.18.0",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_TARGET_SDK_VERSION": "35",
+        "EXPO_ANDROID_ENABLE_16K_PAGE_SUPPORT": "true",
+        "EXPO_PUBLIC_GOOGLE_PLACES_APIKEY": "AIzaSyBlB7wHqj6lK4zKJBTS0WbVcTKKosa3MVI",
+        "EXPO_GOOGLE_MAPS_APIKEY": "AIzaSyBipLnxa_lqw1IUKqQovRe_oQpeVvjGZ4s"
+      }
     }
   },
   "submit": {
