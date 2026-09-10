@@ -14,7 +14,8 @@ settingsRouter.get(
       { key: 'enable_first_sale_free', value: 'true', description: 'Ativar primeira venda gratuita para novos fornecedores', type: 'boolean' },
       { key: 'free_sales_count', value: '1', description: 'Número de primeiras vendas gratuitas concedidas', type: 'number' },
       { key: 'block_store_below_minimum', value: 'true', description: 'Bloquear automaticamente a loja se o saldo for menor que o recomendado', type: 'boolean' },
-      { key: 'allow_negative_balance', value: 'false', description: 'Permitir que a carteira do fornecedor fique com saldo negativo', type: 'boolean' }
+      { key: 'allow_negative_balance', value: 'false', description: 'Permitir que a carteira do fornecedor fique com saldo negativo', type: 'boolean' },
+      { key: 'admin_notification_emails', value: 'mauro.patricio1@gmail.com,nhiquelaservicos@gmail.com', description: 'Emails que recebem notificações de suporte, parcerias e alertas (separados por vírgula)', type: 'string' }
     ];
 
     for (const d of defaults) {

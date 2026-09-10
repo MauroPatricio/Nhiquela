@@ -6,8 +6,9 @@ import {
   faMapMarkerAlt, faWallet, faListCheck, faMap, faTruck, faChevronLeft, faChevronRight,
   faArrowRight, faUtensils, faBox, faGasPump, faWrench, faBuilding, faHandshake,
   faQrcode, faChartLine, faShieldAlt, faTimes, faPaperPlane, faCapsules, faCar,
-  faHardHat, faUsers, faPhone, faEnvelope
+  faHardHat, faUsers, faPhone, faEnvelope, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
+import { toast } from 'react-toastify';
 import api from '../api';
 
 const logisticsSlides = [
@@ -63,6 +64,52 @@ export default function LandingPage() {
   const heroMockupKeys = ['client', 'order', 'seller', 'driver', 'map'];
   const [heroMockupIndex, setHeroMockupIndex] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
+
+  const [showPartnershipModal, setShowPartnershipModal] = useState(false);
+  const [partnershipSubmitting, setPartnershipSubmitting] = useState(false);
+  const [partnershipSuccess, setPartnershipSuccess] = useState(false);
+  const [partnershipForm, setPartnershipForm] = useState({
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    productsServices: '',
+    reasons: ''
+  });
+
+  const handlePartnershipSubmit = async (e) => {
+    e.preventDefault();
+    if (!partnershipForm.companyName.trim() || !partnershipForm.email.trim() || !partnershipForm.productsServices.trim() || !partnershipForm.reasons.trim()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios (*).');
+      return;
+    }
+
+    setPartnershipSubmitting(true);
+    try {
+      const { data } = await api.post('/partners/partnership-request', partnershipForm);
+      setPartnershipSuccess(true);
+      toast.success(data.message || 'Proposta de parceria enviada com sucesso!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Erro ao enviar proposta de parceria. Tente novamente.');
+    } finally {
+      setPartnershipSubmitting(false);
+    }
+  };
+
+  const handleClosePartnershipModal = () => {
+    setShowPartnershipModal(false);
+    setTimeout(() => {
+      setPartnershipSuccess(false);
+      setPartnershipForm({
+        companyName: '',
+        contactName: '',
+        email: '',
+        phone: '',
+        productsServices: '',
+        reasons: ''
+      });
+    }, 300);
+  };
 
   useEffect(() => {
     if (isPaused) return;
@@ -255,10 +302,15 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="d-flex align-items-center gap-3">
-            <a href="mailto:parcerias@nhiquela.co.mz" className="text-decoration-none fw-bold d-flex align-items-center gap-1" style={{ color: '#CBD5E1' }}>
-              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: '11px' }} />
-              <span>Contactar Parcerias</span>
-            </a>
+            <button
+              type="button"
+              onClick={() => setShowPartnershipModal(true)}
+              className="btn btn-link text-decoration-none d-flex align-items-center gap-1 p-0 border-0"
+              style={{ color: '#CBD5E1', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '500' }}
+            >
+              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: '10px' }} />
+              <span>Contactar para parcerias</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1300,7 +1352,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="row g-4 mb-5">
             {/* Coluna 1: Branding & Missão */}
-            <div className="col-lg-4 col-md-6 mb-4 mb-lg-0">
+            <div className="col-lg-3 col-md-6 mb-4 mb-lg-0">
               <Link className="text-decoration-none" to="/">
                 <h3 className="m-0 text-white fw-extrabold mb-3" style={{ letterSpacing: '-1px' }}>
                   nhiquela<span className="text-primary-custom">.</span>
@@ -1337,16 +1389,39 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* Coluna 4: Suporte & Contacto */}
-            <div className="col-lg-2 col-md-6">
+            {/* Coluna 4: Contactos & Sede */}
+            <div className="col-lg-3 col-md-6">
               <h6 className="text-white fw-bold text-uppercase mb-3" style={{ letterSpacing: '1px', fontSize: '0.85rem' }}>
-                Suporte
+                Contactos & Sede
               </h6>
-              <ul className="list-unstyled d-flex flex-column gap-2 small">
-                <li><a href="mailto:suporte@nhiquela.co.mz" className="text-slate-400 text-decoration-none" style={{ color: '#94A3B8' }}>Central de Ajuda</a></li>
-                <li><span className="text-slate-400" style={{ color: '#94A3B8' }}>Maputo, Moçambique</span></li>
-                <li><span className="text-slate-400" style={{ color: '#94A3B8' }}>Termos de Serviço</span></li>
-                <li><span className="text-slate-400" style={{ color: '#94A3B8' }}>Política de Privacidade</span></li>
+              <ul className="list-unstyled d-flex flex-column gap-2.5 small mb-0">
+                <li className="d-flex align-items-start gap-2" style={{ color: '#94A3B8' }}>
+                  <FontAwesomeIcon icon={faPhone} className="mt-1 text-primary-custom" style={{ fontSize: '0.85rem' }} />
+                  <div>
+                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>Chamadas & WhatsApp:</span>
+                    <a href="tel:+258853600036" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>
+                      853600036
+                    </a>
+                  </div>
+                </li>
+                <li className="d-flex align-items-start gap-2" style={{ color: '#94A3B8' }}>
+                  <FontAwesomeIcon icon={faEnvelope} className="mt-1 text-primary-custom" style={{ fontSize: '0.85rem' }} />
+                  <div>
+                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>E-mail:</span>
+                    <a href="mailto:nhiquelaservicos@gmail.com" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>
+                      nhiquelaservicos@gmail.com
+                    </a>
+                  </div>
+                </li>
+                <li className="d-flex align-items-start gap-2" style={{ color: '#94A3B8' }}>
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="mt-1 text-primary-custom" style={{ fontSize: '0.85rem' }} />
+                  <div>
+                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>Localização:</span>
+                    <span style={{ color: '#94A3B8', lineHeight: '1.4' }}>
+                      Paulo Samuel Kankhomba, Bairro da Sommershield, KaMpfumo, Maputo
+                    </span>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>
@@ -1360,6 +1435,224 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Modal de Contacto para Parcerias */}
+      {showPartnershipModal && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', zIndex: 1060 }}
+          onClick={handleClosePartnershipModal}
+        >
+          <div
+            className="modal-dialog modal-dialog-centered modal-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+              {/* Header do Modal */}
+              <div
+                className="modal-header border-0 text-white p-4"
+                style={{ background: 'linear-gradient(135deg, #0F172A 0%, #6D28D9 100%)' }}
+              >
+                <div>
+                  <div className="d-flex align-items-center gap-2 mb-1">
+                    <span className="badge rounded-pill px-3 py-1" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}>
+                      <FontAwesomeIcon icon={faHandshake} className="me-1" /> Oportunidade B2B
+                    </span>
+                  </div>
+                  <h4 className="modal-title fw-bold m-0" style={{ letterSpacing: '-0.5px' }}>
+                    Seja nosso Parceiro / Fornecedor
+                  </h4>
+                  <p className="m-0 text-light small opacity-75 mt-1">
+                    Preencha o formulário abaixo com os dados da sua empresa e proposta de parceria.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white align-self-start"
+                  onClick={handleClosePartnershipModal}
+                ></button>
+              </div>
+
+              {/* Corpo do Modal */}
+              <div className="modal-body p-4 bg-light">
+                {partnershipSuccess ? (
+                  <div className="text-center py-5">
+                    <div
+                      className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                      style={{ width: '80px', height: '80px', backgroundColor: '#DCFCE7', color: '#16A34A' }}
+                    >
+                      <FontAwesomeIcon icon={faCheckCircle} style={{ fontSize: '2.5rem' }} />
+                    </div>
+                    <h4 className="fw-bold text-dark mb-2">Proposta Enviada com Sucesso!</h4>
+                    <p className="text-muted mx-auto mb-4" style={{ maxWidth: '500px' }}>
+                      Agradecemos o seu interesse em colaborar com o <strong>Nhiquela</strong>. A nossa equipa de expansão e parcerias irá analisar os seus dados e entrará em contacto muito brevemente.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-corporate-primary rounded-pill px-5 py-2.5 fw-bold"
+                      onClick={handleClosePartnershipModal}
+                    >
+                      Concluir
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handlePartnershipSubmit}>
+                    <div className="row g-3">
+                      {/* Empresa / Razão Social */}
+                      <div className="col-md-6">
+                        <label className="form-label fw-bold small text-dark mb-1">
+                          Empresa / Estabelecimento Comercial <span className="text-danger">*</span>
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
+                            <FontAwesomeIcon icon={faBuilding} />
+                          </span>
+                          <input
+                            type="text"
+                            className="form-control bg-white border-start-0 py-2 rounded-end-3"
+                            placeholder="Ex: Comercial Maputo Lda"
+                            value={partnershipForm.companyName}
+                            onChange={(e) => setPartnershipForm({ ...partnershipForm, companyName: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Nome do Responsável */}
+                      <div className="col-md-6">
+                        <label className="form-label fw-bold small text-dark mb-1">
+                          Nome do Responsável / Contacto
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
+                            <FontAwesomeIcon icon={faUsers} />
+                          </span>
+                          <input
+                            type="text"
+                            className="form-control bg-white border-start-0 py-2 rounded-end-3"
+                            placeholder="Ex: João Silva"
+                            value={partnershipForm.contactName}
+                            onChange={(e) => setPartnershipForm({ ...partnershipForm, contactName: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      {/* E-mail de Contacto */}
+                      <div className="col-md-6">
+                        <label className="form-label fw-bold small text-dark mb-1">
+                          E-mail Corporativo <span className="text-danger">*</span>
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
+                            <FontAwesomeIcon icon={faEnvelope} />
+                          </span>
+                          <input
+                            type="email"
+                            className="form-control bg-white border-start-0 py-2 rounded-end-3"
+                            placeholder="parcerias@suaempresa.co.mz"
+                            value={partnershipForm.email}
+                            onChange={(e) => setPartnershipForm({ ...partnershipForm, email: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Telefone / WhatsApp */}
+                      <div className="col-md-6">
+                        <label className="form-label fw-bold small text-dark mb-1">
+                          Telefone / WhatsApp
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
+                            <FontAwesomeIcon icon={faPhone} />
+                          </span>
+                          <input
+                            type="text"
+                            className="form-control bg-white border-start-0 py-2 rounded-end-3"
+                            placeholder="+258 84 000 0000"
+                            value={partnershipForm.phone}
+                            onChange={(e) => setPartnershipForm({ ...partnershipForm, phone: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Produtos / Serviços Comercializados */}
+                      <div className="col-12">
+                        <label className="form-label fw-bold small text-dark mb-1">
+                          Produtos ou Serviços Comercializados <span className="text-danger">*</span>
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3 align-items-start pt-2">
+                            <FontAwesomeIcon icon={faBox} />
+                          </span>
+                          <textarea
+                            className="form-control bg-white border-start-0 py-2 rounded-end-3"
+                            rows="2"
+                            placeholder="Descreva resumidamente os produtos (ex: produtos alimentares, material de construção) ou serviços que a sua empresa oferece..."
+                            value={partnershipForm.productsServices}
+                            onChange={(e) => setPartnershipForm({ ...partnershipForm, productsServices: e.target.value })}
+                            required
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      {/* Motivos da Parceria */}
+                      <div className="col-12">
+                        <label className="form-label fw-bold small text-dark mb-1">
+                          Motivos da Parceria / Apresentação de Proposta <span className="text-danger">*</span>
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3 align-items-start pt-2">
+                            <FontAwesomeIcon icon={faPaperPlane} />
+                          </span>
+                          <textarea
+                            className="form-control bg-white border-start-0 py-2 rounded-end-3"
+                            rows="3"
+                            placeholder="Explique os objetivos da parceria, abrangência geográfica, capacidade de distribuição ou outros detalhes relevantes..."
+                            value={partnershipForm.reasons}
+                            onChange={(e) => setPartnershipForm({ ...partnershipForm, reasons: e.target.value })}
+                            required
+                          ></textarea>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botões do Rodapé */}
+                    <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                      <button
+                        type="button"
+                        className="btn btn-light rounded-pill px-4 fw-bold"
+                        onClick={handleClosePartnershipModal}
+                        disabled={partnershipSubmitting}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-corporate-primary rounded-pill px-4 fw-bold d-flex align-items-center gap-2"
+                        disabled={partnershipSubmitting}
+                      >
+                        {partnershipSubmitting ? (
+                          <>
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                            <span>A enviar proposta...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FontAwesomeIcon icon={faPaperPlane} />
+                            <span>Enviar Proposta de Parceria</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
