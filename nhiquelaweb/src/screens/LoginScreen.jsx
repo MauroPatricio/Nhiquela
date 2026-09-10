@@ -379,9 +379,6 @@ export default function LoginScreen() {
 
           {/* SEÇÃO DOWNLOAD DOS APLICATIVOS GOOGLE PLAY */}
           <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #E2E8F0', textAlign: 'center' }}>
-            <span className="badge px-3 py-1.5 rounded-pill mb-2 fw-bold text-uppercase" style={{ backgroundColor: '#F3E8FF', color: '#7F00FF', fontSize: '11px', letterSpacing: '0.5px' }}>
-              📱 Aplicações Móveis Oficial
-            </span>
             <h6 className="fw-bold text-dark mb-3" style={{ fontSize: '14px' }}>
               Baixe a Nhiquela na Google Play
             </h6>

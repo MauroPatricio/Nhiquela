@@ -7,7 +7,7 @@ import Order from '../models/OrderModel.js';
 import RequestService from '../models/RequestServiceModel.js';
 import Provider from '../models/ProviderModel.js';
 import AuditLog from '../models/AuditLogModel.js';
-import { isAuth, isAdmin, isPartner, checkPermission } from '../utils.js';
+import { isAuth, isAdmin, isPartner, checkPermission, sendAdminNotificationEmail } from '../utils.js';
 import partnerService from '../services/partnerService.js';
 
 const router = express.Router();
@@ -1058,6 +1058,72 @@ router.get(
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(200).send(htmlContent);
+  })
+);
+
+/**
+ * POST /api/partners/partnership-request
+ * Public endpoint for potential suppliers/partners to submit partnership proposals
+ */
+router.post(
+  '/partnership-request',
+  expressAsyncHandler(async (req, res) => {
+    const { companyName, contactName, email, phone, productsServices, reasons } = req.body;
+
+    if (!companyName || !email || !productsServices || !reasons) {
+      return res.status(400).send({
+        message: 'Por favor, preencha todos os campos obrigatórios (Empresa, Email, Produtos/Serviços e Motivos).'
+      });
+    }
+
+    const subject = `Nova Proposta de Parceria: ${companyName}`;
+    const textHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+        <h2 style="color: #6D28D9; border-bottom: 2px solid #6D28D9; padding-bottom: 8px; margin-top: 0;">
+          🤝 Nova Solicitação de Parceria Comercial
+        </h2>
+        <p style="color: #334155; font-size: 15px;">
+          Um potencial fornecedor/parceiro submeteu uma proposta de parceria através da plataforma Nhiquela.
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+          <tr>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold; width: 35%;">Empresa / Estabelecimento:</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #0f172a;">${companyName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Pessoa de Contacto:</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #0f172a;">${contactName || 'Não especificado'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">E-mail de Contacto:</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #0f172a;"><a href="mailto:${email}">${email}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Telefone / WhatsApp:</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #0f172a;">${phone || 'Não especificado'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Produtos / Serviços Comercializados:</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #0f172a; white-space: pre-wrap;">${productsServices}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Motivos da Parceria:</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #0f172a; white-space: pre-wrap;">${reasons}</td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center;">
+          Mensagem enviada automaticamente pelo sistema Nhiquela Web.
+        </div>
+      </div>
+    `;
+
+    await sendAdminNotificationEmail(subject, textHtml);
+
+    res.status(201).send({
+      message: 'Proposta de parceria enviada com sucesso! A nossa equipa entrará em contacto em breve.'
+    });
   })
 );
 
