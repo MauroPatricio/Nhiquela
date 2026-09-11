@@ -8,11 +8,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { selectUser, setUserLogin } from '../store/features/userSlice';
 import { selectBasketItems, selectBasketTotal, clearBasket } from '../store/features/basketSlice';
 import api from '../api';
 
 export default function CheckoutScreen() {
+  const { t } = useTranslation();
   const userInfo = useSelector(selectUser);
   const cartItems = useSelector(selectBasketItems);
   const cartTotal = useSelector(selectBasketTotal);

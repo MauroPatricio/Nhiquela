@@ -7,6 +7,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import {
   selectBasketItems, selectBasketTotal,
   removeFromBasket, clearBasket, addToBasket
@@ -14,6 +15,7 @@ import {
 import { selectUser } from '../store/features/userSlice';
 
 export default function CartScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -91,11 +93,11 @@ export default function CartScreen() {
       <div className="container py-5 text-center">
         <div className="card border-0 shadow-sm rounded-4 p-5 max-w-lg mx-auto bg-white">
           <FontAwesomeIcon icon={faShoppingCart} size="4x" className="text-muted mb-3" />
-          <h4 className="fw-bold text-dark mb-2">O seu carrinho está vazio</h4>
-          <p className="text-muted mb-4">Explore os produtos do marketplace e adicione os seus itens favoritos.</p>
+          <h4 className="fw-bold text-dark mb-2">{t('cart.emptyTitle')}</h4>
+          <p className="text-muted mb-4">{t('cart.emptySubtitle')}</p>
           <div>
             <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-5 py-3 fw-bold">
-              Ir para o Marketplace
+              {t('cart.startShopping')}
             </Link>
           </div>
         </div>
@@ -107,16 +109,16 @@ export default function CartScreen() {
     <div className="container py-4">
       {/* Botão Voltar */}
       <Link to="/shop" className="text-decoration-none text-muted mb-4 d-inline-block fw-bold">
-        <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> Continuar a Comprar
+        <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> {t('common.back')}
       </Link>
 
       <div className="d-flex align-items-center justify-content-between mb-4">
         <h2 className="fw-black text-dark m-0">
           <FontAwesomeIcon icon={faShoppingCart} className="me-2 text-primary-custom" />
-          Carrinho de Compras
+          {t('cart.title')}
         </h2>
         <button onClick={handleClear} className="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
-          <FontAwesomeIcon icon={faTrash} className="me-1" /> Esvaziar Carrinho
+          <FontAwesomeIcon icon={faTrash} className="me-1" /> {t('cart.clearCart')}
         </button>
       </div>
 
@@ -184,22 +186,22 @@ export default function CartScreen() {
         {/* RESUMO DO PEDIDO */}
         <div className="col-lg-4">
           <div className="card border-0 shadow-sm rounded-4 p-4 sticky-top bg-white" style={{ top: '100px' }}>
-            <h5 className="fw-black text-dark mb-3">Resumo do Pedido</h5>
+            <h5 className="fw-black text-dark mb-3">{t('cart.orderSummary')}</h5>
             
             <div className="d-flex justify-content-between mb-2 text-muted">
-              <span>Subtotal</span>
+              <span>{t('common.subtotal')}</span>
               <span className="fw-bold text-dark">{subtotal.toLocaleString('pt-PT')} MT</span>
             </div>
 
             <div className="d-flex justify-content-between mb-3 text-muted">
-              <span>Entrega ({groupedByStore.length} {groupedByStore.length === 1 ? 'loja' : 'lojas'})</span>
+              <span>{t('common.shipping')} ({groupedByStore.length} {groupedByStore.length === 1 ? 'loja' : 'lojas'})</span>
               <span className="fw-bold text-dark">{deliveryFee.toLocaleString('pt-PT')} MT</span>
             </div>
 
             <hr className="my-3" />
 
             <div className="d-flex justify-content-between mb-4">
-              <span className="fw-bold fs-5 text-dark">Total</span>
+              <span className="fw-bold fs-5 text-dark">{t('common.total')}</span>
               <span className="fw-black fs-4 text-primary-custom">{grandTotal.toLocaleString('pt-PT')} MT</span>
             </div>
 
@@ -207,7 +209,7 @@ export default function CartScreen() {
               className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold shadow-sm fs-6 mb-3"
               onClick={handleCheckout}
             >
-              Continuar para Pagamento
+              {t('cart.proceedCheckout')}
             </button>
 
             <div className="text-center text-muted small">

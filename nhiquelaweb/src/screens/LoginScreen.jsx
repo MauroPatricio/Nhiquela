@@ -7,10 +7,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../components/LanguageSelector';
 import { setUserLogin, selectUser } from '../store/features/userSlice';
 import api from '../api';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { search } = useLocation();
@@ -158,16 +161,16 @@ export default function LoginScreen() {
                   nhiquela
                 </h3>
                 <span style={{ fontSize: '11px', color: '#A5B4FC', fontWeight: '700', letterSpacing: '0.8px' }}>
-                  LOGÍSTICA & PLATAFORMA ONLINE
+                  {t('login.taglineHero', 'LOGÍSTICA & PLATAFORMA ONLINE')}
                 </span>
               </div>
             </div>
 
             <h2 style={{ fontSize: '28px', fontWeight: '800', lineHeight: '1.3', marginBottom: '16px', color: '#F8FAFC' }}>
-              A sua plataforma integrada em Moçambique.
+              {t('login.heroTitle', 'A sua plataforma integrada em Moçambique.')}
             </h2>
             <p style={{ fontSize: '14px', color: '#94A3B8', lineHeight: '1.6', marginBottom: '32px' }}>
-              Gerencie os seus pedidos, acompanhe a frota em tempo real e expanda os seus negócios num único lugar.
+              {t('login.heroSubtitle', 'Gerencie os seus pedidos, acompanhe a frota em tempo real e expanda os seus negócios num único lugar.')}
             </p>
 
             {/* Destaques de Funcionalidades */}
@@ -176,47 +179,50 @@ export default function LoginScreen() {
                 <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: 'rgba(138, 43, 226, 0.25)', color: '#C084FC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
                   <FontAwesomeIcon icon={faTruck} />
                 </div>
-                <span style={{ fontWeight: '500' }}>Gestão de Frota e Entregas</span>
+                <span style={{ fontWeight: '500' }}>{t('login.fleetManagement', 'Gestão de Frota e Entregas')}</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#E2E8F0' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.25)', color: '#60A5FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
                   <FontAwesomeIcon icon={faStore} />
                 </div>
-                <span style={{ fontWeight: '500' }}>Portal de Fornecedores</span>
+                <span style={{ fontWeight: '500' }}>{t('login.supplierPortal', 'Portal de Fornecedores')}</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#E2E8F0' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.25)', color: '#34D399', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
                   <FontAwesomeIcon icon={faShieldAlt} />
                 </div>
-                <span style={{ fontWeight: '500' }}>Segurança Garantida</span>
+                <span style={{ fontWeight: '500' }}>{t('login.guaranteedSecurity', 'Segurança Garantida')}</span>
               </div>
             </div>
           </div>
 
           <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#94A3B8' }}>
             <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#34D399' }} />
-            <span>© 2026 Nhiquela. Todos os direitos reservados.</span>
+            <span>{t('login.copyright', '© 2026 Nhiquela. Todos os direitos reservados.')}</span>
           </div>
         </div>
 
         {/* LADO DIREITO: FORMULÁRIO DE LOGIN */}
         <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ marginBottom: '32px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', marginBottom: '8px', letterSpacing: '-0.5px' }}>
-              Iniciar Sessão
-            </h2>
-            <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
-              Aceda à sua conta de Cliente, Parceiro ou Fornecedor
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+            <div>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+                {t('login.welcome', 'Iniciar Sessão')}
+              </h2>
+              <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
+                {t('login.subtitle', 'Aceda à sua conta de Cliente, Parceiro ou Fornecedor')}
+              </p>
+            </div>
+            <LanguageSelector variant="light" />
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Campo E-mail / Telemóvel */}
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
-                E-mail ou Número de Telemóvel
+                {t('login.emailLabel', 'E-mail ou Número de Telemóvel')}
               </label>
               <div
                 style={{
@@ -258,10 +264,10 @@ export default function LoginScreen() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', margin: 0 }}>
-                  Palavra-passe
+                  {t('login.passwordLabel', 'Palavra-passe')}
                 </label>
                 <a href="#" style={{ fontSize: '12px', fontWeight: '700', color: '#8A2BE2', textDecoration: 'none' }}>
-                  Esqueci a senha
+                  {t('login.forgotPassword', 'Esqueci a senha')}
                 </a>
               </div>
               <div
@@ -279,7 +285,7 @@ export default function LoginScreen() {
                 <FontAwesomeIcon icon={faLock} style={{ color: '#94A3B8', fontSize: '15px', marginRight: '12px' }} />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="A sua palavra-passe"
+                  placeholder={t('login.passwordPlaceholder', 'A sua palavra-passe')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -357,11 +363,11 @@ export default function LoginScreen() {
               {loading ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  A autenticar...
+                  {t('login.loggingIn', 'A autenticar...')}
                 </>
               ) : (
                 <>
-                  Entrar na Conta <FontAwesomeIcon icon={faArrowRight} />
+                  {t('login.loginBtn', 'Entrar na Conta')} <FontAwesomeIcon icon={faArrowRight} />
                 </>
               )}
             </button>
@@ -370,9 +376,9 @@ export default function LoginScreen() {
           {/* Link para Registro */}
           <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
-              Ainda não possui uma conta?{' '}
+              {t('login.noAccount', 'Ainda não possui uma conta?')}{' '}
               <Link to={signupClientUrl} style={{ color: '#8A2BE2', fontWeight: '800', textDecoration: 'none' }}>
-                Registar-se aqui
+                {t('login.registerHere', 'Registar-se aqui')}
               </Link>
             </p>
           </div>
@@ -380,7 +386,7 @@ export default function LoginScreen() {
           {/* SEÇÃO DOWNLOAD DOS APLICATIVOS GOOGLE PLAY */}
           <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #E2E8F0', textAlign: 'center' }}>
             <h6 className="fw-bold text-dark mb-3" style={{ fontSize: '14px' }}>
-              Baixe a Nhiquela na Google Play
+              {t('login.downloadPlay', 'Baixe a nhiquela na Google Play')}
             </h6>
             <div className="d-flex flex-wrap justify-content-center gap-2">
               <a
@@ -393,7 +399,7 @@ export default function LoginScreen() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z"/>
                 </svg>
-                <span>App Cliente</span>
+                <span>{t('login.clientApp', 'App Cliente')}</span>
               </a>
 
               <a
@@ -406,7 +412,7 @@ export default function LoginScreen() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z"/>
                 </svg>
-                <span>App Fornecedor</span>
+                <span>{t('login.supplierApp', 'App Fornecedor')}</span>
               </a>
 
               <a
@@ -419,7 +425,7 @@ export default function LoginScreen() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L18.81,13.97C19.46,13.6 19.46,12.4 18.81,12.03L16.81,10.88L14.83,12.86L16.81,15.12M4.6,1.44L14.12,10.96L12,13.08L4.6,1.44M4.6,22.56L12,10.92L14.12,13.04L4.6,22.56Z"/>
                 </svg>
-                <span>App Motorista</span>
+                <span>{t('login.driverApp', 'App Motorista')}</span>
               </a>
             </div>
           </div>
