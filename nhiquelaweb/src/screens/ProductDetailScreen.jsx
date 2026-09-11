@@ -8,6 +8,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { addToBasket } from '../store/features/basketSlice';
 import { io } from 'socket.io-client';
 import api, { SOCKET_URL } from '../api';
@@ -27,6 +28,7 @@ const getProductImageUrl = (product) => {
 };
 
 export default function ProductDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -174,7 +176,7 @@ export default function ProductDetailScreen() {
     return (
       <div className="container py-5 text-center">
         <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary-custom" />
-        <p className="text-muted mt-3">A carregar detalhes do produto...</p>
+        <p className="text-muted mt-3">{t('productDetail.loadingDetails')}</p>
       </div>
     );
   }
@@ -182,8 +184,8 @@ export default function ProductDetailScreen() {
   if (!product) {
     return (
       <div className="container py-5 text-center">
-        <h5>Produto não encontrado.</h5>
-        <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 mt-3">Voltar à Loja</Link>
+        <h5>{t('productDetail.notFound')}</h5>
+        <Link to="/shop" className="btn bg-primary-custom text-white rounded-pill px-4 mt-3">{t('productDetail.backToShop')}</Link>
       </div>
     );
   }
@@ -197,7 +199,7 @@ export default function ProductDetailScreen() {
 
   const handleAddToCart = () => {
     if (!sellerOpen) {
-      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      toast.error(t('productDetail.storeClosedToast'));
       return;
     }
 
@@ -215,12 +217,12 @@ export default function ProductDetailScreen() {
         digitalType: product.digitalType || 'KEY',
       }));
     }
-    toast.success(`${quantity}x "${product.nome || product.name}" adicionado(s) ao carrinho!`);
+    toast.success(`${quantity}x "${product.nome || product.name}" ${t('productDetail.addedToCartToast')}`);
   };
 
   const handleBuyNow = () => {
     if (!sellerOpen) {
-      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      toast.error(t('productDetail.storeClosedToast'));
       return;
     }
     handleAddToCart();
@@ -242,11 +244,11 @@ export default function ProductDetailScreen() {
             <div className="position-absolute top-0 start-0 m-4 z-1">
               {isDigital ? (
                 <span className="badge bg-purple-light text-primary-custom px-3 py-2 rounded-pill fw-bold border border-primary-subtle shadow-sm" style={{ backgroundColor: '#F3E8FF' }}>
-                  <FontAwesomeIcon icon={faBolt} className="me-1 text-primary-custom" /> Produto Digital / Licença
+                  <FontAwesomeIcon icon={faBolt} className="me-1 text-primary-custom" /> {t('productDetail.digitalProduct')}
                 </span>
               ) : (
                 <span className="badge bg-light text-dark px-3 py-2 rounded-pill fw-bold border shadow-sm">
-                  <FontAwesomeIcon icon={faBoxOpen} className="me-1 text-muted" /> Produto Físico
+                  <FontAwesomeIcon icon={faBoxOpen} className="me-1 text-muted" /> {t('productDetail.physicalProduct')}
                 </span>
               )}
             </div>
@@ -269,14 +271,14 @@ export default function ProductDetailScreen() {
               {/* Categoria & Vendedor */}
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <span className="badge bg-light text-dark px-3 py-2 rounded-pill fw-bold border">
-                  {product.category?.name || 'Geral'}
+                  {product.category?.name || t('productDetail.generalCategory')}
                 </span>
                 <div className="d-flex align-items-center gap-2">
                   <Link to={`/shop/seller/${sellerObj._id}`} className="text-decoration-none text-muted small fw-bold">
-                    <FontAwesomeIcon icon={faStore} className="text-primary-custom me-1" /> {sellerObj.name || 'Loja Parceira'}
+                    <FontAwesomeIcon icon={faStore} className="text-primary-custom me-1" /> {sellerObj.name || t('productDetail.partnerStore')}
                   </Link>
                   <span className={`badge ${sellerOpen ? 'bg-success text-white' : 'bg-danger text-white'} rounded-pill px-2 py-1 fw-bold`} style={{ fontSize: '10px' }}>
-                    {sellerOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                    {sellerOpen ? t('home.openBadge') : t('home.closedBadge')}
                   </span>
                 </div>
               </div>
@@ -286,11 +288,11 @@ export default function ProductDetailScreen() {
               <div className="d-flex align-items-center gap-3 mb-3">
                 <span className="text-warning fw-bold"><FontAwesomeIcon icon={faStar} /> {product.rating || '4.8'}</span>
                 <span className="text-muted">•</span>
-                <span className="text-success fw-bold"><FontAwesomeIcon icon={faCheckCircle} /> {product.countInStock > 0 ? 'Em Estoque' : 'Disponível'}</span>
+                <span className="text-success fw-bold"><FontAwesomeIcon icon={faCheckCircle} /> {product.countInStock > 0 ? t('productDetail.inStock') : t('productDetail.available')}</span>
                 {isDigital && (
                   <>
                     <span className="text-muted">•</span>
-                    <span className="text-primary-custom fw-bold"><FontAwesomeIcon icon={faBolt} /> Licença Automática</span>
+                    <span className="text-primary-custom fw-bold"><FontAwesomeIcon icon={faBolt} /> {t('productDetail.autoLicense')}</span>
                   </>
                 )}
               </div>
@@ -314,8 +316,8 @@ export default function ProductDetailScreen() {
                     <FontAwesomeIcon icon={faBolt} size="lg" />
                   </div>
                   <div>
-                    <div className="fw-bold text-dark">Entrega Digital Instantânea</div>
-                    <small className="text-muted">A chave/licença é enviada diretamente por e-mail após a confirmação do pagamento.</small>
+                    <div className="fw-bold text-dark">{t('productDetail.instantDigitalDelivery')}</div>
+                    <small className="text-muted">{t('productDetail.digitalDeliveryMsg')}</small>
                   </div>
                 </div>
               ) : (
@@ -323,7 +325,7 @@ export default function ProductDetailScreen() {
                   <FontAwesomeIcon icon={faTruck} className="text-primary-custom fs-3" />
                   <div>
                     <div className="fw-bold text-dark d-flex align-items-center gap-2">
-                      Entrega Estimada: {etaData.loading ? 'A calcular rota...' : `${etaData.durationMin || '30-45'} min`}
+                      {t('productDetail.estimatedDelivery')}: {etaData.loading ? t('productDetail.calculatingRoute') : `${etaData.durationMin || '30-45'} min`}
                       {etaData.trafficStatus && (
                         <span className="badge rounded-pill small" style={{ fontSize: '11px', backgroundColor: '#F3E8FF', color: '#7F00FF' }}>
                           {etaData.trafficStatus}
@@ -331,8 +333,8 @@ export default function ProductDetailScreen() {
                       )}
                     </div>
                     <small className="text-muted">
-                      {etaData.distanceKm ? `Distância: ${etaData.distanceKm} km • ` : ''}
-                      {etaData.etaMessage || 'Entregue por motorista verificado da Nhiquela em Maputo'}
+                      {etaData.distanceKm ? `${t('productDetail.distance')}: ${etaData.distanceKm} km • ` : ''}
+                      {etaData.etaMessage || t('productDetail.deliveredByVerifiedDriver')}
                     </small>
                   </div>
                 </div>
@@ -340,7 +342,7 @@ export default function ProductDetailScreen() {
 
               {/* Descrição do Produto */}
               <div className="mb-4">
-                <h6 className="fw-bold text-dark mb-2">Descrição do Produto</h6>
+                <h6 className="fw-bold text-dark mb-2">{t('productDetail.productDescription')}</h6>
                 <p className="text-muted small mb-0" style={{ lineHeight: '1.6' }}>
                   {product.description || 'Excelente produto disponível no ecossistema Nhiquela. Qualidade garantida pelo fornecedor parceiro.'}
                 </p>
@@ -349,34 +351,34 @@ export default function ProductDetailScreen() {
               {/* Especificações & Detalhes Técnicos */}
               <div className="card bg-light border-0 rounded-4 p-3 mb-4">
                 <h6 className="fw-bold text-dark mb-3 small text-uppercase" style={{ letterSpacing: '0.5px' }}>
-                  <FontAwesomeIcon icon={faInfoCircle} className="me-2 text-primary-custom" /> Ficha Técnica & Especificações
+                  <FontAwesomeIcon icon={faInfoCircle} className="me-2 text-primary-custom" /> {t('productDetail.specifications')}
                 </h6>
                 <div className="row g-2 small">
                   <div className="col-6">
-                    <span className="text-muted">Tipo de Produto:</span>
-                    <div className="fw-bold text-dark">{isDigital ? 'Digital / Software / Chave' : 'Produto Físico'}</div>
+                    <span className="text-muted">{t('productDetail.productType')}:</span>
+                    <div className="fw-bold text-dark">{isDigital ? 'Digital / Software / Chave' : t('productDetail.physicalProduct')}</div>
                   </div>
                   {product.brand && (
                     <div className="col-6">
-                      <span className="text-muted">Marca:</span>
+                      <span className="text-muted">{t('productDetail.brand')}:</span>
                       <div className="fw-bold text-dark">{product.brand}</div>
                     </div>
                   )}
                   {product.isGuaranteed && (
                     <div className="col-6">
-                      <span className="text-muted">Garantia:</span>
+                      <span className="text-muted">{t('productDetail.warranty')}:</span>
                       <div className="fw-bold text-success">{product.guaranteedPeriod || 'Garantia incluída'}</div>
                     </div>
                   )}
                   {!isDigital && product.countInStock !== undefined && (
                     <div className="col-6">
-                      <span className="text-muted">Disponibilidade:</span>
+                      <span className="text-muted">{t('productDetail.availability')}:</span>
                       <div className="fw-bold text-dark">{product.countInStock} unidades em stock</div>
                     </div>
                   )}
                   {isDigital && product.digitalType && (
                     <div className="col-6">
-                      <span className="text-muted">Formato Digital:</span>
+                      <span className="text-muted">{t('productDetail.digitalFormat')}:</span>
                       <div className="fw-bold text-primary-custom">{product.digitalType}</div>
                     </div>
                   )}
@@ -386,7 +388,7 @@ export default function ProductDetailScreen() {
                 {isDigital && product.digitalInstructions && (
                   <div className="mt-3 pt-3 border-top">
                     <span className="text-muted small fw-bold d-block mb-1">
-                      <FontAwesomeIcon icon={faKey} className="me-1 text-primary-custom" /> Instruções de Resgate / Ativação:
+                      <FontAwesomeIcon icon={faKey} className="me-1 text-primary-custom" /> {t('productDetail.activationInstructions')}
                     </span>
                     <small className="text-dark bg-white p-2 rounded-3 border d-block">{product.digitalInstructions}</small>
                   </div>
@@ -395,7 +397,7 @@ export default function ProductDetailScreen() {
 
               {/* Seletor de Quantidade */}
               <div className="d-flex align-items-center gap-3 mb-4">
-                <span className="fw-bold text-dark small">Quantidade:</span>
+                <span className="fw-bold text-dark small">{t('productDetail.quantity')}</span>
                 <div className="input-group" style={{ width: '130px' }}>
                   <button 
                     className="btn btn-outline-secondary rounded-start-pill"
@@ -426,14 +428,14 @@ export default function ProductDetailScreen() {
                 onClick={handleAddToCart}
                 disabled={!sellerOpen}
               >
-                <FontAwesomeIcon icon={faShoppingCart} className="me-2" /> {sellerOpen ? 'Adicionar ao Carrinho' : 'Loja Fechada'}
+                <FontAwesomeIcon icon={faShoppingCart} className="me-2" /> {sellerOpen ? t('productDetail.addToCart') : t('productDetail.storeClosed')}
               </button>
               <button 
                 className={`btn flex-grow-1 py-3 rounded-pill fw-bold fs-6 shadow-sm ${sellerOpen ? 'bg-primary-custom text-white' : 'btn-secondary text-white opacity-75'}`}
                 onClick={handleBuyNow}
                 disabled={!sellerOpen}
               >
-                <FontAwesomeIcon icon={faShoppingBag} className="me-2" /> {sellerOpen ? 'Comprar Agora' : 'Loja Fechada'}
+                <FontAwesomeIcon icon={faShoppingBag} className="me-2" /> {sellerOpen ? t('productDetail.buyNow') : t('productDetail.storeClosed')}
               </button>
             </div>
           </div>
@@ -443,7 +445,7 @@ export default function ProductDetailScreen() {
       {/* SECÇÃO DE PRODUTOS RELACIONADOS */}
       {relatedProducts.length > 0 && (
         <section className="mb-5">
-          <h4 className="fw-bold text-dark mb-3">Produtos Relacionados</h4>
+          <h4 className="fw-bold text-dark mb-3">{t('productDetail.relatedProducts')}</h4>
           <div className="row g-4">
             {relatedProducts.map((p) => (
               <div key={p._id} className="col-12 col-sm-6 col-md-3">

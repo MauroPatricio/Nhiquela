@@ -8,6 +8,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { addToBasket } from '../store/features/basketSlice';
 import { selectUser } from '../store/features/userSlice';
 import { toast } from 'react-toastify';
@@ -58,6 +59,7 @@ export const isStoreOpen = (seller) => {
 };
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [sellers, setSellers] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -73,41 +75,41 @@ export default function HomeScreen() {
   const logisticsSlides = useMemo(() => [
     {
       id: 'freightliners',
-      title: 'Camiões & Carga',
-      subtitle: 'Frotas articuladas de grande capacidade para transporte pesado de longa distância com acompanhamento em tempo real.',
+      title: t('landing.trucksAndCargo', 'Camiões & Carga'),
+      subtitle: t('landing.trucksAndCargoDesc', 'Frotas articuladas de grande capacidade para o transporte de pesados com monitoramento contínuo.'),
       image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
       tag: '',
       tagBg: '#8A2BE2',
-      highlight: 'Frotas de Longa Distância'
+      highlight: t('landing.longDistanceFleets', 'Frotas de Longa Distância')
     },
     {
       id: 'port_cargo',
-      title: 'Logística Portuária & Cargas',
-      subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário para contentores de importação e exportação.',
+      title: t('landing.portLogisticsTitle', 'Logística Portuária & Cargas'),
+      subtitle: t('landing.portLogisticsSub', 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos para contentores.'),
       image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
       tag: '',
       tagBg: '#2563EB',
-      highlight: 'Importação & Exportação'
+      highlight: t('landing.importExport', 'Importação & Exportação')
     },
     {
       id: 'machambas',
-      title: 'Produtores nas Machambas & Escoamento Agrícola',
-      subtitle: 'Recolha direta de colheitas agrícolas rurais conectando os pequenos e grandes produtores aos mercados urbanos.',
+      title: t('landing.farmCropTitle', 'Produtores nas Machambas & Escoamento Agrícola'),
+      subtitle: t('landing.farmCropSub', 'Recolha direta de colheitas agrícolas rurais conectando os pequenos e grandes produtores aos mercados urbanos.'),
       image: '/images/milho.jpg',
       tag: '',
       tagBg: '#059669',
-      highlight: 'Campo ao Mercado'
+      highlight: t('landing.fieldToMarket', 'Campo ao Mercado')
     },
     {
       id: 'machinery',
-      title: 'Maquinaria Pesada & Equipamento de Construção',
-      subtitle: 'Mobilização de retroescavadoras, camiões basculantes e matérias-primas pesadas para grandes obras e projetos de infraestrutura nacional.',
+      title: t('landing.fastDeliveries', 'Entregas rápidas'),
+      subtitle: t('landing.fastDeliveriesDesc', 'Entrega de forma rápida e segura de produtos e serviços no seu dia a dia.'),
       image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
       tag: '',
       tagBg: '#D97706',
-      highlight: 'Cargas Especiais'
+      highlight: t('landing.fastDeliveries', 'Entregas rápidas')
     }
-  ], []);
+  ], [t]);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -351,10 +353,10 @@ export default function HomeScreen() {
             <div className="col-lg-8 col-xl-7">
 
               <h1 className="fw-black mb-3 text-black" style={{ fontSize: '3.5rem', lineHeight: '1.1', letterSpacing: '-2px' }}>
-                Tudo o que precisa, entregue à <i className="text-primary-custom" style={{ fontFamily: 'serif' }}>distância</i> de um clique.
+                {t('home.heroHeader', 'Tudo o que precisa, entregue à distância de um clique.')}
               </h1>
               <p className="lead text-muted mb-4 pe-lg-5" style={{ fontSize: '1.15rem' }}>
-                Compre produtos de dezenas de lojas parceiras, acompanhe entregas em tempo real e receba onde estiver.
+                {t('home.heroSubtitle', 'Compre produtos de dezenas de lojas parceiras, acompanhe entregas em tempo real e receba onde estiver.')}
               </p>
 
               {/* Barra de Pesquisa Avançada */}
@@ -363,7 +365,7 @@ export default function HomeScreen() {
                 <input
                   type="text"
                   className="form-control border-0 shadow-none bg-transparent fs-6"
-                  placeholder="Pesquisar por produto (ex: Cîroc, Whisky, Coca-Cola)..."
+                  placeholder={t('home.searchPlaceholder', 'Pesquisar por produto (ex: Cîroc, Whisky, Coca-Cola)...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -371,7 +373,7 @@ export default function HomeScreen() {
                   className="btn bg-primary-custom text-white rounded-pill-custom px-4 py-2 fw-bold"
                   onClick={() => searchQuery.trim() && navigate(`/shop/search?q=${encodeURIComponent(searchQuery)}`)}
                 >
-                  Pesquisar
+                  {t('common.search', 'Pesquisar')}
                 </button>
               </div>
             </div>
@@ -385,10 +387,10 @@ export default function HomeScreen() {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
                   <span className="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold mb-1">
-                    <FontAwesomeIcon icon={faRedo} className="me-1 text-primary-custom" /> Recorrência
+                    <FontAwesomeIcon icon={faRedo} className="me-1 text-primary-custom" /> {t('home.reorder', 'Recorrência')}
                   </span>
-                  <h4 className="fw-black m-0 text-white">Comprar Novamente</h4>
-                  <small className="text-white-50">Comprou estes produtos nos seus últimos pedidos</small>
+                  <h4 className="fw-black m-0 text-white">{t('home.buyAgain', 'Comprar Novamente')}</h4>
+                  <small className="text-white-50">{t('home.previousOrderMsg', 'Comprou estes produtos nos seus últimos pedidos')}</small>
                 </div>
               </div>
 
@@ -426,9 +428,9 @@ export default function HomeScreen() {
         <section className="mb-5">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="fw-bold text-dark m-0 d-flex align-items-center gap-2">
-              <FontAwesomeIcon icon={faFilter} className="text-primary-custom" /> Categorias Populares
+              <FontAwesomeIcon icon={faFilter} className="text-primary-custom" /> {t('home.popularCategories', 'Categorias Populares')}
             </h4>
-            <span className="text-muted small fw-bold">{categories.length} categorias</span>
+            <span className="text-muted small fw-bold">{categories.length} {t('home.categoriesCount', 'categorias')}</span>
           </div>
 
           <div className="d-flex flex-wrap gap-2 pb-2">
@@ -439,7 +441,7 @@ export default function HomeScreen() {
                 }`}
               onClick={() => setSelectedCategory('ALL')}
             >
-              Todas as Categorias
+              {t('home.allCategories', 'Todas as Categorias')}
             </button>
 
             {categories.map((cat) => (
@@ -496,7 +498,7 @@ export default function HomeScreen() {
                       </div>
                     </Link>
                     <button className="btn bg-primary-custom text-white fw-bold rounded-3 py-2 small w-100 mt-auto" onClick={(e) => handleAddToCart(product, e)}>
-                      <FontAwesomeIcon icon={faPlus} className="me-1" /> Adicionar
+                      <FontAwesomeIcon icon={faPlus} className="me-1" /> {t('home.addToCart', 'Adicionar')}
                     </button>
                   </div>
                 </div>
@@ -510,8 +512,8 @@ export default function HomeScreen() {
           <section className="mb-5">
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div>
-                <h3 className="fw-black text-black m-0">Lojas & Fornecedores em Destaque</h3>
-                <span className="text-muted small">Parceiros verificados com entrega rápida em Maputo</span>
+                <h3 className="fw-black text-black m-0">{t('home.featuredStoresTitle', 'Lojas & Fornecedores em Destaque')}</h3>
+                <span className="text-muted small">{t('home.featuredStoresSub', 'Parceiros verificados com entrega rápida em Maputo')}</span>
               </div>
             </div>
 
@@ -530,7 +532,7 @@ export default function HomeScreen() {
                           className={`badge rounded-pill px-2.5 py-1 fw-bold shadow-sm ${open ? 'bg-success text-white' : 'bg-danger text-white'}`}
                           style={{ fontSize: '10.5px' }}
                         >
-                          {open ? '🟢 Aberto' : '🔴 Fechado'}
+                          {open ? t('home.openBadge', '🟢 Aberto') : t('home.closedBadge', '🔴 Fechado')}
                         </span>
                       </div>
 
@@ -555,14 +557,14 @@ export default function HomeScreen() {
                           <FontAwesomeIcon icon={faStore} />
                         </div>
                       </div>
-                      <h6 className="fw-bold text-dark mb-1 text-truncate">{seller.name || seller.seller?.name || 'Loja Parceira'}</h6>
+                      <h6 className="fw-bold text-dark mb-1 text-truncate">{seller.name || seller.seller?.name || t('home.newStore', 'Novo estabelecimento')}</h6>
                       <div className="d-flex align-items-center justify-content-center gap-2 text-muted small mb-3">
                         <span className="text-warning fw-bold"><FontAwesomeIcon icon={faStar} /> 4.8</span>
                         <span>•</span>
                         <span className="fw-bold text-dark"><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1 text-primary-custom" /> {storeProvince}</span>
                       </div>
                       <Link to={`/shop/seller/${seller._id}`} className="btn btn-outline-primary rounded-pill btn-sm fw-bold mt-auto">
-                        Visitar Loja
+                        {t('home.visitStore', 'Visitar Loja')}
                       </Link>
                     </div>
                   </div>
@@ -576,11 +578,11 @@ export default function HomeScreen() {
         <section className="mb-5">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h3 className="fw-black text-black m-0">Catálogo de Produtos</h3>
-              <span className="text-muted small">Produtos disponíveis para entrega rápida</span>
+              <h3 className="fw-black text-black m-0">{t('home.productCatalogTitle', 'Catálogo de Produtos')}</h3>
+              <span className="text-muted small">{t('home.productCatalogSub', 'Produtos disponíveis para entrega rápida')}</span>
             </div>
             <Link to="/products" className="text-primary-custom text-decoration-none fw-bold small">
-              Ver Todos ({filteredProducts.length}) <FontAwesomeIcon icon={faArrowRight} className="ms-1" />
+              {t('home.viewAll', 'Ver Todos')} ({filteredProducts.length}) <FontAwesomeIcon icon={faArrowRight} className="ms-1" />
             </Link>
           </div>
 
@@ -591,8 +593,8 @@ export default function HomeScreen() {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="card border-0 shadow-sm rounded-4 p-5 text-center bg-light">
-              <h5 className="fw-bold text-dark mb-2">Nenhum produto encontrado</h5>
-              <p className="text-muted mb-0">Não foram encontrados produtos para os critérios de pesquisa selecionados.</p>
+              <h5 className="fw-bold text-dark mb-2">{t('home.noProductsFoundTitle', 'Nenhum produto encontrado')}</h5>
+              <p className="text-muted mb-0">{t('home.noProductsFoundSub', 'Não foram encontrados produtos para os critérios de pesquisa selecionados.')}</p>
             </div>
           ) : (
             <div className="row g-4">
@@ -652,14 +654,14 @@ export default function HomeScreen() {
                           onClick={(e) => handleAddToCart(product, e)}
                           disabled={!sellerOpen}
                         >
-                          <FontAwesomeIcon icon={faPlus} className="me-1" /> {sellerOpen ? 'Carrinho' : 'Fechado'}
+                          <FontAwesomeIcon icon={faPlus} className="me-1" /> {sellerOpen ? t('home.addToCart', 'Adicionar ao Carrinho') : t('productDetail.storeClosed', 'Fechado')}
                         </button>
                         <button
                           className={`btn ${sellerOpen ? 'bg-primary-custom text-white' : 'btn-secondary'} flex-grow-1 fw-bold rounded-3 py-2 small`}
                           onClick={(e) => handleBuyNow(product, e)}
                           disabled={!sellerOpen}
                         >
-                          <FontAwesomeIcon icon={faShoppingBag} className="me-1" /> Comprar
+                          <FontAwesomeIcon icon={faShoppingBag} className="me-1" /> {t('landing.buy', 'Comprar')}
                         </button>
                       </div>
                     </div>

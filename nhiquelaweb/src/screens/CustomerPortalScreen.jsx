@@ -9,11 +9,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { selectUser, logout, setUserLogin } from '../store/features/userSlice';
 import { addToBasket } from '../store/features/basketSlice';
 import api from '../api';
 
 export default function CustomerPortalScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const userInfo = useSelector(selectUser);
@@ -274,14 +276,14 @@ export default function CustomerPortalScreen() {
                             onClick={() => setSelectedOrder(order)}
                             title="Ver Todos os Detalhes do Pedido"
                           >
-                            <FontAwesomeIcon icon={faEye} /> Ver Detalhes
+                            <FontAwesomeIcon icon={faEye} /> {t('common.viewDetails', 'Ver Detalhes')}
                           </button>
                           <button 
                             className="btn rounded-pill btn-sm fw-bold px-3 d-flex align-items-center gap-1 shadow-sm text-white"
                             style={{ backgroundColor: '#7F00FF' }}
                             onClick={() => handleReorder(order)}
                           >
-                            <FontAwesomeIcon icon={faRedo} /> Comprar Novamente
+                            <FontAwesomeIcon icon={faRedo} /> {t('home.buyAgain', 'Comprar Novamente')}
                           </button>
                         </div>
                       </div>
@@ -537,10 +539,10 @@ export default function CustomerPortalScreen() {
               {/* Footer do Modal */}
               <div className="modal-footer bg-white border-top p-3 d-flex justify-content-between">
                 <button className="btn btn-outline-secondary rounded-pill px-4 fw-bold btn-sm" onClick={() => setSelectedOrder(null)}>
-                  Fechar
+                  {t('common.cancel', 'Fechar')}
                 </button>
                 <button className="btn text-white rounded-pill px-4 fw-bold btn-sm shadow-sm" style={{ backgroundColor: '#7F00FF' }} onClick={() => { setSelectedOrder(null); handleReorder(selectedOrder); }}>
-                  <FontAwesomeIcon icon={faRedo} className="me-1" /> Comprar Novamente
+                  <FontAwesomeIcon icon={faRedo} className="me-1" /> {t('home.buyAgain', 'Comprar Novamente')}
                 </button>
               </div>
             </div>

@@ -8,6 +8,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { addToBasket } from '../store/features/basketSlice';
 import { selectUser } from '../store/features/userSlice';
 import { io } from 'socket.io-client';
@@ -28,6 +29,7 @@ const getProductImageUrl = (product) => {
 };
 
 export default function SellerProfileScreen() {
+  const { t } = useTranslation();
   const { sellerId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -127,7 +129,7 @@ export default function SellerProfileScreen() {
 
   const handleAddToCart = (product) => {
     if (!storeOpen) {
-      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      toast.error(t('productDetail.storeClosedToast'));
       return;
     }
     dispatch(addToBasket({
@@ -140,14 +142,14 @@ export default function SellerProfileScreen() {
       discount: Number(product.discount || 0),
       priceFromSeller: Number(product.priceFromSeller || product.price || 0),
     }));
-    toast.success(`"${product.nome || product.name}" adicionado ao carrinho!`);
+    toast.success(`"${product.nome || product.name}" ${t('productDetail.addedToCartToast')}`);
   };
 
   if (loadingSeller) {
     return (
       <div className="container py-5 text-center">
         <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary-custom" />
-        <p className="text-muted mt-3">A carregar loja...</p>
+        <p className="text-muted mt-3">{t('common.loading')}</p>
       </div>
     );
   }
@@ -175,12 +177,12 @@ export default function SellerProfileScreen() {
             </div>
             <p className="text-white-50 mb-2 small">{description}</p>
             <div className="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-3 small fw-bold text-white">
-              <span className="bg-white text-dark px-3 py-1 rounded-pill">⭐ {rating} (Verificado)</span>
+              <span className="bg-white text-dark px-3 py-1 rounded-pill">⭐ {rating}</span>
               <span>•</span>
               <span><FontAwesomeIcon icon={faMapMarkerAlt} className="me-1" /> {address}</span>
               <span>•</span>
               <span className={`px-3 py-1 rounded-pill fw-bold shadow-sm ${storeOpen ? 'bg-success text-white' : 'bg-danger text-white'}`}>
-                {storeOpen ? '🟢 Estamos Abertos' : '🔴 Loja Fechada de Momento'}
+                {storeOpen ? t('home.openBadge') : t('home.closedBadge')}
               </span>
             </div>
           </div>
@@ -193,19 +195,19 @@ export default function SellerProfileScreen() {
           className={`btn rounded-pill px-4 fw-bold ${activeCategoryTab === 'ALL' ? 'bg-primary-custom text-white' : 'btn-light'}`}
           onClick={() => setActiveCategoryTab('ALL')}
         >
-          Todos os Produtos ({products.length})
+          {t('home.productCatalogTitle')} ({products.length})
         </button>
         <button 
           className={`btn rounded-pill px-4 fw-bold ${activeCategoryTab === 'BEST' ? 'bg-primary-custom text-white' : 'btn-light'}`}
           onClick={() => setActiveCategoryTab('BEST')}
         >
-          🔥 Mais Vendidos
+          🔥 {t('home.featuredProducts')}
         </button>
         <button 
           className={`btn rounded-pill px-4 fw-bold ${activeCategoryTab === 'PROMO' ? 'bg-primary-custom text-white' : 'btn-light'}`}
           onClick={() => setActiveCategoryTab('PROMO')}
         >
-          🏷️ Promoções
+          🏷️ {t('search.onlyPromos')}
         </button>
         {storeCategories.map(cat => (
           <button 
@@ -220,10 +222,10 @@ export default function SellerProfileScreen() {
 
       {/* GRID DE PRODUTOS DA LOJA */}
       {loadingProducts ? (
-        <div className="text-center py-5 text-muted">A carregar catálogo da loja...</div>
+        <div className="text-center py-5 text-muted">{t('common.loading')}</div>
       ) : filteredProducts.length === 0 ? (
         <div className="card border-0 shadow-sm rounded-4 p-5 text-center bg-light">
-          <h6 className="fw-bold text-dark">Nenhum produto encontrado nesta categoria.</h6>
+          <h6 className="fw-bold text-dark">{t('sellerProfile.noProducts')}</h6>
         </div>
       ) : (
         <div className="row g-4">
@@ -240,7 +242,7 @@ export default function SellerProfileScreen() {
                     {!storeOpen && (
                       <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 z-2 rounded-3">
                         <span className="badge bg-danger text-white px-2 py-1 fw-bold shadow-sm">
-                          🔴 Loja Fechada
+                          {t('home.closedBadge')}
                         </span>
                       </div>
                     )}
@@ -263,7 +265,7 @@ export default function SellerProfileScreen() {
                   <div className="d-flex align-items-center justify-content-between text-muted small fw-bold mb-3">
                     <span><FontAwesomeIcon icon={faClock} className="me-1" /> {etaDisplay}</span>
                     <span className={`badge ${storeOpen ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} fw-bold px-2 py-1 rounded-2`} style={{ fontSize: '11px' }}>
-                      {storeOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                      {storeOpen ? t('home.openBadge') : t('home.closedBadge')}
                     </span>
                   </div>
                 </Link>
@@ -273,7 +275,7 @@ export default function SellerProfileScreen() {
                   onClick={() => handleAddToCart(product)}
                   disabled={!storeOpen}
                 >
-                  <FontAwesomeIcon icon={faPlus} className="me-1" /> {storeOpen ? 'Adicionar ao Carrinho' : 'Loja Fechada'}
+                  <FontAwesomeIcon icon={faPlus} className="me-1" /> {storeOpen ? t('productDetail.addToCart') : t('productDetail.storeClosed')}
                 </button>
               </div>
             </div>

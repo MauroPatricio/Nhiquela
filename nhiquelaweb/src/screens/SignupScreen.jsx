@@ -6,6 +6,7 @@ import {
   faCrosshairs, faBriefcase, faUserCheck
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +15,7 @@ import { toast } from 'react-toastify';
 import { getError } from '../utils.js';
 
 export default function SignupScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { search } = useLocation();
   const searchParams = new URLSearchParams(search);

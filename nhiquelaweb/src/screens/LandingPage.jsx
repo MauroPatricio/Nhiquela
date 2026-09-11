@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -9,48 +9,52 @@ import {
   faHardHat, faUsers, faPhone, faEnvelope, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../components/LanguageSelector';
 import api from '../api';
 
-const logisticsSlides = [
-  {
-    id: 'freightliners',
-    title: 'Camiões & Carga',
-    subtitle: 'Frotas articuladas de grande capacidade para o transporte de pesados com monitoramento contínuo.',
-    image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
-    tag: '',
-    tagBg: '#8A2BE2',
-    highlight: 'Frotas de Longa Distância'
-  },
-  {
-    id: 'port_cargo',
-    title: 'Logística Portuária & Cargas',
-    subtitle: 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos para contentores.',
-    image: '/images/cargasportuarias.jpg',
-    tag: '',
-    tagBg: '#2563EB',
-    highlight: 'Importação & Exportação'
-  },
-  {
-    id: 'machambas',
-    title: 'Produtores nas Machambas & Escoamento Agrícola',
-    subtitle: 'Recolha direta de colheitas agrícolas rurais conectando os pequenos e grandes produtores aos mercados urbanos.',
-    image: '/images/milho.jpg',
-    tag: '',
-    tagBg: '#059669',
-    highlight: 'Campo ao Mercado'
-  },
-  {
-    id: 'machinery',
-    title: 'Entregas rápidas',
-    subtitle: 'Entrega de forma rápida e segura de produtos e serviços no seu dia a dia.',
-    image: '/images/deliver.jfif',
-    tag: '',
-    tagBg: '#D97706',
-    highlight: 'Entregas rápidas'
-  }
-];
-
 export default function LandingPage() {
+  const { t } = useTranslation();
+
+  const logisticsSlides = useMemo(() => [
+    {
+      id: 'freightliners',
+      title: t('landing.trucksAndCargo', 'Camiões & Carga'),
+      subtitle: t('landing.trucksAndCargoDesc', 'Frotas articuladas de grande capacidade para o transporte de pesados com monitoramento contínuo.'),
+      image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
+      tag: '',
+      tagBg: '#8A2BE2',
+      highlight: t('landing.longDistanceFleets', 'Frotas de Longa Distância')
+    },
+    {
+      id: 'port_cargo',
+      title: t('landing.portLogisticsTitle', 'Logística Portuária & Cargas'),
+      subtitle: t('landing.portLogisticsSub', 'Operações contínuas de desembaraço e escoamento rodoviário nos Portos para contentores.'),
+      image: '/images/cargasportuarias.jpg',
+      tag: '',
+      tagBg: '#2563EB',
+      highlight: t('landing.importExport', 'Importação & Exportação')
+    },
+    {
+      id: 'machambas',
+      title: t('landing.farmCropTitle', 'Produtores nas Machambas & Escoamento Agrícola'),
+      subtitle: t('landing.farmCropSub', 'Recolha direta de colheitas agrícolas rurais conectando os pequenos e grandes produtores aos mercados urbanos.'),
+      image: '/images/milho.jpg',
+      tag: '',
+      tagBg: '#059669',
+      highlight: t('landing.fieldToMarket', 'Campo ao Mercado')
+    },
+    {
+      id: 'machinery',
+      title: t('landing.fastDeliveries', 'Entregas rápidas'),
+      subtitle: t('landing.fastDeliveriesDesc', 'Entrega de forma rápida e segura de produtos e serviços no seu dia a dia.'),
+      image: '/images/deliver.jfif',
+      tag: '',
+      tagBg: '#D97706',
+      highlight: t('landing.fastDeliveries', 'Entregas rápidas')
+    }
+  ], [t]);
+
   const [stats, setStats] = useState({
     provinces: 11,
     cities: 38,
@@ -143,68 +147,68 @@ export default function LandingPage() {
     fetchStats();
   }, []);
 
-  const mockups = {
+  const mockups = useMemo(() => ({
     client: {
-      title: 'App Cliente — Catálogo de Serviços & Produtos',
-      subtitle: 'Encontre profissionais, logística, mudanças e produtos num só lugar.',
+      title: t('landing.clientAppTitle', 'App Cliente — Catálogo de Serviços & Produtos'),
+      subtitle: t('landing.clientAppSubtitle', 'Encontre profissionais, logística, mudanças e produtos num só lugar.'),
       image: '/images/mockups/client_app_services_mockup.png',
-      badge: 'App Cliente',
+      badge: t('landing.clientAppTab', 'App Cliente'),
       badgeBg: '#7F00FF',
       bullets: [
-        'Acesso direto ao Catálogo de Serviços e Mercado',
-        'Serviço de Logística',
-        'Navegação intuitiva com acompanhamento e pagamentos'
+        t('landing.clientAppBullet1', 'Acesso direto ao Catálogo de Serviços e Mercado'),
+        t('landing.clientAppBullet2', 'Serviço de Logística'),
+        t('landing.clientAppBullet3', 'Navegação intuitiva com acompanhamento e pagamentos')
       ]
     },
     order: {
-      title: 'App Cliente — Acompanhamento de Pedido',
-      subtitle: 'Acompanhe cada etapa do seu pedido em tempo real, da aprovação do fornecedor à chegada do estafeta.',
+      title: t('landing.orderTitle', 'App Cliente — Acompanhamento de Pedido'),
+      subtitle: t('landing.orderSubtitle', 'Acompanhe cada etapa do seu pedido em tempo real, da aprovação do fornecedor à chegada do estafeta.'),
       image: '/images/mockups/order_detail_mockup.jpg',
-      badge: 'Progresso do Pedido',
+      badge: t('landing.orderBadge', 'Progresso do Pedido'),
       badgeBg: '#8B5CF6',
       bullets: [
-        'Acompanhamento transparente por passos (Pendente, Aceite, Em Trânsito, Entregue)',
-        'Notificações instantâneas em cada alteração de estado',
-        'Confirmação direta de recepção do pedido pelo cliente'
+        t('landing.orderBullet1', 'Acompanhamento transparente por passos (Pendente, Aceite, Em Trânsito, Entregue)'),
+        t('landing.orderBullet2', 'Notificações instantâneas em cada alteração de estado'),
+        t('landing.orderBullet3', 'Confirmação direta de recepção do pedido pelo cliente')
       ]
     },
     seller: {
-      title: 'App Fornecedor (nhiquelaseller) — Gestão de Loja',
-      subtitle: 'Gerencie novos pedidos, controle o stock e acompanhe as suas vendas e saldo em tempo real.',
+      title: t('landing.sellerTitle', 'App Fornecedor — Gestão de Loja'),
+      subtitle: t('landing.sellerSubtitle', 'Gerencie novos pedidos, controle o stock e acompanhe as suas vendas e saldo em tempo real.'),
       image: '/images/mockups/seller_app_mockup.jpg',
-      badge: 'Vendedor / Fornecedor',
+      badge: t('landing.sellerBadge', 'Vendedor / Fornecedor'),
       badgeBg: '#9333EA',
       bullets: [
-        'Saldo da Carteira Digital com crédito/débito automático',
-        'Aprovação e rejeição de pedidos com 1 toque',
-        'Opção de solicitar motorista interno ou entrega externa'
+        t('landing.sellerBullet1', 'Saldo da Carteira Digital com crédito/débito automático'),
+        t('landing.sellerBullet2', 'Aprovação e rejeição de pedidos com 1 toque'),
+        t('landing.sellerBullet3', 'Opção de solicitar motorista interno ou entrega externa')
       ]
     },
     driver: {
-      title: 'App Motorista  — Viagens & Entregas',
-      subtitle: 'Receba solicitações de entregas com 1 toque e gira os seus ganhos diários na sua carteira.',
+      title: t('landing.driverTitle', 'App Motorista — Viagens & Entregas'),
+      subtitle: t('landing.driverSubtitle', 'Receba solicitações de entregas com 1 toque e gira os seus ganhos diários na sua carteira.'),
       image: '/images/mockups/driver_app_mockup.jpg',
-      badge: 'Motorista / Entregador',
+      badge: t('landing.driverBadge', 'Motorista / Entregador'),
       badgeBg: '#10B981',
       bullets: [
-        'Alternador Online/Offline simples e intuitivo',
-        'Histórico de viagens e ganhos diários detalhados',
-        'Aceitação imediata de corridas com alerta sonoro'
+        t('landing.driverBullet1', 'Alternador Online/Offline simples e intuitivo'),
+        t('landing.driverBullet2', 'Histórico de viagens e ganhos diários detalhados'),
+        t('landing.driverBullet3', 'Aceitação imediata de corridas com alerta sonoro')
       ]
     },
     map: {
-      title: 'Navegação GPS & Trajeto em Tempo Real',
-      subtitle: 'Navegação integrada com mapas interativos e geolocalização exata de partida e chegada.',
+      title: t('landing.mapTitle', 'Navegação GPS & Trajeto em Tempo Real'),
+      subtitle: t('landing.mapSubtitle', 'Navegação integrada com mapas interativos e geolocalização exata de partida e chegada.'),
       image: '/images/mockups/driver_map_mockup.jpg',
-      badge: 'GPS & Trajeto',
+      badge: t('landing.mapBadge', 'GPS & Trajeto'),
       badgeBg: '#3B82F6',
       bullets: [
-        'Mapa vetorial com visualização 3D da rota',
-        'Cálculo de distância e tempo estimado de chegada (ETA)',
-        'Sincronização ao vivo entre Cliente, Vendedor e Motorista'
+        t('landing.mapBullet1', 'Mapa vetorial com visualização 3D da rota'),
+        t('landing.mapBullet2', 'Cálculo de distância e tempo estimado de chegada (ETA)'),
+        t('landing.mapBullet3', 'Sincronização ao vivo entre Cliente, Vendedor e Motorista')
       ]
     }
-  };
+  }), [t]);
 
   const currentMockup = mockups[activeTab];
 
@@ -296,9 +300,8 @@ export default function LandingPage() {
       <div style={{ background: '#0F172A', color: '#94A3B8', fontSize: '0.82rem', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
         <div className="container d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div className="d-flex align-items-center gap-2">
-
             <span style={{ color: '#E2E8F0', fontWeight: '500' }}>
-              Plataforma integrada de entregas, mobilidade e transporte corporativo em Moçambique.
+              {t('banner.tagline', 'Plataforma integrada de entregas, mobilidade e transporte corporativo em Moçambique.')}
             </span>
           </div>
           <div className="d-flex align-items-center gap-3">
@@ -309,8 +312,9 @@ export default function LandingPage() {
               style={{ color: '#CBD5E1', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '500' }}
             >
               <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: '10px' }} />
-              <span>Contactar para parcerias</span>
+              <span>{t('banner.contactPartnerships', 'Contactar para parcerias')}</span>
             </button>
+            <LanguageSelector variant="dark" />
           </div>
         </div>
       </div>
@@ -324,10 +328,10 @@ export default function LandingPage() {
           <div className="d-flex align-items-center gap-2">
             <Link to="/shop" className="btn btn-corporate-outline rounded-pill px-4 py-2 fw-bold small transition-all d-flex align-items-center gap-2">
               <FontAwesomeIcon icon={faShoppingBag} />
-              <span>Marketplace</span>
+              <span>{t('nav.marketplace', 'Marketplace')}</span>
             </Link>
             <Link to="/login" className="btn btn-corporate-primary rounded-pill px-4 py-2 fw-bold small d-flex align-items-center gap-2">
-              <span>Entrar</span>
+              <span>{t('nav.enter', 'Entrar')}</span>
               <FontAwesomeIcon icon={faArrowRight} style={{ fontSize: '12px' }} />
             </Link>
           </div>
@@ -345,10 +349,11 @@ export default function LandingPage() {
           <div className="text-center">
 
             <h2 className="display-5 fw-extrabold mb-3" style={{ letterSpacing: '-1.5px', color: '#0F172A' }}>
-              Conectamos a Cadeia de Suprimentos de Moçambique
+              {t('landing.heroTitle', 'Conectamos a Cadeia de Suprimentos de Moçambique')}
             </h2>
             <p className="lead mx-auto mb-0" style={{ maxWidth: '820px', color: '#475569', fontSize: '1.15rem', lineHeight: '1.6' }}>
-  Da machamba à cidade. Do físico ao digital. A nhiquela conecta produtos, negócios e pessoas.            </p>
+              {t('landing.heroSubtitle', 'Da machamba à cidade. Do físico ao digital. A nhiquela conecta produtos, negócios e pessoas.')}
+            </p>
           </div>
         </div>
 
@@ -509,10 +514,10 @@ export default function LandingPage() {
           <div className="text-center mb-5">
 
             <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px' }}>
-              O que posso fazer com a <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>nhiquela?</span>
+              {t('landing.whatCanIDo', 'O que posso fazer com a')} <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>nhiquela?</span>
             </h2>
             <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '750px', fontSize: '1.15rem' }}>
-              Conectamos todas as suas necessidades do dia a dia num único ecossistema digital inteligente, rápido e confiável em Moçambique.
+              {t('landing.whatCanIDoDesc', 'Conectamos todas as suas necessidades do dia a dia num único ecossistema digital inteligente, rápido e confiável em Moçambique.')}
             </p>
           </div>
 
@@ -547,19 +552,19 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faShoppingBag} size="lg" />
                   </div>
                   <div>
-                    <h4 className="fw-extrabold text-dark mb-0">Comprar</h4>
-                    <span className="badge bg-light text-primary-custom border rounded-pill small" style={{ fontSize: '11px' }}>Mercado & Lojas</span>
+                    <h4 className="fw-extrabold text-dark mb-0">{t('landing.buy', 'Comprar')}</h4>
+                    <span className="badge bg-light text-primary-custom border rounded-pill small" style={{ fontSize: '11px' }}>{t('landing.marketAndStores', 'Mercado & Lojas')}</span>
                   </div>
                 </div>
                 <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
-                  Produtos de lojas e estabelecimentos de parceiros confiáveis.
+                  {t('landing.marketAndStoresDesc', 'Produtos de lojas e estabelecimentos de parceiros confiáveis.')}
                 </p>
                 <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    Solicitar pedido
+                    {t('landing.requestOrder', 'Solicitar pedido')}
                   </span>
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    Compra de produtos
+                    {t('landing.buyProducts', 'Compra de produtos')}
                   </span>
                 </div>
               </div>
@@ -595,19 +600,19 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faBox} size="lg" />
                   </div>
                   <div>
-                    <h4 className="fw-extrabold text-dark mb-0">Enviar</h4>
-                    <span className="badge bg-light text-primary border rounded-pill small" style={{ fontSize: '11px' }}>Encomendas Expressas</span>
+                    <h4 className="fw-extrabold text-dark mb-0">{t('landing.send', 'Enviar')}</h4>
+                    <span className="badge bg-light text-primary border rounded-pill small" style={{ fontSize: '11px' }}>{t('landing.expressParcels', 'Encomendas Expressas')}</span>
                   </div>
                 </div>
                 <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
-                  Documentos, encomendas e mercadorias com envio seguro.
+                  {t('landing.expressParcelsDesc', 'Documentos, encomendas e mercadorias com envio seguro.')}
                 </p>
                 <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    📄 Documentos
+                    {t('landing.documents', '📄 Documentos')}
                   </span>
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    ✉️ Encomendas rápidas
+                    {t('landing.fastParcels', '✉️ Encomendas rápidas')}
                   </span>
                 </div>
               </div>
@@ -643,19 +648,19 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faTruck} size="lg" />
                   </div>
                   <div>
-                    <h4 className="fw-extrabold text-dark mb-0">Transportar</h4>
-                    <span className="badge bg-light text-dark border rounded-pill small" style={{ fontSize: '11px' }}>Fretes & Logística</span>
+                    <h4 className="fw-extrabold text-dark mb-0">{t('landing.transport', 'Transportar')}</h4>
+                    <span className="badge bg-light text-dark border rounded-pill small" style={{ fontSize: '11px' }}>{t('landing.freightLogistics', 'Fretes & Logística')}</span>
                   </div>
                 </div>
                 <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
-                  Carga, mudanças e materiais corporativos ou residenciais.
+                  {t('landing.freightLogisticsDesc', 'Carga, mudanças e materiais corporativos ou residenciais.')}
                 </p>
                 <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    📦 Mudanças
+                    {t('landing.relocations', '📦 Mudanças')}
                   </span>
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    🚛 Cargas pesadas
+                    {t('landing.heavyFreight', '🚛 Cargas pesadas')}
                   </span>
                 </div>
               </div>
@@ -691,19 +696,19 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faMotorcycle} size="lg" />
                   </div>
                   <div>
-                    <h4 className="fw-extrabold text-dark mb-0">Mobilidade</h4>
-                    <span className="badge bg-light text-success border rounded-pill small" style={{ fontSize: '11px' }}>Transporte Urbano</span>
+                    <h4 className="fw-extrabold text-dark mb-0">{t('landing.mobility', 'Mobilidade')}</h4>
+                    <span className="badge bg-light text-success border rounded-pill small" style={{ fontSize: '11px' }}>{t('landing.urbanTransport', 'Transporte Urbano')}</span>
                   </div>
                 </div>
                 <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
-                  Moto-táxi, transporte rápido de passageiros e outros serviços de mobilidade.
+                  {t('landing.urbanTransportDesc', 'Moto-táxi, transporte rápido de passageiros e outros serviços de mobilidade.')}
                 </p>
                 <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    🛵 Moto-Táxi
+                    {t('landing.motoTaxi', '🛵 Moto-Táxi')}
                   </span>
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    Deslocação Rápida
+                    {t('landing.fastCommute', 'Deslocação Rápida')}
                   </span>
                 </div>
               </div>
@@ -739,19 +744,19 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faGasPump} size="lg" />
                   </div>
                   <div>
-                    <h4 className="fw-extrabold text-dark mb-0">Serviços</h4>
-                    <span className="badge bg-light text-warning border rounded-pill small" style={{ fontSize: '11px' }}>Assistência 24/7</span>
+                    <h4 className="fw-extrabold text-dark mb-0">{t('landing.services', 'Serviços')}</h4>
+                    <span className="badge bg-light text-warning border rounded-pill small" style={{ fontSize: '11px' }}>{t('landing.assistance247', 'Assistência 24/7')}</span>
                   </div>
                 </div>
                 <p className="text-secondary small mb-3" style={{ lineHeight: '1.6' }}>
-                  Reboque, aluguer de viaturas e outros serviços de suporte na estrada.
+                  {t('landing.assistance247Desc', 'Reboque, aluguer de viaturas e outros serviços de suporte na estrada.')}
                 </p>
                 <div className="d-flex flex-wrap gap-2 mt-auto pt-3 border-top">
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    Reboque
+                    {t('landing.towing', 'Reboque')}
                   </span>
                   <span className="badge bg-white text-dark border rounded-pill px-3 py-1.5 small fw-bold">
-                    Aluguer de Viaturas
+                    {t('landing.carRental', 'Aluguer de Viaturas')}
                   </span>
                 </div>
               </div>
@@ -767,20 +772,20 @@ export default function LandingPage() {
           <div className="text-center mb-5">
 
             <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
-              Uma plataforma que conecta <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>soluções em perfeita sintonia.</span>
+              {t('landing.showcaseTitle', 'Uma plataforma que conecta soluções em perfeita sintonia.')}
             </h2>
             <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '760px', fontSize: '1.15rem', lineHeight: '1.65' }}>
-              Explore como o Cliente navega e solicita serviços, o Fornecedor faz a gestão completa do negócio e o Motorista realiza as entregas com rastreamento GPS ativo em tempo real.
+              {t('landing.showcaseSubtitle', 'Explore como o Cliente navega e solicita serviços, o Fornecedor faz a gestão completa do negócio e o Motorista realiza as entregas com rastreamento GPS ativo em tempo real.')}
             </p>
 
             {/* BARRA DE SELEÇÃO DE ABAS INTERATIVAS */}
             <div className="d-flex justify-content-center flex-wrap gap-2 mt-4 pt-2">
               {[
-                { id: 'client', label: 'App Cliente (Serviços)', icon: faShoppingBag, activeBg: '#7F00FF' },
-                { id: 'order', label: 'Acompanhar Pedido', icon: faListCheck, activeBg: '#8B5CF6' },
-                { id: 'seller', label: 'App Fornecedor', icon: faStore, activeBg: '#10B981' },
-                { id: 'driver', label: 'App Motorista', icon: faMotorcycle, activeBg: '#059669' },
-                { id: 'map', label: 'Trajeto GPS', icon: faMap, activeBg: '#2563EB' }
+                { id: 'client', label: t('landing.clientAppServicesTab', 'App Cliente (Serviços)'), icon: faShoppingBag, activeBg: '#7F00FF' },
+                { id: 'order', label: t('landing.trackOrderTab', 'Acompanhar Pedido'), icon: faListCheck, activeBg: '#8B5CF6' },
+                { id: 'seller', label: t('landing.supplierAppTab', 'App Fornecedor'), icon: faStore, activeBg: '#10B981' },
+                { id: 'driver', label: t('landing.driverAppTab', 'App Motorista'), icon: faMotorcycle, activeBg: '#059669' },
+                { id: 'map', label: t('landing.gpsRouteTab', 'Trajeto GPS'), icon: faMap, activeBg: '#2563EB' }
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -918,10 +923,10 @@ export default function LandingPage() {
           <div className="text-center mb-5">
 
             <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px' }}>
-              Junte-se à nhiquela<span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.</span>
+              {t('landing.joinTitle', 'Junte-se à nhiquela.')}
             </h2>
             <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '680px', fontSize: '1.15rem' }}>
-              Escolha o seu perfil de utilização e descubra como a nossa plataforma integrada transforma o seu negócio, os seus ganhos e a sua conveniência diária.
+              {t('landing.joinSubtitle', 'Escolha o seu perfil de utilização e descubra como a nossa plataforma integrada transforma o seu negócio, os seus ganhos e a sua conveniência diária.')}
             </p>
           </div>
 
@@ -961,11 +966,11 @@ export default function LandingPage() {
 
 
                   <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
-                    Para Fornecedores
+                    {t('landing.forSuppliers', 'Para Fornecedores')}
                   </h3>
 
                   <p className="text-secondary mb-4 small" style={{ lineHeight: '1.65', minHeight: '64px' }}>
-                    Multiplique as suas vendas. Exponha os seus produtos a milhares de clientes sem pagar custos fixos de plataforma.
+                    {t('landing.forSuppliersDesc', 'Multiplique as suas vendas. Exponha os seus produtos a milhares de clientes sem pagar custos fixos de plataforma.')}
                   </p>
 
                   <div className="w-100 pt-3 border-top mt-auto">
@@ -1018,11 +1023,11 @@ export default function LandingPage() {
                   </div>
 
                   <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
-                    Para Motoristas
+                    {t('landing.forDrivers', 'Para Motoristas')}
                   </h3>
 
                   <p className="text-secondary mb-4 small" style={{ lineHeight: '1.65', minHeight: '64px' }}>
-                    Seja seu próprio chefe. Faça entregas com a Nhiquela e receba os seus ganhos diretamente na sua carteira.
+                    {t('landing.forDriversDesc', 'Seja seu próprio chefe. Faça entregas com a Nhiquela e receba os seus ganhos diretamente na sua carteira.')}
                   </p>
 
                   <div className="w-100 pt-3 border-top mt-auto">
@@ -1076,11 +1081,11 @@ export default function LandingPage() {
 
 
                   <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
-                    Para Clientes
+                    {t('landing.forCustomers', 'Para Clientes')}
                   </h3>
 
                   <p className="text-secondary mb-4 small" style={{ lineHeight: '1.65', minHeight: '64px' }}>
-                    Tudo o que você precisa, onde quer que você esteja. Pague fácil via M-Pesa e e-Mola.
+                    {t('landing.forCustomersDesc', 'Tudo o que você precisa, onde quer que você esteja. Pague fácil via M-Pesa e e-Mola.')}
                   </p>
 
                   <div className="w-100 pt-3 border-top mt-auto">
@@ -1111,10 +1116,10 @@ export default function LandingPage() {
           <div className="text-center mb-5">
 
             <h2 className="display-4 fw-black text-dark mb-3" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
-              A nhiquela está no seu <span style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>telemóvel.</span>
+              {t('landing.onYourPhoneTitle', 'A nhiquela está no seu telemóvel.')}
             </h2>
             <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '750px', fontSize: '1.15rem', lineHeight: '1.65' }}>
-              Faça download da aplicação na Google Play Store ou escaneie o QR Code correspondente para acessar à experiência completa.
+              {t('landing.onYourPhoneSubtitle', 'Faça download da aplicação na Google Play Store ou escaneie o QR Code correspondente para acessar à experiência completa.')}
             </p>
           </div>
 
@@ -1140,9 +1145,9 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faShoppingBag} size="xl" />
                   </div>
 
-                  <h4 className="fw-extrabold text-dark mb-2">Cliente & Mercado</h4>
+                  <h4 className="fw-extrabold text-dark mb-2">{t('landing.clientMarketplace', 'Cliente & Mercado')}</h4>
                   <p className="text-secondary small mb-4" style={{ lineHeight: '1.6' }}>
-                    Compre produtos, solicite entregas, transporte e acompanhe o seu pedido ao vivo.
+                    {t('landing.clientMarketplaceDesc', 'Compre produtos, solicite entregas, transporte e acompanhe o seu pedido ao vivo.')}
                   </p>
 
                   {/* QR CODE CONTAINER */}
@@ -1154,7 +1159,7 @@ export default function LandingPage() {
                       style={{ width: '140px', height: '140px' }}
                     />
                     <div className="mt-2 text-muted small fw-bold" style={{ fontSize: '11px' }}>
-                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> Apontar Câmara
+                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> {t('landing.pointCamera', 'Apontar Câmara')}
                     </div>
                   </div>
 
@@ -1197,9 +1202,9 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faStore} size="xl" />
                   </div>
 
-                  <h4 className="fw-extrabold text-dark mb-2">Fornecedor</h4>
+                  <h4 className="fw-extrabold text-dark mb-2">{t('landing.supplier', 'Fornecedor')}</h4>
                   <p className="text-secondary small mb-4" style={{ lineHeight: '1.6' }}>
-                    Gerencie a sua loja, aceite novos pedidos, controle stock e acompanhe relatórios.
+                    {t('landing.supplierDesc', 'Gerencie a sua loja, aceite novos pedidos, controle stock e acompanhe relatórios.')}
                   </p>
 
                   {/* QR CODE CONTAINER */}
@@ -1211,7 +1216,7 @@ export default function LandingPage() {
                       style={{ width: '140px', height: '140px' }}
                     />
                     <div className="mt-2 text-muted small fw-bold" style={{ fontSize: '11px' }}>
-                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> Apontar Câmara
+                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> {t('landing.pointCamera', 'Apontar Câmara')}
                     </div>
                   </div>
 
@@ -1254,9 +1259,9 @@ export default function LandingPage() {
                     <FontAwesomeIcon icon={faMotorcycle} size="xl" />
                   </div>
 
-                  <h4 className="fw-extrabold text-dark mb-2">Motorista</h4>
+                  <h4 className="fw-extrabold text-dark mb-2">{t('landing.driver', 'Motorista')}</h4>
                   <p className="text-secondary small mb-4" style={{ lineHeight: '1.6' }}>
-                    Receba solicitações de transporte, navegue via GPS e ganhe diretamente na sua carteira.
+                    {t('landing.driverDesc', 'Receba solicitações de transporte, navegue via GPS e ganhe diretamente na sua carteira.')}
                   </p>
 
                   {/* QR CODE CONTAINER */}
@@ -1268,7 +1273,7 @@ export default function LandingPage() {
                       style={{ width: '140px', height: '140px' }}
                     />
                     <div className="mt-2 text-muted small fw-bold" style={{ fontSize: '11px' }}>
-                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> Apontar Câmara
+                      <FontAwesomeIcon icon={faQrcode} className="me-1" /> {t('landing.pointCamera', 'Apontar Câmara')}
                     </div>
                   </div>
 
@@ -1314,11 +1319,11 @@ export default function LandingPage() {
           <div className="position-relative text-center mx-auto" style={{ zIndex: 3, maxWidth: '820px' }}>
 
             <h1 className="display-4 fw-extrabold text-white mb-4" style={{ letterSpacing: '-1.5px', lineHeight: '1.15' }}>
-              Pronto para experimentar a <span style={{ color: '#FFFFFF', textShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>nhiquela?</span>
+              {t('landing.readyTitle', 'Pronto para experimentar a')} <span style={{ color: '#FFFFFF', textShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>nhiquela?</span>
             </h1>
 
             <p className="lead mb-5" style={{ color: '#F3E8FF', fontSize: '1.25rem', lineHeight: '1.6', maxWidth: '680px', margin: '0 auto' }}>
-              A sua próxima entrega, o seu próximo serviço, o seu próximo cliente — tudo a começar agora.
+              {t('landing.readySubtitle', 'A sua próxima entrega, o seu próximo serviço, o seu próximo cliente — tudo a começar agora.')}
             </p>
 
             <div className="d-flex flex-column flex-sm-row justify-content-center gap-3 align-items-center">
@@ -1340,7 +1345,7 @@ export default function LandingPage() {
                   minWidth: '240px'
                 }}
               >
-                <FontAwesomeIcon icon={faStore} /> Tornar-se Fornecedor
+                <FontAwesomeIcon icon={faStore} /> {t('landing.supplierBtn', 'Tornar-se Fornecedor')}
               </Link>
             </div>
           </div>
@@ -1359,46 +1364,46 @@ export default function LandingPage() {
                 </h3>
               </Link>
               <p className="small text-slate-400 mb-4" style={{ color: '#94A3B8', lineHeight: '1.7', maxWidth: '320px' }}>
-                Ecossistema tecnológico que conecta clientes, fornecedores e logística de cargas em todo o país.
+                {t('landing.taglineFooter', 'Ecossistema tecnológico que conecta clientes, fornecedores e logística de cargas em todo o país.')}
               </p>
             </div>
 
             {/* Coluna 2: Plataforma & Serviços */}
             <div className="col-lg-3 col-md-6 mb-4 mb-lg-0">
               <h6 className="text-white fw-bold text-uppercase mb-3" style={{ letterSpacing: '1px', fontSize: '0.85rem' }}>
-                Plataforma Web
+                {t('landing.platformWeb', 'Plataforma Web')}
               </h6>
               <ul className="list-unstyled d-flex flex-column gap-2 small">
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Marketplace</Link></li>
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Cargas Pesadas</Link></li>
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Logística Portuária & Contentores</Link></li>
-                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Escoamento Agrícola nas Machambas</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('nav.marketplace', 'Marketplace')}</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('nav.cargas', 'Cargas Pesadas')}</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('landing.portLogistics', 'Logística Portuária & Contentores')}</Link></li>
+                <li><Link to="/shop" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('landing.farmCropTransport', 'Escoamento Agrícola nas Machambas')}</Link></li>
               </ul>
             </div>
 
             {/* Coluna 3: Parceiros & Apps */}
             <div className="col-lg-3 col-md-6 mb-4 mb-lg-0">
               <h6 className="text-white fw-bold text-uppercase mb-3" style={{ letterSpacing: '1px', fontSize: '0.85rem' }}>
-                Oportunidades & Apps
+                {t('landing.opportunitiesApps', 'Oportunidades & Apps')}
               </h6>
               <ul className="list-unstyled d-flex flex-column gap-2 small">
-                <li><Link to="/signup?type=seller" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Cadastrar Loja / Fornecedor</Link></li>
-                <li><Link to="/signup?type=driver" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Seja um Motorista Parceiro</Link></li>
-                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>Portal Fornecedor</Link></li>
-                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>App Motorista</Link></li>
+                <li><Link to="/signup?type=seller" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('landing.registerStore', 'Cadastrar Loja / Fornecedor')}</Link></li>
+                <li><Link to="/signup?type=driver" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('landing.becomePartnerDriver', 'Seja um Motorista Parceiro')}</Link></li>
+                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('nav.supplierPortal', 'Portal Fornecedor')}</Link></li>
+                <li><Link to="/login" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>{t('login.driverApp', 'App Motorista')}</Link></li>
               </ul>
             </div>
 
             {/* Coluna 4: Contactos & Sede */}
             <div className="col-lg-3 col-md-6">
               <h6 className="text-white fw-bold text-uppercase mb-3" style={{ letterSpacing: '1px', fontSize: '0.85rem' }}>
-                Contactos & Sede
+                {t('footer.contactHeader', 'Contactos & Sede')}
               </h6>
               <ul className="list-unstyled d-flex flex-column gap-2.5 small mb-0">
                 <li className="d-flex align-items-start gap-2" style={{ color: '#94A3B8' }}>
                   <FontAwesomeIcon icon={faPhone} className="mt-1 text-primary-custom" style={{ fontSize: '0.85rem' }} />
                   <div>
-                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>Chamadas & WhatsApp:</span>
+                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>{t('footer.callsWhatsapp', 'Chamadas & WhatsApp')}:</span>
                     <a href="tel:+258853600036" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>
                       853600036
                     </a>
@@ -1407,7 +1412,7 @@ export default function LandingPage() {
                 <li className="d-flex align-items-start gap-2" style={{ color: '#94A3B8' }}>
                   <FontAwesomeIcon icon={faEnvelope} className="mt-1 text-primary-custom" style={{ fontSize: '0.85rem' }} />
                   <div>
-                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>E-mail:</span>
+                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>{t('footer.email', 'E-mail')}:</span>
                     <a href="mailto:nhiquelaservicos@gmail.com" className="text-slate-400 text-decoration-none hover-text-white" style={{ color: '#94A3B8' }}>
                       nhiquelaservicos@gmail.com
                     </a>
@@ -1416,7 +1421,7 @@ export default function LandingPage() {
                 <li className="d-flex align-items-start gap-2" style={{ color: '#94A3B8' }}>
                   <FontAwesomeIcon icon={faMapMarkerAlt} className="mt-1 text-primary-custom" style={{ fontSize: '0.85rem' }} />
                   <div>
-                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>Localização:</span>
+                    <span className="d-block text-white fw-semibold" style={{ fontSize: '0.8rem' }}>{t('footer.location', 'Localização')}:</span>
                     <span style={{ color: '#94A3B8', lineHeight: '1.4' }}>
                       Paulo Samuel Kankhomba, Bairro da Sommershield, KaMpfumo, Maputo
                     </span>
@@ -1430,8 +1435,8 @@ export default function LandingPage() {
 
           {/* Copyright Bottom Bar */}
           <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 small text-slate-500" style={{ color: '#64748B' }}>
-            <span>Todos os direitos reservados @2026 nhiquela.</span>
-            <span>Desenvolvido por Nhiquela Serviços e Consultoria</span>
+            <span>{t('footer.rights', 'Todos os direitos reservados @2026 nhiquela.')}</span>
+            <span>{t('footer.developedBy', 'Desenvolvido por Nhiquela Serviços e Consultoria')}</span>
           </div>
         </div>
       </footer>
@@ -1461,10 +1466,10 @@ export default function LandingPage() {
                     </span>
                   </div>
                   <h4 className="modal-title fw-bold m-0" style={{ letterSpacing: '-0.5px' }}>
-                    Seja nosso Parceiro / Fornecedor
+                    {t('partnership.modalTitle', 'Seja nosso Parceiro / Fornecedor')}
                   </h4>
                   <p className="m-0 text-light small opacity-75 mt-1">
-                    Preencha o formulário abaixo com os dados da sua empresa e proposta de parceria.
+                    {t('partnership.modalSubtitle', 'Preencha o formulário abaixo com os dados da sua empresa e proposta de parceria.')}
                   </p>
                 </div>
                 <button
@@ -1484,16 +1489,16 @@ export default function LandingPage() {
                     >
                       <FontAwesomeIcon icon={faCheckCircle} style={{ fontSize: '2.5rem' }} />
                     </div>
-                    <h4 className="fw-bold text-dark mb-2">Proposta Enviada com Sucesso!</h4>
+                    <h4 className="fw-bold text-dark mb-2">{t('partnership.successTitle', 'Proposta Enviada com Sucesso!')}</h4>
                     <p className="text-muted mx-auto mb-4" style={{ maxWidth: '500px' }}>
-                      Agradecemos o seu interesse em colaborar com o <strong>Nhiquela</strong>. A nossa equipa de expansão e parcerias irá analisar os seus dados e entrará em contacto muito brevemente.
+                      {t('partnership.successMsg', 'Agradecemos o seu interesse em colaborar com o Nhiquela. A nossa equipa de expansão e parcerias irá analisar os seus dados e entrará em contacto muito brevemente.')}
                     </p>
                     <button
                       type="button"
                       className="btn btn-corporate-primary rounded-pill px-5 py-2.5 fw-bold"
                       onClick={handleClosePartnershipModal}
                     >
-                      Concluir
+                      {t('partnership.done', 'Concluir')}
                     </button>
                   </div>
                 ) : (
@@ -1502,7 +1507,7 @@ export default function LandingPage() {
                       {/* Empresa / Razão Social */}
                       <div className="col-md-6">
                         <label className="form-label fw-bold small text-dark mb-1">
-                          Empresa / Estabelecimento Comercial <span className="text-danger">*</span>
+                          {t('partnership.companyName', 'Empresa / Estabelecimento Comercial')} <span className="text-danger">*</span>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
@@ -1511,7 +1516,7 @@ export default function LandingPage() {
                           <input
                             type="text"
                             className="form-control bg-white border-start-0 py-2 rounded-end-3"
-                            placeholder="Ex: Comercial Maputo Lda"
+                            placeholder={t('partnership.companyPlaceholder', 'Ex: Comercial Maputo Lda')}
                             value={partnershipForm.companyName}
                             onChange={(e) => setPartnershipForm({ ...partnershipForm, companyName: e.target.value })}
                             required
@@ -1522,7 +1527,7 @@ export default function LandingPage() {
                       {/* Nome do Responsável */}
                       <div className="col-md-6">
                         <label className="form-label fw-bold small text-dark mb-1">
-                          Nome do Responsável / Contacto
+                          {t('partnership.contactName', 'Nome do Responsável / Contacto')}
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
@@ -1531,7 +1536,7 @@ export default function LandingPage() {
                           <input
                             type="text"
                             className="form-control bg-white border-start-0 py-2 rounded-end-3"
-                            placeholder="Ex: João Silva"
+                            placeholder={t('partnership.contactPlaceholder', 'Ex: João Silva')}
                             value={partnershipForm.contactName}
                             onChange={(e) => setPartnershipForm({ ...partnershipForm, contactName: e.target.value })}
                           />
@@ -1541,7 +1546,7 @@ export default function LandingPage() {
                       {/* E-mail de Contacto */}
                       <div className="col-md-6">
                         <label className="form-label fw-bold small text-dark mb-1">
-                          E-mail Corporativo <span className="text-danger">*</span>
+                          {t('partnership.email', 'E-mail Corporativo')} <span className="text-danger">*</span>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
@@ -1550,7 +1555,7 @@ export default function LandingPage() {
                           <input
                             type="email"
                             className="form-control bg-white border-start-0 py-2 rounded-end-3"
-                            placeholder="parcerias@suaempresa.co.mz"
+                            placeholder={t('partnership.emailPlaceholder', 'parcerias@suaempresa.co.mz')}
                             value={partnershipForm.email}
                             onChange={(e) => setPartnershipForm({ ...partnershipForm, email: e.target.value })}
                             required
@@ -1561,7 +1566,7 @@ export default function LandingPage() {
                       {/* Telefone / WhatsApp */}
                       <div className="col-md-6">
                         <label className="form-label fw-bold small text-dark mb-1">
-                          Telefone / WhatsApp
+                          {t('partnership.phone', 'Telefone / WhatsApp')}
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3">
@@ -1570,7 +1575,7 @@ export default function LandingPage() {
                           <input
                             type="text"
                             className="form-control bg-white border-start-0 py-2 rounded-end-3"
-                            placeholder="+258 84 000 0000"
+                            placeholder={t('partnership.phonePlaceholder', '+258 84 000 0000')}
                             value={partnershipForm.phone}
                             onChange={(e) => setPartnershipForm({ ...partnershipForm, phone: e.target.value })}
                           />
@@ -1580,7 +1585,7 @@ export default function LandingPage() {
                       {/* Produtos / Serviços Comercializados */}
                       <div className="col-12">
                         <label className="form-label fw-bold small text-dark mb-1">
-                          Produtos ou Serviços Comercializados <span className="text-danger">*</span>
+                          {t('partnership.productsServices', 'Produtos ou Serviços Comercializados')} <span className="text-danger">*</span>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3 align-items-start pt-2">
@@ -1589,7 +1594,7 @@ export default function LandingPage() {
                           <textarea
                             className="form-control bg-white border-start-0 py-2 rounded-end-3"
                             rows="2"
-                            placeholder="Descreva resumidamente os produtos (ex: produtos alimentares, material de construção) ou serviços que a sua empresa oferece..."
+                            placeholder={t('partnership.productsPlaceholder', 'Descreva resumidamente os produtos (ex: produtos alimentares, material de construção) ou serviços que a sua empresa oferece...')}
                             value={partnershipForm.productsServices}
                             onChange={(e) => setPartnershipForm({ ...partnershipForm, productsServices: e.target.value })}
                             required
@@ -1600,7 +1605,7 @@ export default function LandingPage() {
                       {/* Motivos da Parceria */}
                       <div className="col-12">
                         <label className="form-label fw-bold small text-dark mb-1">
-                          Motivos da Parceria / Apresentação de Proposta <span className="text-danger">*</span>
+                          {t('partnership.reasons', 'Motivos da Parceria / Apresentação de Proposta')} <span className="text-danger">*</span>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-white border-end-0 text-muted rounded-start-3 align-items-start pt-2">
@@ -1609,7 +1614,7 @@ export default function LandingPage() {
                           <textarea
                             className="form-control bg-white border-start-0 py-2 rounded-end-3"
                             rows="3"
-                            placeholder="Explique os objetivos da parceria, abrangência geográfica, capacidade de distribuição ou outros detalhes relevantes..."
+                            placeholder={t('partnership.reasonsPlaceholder', 'Explique os objetivos da parceria, abrangência geográfica, capacidade de distribuição ou outros detalhes relevantes...')}
                             value={partnershipForm.reasons}
                             onChange={(e) => setPartnershipForm({ ...partnershipForm, reasons: e.target.value })}
                             required
@@ -1626,7 +1631,7 @@ export default function LandingPage() {
                         onClick={handleClosePartnershipModal}
                         disabled={partnershipSubmitting}
                       >
-                        Cancelar
+                        {t('partnership.cancel', 'Cancelar')}
                       </button>
                       <button
                         type="submit"
@@ -1636,12 +1641,12 @@ export default function LandingPage() {
                         {partnershipSubmitting ? (
                           <>
                             <FontAwesomeIcon icon={faSpinner} spin />
-                            <span>A enviar proposta...</span>
+                            <span>{t('partnership.sending', 'A enviar proposta...')}</span>
                           </>
                         ) : (
                           <>
                             <FontAwesomeIcon icon={faPaperPlane} />
-                            <span>Enviar Proposta de Parceria</span>
+                            <span>{t('partnership.send', 'Enviar Proposta de Parceria')}</span>
                           </>
                         )}
                       </button>

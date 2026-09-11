@@ -5,8 +5,10 @@ import {
   faEnvelope, faPhone, faExternalLinkAlt, faHeadset, faBox, faStore, faTruck
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function ChatbotWidget() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const [inputMessage, setInputMessage] = useState('');
@@ -379,7 +381,7 @@ export default function ChatbotWidget() {
                     <div className="rounded-circle d-flex justify-content-center align-items-center" style={{ width: '24px', height: '24px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10B981', fontSize: '11px' }}>
                       <FontAwesomeIcon icon={faStore} />
                     </div>
-                    <span className="fw-medium">Vender / Criar Loja</span>
+                    <span className="fw-medium">{t('landing.supplierBtn', 'Vender / Criar Loja')}</span>
                   </button>
 
                   <button
@@ -396,7 +398,7 @@ export default function ChatbotWidget() {
                     <div className="rounded-circle d-flex justify-content-center align-items-center" style={{ width: '24px', height: '24px', backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B', fontSize: '11px' }}>
                       <FontAwesomeIcon icon={faTruck} />
                     </div>
-                    <span className="fw-medium">Entregas & Frete</span>
+                    <span className="fw-medium">{t('landing.freightLogistics', 'Entregas & Frete')}</span>
                   </button>
 
                   <button
@@ -412,7 +414,7 @@ export default function ChatbotWidget() {
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   >
                     <FontAwesomeIcon icon={faHeadset} />
-                    <span>Falar com Suporte Humano</span>
+                    <span>{t('chatbot.humanSupport', 'Falar com Suporte Humano')}</span>
                   </button>
                 </div>
               </div>
@@ -431,7 +433,7 @@ export default function ChatbotWidget() {
           >
             <input
               type="text"
-              placeholder="Escreva a sua dúvida..."
+              placeholder={t('chatbot.placeholder', 'Escreva a sua dúvida...')}
               className="form-control rounded-pill px-3.5 text-sm"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
@@ -457,7 +459,7 @@ export default function ChatbotWidget() {
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              aria-label="Enviar Mensagem"
+              aria-label={t('chatbot.send', 'Enviar')}
             >
               <FontAwesomeIcon icon={faPaperPlane} size="sm" />
             </button>

@@ -41,6 +41,7 @@ export const isStoreOpen = (seller) => {
 };
 
 export default function ProductsScreen() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
@@ -103,11 +104,11 @@ export default function ProductsScreen() {
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold text-dark m-0" style={{ fontSize: '2.2rem' }}>Catálogo de Produtos</h2>
-          <p className="text-muted m-0">Explore e compre produtos disponíveis em Moçambique</p>
+          <h2 className="fw-bold text-dark m-0" style={{ fontSize: '2.2rem' }}>{t('home.productCatalogTitle', 'Catálogo de Produtos')}</h2>
+          <p className="text-muted m-0">{t('home.productCatalogSub', 'Explore e compre produtos disponíveis em Moçambique')}</p>
         </div>
         <Link to="/shop/cart" className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold">
-          Ver Carrinho <FontAwesomeIcon icon={faShoppingBag} className="ms-2" />
+          {t('cart.title', 'Ver Carrinho')} <FontAwesomeIcon icon={faShoppingBag} className="ms-2" />
         </Link>
       </div>
 
@@ -117,7 +118,7 @@ export default function ProductsScreen() {
         </div>
       ) : products.length === 0 ? (
         <div className="text-center py-5 bg-white rounded-4 border">
-          <h5 className="text-muted">Nenhum produto encontrado.</h5>
+          <h5 className="text-muted">{t('common.noProductsFound', 'Nenhum produto encontrado.')}</h5>
         </div>
       ) : (
         <div className="row g-4">
@@ -139,7 +140,7 @@ export default function ProductsScreen() {
                     />
                     {!sellerOpen && (
                       <span className="badge bg-danger text-white position-absolute shadow-sm" style={{ top: '10px', right: '10px', zIndex: 5, fontSize: '11px' }}>
-                        🔴 Loja Fechada
+                        {t('home.closedBadge', '🔴 Loja Fechada')}
                       </span>
                     )}
                   </div>
@@ -149,7 +150,7 @@ export default function ProductsScreen() {
                       {product.seller?.name || product.vendor || 'Nhiquela Partner'}
                     </small>
                     <span className={`badge rounded-pill px-2 py-0.5 small ${sellerOpen ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger'}`} style={{ fontSize: '9.5px' }}>
-                      {sellerOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                      {sellerOpen ? t('home.openBadge', '🟢 Aberto') : t('home.closedBadge', '🔴 Fechado')}
                     </span>
                   </div>
 
@@ -170,14 +171,14 @@ export default function ProductsScreen() {
                       onClick={(e) => handleAddToCart(product, e)}
                       disabled={!sellerOpen}
                     >
-                      {sellerOpen ? '+ Carrinho' : 'Fechado'}
+                      {sellerOpen ? `+ ${t('common.quantity', 'Carrinho')}` : t('home.closedBadge', 'Fechado')}
                     </button>
                     <button 
                       className={`btn ${sellerOpen ? 'bg-primary-custom text-white' : 'btn-secondary'} flex-grow-1 fw-bold rounded-3 py-2 small`}
                       onClick={(e) => handleBuyNow(product, e)}
                       disabled={!sellerOpen}
                     >
-                      Comprar
+                      {t('landing.buy', 'Comprar')}
                     </button>
                   </div>
                 </div>

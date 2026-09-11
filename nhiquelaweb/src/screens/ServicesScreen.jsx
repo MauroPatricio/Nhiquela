@@ -9,6 +9,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { selectUser } from '../store/features/userSlice';
 import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
@@ -29,6 +30,7 @@ const CITIES_PRESETS_DESTINATION = [
 ];
 
 export default function ServicesScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const userInfo = useSelector(selectUser);
 

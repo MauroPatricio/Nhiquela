@@ -6,6 +6,7 @@ import {
   faPlus, faShoppingBag, faCheckCircle, faTimesCircle, faArrowLeft, faTag
 } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { addToBasket } from '../store/features/basketSlice';
 import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
@@ -36,6 +37,7 @@ export const getStoreLogoUrl = (seller) => {
 };
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   
@@ -215,7 +217,7 @@ export default function SearchScreen() {
     e.stopPropagation();
 
     if (!isStoreOpen(product.seller)) {
-      toast.error('Esta loja está fechada de momento e não pode receber pedidos.');
+      toast.error(t('productDetail.storeClosedToast'));
       return;
     }
 
@@ -234,7 +236,7 @@ export default function SearchScreen() {
       priceFromSeller: Number(product.priceFromSeller || product.price || 0),
     }));
 
-    toast.success(`"${product.nome || product.name}" adicionado ao carrinho!`);
+    toast.success(`"${product.nome || product.name}" ${t('productDetail.addedToCartToast')}`);
   };
 
   return (
@@ -249,12 +251,12 @@ export default function SearchScreen() {
           <input 
             type="text" 
             className="form-control border-0 shadow-none bg-transparent" 
-            placeholder="Pesquisar por Cîroc, Bebidas, Lojas, etc..." 
+            placeholder={t('search.searchPlaceholder')} 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           <button type="submit" className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold">
-            Pesquisar
+            {t('common.search')}
           </button>
         </form>
       </div>
@@ -266,13 +268,13 @@ export default function SearchScreen() {
             className={`nav-link rounded-pill px-4 fw-bold ${activeTab === 'products' ? 'active bg-primary-custom' : 'bg-light text-dark'}`}
             onClick={() => setActiveTab('products')}
           >
-            Produtos Relacionados ({filteredProducts.length})
+            {t('search.tabProducts')} ({filteredProducts.length})
           </button>
           <button 
             className={`nav-link rounded-pill px-4 fw-bold ${activeTab === 'stores' ? 'active bg-primary-custom' : 'bg-light text-dark'}`}
             onClick={() => setActiveTab('stores')}
           >
-            Lojas que Vendem ({filteredSellers.length})
+            {t('search.tabStores')} ({filteredSellers.length})
           </button>
         </div>
       </div>
@@ -281,35 +283,35 @@ export default function SearchScreen() {
       <div className="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-light">
         <div className="row g-3 align-items-center">
           <div className="col-md-3">
-            <label className="form-label small fw-bold text-muted mb-1"><FontAwesomeIcon icon={faFilter} className="me-1 text-primary-custom" /> Categoria</label>
+            <label className="form-label small fw-bold text-muted mb-1"><FontAwesomeIcon icon={faFilter} className="me-1 text-primary-custom" /> {t('search.category')}</label>
             <select className="form-select rounded-3 small" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-              <option value="ALL">Todas as Categorias</option>
+              <option value="ALL">{t('search.allCategories')}</option>
               {categories.map(c => <option key={c._id} value={c._id}>{c.name || c.nome}</option>)}
             </select>
           </div>
 
           <div className="col-md-3">
-            <label className="form-label small fw-bold text-muted mb-1">Preço Máximo: {maxPrice.toLocaleString('pt-PT')} MT</label>
+            <label className="form-label small fw-bold text-muted mb-1">{t('search.maxPrice')}: {maxPrice.toLocaleString('pt-PT')} MT</label>
             <input type="range" className="form-range" min="100" max="20000" step="500" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value))} />
           </div>
 
           <div className="col-md-3">
-            <label className="form-label small fw-bold text-muted mb-1">Avaliação Mínima</label>
+            <label className="form-label small fw-bold text-muted mb-1">{t('search.minRating')}</label>
             <select className="form-select rounded-3 small" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
-              <option value="0">Todas as Avaliações</option>
-              <option value="4">⭐ 4.0 ou superior</option>
-              <option value="4.5">⭐ 4.5 ou superior</option>
+              <option value="0">{t('search.allRatings')}</option>
+              <option value="4">⭐ 4.0</option>
+              <option value="4.5">⭐ 4.5</option>
             </select>
           </div>
 
           <div className="col-md-3 d-flex align-items-center gap-3 pt-3">
             <div className="form-check">
               <input type="checkbox" className="form-check-input" id="promoCheck" checked={onlyPromos} onChange={(e) => setOnlyPromos(e.target.checked)} />
-              <label className="form-check-label small fw-bold" htmlFor="promoCheck">Promoções</label>
+              <label className="form-check-label small fw-bold" htmlFor="promoCheck">{t('search.onlyPromos')}</label>
             </div>
             <div className="form-check">
               <input type="checkbox" className="form-check-input" id="stockCheck" checked={onlyInStock} onChange={(e) => setOnlyInStock(e.target.checked)} />
-              <label className="form-check-label small fw-bold" htmlFor="stockCheck">Em Estoque</label>
+              <label className="form-check-label small fw-bold" htmlFor="stockCheck">{t('search.onlyInStock')}</label>
             </div>
           </div>
         </div>
@@ -317,11 +319,11 @@ export default function SearchScreen() {
 
       {/* Conteúdo dos Resultados */}
       {loading ? (
-        <div className="text-center py-5 text-muted">A carregar resultados da pesquisa...</div>
+        <div className="text-center py-5 text-muted">{t('common.loading')}</div>
       ) : activeTab === 'products' ? (
         /* PRODUTOS RELACIONADOS */
         filteredProducts.length === 0 ? (
-          <div className="text-center py-5 text-muted">Nenhum produto encontrado para a pesquisa "{query}".</div>
+          <div className="text-center py-5 text-muted">{t('search.noProductsFound')}</div>
         ) : (
           <div className="row g-4">
             {filteredProducts.map((product) => {
@@ -339,7 +341,7 @@ export default function SearchScreen() {
                         {!sellerOpen && (
                           <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 z-2 rounded-3">
                             <span className="badge bg-danger text-white px-2 py-1 fw-bold shadow-sm">
-                              🔴 Loja Fechada
+                              {t('home.closedBadge')}
                             </span>
                           </div>
                         )}
@@ -372,7 +374,7 @@ export default function SearchScreen() {
                       <div className="d-flex align-items-center justify-content-between text-muted small fw-bold mb-3">
                         <span><FontAwesomeIcon icon={faClock} className="me-1" /> {getEtaDisplay(product.seller)}</span>
                         <span className={`badge ${sellerOpen ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} fw-bold px-2 py-1 rounded-2`} style={{ fontSize: '11px' }}>
-                          {sellerOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                          {sellerOpen ? t('home.openBadge') : t('home.closedBadge')}
                         </span>
                       </div>
                     </Link>
@@ -382,7 +384,7 @@ export default function SearchScreen() {
                       onClick={(e) => handleAddToCart(product, e)}
                       disabled={!sellerOpen}
                     >
-                      <FontAwesomeIcon icon={faPlus} className="me-1" /> {sellerOpen ? 'Adicionar ao Carrinho' : 'Loja Fechada'}
+                      <FontAwesomeIcon icon={faPlus} className="me-1" /> {sellerOpen ? t('productDetail.addToCart') : t('productDetail.storeClosed')}
                     </button>
                   </div>
                 </div>
@@ -393,7 +395,7 @@ export default function SearchScreen() {
       ) : (
         /* LOJAS QUE VENDEM O PRODUTO */
         filteredSellers.length === 0 ? (
-          <div className="text-center py-5 text-muted">Nenhuma loja encontrada para a pesquisa "{query}".</div>
+          <div className="text-center py-5 text-muted">{t('search.noStoresFound')}</div>
         ) : (
           <div className="row g-4">
             {filteredSellers.map((seller) => {
@@ -424,12 +426,12 @@ export default function SearchScreen() {
                       <FontAwesomeIcon icon={faStore} />
                     </div>
                     <div className="flex-grow-1">
-                      <h5 className="fw-bold text-dark mb-1">{seller.name || seller.seller?.name || 'Loja Parceira'}</h5>
+                      <h5 className="fw-bold text-dark mb-1">{seller.name || seller.seller?.name || t('productDetail.partnerStore')}</h5>
                       <div className="d-flex align-items-center gap-2 text-muted small mb-2">
                         <span className="text-warning fw-bold"><FontAwesomeIcon icon={faStar} /> 4.8</span>
                         <span>•</span>
                         <span className={`badge ${storeOpen ? 'bg-success text-white' : 'bg-danger text-white'} rounded-pill px-2 py-1 fw-bold`} style={{ fontSize: '10px' }}>
-                          {storeOpen ? '🟢 Aberto' : '🔴 Fechado'}
+                          {storeOpen ? t('home.openBadge') : t('home.closedBadge')}
                         </span>
                       </div>
                       <span className="badge bg-light text-dark rounded-pill border px-3 py-1 fw-bold small">
@@ -437,7 +439,7 @@ export default function SearchScreen() {
                       </span>
                       <div className="mt-3">
                         <Link to={`/shop/seller/${seller._id}`} className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-                          Ver Produtos da Loja
+                          {t('home.visitStore')}
                         </Link>
                       </div>
                     </div>
