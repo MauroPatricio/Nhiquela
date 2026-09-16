@@ -669,4 +669,103 @@ export const sendDigitalKeyDeliveryEmail = async ({ toEmail, recipientName, orde
   });
 };
 
+/**
+ * Sends trip tracking email notification to the associated Fleet Manager (Gestor de Frota).
+ * Triggered whenever a trip/delivery assigned to a driver changes status.
+ */
+export const notifyFleetManagerOnTripEvent = async ({ driverId, tripOrOrder, status, message }) => {
+  try {
+    let resolvedDriverId = driverId;
+    if (!resolvedDriverId && tripOrOrder) {
+      resolvedDriverId = tripOrOrder.targetDriverId || tripOrOrder.driverId || tripOrOrder.deliveryman?.id || tripOrOrder.deliveryman?._id || tripOrOrder.deliveryman;
+    }
+
+    if (!resolvedDriverId) return;
+
+    // 1. Obter utilizador motorista
+    const driver = await User.findById(resolvedDriverId);
+    if (!driver || (!driver.partnerId && !driver.isPartner)) return;
+
+    // 2. Procurar o registo do Parceiro / Gestor de Frota
+    let partnerId = driver.partnerId;
+    let partner = null;
+    let partnerEmail = null;
+    let partnerName = 'Gestor de Frota';
+
+    if (partnerId) {
+      partner = await Partner.findOne({ $or: [{ _id: partnerId }, { userId: partnerId }] });
+      if (partner) {
+        partnerEmail = partner.email;
+        partnerName = partner.name || partner.companyName || 'Gestor de Frota';
+      }
+      if (!partnerEmail) {
+        const partnerUser = await User.findById(partnerId);
+        if (partnerUser) {
+          partnerEmail = partnerUser.email;
+          partnerName = partnerUser.name || partnerName;
+        }
+      }
+    }
+
+    if (!partnerEmail) return;
+
+    // 3. Extrair detalhes da viagem / pedido
+    const code = tripOrOrder?.code || tripOrOrder?._id?.toString()?.substring(0, 6) || 'N/A';
+    const statusLabel = status || tripOrOrder?.status || 'Atualização de Viagem';
+    const origin = tripOrOrder?.origin || tripOrOrder?.originDetails?.address || tripOrOrder?.pickupAddress?.address || tripOrOrder?.initialLocationName || 'Local de Origem';
+    const destination = tripOrOrder?.destination || tripOrOrder?.destinationDetails?.address || tripOrOrder?.deliveryAddress?.address || 'Local de Destino';
+    const price = tripOrOrder?.finalAgreedPrice || tripOrOrder?.deliveryPrice || tripOrOrder?.totalPrice || 0;
+    const driverName = driver.name || 'Motorista da Frota';
+    const vehicleType = driver.deliveryman?.transport_type || tripOrOrder?.transportType || 'Viatura';
+    const vehiclePlate = driver.deliveryman?.transport_registration ? ` (${driver.deliveryman.transport_registration.toUpperCase()})` : '';
+    const vehicleInfo = `${vehicleType}${vehiclePlate}`;
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || 'Nhiquela Frotas <nhiquelaservicos@gmail.com>',
+      to: partnerEmail,
+      subject: `Nhiquela - Acompanhamento de Viagem #${code} (${statusLabel}) - Gestão de Frota`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 12px; background-color: #FFFFFF;">
+          <div style="background: linear-gradient(135deg, #7F00FF 0%, #E100FF 100%); padding: 20px; border-radius: 8px 8px 0 0; text-align: center; color: white;">
+            <h2 style="margin: 0; font-size: 20px;">🚙 Acompanhamento de Frota</h2>
+            <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Atualização da Viagem #${code}</p>
+          </div>
+          <div style="padding: 20px; color: #334155;">
+            <p>Olá <strong>${partnerName}</strong>,</p>
+            <p>Informamos uma atualização no estado de uma viagem associada a um motorista da sua frota:</p>
+            
+            <div style="background-color: #F8FAFC; border-left: 4px solid #7F00FF; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #1E293B; font-size: 16px;">Estado da Viagem: <span style="color: #7F00FF;">${statusLabel}</span></h3>
+              ${message ? `<p style="margin: 0 0 10px 0; color: #64748B; font-size: 14px;"><em>${message}</em></p>` : ''}
+              <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.8;">
+                <li><strong>Motorista:</strong> ${driverName} (${vehicleInfo})</li>
+                <li><strong>Código do Pedido:</strong> #${code}</li>
+                <li><strong>Origem:</strong> ${origin}</li>
+                <li><strong>Destino:</strong> ${destination}</li>
+                <li><strong>Valor da Operação:</strong> ${price} MT</li>
+                <li><strong>Data / Hora:</strong> ${new Date().toLocaleString('pt-PT')}</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="https://nhiquelashop.co.mz/partner/dashboard" style="background-color: #7F00FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Aceder ao Painel da Frota</a>
+            </div>
+          </div>
+          <div style="border-top: 1px solid #E2E8F0; padding-top: 15px; text-align: center; font-size: 12px; color: #94A3B8; margin-top: 20px;">
+            Este é um e-mail de notificação operacional enviado automaticamente para Gestores de Frota da plataforma Nhiquela.
+          </div>
+        </div>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error('[Fleet Manager Email Notification] Erro ao enviar email:', err);
+      else console.log('[Fleet Manager Email Notification] Email enviado com sucesso para:', partnerEmail, info.response);
+    });
+  } catch (error) {
+    console.error('[Fleet Manager Email Notification] Exceção:', error);
+  }
+};
+
+
 
