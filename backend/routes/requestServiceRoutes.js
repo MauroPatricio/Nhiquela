@@ -1,7 +1,7 @@
 import express from 'express';
 import RequestService from '../models/RequestServiceModel.js';
 import User from '../models/UserModel.js';
-import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman, sendNegotiationEmail, containsPhoneNumber } from '../utils.js';
+import { isAuth, isAdmin, sendEmailOrderStatus, sendEmailOrderToSeller, sendSMSToUSendIt, sendSMSToSellerUSendIt, sendSMSToUSendItAdmin, sendSMSToUSendItDeliverman, sendNegotiationEmail, containsPhoneNumber, notifyFleetManagerOnTripEvent } from '../utils.js';
 import expressAsyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import { debitDriverCommissionWithSession, refundDriverCommissionWithSession, getFinancialConfig, canAffordTripCommission, calculateDynamicCommission, checkAndDisableDriverIfLowBalance } from '../services/walletService.js';
@@ -408,6 +408,12 @@ requestServiceer.post(
               pushToken: targetDriver.deviceToken || null
             });
           }
+          notifyFleetManagerOnTripEvent({
+            driverId: newOrder.targetDriverId,
+            tripOrOrder: newOrder,
+            status: newOrder.status || 'Solicitação Solicitada',
+            message: 'Nova viagem atribuída ao motorista.'
+          }).catch(e => console.error('[Fleet Email Error]', e.message));
         }
       } catch (bgErr) {
         console.error('Erro em tarefas de fundo do envio:', bgErr);
@@ -660,6 +666,17 @@ requestServiceer.put(
         console.error('[Email] Erro ao enviar email:', mailErr.message);
       }
 
+      try {
+        notifyFleetManagerOnTripEvent({
+          driverId: user_deliver._id,
+          tripOrOrder: updateOrder,
+          status: 'Pedido Aceite',
+          message: `O motorista ${user_deliver.name} aceitou a viagem #${orderCode}.`
+        });
+      } catch (fleetErr) {
+        console.error('[Fleet Email] Erro ao notificar gestor de frota:', fleetErr.message);
+      }
+
       // WebSocket Optimization
       try {
         await updateOrder.populate('user', 'name phoneNumber profileImage');
@@ -748,6 +765,17 @@ requestServiceer.put(
 
       sendEmailOrderStatus(req, mailText, order, res);
 
+      try {
+        notifyFleetManagerOnTripEvent({
+          driverId: order.deliveryman?.id || order.targetDriverId,
+          tripOrOrder: order,
+          status: 'Em Trânsito',
+          message: 'O motorista iniciou o percurso para o destino indicado.'
+        });
+      } catch (fleetErr) {
+        console.error('[Fleet Email] Erro ao notificar gestor de frota:', fleetErr.message);
+      }
+
       // WebSocket Optimization
       const io = req.app.get('io');
       if (io) {
@@ -823,6 +851,17 @@ requestServiceer.put(
       let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o entregador ja se encontra no local de destino por si informado referente ao pedido n ${updateOrder.code}. \n \n Atenciosamente, \n nhiquela`;
 
       sendEmailOrderStatus(req, mailText, updateOrder, res);
+
+      try {
+        notifyFleetManagerOnTripEvent({
+          driverId: updateOrder.deliveryman?.id || updateOrder.targetDriverId,
+          tripOrOrder: updateOrder,
+          status: 'No Destino Indicado',
+          message: 'O motorista chegou ao local de destino/recolha.'
+        });
+      } catch (fleetErr) {
+        console.error('[Fleet Email] Erro ao notificar gestor de frota:', fleetErr.message);
+      }
 
       // WebSocket Optimization
       const io = req.app.get('io');
@@ -990,6 +1029,13 @@ requestServiceer.put(
 
         let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o pedido n ${order.code} foi cancelado. \n \n Atenciosamente, \n nhiquela`;
         sendEmailOrderStatus(req, mailText, order, res);
+
+        notifyFleetManagerOnTripEvent({
+          driverId: order.deliveryman?.id || order.targetDriverId,
+          tripOrOrder: order,
+          status: 'Viagem Cancelada',
+          message: `A viagem foi cancelada. Motivo: ${req.body?.message || order.canceledReason || 'Cancelado'}`
+        }).catch(e => console.error('[Fleet Email Error]', e.message));
       } catch (err) {
         console.log('Skipping mail/sms send during cancel route:', err.message);
       }
@@ -1211,6 +1257,17 @@ requestServiceer.put(
 
     let mailText = `Olá ${req.user.name},\n \n a Nhiquela informa que o seu pedido foi entregue com sucesso e agradecemos por escolher e confiar em nós. \n \n Atenciosamente, \n nhiquela`;
     sendEmailOrderStatus(req, mailText, order, res);
+
+    try {
+      notifyFleetManagerOnTripEvent({
+        driverId: order.deliveryman?.id || order.targetDriverId,
+        tripOrOrder: order,
+        status: 'Concluído / Entregue',
+        message: 'A viagem foi finalizada e entregue com sucesso.'
+      });
+    } catch (fleetErr) {
+      console.error('[Fleet Email] Erro ao notificar gestor de frota:', fleetErr.message);
+    }
 
     // WebSocket Optimization — notificar cliente e motorista
     const io = req.app.get('io');

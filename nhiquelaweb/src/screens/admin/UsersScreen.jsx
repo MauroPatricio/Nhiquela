@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave, faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api, { SOCKET_URL } from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -21,6 +21,8 @@ export default function UsersScreen() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUserView, setSelectedUserView] = useState(null);
   const [selectedImageModal, setSelectedImageModal] = useState(null);
+  const [associatedDrivers, setAssociatedDrivers] = useState([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -30,6 +32,41 @@ export default function UsersScreen() {
     fetchSubcategories();
     fetchProvinces();
   }, []);
+
+  useEffect(() => {
+    if (!selectedUserView) {
+      setAssociatedDrivers([]);
+      return;
+    }
+
+    const isFleetManager = 
+      selectedUserView.role === 'PARTNER' ||
+      selectedUserView.isPartner ||
+      selectedUserView.partnerId ||
+      (selectedUserView.roleId?.name && (
+        selectedUserView.roleId.name.toLowerCase().includes('parceiro') ||
+        selectedUserView.roleId.name.toLowerCase().includes('gestor') ||
+        selectedUserView.roleId.name.toLowerCase().includes('frota')
+      ));
+
+    if (isFleetManager) {
+      setLoadingDrivers(true);
+      const targetId = selectedUserView.partnerId || selectedUserView._id || selectedUserView.id;
+      api.get(`/partners/${targetId}/members`)
+        .then(({ data }) => {
+          setAssociatedDrivers(data.drivers || []);
+        })
+        .catch((err) => {
+          console.warn('Erro ao carregar motoristas associados ao parceiro:', err);
+          setAssociatedDrivers([]);
+        })
+        .finally(() => {
+          setLoadingDrivers(false);
+        });
+    } else {
+      setAssociatedDrivers([]);
+    }
+  }, [selectedUserView]);
 
   const fetchProvinces = async () => {
     try {
@@ -733,6 +770,78 @@ export default function UsersScreen() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Motoristas Associados ao Gestor de Frota */}
+                  {(selectedUserView.role === 'PARTNER' ||
+                    selectedUserView.isPartner ||
+                    selectedUserView.partnerId ||
+                    (selectedUserView.roleId?.name && (
+                      selectedUserView.roleId.name.toLowerCase().includes('parceiro') ||
+                      selectedUserView.roleId.name.toLowerCase().includes('gestor') ||
+                      selectedUserView.roleId.name.toLowerCase().includes('frota')
+                    ))) && (
+                    <div className="mb-4">
+                      <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <FontAwesomeIcon icon={faCar} className="me-2 text-primary" />
+                        Motoristas Associados ({associatedDrivers.length})
+                      </h6>
+
+                      {loadingDrivers ? (
+                        <div className="text-center py-3 text-muted">
+                          <FontAwesomeIcon icon={faSpinner} spin className="me-2 text-primary" />
+                          Carregando motoristas associados...
+                        </div>
+                      ) : associatedDrivers.length === 0 ? (
+                        <div className="alert alert-light border text-muted text-center py-3 mb-0 rounded-3 small">
+                          Nenhum motorista associado a este gestor de frota.
+                        </div>
+                      ) : (
+                        <div className="d-flex flex-column gap-2" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                          {associatedDrivers.map((driver) => (
+                            <div key={driver._id} className="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between shadow-sm">
+                              <div className="d-flex align-items-center">
+                                {driver.deliveryman?.photo || driver.profileImage ? (
+                                  <img 
+                                    src={getImageUrl(driver.deliveryman?.photo || driver.profileImage)} 
+                                    alt={driver.name} 
+                                    className="rounded-circle me-3 border" 
+                                    style={{ width: '45px', height: '45px', objectFit: 'cover' }} 
+                                  />
+                                ) : (
+                                  <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold" style={{ width: '45px', height: '45px' }}>
+                                    {driver.name ? driver.name.charAt(0).toUpperCase() : 'M'}
+                                  </div>
+                                )}
+                                <div>
+                                  <h6 className="fw-bold text-dark mb-0">{driver.name}</h6>
+                                  <small className="text-muted d-block">
+                                    <FontAwesomeIcon icon={faPhone} className="me-1" />
+                                    {driver.phoneNumber || driver.phone || driver.email || 'Sem contacto'}
+                                  </small>
+                                  {driver.deliveryman?.transport_type && (
+                                    <small className="badge bg-secondary bg-opacity-10 text-secondary mt-1 me-1">
+                                      {getTransportName(driver.deliveryman.transport_type)}
+                                      {driver.deliveryman.transport_registration ? ` (${driver.deliveryman.transport_registration.toUpperCase()})` : ''}
+                                    </small>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-end">
+                                <span className={`badge rounded-pill px-2 py-1 ${driver.isOnline ? 'bg-success' : 'bg-secondary'}`}>
+                                  {driver.isOnline ? 'Online' : 'Offline'}
+                                </span>
+                                {driver.rating && (
+                                  <div className="small fw-bold text-warning mt-1">
+                                    ⭐ {driver.rating}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Detalhes Extra: Motorista */}
                   {selectedUserView.isDeliveryMan && selectedUserView.deliveryman && (

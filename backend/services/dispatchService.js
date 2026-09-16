@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import User from '../models/UserModel.js';
 import RequestService from '../models/RequestServiceModel.js';
 import createNotification from '../utils/createNotification.js';
+import { notifyFleetManagerOnTripEvent } from '../utils.js';
 
 class DispatchService {
   /**
@@ -128,6 +129,13 @@ class DispatchService {
         pushToken: driver.deviceToken || null, // deviceToken é o campo correto no UserModel
         type: 'new_order'
       }).catch(err => console.error('[DispatchService] Erro ao enviar push:', err));
+
+      notifyFleetManagerOnTripEvent({
+        driverId: driver._id,
+        tripOrOrder: currentOrderState,
+        status: 'Viagem Despachada',
+        message: `Nova oportunidade de viagem enviada ao motorista ${driver.name}.`
+      }).catch(err => console.error('[DispatchService] Erro ao notificar gestor por email:', err));
 
       // 3. Esperar 50 segundos usando uma Promise
       await new Promise(resolve => setTimeout(resolve, 50000));
