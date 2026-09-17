@@ -1,0 +1,173 @@
+  console.log
+    RENDER SIGNUP, step: 0
+
+      at log (screens/SignUp.jsx:27:11)
+
+  console.log
+    SIGNUP RENDERING, step = 0
+
+      at log (screens/SignUp.jsx:316:11)
+
+  console.log
+    EFFECT: step changed to 0
+
+      at log (screens/SignUp.jsx:114:13)
+
+  console.log
+    RENDER SIGNUP, step: 0
+
+      at log (screens/SignUp.jsx:27:11)
+
+  console.log
+    SIGNUP RENDERING, step = 0
+
+      at log (screens/SignUp.jsx:316:11)
+
+  console.log
+    RENDER SIGNUP, step: 0
+
+      at log (screens/SignUp.jsx:27:11)
+
+  console.log
+    SIGNUP RENDERING, step = 0
+
+      at log (screens/SignUp.jsx:316:11)
+
+FAIL __tests__/integration/sellerFlow.test.js
+  Fluxo do Vendedor (NhiquelaSeller)
+    Passo 1: Registo do Vendedor (SignUp)
+      × deve preencher o formulário, avançar os passos e submeter o registo com sucesso (426 ms)
+    Passo 2: Adição de Produto (NewProduct)
+      ○ skipped deve preencher os campos do produto, selecionar cores/tamanhos e submeter à API
+
+  ● Fluxo do Vendedor (NhiquelaSeller) › Passo 1: Registo do Vendedor (SignUp) › deve preencher o formulário, avançar os passos e submeter o registo com sucesso
+
+    RENDER FAILED: `render` function has not been called
+
+    [0m [90m 58 |[39m         console[33m.[39mlog([32m"SCREEN JSON:"[39m[33m,[39m screen[33m.[39mtoJSON())[33m;[39m
+     [90m 59 |[39m       } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 60 |[39m         [36mthrow[39m [36mnew[39m [33mError[39m([32m"RENDER FAILED: "[39m [33m+[39m e[33m.[39mmessage)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 61 |[39m       }
+     [90m 62 |[39m       [90m/*[39m
+     [90m 63 |[39m [90m[39m[0m
+
+      at Object.<anonymous> (__tests__/integration/sellerFlow.test.js:60:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+------------------------------------|---------|----------|---------|---------|-------------------------------------------------------------------------------------
+File                                | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                   
+------------------------------------|---------|----------|---------|---------|-------------------------------------------------------------------------------------
+All files                           |    3.18 |     2.11 |    1.89 |    3.32 |                                                                                     
+ nhiquelaseller                     |       0 |        0 |       0 |       0 |                                                                                     
+  .eslintrc.js                      |       0 |      100 |     100 |       0 | 1                                                                                   
+  App.js                            |       0 |        0 |       0 |       0 | 46-206                                                                              
+  NavigationService.js              |       0 |        0 |       0 |       0 | 3-7                                                                                 
+  NotificationService.js            |       0 |        0 |       0 |       0 | 9-38                                                                                
+  jest.config.js                    |       0 |      100 |     100 |       0 | 1                                                                                   
+  metro.config.js                   |       0 |        0 |       0 |       0 | 1-11                                                                                
+  polyfill.js                       |       0 |        0 |       0 |       0 | 2-48                                                                                
+  store.js                          |       0 |      100 |     100 |       0 | 6                                                                                   
+  tailwind.config.js                |       0 |      100 |     100 |       0 | 2                                                                                   
+ nhiquelaseller/components          |       0 |        0 |       0 |       0 |                                                                                     
+  BackBtn.jsx                       |       0 |      100 |       0 |       0 | 5-6                                                                                 
+  BasketIcon.jsx                    |       0 |        0 |       0 |       0 | 7-29                                                                                
+  BottomMenu.js                     |       0 |        0 |       0 |       0 | 13-87                                                                               
+  BottomSheetComponent.js           |       0 |        0 |       0 |       0 | 13-61                                                                               
+  Button.jsx                        |       0 |        0 |       0 |       0 | 5-26                                                                                
+  CarouselAnimation.jsx             |       0 |      100 |       0 |       0 | 5-23                                                                                
+  CarouselPage.jsx                  |       0 |      100 |       0 |       0 | 5-40                                                                                
+  CartDetails.jsx                   |       0 |        0 |       0 |       0 | 9-95                                                                                
+  Categories.jsx                    |       0 |      100 |       0 |       0 | 5-34                                                                                
+  CategoryCard.jsx                  |       0 |        0 |       0 |       0 | 4-17                                                                                
+  Map.jsx                           |       0 |      100 |       0 |       0 | 12-99                                                                               
+  NavFavourites.jsx                 |       0 |      100 |       0 |       0 | 4-13                                                                                
+  NavOptions.jsx                    |       0 |        0 |       0 |       0 | 13-95                                                                               
+  NavOptionsBackUp.jsx              |       0 |        0 |       0 |       0 | 13-95                                                                               
+  NavigateCard.jsx                  |       0 |        0 |       0 |       0 | 12-63                                                                               
+  ProductCard.jsx                   |       0 |        0 |       0 |       0 | 10-104                                                                              
+  ProductHomeView.jsx               |       0 |        0 |       0 |       0 | 7-60                                                                                
+  Radio.jsx                         |       0 |        0 |       0 |       0 | 5-28                                                                                
+  RideOptionsCard.jsx               |       0 |      100 |       0 |       0 | 4-14                                                                                
+  SearchTile.jsx                    |       0 |        0 |       0 |       0 | 5-29                                                                                
+  SellerCard.jsx                    |       0 |        0 |       0 |       0 | 7-73                                                                                
+  SellerProduct.jsx                 |       0 |        0 |       0 |       0 | 9-108                                                                               
+  SellerScreen.jsx                  |       0 |        0 |       0 |       0 | 13-154                                                                              
+  SellersView.jsx                   |       0 |        0 |       0 |       0 | 7-79                                                                                
+  SubmitPaymentButton.jsx           |       0 |        0 |       0 |       0 | 6-33                                                                                
+  TransportType.jsx                 |       0 |        0 |       0 |       0 | 10-104                                                                              
+  TransportTypeBackUp.jsx           |       0 |        0 |       0 |       0 | 10-111                                                                              
+  WithdrawalRequests.jsx            |       0 |        0 |       0 |       0 | 9-137                                                                               
+ nhiquelaseller/components/Home     |       0 |      100 |       0 |       0 |                                                                                     
+  welcome.jsx                       |       0 |      100 |       0 |       0 | 6-8                                                                                 
+  welcome.style.js                  |       0 |      100 |       0 |       0 | 4-16                                                                                
+ nhiquelaseller/components/products |       0 |        0 |       0 |       0 |                                                                                     
+  EditProductView.jsx               |       0 |        0 |       0 |       0 | 23-544                                                                              
+  ProductCardView.jsx               |       0 |        0 |       0 |       0 | 9-45                                                                                
+  ProductDetail.jsx                 |       0 |        0 |       0 |       0 | 15-224                                                                              
+  ProductList.jsx                   |       0 |        0 |       0 |       0 | 7-36                                                                                
+  ProductListSeller.jsx             |       0 |        0 |       0 |       0 | 13-231                                                                              
+  ProductRow.jsx                    |       0 |        0 |       0 |       0 | 5-31                                                                                
+  ProductSellerDetail.jsx           |       0 |        0 |       0 |       0 | 6-106                                                                               
+  ProductView.jsx                   |       0 |      100 |       0 |       0 | 6-21                                                                                
+  productCardView.style.js          |       0 |      100 |     100 |       0 | 3                                                                                   
+  productRow.style.js               |       0 |      100 |     100 |       0 | 3                                                                                   
+ nhiquelaseller/constants           |   33.33 |        0 |       0 |   33.33 |                                                                                     
+  index.jsx                         |       0 |      100 |     100 |       0 | 2-7                                                                                 
+  theme.js                          |   36.36 |        0 |       0 |   36.36 | 114-126,131-139                                                                     
+ nhiquelaseller/features            |       0 |        0 |       0 |       0 |                                                                                     
+  basketSlice.js                    |       0 |        0 |       0 |       0 | 5-55                                                                                
+  navSlice.js                       |       0 |      100 |       0 |       0 | 4-33                                                                                
+  sellerSlice.js                    |       0 |      100 |       0 |       0 | 3-29                                                                                
+  userSlice.js                      |       0 |      100 |       0 |       0 | 3-23                                                                                
+ nhiquelaseller/hooks               |    5.88 |    13.63 |       0 |    5.95 |                                                                                     
+  createConnectionApi.js            |      20 |    18.75 |       0 |      20 | 19-34,41-58                                                                         
+  searchData.js                     |       0 |      100 |       0 |       0 | 6-34                                                                                
+  useFetch.js                       |       0 |      100 |       0 |       0 | 6-35                                                                                
+  useSocket.js                      |       0 |        0 |       0 |       0 | 8-68                                                                                
+ nhiquelaseller/navegation          |       0 |        0 |       0 |       0 |                                                                                     
+  ButtomTabNavegation.js            |       0 |      100 |       0 |       0 | 11-16                                                                               
+  RootNavigation.js                 |       0 |        0 |       0 |       0 | 4-14                                                                                
+ nhiquelaseller/screens             |    4.48 |     2.79 |    3.57 |    4.74 |                                                                                     
+  Cart.jsx                          |       0 |        0 |       0 |       0 | 12-85                                                                               
+  FailedPayment.jsx                 |       0 |        0 |       0 |       0 | 8-55                                                                                
+  Favorite.jsx                      |       0 |      100 |       0 |       0 | 4-14                                                                                
+  Home.jsx                          |       0 |        0 |       0 |       0 | 14-398                                                                              
+  ImgItem.js                        |       0 |      100 |       0 |       0 | 5-14                                                                                
+  Index.js                          |       0 |        0 |       0 |       0 |                                                                                     
+  LoginPage.jsx                     |       0 |        0 |       0 |       0 | 25-195                                                                              
+  MapScreen.jsx                     |       0 |        0 |       0 |       0 | 13-94                                                                               
+  MpesaScreen.jsx                   |       0 |        0 |       0 |       0 | 15-204                                                                              
+  NewProduct.jsx                    |    1.52 |        0 |       0 |    1.71 | 32-556                                                                              
+  NewProducts.style.js              |       0 |      100 |     100 |       0 | 3                                                                                   
+  OnboardingScreen.js               |       0 |        0 |       0 |       0 | 16-150                                                                              
+  OrderDetail.jsx                   |       0 |        0 |       0 |       0 | 15-380                                                                              
+  Orders.jsx                        |       0 |        0 |       0 |       0 | 10-185                                                                              
+  PayWithWallet.jsx                 |       0 |        0 |       0 |       0 | 6-34                                                                                
+  PaymentMethod.jsx                 |       0 |        0 |       0 |       0 | 9-125                                                                               
+  PaymentsHistory.jsx               |       0 |      100 |       0 |       0 | 4-14                                                                                
+  Profile.jsx                       |       0 |        0 |       0 |       0 | 14-259                                                                              
+  RequestService.jsx                |       0 |      100 |       0 |       0 | 11-30                                                                               
+  Search.jsx                        |       0 |        0 |       0 |       0 | 10-100                                                                              
+  SignUp upload.jsx                 |       0 |        0 |       0 |       0 | 14-290                                                                              
+  SignUp.jsx                        |   29.94 |    16.44 |   31.25 |   32.29 | 66,78,89-90,103,118-124,129-171,176-199,203-226,230-243,248-255,260-289,306,363-508 
+  SuccessPayment.jsx                |       0 |      100 |       0 |       0 | 8-40                                                                                
+  TopUpScreen.jsx                   |       0 |        0 |       0 |       0 | 14-225                                                                              
+  WalletScreen.jsx                  |       0 |        0 |       0 |       0 | 12-173                                                                              
+  WalletWithdrawScreen.jsx          |       0 |        0 |       0 |       0 | 10-222                                                                              
+  home.style.js                     |       0 |      100 |     100 |       0 | 3                                                                                   
+  search.style.js                   |       0 |      100 |     100 |       0 | 3                                                                                   
+ nhiquelaseller/services            |       0 |      100 |       0 |       0 |                                                                                     
+  routingService.js                 |       0 |      100 |       0 |       0 | 13-21                                                                               
+ nhiquelaseller/utils               |       0 |        0 |       0 |       0 |                                                                                     
+  notificationUtils.js              |       0 |        0 |       0 |       0 | 3-30                                                                                
+  registerDeviceToken.js            |       0 |        0 |       0 |       0 | 7-17                                                                                
+------------------------------------|---------|----------|---------|---------|-------------------------------------------------------------------------------------
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 skipped, 2 total
+Snapshots:   0 total
+Time:        4.139 s
+Ran all test suites matching /__tests__\\integration\\sellerFlow.test.js/i.

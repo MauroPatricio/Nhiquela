@@ -1,89 +1,70 @@
-import React from 'react';
-import { useColorScheme, TouchableOpacity, StyleSheet, View, useWindowDimensions, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming,
-  withDelay,
-} from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';  // Ícones do Ionicons
+import React, { useEffect } from 'react';
+import { Modal, useColorScheme, TouchableOpacity, StyleSheet, View, useWindowDimensions, TouchableWithoutFeedback } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 
-export default function BottomSheetComponent({ isOpen, toggleSheet, duration = 300, children }) {
+export default function BottomSheetComponent({ isOpen, toggleSheet, children, duration = 300, height }) {
   const colorScheme = useColorScheme();
   const { height: windowHeight } = useWindowDimensions();
-  const maxHeight = windowHeight * 1;
-  const height = useSharedValue(maxHeight);
-  const timerOpen = 10;
+  const translateY = useSharedValue(windowHeight);
+  const [visible, setVisible] = React.useState(isOpen);
+  const finalHeight = height || windowHeight * 0.8;
 
-  const progress = useDerivedValue(() => 
-    withTiming(isOpen ? 0 : 1, { timerOpen })
-  );
+  useEffect(() => {
+    if (isOpen) {
+      setVisible(true);
+      translateY.value = withTiming(0, { duration });
+    } else {
+      translateY.value = withTiming(windowHeight, { duration }, (finished) => {
+        if (finished) {
+          runOnJS(setVisible)(false);
+        }
+      });
+    }
+  }, [isOpen]);
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: progress.value * height.value }],
+    transform: [{ translateY: translateY.value }],
   }));
 
-  const backgroundColorSheetStyle = {
-    backgroundColor: colorScheme === 'light' ? '#f8f9ff' : '#272B3C',
-  };
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
-    zIndex: isOpen ? 1 : withDelay(duration, withTiming(-1, { duration: 0 })),
-  }));
+  if (!visible && !isOpen) return null;
 
   return (
-    <>
-      <Animated.View style={[sheetStyles.backdrop, backdropStyle]}>
-        <TouchableOpacity style={sheetStyles.flex} onPress={toggleSheet} />
-      </Animated.View>
-      <Animated.View
-        onLayout={(e) => {
-          height.value = e.nativeEvent.layout.height;
-        }}
-        style={[sheetStyles.sheet, sheetStyle, backgroundColorSheetStyle, { height: maxHeight }]}>
-        
-        {/* Botão de fechar */}
-        <View style={sheetStyles.closeButtonContainer}>
-          <TouchableOpacity onPress={toggleSheet}>
-            <Ionicons name="close-circle" size={30} color="gray" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Conteúdo do BottomSheet */}
-        {children}
-      </Animated.View>
-    </>
+    <Modal visible={visible} transparent={true} animationType="none" onRequestClose={toggleSheet}>
+      <View style={sheetStyles.overlay}>
+        <TouchableWithoutFeedback onPress={toggleSheet}>
+          <View style={sheetStyles.backdrop} />
+        </TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            sheetStyles.sheet,
+            sheetStyle,
+            { backgroundColor: colorScheme === 'light' ? '#fff' : '#272B3C', height: finalHeight },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const sheetStyles = StyleSheet.create({
-  sheet: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingLeft: 10,
-    paddingRight: 10,
-    width: '100%',
-    position: 'absolute',
-    bottom: 0,
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 20,
-    zIndex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  flex: {
-    flex: 1,
-  },
-  closeButtonContainer: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 10,
+  sheet: {
+    width: '100%',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
 });

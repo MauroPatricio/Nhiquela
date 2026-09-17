@@ -7,10 +7,9 @@ const BackBtn = ({onPress}) => {
     <SafeAreaView>
 
    <TouchableOpacity onPress={onPress}>
-            <Ionicons name = 'chevron-back-circle'
+            <Ionicons name='chevron-back-circle'
             size={30}
             color={"#7F00FF"}
-            style
             />
    </TouchableOpacity>
     </SafeAreaView>

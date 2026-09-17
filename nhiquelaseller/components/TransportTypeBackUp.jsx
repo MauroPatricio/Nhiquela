@@ -59,7 +59,7 @@ const TransportType = () => {
 
 <View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 5, marginRight: 5}}>
 
-<Text>Distancia: {travelTimeInfo.distance.text}</Text>
+<Text>Distância: {travelTimeInfo.distance.text}</Text>
 <Text>Estimativa de chegada: {travelTimeInfo.duration.text}</Text>
 </View>
 

@@ -20,6 +20,7 @@ const SellerProduct = ({
     priceFromSeller,
     price,
     onSale,
+    discount,
     countInStock,
 seller, quantity}) => {
 
@@ -54,6 +55,7 @@ seller, quantity}) => {
                 onSale,
                 countInStock,
                 seller,
+                discount,
                 quantity: currentQuantity + 1 // Increase quantity by 1 when adding
             }));
         }

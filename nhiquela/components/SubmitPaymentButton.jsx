@@ -3,30 +3,39 @@ import React from 'react'
 import {MaterialIcons} from '@expo/vector-icons'
 import {useNavigation} from '@react-navigation/native'
 
-const SubmitPaymentButton = ({Confirmar, selectedPayment}) => {
-
+const SubmitPaymentButton = ({ Confirmar, selectedPayment, seller, isUserWantDelivery, selectedVehicle, deliveryPrice, totalToPay }) => {
   const navigation = useNavigation();
 
+  const navigateToPage = (payment) => {
+    const p = (payment || '').toLowerCase();
+    const navParams = { 
+      seller, 
+      isUserWantDelivery, 
+      selectedVehicle, 
+      deliveryPrice, 
+      totalToPay 
+    };
 
-
-  const navigateToPage = async (selectedPayment) =>{
-    if(selectedPayment=='Mpesa'){
-      return navigation.navigate('MpesaScreen')
+    if (p.includes('mpesa') || p.includes('m-pesa')) {
+      navigation.replace('MpesaScreen', { ...navParams, paymentType: 'Mpesa' });
+    } else if (p.includes('emola') || p.includes('e-mola')) {
+      navigation.replace('MpesaScreen', { ...navParams, paymentType: 'Emola' });
+    } else if (p.includes('transfer') || p.includes('banc')) {
+      navigation.replace('BankTransferScreen', { ...navParams, paymentType: 'Transferência Bancária' });
+    } else if (p.includes('dinheiro') || p.includes('cash')) {
+      navigation.replace('BankTransferScreen', { ...navParams, paymentType: 'Dinheiro' });
+    } else {
+      navigation.replace('MpesaScreen', { ...navParams, paymentType: payment || 'Mpesa' });
     }
-    // Neste momento devo apresentar a opcao de pagamento da tela do BCI
-    // E para pagar com PCI devo apresentar o campo de confirmacao do pagamento por mensagem.
-    // QUe por sua vez nos confirmamos a mensagem do pagamento.
-    // Colocando um cole a informacao desta transacao aqui. Onde iremos a valiar se deve ser ou nao validado o pagamento
-  }
+  };
 
   return (
-   <TouchableOpacity style={styles.container} onPress={()=>navigateToPage(selectedPayment)}>
-      <Text style={styles.text}>{Confirmar + " "}</Text>
-      <MaterialIcons name='check-circle' size={20}
-      color={'white'}/>
-   </TouchableOpacity>
-  )
-}
+    <TouchableOpacity style={styles.container} onPress={() => navigateToPage(selectedPayment)}>
+      <Text style={styles.text}>{Confirmar + ' '}</Text>
+      <MaterialIcons name='check-circle' size={20} color={'white'} />
+    </TouchableOpacity>
+  );
+};
 
 export default SubmitPaymentButton
 

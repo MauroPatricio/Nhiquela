@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView,FlatList, ActivityIndicator, TouchableOpacity, Image } from 'react-native'
+import { Image } from 'expo-image';
+import { View, Text, StyleSheet, ScrollView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native'
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage';

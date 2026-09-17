@@ -1,14 +1,6 @@
+import { Image } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  Dimensions,
-  TouchableOpacity,
-  Image,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { StyleSheet, Text, View, Dimensions, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,7 +58,7 @@ const renderItem = ({ item }) => (
       <Image
         source={{ uri: item.img }}
         style={styles.image}
-        resizeMode="cover"
+        contentFit="cover"
       />
       <View style={styles.cardContent}>
         <Text style={styles.name}>{item.nome}</Text>
@@ -85,7 +77,7 @@ const renderItem = ({ item }) => (
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name='chevron-back-circle' size={35} color="#7F00FF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Tipos de Estabelecimentos</Text>
+        <Text style={styles.title}>Tipos de estabelecimentos</Text>
       </View>
 
       {/* Lista de estabelecimentos */}
@@ -161,3 +153,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

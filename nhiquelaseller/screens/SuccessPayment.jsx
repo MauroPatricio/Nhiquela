@@ -1,83 +1,96 @@
-import { StyleSheet, Text, View, Button, TouchableOpacity} from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import {useRoute} from '@react-navigation/native'
-import {useNavigation} from '@react-navigation/native'
-import {Ionicons} from "@expo/vector-icons"
-import {MaterialCommunityIcons} from '@expo/vector-icons'
-import { color } from 'react-native-elements/dist/helpers'
-
+import React from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../constants/theme';
 
 const SuccessPayment = () => {
-          const navigation = useNavigation()
+  const navigation = useNavigation();
+
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.iconContainer}>
+          <View style={styles.iconCircle}>
+            <MaterialCommunityIcons name="check" size={70} color={COLORS.success} />
+          </View>
+        </View>
 
-<View style={styles.container}>
-      <MaterialCommunityIcons 
-                        name='check-circle'
-                        size={200}
-                        color={'grey'}
-                        style={styles.iconStyle}
-                        />
-      <View style={styles.errorContainer}>
-        
-      <Text style={styles.title}>Pagamento efectuado com sucesso</Text>
+        <Text style={styles.title}>Pagamento Efetuado!</Text>
+        <Text style={styles.subTitle}>
+          A sua transação foi concluída com sucesso. O seu pedido está agora a ser processado.
+        </Text>
+
+        <TouchableOpacity 
+          style={styles.btn} 
+          onPress={() => navigation.navigate('Home')} 
+          activeOpacity={0.8}
+        >
+          <Ionicons name="home-outline" size={20} color="#fff" />
+          <Text style={styles.btnText}>Voltar à Página Principal</Text>
+        </TouchableOpacity>
       </View>
-        <Button  title="Pagina principal" onPress={()=>navigation.navigate('Home')}  />
-    </View>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default SuccessPayment
+export default SuccessPayment;
 
 const styles = StyleSheet.create({
   container: {
-    // flex: 1,
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    marginTop:200
+    padding: 24,
   },
-  icons:{
-    position: 'absolute',
-    top: 50,
-    marginLeft: 25,
-    flexDirection: "row",
-    justifyContent: 'space-between', // Distributes space between the icons
+  iconContainer: {
+    marginBottom: 32,
+  },
+  iconCircle: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: COLORS.success + '20',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: COLORS.success,
   },
-  errorContainer: {
-    // padding: 20,
-    // backgroundColor: '#ffe5e5',
-    // borderRadius: 10,
-    // borderWidth: 1,
-    // borderColor: '#ff4d4d',
-    // width: '80%',
-    // alignItems: 'center',
-  },
-  title:{
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 60,
-    textAlign: 'center',
-
-  },
-  errorTitle: {
-    fontSize: 16,
-    // fontWeight: 'bold',
-    // color: '#ff4d4d',
-    marginBottom: 10,
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: '#ff4d4d',
-    marginBottom: 20,
+  title: {
+    fontSize: SIZES.xxl,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  iconStyle:{
-    color:'green'
+  subTitle: {
+    fontSize: SIZES.base,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 48,
+    paddingHorizontal: 20,
+    lineHeight: 22,
   },
-
-})
+  btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: RADIUS.full,
+    width: '100%',
+    gap: 10,
+    ...SHADOWS.md,
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: SIZES.base,
+    fontWeight: '700',
+  },
+});

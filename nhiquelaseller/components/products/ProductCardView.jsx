@@ -3,7 +3,7 @@ import React from 'react'
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { Badge } from 'react-native-paper';
-
+import { COLORS, SIZES, RADIUS, SHADOWS } from '../../constants/theme';
 
 
 const ProductCardView = ({ item }) => {
@@ -24,14 +24,14 @@ const ProductCardView = ({ item }) => {
                         <Text style={styles.supplier} numberOfLines={1}>{item.item.seller.seller.name}</Text>
 
                         <Text style={styles.price} numberOfLines={1}>{item.item.price} MT</Text>
-                        <Text>
-                            {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: 'green' }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? item.item.countInStock + ` unidade(s)` : <Badge bg='danger'>Sem stock</Badge>}
-                        </Text>
+                        <View style={{ marginTop: 6 }}>
+                            {item.item.isOrdered ? <Badge style={{ color: 'white', backgroundColor: COLORS.success }}> Por encomenda </Badge> : item.item.countInStock !== 0 ? <Text style={styles.stockText}>{item.item.countInStock} unidade(s)</Text> : <Badge style={{ color: 'white', backgroundColor: COLORS.error }}>Sem stock</Badge>}
+                        </View>
 
                     </View>
                     <TouchableOpacity style={styles.addBtn}>
                         <Ionicons name='cart' size={25}
-                            color={'#3e2465'}
+                            color={COLORS.primary}
                         />
                     </TouchableOpacity>
                 </View>
@@ -47,17 +47,18 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-
     },
     imageContainer: {
         flex: 1,
         width: 170,
-        marginLeft: 12 / 2,
+        marginLeft: 6,
         marginTop: 5,
-        borderRadius: 12,
+        borderRadius: RADIUS.lg,
         overflow: "hidden",
-        backgroundColor: "white"
+        backgroundColor: COLORS.surfaceCard,
+        borderWidth: 1,
+        borderColor: COLORS.borderLight,
+        ...SHADOWS.sm,
     },
     image: {
         aspectRatio: 1,
@@ -67,21 +68,32 @@ const styles = StyleSheet.create({
         padding: 12
     },
     title: {
-        fontSize: 12,
-        fontWeight: '800'
+        fontSize: SIZES.sm,
+        fontWeight: '800',
+        color: COLORS.text,
     },
     supplier: {
-        fontSize: 12,
-        fontWeight: '600'
-
+        fontSize: SIZES.xs,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+        marginTop: 2,
     },
     price: {
-        fontSize: 12,
-        fontWeight: '400'
+        fontSize: SIZES.sm,
+        fontWeight: '700',
+        color: COLORS.primaryLight,
+        marginTop: 4,
+    },
+    stockText: {
+        fontSize: SIZES.xs,
+        color: COLORS.textSecondary,
     },
     addBtn: {
         position: "absolute",
         bottom: 10,
-        right: 12
+        right: 12,
+        backgroundColor: COLORS.primaryGlow,
+        borderRadius: RADIUS.full,
+        padding: 6,
     }
 })

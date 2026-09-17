@@ -14,7 +14,7 @@ const NavigateCard = () => {
     const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.container}>
-<Text style={styles.title}>Ola, Mauro Patricio</Text>
+<Text style={styles.title}>Olá, Mauro Patricio</Text>
     <View style={styles.details}>
        <GooglePlacesAutocomplete
        styles={InputBoxStyles}

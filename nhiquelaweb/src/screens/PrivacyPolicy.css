@@ -1,0 +1,123 @@
+.privacy-container {
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+}
+
+.privacy-card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+  background: #fff;
+  overflow: hidden;
+}
+
+.privacy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 20px;
+}
+
+.privacy-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.privacy-download-btn {
+  background: #9800FF;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(152, 0, 255, 0.2);
+  text-decoration: none;
+}
+
+.privacy-download-btn:hover {
+  background: #7a00cc;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(152, 0, 255, 0.3);
+  color: white;
+}
+
+.privacy-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2d3748;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  position: relative;
+  padding-left: 14px;
+}
+
+.privacy-section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background: #9800FF;
+  border-radius: 4px;
+}
+
+.privacy-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #4a5568;
+  margin-bottom: 16px;
+}
+
+.privacy-list {
+  padding-left: 20px;
+  margin-bottom: 24px;
+}
+
+.privacy-list li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #4a5568;
+  margin-bottom: 8px;
+}
+
+.privacy-list li b {
+  color: #2d3748;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+  .privacy-container {
+    max-width: 100%;
+    margin: 0;
+  }
+  .privacy-card {
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .privacy-download-btn {
+    display: none !important;
+  }
+  /* Hide typical layout wrappers during print */
+  nav, header, footer, .navbar, .footer, .sidebar, .mobile-nav {
+    display: none !important;
+  }
+  @page {
+    margin: 2cm;
+  }
+}
