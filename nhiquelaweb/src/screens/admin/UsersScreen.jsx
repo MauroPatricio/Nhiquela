@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave, faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faEdit, faTrash, faShieldAlt, faUserTie, faUser, faSearch, faTimes, faEye, faEyeSlash, faEnvelope, faPhone, faCalendarAlt, faCheckCircle, faBan, faCar, faIdCard, faFileInvoiceDollar, faImage, faStore, faLock, faDownload, faPauseCircle, faStar, faMapMarkerAlt, faMoneyBillWave, faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api, { SOCKET_URL } from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -19,6 +19,7 @@ export default function UsersScreen() {
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', isAdmin: false, isSeller: false, isDeliveryMan: false, planId: '', services: [] });
   const [showModal, setShowModal] = useState(false);
+  const [showModalPassword, setShowModalPassword] = useState(false);
   const [selectedUserView, setSelectedUserView] = useState(null);
   const [selectedImageModal, setSelectedImageModal] = useState(null);
   const [associatedDrivers, setAssociatedDrivers] = useState([]);
@@ -235,12 +236,13 @@ export default function UsersScreen() {
   };
 
   const handleResetPassword = async (user) => {
-    if (window.confirm(`ATENÇÃO: Tem a certeza que deseja redefinir a palavra-passe de ${user.name} para "password123"?`)) {
+    if (window.confirm(`ATENÇÃO: Tem a certeza que deseja redefinir a palavra-passe de "${user.name}" para o padrão "password123"?\n\nO utilizador será obrigado a definir uma nova palavra-passe no primeiro acesso após a redefinição.`)) {
       try {
-        await api.put(`/users/${user._id || user.id}/reset-password`);
-        toast.success('Palavra-passe redefinida com sucesso!');
+        const { data } = await api.put(`/users/${user._id || user.id}/reset-password`);
+        toast.success(data?.message || 'Palavra-passe redefinida com sucesso para "password123"!');
+        fetchUsers();
       } catch (error) {
-        toast.error('Erro ao redefinir a palavra-passe.');
+        toast.error(error.response?.data?.message || 'Erro ao redefinir a palavra-passe.');
       }
     }
   };
@@ -280,7 +282,7 @@ export default function UsersScreen() {
       <div className="card shadow-sm-custom border-0 rounded-4">
         <div className="card-body p-0 mt-3">
           <div className="table-responsive">
-            <table className="table table-hover align-middle m-0">
+            <table className="table table-hover align-middle m-0 text-nowrap">
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Utilizador</th>
@@ -319,7 +321,7 @@ export default function UsersScreen() {
                         <div>
                           <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill mb-1"><FontAwesomeIcon icon={faUserTie} className="me-1" /> Vendedor</span>
                           {user.planId && (
-                            <div className="small fw-bold text-warning mt-1">?? {plans.find(p => p._id === user.planId || p.id === user.planId)?.name || 'Plano Desconhecido'}</div>
+                            <div className="small fw-bold text-warning mt-1">⭐ {plans.find(p => p._id === user.planId || p.id === user.planId)?.name || 'Plano Desconhecido'}</div>
                           )}
                         </div>
                       ) : user.isDeliveryMan ? (
@@ -351,47 +353,49 @@ export default function UsersScreen() {
                         <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Ativo</span>
                       )}
                     </td>
-                    <td className="text-end px-4">
-                      {/* Estado Actions */}
-                      {user.isBanned ? (
-                        <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: false, isApproved: true })} title="Desbloquear / Reativar">
-                          <FontAwesomeIcon icon={faCheckCircle} /> Desbloquear
-                        </button>
-                      ) : !user.isApproved && (user.isSeller || user.isDeliveryMan) ? (
-                        <>
-                          <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm transition-all hover-transform fw-bold" onClick={() => handleUpdateStatus(user, { isApproved: true, isBanned: false })} title="Autorizar">
-                            <FontAwesomeIcon icon={faCheckCircle} /> Autorizar
+                    <td className="text-end px-4 text-nowrap">
+                      <div className="d-inline-flex align-items-center justify-content-end gap-1 text-nowrap">
+                        {/* Estado Actions */}
+                        {user.isBanned ? (
+                          <button className="btn btn-sm btn-light text-success rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: false, isApproved: true })} title="Desbloquear / Reativar">
+                            <FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Desbloquear
                           </button>
-                          <button className="btn btn-sm btn-light text-danger me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isApproved: false, isBanned: true })} title="Rejeitar">
-                            <FontAwesomeIcon icon={faTimes} /> Rejeitar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          {(user.isSeller || user.isDeliveryMan) && (
-                            <button className="btn btn-sm btn-light text-secondary me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isApproved: false, isBanned: false })} title="Inativar Conta">
-                              <FontAwesomeIcon icon={faPauseCircle} /> Inativar
+                        ) : !user.isApproved && (user.isSeller || user.isDeliveryMan) ? (
+                          <>
+                            <button className="btn btn-sm btn-light text-success rounded-3 shadow-sm transition-all hover-transform fw-bold" onClick={() => handleUpdateStatus(user, { isApproved: true, isBanned: false })} title="Autorizar">
+                              <FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Autorizar
                             </button>
-                          )}
-                          <button className="btn btn-sm btn-light text-warning me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: true, isApproved: false })} title="Bloquear Conta">
-                            <FontAwesomeIcon icon={faBan} /> Bloquear
-                          </button>
-                        </>
-                      )}
+                            <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isApproved: false, isBanned: true })} title="Rejeitar">
+                              <FontAwesomeIcon icon={faTimes} className="me-1" /> Rejeitar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {(user.isSeller || user.isDeliveryMan) && (
+                              <button className="btn btn-sm btn-light text-secondary rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isApproved: false, isBanned: false })} title="Inativar Conta">
+                                <FontAwesomeIcon icon={faPauseCircle} className="me-1" /> Inativar
+                              </button>
+                            )}
+                            <button className="btn btn-sm btn-light text-warning rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleUpdateStatus(user, { isBanned: true, isApproved: false })} title="Bloquear Conta">
+                              <FontAwesomeIcon icon={faBan} className="me-1" /> Bloquear
+                            </button>
+                          </>
+                        )}
 
-                      {/* Outras Actions */}
-                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => setSelectedUserView(user)} title="Ver Detalhes">
-                        <FontAwesomeIcon icon={faEye} />
-                      </button>
-                      <button className="btn btn-sm btn-light text-warning me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleResetPassword(user)} title="Redefinir Palavra-passe">
-                        <FontAwesomeIcon icon={faLock} />
-                      </button>
-                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(user)} title="Editar Permissões">
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleDelete(user._id || user.id)} title="Eliminar Conta">
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
+                        {/* Outras Actions */}
+                        <button className="btn btn-sm btn-light text-primary-custom rounded-3 shadow-sm transition-all hover-transform" onClick={() => setSelectedUserView(user)} title="Ver Detalhes">
+                          <FontAwesomeIcon icon={faEye} />
+                        </button>
+                        <button className="btn btn-sm btn-light text-warning rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleResetPassword(user)} title="Redefinir Palavra-passe">
+                          <FontAwesomeIcon icon={faLock} />
+                        </button>
+                        <button className="btn btn-sm btn-light text-primary-custom rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleOpenModal(user)} title="Editar Permissões">
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm transition-all hover-transform" onClick={() => handleDelete(user._id || user.id)} title="Eliminar Conta">
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -452,13 +456,23 @@ export default function UsersScreen() {
                   <label className="form-label fw-bold small text-muted mb-1">
                     {isEditing ? 'Palavra-passe (deixe em branco para não alterar)' : 'Palavra-passe Inicial (Padrão: password123)'}
                   </label>
-                  <input 
-                    type="password" 
-                    className="form-control bg-light border-0 py-2 rounded-3" 
-                    placeholder={isEditing ? '••••••••' : 'password123'}
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  />
+                  <div className="input-group">
+                    <input 
+                      type={showModalPassword ? 'text' : 'password'} 
+                      className="form-control bg-light border-0 py-2 rounded-start-3" 
+                      placeholder={isEditing ? '••••••••' : 'password123'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn btn-light border-0 rounded-end-3 text-muted px-3"
+                      onClick={() => setShowModalPassword(!showModalPassword)}
+                      title={showModalPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
+                    >
+                      <FontAwesomeIcon icon={showModalPassword ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="mb-4 p-3 bg-light rounded-3 border">

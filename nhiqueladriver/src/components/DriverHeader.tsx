@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "../styles/colors";
 import { useAuth } from "../context/AuthContext";
 import { getProviderSubcategories } from "../services/deliveryService";
@@ -20,10 +22,11 @@ import { API_BASE_URL } from "../api/apiConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Props = {
-  onMenuPress: () => void;
-  onNotificationPress: () => void;
+  onMenuPress?: () => void;
+  onNotificationPress?: () => void;
   onStartTrip?: () => void;
   onEarningsPress?: () => void;
+  onWalletPress?: () => void;
   currentLocation?: string;
   batteryLevel?: number;
   isConnected?: boolean;
@@ -38,6 +41,7 @@ export default function DriverHeader({
   onMenuPress,
   onNotificationPress,
   onEarningsPress,
+  onWalletPress,
   currentLocation = "Maputo, MZ",
   batteryLevel = 85,
   isConnected = true,
@@ -49,6 +53,82 @@ export default function DriverHeader({
 }: Props) {
   // ✅ USAR DADOS DO CONTEXTO
   const { user, logout } = useAuth();
+  const navigation = useNavigation<any>();
+  const [detectedLocation, setDetectedLocation] = useState<string>("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCachedLocation = async () => {
+      try {
+        const cached = await AsyncStorage.getItem("@driver_last_city_location");
+        if (cached && isMounted) {
+          setDetectedLocation(cached);
+        }
+      } catch (e) {}
+    };
+
+    const fetchCurrentCityLocation = async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== "granted") {
+          const req = await Location.requestForegroundPermissionsAsync();
+          if (req.status !== "granted") return;
+        }
+
+        // Tentar primeiro obter a última localização conhecida (rápido)
+        let loc = await Location.getLastKnownPositionAsync({});
+        if (!loc) {
+          loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        }
+
+        if (loc?.coords && isMounted) {
+          const addresses = await Location.reverseGeocodeAsync({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+
+          if (addresses && addresses.length > 0 && isMounted) {
+            const addr = addresses[0];
+            const city = addr.city || addr.subregion || addr.district || addr.region || "Maputo";
+            const countryCode = addr.isoCountryCode || (addr.country === "Mozambique" || addr.country === "Moçambique" ? "MZ" : addr.country) || "MZ";
+            const formatted = `${city}, ${countryCode}`;
+            setDetectedLocation(formatted);
+            AsyncStorage.setItem("@driver_last_city_location", formatted).catch(() => {});
+          }
+        }
+      } catch (error) {
+        console.log("Erro ao obter localização da cidade no cabeçalho:", error);
+      }
+    };
+
+    loadCachedLocation();
+    fetchCurrentCityLocation();
+
+    // Atualizar periodicamente
+    const interval = setInterval(fetchCurrentCityLocation, 45000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const displayLocation = detectedLocation || (currentLocation && currentLocation !== "Maputo, MZ" && currentLocation !== "Maputo, Moçambique" ? currentLocation : (detectedLocation || "Maputo, MZ"));
+
+  const handleWalletPress = () => {
+    if (onWalletPress) {
+      onWalletPress();
+    } else if (onEarningsPress) {
+      onEarningsPress();
+    } else {
+      try {
+        navigation.navigate("Wallet");
+      } catch (err) {
+        console.log("Erro ao navegar para carteira:", err);
+      }
+    }
+  };
   
   // ✅ FUNÇÃO PARA CONFIRMAR LOGOUT
   const handleLogout = () => {
@@ -320,10 +400,23 @@ export default function DriverHeader({
         </View>
       </View>
 
-      {/* Localização */}
-      <View style={styles.locationContainer}>
-        <Ionicons name="location" size={14} color={COLORS.white} />
-        <Text style={styles.locationText}>{currentLocation}</Text>
+      {/* Localização e Botão Ver Carteira */}
+      <View style={styles.locationAndWalletRow}>
+        <View style={styles.locationContainer}>
+          <Ionicons name="location" size={15} color={COLORS.white} />
+          <Text style={styles.locationText} numberOfLines={1}>
+            {displayLocation}
+          </Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.headerWalletBtn} 
+          onPress={handleWalletPress}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="wallet" size={16} color="#6D28D9" />
+          <Text style={styles.headerWalletBtnText}>Ver Carteira</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Métricas */}
@@ -502,16 +595,45 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
+  locationAndWalletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 14,
+  },
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
+    flex: 1,
+    marginRight: 8,
   },
   locationText: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
+    marginLeft: 6,
+  },
+  headerWalletBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  headerWalletBtnText: {
+    color: "#6D28D9",
+    fontSize: 13,
+    fontWeight: "700",
     marginLeft: 6,
   },
   metricsContainer: {

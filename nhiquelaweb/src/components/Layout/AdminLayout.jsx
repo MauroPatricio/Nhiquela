@@ -3,7 +3,7 @@ import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import api, { SOCKET_URL } from '../../api';
 import { useSelector, useDispatch } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faMotorcycle, faSignOutAlt, faHandshake } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faUserTie, faSignOutAlt, faHandshake } from '@fortawesome/free-solid-svg-icons';
 import { setUserLogout } from '../../store/features/userSlice';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -124,7 +124,8 @@ export default function AdminLayout() {
     { name: 'Categorias', path: '/admin/categories', icon: faTags },
     { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },
     { name: 'Serviços', path: '/admin/services', icon: faTools },
-    { name: '🚚 Motoristas', path: '/admin/drivers', icon: faMotorcycle, badge: badges.pendingDrivers },
+    { name: '🚚 Motoristas', path: '/admin/drivers', icon: faUserTie, badge: badges.pendingDrivers },
+    { name: '🚘 Gestão de Frota', path: '/admin/fleet', icon: faCar },
     { name: '💰 Pedidos de Preço', path: '/admin/price-requests', icon: faMoneyBillWave },
     { name: '📄 Pedidos de Docs', path: '/admin/doc-requests', icon: faFileAlt },
     { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },

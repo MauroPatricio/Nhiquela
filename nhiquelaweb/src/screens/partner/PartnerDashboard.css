@@ -1,0 +1,532 @@
+/* ==========================================================================
+   PARTNER DASHBOARD (KPIS & OPERATIONS) - PREMIUM DESIGN SYSTEM
+   ========================================================================== */
+
+:root {
+  --partner-dash-bg: #f8fafc;
+  --partner-dash-card: #ffffff;
+  --partner-dash-border: rgba(226, 232, 240, 0.85);
+  --partner-primary-purple: #7f00ff;
+  --partner-purple-glow: rgba(127, 0, 255, 0.25);
+  --partner-emerald: #10b981;
+  --partner-teal: #0d9488;
+  --partner-amber: #f59e0b;
+  --partner-rose: #f43f5e;
+}
+
+.partner-dash-wrapper {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1e293b;
+}
+
+@media (min-width: 768px) {
+  .partner-dash-wrapper {
+    padding: 2rem 2.5rem;
+  }
+}
+
+/* ==========================================
+   1. EXECUTIVE HEADER
+   ========================================== */
+.partner-dash-header {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #090d16 0%, #170d2c 50%, #061e16 100%);
+  border-radius: 24px;
+  padding: 2rem 2.25rem;
+  color: #ffffff;
+  box-shadow: 0 20px 40px -15px rgba(23, 13, 44, 0.5), 0 0 0 1px rgba(168, 85, 247, 0.2);
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+  .partner-dash-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.partner-dash-header::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.partner-dash-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  border-radius: 9999px;
+  color: #d8b4fe;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(8px);
+  margin-bottom: 0.65rem;
+}
+
+.partner-dash-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: #ffffff;
+}
+
+.partner-dash-subtitle {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+  max-width: 650px;
+  line-height: 1.5;
+}
+
+.partner-dash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  position: relative;
+  z-index: 5;
+}
+
+.btn-partner-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.84rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-partner-glass:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-partner-purple {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(135deg, #8a2be2 0%, #7f00ff 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.84rem;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 8px 18px -4px rgba(138, 43, 226, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-partner-purple:hover {
+  background: linear-gradient(135deg, #9d4edd 0%, #8a2be2 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(138, 43, 226, 0.5);
+}
+
+/* ==========================================
+   2. FILTER CARD
+   ========================================== */
+.partner-filter-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  margin-bottom: 2rem;
+}
+
+.partner-filter-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.partner-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .partner-filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .partner-filter-grid {
+    grid-template-columns: repeat(6, 1fr);
+    align-items: flex-end;
+  }
+}
+
+.partner-field-wrap label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.partner-field-control {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 0.84rem;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.partner-field-control:focus {
+  background: #ffffff;
+  border-color: #8a2be2;
+  box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.12);
+}
+
+.btn-filter-apply {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-filter-apply:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+/* ==========================================
+   3. KPI CARDS GRID
+   ========================================== */
+.partner-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 576px) {
+  .partner-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .partner-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.partner-kpi-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.partner-kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card-gradient {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 24px -4px rgba(5, 150, 105, 0.3);
+}
+
+.kpi-card-gradient .partner-kpi-label,
+.kpi-card-gradient .partner-kpi-value,
+.kpi-card-gradient .partner-kpi-sub {
+  color: #ffffff !important;
+}
+
+.partner-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.partner-kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.partner-kpi-value {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.partner-kpi-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.partner-kpi-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.kpi-card-gradient .partner-kpi-sub {
+  border-top-color: rgba(255, 255, 255, 0.2);
+  opacity: 0.9;
+}
+
+/* ==========================================
+   4. OPERATIONAL PERFORMANCE SECTION
+   ========================================== */
+.partner-perf-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 1.75rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  margin-bottom: 2rem;
+}
+
+.partner-perf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .partner-perf-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.perf-stat-box {
+  padding: 1.15rem;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.perf-stat-box:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.05);
+}
+
+.perf-stat-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.5rem;
+}
+
+.perf-stat-value {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* Progress Track */
+.partner-progress-track {
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.partner-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 9999px;
+  transition: width 0.6s ease;
+}
+
+/* ==========================================
+   5. TABS & DATA TABLES
+   ========================================== */
+.partner-tabs-card {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.partner-tabs-header {
+  padding: 1.5rem 1.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.partner-tab-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.partner-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.partner-tab-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.partner-tab-btn.active {
+  background: #8a2be2;
+  color: #ffffff;
+  box-shadow: 0 6px 16px -2px rgba(138, 43, 226, 0.35);
+}
+
+.partner-search-box {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.45rem 0.85rem;
+  width: 100%;
+  max-width: 260px;
+}
+
+.partner-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.84rem;
+  margin-left: 0.5rem;
+  width: 100%;
+}
+
+/* Table Styling */
+.partner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.partner-table th {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.partner-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.partner-table tr:hover td {
+  background: #f8fafc;
+}
+
+.btn-track-order {
+  padding: 0.35rem 0.85rem;
+  background: #7f00ff;
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-track-order:hover {
+  background: #6000c0;
+  transform: translateY(-1px);
+}

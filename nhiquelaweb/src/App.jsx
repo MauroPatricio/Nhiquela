@@ -68,6 +68,13 @@ import AdminSupport from './screens/admin/AdminSupport';
 import MultiStopTripDetailScreen from './screens/admin/MultiStopTripDetailScreen';
 
 import CustomerServicesScreen from './screens/ServicesScreen';
+import FleetDashboardScreen from './screens/partner/FleetDashboardScreen';
+import FleetVehiclesScreen from './screens/partner/FleetVehiclesScreen';
+import FleetMaintenanceScreen from './screens/partner/FleetMaintenanceScreen';
+import FleetFuelScreen from './screens/partner/FleetFuelScreen';
+import FleetOdometerScreen from './screens/partner/FleetOdometerScreen';
+import FleetAlertsScreen from './screens/partner/FleetAlertsScreen';
+import FleetReportsScreen from './screens/partner/FleetReportsScreen';
 
 function App() {
   return (
@@ -119,12 +126,26 @@ function App() {
           <Route path="reports" element={<PartnerDashboardScreen />} />
           <Route path="profile" element={<PartnerProfileScreen />} />
           <Route path="orders/:id" element={<MultiStopTripDetailScreen />} />
+          <Route path="fleet" element={<FleetDashboardScreen />} />
+          <Route path="fleet/vehicles" element={<FleetVehiclesScreen />} />
+          <Route path="fleet/maintenance" element={<FleetMaintenanceScreen />} />
+          <Route path="fleet/fuel" element={<FleetFuelScreen />} />
+          <Route path="fleet/odometer" element={<FleetOdometerScreen />} />
+          <Route path="fleet/alerts" element={<FleetAlertsScreen />} />
+          <Route path="fleet/reports" element={<FleetReportsScreen />} />
         </Route>
 
         {/* Rotas Administrativas */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardScreen />} />
+          <Route path="fleet" element={<FleetDashboardScreen />} />
+          <Route path="fleet/vehicles" element={<FleetVehiclesScreen />} />
+          <Route path="fleet/maintenance" element={<FleetMaintenanceScreen />} />
+          <Route path="fleet/fuel" element={<FleetFuelScreen />} />
+          <Route path="fleet/odometer" element={<FleetOdometerScreen />} />
+          <Route path="fleet/alerts" element={<FleetAlertsScreen />} />
+          <Route path="fleet/reports" element={<FleetReportsScreen />} />
           <Route path="partners" element={<PartnersScreen />} />
           <Route path="suppliers" element={<SuppliersScreen />} />
           <Route path="products" element={<AdminProductsScreen />} />

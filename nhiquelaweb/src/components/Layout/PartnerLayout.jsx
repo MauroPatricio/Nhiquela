@@ -1,7 +1,23 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
+import './PartnerLayout.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faUsers, faMotorcycle, faFileDownload, faSignOutAlt, faBars, faTimes, faShieldAlt, faArrowLeft, faUser } from '@fortawesome/free-solid-svg-icons';
+import {
+  faChartLine,
+  faUsers,
+  faSignOutAlt,
+  faBars,
+  faTimes,
+  faShieldAlt,
+  faArrowLeft,
+  faUser,
+  faCar,
+  faWrench,
+  faGasPump,
+  faTachometerAlt,
+  faExclamationTriangle,
+  faChartBar,
+} from '@fortawesome/free-solid-svg-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectUser, setUserLogout } from '../../store/features/userSlice';
 
@@ -16,17 +32,49 @@ export default function PartnerLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  // Permitir acesso a utilizadores com role PARTNER, isPartner, ou ADMIN
-  const isPartnerUser = userInfo.role === 'PARTNER' || userInfo.isPartner || userInfo.isAdmin;
+  // Permitir acesso a utilizadores com role PARTNER, isPartner, partnerId, ADMIN ou papel dinâmico de frota
+  const isPartnerUser = 
+    userInfo.isAdmin || 
+    userInfo.role === 'ADMIN' || 
+    userInfo.role === 'PARTNER' || 
+    userInfo.isPartner || 
+    Boolean(userInfo.partnerId) || 
+    (userInfo.roleId && typeof userInfo.roleId === 'object' && userInfo.roleId.name && (
+      userInfo.roleId.name.toLowerCase().includes('parceiro') ||
+      userInfo.roleId.name.toLowerCase().includes('gestor') ||
+      userInfo.roleId.name.toLowerCase().includes('frota')
+    ));
+
   if (!isPartnerUser) {
     return <Navigate to="/" replace />;
   }
 
-  const menuItems = [
-    { name: 'Dashboard (KPIs)', path: '/partner/dashboard', icon: faChartLine },
-    { name: 'Minha Frota', path: '/partner/members', icon: faUsers },
-    { name: 'Exportar Relatórios', path: '/partner/reports', icon: faFileDownload },
-    { name: 'Meu Perfil', path: '/partner/profile', icon: faUser },
+  const menuSections = [
+    {
+      title: 'Visão Geral & KPIs',
+      items: [
+        { name: 'Dashboard (KPIs)', path: '/partner/dashboard', icon: faChartLine },
+        { name: 'Dashboard Frota', path: '/partner/fleet', icon: faChartBar },
+      ],
+    },
+    {
+      title: 'Operações de Frota',
+      items: [
+        { name: 'Veículos', path: '/partner/fleet/vehicles', icon: faCar },
+        { name: 'Manutenções', path: '/partner/fleet/maintenance', icon: faWrench },
+        { name: 'Combustível', path: '/partner/fleet/fuel', icon: faGasPump },
+        { name: 'Odómetro', path: '/partner/fleet/odometer', icon: faTachometerAlt },
+        { name: 'Alertas & Anomalias', path: '/partner/fleet/alerts', icon: faExclamationTriangle },
+        { name: 'Relatórios de Frota', path: '/partner/fleet/reports', icon: faChartBar },
+      ],
+    },
+    {
+      title: 'Administração & Equipa',
+      items: [
+        { name: 'Minha Equipa / Motoristas', path: '/partner/members', icon: faUsers },
+        { name: 'Meu Perfil', path: '/partner/profile', icon: faUser },
+      ],
+    },
   ];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -37,117 +85,109 @@ export default function PartnerLayout() {
   };
 
   return (
-    <div className="d-flex" style={{ minHeight: '100vh', backgroundColor: '#F4F6F9' }}>
-      
-      {/* Overlay mobile */}
+    <div className="partner-shell-container">
+      {/* Mobile Backdrop Overlay */}
       {sidebarOpen && (
-        <div 
-          className="position-fixed w-100 h-100 bg-dark opacity-50 d-md-none" 
-          style={{ zIndex: 1040 }} 
-          onClick={toggleSidebar}
-        ></div>
+        <div className="partner-backdrop-mobile d-lg-none" onClick={toggleSidebar}></div>
       )}
 
-      {/* Sidebar do Parceiro */}
-      <div 
-        className={`bg-white shadow-sm d-flex flex-column position-fixed h-100 transition-all ${sidebarOpen ? 'start-0' : 'start-negative'} start-md-0`} 
-        style={{ width: '260px', zIndex: 1050 }}
-      >
-        <div className="p-4 d-flex justify-content-between align-items-center border-bottom">
+      {/* Sidebar Executiva do Parceiro */}
+      <aside className={`partner-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        {/* Brand Header */}
+        <div className="partner-brand-header">
           <div>
-            <h5 className="fw-bold m-0" style={{ color: '#8a2be2' }}>
-              nhiquela<span className="text-dark">.parceiro</span>
+            <h5 className="partner-brand-logo">
+              nhiquela<span className="brand-suffix">.parceiro</span>
             </h5>
-            <small className="text-muted fw-bold">Gestão de Frota & KPIs</small>
+            <span className="partner-brand-tagline">Gestão de Frota & KPIs</span>
           </div>
-          <button className="btn btn-sm btn-light d-md-none" onClick={toggleSidebar}>
+          <button className="btn-sidebar-close d-lg-none" onClick={toggleSidebar}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
-        
-        {/* Foto e Perfil do Parceiro */}
-        <NavLink 
-          to="/partner/profile" 
+
+        {/* Profile Card */}
+        <NavLink
+          to="/partner/profile"
           onClick={() => setSidebarOpen(false)}
-          className="p-4 text-center border-bottom text-decoration-none d-block cursor-pointer" 
-          style={{ background: 'linear-gradient(135deg, rgba(138,43,226,0.05) 0%, rgba(138,43,226,0.12) 100%)' }}
+          className="partner-profile-card"
         >
-          <div className="rounded-circle overflow-hidden d-flex justify-content-center align-items-center mx-auto mb-2 shadow-sm border border-2 border-purple" 
-               style={{ width: '60px', height: '60px', backgroundColor: '#8a2be2' }}>
-            {(userInfo.profileImage || userInfo.sellerLogo || userInfo.seller?.logo || userInfo.logo) ? (
-              <img 
-                src={userInfo.profileImage || userInfo.sellerLogo || userInfo.seller?.logo || userInfo.logo} 
-                alt={userInfo.name || 'Parceiro'} 
-                className="w-100 h-100 object-fit-cover" 
+          <div className="partner-avatar-wrap">
+            {userInfo.profileImage || userInfo.sellerLogo || userInfo.seller?.logo || userInfo.logo ? (
+              <img
+                src={userInfo.profileImage || userInfo.sellerLogo || userInfo.seller?.logo || userInfo.logo}
+                alt={userInfo.name || 'Parceiro'}
+                className="partner-avatar-img"
               />
             ) : (
-              <div className="text-white fs-4"><FontAwesomeIcon icon={faShieldAlt} /></div>
+              <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#ffffff', fontSize: '1.2rem' }} />
             )}
           </div>
-          <h6 className="fw-bold m-0 text-dark text-truncate">{userInfo.name || 'Gestor de Frota'}</h6>
-          <small className="badge mt-1" style={{ backgroundColor: '#8a2be2', color: '#fff' }}>Parceiro Oficial 🛡️</small>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h6 className="partner-name">{userInfo.name || 'Gestor de Frota'}</h6>
+            <span className="partner-badge-pill">
+              Parceiro Oficial 🛡️
+            </span>
+          </div>
         </NavLink>
 
-        <nav className="nav flex-column flex-grow-1 p-3 gap-2">
-          {menuItems.map((item, idx) => (
-            <NavLink 
-              key={idx} 
-              to={item.path} 
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) => 
-                `nav-link rounded-3 px-3 py-2 text-dark d-flex align-items-center ${isActive ? 'text-white fw-bold shadow-sm' : 'hover-bg-light'}`
-              }
-              style={({ isActive }) => ({
-                backgroundColor: isActive ? '#8a2be2' : 'transparent',
-                color: isActive ? '#fff' : '#333'
-              })}
-            >
-              <div style={{ width: '25px' }} className="text-center me-2">
-                <FontAwesomeIcon icon={item.icon} />
-              </div>
-              {item.name}
-            </NavLink>
+        {/* Nav Menu Categorizado */}
+        <div className="partner-nav-scroll">
+          {menuSections.map((section, sIdx) => (
+            <div key={sIdx} className="mb-2">
+              <div className="nav-section-title">{section.title}</div>
+              {section.items.map((item, iIdx) => (
+                <NavLink
+                  key={iIdx}
+                  to={item.path}
+                  end={item.path === '/partner/fleet' || item.path === '/partner/dashboard'}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) => `partner-nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <div className="partner-nav-icon">
+                    <FontAwesomeIcon icon={item.icon} />
+                  </div>
+                  <span>{item.name}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
-        </nav>
-        
-        <div className="p-3 mt-auto border-top">
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="partner-sidebar-footer">
           {userInfo.isAdmin && (
-            <NavLink to="/admin/dashboard" className="btn btn-light w-100 text-start mb-2 text-muted">
-              <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> Voltar ao Admin
+            <NavLink to="/admin/dashboard" className="btn-sidebar-footer btn-sidebar-admin">
+              <FontAwesomeIcon icon={faArrowLeft} />
+              <span>Voltar ao Admin</span>
             </NavLink>
           )}
-          <button onClick={handleLogout} className="btn btn-outline-danger w-100 text-start">
-            <FontAwesomeIcon icon={faSignOutAlt} className="me-2" /> Terminar Sessão
+          <button onClick={handleLogout} className="btn-sidebar-footer btn-sidebar-logout">
+            <FontAwesomeIcon icon={faSignOutAlt} />
+            <span>Terminar Sessão</span>
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-grow-1 ms-0 ms-md-250 w-100 d-flex flex-column" style={{ minWidth: 0 }}>
-        {/* Header Mobile */}
-        <div className="d-md-none bg-white p-3 shadow-sm d-flex justify-content-between align-items-center sticky-top">
-          <div className="d-flex align-items-center">
-            <button className="btn btn-light me-3" style={{ color: '#8a2be2' }} onClick={toggleSidebar}>
-              <FontAwesomeIcon icon={faBars} />
-            </button>
-            <h6 className="m-0 fw-bold" style={{ color: '#8a2be2' }}>Painel do Parceiro</h6>
+      {/* Content Area Shell */}
+      <main className="partner-content-main">
+        {/* Header Mobile Topbar */}
+        <div className="partner-mobile-topbar d-lg-none">
+          <button className="btn-mobile-toggle" onClick={toggleSidebar}>
+            <FontAwesomeIcon icon={faBars} />
+          </button>
+          <div className="text-end">
+            <h6 className="m-0 fw-bold" style={{ color: '#ffffff', fontSize: '0.9rem' }}>
+              nhiquela<span style={{ color: '#34d399' }}>.parceiro</span>
+            </h6>
           </div>
         </div>
 
-        <div className="p-3 p-md-4 p-lg-5">
+        <div>
           <Outlet />
         </div>
-      </div>
-      
-      <style>{`
-        .start-negative { left: -260px; }
-        .transition-all { transition: all 0.3s ease-in-out; }
-        .hover-bg-light:hover { background-color: #f8f9fa; }
-        @media (min-width: 768px) {
-          .start-md-0 { left: 0 !important; }
-          .ms-md-250 { margin-left: 260px !important; }
-        }
-      `}</style>
+      </main>
     </div>
   );
 }
+

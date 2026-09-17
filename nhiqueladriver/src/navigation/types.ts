@@ -3,5 +3,6 @@ export type RootStackParamList = {
     Home: undefined;
     Trips: undefined;
     Map: undefined;
+    FleetDriver?: undefined;
   };
   

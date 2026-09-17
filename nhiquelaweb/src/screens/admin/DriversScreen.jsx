@@ -613,7 +613,7 @@ export default function DriversScreen() {
 
           <div className="table-responsive">
 
-            <table className="table table-hover align-middle m-0">
+            <table className="table table-hover align-middle m-0 text-nowrap">
 
               <thead className="bg-light">
 
@@ -744,35 +744,39 @@ export default function DriversScreen() {
 
                     </td>
 
-                    <td className="text-end px-4">
+                    <td className="text-end px-4 text-nowrap">
 
-                      {(!driver.status || driver.status === 'Pendente') && (
+                      <div className="d-inline-flex align-items-center justify-content-end gap-1 text-nowrap">
 
-                        <button className="btn btn-sm btn-light text-success me-2 rounded-3 shadow-sm fw-bold" onClick={() => handleUpdateStatusDirect(driver, 'Disponível')} title="Aprovar Diretamente">
+                        {(!driver.status || driver.status === 'Pendente') && (
 
-                          <FontAwesomeIcon icon={faCheckCircle} /> Aprovar
+                          <button className="btn btn-sm btn-light text-success rounded-3 shadow-sm fw-bold" onClick={() => handleUpdateStatusDirect(driver, 'Disponível')} title="Aprovar Diretamente">
+
+                            <FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Aprovar
+
+                          </button>
+
+                        )}
+
+                        <button className="btn btn-sm btn-light text-info rounded-3 shadow-sm" onClick={() => handleOpenDetails(driver)} title="Ver Detalhes e Documentos">
+
+                          <FontAwesomeIcon icon={faEye} className="me-1" /> Detalhes
 
                         </button>
 
-                      )}
+                        <button className="btn btn-sm btn-light text-primary-custom rounded-3 shadow-sm" onClick={() => handleOpenModal(driver)} title="Editar">
 
-                      <button className="btn btn-sm btn-light text-info me-2 rounded-3 shadow-sm" onClick={() => handleOpenDetails(driver)} title="Ver Detalhes e Documentos">
+                          <FontAwesomeIcon icon={faEdit} />
 
-                        <FontAwesomeIcon icon={faEye} /> Detalhes
+                        </button>
 
-                      </button>
+                        <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(driver._id || driver.id)} title="Eliminar">
 
-                      <button className="btn btn-sm btn-light text-primary-custom me-2 rounded-3 shadow-sm" onClick={() => handleOpenModal(driver)} title="Editar">
+                          <FontAwesomeIcon icon={faTrash} />
 
-                        <FontAwesomeIcon icon={faEdit} />
+                        </button>
 
-                      </button>
-
-                      <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(driver._id || driver.id)} title="Eliminar">
-
-                        <FontAwesomeIcon icon={faTrash} />
-
-                      </button>
+                      </div>
 
                     </td>
 

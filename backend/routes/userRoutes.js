@@ -53,6 +53,50 @@ userRouter.get(
   })
 );
 
+// Criar utilizador (Admin)
+userRouter.post(
+  '/',
+  isAuth,
+  isAdmin,
+  expressAsyncHandler(async (req, res) => {
+    const { name, email, phoneNumber, password, isAdmin, isSeller, isDeliveryMan, roleId } = req.body;
+
+    const emailExist = await User.findOne({ email: email.toLowerCase().trim() });
+    if (emailExist) {
+      return res.status(409).send({ message: 'Já existe um utilizador registado com este e-mail.' });
+    }
+
+    const initialPassword = password && password.trim() ? password.trim() : 'password123';
+    const requireChange = !password || password.trim() === 'password123';
+
+    let defaultRoleCode = 'CLIENT';
+    if (isAdmin) defaultRoleCode = 'ADMIN';
+    else if (isDeliveryMan) defaultRoleCode = 'DRIVER';
+    else if (isSeller) defaultRoleCode = 'SELLER';
+
+    const newUser = new User({
+      name,
+      email: email.toLowerCase().trim(),
+      phoneNumber: phoneNumber ? (isNaN(phoneNumber) ? 840000000 : Number(phoneNumber)) : 840000000,
+      password: bcrypt.hashSync(initialPassword, 8),
+      isAdmin: Boolean(isAdmin),
+      isSeller: Boolean(isSeller),
+      isDeliveryMan: Boolean(isDeliveryMan),
+      role: defaultRoleCode,
+      roleId: roleId && mongoose.Types.ObjectId.isValid(roleId) ? roleId : null,
+      requirePasswordChange: requireChange,
+      isApproved: true,
+      status: isDeliveryMan ? 'Disponível' : 'Pendente',
+    });
+
+    const createdUser = await newUser.save();
+    res.status(201).send({
+      message: `Utilizador criado com sucesso! Palavra-passe inicial: "${initialPassword}".`,
+      user: createdUser,
+    });
+  })
+);
+
 // Notify Admin for Approval
 userRouter.post(
   '/notify-approval',
@@ -749,10 +793,41 @@ userRouter.put(
           const roleDoc = await Role.findById(req.body.roleId);
           if (roleDoc) {
             user.role = roleDoc.code;
+            const isPartnerRole =
+              roleDoc.code === 'PARTNER' ||
+              (roleDoc.name && (
+                roleDoc.name.toLowerCase().includes('parceiro') ||
+                roleDoc.name.toLowerCase().includes('gestor') ||
+                roleDoc.name.toLowerCase().includes('frota')
+              ));
+
+            if (isPartnerRole) {
+              user.isPartner = true;
+              user.role = 'PARTNER';
+
+              const Partner = mongoose.model('Partner');
+              let partnerDoc = await Partner.findOne({ $or: [{ userId: user._id }, { email: user.email }] });
+              if (!partnerDoc) {
+                partnerDoc = await Partner.create({
+                  name: user.name || 'Parceiro',
+                  companyName: user.name || 'Empresa Parceira',
+                  email: user.email,
+                  phone: String(user.phoneNumber || ''),
+                  phoneNumber: String(user.phoneNumber || ''),
+                  userId: user._id,
+                  status: 'ACTIVE',
+                  isActive: true,
+                });
+              }
+              user.partnerId = partnerDoc._id;
+            }
           }
         } else {
           user.roleId = null;
           user.role = user.isAdmin ? 'ADMIN' : (user.isSeller ? 'SELLER' : (user.isDeliveryMan ? 'DRIVER' : 'CLIENT'));
+          if (user.role !== 'PARTNER') {
+            user.isPartner = false;
+          }
         }
       }
 
@@ -1463,46 +1538,78 @@ userRouter.post('/forgot-password', expressAsyncHandler(async (req, res) => {
   });
 }));
 
-// --- ROTA DE RESET DE PASSWORD (ADMIN) ---
+// --- ROTA DE RESET DE PASSWORD (ADMIN & GESTOR DE FROTA/PARCEIRO) ---
 userRouter.put(
   '/:id/reset-password',
   isAuth,
-  isAdmin,
   expressAsyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
-    if (user) {
-      user.password = bcrypt.hashSync('password123', 8);
-      user.requirePasswordChange = true;
-      const updatedUser = await user.save();
-      res.send({ message: 'Palavra-passe redefinida para password123. O utilizador terá de a alterar no próximo login.', user: updatedUser });
-    } else {
-      res.status(404).send({ message: 'Utilizador não encontrado.' });
+    if (!user) {
+      return res.status(404).send({ message: 'Utilizador não encontrado.' });
     }
-  })
-);
 
-// --- ROTA DE FORÇAR UPDATE DE PASSWORD (USER) ---
-userRouter.put(
-  '/:id/force-update-password',
-  expressAsyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
-    if (user) {
-      if (req.body.password) {
-        user.password = bcrypt.hashSync(req.body.password, 8);
-        user.requirePasswordChange = false;
-      }
-      const updatedUser = await user.save();
+    const isUserAdmin = req.user.isAdmin || req.user.role === 'ADMIN';
+    const isPartnerManager = (req.user.role === 'PARTNER' || req.user.isPartner) && (
+      (user.partnerId && String(user.partnerId) === String(req.user.partnerId || req.user._id)) ||
+      String(user._id) === String(req.user._id)
+    );
 
-      res.send({
+    if (!isUserAdmin && !isPartnerManager) {
+      return res.status(403).send({ message: 'Acesso negado. Apenas administradores ou o gestor de frota responsável podem redefinir a palavra-passe.' });
+    }
+
+    const defaultPass = req.body.password && req.body.password.trim() ? req.body.password.trim() : 'password123';
+    user.password = bcrypt.hashSync(defaultPass, 8);
+    user.requirePasswordChange = true;
+    const updatedUser = await user.save();
+
+    res.send({ 
+      message: `Palavra-passe de ${updatedUser.name} redefinida para "${defaultPass}". O utilizador terá de a alterar no próximo login.`, 
+      user: {
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
         requirePasswordChange: updatedUser.requirePasswordChange,
-        token: generateToken(updatedUser),
-      });
-    } else {
-      res.status(404).send({ message: 'Utilizador não encontrado.' });
+      }
+    });
+  })
+);
+
+// --- ROTA DE FORÇAR UPDATE DE PASSWORD (USER NO PRIMEIRO LOGIN) ---
+userRouter.put(
+  '/:id/force-update-password',
+  expressAsyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).send({ message: 'Utilizador não encontrado.' });
     }
+
+    const newPassword = req.body.password;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).send({ message: 'A nova palavra-passe deve ter pelo menos 6 caracteres.' });
+    }
+
+    if (newPassword === 'password123') {
+      return res.status(400).send({ message: 'A nova palavra-passe não pode ser a senha padrão "password123".' });
+    }
+
+    user.password = bcrypt.hashSync(newPassword, 8);
+    user.requirePasswordChange = false;
+    const updatedUser = await user.save();
+
+    res.send({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      isAdmin: updatedUser.isAdmin,
+      isDeliveryMan: updatedUser.isDeliveryMan,
+      isSeller: updatedUser.isSeller,
+      isPartner: updatedUser.isPartner,
+      requirePasswordChange: false,
+      token: generateToken(updatedUser),
+      message: 'Palavra-passe atualizada com sucesso!',
+    });
   })
 );
 
@@ -1513,27 +1620,27 @@ userRouter.post(
 
     let user = null;
 
-    // --- Buscar usu�rio por email ou telefone ---
+    // --- Buscar usuário por email ou telefone ---
     if (email) {
-      user = await User.findOne({ email });
+      user = await User.findOne({ email }).populate('roleId');
     } else if (phoneNumber) {
       if (typeof phoneNumber === 'string' && phoneNumber.includes('@')) {
-        user = await User.findOne({ email: phoneNumber });
+        user = await User.findOne({ email: phoneNumber }).populate('roleId');
       } else if (!isNaN(phoneNumber)) {
-        user = await User.findOne({ phoneNumber });
+        user = await User.findOne({ phoneNumber }).populate('roleId');
       } else {
-        return res.status(400).send({ message: 'N�mero de telefone inv�lido.' });
+        return res.status(400).send({ message: 'Número de telefone inválido.' });
       }
     } else {
-      return res.status(400).send({ message: 'E-mail ou Telefone s�o obrigat�rios.' });
+      return res.status(400).send({ message: 'E-mail ou Telefone são obrigatórios.' });
     }
 
-    // --- Verificar se usu�rio existe ---
+    // --- Verificar se usuário existe ---
     if (!user) {
-      return res.status(401).send({ message: 'Conta/Usu�rio n�o encontrado.' });
+      return res.status(401).send({ message: 'Conta/Usuário não encontrado.' });
     }
 
-    // --- Verificar se est� banido ---
+    // --- Verificar se está banido ---
     if (user.isBanned) {
       return res.status(401).send({
         message: 'Esta conta foi BANIDA. Por favor, contacte o Administrador.',
@@ -1543,21 +1650,59 @@ userRouter.post(
     // --- Verificar senha ---
     const passwordMatch = bcrypt.compareSync(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).send({ message: 'Senha invlida.' });
+      return res.status(401).send({ message: 'Senha inválida.' });
     }
 
-    // --- Atualizar deviceToken se presente ---
+    // --- Sincronizar privilégios de Parceiro / Gestor de Frota ---
+    let isPartner = user.isPartner || user.role === 'PARTNER';
+    if (!isPartner && user.roleId) {
+      const roleName = (user.roleId.name || '').toLowerCase();
+      const roleCode = (user.roleId.code || '').toUpperCase();
+      if (roleCode === 'PARTNER' || roleName.includes('parceiro') || roleName.includes('gestor') || roleName.includes('frota')) {
+        isPartner = true;
+        user.isPartner = true;
+        user.role = 'PARTNER';
+      }
+    }
+
+    let partnerId = user.partnerId || null;
+    if (isPartner && !partnerId) {
+      try {
+        const Partner = mongoose.model('Partner');
+        let partnerDoc = await Partner.findOne({ $or: [{ userId: user._id }, { email: user.email }] });
+        if (!partnerDoc) {
+          partnerDoc = await Partner.create({
+            name: user.name || 'Parceiro',
+            companyName: user.name || 'Empresa Parceira',
+            email: user.email,
+            phone: String(user.phoneNumber || ''),
+            phoneNumber: String(user.phoneNumber || ''),
+            userId: user._id,
+            status: 'ACTIVE',
+            isActive: true,
+          });
+        }
+        partnerId = partnerDoc._id;
+        user.partnerId = partnerDoc._id;
+      } catch (pErr) {
+        console.warn('Erro ao auto-vincular partnerId:', pErr);
+      }
+    }
+
+    // --- Atualizar deviceToken se presente e salvar alterações ---
     if (deviceToken) {
       user.deviceToken = deviceToken;
-      await user.save();
     }
+    await user.save();
 
-    // --- Responder com dados do usurio e token ---
+    // --- Responder com dados do usuário e token ---
     const userObj = {
       _id: user._id,
       email: user.email,
-      role: user.role || (user.isAdmin ? 'ADMIN' : (user.isSeller ? 'SELLER' : (user.isDeliveryMan ? 'DRIVER' : 'CLIENT'))),
+      role: isPartner ? 'PARTNER' : (user.role || (user.isAdmin ? 'ADMIN' : (user.isSeller ? 'SELLER' : (user.isDeliveryMan ? 'DRIVER' : 'CLIENT')))),
       roleId: user.roleId || null,
+      isPartner: Boolean(isPartner),
+      partnerId: partnerId,
       photo: user.profileImage || user.photo || null,       // compatibilidade com apps antigas
       profileImage: user.profileImage || user.photo || null, // campo real da BD
       isAdmin: user.isAdmin || user.role === 'ADMIN',

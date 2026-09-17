@@ -86,7 +86,7 @@ export default function CustomersScreen() {
       <div className="card shadow-sm-custom border-0 rounded-4">
         <div className="card-body p-0">
           <div className="table-responsive">
-            <table className="table table-hover align-middle m-0">
+            <table className="table table-hover align-middle m-0 text-nowrap">
               <thead className="bg-light">
                 <tr>
                   <th className="border-0 text-muted py-3 px-4 rounded-start-4">Cliente / Contacto</th>
@@ -151,21 +151,23 @@ export default function CustomersScreen() {
                         {!customer.isBanned ? 'Ativo' : 'Bloqueado'}
                       </span>
                     </td>
-                    <td className="text-end px-4">
-                      <button className="btn btn-sm btn-light text-primary-custom rounded-3 shadow-sm me-2 border" onClick={() => setSelectedCustomer(customer)} title="Ver Detalhes">
-                        <FontAwesomeIcon icon={faEye} />
-                      </button>
-                      <button 
-                        className={`btn btn-sm me-2 rounded-3 shadow-sm fw-bold ${!customer.isBanned ? 'btn-outline-danger' : 'btn-success'}`}
-                        onClick={() => handleToggleStatus(customer)}
-                        title={!customer.isBanned ? "Bloquear Conta" : "Desbloquear Conta"}
-                      >
-                        <FontAwesomeIcon icon={!customer.isBanned ? faBan : faUserShield} className="me-1" />
-                        {!customer.isBanned ? 'Bloquear' : 'Desbloquear'}
-                      </button>
-                      <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(customer._id)} title="Eliminar Definitivamente">
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
+                    <td className="text-end px-4 text-nowrap">
+                      <div className="d-inline-flex align-items-center justify-content-end gap-1 text-nowrap">
+                        <button className="btn btn-sm btn-light text-primary-custom rounded-3 shadow-sm border" onClick={() => setSelectedCustomer(customer)} title="Ver Detalhes">
+                          <FontAwesomeIcon icon={faEye} />
+                        </button>
+                        <button 
+                          className={`btn btn-sm rounded-3 shadow-sm fw-bold ${!customer.isBanned ? 'btn-outline-danger' : 'btn-success'}`}
+                          onClick={() => handleToggleStatus(customer)}
+                          title={!customer.isBanned ? "Bloquear Conta" : "Desbloquear Conta"}
+                        >
+                          <FontAwesomeIcon icon={!customer.isBanned ? faBan : faUserShield} className="me-1" />
+                          {!customer.isBanned ? 'Bloquear' : 'Desbloquear'}
+                        </button>
+                        <button className="btn btn-sm btn-light text-danger rounded-3 shadow-sm" onClick={() => handleDelete(customer._id)} title="Eliminar Definitivamente">
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

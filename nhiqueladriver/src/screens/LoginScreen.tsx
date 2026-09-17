@@ -36,6 +36,8 @@ export default function LoginScreen({ navigation }: any) {
   const [tempUserData, setTempUserData] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
   const authContext = useAuth();
@@ -342,12 +344,12 @@ export default function LoginScreen({ navigation }: any) {
                 <TextInput
                   style={styles.input}
                   placeholder="Nova Palavra-passe"
-                  secureTextEntry={!showPassword}
+                  secureTextEntry={!showNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{padding: 5}}>
-                  <MaterialCommunityIcons name={showPassword ? "eye-off-outline" : "eye-outline"} size={24} color="#6B7280" />
+                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={{padding: 5}}>
+                  <MaterialCommunityIcons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
 
@@ -356,10 +358,13 @@ export default function LoginScreen({ navigation }: any) {
                 <TextInput
                   style={styles.input}
                   placeholder="Confirmar Nova Palavra-passe"
-                  secureTextEntry={!showPassword}
+                  secureTextEntry={!showConfirmPassword}
                   value={confirmNewPassword}
                   onChangeText={setConfirmNewPassword}
                 />
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{padding: 5}}>
+                  <MaterialCommunityIcons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={24} color="#6B7280" />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity 
