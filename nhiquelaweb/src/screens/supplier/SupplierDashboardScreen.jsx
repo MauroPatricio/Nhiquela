@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faMoneyBillWave, faShoppingBag, faStar, faArrowUp, faPlus, faEdit, faTrash,
-  faMotorcycle, faCheckCircle, faTimesCircle, faFileAlt, faBox, faStore, faPhone,
+  faCheckCircle, faTimesCircle, faFileAlt, faBox, faStore, faPhone,
   faMapMarkerAlt, faSyncAlt, faWallet, faCheckDouble, faExclamationTriangle, faArrowDown, faHistory
 } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../../components/common/CustomIcons';
 import { useSelector } from 'react-redux';
 import { selectUser } from '../../store/features/userSlice';
 import api from '../../api';
@@ -358,8 +359,8 @@ export default function SupplierDashboardScreen() {
                           </button>
                         )}
                         {!order.isAvailableToDeliver && !order.isDigitalOrder && order.status !== 'Entregue' && (
-                          <button className="btn btn-sm btn-primary rounded-pill fw-bold px-3 shadow-sm" onClick={() => handleCallDelivery(order._id)}>
-                            <FontAwesomeIcon icon={faMotorcycle} className="me-1" /> Chamar Entregador
+                          <button className="btn btn-sm btn-primary rounded-pill fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1" onClick={() => handleCallDelivery(order._id)}>
+                            <SteeringWheelIcon size={14} color="currentColor" /> Chamar Entregador
                           </button>
                         )}
                         <button className="btn btn-sm btn-outline-dark rounded-pill fw-bold" onClick={() => handleDownloadReceipt(order._id)} title="Recibo PDF">

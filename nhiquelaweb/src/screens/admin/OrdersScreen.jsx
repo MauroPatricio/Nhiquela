@@ -227,7 +227,7 @@ export default function OrdersScreen() {
       case 'Aceite pelo entregador': return faBoxOpen;
       case 'A Caminho': 
       case 'Em trânsito':
-      case 'No destino indicado': return faMotorcycle;
+      case 'No destino indicado': return faCar;
       case 'Entregue': 
       case 'Finalizado': return faCheckCircle;
       default: return faBoxOpen;
@@ -490,7 +490,7 @@ export default function OrdersScreen() {
                         <ul className="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
                           <li><button className="dropdown-item fw-bold text-warning" onClick={() => handleStatusChange(order._id, 'Pendente', order.orderType)}><FontAwesomeIcon icon={faClock} className="me-2" />Pendente</button></li>
                           <li><button className="dropdown-item fw-bold text-info" onClick={() => handleStatusChange(order._id, 'Em Preparação', order.orderType)}><FontAwesomeIcon icon={faBoxOpen} className="me-2" />Em Preparação</button></li>
-                          <li><button className="dropdown-item fw-bold text-primary" onClick={() => handleStatusChange(order._id, 'A Caminho', order.orderType)}><FontAwesomeIcon icon={faMotorcycle} className="me-2" />A Caminho</button></li>
+                          <li><button className="dropdown-item fw-bold text-primary d-inline-flex align-items-center gap-2" onClick={() => handleStatusChange(order._id, 'A Caminho', order.orderType)}><SteeringWheelIcon size={14} color="currentColor" />A Caminho</button></li>
                           <li><hr className="dropdown-divider" /></li>
                           <li><button className="dropdown-item fw-bold text-success" onClick={() => handleStatusChange(order._id, 'Entregue', order.orderType)}><FontAwesomeIcon icon={faCheckCircle} className="me-2" />Entregue</button></li>
                           <li><button className="dropdown-item fw-bold text-danger" onClick={() => handleStatusChange(order._id, 'Cancelada', order.orderType)}><FontAwesomeIcon icon={faTimes} className="me-2" />Cancelada</button></li>

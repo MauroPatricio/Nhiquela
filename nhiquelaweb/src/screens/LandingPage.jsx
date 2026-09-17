@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faMotorcycle, faStore, faShoppingBag, faMobileAlt, faStar, faCheckCircle,
+  faStore, faShoppingBag, faMobileAlt, faStar, faCheckCircle,
   faMapMarkerAlt, faWallet, faListCheck, faMap, faTruck, faChevronLeft, faChevronRight,
   faArrowRight, faUtensils, faBox, faGasPump, faWrench, faBuilding, faHandshake,
   faQrcode, faChartLine, faShieldAlt, faTimes, faPaperPlane, faCapsules, faCar,
-  faHardHat, faUsers, faPhone, faEnvelope, faSpinner
+  faHardHat, faUsers, faPhone, faEnvelope, faSpinner, faUserTie
 } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon, DriverPersonIcon } from '../components/common/CustomIcons';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
@@ -693,7 +694,7 @@ export default function LandingPage() {
                       background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
                     }}
                   >
-                    <FontAwesomeIcon icon={faMotorcycle} size="lg" />
+                    <SteeringWheelIcon size={28} color="#FFFFFF" />
                   </div>
                   <div>
                     <h4 className="fw-extrabold text-dark mb-0">{t('landing.mobility', 'Mobilidade')}</h4>
@@ -784,7 +785,7 @@ export default function LandingPage() {
                 { id: 'client', label: t('landing.clientAppServicesTab', 'App Cliente (Serviços)'), icon: faShoppingBag, activeBg: '#7F00FF' },
                 { id: 'order', label: t('landing.trackOrderTab', 'Acompanhar Pedido'), icon: faListCheck, activeBg: '#8B5CF6' },
                 { id: 'seller', label: t('landing.supplierAppTab', 'App Fornecedor'), icon: faStore, activeBg: '#10B981' },
-                { id: 'driver', label: t('landing.driverAppTab', 'App Motorista'), icon: faMotorcycle, activeBg: '#059669' },
+                { id: 'driver', label: t('landing.driverAppTab', 'App Motorista'), customIcon: <SteeringWheelIcon size={18} color="currentColor" />, activeBg: '#059669' },
                 { id: 'map', label: t('landing.gpsRouteTab', 'Trajeto GPS'), icon: faMap, activeBg: '#2563EB' }
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -802,7 +803,7 @@ export default function LandingPage() {
                       transform: isActive ? 'scale(1.03)' : 'scale(1)'
                     }}
                   >
-                    <FontAwesomeIcon icon={tab.icon} />
+                    {tab.customIcon ? tab.customIcon : <FontAwesomeIcon icon={tab.icon} />}
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -1019,7 +1020,7 @@ export default function LandingPage() {
                       boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)'
                     }}
                   >
-                    <FontAwesomeIcon icon={faMotorcycle} size="2x" />
+                    <SteeringWheelIcon size={36} color="#FFFFFF" />
                   </div>
 
                   <h3 className="fw-extrabold text-dark mb-3" style={{ letterSpacing: '-0.5px' }}>
@@ -1256,7 +1257,7 @@ export default function LandingPage() {
                       background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)'
                     }}
                   >
-                    <FontAwesomeIcon icon={faMotorcycle} size="xl" />
+                    <SteeringWheelIcon size={32} color="#FFFFFF" />
                   </div>
 
                   <h4 className="fw-extrabold text-dark mb-2">{t('landing.driver', 'Motorista')}</h4>

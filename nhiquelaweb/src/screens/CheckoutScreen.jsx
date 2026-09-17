@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faArrowLeft, faMapMarkerAlt, faCreditCard, faMotorcycle, faStore, 
+  faArrowLeft, faMapMarkerAlt, faCreditCard, faStore, 
   faCheckCircle, faMoneyBillWave, faPhoneAlt, faUser, faLock, faSignInAlt, faUserPlus,
   faUpload, faSpinner, faImage, faCopy, faBank, faMobileAlt, faTimesCircle, faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../components/common/CustomIcons';
 import { toast } from 'react-toastify';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -507,7 +508,9 @@ export default function CheckoutScreen() {
                       style={{ borderColor: isUserWantDelivery ? '#7F00FF' : '#E5E7EB', backgroundColor: isUserWantDelivery ? '#F3E8FF' : '#F9FAFB' }}
                       onClick={() => setIsUserWantDelivery(true)}
                     >
-                      <FontAwesomeIcon icon={faMotorcycle} className="fs-3 mb-2 text-primary-custom" />
+                      <div className="mb-2 text-primary-custom d-flex justify-content-center">
+                        <SteeringWheelIcon size={32} color="#7F00FF" />
+                      </div>
                       <h6 className="fw-bold m-0 text-dark">Entrega ao Domicílio</h6>
                       <small className="text-muted">Entregue na sua morada (Valor do transporte pago ao estafeta no momento da entrega)</small>
                     </div>

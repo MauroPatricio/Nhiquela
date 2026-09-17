@@ -200,7 +200,7 @@ export default function LoginScreen({ navigation }: any) {
               <MaterialCommunityIcons name="tow-truck" size={40} color="#7F00FF" />
               <MaterialCommunityIcons name="truck-fast" size={40} color="#7F00FF" />
               <MaterialCommunityIcons name="car-pickup" size={40} color="#7F00FF" />
-              <MaterialCommunityIcons name="motorbike" size={40} color="#7F00FF" />
+              <MaterialCommunityIcons name="steering" size={40} color="#7F00FF" />
             </View>
           </View>
 

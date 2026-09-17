@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileAlt, faCheck, faTimes, faSpinner, faHistory, faMotorcycle, faLockOpen } from '@fortawesome/free-solid-svg-icons';
+import { faFileAlt, faCheck, faTimes, faSpinner, faHistory, faLockOpen } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../../components/common/CustomIcons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 
@@ -119,8 +120,8 @@ export default function DocRequestsPanel() {
                   <tr key={req._id}>
                     <td className="px-4 py-3">
                       <div className="d-flex align-items-center">
-                        <div className="bg-light rounded-circle p-2 me-3">
-                          <FontAwesomeIcon icon={faMotorcycle} className="text-primary-custom" />
+                        <div className="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+                          <SteeringWheelIcon size={18} color="#7F00FF" />
                         </div>
                         <div>
                           <h6 className="m-0 fw-bold">{req.deliverymanId?.name || 'Desconhecido'}</h6>
@@ -162,7 +163,7 @@ export default function DocRequestsPanel() {
                           disabled={processing === req._id}
                         >
                           {processing === req._id ? <FontAwesomeIcon icon={faSpinner} spin /> : (
-                            req.type === 'profile_update' ? <><FontAwesomeIcon icon={faMotorcycle} className="me-1" /> Aprovar Mudança</> : <><FontAwesomeIcon icon={faLockOpen} className="me-1" /> Permitir Edição</>
+                            req.type === 'profile_update' ? <><SteeringWheelIcon size={14} color="currentColor" style={{ marginRight: '0.25rem' }} /> Aprovar Mudança</> : <><FontAwesomeIcon icon={faLockOpen} className="me-1" /> Permitir Edição</>
                           )}
                         </button>
                         <button 
