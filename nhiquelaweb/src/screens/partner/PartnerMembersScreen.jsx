@@ -3,8 +3,25 @@ import { useSelector } from 'react-redux';
 import { selectUser } from '../../store/features/userSlice';
 import api from '../../api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faMotorcycle, faStore, faPlus, faTrash, faSearch, faPhone, faEnvelope, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+  faUsers,
+  faStore,
+  faPlus,
+  faTrash,
+  faSearch,
+  faPhone,
+  faEnvelope,
+  faCheckCircle,
+  faKey,
+  faLock,
+  faCoins,
+  faTimes,
+  faUserTie,
+  faCircle,
+} from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../../components/common/CustomIcons';
 import { toast } from 'react-toastify';
+import './FleetOperations.css';
 
 export default function PartnerMembersScreen() {
   const userInfo = useSelector(selectUser) || {};
@@ -25,7 +42,7 @@ export default function PartnerMembersScreen() {
     setLoading(true);
     try {
       const res = await api.get(`/partners/${partnerId}/members`, {
-        headers: { Authorization: `Bearer ${userInfo.token}` }
+        headers: { Authorization: `Bearer ${userInfo.token}` },
       });
       setData(res.data || { drivers: [], sellers: [], totalMembers: 0, members: [] });
     } catch (error) {
@@ -51,16 +68,19 @@ export default function PartnerMembersScreen() {
 
     setSubmitting(true);
     try {
-      const endpoint = assignType === 'driver' 
-        ? `/partners/${partnerId}/assign-driver` 
-        : `/partners/${partnerId}/assign-seller`;
+      const endpoint =
+        assignType === 'driver'
+          ? `/partners/${partnerId}/assign-driver`
+          : `/partners/${partnerId}/assign-seller`;
 
-      const payload = identifier.includes('@') 
+      const payload = identifier.includes('@')
         ? { email: identifier }
-        : (/^\d+$/.test(identifier) ? { phoneNumber: Number(identifier) } : { userId: identifier });
+        : /^\d+$/.test(identifier)
+        ? { phoneNumber: Number(identifier) }
+        : { userId: identifier };
 
       const res = await api.post(endpoint, payload, {
-        headers: { Authorization: `Bearer ${userInfo.token}` }
+        headers: { Authorization: `Bearer ${userInfo.token}` },
       });
 
       toast.success(res.data.message || 'Membro associado com sucesso!');
@@ -84,12 +104,14 @@ export default function PartnerMembersScreen() {
       let res;
       try {
         res = await api.delete(`/partners/${partnerId}/remove-member/${member._id}`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` }
+          headers: { Authorization: `Bearer ${userInfo.token}` },
         });
       } catch (err) {
-        res = await api.post(`/partners/${partnerId}/remove-member`, { memberId: member._id }, {
-          headers: { Authorization: `Bearer ${userInfo.token}` }
-        });
+        res = await api.post(
+          `/partners/${partnerId}/remove-member`,
+          { memberId: member._id },
+          { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        );
       }
       toast.success(res.data?.message || 'Membro desvinculado com sucesso.');
       fetchMembers();
@@ -99,231 +121,395 @@ export default function PartnerMembersScreen() {
     }
   };
 
-  const driversList = data.drivers || [];
-  const sellersList = data.sellers || [];
+  const handleResetPassword = async (member) => {
+    if (
+      window.confirm(
+        `ATENÇÃO: Deseja redefinir a palavra-passe de "${member.name}" para o padrão "password123"?\n\nO membro será obrigado a definir uma nova palavra-passe no primeiro acesso à plataforma.`
+      )
+    ) {
+      try {
+        const { data } = await api.put(
+          `/users/${member._id || member.id}/reset-password`,
+          {},
+          { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        );
+        toast.success(data?.message || `Palavra-passe de ${member.name} redefinida para "password123"!`);
+      } catch (error) {
+        console.error('Erro ao redefinir palavra-passe:', error);
+        toast.error(error.response?.data?.message || 'Erro ao redefinir a palavra-passe do membro.');
+      }
+    }
+  };
+
+  const driversList = Array.isArray(data.drivers) ? data.drivers : [];
+  const sellersList = Array.isArray(data.sellers) ? data.sellers : [];
   const totalDriversCount = driversList.length;
   const totalSellersCount = sellersList.length;
   const totalMembersCount = totalDriversCount + totalSellersCount;
 
   const allMembers = [...driversList, ...sellersList];
-  const displayedMembers = allMembers.filter(m => {
-    const matchesTab = activeTab === 'all' || 
-                       (activeTab === 'drivers' && (m.role === 'DRIVER' || m.isDeliveryMan)) || 
-                       (activeTab === 'sellers' && (m.role === 'SELLER' || m.isSeller));
-    const matchesSearch = !searchTerm || 
-                          m.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          String(m.phoneNumber || '').includes(searchTerm);
+  const totalRevenue = allMembers.reduce((sum, m) => sum + (m.revenue || 0), 0);
+
+  const displayedMembers = allMembers.filter((m) => {
+    const matchesTab =
+      activeTab === 'all' ||
+      (activeTab === 'drivers' && (m.role === 'DRIVER' || m.isDeliveryMan)) ||
+      (activeTab === 'sellers' && (m.role === 'SELLER' || m.isSeller));
+    const matchesSearch =
+      !searchTerm ||
+      m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(m.phoneNumber || '').includes(searchTerm);
     return matchesTab && matchesSearch;
   });
 
   return (
-    <div className="container-fluid py-2">
-      {/* Cabeçalho */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 bg-white p-4 rounded-4 shadow-sm border border-light">
+    <div className="fleet-ops-wrapper">
+      {/* 1. Hero Header */}
+      <div className="fleet-hero-header hero-members">
         <div>
-          <span className="badge px-3 py-2 rounded-pill mb-2" style={{ backgroundColor: 'rgba(138,43,226,0.1)', color: '#8a2be2', fontWeight: 'bold' }}>
-            <FontAwesomeIcon icon={faUsers} className="me-2" /> Gestão da Frota
-          </span>
-          <h3 className="fw-bold m-0 text-dark">Motoristas & Fornecedores</h3>
-          <p className="text-muted small m-0 mt-1">
-            Gerencie todos os prestadores e estabelecimentos vinculados à sua conta de parceiro.
+          <div className="fleet-hero-badge">
+            <FontAwesomeIcon icon={faUsers} /> Gestão da Equipa & Associados
+          </div>
+          <h1 className="fleet-hero-title">
+            <FontAwesomeIcon icon={faUserTie} className="text-purple-400" />
+            Minha Equipa & Motoristas
+          </h1>
+          <p className="fleet-hero-subtitle">
+            Coordenação e monitorização de condutores, parceiros e fornecedores vinculados à sua gestão de frota.
           </p>
         </div>
-
-        <button 
-          onClick={() => setShowAssignModal(true)} 
-          className="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm"
-          style={{ backgroundColor: '#8a2be2' }}
-        >
-          <FontAwesomeIcon icon={faPlus} className="me-2" /> Associar Membro
-        </button>
-      </div>
-
-      {/* Tabs & Pesquisa em Layout Organizado */}
-      <div className="card border-0 shadow-sm rounded-4 mb-4 bg-white">
-        <div className="card-body p-3 d-flex flex-column flex-lg-row justify-content-between align-items-stretch align-items-lg-center gap-3">
-          <div className="d-flex flex-wrap gap-2 align-items-center">
-            <button 
-              className={`btn rounded-3 fw-bold px-3 py-2 transition-all ${activeTab === 'all' ? 'text-white shadow-sm' : 'btn-light text-secondary'}`}
-              style={{ backgroundColor: activeTab === 'all' ? '#8a2be2' : '#f8f9fa' }}
-              onClick={() => setActiveTab('all')}
-            >
-              Todos ({totalMembersCount})
-            </button>
-            <button 
-              className={`btn rounded-3 fw-bold px-3 py-2 transition-all ${activeTab === 'drivers' ? 'text-white shadow-sm' : 'btn-light text-secondary'}`}
-              style={{ backgroundColor: activeTab === 'drivers' ? '#8a2be2' : '#f8f9fa' }}
-              onClick={() => setActiveTab('drivers')}
-            >
-              <FontAwesomeIcon icon={faMotorcycle} className="me-2 text-info" /> Motoristas ({totalDriversCount})
-            </button>
-            <button 
-              className={`btn rounded-3 fw-bold px-3 py-2 transition-all ${activeTab === 'sellers' ? 'text-white shadow-sm' : 'btn-light text-secondary'}`}
-              style={{ backgroundColor: activeTab === 'sellers' ? '#8a2be2' : '#f8f9fa' }}
-              onClick={() => setActiveTab('sellers')}
-            >
-              <FontAwesomeIcon icon={faStore} className="me-2 text-warning" /> Fornecedores ({totalSellersCount})
-            </button>
-          </div>
-
-          <div className="position-relative flex-grow-1 flex-lg-grow-0" style={{ minWidth: '300px' }}>
-            <input 
-              type="text" 
-              className="form-control rounded-3 ps-5 py-2 border-light bg-light" 
-              placeholder="Pesquisar por Nome, Email ou Tel..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <FontAwesomeIcon icon={faSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
-          </div>
+        <div className="fleet-hero-actions">
+          <button
+            onClick={() => setShowAssignModal(true)}
+            className="btn-ops-primary"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+            Associar Novo Membro
+          </button>
         </div>
       </div>
 
-      {/* Tabela de Membros */}
-      <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle m-0">
-              <thead className="bg-light">
+      {/* 2. KPI Metrics Grid */}
+      <div className="fleet-kpi-grid">
+        <div className="fleet-kpi-card">
+          <div className="fleet-kpi-top">
+            <div>
+              <div className="fleet-kpi-label">Total de Membros</div>
+              <div className="fleet-kpi-value">{totalMembersCount}</div>
+            </div>
+            <div className="fleet-kpi-icon-wrap" style={{ background: '#f5f3ff', color: '#7f00ff' }}>
+              <FontAwesomeIcon icon={faUsers} />
+            </div>
+          </div>
+          <div className="fleet-kpi-sub">Equipa total alocada</div>
+        </div>
+
+        <div className="fleet-kpi-card">
+          <div className="fleet-kpi-top">
+            <div>
+              <div className="fleet-kpi-label">Motoristas / Estafetas</div>
+              <div className="fleet-kpi-value" style={{ color: '#0284c7' }}>{totalDriversCount}</div>
+            </div>
+            <div className="fleet-kpi-icon-wrap" style={{ background: '#f0f9ff', color: '#0284c7' }}>
+              <SteeringWheelIcon size={22} color="#0284c7" />
+            </div>
+          </div>
+          <div className="fleet-kpi-sub">Condutores operacionais</div>
+        </div>
+
+        <div className="fleet-kpi-card">
+          <div className="fleet-kpi-top">
+            <div>
+              <div className="fleet-kpi-label">Fornecedores / Lojas</div>
+              <div className="fleet-kpi-value" style={{ color: '#d97706' }}>{totalSellersCount}</div>
+            </div>
+            <div className="fleet-kpi-icon-wrap" style={{ background: '#fffbeb', color: '#f59e0b' }}>
+              <FontAwesomeIcon icon={faStore} />
+            </div>
+          </div>
+          <div className="fleet-kpi-sub">Pontos comerciais vinculados</div>
+        </div>
+
+        <div className="fleet-kpi-card">
+          <div className="fleet-kpi-top">
+            <div>
+              <div className="fleet-kpi-label">Receita Gerada</div>
+              <div className="fleet-kpi-value" style={{ color: '#059669' }}>
+                {totalRevenue.toLocaleString()}{' '}
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>MT</span>
+              </div>
+            </div>
+            <div className="fleet-kpi-icon-wrap" style={{ background: '#ecfdf5', color: '#10b981' }}>
+              <FontAwesomeIcon icon={faCoins} />
+            </div>
+          </div>
+          <div className="fleet-kpi-sub">Volume de produção da equipa</div>
+        </div>
+      </div>
+
+      {/* 3. Toolbar: Tabs & Pesquisa */}
+      <div className="fleet-toolbar-card">
+        <div className="fleet-filter-pills">
+          <button
+            className={`fleet-filter-pill ${activeTab === 'all' ? 'active-all' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            Todos ({totalMembersCount})
+          </button>
+          <button
+            className={`fleet-filter-pill ${activeTab === 'drivers' ? 'active-all' : ''}`}
+            onClick={() => setActiveTab('drivers')}
+          >
+            <SteeringWheelIcon size={16} style={{ marginRight: '0.35rem' }} />
+            Motoristas ({totalDriversCount})
+          </button>
+          <button
+            className={`fleet-filter-pill ${activeTab === 'sellers' ? 'active-all' : ''}`}
+            onClick={() => setActiveTab('sellers')}
+          >
+            <FontAwesomeIcon icon={faStore} style={{ marginRight: '0.35rem' }} />
+            Fornecedores ({totalSellersCount})
+          </button>
+        </div>
+
+        <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
+          <input
+            type="text"
+            className="fleet-input-control"
+            style={{ paddingLeft: '2.5rem' }}
+            placeholder="Pesquisar por nome, email ou tel..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <FontAwesomeIcon
+            icon={faSearch}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '1rem',
+              transform: 'translateY(-50%)',
+              color: '#94a3b8',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* 4. Tabela de Membros */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3.5rem 0', color: '#64748b' }}>
+          A carregar membros da frota...
+        </div>
+      ) : displayedMembers.length === 0 ? (
+        <div className="fleet-table-card" style={{ padding: '3.5rem', textAlign: 'center' }}>
+          <FontAwesomeIcon icon={faUsers} style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#334155', margin: 0 }}>
+            Nenhum membro encontrado
+          </h3>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+            Clique no botão acima para associar motoristas ou fornecedores à sua conta de parceiro.
+          </p>
+        </div>
+      ) : (
+        <div className="fleet-table-card">
+          <div style={{ overflowX: 'auto' }}>
+            <table className="fleet-table">
+              <thead>
                 <tr>
-                  <th className="ps-4">Membro</th>
-                  <th>Perfil / Role</th>
-                  <th>Contacto</th>
+                  <th>Membro</th>
+                  <th>Perfil / Função</th>
+                  <th>Contactos</th>
                   <th>Disponibilidade</th>
                   <th>Receita Gerada</th>
-                  <th className="text-end pe-4">Ação</th>
+                  <th style={{ textAlign: 'right' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-5 text-muted">Carregando membros da frota...</td>
-                  </tr>
-                ) : displayedMembers.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-5 text-muted">Nenhum membro encontrado.</td>
-                  </tr>
-                ) : (
-                  displayedMembers.map((m) => (
+                {displayedMembers.map((m) => {
+                  const isDriver = m.role === 'DRIVER' || m.isDeliveryMan;
+                  return (
                     <tr key={m._id}>
-                      <td className="ps-4 py-3">
-                        <div className="d-flex align-items-center">
-                          <div className="rounded-circle d-flex align-items-center justify-content-center me-3 text-white fw-bold shadow-sm" 
-                               style={{ width: '42px', height: '42px', backgroundColor: (m.role === 'DRIVER' || m.isDeliveryMan) ? '#17a2b8' : '#8a2be2' }}>
-                            <FontAwesomeIcon icon={(m.role === 'DRIVER' || m.isDeliveryMan) ? faMotorcycle : faStore} />
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#ffffff',
+                              fontWeight: '800',
+                              background: isDriver
+                                ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                                : 'linear-gradient(135deg, #7f00ff 0%, #6d28d9 100%)',
+                              boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+                            }}
+                          >
+                            {isDriver ? <SteeringWheelIcon size={20} color="#ffffff" /> : <FontAwesomeIcon icon={faStore} />}
                           </div>
                           <div>
-                            <h6 className="fw-bold m-0 text-dark">{m.name}</h6>
+                            <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.9rem' }}>
+                              {m.name}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                              ID: {String(m._id).substring(0, 8)}...
+                            </div>
                           </div>
                         </div>
                       </td>
 
                       <td>
-                        <span className={`badge px-3 py-2 rounded-pill ${(m.role === 'DRIVER' || m.isDeliveryMan) ? 'bg-info text-dark' : 'bg-warning text-dark'}`}>
-                          {(m.role === 'DRIVER' || m.isDeliveryMan) ? 'Motorista / Prestador' : 'Fornecedor / Loja'}
+                        <span className={`ops-badge ${isDriver ? 'badge-info' : 'badge-warn'}`}>
+                          {isDriver ? 'Motorista / Prestador' : 'Fornecedor / Loja'}
                         </span>
                       </td>
 
                       <td>
-                        <div className="small">
-                          <div><FontAwesomeIcon icon={faPhone} className="me-2 text-muted" />{m.phoneNumber}</div>
-                          <div><FontAwesomeIcon icon={faEnvelope} className="me-2 text-muted" />{m.email}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <FontAwesomeIcon icon={faPhone} style={{ color: '#94a3b8', fontSize: '0.7rem' }} />
+                            {m.phoneNumber || '—'}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', color: '#64748b' }}>
+                            <FontAwesomeIcon icon={faEnvelope} style={{ color: '#94a3b8', fontSize: '0.7rem' }} />
+                            {m.email || '—'}
+                          </div>
                         </div>
                       </td>
 
                       <td>
                         {m.isOnline ? (
-                          <span className="badge bg-success text-white px-3 py-2 rounded-pill shadow-sm">
-                            <FontAwesomeIcon icon={faCheckCircle} className="me-1" /> Online / Disponível
+                          <span className="ops-badge badge-ok">
+                            <FontAwesomeIcon icon={faCheckCircle} /> Online
                           </span>
                         ) : (
-                          <span className="badge bg-secondary text-white px-3 py-2 rounded-pill">
-                            Offline / Indisponível
+                          <span className="ops-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>
+                            <FontAwesomeIcon icon={faCircle} style={{ fontSize: '0.5rem' }} /> Offline
                           </span>
                         )}
                       </td>
 
                       <td>
-                        <div className="fw-bold text-success">
-                          {(m.revenue || 0).toLocaleString('pt-PT')} MT
+                        <div style={{ fontWeight: '800', color: '#047857', fontSize: '0.88rem' }}>
+                          {(m.revenue || 0).toLocaleString()} MT
                         </div>
-                        <small className="text-muted">{m.completedOps || 0} operações concluídas</small>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          {m.completedOps || 0} operações concluídas
+                        </div>
                       </td>
 
-                      <td className="text-end pe-4">
-                        <button 
-                          onClick={() => handleRemoveMember(m)} 
-                          className="btn btn-outline-danger btn-sm rounded-3"
-                          title="Desvincular da Frota"
-                        >
-                          <FontAwesomeIcon icon={faTrash} className="me-1" /> Desvincular
-                        </button>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleResetPassword(m)}
+                            className="btn-ops-amber"
+                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', borderRadius: '10px' }}
+                            title="Redefinir Palavra-passe para o padrão (password123)"
+                          >
+                            <FontAwesomeIcon icon={faKey} /> Reset Senha
+                          </button>
+                          <button
+                            onClick={() => handleRemoveMember(m)}
+                            style={{
+                              padding: '0.45rem 0.85rem',
+                              borderRadius: '10px',
+                              background: '#fff1f2',
+                              color: '#e11d48',
+                              border: '1px solid rgba(225, 29, 72, 0.2)',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                            }}
+                            title="Desvincular da Frota"
+                          >
+                            <FontAwesomeIcon icon={faTrash} /> Desvincular
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Modal para Associar Membro */}
+      {/* 5. Modal para Associar Membro */}
       {showAssignModal && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" 
-             style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)' }}>
-          <div className="bg-white rounded-4 shadow-lg p-4 w-100" style={{ maxWidth: '480px' }}>
-            <h5 className="fw-bold mb-3">Associar Novo Membro</h5>
-            <form onSubmit={handleAssignMember}>
-              <div className="mb-3">
-                <label className="form-label small fw-bold">Tipo de Membro</label>
-                <select 
-                  className="form-select rounded-3" 
-                  value={assignType} 
-                  onChange={(e) => setAssignType(e.target.value)}
-                >
-                  <option value="driver">Motorista / Prestador</option>
-                  <option value="seller">Fornecedor / Loja</option>
-                </select>
-              </div>
+        <div className="fleet-modal-overlay">
+          <div className="fleet-modal-content">
+            <div className="fleet-modal-header header-purple">
+              <h3 className="fleet-modal-title">
+                <FontAwesomeIcon icon={faUsers} /> Associar Novo Membro
+              </h3>
+              <button onClick={() => setShowAssignModal(false)} className="fleet-modal-close-btn">
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
 
-              <div className="mb-4">
-                <label className="form-label small fw-bold">Identificador do Utilizador</label>
-                <input 
-                  type="text" 
-                  className="form-control rounded-3" 
-                  placeholder="Insira o ID, Email ou Número de Telefone"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  required
-                />
-                <small className="text-muted mt-1 d-block">
-                  O utilizador deve estar previamente registado na plataforma.
-                </small>
-              </div>
+            <div className="fleet-modal-body">
+              <form onSubmit={handleAssignMember} className="fleet-form-grid">
+                <div>
+                  <label className="fleet-form-label">Tipo de Membro *</label>
+                  <select
+                    className="fleet-input-control"
+                    value={assignType}
+                    onChange={(e) => setAssignType(e.target.value)}
+                  >
+                    <option value="driver">Motorista / Prestador</option>
+                    <option value="seller">Fornecedor / Loja</option>
+                  </select>
+                </div>
 
-              <div className="d-flex justify-content-end gap-2">
-                <button 
-                  type="button" 
-                  className="btn btn-light rounded-3 fw-bold"
-                  onClick={() => setShowAssignModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn text-white rounded-3 fw-bold px-4"
-                  style={{ backgroundColor: '#8a2be2' }}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Associando...' : 'Confirmar Associação'}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="fleet-form-label">Identificador do Utilizador (ID, Email ou Telefone) *</label>
+                  <input
+                    type="text"
+                    className="fleet-input-control"
+                    placeholder="Insira o ID, Email ou Número de Telefone"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                  />
+                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.4rem', display: 'block' }}>
+                    O utilizador deve estar previamente registado na plataforma.
+                  </small>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-light rounded-3 fw-bold"
+                    onClick={() => setShowAssignModal(false)}
+                    style={{
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '14px',
+                      background: '#f1f5f9',
+                      border: 'none',
+                      color: '#475569',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-ops-primary"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'A associar...' : 'Confirmar Associação'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
+

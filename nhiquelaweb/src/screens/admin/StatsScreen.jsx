@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faWallet, faChartLine, faMoneyBillWave, faUsers, faMotorcycle, faArrowUp, faArrowDown } from '@fortawesome/free-solid-svg-icons';
+import { faWallet, faChartLine, faMoneyBillWave, faUsers, faArrowUp, faArrowDown } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../../components/common/CustomIcons';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import api from '../../api';
 
@@ -85,7 +86,7 @@ export default function StatsScreen() {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h6 className="card-title mb-0 text-muted">Lucro Estimado</h6>
                 <div className="rounded-circle bg-light p-2 d-flex align-items-center justify-content-center text-warning" style={{ width: 40, height: 40 }}>
-                  <FontAwesomeIcon icon={faMotorcycle} />
+                  <SteeringWheelIcon size={20} color="#f59e0b" />
                 </div>
               </div>
               <h3 className="fw-bold mb-0 text-dark">{data.lucroEstimado.toLocaleString('pt-MZ')} MT</h3>
@@ -168,7 +169,7 @@ export default function StatsScreen() {
                         <td className="ps-0 py-3">
                           <div className="d-flex align-items-center">
                             <div className="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, color: '#7F00FF' }}>
-                              <FontAwesomeIcon icon={faMotorcycle} />
+                              <SteeringWheelIcon size={20} color="#7F00FF" />
                             </div>
                             <span className="fw-bold text-dark">{m.name}</span>
                           </div>

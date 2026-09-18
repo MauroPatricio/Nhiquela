@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faSearch, faBolt, faShieldAlt, faHeadset, faMapMarkerAlt, faStar, faArrowRight,
-  faShoppingBag, faWrench, faSpinner, faStore, faMotorcycle, faPlus, faCheckCircle,
+  faShoppingBag, faWrench, faSpinner, faStore, faPlus, faCheckCircle,
   faTag, faFilter, faClock, faRedo, faHeart, faFire, faThumbsUp, faTruck,
   faChevronLeft, faChevronRight
 } from '@fortawesome/free-solid-svg-icons';

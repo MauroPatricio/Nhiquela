@@ -28,11 +28,11 @@ export default function MainTabs() {
         onMenuPress={() => console.log("Menu pressed")}
         onNotificationPress={() => console.log("Notifications pressed")}
         onStartTrip={() => console.log("Viagem iniciada")}
+        onEarningsPress={() => console.log("Earnings pressed")}
         profileImage="https://via.placeholder.com/150"
         todayEarnings={!isNaN(Number(driverEarnings)) ? `MT ${Number(driverEarnings).toFixed(2)}` : "MT 0.00"}
         totalPassengers={driverTrips}
         credit={driverBalance}
-        currentLocation="Maputo, Moçambique"
         userRating={Number(user?.deliveryman?.averageRating ? user.deliveryman.averageRating.toFixed(1) : (user?.deliveryman?.rating || 5.0))}
         batteryLevel={92}
         online={true}

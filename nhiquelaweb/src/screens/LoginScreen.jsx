@@ -29,11 +29,30 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Estados para redefinição obrigatória de palavra-passe no primeiro login
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [tempUserData, setTempUserData] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+
+  const isPartnerUser = (user) => {
+    if (!user) return false;
+    if (user.role === 'PARTNER' || user.isPartner || user.partnerId) return true;
+    if (user.roleId && typeof user.roleId === 'object' && user.roleId.name) {
+      const n = user.roleId.name.toLowerCase();
+      return n.includes('parceiro') || n.includes('gestor') || n.includes('frota');
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (userInfo) {
       if (userInfo.isAdmin || userInfo.role === 'ADMIN') {
         navigate('/admin/dashboard');
-      } else if (userInfo.role === 'PARTNER' || userInfo.isPartner) {
+      } else if (isPartnerUser(userInfo)) {
         navigate('/partner/dashboard');
       } else if (userInfo.isSeller || userInfo.role === 'SELLER') {
         navigate('/supplier/dashboard');
@@ -42,6 +61,50 @@ export default function LoginScreen() {
       }
     }
   }, [navigate, redirect, userInfo]);
+
+  const handlePasswordChangeSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.warning('A nova palavra-passe deve conter pelo menos 6 caracteres.');
+      return;
+    }
+    if (newPassword === 'password123') {
+      toast.warning('A nova palavra-passe não pode ser a senha padrão "password123". Escolha uma senha segura.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error('As palavras-passe não coincidem. Verifique a confirmação.');
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+    try {
+      const targetId = tempUserData._id || tempUserData.id;
+      const { data } = await api.put(`/users/${targetId}/force-update-password`, {
+        password: newPassword,
+      });
+
+      const finalUserData = { ...tempUserData, ...data, requirePasswordChange: false };
+      dispatch(setUserLogin(finalUserData));
+      setShowPasswordChangeModal(false);
+      toast.success('Palavra-passe atualizada com sucesso! Bem-vindo(a) à plataforma.');
+
+      if (finalUserData.isAdmin || finalUserData.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (isPartnerUser(finalUserData)) {
+        navigate('/partner/dashboard');
+      } else if (finalUserData.isSeller || finalUserData.role === 'SELLER') {
+        navigate('/supplier/dashboard');
+      } else {
+        navigate(redirect);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar palavra-passe:', error);
+      toast.error(error.response?.data?.message || 'Erro ao atualizar a palavra-passe. Tente novamente.');
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,12 +123,21 @@ export default function LoginScreen() {
 
       const { data } = await api.post('/users/signin', loginPayload);
 
+      // Verificar se a palavra-passe foi redefinida para o padrão e exige atualização obrigatória
+      if (data.requirePasswordChange) {
+        setTempUserData(data);
+        setShowPasswordChangeModal(true);
+        setLoading(false);
+        toast.info('Primeiro acesso após redefinição: defina a sua nova palavra-passe.');
+        return;
+      }
+
       dispatch(setUserLogin(data));
       toast.success(`Bem-vindo de volta, ${data.name}!`);
 
       if (data.isAdmin || data.role === 'ADMIN') {
         navigate('/admin/dashboard');
-      } else if (data.role === 'PARTNER' || data.isPartner) {
+      } else if (isPartnerUser(data)) {
         navigate('/partner/dashboard');
       } else if (data.isSeller || data.role === 'SELLER') {
         navigate('/supplier/dashboard');
@@ -431,6 +503,198 @@ export default function LoginScreen() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DE REDEFINIÇÃO OBRIGATÓRIA DE PALAVRA-PASSE NO PRIMEIRO ACESSO */}
+      {showPasswordChangeModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '24px',
+              maxWidth: '480px',
+              width: '100%',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            }}
+          >
+            {/* Header com Gradiente */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1E1B4B 0%, #7F00FF 100%)',
+                padding: '28px 24px',
+                color: '#FFFFFF',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                  margin: '0 auto 12px',
+                  color: '#FFFFFF',
+                }}
+              >
+                <FontAwesomeIcon icon={faLock} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800' }}>
+                Definir Nova Palavra-passe
+              </h3>
+              <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#E2E8F0', lineHeight: '1.4' }}>
+                A sua palavra-passe foi redefinida para o padrão. Defina uma nova palavra-passe pessoal para continuar.
+              </p>
+            </div>
+
+            {/* Formulário */}
+            <form onSubmit={handlePasswordChangeSubmit} style={{ padding: '24px 28px' }}>
+              {/* Nova Palavra-passe */}
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  Nova Palavra-passe *
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: '#F8FAFC',
+                    border: '1.5px solid #E2E8F0',
+                    borderRadius: '12px',
+                    padding: '0 14px',
+                  }}
+                >
+                  <FontAwesomeIcon icon={faLock} style={{ color: '#94A3B8', fontSize: '14px', marginRight: '10px' }} />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Mínimo 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 0',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      fontSize: '14px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      fontWeight: '500',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                    title={showNewPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
+                  >
+                    <FontAwesomeIcon icon={showNewPassword ? faEyeSlash : faEye} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirmar Nova Palavra-passe */}
+              <div style={{ marginBottom: '22px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  Confirmar Nova Palavra-passe *
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: '#F8FAFC',
+                    border: `1.5px solid ${
+                      confirmNewPassword && newPassword !== confirmNewPassword ? '#EF4444' : '#E2E8F0'
+                    }`,
+                    borderRadius: '12px',
+                    padding: '0 14px',
+                  }}
+                >
+                  <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#94A3B8', fontSize: '14px', marginRight: '10px' }} />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Repita a nova palavra-passe"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 0',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      fontSize: '14px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      fontWeight: '500',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                    title={showConfirmPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
+                  >
+                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                  </button>
+                </div>
+                {confirmNewPassword && newPassword !== confirmNewPassword && (
+                  <span style={{ fontSize: '12px', color: '#EF4444', marginTop: '4px', display: 'block', fontWeight: '600' }}>
+                    As palavras-passe não coincidem.
+                  </span>
+                )}
+              </div>
+
+              {/* Botão de Atualização */}
+              <button
+                type="submit"
+                disabled={passwordChangeLoading}
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #7F00FF 0%, #6D28D9 100%)',
+                  color: '#FFFFFF',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  cursor: passwordChangeLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 8px 20px -4px rgba(127, 0, 255, 0.4)',
+                }}
+              >
+                {passwordChangeLoading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    A atualizar palavra-passe...
+                  </>
+                ) : (
+                  <>
+                    Atualizar e Entrar <FontAwesomeIcon icon={faArrowRight} />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

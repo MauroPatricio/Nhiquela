@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDollarSign, faCheck, faTimes, faClock, faMotorcycle, faSpinner, faHistory } from '@fortawesome/free-solid-svg-icons';
+import { faDollarSign, faCheck, faTimes, faClock, faSpinner, faHistory } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../../components/common/CustomIcons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 
@@ -111,7 +112,7 @@ export default function PriceRequestsPanel() {
                     <td className="px-4 py-3">
                       <div className="d-flex align-items-center gap-2">
                         <div className="bg-primary-subtle rounded-circle d-flex justify-content-center align-items-center" style={{ width: 40, height: 40, minWidth: 40 }}>
-                          <FontAwesomeIcon icon={faMotorcycle} className="text-primary-custom" />
+                          <SteeringWheelIcon size={18} color="#7F00FF" />
                         </div>
                         <div>
                           <div className="fw-bold text-dark small">{req.deliverymanId?.name || '—'}</div>

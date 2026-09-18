@@ -1,4 +1,4 @@
-﻿// navigation/AppNavigator.tsx
+// navigation/AppNavigator.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -26,6 +26,7 @@ import MultiStopTripScreen from "../screens/MultiStopTripScreen";
 import BottomMenu from "../components/BottomMenu";
 import RegisterDriverScreen from "../screens/RegisterDriverScreen";
 import DriverHeader from "../components/DriverHeader";
+import FleetDriverScreen from "../screens/FleetDriverScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -117,6 +118,7 @@ function MainTabs() {
               onMenuPress={() => {}}
               onNotificationPress={() => {}}
               onEarningsPress={() => navigation.navigate(ROUTES.EARNINGS)}
+              onWalletPress={() => navigation.navigate(ROUTES.EARNINGS)}
               todayEarnings={!isNaN(Number(user?.deliveryman?.todayEarnings)) ? `MT ${Number(user?.deliveryman?.todayEarnings || 0).toFixed(2)}` : "MT 0.00"}
               totalPassengers={user?.deliveryman?.totalTrips || 0}
               credit={user?.deliveryman?.balance || "MT 0.00"}
@@ -141,11 +143,18 @@ function MainTabs() {
         }}
       />
 
-      {/* ✅ Wallet como separador direto — goBack() não é necessário, basta mudar de tab */}
+      {/* Gestão Operacional / Frota do Motorista */}
+      <Tab.Screen
+        name={ROUTES.FLEET_DRIVER}
+        component={FleetDriverScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* ✅ Wallet como separador direto — acessível via navigate('Wallet') */}
       <Tab.Screen
         name="Wallet"
         component={WalletScreen}
-        options={{ headerShown: false }}
+        options={{ headerShown: false, tabBarButton: () => null }}
       />
 
       <Tab.Screen
@@ -270,6 +279,13 @@ export default function AppNavigator() {
       <Stack.Screen
         name="MultiStopTrip"
         component={MultiStopTripScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Gestão do Meu Veículo / Frota */}
+      <Stack.Screen
+        name={ROUTES.FLEET_DRIVER}
+        component={FleetDriverScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

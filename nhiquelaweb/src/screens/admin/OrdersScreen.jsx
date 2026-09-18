@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faMotorcycle, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute, faCreditCard, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCar, faClock, faCheckCircle, faTimesCircle, faMoneyBillWave, faTruck, faUserCircle, faMapMarkerAlt, faExchangeAlt, faBox, faEdit, faTrash, faSearch, faFilter, faFileDownload, faEye, faTimes, faHistory, faCheckDouble, faBoxOpen, faUser, faSpinner, faCalendarAlt, faBolt, faPhone, faUserFriends, faInfoCircle, faRoad, faSync, faRoute, faCreditCard, faFileAlt, faUserTie } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon, DriverPersonIcon } from '../../components/common/CustomIcons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -226,7 +227,7 @@ export default function OrdersScreen() {
       case 'Aceite pelo entregador': return faBoxOpen;
       case 'A Caminho': 
       case 'Em trânsito':
-      case 'No destino indicado': return faMotorcycle;
+      case 'No destino indicado': return faCar;
       case 'Entregue': 
       case 'Finalizado': return faCheckCircle;
       default: return faBoxOpen;
@@ -446,7 +447,10 @@ export default function OrdersScreen() {
                     <td>
                       {order.deliveryman && order.deliveryman.name ? (
                         <>
-                          <div className="fw-bold text-primary-custom mb-1"><FontAwesomeIcon icon={faMotorcycle} className="me-2" />{order.deliveryman.name}</div>
+                          <div className="fw-bold text-primary-custom mb-1 d-flex align-items-center gap-1">
+                            <SteeringWheelIcon size={16} color="#0284c7" />
+                            {order.deliveryman.name}
+                          </div>
                           <div className="text-muted small"><OrderTiming order={order} /></div>
                         </>
                       ) : (
@@ -486,7 +490,7 @@ export default function OrdersScreen() {
                         <ul className="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
                           <li><button className="dropdown-item fw-bold text-warning" onClick={() => handleStatusChange(order._id, 'Pendente', order.orderType)}><FontAwesomeIcon icon={faClock} className="me-2" />Pendente</button></li>
                           <li><button className="dropdown-item fw-bold text-info" onClick={() => handleStatusChange(order._id, 'Em Preparação', order.orderType)}><FontAwesomeIcon icon={faBoxOpen} className="me-2" />Em Preparação</button></li>
-                          <li><button className="dropdown-item fw-bold text-primary" onClick={() => handleStatusChange(order._id, 'A Caminho', order.orderType)}><FontAwesomeIcon icon={faMotorcycle} className="me-2" />A Caminho</button></li>
+                          <li><button className="dropdown-item fw-bold text-primary d-inline-flex align-items-center gap-2" onClick={() => handleStatusChange(order._id, 'A Caminho', order.orderType)}><SteeringWheelIcon size={14} color="currentColor" />A Caminho</button></li>
                           <li><hr className="dropdown-divider" /></li>
                           <li><button className="dropdown-item fw-bold text-success" onClick={() => handleStatusChange(order._id, 'Entregue', order.orderType)}><FontAwesomeIcon icon={faCheckCircle} className="me-2" />Entregue</button></li>
                           <li><button className="dropdown-item fw-bold text-danger" onClick={() => handleStatusChange(order._id, 'Cancelada', order.orderType)}><FontAwesomeIcon icon={faTimes} className="me-2" />Cancelada</button></li>
@@ -589,7 +593,10 @@ export default function OrdersScreen() {
 
                   {/* Motorista */}
                   <div className="col-md-6">
-                    <h6 className="fw-bold mb-3 text-secondary"><FontAwesomeIcon icon={faMotorcycle} className="me-2"/>Motorista Atribuído</h6>
+                    <h6 className="fw-bold mb-3 text-secondary d-flex align-items-center gap-2">
+                      <SteeringWheelIcon size={18} color="#64748b" />
+                      Motorista Atribuído
+                    </h6>
                     <div className="bg-light rounded-4 p-3 border h-100">
                       {selectedOrder.deliveryman?.name || selectedOrder.driverId ? (
                         <div className="d-flex align-items-center">
@@ -620,7 +627,7 @@ export default function OrdersScreen() {
                               display: (selectedOrder.deliveryman?.photo || selectedOrder.deliveryman?.profileImage || selectedOrder.driver?.profileImage || selectedOrder.driver?.photo) ? 'none' : 'flex' 
                             }}
                           >
-                            <FontAwesomeIcon icon={faMotorcycle} />
+                            <SteeringWheelIcon size={24} color="#0284c7" />
                           </div>
                           <div>
                             <div className="fw-bold text-dark">{selectedOrder.deliveryman?.name || driversMap[selectedOrder.driverId]}</div>
@@ -855,7 +862,7 @@ export default function OrdersScreen() {
                                     {h.proposedBy === 'CUSTOMER' ? (
                                       <span className="text-primary"><FontAwesomeIcon icon={faUser} className="me-1"/>Cliente</span>
                                     ) : (
-                                      <span className="text-warning text-dark"><FontAwesomeIcon icon={faMotorcycle} className="me-1"/>Prestador/Motorista</span>
+                                      <span className="text-warning text-dark d-inline-flex align-items-center gap-1"><SteeringWheelIcon size={14} color="currentColor" />Prestador/Motorista</span>
                                     )}
                                   </td>
                                   <td className="fw-bold text-dark">{Number(h.amount).toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</td>

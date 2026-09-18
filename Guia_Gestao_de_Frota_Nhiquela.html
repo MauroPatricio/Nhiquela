@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Guia e Apresentação da Gestão de Frota - Plataforma Nhiquela</title>
+  <style>
+    @media print {
+      body { margin: 0; padding: 15mm; font-size: 12pt; }
+      .no-print { display: none; }
+      .page-break { page-break-before: always; }
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background-color: #f8fafc;
+    }
+    .container {
+      background: #ffffff;
+      padding: 50px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .header-banner {
+      background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+    .header-banner h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .header-banner p {
+      margin: 5px 0 0 0;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    h2 {
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-top: 35px;
+      font-size: 18px;
+    }
+    h3 {
+      color: #047857;
+      margin-top: 25px;
+      font-size: 16px;
+    }
+    h4 {
+      color: #334155;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    ul, ol {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .alert-box {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      border-radius: 0 8px 8px 0;
+      margin: 15px 0;
+      font-size: 13px;
+    }
+    .btn-print {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #047857;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+    .btn-print:hover {
+      background: #065f46;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+
+  <div class="container">
+    <div class="header-banner">
+      <h1>🚛 Guia e Apresentação da Gestão de Frota</h1>
+      <p>Plataforma Nhiquela - Manual Oficial para Empresas Clientes e Motoristas</p>
+    </div>
+
+    <h2>🏢 PARTE 1: Apresentação para Empresas Clientes & Gestores de Frota</h2>
+    
+    <h3>🌟 Visão Geral e Benefícios</h3>
+    <p>O <strong>Módulo de Gestão de Frota da Nhiquela</strong> foi desenvolvido para oferecer a empresas, parceiros operacionais e proprietários de frotas um controlo total, em tempo real, sobre os seus veículos, motoristas, manutenção preventiva e custos de combustível.</p>
+
+    <h4>💡 Principais Benefícios para a Sua Empresa:</h4>
+    <ul>
+      <li><strong>Redução Direta dos Custos de Combustível:</strong> Monitorização automática do consumo médio (<code>L/100km</code>) e custo por quilómetro (<code>MZN/km</code>).</li>
+      <li><strong>Prevenção Inteligente de Fraudes & Anomalias:</strong> Deteção automática de leituras regressivas de odómetro, abastecimentos acima da capacidade do depósito ou abastecimentos duplicados.</li>
+      <li><strong>Aumento da Vida Útil dos Veículos:</strong> Alertas preventivos antecedidos por quilometragem ou dias para trocas de óleo, pneus, travões, inspeções e revisões.</li>
+      <li><strong>Tomada de Decisão Baseada em Dados (KPIs Visuais):</strong> Gráficos analíticos e relatórios executivos prontos para exportação/impressão em PDF.</li>
+    </ul>
+
+    <h3>📊 Funcionalidades Disponíveis no Painel do Gestor (Nhiquela Web)</h3>
+
+    <h4>1. Dashboard Executivo & Gráficos KPI</h4>
+    <ul>
+      <li><strong>KPIs em Tempo Real:</strong> Total de veículos ativos, veículos em manutenção, manutenções vencidas e custo mensal de combustível.</li>
+      <li><strong>Gráfico de Evolução de Percursos e Consumo:</strong> Acompanhamento gráfico da quilometragem percorrida vs consumo médio de combustível ao longo do tempo.</li>
+      <li><strong>Gráfico de Eficiência de Combustível por Veículo (Real vs Alvo):</strong> Comparativo visual direto que destaca os veículos com consumo superior à meta configurada.</li>
+      <li><strong>Gráfico de Distribuição Estratégica de Custos:</strong> Repartição percentual e monetária entre <strong>Combustível</strong> e <strong>Manutenção</strong>.</li>
+      <li><strong>Saúde da Frota:</strong> Indicador do estado das manutenções (<code>Em Dia</code>, <code>Próximas</code>, <code>VENCIDAS</code>).</li>
+    </ul>
+
+    <h4>2. Gestão Completa de Veículos</h4>
+    <ul>
+      <li>Registo de Matrícula (única), Marca, Modelo, Ano, Tipo (Ligeiro, Pesado, Motociclo, Van), Capacidade de Carga (kg), Capacidade do Depósito (Litros) e Consumo Alvo (L/100km).</li>
+      <li>Vínculo direto de Motoristas Responsáveis a cada veículo da frota.</li>
+      <li>Gestão do estado operacional (Operacional, Em Manutenção, Inativo).</li>
+    </ul>
+
+    <h4>3. Planos de Manutenção Preventiva e Correctiva</h4>
+    <ul>
+      <li>Configuração de planos por tipo de serviço: Troca de Óleo, Filtros, Pneus, Travões, Bateria, Revisão Geral, Inspeção Periódica, Renovação de Seguro e Outros.</li>
+      <li>Definição de intervalos por quilómetros e/ou dias com alertas antecipados configuráveis (ex: avisar 500 km ou 7 dias antes).</li>
+      <li>Registo rápido de conclusão de manutenção com lançamento do custo e oficina prestadora do serviço.</li>
+    </ul>
+
+    <h4>4. Controlo de Combustível & Abastecimentos</h4>
+    <ul>
+      <li>Registo detalhado por data, posto de abastecimento, odómetro no momento, litros abastecidos, preço por litro e comprovativo/foto da fatura.</li>
+      <li><strong>Cálculo Automático Instântaneo:</strong> Km percorridos desde o último abastecimento, Rendimento em Km/L, Consumo médio em Litros/100km, Custo em MZN/Km.</li>
+    </ul>
+
+    <h4>5. Central de Alertas & Auditoria de Anomalias</h4>
+    <ul>
+      <li>⚠️ <strong>Odómetro Regressivo:</strong> Submissão de quilometragem inferior ao registo anterior.</li>
+      <li>⚠️ <strong>Depósito Excedido:</strong> Volume de abastecimento superior à capacidade física do depósito do veículo.</li>
+      <li>⚠️ <strong>Consumo Atípico:</strong> Consumo 60% superior ao padrão alvo configurado para aquele veículo.</li>
+      <li>⚠️ <strong>Abastecimento Duplicado/Suspeito:</strong> Abastecimentos múltiplos num curto intervalo de tempo.</li>
+    </ul>
+
+    <h4>6. Relatórios Executivos Exportáveis</h4>
+    <ul>
+      <li>Relatórios de Combustível por Veículo e por Motorista.</li>
+      <li>Relatório de Custos por Quilómetro (MZN/km).</li>
+      <li>Histórico de Avarias e Intervenções Técnicas.</li>
+      <li>Relatório de Custo Total da Frota (Combustível + Manutenção) pronto para impressão/PDF.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>📱 PARTE 2: Guia Prático para Motoristas (App Mobile Nhiquela Driver)</h2>
+    <p>Como motorista parceiro da plataforma Nhiquela, possui acesso direto no seu aplicativo móvel para acompanhar o seu veículo atribuído e registar as suas operações do dia a dia.</p>
+
+    <h3>🔑 Passo a Passo no Aplicativo</h3>
+
+    <h4>1. Aceder ao Módulo do Veículo</h4>
+    <ol>
+      <li>Abra o aplicativo <strong>Nhiquela Driver</strong>.</li>
+      <li>Aceda ao seu <strong>Perfil</strong> no menu principal.</li>
+      <li>Clique no botão destacado <strong>"Gestão de Odómetro & Abastecimentos"</strong>.</li>
+    </ol>
+
+    <h4>2. Registar Leitura do Odómetro (Quilometragem)</h4>
+    <ul>
+      <li>Utilize esta opção no início do turno, fim do turno ou durante verificações de rotina.</li>
+      <li><strong>Passos:</strong>
+        <ol>
+          <li>Clique em <strong>"Atualizar Odómetro"</strong>.</li>
+          <li>Introduza a quilometragem atual do painel do veículo.</li>
+          <li>*(Opcional)* Adicione uma observação (ex: "Fim do turno").</li>
+          <li>Clique em <strong>"Guardar Odómetro"</strong>.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <div class="alert-box">
+      💡 <strong>Nota:</strong> Certifique-se de que a leitura introduzida é superior à última leitura. Se introduzir um valor menor por engano, a aplicação aceita o registo, mas gera uma notificação de verificação para a sua empresa parceira.
+    </div>
+
+    <h4>3. Registar Abastecimento no Posto de Combustível</h4>
+    <ul>
+      <li>Utilize esta opção sempre que efetuar um abastecimento no posto.</li>
+      <li><strong>Passos:</strong>
+        <ol>
+          <li>Clique em <strong>"Registar Abastecimento"</strong>.</li>
+          <li>Selecione o nome do <strong>Posto de Combustível</strong> (ex: <em>Total</em>, <em>Petromoc</em>, <em>Engen</em>).</li>
+          <li>Confirme a <strong>Quilometragem no Painel</strong> no momento do abastecimento.</li>
+          <li>Digite a quantidade de <strong>Litros</strong> abastecidos e o <strong>Preço por Litro</strong>. O valor total em MZN é calculado automaticamente.</li>
+          <li>*(Opcional)* Insira o link/foto do talão ou fatura do abastecimento.</li>
+          <li>Clique em <strong>"Confirmar Abastecimento"</strong>.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>🛡️ Boas Práticas para Condução Eficiente e Económica</h3>
+    <ul>
+      <li><strong>Mantenha uma condução suave:</strong> Evite acelerações bruscas e travagens repentinas, pois aumentam o consumo de combustível até 30%.</li>
+      <li><strong>Respeite os prazos de manutenção:</strong> Notifique o seu gestor assim que o veículo estiver próximo da quilometragem da troca de óleo ou calibração dos pneus.</li>
+      <li><strong>Reporte anomalias no painel:</strong> Sempre que detetar barulhos estranhos ou perda de potência, comunique de imediato através da app para agendar a manutenção preventiva.</li>
+    </ul>
+
+    <br>
+    <p style="text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+      Documento Oficial da Plataforma Nhiquela - Módulo de Gestão de Frota
+    </p>
+  </div>
+
+</body>
+</html>

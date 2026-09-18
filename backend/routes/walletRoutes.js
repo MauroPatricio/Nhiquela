@@ -333,20 +333,34 @@ walletRouter.get('/driver-summary', isAuth, async (req, res) => {
     const { getFinancialConfig } = await import('../services/walletService.js');
     const config = await getFinancialConfig();
 
-    const wallet = await findWalletForUser(req.user._id, 'driver');
-    const balance = wallet?.balance || 0;
+    const userIdStr = req.user._id.toString();
+    let userObjId = null;
+    try {
+      if (mongoose.Types.ObjectId.isValid(userIdStr)) {
+        userObjId = new mongoose.Types.ObjectId(userIdStr);
+      }
+    } catch (e) {}
+
+    const walletConditions = [{ ownerId: userIdStr }, { userId: userIdStr }];
+    if (userObjId) walletConditions.push({ ownerId: userObjId }, { userId: userObjId });
+    const allUserWallets = await Wallet.find({ $or: walletConditions });
+    const userWalletIds = allUserWallets.map(w => w._id);
+    const primaryWallet = allUserWallets[0] || await findWalletForUser(req.user._id, 'driver');
+    if (primaryWallet && !userWalletIds.some(id => id.toString() === primaryWallet._id.toString())) {
+      userWalletIds.push(primaryWallet._id);
+    }
+    const balance = primaryWallet?.balance || 0;
     
-    // Calcular estatísticas usando transações
-    // Total Recarregado (Soma de todos os 'credit')
+    // Calcular estatísticas usando transações de todas as carteiras do utilizador
     const recharges = await Transaction.aggregate([
-      { $match: { walletId: wallet?._id, type: 'credit', status: 'confirmado' } },
+      { $match: { walletId: { $in: userWalletIds }, type: 'credit', status: 'confirmado' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     const totalRecharged = recharges[0]?.total || 0;
 
     // Comissões descontadas (Soma de todos os 'debit' de serviço)
     const commissions = await Transaction.aggregate([
-      { $match: { walletId: wallet?._id, type: 'debit', status: 'confirmado', method: 'commission' } },
+      { $match: { walletId: { $in: userWalletIds }, type: 'debit', status: 'confirmado', method: 'commission' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     const totalCommissions = commissions[0]?.total || 0;
@@ -431,8 +445,26 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
       return res.json(transactions);
     }
 
-    const wallet = await findWalletForUser(req.user._id, 'driver');
-    let transactions = wallet ? await Transaction.find({ walletId: wallet._id }).sort({ createdAt: -1 }).lean() : [];
+    const userIdStr = req.user._id.toString();
+    let userObjId = null;
+    try {
+      if (mongoose.Types.ObjectId.isValid(userIdStr)) {
+        userObjId = new mongoose.Types.ObjectId(userIdStr);
+      }
+    } catch (e) {}
+
+    const walletConditions = [{ ownerId: userIdStr }, { userId: userIdStr }];
+    if (userObjId) walletConditions.push({ ownerId: userObjId }, { userId: userObjId });
+    const userWallets = await Wallet.find({ $or: walletConditions });
+    const userWalletIds = userWallets.map(w => w._id);
+    if (userWalletIds.length === 0) {
+      const w = await findWalletForUser(req.user._id, 'driver');
+      if (w) userWalletIds.push(w._id);
+    }
+
+    let transactions = userWalletIds.length > 0
+      ? await Transaction.find({ walletId: { $in: userWalletIds } }).sort({ createdAt: -1 }).lean()
+      : [];
     
     // Se o utilizador for um Fornecedor/Seller, incluir as Vendas Entregues como Movimentos de Entrada
     const Provider = mongoose.model('Provider');
@@ -483,20 +515,17 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
     }
 
     // Se o utilizador for um Motorista (ou tiver viagens), incluir as Viagens como Movimentos de Entrada
-    const driverIdStr = req.user._id.toString();
-    let driverObjId = null;
-    try {
-      if (mongoose.Types.ObjectId.isValid(driverIdStr)) {
-        driverObjId = new mongoose.Types.ObjectId(driverIdStr);
-      }
-    } catch (e) {}
+    const fullUser = await mongoose.model('User').findById(req.user._id).lean();
+    const driverPhone = fullUser?.phoneNumber || req.user.phoneNumber;
+    const driverEmail = fullUser?.email || req.user.email;
 
     const driverMatchConditions = [
       { 'deliveryman.id': driverIdStr },
       { 'deliveryman._id': driverIdStr },
       { targetDriverId: driverIdStr },
       { driverId: driverIdStr },
-      { driver: driverIdStr }
+      { driver: driverIdStr },
+      { 'driver._id': driverIdStr }
     ];
     if (driverObjId) {
       driverMatchConditions.push(
@@ -504,7 +533,22 @@ walletRouter.get('/transactions', isAuth, async (req, res) => {
         { 'deliveryman._id': driverObjId },
         { targetDriverId: driverObjId },
         { driverId: driverObjId },
-        { driver: driverObjId }
+        { driver: driverObjId },
+        { 'driver._id': driverObjId }
+      );
+    }
+    if (driverPhone) {
+      driverMatchConditions.push(
+        { 'deliveryman.phoneNumber': driverPhone },
+        { 'deliveryman.phone': driverPhone },
+        { 'driver.phoneNumber': driverPhone },
+        { 'driver.phone': driverPhone }
+      );
+    }
+    if (driverEmail) {
+      driverMatchConditions.push(
+        { 'deliveryman.email': driverEmail },
+        { 'driver.email': driverEmail }
       );
     }
 
@@ -1011,12 +1055,17 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
       }
     } catch (e) {}
 
+    const fullUser = await mongoose.model('User').findById(req.user._id).lean();
+    const driverPhone = fullUser?.phoneNumber || req.user.phoneNumber;
+    const driverEmail = fullUser?.email || req.user.email;
+
     const driverMatchConditions = [
       { 'deliveryman.id': driverIdStr },
       { 'deliveryman._id': driverIdStr },
       { targetDriverId: driverIdStr },
       { driverId: driverIdStr },
-      { driver: driverIdStr }
+      { driver: driverIdStr },
+      { 'driver._id': driverIdStr }
     ];
     if (driverObjId) {
       driverMatchConditions.push(
@@ -1024,7 +1073,22 @@ walletRouter.get('/driver-earnings', isAuth, async (req, res) => {
         { 'deliveryman._id': driverObjId },
         { targetDriverId: driverObjId },
         { driverId: driverObjId },
-        { driver: driverObjId }
+        { driver: driverObjId },
+        { 'driver._id': driverObjId }
+      );
+    }
+    if (driverPhone) {
+      driverMatchConditions.push(
+        { 'deliveryman.phoneNumber': driverPhone },
+        { 'deliveryman.phone': driverPhone },
+        { 'driver.phoneNumber': driverPhone },
+        { 'driver.phone': driverPhone }
+      );
+    }
+    if (driverEmail) {
+      driverMatchConditions.push(
+        { 'deliveryman.email': driverEmail },
+        { 'driver.email': driverEmail }
       );
     }
 

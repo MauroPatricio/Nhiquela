@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faHandshake, faUsers, faStore, faMotorcycle, faSearch, faPlus, 
+  faHandshake, faUsers, faStore, faSearch, faPlus, 
   faEye, faEdit, faTrash, faSpinner, faTimes, faSave, faCheckCircle, 
   faPhone, faEnvelope, faMapMarkerAlt, faBuilding, faUserPlus, faUserMinus,
-  faCamera, faUpload
+  faCamera, faUpload, faUserTie
 } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon, DriverPersonIcon } from '../../components/common/CustomIcons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import usePagination from '../../hooks/usePagination';
@@ -294,8 +295,8 @@ export default function PartnersScreen() {
         <div className="col-12 col-md-4">
           <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
             <div className="d-flex align-items-center">
-              <div className="bg-info bg-opacity-10 text-info p-3 rounded-4 me-3">
-                <FontAwesomeIcon icon={faMotorcycle} size="2x" />
+              <div className="bg-info bg-opacity-10 text-info p-3 rounded-4 me-3 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px' }}>
+                <SteeringWheelIcon size={30} color="#0284c7" />
               </div>
               <div>
                 <span className="text-muted small fw-bold text-uppercase">Motoristas (Frotas)</span>
@@ -397,8 +398,8 @@ export default function PartnersScreen() {
                     </td>
 
                     <td>
-                      <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fw-bold">
-                        <FontAwesomeIcon icon={faMotorcycle} className="me-1" />
+                      <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-1">
+                        <SteeringWheelIcon size={14} color="currentColor" />
                         {partner.totalDrivers || 0} Motoristas
                       </span>
                     </td>
@@ -611,10 +612,10 @@ export default function PartnersScreen() {
                   <ul className="nav nav-pills">
                     <li className="nav-item">
                       <button 
-                        className={`nav-link rounded-pill fw-bold me-2 ${activeTab === 'drivers' ? 'active bg-primary' : 'bg-light text-dark'}`}
+                        className={`nav-link rounded-pill fw-bold me-2 d-inline-flex align-items-center gap-2 ${activeTab === 'drivers' ? 'active bg-primary' : 'bg-light text-dark'}`}
                         onClick={() => setActiveTab('drivers')}
                       >
-                        <FontAwesomeIcon icon={faMotorcycle} className="me-2" />
+                        <SteeringWheelIcon size={16} color="currentColor" />
                         Motoristas ({membersData.totalDrivers || membersData.drivers?.length || 0})
                       </button>
                     </li>

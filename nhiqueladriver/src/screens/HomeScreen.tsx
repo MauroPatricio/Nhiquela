@@ -93,6 +93,7 @@ export default function HomeScreen({ navigation, route }: any) {
   const [showLocationConsentModal, setShowLocationConsentModal] = useState(false);
   const [pendingToggleValue, setPendingToggleValue] = useState<boolean | null>(null);
 
+
   // Load alert sound
   useEffect(() => {
     let soundObj: Audio.Sound | null = null;
@@ -1811,6 +1812,7 @@ const proceedStartTrip = async (trip: Trip) => {
           </View>
         )}
 
+
         {/* 🔥 BOTÃO DE ONLINE/OFFLINE */}
         {isDriverApproved && (
           <View style={styles.onlineToggleContainer}>
@@ -2918,7 +2920,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15,
-  }
+  },
+
+
 });
 
 

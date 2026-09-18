@@ -1,0 +1,416 @@
+/* ==========================================================================
+   FLEET VEHICLES SCREEN - PREMIUM CARDS, MATRÍCULAS & MODAL
+   ========================================================================== */
+
+.fleet-vehicles-wrapper {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1e293b;
+}
+
+@media (min-width: 768px) {
+  .fleet-vehicles-wrapper {
+    padding: 2rem 2.5rem;
+  }
+}
+
+/* Header Banner */
+.fleet-page-header {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 1.75rem 2rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .fleet-page-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.fleet-header-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fleet-header-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+}
+
+.fleet-header-subtitle {
+  color: #64748b;
+  font-size: 0.84rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}
+
+.btn-add-vehicle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -4px rgba(5, 150, 105, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-add-vehicle:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(5, 150, 105, 0.45);
+}
+
+/* ==========================================
+   VEHICLES CARDS GRID
+   ========================================== */
+.fleet-vehicles-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .fleet-vehicles-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .fleet-vehicles-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.vehicle-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  border: 1px solid transparent;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(16, 185, 129, 0.25);
+}
+
+.vehicle-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.vehicle-type-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  margin-bottom: 0.45rem;
+}
+
+.vehicle-plate-main {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.05em;
+  margin: 0;
+  display: inline-block;
+  background: #f8fafc;
+  padding: 0.2rem 0.65rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.vehicle-model-desc {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+}
+
+.vehicle-model-desc span {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* 4-Quadrant Specs Matrix */
+.vehicle-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 0.2rem;
+}
+
+.spec-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Card Bottom Driver & Actions */
+.vehicle-card-bottom {
+  padding-top: 0.95rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.vehicle-driver-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.driver-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.driver-meta-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.driver-meta-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.driver-meta-contacts {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.1rem;
+}
+
+.driver-meta-contacts a {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.driver-meta-contacts a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.driver-selected-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.vehicle-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-vehicle-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.btn-action-edit {
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+.btn-action-edit:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+  transform: scale(1.08);
+}
+
+.btn-action-delete {
+  color: #e11d48;
+  background: #fff1f2;
+}
+
+.btn-action-delete:hover {
+  background: #ffe4e6;
+  color: #be123c;
+  transform: scale(1.08);
+}
+
+/* ==========================================
+   MODAL STYLING
+   ========================================== */
+.fleet-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+}
+
+.fleet-modal-content {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 540px;
+  padding: 1.75rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.fleet-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1.25rem;
+}
+
+.fleet-modal-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.fleet-input-group {
+  margin-bottom: 1rem;
+}
+
+.fleet-input-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.fleet-input-control {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s;
+  background: #ffffff;
+}
+
+.fleet-input-control:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}

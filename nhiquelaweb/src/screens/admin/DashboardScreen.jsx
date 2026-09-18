@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faWallet, faBoxOpen, faMotorcycle, faUsers, faArrowUp, faArrowDown, faEllipsisV, faClock, faChartLine, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faWallet, faBoxOpen, faUsers, faArrowUp, faArrowDown, faEllipsisV, faClock, faChartLine, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { SteeringWheelIcon } from '../../components/common/CustomIcons';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import api from '../../api';
 
@@ -204,7 +205,7 @@ export default function DashboardScreen() {
             <div className="card-body p-4 d-flex flex-column justify-content-between">
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div className="bg-info text-white rounded-circle d-flex justify-content-center align-items-center" style={{ width: '55px', height: '55px' }}>
-                  <FontAwesomeIcon icon={faMotorcycle} size="xl" />
+                  <SteeringWheelIcon size={26} color="#FFFFFF" />
                 </div>
                 <span className="badge bg-success-subtle text-success rounded-pill fw-bold">Online</span>
               </div>
@@ -260,7 +261,7 @@ export default function DashboardScreen() {
             <div className="card-body p-4 d-flex flex-column justify-content-between">
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div className="bg-warning text-dark rounded-circle d-flex justify-content-center align-items-center bg-opacity-25" style={{ width: '55px', height: '55px' }}>
-                  <FontAwesomeIcon icon={faMotorcycle} size="xl" />
+                  <SteeringWheelIcon size={26} color="#b45309" />
                 </div>
                 <span className="badge bg-warning text-dark rounded-pill fw-bold">Em viagem</span>
               </div>
@@ -316,7 +317,7 @@ export default function DashboardScreen() {
             <div className="card-body p-4 d-flex flex-column justify-content-between">
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center bg-opacity-75" style={{ width: '55px', height: '55px' }}>
-                  <FontAwesomeIcon icon={faMotorcycle} size="xl" />
+                  <SteeringWheelIcon size={26} color="#FFFFFF" />
                 </div>
                 <span className="badge bg-primary rounded-pill fw-bold text-white">Online</span>
               </div>

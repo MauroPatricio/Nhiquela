@@ -65,66 +65,87 @@ export default function PublicLayout() {
             <div className="d-flex gap-3 align-items-center">
               <LanguageSelector variant="light" />
               {userInfo ? (
-                <div className="dropdown position-relative" ref={dropdownRef}>
-                  <button 
-                    className="btn btn-outline-dark rounded-pill dropdown-toggle fw-bold small px-3 d-flex align-items-center gap-2 shadow-sm"
-                    type="button" 
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    aria-expanded={showDropdown}
-                  >
-                    <FontAwesomeIcon icon={faUserCircle} className="text-primary-custom fs-5" />
-                    <span>{userInfo.name || userInfo.email?.split('@')[0] || t('nav.myAccount', 'Minha Conta')}</span>
-                  </button>
+                <>
+                  <div className="dropdown position-relative" ref={dropdownRef}>
+                    <button 
+                      className="btn btn-outline-dark rounded-pill dropdown-toggle fw-bold small px-3 d-flex align-items-center gap-2 shadow-sm"
+                      type="button" 
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      aria-expanded={showDropdown}
+                    >
+                      <FontAwesomeIcon icon={faUserCircle} className="text-primary-custom fs-5" />
+                      <span>{userInfo.name || userInfo.email?.split('@')[0] || t('nav.myAccount', 'Minha Conta')}</span>
+                    </button>
 
-                  <ul 
-                    className={`dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2 py-2 ${showDropdown ? 'show' : ''}`} 
-                    style={{ 
-                      minWidth: '230px', 
-                      position: 'absolute', 
-                      right: 0, 
-                      top: '100%', 
-                      zIndex: 1050,
-                      display: showDropdown ? 'block' : 'none'
-                    }}
-                  >
-                    <li className="px-3 py-2 border-bottom bg-light rounded-top">
-                      <div className="fw-bold text-dark small text-truncate">{userInfo.name || 'Utilizador'}</div>
-                      <small className="text-muted text-truncate d-block" style={{ fontSize: '11px' }}>{userInfo.email}</small>
-                    </li>
-                    <li>
-                      <Link className="dropdown-item py-2 small fw-bold text-dark" to="/shop/account" onClick={() => setShowDropdown(false)}>
-                        <FontAwesomeIcon icon={faUser} className="me-2 text-primary-custom" /> {t('nav.myAccount', 'Minha Conta')}
-                      </Link>
-                    </li>
-                    {(userInfo.isAdmin || userInfo.role === 'ADMIN') && (
+                    <ul 
+                      className={`dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2 py-2 ${showDropdown ? 'show' : ''}`} 
+                      style={{ 
+                        minWidth: '230px', 
+                        position: 'absolute', 
+                        right: 0, 
+                        top: '100%', 
+                        zIndex: 1050,
+                        display: showDropdown ? 'block' : 'none'
+                      }}
+                    >
+                      <li className="px-3 py-2 border-bottom bg-light rounded-top">
+                        <div className="fw-bold text-dark small text-truncate">{userInfo.name || 'Utilizador'}</div>
+                        <small className="text-muted text-truncate d-block" style={{ fontSize: '11px' }}>{userInfo.email}</small>
+                      </li>
                       <li>
-                        <Link className="dropdown-item py-2 small fw-bold text-dark" to="/admin/dashboard" onClick={() => setShowDropdown(false)}>
-                          <FontAwesomeIcon icon={faShieldAlt} className="me-2 text-primary-custom" /> {t('nav.adminPanel', 'Painel Admin')}
+                        <Link className="dropdown-item py-2 small fw-bold text-dark" to="/shop/account" onClick={() => setShowDropdown(false)}>
+                          <FontAwesomeIcon icon={faUser} className="me-2 text-primary-custom" /> {t('nav.myAccount', 'Minha Conta')}
                         </Link>
                       </li>
-                    )}
-                    {(userInfo.isSeller || userInfo.role === 'SELLER') && (
+                      {(userInfo.isAdmin || userInfo.role === 'ADMIN') && (
+                        <li>
+                          <Link className="dropdown-item py-2 small fw-bold text-dark" to="/admin/dashboard" onClick={() => setShowDropdown(false)}>
+                            <FontAwesomeIcon icon={faShieldAlt} className="me-2 text-primary-custom" /> {t('nav.adminPanel', 'Painel Admin')}
+                          </Link>
+                        </li>
+                      )}
+                      {(userInfo.isSeller || userInfo.role === 'SELLER') && (
+                        <li>
+                          <Link className="dropdown-item py-2 small fw-bold text-dark" to="/supplier/dashboard" onClick={() => setShowDropdown(false)}>
+                            <FontAwesomeIcon icon={faStore} className="me-2 text-success" /> {t('nav.supplierPortal', 'Portal Fornecedor')}
+                          </Link>
+                        </li>
+                      )}
+                      {(userInfo.isPartner || userInfo.role === 'PARTNER' || userInfo.partnerId || (userInfo.roleId && typeof userInfo.roleId === 'object' && userInfo.roleId.name && (
+                        userInfo.roleId.name.toLowerCase().includes('parceiro') ||
+                        userInfo.roleId.name.toLowerCase().includes('gestor') ||
+                        userInfo.roleId.name.toLowerCase().includes('frota')
+                      ))) && (
+                        <li>
+                          <Link className="dropdown-item py-2 small fw-bold text-dark" to="/partner/dashboard" onClick={() => setShowDropdown(false)}>
+                            <FontAwesomeIcon icon={faHandshake} className="me-2 text-info" /> {t('nav.partnerPortal', 'Portal do Parceiro / Frota 🛡️')}
+                          </Link>
+                        </li>
+                      )}
+                      <li><hr className="dropdown-divider my-1" /></li>
                       <li>
-                        <Link className="dropdown-item py-2 small fw-bold text-dark" to="/supplier/dashboard" onClick={() => setShowDropdown(false)}>
-                          <FontAwesomeIcon icon={faStore} className="me-2 text-success" /> {t('nav.supplierPortal', 'Portal Fornecedor')}
-                        </Link>
+                        <button className="dropdown-item py-2 small text-danger fw-bold d-flex align-items-center" onClick={handleLogout}>
+                          <FontAwesomeIcon icon={faSignOutAlt} className="me-2" /> {t('nav.logout', 'Encerrar Sessão')}
+                        </button>
                       </li>
-                    )}
-                    {userInfo.partnerId && (
-                      <li>
-                        <Link className="dropdown-item py-2 small fw-bold text-dark" to="/partner/dashboard" onClick={() => setShowDropdown(false)}>
-                          <FontAwesomeIcon icon={faHandshake} className="me-2 text-info" /> {t('nav.partnerPortal', 'Portal Parceiro')}
-                        </Link>
-                      </li>
-                    )}
-                    <li><hr className="dropdown-divider my-1" /></li>
-                    <li>
-                      <button className="dropdown-item py-2 small text-danger fw-bold d-flex align-items-center" onClick={handleLogout}>
-                        <FontAwesomeIcon icon={faSignOutAlt} className="me-2" /> {t('nav.logout', 'Encerrar Sessão')}
-                      </button>
-                    </li>
-                  </ul>
-                </div>
+                    </ul>
+                  </div>
+                  
+                  {(userInfo.isPartner || userInfo.role === 'PARTNER' || userInfo.partnerId || (userInfo.roleId && typeof userInfo.roleId === 'object' && userInfo.roleId.name && (
+                    userInfo.roleId.name.toLowerCase().includes('parceiro') ||
+                    userInfo.roleId.name.toLowerCase().includes('gestor') ||
+                    userInfo.roleId.name.toLowerCase().includes('frota')
+                  ))) && (
+                    <Link
+                      to="/partner/dashboard"
+                      className="btn text-white rounded-pill px-3 py-2 fw-bold small shadow-sm d-none d-md-inline-flex align-items-center gap-2 ms-1"
+                      style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #10B981 100%)', textDecoration: 'none', fontSize: '13px' }}
+                    >
+                      <FontAwesomeIcon icon={faHandshake} />
+                      <span>Gestão de Frota</span>
+                    </Link>
+                  )}
+                </>
               ) : (
                 <>
                   <Link to="/login" className="text-dark fw-bold text-decoration-none small">

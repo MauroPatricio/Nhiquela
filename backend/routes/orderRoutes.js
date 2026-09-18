@@ -2709,7 +2709,8 @@ orderRouter.get(
       { 'deliveryman._id': driverIdStr },
       { targetDriverId: driverIdStr },
       { driverId: driverIdStr },
-      { driver: driverIdStr }
+      { driver: driverIdStr },
+      { 'driver._id': driverIdStr }
     ];
 
     if (driverObjId) {
@@ -2718,7 +2719,24 @@ orderRouter.get(
         { 'deliveryman._id': driverObjId },
         { targetDriverId: driverObjId },
         { driverId: driverObjId },
-        { driver: driverObjId }
+        { driver: driverObjId },
+        { 'driver._id': driverObjId }
+      );
+    }
+
+    // Procura por telefone e email do utilizador caso existam
+    if (req.user?.phoneNumber) {
+      driverMatchConditions.push(
+        { 'deliveryman.phoneNumber': req.user.phoneNumber },
+        { 'deliveryman.phone': req.user.phoneNumber },
+        { 'driver.phoneNumber': req.user.phoneNumber },
+        { 'driver.phone': req.user.phoneNumber }
+      );
+    }
+    if (req.user?.email) {
+      driverMatchConditions.push(
+        { 'deliveryman.email': req.user.email },
+        { 'driver.email': req.user.email }
       );
     }
 

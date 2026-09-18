@@ -1,0 +1,785 @@
+/* ==========================================================================
+   FLEET OPERATIONS MODULES - PREMIUM DESIGN SYSTEM
+   (Manutenções, Combustível, Odómetro, Alertas & Anomalias)
+   ========================================================================== */
+
+:root {
+  --ops-bg: #f8fafc;
+  --ops-card-bg: #ffffff;
+  --ops-border: rgba(226, 232, 240, 0.85);
+  --ops-purple: #7f00ff;
+  --ops-purple-glow: rgba(127, 0, 255, 0.25);
+  --ops-emerald: #10b981;
+  --ops-teal: #0d9488;
+  --ops-amber: #f59e0b;
+  --ops-rose: #f43f5e;
+  --ops-blue: #2563eb;
+}
+
+.fleet-ops-wrapper {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1e293b;
+}
+
+@media (min-width: 768px) {
+  .fleet-ops-wrapper {
+    padding: 2rem 2.5rem;
+  }
+}
+
+/* ==========================================
+   1. EXECUTIVE HERO HEADERS
+   ========================================== */
+.fleet-hero-header {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 2rem 2.25rem;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+  .fleet-hero-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.hero-maintenance {
+  background: linear-gradient(135deg, #090d16 0%, #201306 50%, #061e16 100%);
+  box-shadow: 0 20px 40px -15px rgba(32, 19, 6, 0.5), 0 0 0 1px rgba(245, 158, 11, 0.2);
+}
+
+.hero-fuel {
+  background: linear-gradient(135deg, #090d16 0%, #06201b 50%, #150f2e 100%);
+  box-shadow: 0 20px 40px -15px rgba(6, 32, 27, 0.5), 0 0 0 1px rgba(13, 148, 136, 0.2);
+}
+
+.hero-odometer {
+  background: linear-gradient(135deg, #090d16 0%, #071f14 50%, #170d2c 100%);
+  box-shadow: 0 20px 40px -15px rgba(7, 31, 20, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.hero-alerts {
+  background: linear-gradient(135deg, #090d16 0%, #280a14 50%, #150921 100%);
+  box-shadow: 0 20px 40px -15px rgba(40, 10, 20, 0.5), 0 0 0 1px rgba(244, 63, 94, 0.25);
+}
+
+.hero-reports {
+  background: linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1145 100%);
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.6), 0 0 0 1px rgba(127, 0, 255, 0.25);
+}
+
+.hero-members {
+  background: linear-gradient(135deg, #090d16 0%, #1a0b2e 45%, #061d28 100%);
+  box-shadow: 0 20px 40px -15px rgba(26, 11, 46, 0.6), 0 0 0 1px rgba(138, 43, 226, 0.25);
+}
+
+.hero-profile {
+  background: linear-gradient(135deg, #090d16 0%, #1e1145 50%, #071f1a 100%);
+  box-shadow: 0 20px 40px -15px rgba(30, 17, 69, 0.6), 0 0 0 1px rgba(127, 0, 255, 0.25);
+}
+
+.fleet-hero-header::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.fleet-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(8px);
+  margin-bottom: 0.65rem;
+}
+
+.fleet-hero-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: #ffffff;
+}
+
+.fleet-hero-subtitle {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+  max-width: 680px;
+}
+
+.fleet-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ==========================================
+   2. BUTTONS
+   ========================================== */
+.btn-ops-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, #7f00ff 0%, #6d28d9 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(127, 0, 255, 0.4);
+  transition: all 0.25s ease;
+}
+
+.btn-ops-primary:hover {
+  background: linear-gradient(135deg, #9333ea 0%, #7f00ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -4px rgba(127, 0, 255, 0.5);
+}
+
+.btn-ops-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.4);
+  transition: all 0.25s ease;
+}
+
+.btn-ops-amber:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  transform: translateY(-2px);
+}
+
+.btn-ops-teal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(13, 148, 136, 0.4);
+  transition: all 0.25s ease;
+}
+
+.btn-ops-teal:hover {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  transform: translateY(-2px);
+}
+
+.btn-ops-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn-ops-emerald:hover {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  transform: translateY(-2px);
+}
+
+.btn-ops-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.btn-ops-glass:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+/* ==========================================
+   3. KPI METRICS GRID
+   ========================================== */
+.fleet-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.fleet-kpi-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.35rem 1.5rem;
+  border: 1px solid var(--ops-border);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+}
+
+.fleet-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.07);
+}
+
+.fleet-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.fleet-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.fleet-kpi-value {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.fleet-kpi-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
+.fleet-kpi-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ==========================================
+   4. METALLIC LICENSE PLATES
+   ========================================== */
+.vehicle-plate-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace, 'Courier New', monospace;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.vehicle-plate-flag {
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #007a3d 33%, #000000 33%, #000000 66%, #ffcc00 66%);
+  display: inline-block;
+}
+
+/* ==========================================
+   5. FILTER PILLS & TOOLBARS
+   ========================================== */
+.fleet-toolbar-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--ops-border);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.02);
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .fleet-toolbar-card {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.fleet-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 0.35rem;
+  border-radius: 14px;
+}
+
+.fleet-filter-pill {
+  padding: 0.45rem 1rem;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fleet-filter-pill.active-pending {
+  background: #ffffff;
+  color: #e11d48;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.15);
+}
+
+.fleet-filter-pill.active-resolved {
+  background: #ffffff;
+  color: #059669;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
+}
+
+.fleet-filter-pill.active-all {
+  background: #ffffff;
+  color: #7f00ff;
+  box-shadow: 0 2px 8px rgba(127, 0, 255, 0.15);
+}
+
+/* ==========================================
+   6. DATA TABLE CARDS
+   ========================================== */
+.fleet-table-card {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid var(--ops-border);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.fleet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.fleet-table thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fleet-table th {
+  padding: 1rem 1.25rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.fleet-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.fleet-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.fleet-table td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+}
+
+/* Badges de Estado */
+.ops-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.badge-ok {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-warn {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-danger {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.badge-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.badge-purple {
+  background: #f5f3ff;
+  color: #7f00ff;
+  border: 1px solid rgba(127, 0, 255, 0.3);
+}
+
+/* ==========================================
+   7. MODALS
+   ========================================== */
+.fleet-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.fleet-modal-content {
+  background: #ffffff;
+  border-radius: 24px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fleet-modal-header {
+  padding: 1.5rem 1.75rem;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-amber {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
+.header-teal {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+}
+
+.header-emerald {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.header-rose {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+}
+
+.header-purple {
+  background: linear-gradient(135deg, #7f00ff 0%, #6d28d9 100%);
+}
+
+.fleet-modal-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.fleet-modal-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.fleet-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.fleet-modal-body {
+  padding: 1.75rem;
+}
+
+.fleet-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+}
+
+@media (min-width: 576px) {
+  .fleet-form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.fleet-form-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.fleet-input-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.fleet-input-control:focus {
+  background: #ffffff;
+  border-color: #7f00ff;
+  box-shadow: 0 0 0 4px var(--ops-purple-glow);
+}
+
+/* ==========================================
+   8. ALERT CARDS
+   ========================================== */
+.fleet-alert-box {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid var(--ops-border);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .fleet-alert-box {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.fleet-alert-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+}
+
+.alert-border-danger {
+  border-left: 6px solid #e11d48;
+}
+
+.alert-border-warn {
+  border-left: 6px solid #f59e0b;
+}
+
+.alert-border-success {
+  border-left: 6px solid #10b981;
+}
+
+.alert-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+/* ==========================================
+   9. DRIVER DETAILS CHIP & CARD SYSTEM
+   ========================================== */
+.fleet-driver-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.fleet-driver-pill:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.fleet-driver-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  position: relative;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.fleet-driver-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.driver-online-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  border: 1.5px solid #ffffff;
+}
+
+.driver-offline-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+  border: 1.5px solid #ffffff;
+}
+
+.fleet-driver-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.fleet-driver-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fleet-driver-contact {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.fleet-driver-contact a {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.fleet-driver-contact a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.driver-tag-status {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-weight: 700;
+}

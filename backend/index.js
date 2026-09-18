@@ -84,6 +84,7 @@ import { initScheduledOrderService } from './services/scheduledOrderService.js';
 
 
 import cargoTypeRoutes from './routes/cargoTypeRoutes.js';
+import fleetRouter from './routes/fleetRoutes.js';
 
 // Conectar ao MongoDB
 mongoose
@@ -243,6 +244,7 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/routing', routingRoutes);
 app.use('/api/support', supportRouter);
 app.use('/api/roles', roleRouter);
+app.use('/api/fleet', fleetRouter);
 app.use('/api/system/app-config', appConfigRouter);
 
 // 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados
