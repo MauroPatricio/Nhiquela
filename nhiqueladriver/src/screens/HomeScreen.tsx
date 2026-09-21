@@ -42,6 +42,7 @@ import api from "../api/apiConfig";
 import { ENDPOINTS } from "../api/endpoints";
 import { showMessage } from "react-native-flash-message";
 import { Trip, WebSocketOrderData, LocationData } from "../types";
+import { startFleetTracking, stopFleetTracking } from '../services/fleetTrackingManager';
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -245,19 +246,23 @@ export default function HomeScreen({ navigation, route }: any) {
   // 🔥 VERIFICAR APROVAÇÃO DO MOTORISTA
   const checkDriverApproval = async () => {
     try {
-      // Verifica os dois campos: status (novo) e register_conformance (legado)
+      // Verifica status (novo), availability e register_conformance (legado)
       const driverStatus = user?.status;
       const conformance = user?.deliveryman?.register_conformance;
+      const availability = user?.availability;
 
       const isApproved =
+        user?.isApproved === true ||
         driverStatus === 'Disponível' ||
         driverStatus === 'Em Entrega' ||
+        driverStatus === 'ONLINE' ||
+        driverStatus === 'OFFLINE' ||
+        driverStatus === 'Online' ||
+        driverStatus === 'Ativo' ||
+        driverStatus === 'ACTIVE' ||
+        availability === 'active' ||
+        availability === 'paused' ||
         conformance === 'CONFORMANCE';
-
-      const isPending =
-        !driverStatus ||
-        driverStatus === 'Pendente' ||
-        conformance === 'PENDING_CONFORMANCE';
 
       setIsDriverApproved(isApproved);
 
@@ -502,13 +507,28 @@ export default function HomeScreen({ navigation, route }: any) {
           if (!isMounted.current) return;
           console.log('🔔 Estado atualizado pelo admin:', data);
 
-          const nowApproved = data.status === 'Disponível' || data.status === 'Em Entrega';
+          const nowApproved =
+            data.isApproved === true ||
+            data.status === 'Disponível' ||
+            data.status === 'Em Entrega' ||
+            data.status === 'ONLINE' ||
+            data.status === 'OFFLINE' ||
+            data.status === 'Online' ||
+            data.status === 'Ativo' ||
+            data.status === 'ACTIVE' ||
+            data.availability === 'active' ||
+            data.availability === 'paused';
 
           if (nowApproved) {
             // ✅ Conta aprovada: fecha o modal e carrega as ordens
-            setIsDriverApproved(true);
+            // Só mostra a mensagem festiva "Conta Aprovada" se o motorista AINDA NÃO estava aprovado
+            setIsDriverApproved((prevIsApproved) => {
+              if (!prevIsApproved) {
+                setShowApprovedSuccessModal(true);
+              }
+              return true;
+            });
             setShowApprovalModal(false);
-            setShowApprovedSuccessModal(true);
             loadAllOrders();
           } else if (data.status === 'Inativo') {
             // âŒ Conta suspensa
@@ -683,13 +703,14 @@ export default function HomeScreen({ navigation, route }: any) {
           duration: 3500,
         });
         
-        // Se ficou offline, limpa a lista de viagens disponíveis
+        // Se ficou offline, limpa a lista de viagens disponíveis e para o tracking de frota
         if (!value) {
            setAllTrips([]);
+           await stopFleetTracking();
         } else {
-           // Se ficou online, carrega imediatamente
+           // Se ficou online, inicia o rastreamento continuo de frota
+           await startFleetTracking();
            loadAllOrdersSilent();
-           // ?? ATUALIZAR LOCALIZACAO INSTANTANEAMENTE
            try {
              const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
              if (loc && user) {
@@ -749,17 +770,30 @@ export default function HomeScreen({ navigation, route }: any) {
   };
 
   useEffect(() => {
-    // Modal de aprovação: só reage a user.status quando temos certeza do estado
-    if (user?.status === 'Disponível' || user?.status === 'Em Entrega') {
+    // Modal de aprovação: só reage a user.status/availability quando temos certeza do estado
+    const isApprovedStatus =
+      user?.isApproved === true ||
+      user?.status === 'Disponível' ||
+      user?.status === 'Em Entrega' ||
+      user?.status === 'ONLINE' ||
+      user?.status === 'OFFLINE' ||
+      user?.status === 'Online' ||
+      user?.status === 'Ativo' ||
+      user?.status === 'ACTIVE' ||
+      user?.availability === 'active' ||
+      user?.availability === 'paused' ||
+      user?.deliveryman?.register_conformance === 'CONFORMANCE';
+
+    if (isApprovedStatus) {
       setIsDriverApproved(true);
       setShowApprovalModal(false);
     } else if (user?.status === 'Pendente' || user?.status === 'Inativo') {
-      // Só mostra modal se realmente Pendente/Inativo â€” não quando status é undefined
+      // Só mostra modal se realmente Pendente/Inativo — não quando status é undefined
       if (!isDriverApproved) {
         setShowApprovalModal(true);
       }
     }
-  }, [user?.status]);
+  }, [user?.status, user?.availability, user?.isApproved]);
 
   // 🔥 PING DE LOCALIZAÇÃO A CADA 10 SEGUNDOS QUANDO ONLINE
   useEffect(() => {
@@ -808,7 +842,18 @@ export default function HomeScreen({ navigation, route }: any) {
         if (!res.ok) return;
         const fresh = await res.json();
         console.log('[POLL] Status actual no servidor:', fresh.status);
-        const nowApproved = fresh.status === 'Disponível' || fresh.status === 'Em Entrega';
+        const nowApproved =
+          fresh.isApproved === true ||
+          fresh.status === 'Disponível' ||
+          fresh.status === 'Em Entrega' ||
+          fresh.status === 'ONLINE' ||
+          fresh.status === 'OFFLINE' ||
+          fresh.status === 'Online' ||
+          fresh.status === 'Ativo' ||
+          fresh.status === 'ACTIVE' ||
+          fresh.availability === 'active' ||
+          fresh.availability === 'paused' ||
+          fresh.deliveryman?.register_conformance === 'CONFORMANCE';
         if (nowApproved) {
           console.log('âœ… [POLL] Motorista aprovado detectado!');
           // Actualizar o user no AuthContext completo (incluindo deliveryman.register_conformance)
@@ -1842,6 +1887,32 @@ const proceedStartTrip = async (trip: Trip) => {
                 value={user?.availability === 'active'}
               />
             )}
+          </View>
+        )}
+
+        {/* 🔥 BANNER DE RASTREAMENTO OPERACIONAL DE FROTA EM TEMPO REAL */}
+        {user?.availability === 'active' && (
+          <View style={{
+            backgroundColor: '#1E293B',
+            borderRadius: 14,
+            padding: 14,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            borderLeftWidth: 4,
+            borderLeftColor: COLORS.success,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.success, marginRight: 8 }} />
+                <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 }}>
+                  Rastreamento Operacional Ativo
+                </Text>
+              </View>
+              <Text style={{ color: '#94A3B8', fontSize: 11 }}>GPS Operando</Text>
+            </View>
+            <Text style={{ color: '#CBD5E1', fontSize: 11, marginTop: 4 }}>
+              Localização em tempo real sincronizada com a Gestão de Frota.
+            </Text>
           </View>
         )}
 

@@ -75,6 +75,11 @@ import FleetFuelScreen from './screens/partner/FleetFuelScreen';
 import FleetOdometerScreen from './screens/partner/FleetOdometerScreen';
 import FleetAlertsScreen from './screens/partner/FleetAlertsScreen';
 import FleetReportsScreen from './screens/partner/FleetReportsScreen';
+import FleetLiveMapScreen from './screens/partner/FleetLiveMapScreen';
+import FleetHistoryMapScreen from './screens/partner/FleetHistoryMapScreen';
+import FleetGeofencesScreen from './screens/partner/FleetGeofencesScreen';
+import FleetVehicleProfileScreen from './screens/partner/FleetVehicleProfileScreen';
+import FleetDriverProfileScreen from './screens/partner/FleetDriverProfileScreen';
 
 function App() {
   return (
@@ -126,8 +131,14 @@ function App() {
           <Route path="reports" element={<PartnerDashboardScreen />} />
           <Route path="profile" element={<PartnerProfileScreen />} />
           <Route path="orders/:id" element={<MultiStopTripDetailScreen />} />
-          <Route path="fleet" element={<FleetDashboardScreen />} />
+          <Route path="fleet" element={<FleetLiveMapScreen />} />
+          <Route path="fleet/dashboard" element={<FleetDashboardScreen />} />
+          <Route path="fleet/live" element={<FleetLiveMapScreen />} />
+          <Route path="fleet/history" element={<FleetHistoryMapScreen />} />
+          <Route path="fleet/geofences" element={<FleetGeofencesScreen />} />
           <Route path="fleet/vehicles" element={<FleetVehiclesScreen />} />
+          <Route path="fleet/vehicles/:id" element={<FleetVehicleProfileScreen />} />
+          <Route path="fleet/drivers/:id" element={<FleetDriverProfileScreen />} />
           <Route path="fleet/maintenance" element={<FleetMaintenanceScreen />} />
           <Route path="fleet/fuel" element={<FleetFuelScreen />} />
           <Route path="fleet/odometer" element={<FleetOdometerScreen />} />
@@ -139,8 +150,14 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardScreen />} />
-          <Route path="fleet" element={<FleetDashboardScreen />} />
+          <Route path="fleet" element={<FleetLiveMapScreen />} />
+          <Route path="fleet/dashboard" element={<FleetDashboardScreen />} />
+          <Route path="fleet/live" element={<FleetLiveMapScreen />} />
+          <Route path="fleet/history" element={<FleetHistoryMapScreen />} />
+          <Route path="fleet/geofences" element={<FleetGeofencesScreen />} />
           <Route path="fleet/vehicles" element={<FleetVehiclesScreen />} />
+          <Route path="fleet/vehicles/:id" element={<FleetVehicleProfileScreen />} />
+          <Route path="fleet/drivers/:id" element={<FleetDriverProfileScreen />} />
           <Route path="fleet/maintenance" element={<FleetMaintenanceScreen />} />
           <Route path="fleet/fuel" element={<FleetFuelScreen />} />
           <Route path="fleet/odometer" element={<FleetOdometerScreen />} />

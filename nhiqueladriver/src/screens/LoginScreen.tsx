@@ -49,7 +49,17 @@ export default function LoginScreen({ navigation }: any) {
     if (!showAnalysisModal || !authContext?.user?._id) return;
 
     const handleStatusUpdated = (data: any) => {
-      const nowApproved = data.status === 'Disponível' || data.status === 'Em Entrega';
+      const nowApproved =
+        data.isApproved === true ||
+        data.status === 'Disponível' ||
+        data.status === 'Em Entrega' ||
+        data.status === 'ONLINE' ||
+        data.status === 'OFFLINE' ||
+        data.status === 'Online' ||
+        data.status === 'Ativo' ||
+        data.status === 'ACTIVE' ||
+        data.availability === 'active' ||
+        data.availability === 'paused';
       if (nowApproved) {
         setShowAnalysisModal(false);
       }
@@ -111,7 +121,18 @@ export default function LoginScreen({ navigation }: any) {
       const conformance = userData.deliveryman?.register_conformance;
       const driverStatus = userData.status;
 
-      const isApproved = conformance === "CONFORMANCE" || driverStatus === "Disponível" || driverStatus === "Em Entrega";
+      const isApproved =
+        conformance === "CONFORMANCE" ||
+        driverStatus === "Disponível" ||
+        driverStatus === "Em Entrega" ||
+        driverStatus === "ONLINE" ||
+        driverStatus === "OFFLINE" ||
+        driverStatus === "Online" ||
+        driverStatus === "Ativo" ||
+        driverStatus === "ACTIVE" ||
+        userData?.availability === "active" ||
+        userData?.availability === "paused" ||
+        userData?.isApproved === true;
       const isRejected = conformance === "INCONFORMANCE" || driverStatus === "Inativo";
 
       if (isApproved) {

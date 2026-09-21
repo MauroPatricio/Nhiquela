@@ -380,7 +380,7 @@ export default function PartnerMembersScreen() {
                       </td>
 
                       <td>
-                        {m.isOnline ? (
+                        {m.availability === 'active' || m.isOnline || m.status === 'ONLINE' ? (
                           <span className="ops-badge badge-ok">
                             <FontAwesomeIcon icon={faCheckCircle} /> Online
                           </span>
