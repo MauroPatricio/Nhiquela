@@ -17,6 +17,8 @@ import {
   faTachometerAlt,
   faExclamationTriangle,
   faChartBar,
+  faMapMarkerAlt,
+  faHistory,
 } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectUser, setUserLogout } from '../../store/features/userSlice';
@@ -54,12 +56,14 @@ export default function PartnerLayout() {
       title: 'Visão Geral & KPIs',
       items: [
         { name: 'Dashboard (KPIs)', path: '/partner/dashboard', icon: faChartLine },
-        { name: 'Dashboard Frota', path: '/partner/fleet', icon: faChartBar },
+        { name: 'Mapa em Tempo Real', path: '/partner/fleet/live', icon: faMapMarkerAlt },
       ],
     },
     {
       title: 'Operações de Frota',
       items: [
+        { name: 'Histórico de Rotas', path: '/partner/fleet/history', icon: faHistory },
+        { name: 'Geofences (Zonas)', path: '/partner/fleet/geofences', icon: faMapMarkerAlt },
         { name: 'Veículos', path: '/partner/fleet/vehicles', icon: faCar },
         { name: 'Manutenções', path: '/partner/fleet/maintenance', icon: faWrench },
         { name: 'Combustível', path: '/partner/fleet/fuel', icon: faGasPump },

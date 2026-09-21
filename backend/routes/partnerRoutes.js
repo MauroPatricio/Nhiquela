@@ -7,6 +7,7 @@ import Order from '../models/OrderModel.js';
 import RequestService from '../models/RequestServiceModel.js';
 import Provider from '../models/ProviderModel.js';
 import AuditLog from '../models/AuditLogModel.js';
+import FleetTrackingSession from '../models/FleetTrackingSessionModel.js';
 import { isAuth, isAdmin, isPartner, checkPermission, sendAdminNotificationEmail } from '../utils.js';
 import partnerService from '../services/partnerService.js';
 
@@ -423,7 +424,7 @@ router.get(
     const members = await User.find({
       $or: [{ partnerId: targetPartnerId }, { partnerId: req.user._id }],
       ...roleFilter
-    }).select('_id name email phoneNumber role status isApproved isDeliveryMan isSeller rating seller deliveryman isOnline online createdAt');
+    }).select('_id name email phoneNumber role status isApproved isDeliveryMan isSeller rating seller deliveryman availability isOnline online createdAt');
 
     const drivers = members.filter(m => m.role === 'DRIVER' || m.isDeliveryMan);
     const sellers = members.filter(m => m.role === 'SELLER' || m.isSeller);
@@ -536,12 +537,34 @@ router.get(
     }
 
     // 1. Obter todos os membros vinculados a este parceiro com estado online
+    const pDoc = await Partner.findOne({ $or: [{ _id: targetPartnerId }, { userId: targetPartnerId }] });
+    const partnerIdsToSearch = [targetPartnerId, req.user._id];
+    if (pDoc) {
+      if (pDoc._id) partnerIdsToSearch.push(pDoc._id);
+      if (pDoc.userId) partnerIdsToSearch.push(pDoc.userId);
+    }
+
     const memberUsers = await User.find({
-      $or: [{ partnerId: targetPartnerId }, { partnerId: req.user._id }]
-    }).select('_id name role isSeller isDeliveryMan status isOnline online');
+      $or: [
+        { partnerId: { $in: partnerIdsToSearch } },
+        { _id: { $in: partnerIdsToSearch } }
+      ]
+    }).select('_id name role isSeller isDeliveryMan status isOnline online availability');
     const driverUsers = memberUsers.filter(m => m.role === 'DRIVER' || m.isDeliveryMan);
     const driverIds = driverUsers.map(m => m._id);
-    const onlineDriversCount = driverUsers.filter(m => m.isOnline === true || m.status === 'ONLINE' || m.online === true).length;
+
+    const activeTrackingSessions = await FleetTrackingSession.find({ status: 'ACTIVE' }).select('driver');
+    const activeTrackingDriverIds = new Set(activeTrackingSessions.map(s => String(s.driver)));
+
+    const onlineDriversCount = driverUsers.filter(m =>
+      activeTrackingDriverIds.has(String(m._id)) ||
+      m.availability === 'active' ||
+      m.isOnline === true ||
+      m.status === 'ONLINE' ||
+      m.online === true ||
+      m.status === 'Disponível' ||
+      m.status === 'Em Entrega'
+    ).length;
 
     const sellerUserIds = memberUsers.filter(m => m.role === 'SELLER' || m.isSeller).map(m => m._id);
 

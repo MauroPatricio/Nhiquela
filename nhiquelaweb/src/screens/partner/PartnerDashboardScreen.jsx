@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
+import io from 'socket.io-client';
 import { selectUser } from '../../store/features/userSlice';
 import api from '../../api';
 import './PartnerDashboard.css';
@@ -84,6 +85,18 @@ const fmtMT = (v) =>
     maximumFractionDigits: 2,
   })} MT`;
 
+const isDriverOnline = (d) => {
+  if (!d) return false;
+  return (
+    d.availability === 'active' ||
+    d.isOnline === true ||
+    d.status === 'ONLINE' ||
+    d.status === 'Disponível' ||
+    d.status === 'Em Entrega' ||
+    d.online === true
+  );
+};
+
 export default function PartnerDashboardScreen() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -156,6 +169,59 @@ export default function PartnerDashboardScreen() {
   useEffect(() => {
     if (partnerId && userInfo.token) fetchDashboardData();
   }, [partnerId, userInfo.token]);
+
+  // Real-time socket listener for driver online/offline availability changes
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+    });
+
+    const handleDriverUpdate = (payload) => {
+      if (!payload || !payload.driverId) return;
+      setMembers((prev) => {
+        if (!prev || !prev.drivers) return prev;
+        let found = false;
+        const updatedDrivers = prev.drivers.map((drv) => {
+          if (String(drv._id) === String(payload.driverId)) {
+            found = true;
+            const newAvailability =
+              payload.availability !== undefined
+                ? payload.availability
+                : payload.isOnline
+                ? 'active'
+                : 'inactive';
+            const newIsOnline =
+              payload.isOnline !== undefined ? payload.isOnline : newAvailability === 'active';
+            const newStatus = payload.status || (newIsOnline ? 'ONLINE' : 'OFFLINE');
+            return {
+              ...drv,
+              availability: newAvailability,
+              isOnline: newIsOnline,
+              status: newStatus,
+            };
+          }
+          return drv;
+        });
+        return { ...prev, drivers: updatedDrivers };
+      });
+    };
+
+    socket.on('driver_availability_updated', handleDriverUpdate);
+    socket.on('driver_status_updated', handleDriverUpdate);
+    socket.on('fleet_location_update', handleDriverUpdate);
+    socket.on('fleet_tracking_started', handleDriverUpdate);
+    socket.on('fleet_tracking_stopped', handleDriverUpdate);
+
+    return () => {
+      socket.off('driver_availability_updated', handleDriverUpdate);
+      socket.off('driver_status_updated', handleDriverUpdate);
+      socket.off('fleet_location_update', handleDriverUpdate);
+      socket.off('fleet_tracking_started', handleDriverUpdate);
+      socket.off('fleet_tracking_stopped', handleDriverUpdate);
+      socket.disconnect();
+    };
+  }, []);
 
   const openMemberDetail = async (member) => {
     setSelectedMember(member);
@@ -265,7 +331,7 @@ export default function PartnerDashboardScreen() {
     }
   };
 
-  const kpis = data?.kpis || {
+  const rawKpis = data?.kpis || {
     totalDrivers: 0,
     onlineDrivers: 0,
     totalSellers: 0,
@@ -285,6 +351,13 @@ export default function PartnerDashboardScreen() {
     totalCommissions: 0,
     netAmount: 0,
     averageRating: 5.0,
+  };
+
+  const currentOnlineCount = (members.drivers || []).filter(isDriverOnline).length;
+  const kpis = {
+    ...rawKpis,
+    onlineDrivers: (members.drivers && members.drivers.length > 0) ? currentOnlineCount : rawKpis.onlineDrivers,
+    totalDrivers: (members.drivers && members.drivers.length > 0) ? members.drivers.length : rawKpis.totalDrivers,
   };
 
   const filtered = (list) =>
@@ -786,11 +859,24 @@ export default function PartnerDashboardScreen() {
                               fontWeight: 700,
                               padding: '0.2rem 0.6rem',
                               borderRadius: '9999px',
-                              background: driver.isOnline || driver.status === 'ONLINE' ? '#ecfdf5' : '#f1f5f9',
-                              color: driver.isOnline || driver.status === 'ONLINE' ? '#047857' : '#64748b',
+                              background: isDriverOnline(driver) ? '#ecfdf5' : '#f1f5f9',
+                              color: isDriverOnline(driver) ? '#047857' : '#64748b',
+                              border: `1px solid ${isDriverOnline(driver) ? 'rgba(16,185,129,0.3)' : '#cbd5e1'}`,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
                             }}
                           >
-                            {driver.isOnline || driver.status === 'ONLINE' ? 'Online' : 'Offline'}
+                            <span
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                backgroundColor: isDriverOnline(driver) ? '#10b981' : '#94a3b8',
+                                boxShadow: isDriverOnline(driver) ? '0 0 6px #10b981' : 'none',
+                              }}
+                            />
+                            {isDriverOnline(driver) ? 'Online' : 'Offline'}
                           </span>
                         </div>
 

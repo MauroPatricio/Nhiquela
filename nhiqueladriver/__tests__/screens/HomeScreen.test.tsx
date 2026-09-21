@@ -26,11 +26,11 @@ const mockNavigation = {
 
 describe('Driver HomeScreen', () => {
   it('renders correctly', async () => {
-    const { getByText, queryByText } = render(<HomeScreen navigation={mockNavigation} />);
+    const { getAllByText } = render(<HomeScreen navigation={mockNavigation} />);
     
     await waitFor(() => {
-      // It should load and show Conta em Análise modal because mock doesn't fully mock userData perfectly for isDriverApproved
-      expect(getByText('Conta em Análise')).toBeTruthy();
+      // It should load and show Conta em Análise modal/banner when unapproved
+      expect(getAllByText('Conta em Análise').length).toBeGreaterThan(0);
     });
   });
 });

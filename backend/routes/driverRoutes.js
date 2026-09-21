@@ -346,9 +346,34 @@ router.put(
     }
 
     // Otimização: usar updateOne em vez de driver.save() para evitar carregar e validar documentos grandes
-    await User.updateOne({ _id: driver._id }, { $set: { availability: availability } });
+    const isOnline = availability === 'active';
+    await User.updateOne(
+      { _id: driver._id },
+      {
+        $set: {
+          availability: availability,
+          isOnline: isOnline,
+          status: isOnline ? (driver.status === 'Em Entrega' ? 'Em Entrega' : 'ONLINE') : 'OFFLINE',
+        },
+      }
+    );
 
-    res.send({ message: 'Disponibilidade atualizada com sucesso', availability: availability });
+    const io = req.app.get('io');
+    if (io) {
+      const payload = {
+        driverId: driver._id.toString(),
+        partnerId: driver.partnerId ? driver.partnerId.toString() : null,
+        availability: availability,
+        isOnline: isOnline,
+        status: isOnline ? 'ONLINE' : 'OFFLINE',
+        updatedAt: new Date(),
+      };
+      io.emit('driver_availability_updated', payload);
+      io.emit('driver_status_updated', payload);
+      io.emit('fleet_location_update', payload);
+    }
+
+    res.send({ message: 'Disponibilidade atualizada com sucesso', availability: availability, isOnline });
   })
 );
 
