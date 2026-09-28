@@ -48,6 +48,7 @@ import ForgotPassword from './screens/ForgotPassword';
 import EstablishmentList from './components/EstablishmentList3';
 import SellersByEstablishment from './components/SellersByEstablishment';
 import RequestServiceScreen from './screens/RequestService';
+import ImportScreen from './screens/ImportScreen';
 import DeliveryDetailsScreen from './components/DeliveryDetailsScreen';
 import Favorite from './screens/Favorite';
 import DocumentUploadScreen from './screens/DocumentUploadScreen';
@@ -361,6 +362,7 @@ export default function App() {
                   component={OrderChat}
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen name="ImportScreen" component={ImportScreen} />
               </Stack.Navigator>
             </NavigationContainer>
 

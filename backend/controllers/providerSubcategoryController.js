@@ -19,13 +19,29 @@ export const list = asyncHandler(async (req, res) => {
         const clsName = (sub.providerTypeId?.classificationId?.name || '').toUpperCase();
         const ptName = (sub.providerTypeId?.name || '').toUpperCase();
         const subName = (sub.name || '').toUpperCase();
+        const subType = (sub.type || '').toUpperCase();
 
-        const isBusinessStore = ptName.includes('SUPERMERCADO') || ptName.includes('FARMÁCIA') || ptName.includes('BOTTLE') || subName.includes('MINIMERCADO') || clsName.includes('BUSINESS');
+        const isBusinessStore =
+          clsName.includes('BUSINESS') ||
+          subType === 'BUSINESS' ||
+          ptName.includes('SUPERMERCADO') ||
+          ptName.includes('FARMÁCIA') ||
+          ptName.includes('BOTTLE') ||
+          ptName.includes('LOJA') ||
+          ptName.includes('RESTAURANTE') ||
+          ptName.includes('MERCADO') ||
+          subName.includes('MINIMERCADO') ||
+          subName.includes('SUPERMERCADO') ||
+          subName.includes('FARMÁCIA') ||
+          subName.includes('LOJA') ||
+          subName.includes('BOTTLE') ||
+          subName.includes('RESTAURANTE') ||
+          subName.includes('MERCADO');
 
         if (requestedType === 'SERVICE') {
-          return !isBusinessStore || clsName.includes('SERVICE');
+          return !isBusinessStore && (clsName.includes('SERVICE') || clsName.includes('FREELANCER') || subType === 'SERVICE' || !clsName);
         } else if (requestedType === 'BUSINESS') {
-          return isBusinessStore || clsName.includes('BUSINESS');
+          return isBusinessStore || clsName.includes('BUSINESS') || subType === 'BUSINESS';
         }
         return true;
       });

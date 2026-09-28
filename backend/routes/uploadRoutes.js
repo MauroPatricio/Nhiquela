@@ -7,8 +7,9 @@ const uploadRouter = express.Router();
 const upload = multer({ limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
 // upload Media files
-uploadRouter.post('/', upload.single('file'), async (req, res) => {
-    if (!req.file) {
+uploadRouter.post('/', upload.any(), async (req, res) => {
+    const file = req.file || (req.files && req.files[0]);
+    if (!file) {
         return res.status(400).send({ message: 'No file uploaded' });
     }
 
@@ -26,7 +27,7 @@ uploadRouter.post('/', upload.single('file'), async (req, res) => {
         maxFileSize: 5000000, // Limit to 5MB
     };
 
-    const streamUpload = (req) => {
+    const streamUpload = () => {
         return new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(imgOptions, (error, result) => {
                 if (result) {
@@ -35,17 +36,17 @@ uploadRouter.post('/', upload.single('file'), async (req, res) => {
                     reject(error);
                 }
             });
-            streamifier.createReadStream(req.file.buffer).pipe(stream);
+            streamifier.createReadStream(file.buffer).pipe(stream);
         });
     };
     
     try {
-        const result = await streamUpload(req);
+        const result = await streamUpload();
         res.send(result);
     } catch (error) {
         console.warn('Cloudinary upload error, using Data URI fallback:', error.message || error);
-        if (req.file && req.file.buffer) {
-          const base64Str = `data:${req.file.mimetype || 'image/jpeg'};base64,${req.file.buffer.toString('base64')}`;
+        if (file && file.buffer) {
+          const base64Str = `data:${file.mimetype || 'image/jpeg'};base64,${file.buffer.toString('base64')}`;
           return res.send({ secure_url: base64Str, url: base64Str, message: 'Upload local realizado com sucesso' });
         }
         res.status(500).send({ message: error.message || 'Error uploading file' });
@@ -64,9 +65,10 @@ const __dirname = path.dirname(__filename);
 // Local Storage setup removed in favor of Cloudinary (Stateless Architecture)
 
 // Local Upload Route - Now redirects to Cloudinary transparently
-uploadRouter.post('/local', upload.single('file'), async (req, res) => {
+uploadRouter.post('/local', upload.any(), async (req, res) => {
     try {
-        if (!req.file) {
+        const file = req.file || (req.files && req.files[0]);
+        if (!file) {
             return res.status(400).send({ message: 'Nenhum ficheiro enviado' });
         }
         
@@ -87,7 +89,7 @@ uploadRouter.post('/local', upload.single('file'), async (req, res) => {
             maxFileSize: 2000000 // 2MB
         };
 
-        const streamUpload = (req) => {
+        const streamUpload = () => {
             return new Promise((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream(imgOptions, (error, result) => {
                     if (result) {
@@ -96,11 +98,11 @@ uploadRouter.post('/local', upload.single('file'), async (req, res) => {
                         reject(error);
                     }
                 });
-                streamifier.createReadStream(req.file.buffer).pipe(stream);
+                streamifier.createReadStream(file.buffer).pipe(stream);
             });
         };
         
-        const result = await streamUpload(req);
+        const result = await streamUpload();
 
         res.send({ 
             message: 'Upload feito com sucesso',
@@ -109,6 +111,10 @@ uploadRouter.post('/local', upload.single('file'), async (req, res) => {
         });
     } catch (error) {
         console.error('Cloudinary upload error:', error);
+        if (file && file.buffer) {
+            const base64Str = `data:${file.mimetype || 'image/jpeg'};base64,${file.buffer.toString('base64')}`;
+            return res.send({ secure_url: base64Str, url: base64Str, message: 'Upload feito com sucesso' });
+        }
         res.status(500).send({ message: 'Erro ao fazer upload: ' + (error.message || 'Unknown error') });
     }
 });
