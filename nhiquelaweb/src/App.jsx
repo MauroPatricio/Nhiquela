@@ -1,3 +1,5 @@
+import ImportCustomerScreen from './screens/ImportCustomerScreen';
+import ImportDashboard from './screens/admin/ImportDashboard';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import PublicLayout from './components/Layout/PublicLayout';
@@ -109,6 +111,7 @@ function App() {
           <Route path="checkout" element={<CheckoutScreen />} />
           <Route path="seller/:sellerId" element={<SellerProfileScreen />} />
           <Route path="document-order" element={<DocumentOrderScreen />} />
+          <Route path="import" element={<ImportCustomerScreen />} />
         </Route>
         <Route path="/products" element={<PublicLayout />}>
           <Route index element={<ProductsScreen />} />
@@ -150,6 +153,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardScreen />} />
+          <Route path="import" element={<ImportDashboard />} />
           <Route path="fleet" element={<FleetLiveMapScreen />} />
           <Route path="fleet/dashboard" element={<FleetDashboardScreen />} />
           <Route path="fleet/live" element={<FleetLiveMapScreen />} />

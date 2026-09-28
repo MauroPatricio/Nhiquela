@@ -441,7 +441,88 @@ export const sendAdminNotificationEmail = async (subject, textHtml) => {
   }
 };
 
+/**
+ * Envia email ao cliente quando a cotação de importação está pronta.
+ */
+export const sendImportQuotationEmail = async (customerEmail, customerName, productName, quotation, requestId) => {
+  if (!customerEmail) {
+    console.warn('[ImportEmail] Cliente sem email configurado, notificação por email ignorada.');
+    return;
+  }
+
+  const totalFormatted = quotation.totalCost ? `${quotation.totalCost.toFixed(2)} MZN` : 'Consulte no sistema';
+  const deliveryEta = quotation.estimatedDeliveryDays || 'A definir';
+  const refId = requestId ? `NQL-IMP-${String(requestId).slice(-6).toUpperCase()}` : 'N/A';
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 8px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #8B5CF6, #6D28D9); padding: 32px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 26px;">🌐 Nhiquela Import</h1>
+        <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 15px;">A sua cotação está pronta!</p>
+      </div>
+      <div style="padding: 32px; background: white;">
+        <p style="font-size: 16px; color: #374151;">Olá <b>${customerName}</b>,</p>
+        <p style="color: #6B7280;">A equipa Nhiquela Import analisou o seu pedido e preparou uma cotação personalizada. Aceda à aplicação para ver os detalhes e aceitar.</p>
+
+        <div style="background: #F3F4F6; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <p style="margin: 0 0 8px; color: #9CA3AF; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Detalhes do Pedido</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="color: #6B7280; padding: 4px 0; font-size: 14px;">Referência:</td>
+              <td style="font-weight: bold; text-align: right; font-size: 14px; color: #374151;">${refId}</td>
+            </tr>
+            <tr>
+              <td style="color: #6B7280; padding: 4px 0; font-size: 14px;">Produto:</td>
+              <td style="font-weight: bold; text-align: right; font-size: 14px; color: #374151;">${productName}</td>
+            </tr>
+            <tr style="border-top: 1px solid #E5E7EB; margin-top: 8px;">
+              <td style="color: #6B7280; padding: 8px 0 4px; font-size: 14px;">Total da Cotação:</td>
+              <td style="font-weight: bold; text-align: right; font-size: 18px; color: #8B5CF6;">${totalFormatted}</td>
+            </tr>
+            <tr>
+              <td style="color: #6B7280; padding: 4px 0; font-size: 14px;">Prazo Estimado:</td>
+              <td style="font-weight: bold; text-align: right; font-size: 14px; color: #374151;">${deliveryEta} dias</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align: center; margin: 28px 0 8px;">
+          <a href="https://nhiquelashop.co.mz/shop/import" 
+             style="background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; text-decoration: none; padding: 14px 32px; border-radius: 24px; font-size: 16px; font-weight: bold; display: inline-block;">
+            Ver Cotação e Pagar
+          </a>
+        </div>
+
+        <div style="background: #FEF3C7; border-radius: 8px; padding: 16px; margin-top: 24px;">
+          <p style="margin: 0; color: #92400E; font-size: 13px;">
+            ⏳ <b>Atenção:</b> A cotação tem validade limitada. Aceda à app ou ao portal web Nhiquela, navegue até <b>Nhiquela Import &rarr; Meus Pedidos</b> e aceite a cotação para garantir o seu pedido.
+          </p>
+        </div>
+      </div>
+      <div style="padding: 16px 32px; background: #F3F4F6; text-align: center;">
+        <p style="margin: 0; color: #9CA3AF; font-size: 12px;">Nhiquela Serviços · Maputo, Moçambique · nhiquelaservicos@gmail.com</p>
+      </div>
+    </div>
+  `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'Nhiquela Import <nhiquelaservicos@gmail.com>',
+    to: customerEmail,
+    subject: `✅ Cotação Pronta — ${productName} | Nhiquela Import`,
+    html: htmlBody,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('[ImportEmail] Erro ao enviar email de cotação:', error.message);
+    } else {
+      console.log('[ImportEmail] Email de cotação enviado para:', customerEmail, info.response);
+    }
+  });
+};
+
 export const sendEmailSellerApprovalReminderAdmin = async (sellerName) => {
+
   const adminEmail = 'nhiquelaservicosconsultoria@gmail.com';
   const mailOptions = {
     from: process.env.EMAIL_FROM || 'NOTIFICACAO <noreply@nhiquelaservicos.com>',

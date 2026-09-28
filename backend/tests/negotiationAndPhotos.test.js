@@ -142,9 +142,10 @@ describe('1. Validação de Fotos Obrigatórias do Veículo', () => {
     expect(res.body.vehiclePhotos.front).toBe('https://example.com/front.jpg');
     expect(res.body.basePrice).toBe(1500);
 
-    createdOrderId = res.body._id;
   });
 });
+
+describe('2. Negociação de Preço', () => {
 
   it('Bloqueia propostas que contenham números de telefone nas notas', async () => {
     const res = await request(app)

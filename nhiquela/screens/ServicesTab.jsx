@@ -7,6 +7,7 @@ import api from '../hooks/createConnectionApi';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useToast } from 'react-native-toast-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -174,6 +175,17 @@ export default function ServicesTab() {
 
       let finalCatalog = Object.values(grouped);
 
+      // Prepend Nhiquela Import manually
+      if (finalCatalog.length > 0) {
+        finalCatalog[0].services.unshift({
+          _id: 's_import',
+          name: 'Nhiquela Import',
+          description: 'Compre direto da China. Nós tratamos da cotação, compra e envio até si.',
+          icon: 'airplane-takeoff',
+          isSpecialAction: 'IMPORT'
+        });
+      }
+
       // Fallback caso a base de dados não tenha subcategorias cadastradas ainda
       if (finalCatalog.length === 0) {
         finalCatalog = [
@@ -205,6 +217,18 @@ export default function ServicesTab() {
           ]
         }
       ]);
+      // Add it to fallback too
+      setCatalog(prev => {
+        const newCat = [...prev];
+        newCat[0].services.unshift({
+          _id: 's_import',
+          name: 'Nhiquela Import',
+          description: 'Compre direto da China. Nós tratamos da cotação, compra e envio até si.',
+          icon: 'airplane-takeoff',
+          isSpecialAction: 'IMPORT'
+        });
+        return newCat;
+      });
     } finally {
       setLoading(false);
     }
@@ -228,8 +252,17 @@ export default function ServicesTab() {
     };
   }, []);
 
-  const handleServiceSelect = (service) => {
-    navigation.navigate('RequestService', { selectedService: service });
+  const handleServiceSelect = async (service) => {
+    if (service.isSpecialAction === 'IMPORT') {
+      const storedUserData = await AsyncStorage.getItem('userData');
+      if (storedUserData) {
+        navigation.navigate('ImportScreen');
+      } else {
+        navigation.navigate('Login');
+      }
+    } else {
+      navigation.navigate('RequestService', { selectedService: service });
+    }
   };
 
   const renderServiceCard = ({ item: service }) => {

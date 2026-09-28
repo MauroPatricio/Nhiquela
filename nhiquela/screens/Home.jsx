@@ -803,6 +803,25 @@ responseListener.remove();
                 windowSize={5}
               />
               
+              {/* Nhiquela Import Shortcut */}
+              <TouchableOpacity 
+                style={styles.importUploadCard}
+                onPress={() => {
+                  if (userLogin) {
+                    navigation.navigate('ImportScreen');
+                  } else {
+                    navigation.navigate('Login');
+                  }
+                }}
+                activeOpacity={0.9}
+              >
+                <View style={styles.documentUploadContent}>
+                  <Text style={styles.documentUploadTitle}>Nhiquela Import</Text>
+                  <Text style={styles.documentUploadDesc}>Compre direto da China. Nós tratamos da cotação, compra e envio!</Text>
+                </View>
+                <Ionicons name="airplane-outline" size={40} color="#FFF" style={{ opacity: 0.8 }} />
+              </TouchableOpacity>
+
               {/* Botão Upload Documento (Oculto para a próxima versão) */}
               {false && (
                 <TouchableOpacity 
@@ -930,6 +949,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  importUploadCard: {
+    backgroundColor: '#8B5CF6',
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

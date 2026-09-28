@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faShoppingCart, faMoon, faCommentAlt, faPaperPlane, faStore,
-  faUserCircle, faUser, faShieldAlt, faHandshake, faSignOutAlt 
+  faUserCircle, faUser, faBox, faShieldAlt, faHandshake, faSignOutAlt 
 } from '@fortawesome/free-solid-svg-icons';
 import { faFacebookF, faInstagram, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -53,11 +53,13 @@ export default function PublicLayout() {
                 <h3 className="m-0 text-black fw-extrabold" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
               </Link>
               
-              <nav className="d-none d-lg-flex gap-4">
+              <nav className="d-none d-lg-flex gap-4 align-items-center">
                 <Link to="/shop" className="text-muted text-decoration-none fw-bold small">{t('nav.categories', 'Categorias')}</Link>
                 <Link to="/products" className="text-muted text-decoration-none fw-bold small">{t('nav.products', 'Produtos')}</Link>
-                <Link to="/shop/services" className="text-primary-custom text-decoration-none fw-bold small">
-                  {t('nav.services', 'Serviços')}
+                <Link to="/shop/services" className="text-muted text-decoration-none fw-bold small">{t('nav.services', 'Serviços')}</Link>
+                <Link to="/shop/import" className="text-primary-custom text-decoration-none fw-bold small d-flex align-items-center gap-1">
+                  <span>Nhiquela Import</span>
+                  <span className="badge bg-primary-custom text-white rounded-pill px-2 py-1" style={{ fontSize: '10px' }}>Sourcing</span>
                 </Link>
               </nav>
             </div>
@@ -95,6 +97,11 @@ export default function PublicLayout() {
                       <li>
                         <Link className="dropdown-item py-2 small fw-bold text-dark" to="/shop/account" onClick={() => setShowDropdown(false)}>
                           <FontAwesomeIcon icon={faUser} className="me-2 text-primary-custom" /> {t('nav.myAccount', 'Minha Conta')}
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item py-2 small fw-bold text-dark" to="/shop/import" onClick={() => setShowDropdown(false)}>
+                          <FontAwesomeIcon icon={faBox} className="me-2 text-primary-custom" /> {t('nav.myImports', 'Minhas Importações')}
                         </Link>
                       </li>
                       {(userInfo.isAdmin || userInfo.role === 'ADMIN') && (

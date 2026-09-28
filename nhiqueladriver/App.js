@@ -139,7 +139,7 @@ function AppContent() {
       registerToken();
     }
 
-    // 📨 Listener para notificações em foreground
+    // Listener para notificações em foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(
       (notification) => {
         console.log("📩 Notificação recebida:", notification);

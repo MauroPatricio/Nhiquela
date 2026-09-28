@@ -85,6 +85,7 @@ import { initScheduledOrderService } from './services/scheduledOrderService.js';
 
 import cargoTypeRoutes from './routes/cargoTypeRoutes.js';
 import fleetRouter from './routes/fleetRoutes.js';
+import importRoutes from './modules/import/routes/importRoutes.js';
 
 // Conectar ao MongoDB
 mongoose
@@ -173,6 +174,7 @@ import vehicleColorRoutes from './routes/vehicleColorRoutes.js';
 import incidentRoutes from './routes/incidentRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import paymentAccountRoutes from './routes/paymentAccountRoutes.js';
 import pricingRoutes from './routes/pricingRoutes.js';
 
 import serviceCatalogRoutes from './routes/serviceCatalogRoutes.js';
@@ -240,11 +242,13 @@ app.use('/api/vehicle-colors', vehicleColorRoutes);
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/payment-accounts', paymentAccountRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/routing', routingRoutes);
 app.use('/api/support', supportRouter);
 app.use('/api/roles', roleRouter);
 app.use('/api/fleet', fleetRouter);
+app.use('/api/import', importRoutes);
 app.use('/api/system/app-config', appConfigRouter);
 
 // 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados

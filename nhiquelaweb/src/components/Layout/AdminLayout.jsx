@@ -120,6 +120,7 @@ export default function AdminLayout() {
     { name: '🤝 Parceiros & Frotas', path: '/admin/partners', icon: faHandshake },
     { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingProviders },
     { name: 'Provedores', path: '/admin/providers', icon: faStore },
+    { name: 'Nhiquela Import', path: '/admin/import', icon: faBoxOpen },
     { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
     { name: 'Categorias', path: '/admin/categories', icon: faTags },
     { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },

@@ -380,6 +380,31 @@ export default function HomeScreen() {
           </div>
         </section>
 
+        {/*Banner de Destaque: Nhiquela Import & Sourcing Internacional*/}
+        <section className="mb-4">
+          <div className="p-4 rounded-4 shadow-sm position-relative overflow-hidden" 
+               style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 50%, #8A2BE1 100%)', color: 'white' }}>
+            <div className="row align-items-center">
+              <div className="col-lg-8 mb-3 mb-lg-0 z-1">
+                <span className="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-2">
+                  Serviço de Importação
+                </span>
+                <h3 className="fw-black mb-2 text-white" style={{ letterSpacing: '-0.5px' }}>
+                  Nhiquela Import & Sourcing Internacional 
+                </h3>
+                <p className="mb-0 text-white-50 small">
+                  Faça compras diretas em fábricas e fornecedores na China, Dubai e Emirados com cotações transparentes e envio mar�timo/aéreo direto para Moçambique.
+                </p>
+              </div>
+              <div className="col-lg-4 text-lg-end z-1">
+                <Link to="/shop/import" className="btn btn-light rounded-pill px-4 py-2 fw-bold shadow-sm text-primary-custom">
+                  Fazer Pedido de Importação
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 🚀 COMPRAR NOVAMENTE (Para Utilizadores Autenticados com Pedidos Anteriores) */}
         {previousOrders.length > 0 && (
           <section className="mb-5">
