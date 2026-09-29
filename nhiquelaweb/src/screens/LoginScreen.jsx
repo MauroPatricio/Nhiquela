@@ -50,7 +50,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (userInfo) {
-      if (userInfo.isAdmin || userInfo.role === 'ADMIN') {
+      if (userInfo.isAdmin || userInfo.role === 'ADMIN' || userInfo.isOperator || userInfo.role === 'OPERATOR') {
         navigate('/admin/dashboard');
       } else if (isPartnerUser(userInfo)) {
         navigate('/partner/dashboard');
@@ -89,7 +89,7 @@ export default function LoginScreen() {
       setShowPasswordChangeModal(false);
       toast.success('Palavra-passe atualizada com sucesso! Bem-vindo(a) à plataforma.');
 
-      if (finalUserData.isAdmin || finalUserData.role === 'ADMIN') {
+      if (finalUserData.isAdmin || finalUserData.role === 'ADMIN' || finalUserData.isOperator || finalUserData.role === 'OPERATOR') {
         navigate('/admin/dashboard');
       } else if (isPartnerUser(finalUserData)) {
         navigate('/partner/dashboard');
@@ -135,7 +135,7 @@ export default function LoginScreen() {
       dispatch(setUserLogin(data));
       toast.success(`Bem-vindo de volta, ${data.name}!`);
 
-      if (data.isAdmin || data.role === 'ADMIN') {
+      if (data.isAdmin || data.role === 'ADMIN' || data.isOperator || data.role === 'OPERATOR') {
         navigate('/admin/dashboard');
       } else if (isPartnerUser(data)) {
         navigate('/partner/dashboard');

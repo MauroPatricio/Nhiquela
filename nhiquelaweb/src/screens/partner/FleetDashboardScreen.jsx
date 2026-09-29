@@ -22,7 +22,7 @@ import {
   faUser,
   faSyncAlt,
 } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -41,6 +41,9 @@ import {
 
 export default function FleetDashboardScreen() {
   const { userInfo } = useSelector((state) => state.user);
+
+  const location = useLocation();
+  const fleetBase = location.pathname.startsWith('/admin') ? '/admin/fleet' : '/partner/fleet';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,11 +123,11 @@ export default function FleetDashboardScreen() {
         </div>
 
         <div className="fleet-hero-actions">
-          <Link to="/partner/fleet/vehicles" className="btn-fleet-primary">
+          <Link to={`${fleetBase}/vehicles`} className="btn-fleet-primary">
             <FontAwesomeIcon icon={faPlus} />
             <span>Gerir Veículos</span>
           </Link>
-          <Link to="/partner/fleet/fuel" className="btn-fleet-glass">
+          <Link to={`${fleetBase}/fuel`} className="btn-fleet-glass">
             <FontAwesomeIcon icon={faGasPump} style={{ color: '#34d399' }} />
             <span>Registar Abastecimento</span>
           </Link>
@@ -461,7 +464,7 @@ export default function FleetDashboardScreen() {
               </div>
             </div>
             <Link
-              to="/partner/fleet/alerts"
+              to={`${fleetBase}/alerts`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '0.4rem 0.85rem', borderRadius: '9999px', textDecoration: 'none' }}
             >
               Ver Todos ({summary.pendingAlertsCount})
@@ -518,7 +521,7 @@ export default function FleetDashboardScreen() {
                   <p className="fleet-card-subtitle">Estado e odómetro por unidade</p>
                 </div>
               </div>
-              <Link to="/partner/fleet/vehicles" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textDecoration: 'none' }}>
+              <Link to={`${fleetBase}/vehicles`} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textDecoration: 'none' }}>
                 Gerir
               </Link>
             </div>
@@ -587,7 +590,7 @@ export default function FleetDashboardScreen() {
                     Nenhum veículo registado
                   </p>
                   <Link
-                    to="/partner/fleet/vehicles"
+                    to={`${fleetBase}/vehicles`}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -611,7 +614,7 @@ export default function FleetDashboardScreen() {
 
           <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
             <Link
-              to="/partner/fleet/vehicles"
+              to={`${fleetBase}/vehicles`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#059669', textDecoration: 'none' }}
             >
               Ver todos os veículos

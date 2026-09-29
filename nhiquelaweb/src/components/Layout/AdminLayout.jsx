@@ -3,7 +3,7 @@ import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import api, { SOCKET_URL } from '../../api';
 import { useSelector, useDispatch } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faUserTie, faSignOutAlt, faHandshake } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faUserTie, faSignOutAlt, faHandshake, faGasPump, faWrench, faTachometerAlt, faChartBar, faHistory, faAngleDown, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { setUserLogout } from '../../store/features/userSlice';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [fleetOpen, setFleetOpen] = useState(false);
   const { userInfo } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0, pendingSellers: 0, pendingProviders: 0 });
@@ -100,50 +101,88 @@ export default function AdminLayout() {
     return <Navigate to="/login" replace />;
   }
   
-  if (!userInfo.isAdmin) {
+  // Allow isAdmin, ADMIN role, or OPERATOR role
+  const hasAdminAccess = userInfo.isAdmin || userInfo.role === 'ADMIN' || userInfo.isOperator || userInfo.role === 'OPERATOR';
+  if (!hasAdminAccess) {
     return <Navigate to="/" replace />; // Redirect non-admins to home
   }
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
-    // { name: 'Live Map Ops', path: '/admin/live-map', icon: faMapMarkerAlt },
-    { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog, badge: badges.pendingSellers },
-    { name: 'Papéis (Roles)', path: '/admin/roles', icon: faShieldAlt },
-    { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart, badge: badges.pendingOrders },
-    { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
-    { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
-    // { name: 'Tipos Estabel.', path: '/admin/establishment-types', icon: faBuilding },
-    { name: 'Classificações Prestador', path: '/admin/provider-classifications', icon: faTags },
-    { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
-    { name: 'Subcategorias de Prestador', path: '/admin/provider-subcategories', icon: faTags },
-    { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
-    { name: '🤝 Parceiros & Frotas', path: '/admin/partners', icon: faHandshake },
-    { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingProviders },
-    { name: 'Provedores', path: '/admin/providers', icon: faStore },
-    { name: 'Nhiquela Import', path: '/admin/import', icon: faBoxOpen },
-    { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
-    { name: 'Categorias', path: '/admin/categories', icon: faTags },
-    { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },
-    { name: 'Serviços', path: '/admin/services', icon: faTools },
-    { name: '🚚 Motoristas', path: '/admin/drivers', icon: faUserTie, badge: badges.pendingDrivers },
-    { name: '🚘 Frota (Tempo Real)', path: '/admin/fleet/live', icon: faCar },
-    { name: '📍 Histórico de Rotas', path: '/admin/fleet/history', icon: faMapMarkerAlt },
-    { name: '🛡️ Geofences (Zonas)', path: '/admin/fleet/geofences', icon: faBuilding },
-    { name: '💰 Pedidos de Preço', path: '/admin/price-requests', icon: faMoneyBillWave },
-    { name: '📄 Pedidos de Docs', path: '/admin/doc-requests', icon: faFileAlt },
-    { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },
-    { name: '📦 Tipos de Carga', path: '/admin/cargo-types', icon: faBoxOpen },
-    { name: 'Cores de Veículos', path: '/admin/vehicle-colors', icon: faPalette },
-    { name: 'Incidentes', path: '/admin/incidents', icon: faExclamationTriangle },
-    { name: 'Suporte & Tickets', path: '/admin/support', icon: faFileAlt },
-    { name: 'Subscrições', path: '/admin/subscriptions', icon: faCrown },
-    { name: 'Push Notificações', path: '/admin/push-notifications', icon: faBell },
-    { name: 'Banners & Marketing', path: '/admin/marketing', icon: faBullhorn },
-    { name: 'Financeiro', path: '/admin/finance', icon: faMoneyBillWave, badge: badges.pendingRecharges },
-    { name: 'Métodos Pagamento', path: '/admin/payment-methods', icon: faMoneyBillWave },
-    { name: 'Taxas Processamento', path: '/admin/fees', icon: faMoneyBillWave },
-    { name: 'Tarifas de Entrega', path: '/admin/delivery-tariffs', icon: faCar },
-    { name: 'Configurações', path: '/admin/settings', icon: faCog },
+  const menuSections = [
+    {
+      title: 'Geral',
+      items: [
+        { name: 'Dashboard', path: '/admin/dashboard', icon: faChartLine },
+        { name: 'Utilizadores', path: '/admin/users', icon: faUsersCog, badge: badges.pendingSellers },
+        { name: 'Papéis (Roles)', path: '/admin/roles', icon: faShieldAlt },
+        { name: 'Clientes', path: '/admin/customers', icon: faUserFriends },
+        { name: 'Encomendas', path: '/admin/orders', icon: faShoppingCart, badge: badges.pendingOrders },
+        { name: 'Validação Doc.', path: '/admin/document-validation', icon: faFileAlt },
+      ],
+    },
+    {
+      title: 'Parceiros & Motoristas',
+      items: [
+        { name: 'Parceiros & Frotas', path: '/admin/partners', icon: faHandshake },
+        { name: 'Motoristas', path: '/admin/drivers', icon: faUserTie, badge: badges.pendingDrivers },
+      ],
+    },
+    {
+      title: 'Gestão de Frotas',
+      isFleet: true,
+      items: [
+        { name: 'Dashboard da Frota', path: '/admin/fleet/dashboard', icon: faChartBar },
+        { name: 'Mapa em Tempo Real', path: '/admin/fleet/live', icon: faCar },
+        { name: 'Histórico de Rotas', path: '/admin/fleet/history', icon: faHistory },
+        { name: 'Geofences (Zonas)', path: '/admin/fleet/geofences', icon: faMapMarkerAlt },
+        { name: 'Veículos', path: '/admin/fleet/vehicles', icon: faCar },
+        { name: 'Manutenção', path: '/admin/fleet/maintenance', icon: faWrench },
+        { name: 'Combustível', path: '/admin/fleet/fuel', icon: faGasPump },
+        { name: 'Odómetro', path: '/admin/fleet/odometer', icon: faTachometerAlt },
+        { name: 'Alertas & Anomalias', path: '/admin/fleet/alerts', icon: faExclamationTriangle },
+        { name: 'Relatórios de Frota', path: '/admin/fleet/reports', icon: faChartBar },
+      ],
+    },
+    {
+      title: 'Marketplace',
+      items: [
+        { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingProviders },
+        { name: 'Provedores', path: '/admin/providers', icon: faStore },
+        { name: 'Nhiquela Import', path: '/admin/import', icon: faBoxOpen },
+        { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
+        { name: 'Categorias', path: '/admin/categories', icon: faTags },
+        { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },
+        { name: 'Serviços', path: '/admin/services', icon: faTools },
+      ],
+    },
+    {
+      title: 'Configurações do Sistema',
+      items: [
+        { name: 'Classif. Prestador', path: '/admin/provider-classifications', icon: faTags },
+        { name: 'Tipos Prestador', path: '/admin/provider-types', icon: faBuilding },
+        { name: 'Subcategorias Prestador', path: '/admin/provider-subcategories', icon: faTags },
+        { name: 'Províncias', path: '/admin/provinces', icon: faMapMarkerAlt },
+        { name: 'Tipos de Veículo', path: '/admin/vehicle-types', icon: faCar },
+        { name: 'Tipos de Carga', path: '/admin/cargo-types', icon: faBoxOpen },
+        { name: 'Cores de Veículos', path: '/admin/vehicle-colors', icon: faPalette },
+        { name: 'Tarifas de Entrega', path: '/admin/delivery-tariffs', icon: faCar },
+        { name: 'Métodos Pagamento', path: '/admin/payment-methods', icon: faMoneyBillWave },
+        { name: 'Taxas Processamento', path: '/admin/fees', icon: faMoneyBillWave },
+        { name: 'Configurações', path: '/admin/settings', icon: faCog },
+      ],
+    },
+    {
+      title: 'Operações & Suporte',
+      items: [
+        { name: 'Pedidos de Preço', path: '/admin/price-requests', icon: faMoneyBillWave },
+        { name: 'Pedidos de Docs', path: '/admin/doc-requests', icon: faFileAlt },
+        { name: 'Incidentes', path: '/admin/incidents', icon: faExclamationTriangle },
+        { name: 'Suporte & Tickets', path: '/admin/support', icon: faFileAlt },
+        { name: 'Subscrições', path: '/admin/subscriptions', icon: faCrown },
+        { name: 'Push Notificações', path: '/admin/push-notifications', icon: faBell },
+        { name: 'Banners & Marketing', path: '/admin/marketing', icon: faBullhorn },
+        { name: 'Financeiro', path: '/admin/finance', icon: faMoneyBillWave, badge: badges.pendingRecharges },
+      ],
+    },
   ];
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -200,28 +239,54 @@ export default function AdminLayout() {
             </div>
           </div>
         )}
-        <nav className="nav flex-column flex-nowrap flex-grow-1 px-2 gap-1 custom-scrollbar" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
-          {menuItems.map((item, idx) => (
-            <NavLink 
-              key={idx} 
-              to={item.path} 
-              onClick={() => setSidebarOpen(false)} // Fecha no click em telas pequenas
-              className={({ isActive }) => 
-                `nav-link rounded-3 px-3 py-2 text-dark d-flex align-items-center justify-content-between ${isActive ? 'bg-primary-custom text-white fw-bold shadow-sm' : 'hover-bg-light'}`
-              }
-            >
-              <div className="d-flex align-items-center">
-                <div style={{ width: '25px' }} className="text-center me-2">
-                  <FontAwesomeIcon icon={item.icon} />
+        <nav className="nav flex-column flex-nowrap flex-grow-1 px-2 custom-scrollbar" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
+          {menuSections.map((section, sIdx) => (
+            <div key={sIdx} className="mb-1">
+              {section.isFleet ? (
+                <button
+                  onClick={() => setFleetOpen(o => !o)}
+                  className="w-100 text-start border-0 bg-transparent px-3 pt-3 pb-1 d-flex align-items-center justify-content-between"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', letterSpacing: '0.08em', color: '#8a2be2' }}>
+                    🚛 {section.title}
+                  </span>
+                  <FontAwesomeIcon icon={fleetOpen ? faAngleDown : faAngleRight} style={{ fontSize: '0.7rem', color: '#8a2be2' }} />
+                </button>
+              ) : (
+                <div className="px-3 pt-3 pb-1">
+                  <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>
+                    {section.title}
+                  </span>
                 </div>
-                {item.name}
-              </div>
-              {item.badge > 0 && (
-                <span className="badge bg-danger rounded-pill shadow-sm" style={{ fontSize: '0.7rem' }}>
-                  {item.badge}
-                </span>
               )}
-            </NavLink>
+              {(!section.isFleet || fleetOpen) && (
+                <div className="d-flex flex-column gap-1">
+                  {section.items.map((item, idx) => (
+                    <NavLink
+                      key={idx}
+                      to={item.path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `nav-link rounded-3 px-3 py-2 text-dark d-flex align-items-center justify-content-between ${isActive ? 'bg-primary-custom text-white fw-bold shadow-sm' : 'hover-bg-light'}`
+                      }
+                    >
+                      <div className="d-flex align-items-center">
+                        <div style={{ width: '22px', fontSize: '0.8rem' }} className="text-center me-2">
+                          <FontAwesomeIcon icon={item.icon} />
+                        </div>
+                        <span style={{ fontSize: '0.875rem' }}>{item.name}</span>
+                      </div>
+                      {item.badge > 0 && (
+                        <span className="badge bg-danger rounded-pill shadow-sm" style={{ fontSize: '0.65rem' }}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </nav>
         <div className="p-3 mt-auto border-top border-light pt-4">
