@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Table, Modal, Badge, Alert } from 'react-bootstrap';
+import { Container, Card, Table, Button, Badge, Modal, Form, Row, Col, Alert } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faUniversity, faPlus, faEdit, faTrash, faToggleOn, faToggleOff,
-  faMobileAlt, faCreditCard, faMoneyBillWave, faSave, faTimes
+  faUniversity,
+  faPlus,
+  faEdit,
+  faTrash,
+  faToggleOn,
+  faToggleOff,
+  faCreditCard,
+  faSave,
+  faTimes,
+  faMoneyBillWave
 } from '@fortawesome/free-solid-svg-icons';
-import { toast } from 'react-toastify';
 import api from '../../api';
+import { toast } from 'react-toastify';
 
 const ACCOUNT_TYPES = [
   { value: 'MPESA', label: '📱 M-Pesa', color: 'danger' },
@@ -16,6 +24,8 @@ const ACCOUNT_TYPES = [
   { value: 'OTHER', label: '💰 Outro', color: 'secondary' },
 ];
 
+const CURRENCIES = ['MZN', 'USD', 'EUR', 'ZAR'];
+
 const emptyForm = {
   name: '',
   type: 'MPESA',
@@ -23,6 +33,10 @@ const emptyForm = {
   accountName: '',
   bankName: '',
   iban: '',
+  nib: '',
+  swift: '',
+  nuib: '',
+  currency: 'MZN',
   notes: '',
   isActive: true,
   displayOrder: 0,
@@ -59,14 +73,18 @@ export default function PaymentAccountsScreen() {
   const handleOpenEdit = (account) => {
     setEditingAccount(account);
     setForm({
-      name: account.name,
-      type: account.type,
-      accountNumber: account.accountNumber,
+      name: account.name || '',
+      type: account.type || 'MPESA',
+      accountNumber: account.accountNumber || '',
       accountName: account.accountName || '',
       bankName: account.bankName || '',
       iban: account.iban || '',
+      nib: account.nib || '',
+      swift: account.swift || '',
+      nuib: account.nuib || '',
+      currency: account.currency || 'MZN',
       notes: account.notes || '',
-      isActive: account.isActive,
+      isActive: account.isActive !== undefined ? account.isActive : true,
       displayOrder: account.displayOrder || 0,
       icon: account.icon || ''
     });
@@ -158,9 +176,9 @@ export default function PaymentAccountsScreen() {
             <thead className="table-light">
               <tr>
                 <th className="ps-4 py-3 fw-semibold text-muted border-0">Nome / Tipo</th>
-                <th className="py-3 fw-semibold text-muted border-0">Número da Conta</th>
+                <th className="py-3 fw-semibold text-muted border-0">N° da Conta / Moeda</th>
                 <th className="py-3 fw-semibold text-muted border-0">Titular</th>
-                <th className="py-3 fw-semibold text-muted border-0">Banco/Notas</th>
+                <th className="py-3 fw-semibold text-muted border-0">Detalhes Bancários / Notas</th>
                 <th className="py-3 fw-semibold text-muted border-0">Estado</th>
                 <th className="pe-4 py-3 fw-semibold text-muted border-0 text-end">Acções</th>
               </tr>
@@ -182,12 +200,21 @@ export default function PaymentAccountsScreen() {
                     </td>
                     <td>
                       <code className="text-dark fw-bold fs-6">{acc.accountNumber}</code>
+                      <div>
+                        <Badge bg="light" text="dark" className="border mt-1">
+                          {acc.currency || 'MZN'}
+                        </Badge>
+                      </div>
                     </td>
-                    <td className="text-muted">{acc.accountName || '—'}</td>
+                    <td className="text-muted fw-medium">{acc.accountName || '—'}</td>
                     <td className="text-muted small">
-                      {acc.bankName && <div>🏦 {acc.bankName}</div>}
-                      {acc.iban && <div>IBAN: {acc.iban}</div>}
-                      {acc.notes && <div className="text-muted fst-italic">{acc.notes}</div>}
+                      {acc.bankName && <div className="fw-semibold text-dark">🏦 {acc.bankName}</div>}
+                      {acc.nib && <div><strong>NIB:</strong> <code>{acc.nib}</code></div>}
+                      {acc.iban && <div><strong>IBAN:</strong> <code>{acc.iban}</code></div>}
+                      {acc.swift && <div><strong>SWIFT:</strong> <code>{acc.swift}</code></div>}
+                      {acc.nuib && <div><strong>NUIB:</strong> <code>{acc.nuib}</code></div>}
+                      {acc.notes && <div className="text-muted fst-italic mt-1">📝 {acc.notes}</div>}
+                      {!acc.bankName && !acc.nib && !acc.iban && !acc.swift && !acc.nuib && !acc.notes && '—'}
                     </td>
                     <td>
                       <Button
@@ -248,12 +275,12 @@ export default function PaymentAccountsScreen() {
         <Modal.Body className="pt-4">
           <Form onSubmit={handleSave}>
             <Row className="g-3">
-              <Col md={6}>
+              <Col md={5}>
                 <Form.Group>
                   <Form.Label className="fw-semibold">Nome da Conta *</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Ex: M-Pesa Nhiquela, Millennium BIM Principal"
+                    placeholder="Ex: M-Pesa Nhiquela, BCI Principal"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     required
@@ -261,7 +288,7 @@ export default function PaymentAccountsScreen() {
                   />
                 </Form.Group>
               </Col>
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group>
                   <Form.Label className="fw-semibold">Tipo *</Form.Label>
                   <Form.Select
@@ -271,6 +298,20 @@ export default function PaymentAccountsScreen() {
                   >
                     {ACCOUNT_TYPES.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={2}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Moeda</Form.Label>
+                  <Form.Select
+                    value={form.currency}
+                    onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                    className="py-2"
+                  >
+                    {CURRENCIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </Form.Select>
                 </Form.Group>
@@ -287,12 +328,13 @@ export default function PaymentAccountsScreen() {
                   />
                 </Form.Group>
               </Col>
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label className="fw-semibold">Número / Conta *</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Ex: 84 123 4567 ou 123456789"
+                    placeholder="Ex: 26266610710001 ou 84 123 4567"
                     value={form.accountNumber}
                     onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
                     required
@@ -305,21 +347,22 @@ export default function PaymentAccountsScreen() {
                   <Form.Label className="fw-semibold">Nome do Titular</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Ex: Nhiquela Lda"
+                    placeholder="Ex: NHIQUELA SERVICOS & CONSULTORIA,SU LDA"
                     value={form.accountName}
                     onChange={(e) => setForm({ ...form, accountName: e.target.value })}
                     className="py-2"
                   />
                 </Form.Group>
               </Col>
-              {(form.type === 'BANK') && (
+
+              {form.type === 'BANK' && (
                 <>
                   <Col md={6}>
                     <Form.Group>
                       <Form.Label className="fw-semibold">Nome do Banco</Form.Label>
                       <Form.Control
                         type="text"
-                        placeholder="Ex: Millennium BIM, BCI, Standard Bank"
+                        placeholder="Ex: BCI, Millennium BIM, Standard Bank"
                         value={form.bankName}
                         onChange={(e) => setForm({ ...form, bankName: e.target.value })}
                         className="py-2"
@@ -328,18 +371,57 @@ export default function PaymentAccountsScreen() {
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold">IBAN (Opcional)</Form.Label>
+                      <Form.Label className="fw-semibold">NIB (N° de Identificação Bancária)</Form.Label>
                       <Form.Control
                         type="text"
-                        placeholder="MZ59..."
+                        placeholder="Ex: 000800006266610710113"
+                        value={form.nib}
+                        onChange={(e) => setForm({ ...form, nib: e.target.value })}
+                        className="py-2"
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-semibold">IBAN</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Ex: MZ59000800006266610710113"
                         value={form.iban}
                         onChange={(e) => setForm({ ...form, iban: e.target.value })}
                         className="py-2"
                       />
                     </Form.Group>
                   </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-semibold">Código SWIFT / BIC</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Ex: CGDIMZMA"
+                        value={form.swift}
+                        onChange={(e) => setForm({ ...form, swift: e.target.value })}
+                        className="py-2"
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="fw-semibold">NUIB (N° Único de Identificação Bancária)</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Ex: Número Único de Identificação Bancária (opcional)"
+                        value={form.nuib}
+                        onChange={(e) => setForm({ ...form, nuib: e.target.value })}
+                        className="py-2"
+                      />
+                    </Form.Group>
+                  </Col>
                 </>
               )}
+
               <Col md={9}>
                 <Form.Group>
                   <Form.Label className="fw-semibold">Notas / Instruções</Form.Label>

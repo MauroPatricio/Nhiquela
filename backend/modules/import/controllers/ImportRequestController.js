@@ -3,7 +3,7 @@ import ImportQuotation from '../models/ImportQuotationModel.js';
 
 export const createRequest = async (req, res) => {
     try {
-        const { productName, description, quantity, productUrl, preferredOriginCountry, targetBudget, notes, productImage, shippingMethod } = req.body;
+        const { productName, description, quantity, productUrl, preferredOriginCountry, targetBudget, notes, productImage, shippingMethod, pautaCategory, pautaShCode } = req.body;
         // Assume req.user is set by existing auth middleware
         const customerId = req.user ? req.user._id : req.body.customerId;
 
@@ -19,6 +19,8 @@ export const createRequest = async (req, res) => {
             customerId,
             productName,
             description,
+            pautaCategory,
+            pautaShCode,
             quantity,
             productUrl,
             productImage,

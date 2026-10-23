@@ -1,33 +1,74 @@
-// ImportCostCalculator - Serviço para calcular cotações
+// ImportCostCalculator - Serviço para calcular cotações oficiais de importação (Moçambique)
 
-export const calculateQuotation = (params) => {
+export const calculateQuotation = (params = {}) => {
+    // 1. Valor da Mercadoria (VM)
     const productCost = Number(params.productCost) || 0;
-    const internationalShipping = Number(params.internationalShipping) || 0;
-    const insuranceCost = Number(params.insuranceCost) || 0;
-    const customsEstimated = Number(params.customsEstimated) || 0;
+    
+    // 2. Frete Internacional
+    const internationalShipping = Number(params.internationalShipping !== undefined ? params.internationalShipping : params.freight) || 0;
+    
+    // 3. Seguro = (VM + Frete) * 1%
+    const insuranceCost = Number(((productCost + internationalShipping) * 0.01).toFixed(2));
+    
+    // 4. VA (Valor Aduaneiro / CIF) = VM + Frete + Seguro
+    const customsValue = Number((productCost + internationalShipping + insuranceCost).toFixed(2));
+    
+    // 5. DA (Direitos Aduaneiros) = VA * Taxa Pautal (Padrão 5%)
+    const customsDutyRate = params.customsDutyRate !== undefined ? Number(params.customsDutyRate) : 5;
+    const customsEstimated = (params.customsEstimated !== undefined && params.customsEstimated !== null && params.manualCustoms)
+        ? Number(params.customsEstimated)
+        : Number((customsValue * (customsDutyRate / 100)).toFixed(2));
+
+    // 6. ICE (Imposto sobre Consumos Específicos - Lei 19/2022 e 7/2025)
+    const iceRate = params.iceRate !== undefined ? Number(params.iceRate) : 0;
+    const iceCost = params.iceCost !== undefined && params.manualIce
+        ? Number(params.iceCost)
+        : Number((customsValue * (iceRate / 100)).toFixed(2));
+    
+    // 7. Base do IVA = VA + DA + ICE
+    const vatBase = Number((customsValue + customsEstimated + iceCost).toFixed(2));
+    
+    // 8. IVA da Importação = Base do IVA * Taxa de IVA (16% em Moçambique, 0% se Isento Lei 22/2022)
+    const vatRate = params.vatRate !== undefined ? Number(params.vatRate) : 16;
+    const vatCost = Number((vatBase * (vatRate / 100)).toFixed(2));
+    
+    // Custos operacionais opcionais
     const handlingCost = Number(params.handlingCost) || 0;
     const localTransport = Number(params.localTransport) || 0;
-    const nhiquelaServiceFee = Number(params.nhiquelaServiceFee) || 0;
     const otherCosts = Number(params.otherCosts) || 0;
 
-    const totalCost = productCost + 
-                      internationalShipping + 
-                      insuranceCost + 
-                      customsEstimated + 
-                      handlingCost + 
-                      localTransport + 
-                      nhiquelaServiceFee + 
-                      otherCosts;
+    // 9. Taxa Nhiquela = VM * 30%
+    const nhiquelaCommissionRate = params.nhiquelaCommissionRate !== undefined ? Number(params.nhiquelaCommissionRate) : 30;
+    const nhiquelaServiceFee = (params.nhiquelaServiceFee !== undefined && params.manualServiceFee)
+        ? Number(params.nhiquelaServiceFee)
+        : Number((productCost * (nhiquelaCommissionRate / 100)).toFixed(2));
+        
+    // 10. Total de Importação = VA + DA + ICE + IVA + handling + localTransport + other
+    const importTotalCost = Number((customsValue + customsEstimated + iceCost + vatCost + handlingCost + localTransport + otherCosts).toFixed(2));
+    
+    // 11. Total Final = Total de Importação + Taxa Nhiquela
+    const totalCost = Number((importTotalCost + nhiquelaServiceFee).toFixed(2));
 
     return {
         productCost,
         internationalShipping,
         insuranceCost,
+        customsValue,
+        customsDutyRate,
         customsEstimated,
+        iceRate,
+        iceCost,
+        vatBase,
+        vatRate,
+        vatCost,
         handlingCost,
         localTransport,
-        nhiquelaServiceFee,
         otherCosts,
+        nhiquelaCommissionRate,
+        nhiquelaServiceFee,
+        importTotalCost,
         totalCost,
+        pautaCategory: params.pautaCategory || '',
+        pautaShCode: params.pautaShCode || ''
     };
 };

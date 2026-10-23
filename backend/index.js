@@ -120,8 +120,10 @@ mongoose
     }
   })
   .catch((err) => {
-    console.log('? ERRO INICIAL MongoDB:', err.message);
-    process.exit(1); // Exit if initial connection fails so nodemon/pm2 restarts it
+    console.log('⚠️ AVISO INICIAL MongoDB:', err.message);
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
   });
 
 mongoose.connection.on('disconnected', () => {
@@ -248,7 +250,7 @@ app.use('/api/routing', routingRoutes);
 app.use('/api/support', supportRouter);
 app.use('/api/roles', roleRouter);
 app.use('/api/fleet', fleetRouter);
-app.use('/api/import', importRoutes);
+app.use('/api/import', importRoutes); // Módulo de Importações e Simulador Inteligente
 app.use('/api/system/app-config', appConfigRouter);
 
 // 🔧 DEBUG: endpoint para testar emissão de socket e ver utilizadores ligados

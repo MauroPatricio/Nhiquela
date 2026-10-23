@@ -43,14 +43,14 @@ export default function PublicLayout() {
   };
 
   return (
-    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--color-bg-light)' }}>
+    <div className="min-vh-100 d-flex flex-column w-100" style={{ backgroundColor: 'var(--color-bg-light)', overflowX: 'hidden' }}>
       {/* Topbar Minimalista */}
-      <header className="bg-white border-bottom p-3 sticky-top" style={{ zIndex: 1040 }}>
+      <header className="bg-white border-bottom py-2 py-md-3 px-2 px-md-3 sticky-top w-100" style={{ zIndex: 1040 }}>
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center gap-4">
+            <div className="d-flex align-items-center gap-2 gap-md-4">
               <Link to="/shop" className="text-decoration-none">
-                <h3 className="m-0 text-black fw-extrabold" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
+                <h3 className="m-0 text-black fw-extrabold fs-4 fs-md-3" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
               </Link>
               
               <nav className="d-none d-lg-flex gap-4 align-items-center">
@@ -58,25 +58,27 @@ export default function PublicLayout() {
                 <Link to="/products" className="text-muted text-decoration-none fw-bold small">{t('nav.products', 'Produtos')}</Link>
                 <Link to="/shop/services" className="text-muted text-decoration-none fw-bold small">{t('nav.services', 'Serviços')}</Link>
                 <Link to="/shop/import" className="text-primary-custom text-decoration-none fw-bold small d-flex align-items-center gap-1">
-                  <span>Nhiquela Import</span>
+                  <span>Nhiquela Importações</span>
                   <span className="badge bg-primary-custom text-white rounded-pill px-2 py-1" style={{ fontSize: '10px' }}>Sourcing</span>
                 </Link>
               </nav>
             </div>
             
-            <div className="d-flex gap-3 align-items-center">
+            <div className="d-flex gap-2 gap-sm-3 align-items-center">
               <LanguageSelector variant="light" />
               {userInfo ? (
                 <>
                   <div className="dropdown position-relative" ref={dropdownRef}>
                     <button 
-                      className="btn btn-outline-dark rounded-pill dropdown-toggle fw-bold small px-3 d-flex align-items-center gap-2 shadow-sm"
+                      className="btn btn-outline-dark rounded-pill dropdown-toggle fw-bold small px-2.5 px-sm-3 py-1.5 d-flex align-items-center gap-1.5 shadow-sm"
                       type="button" 
                       onClick={() => setShowDropdown(!showDropdown)}
                       aria-expanded={showDropdown}
                     >
-                      <FontAwesomeIcon icon={faUserCircle} className="text-primary-custom fs-5" />
-                      <span>{userInfo.name || userInfo.email?.split('@')[0] || t('nav.myAccount', 'Minha Conta')}</span>
+                      <FontAwesomeIcon icon={faUserCircle} className="text-primary-custom" />
+                      <span className="text-truncate d-inline-block" style={{ maxWidth: '90px' }}>
+                        {userInfo.name?.split(' ')[0] || userInfo.email?.split('@')[0] || t('nav.myAccount', 'Conta')}
+                      </span>
                     </button>
 
                     <ul 
@@ -145,7 +147,7 @@ export default function PublicLayout() {
                   ))) && (
                     <Link
                       to="/partner/dashboard"
-                      className="btn text-white rounded-pill px-3 py-2 fw-bold small shadow-sm d-none d-md-inline-flex align-items-center gap-2 ms-1"
+                      className="btn text-white rounded-pill px-3 py-1.5 fw-bold small shadow-sm d-none d-lg-inline-flex align-items-center gap-2 ms-1"
                       style={{ background: 'linear-gradient(135deg, #7F00FF 0%, #10B981 100%)', textDecoration: 'none', fontSize: '13px' }}
                     >
                       <FontAwesomeIcon icon={faHandshake} />
@@ -155,20 +157,20 @@ export default function PublicLayout() {
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="text-dark fw-bold text-decoration-none small">
+                  <Link to="/login" className="text-dark fw-bold text-decoration-none small px-1">
                     {t('nav.enter', 'Entrar')}
                   </Link>
 
-                  <Link to="/signup?type=seller" className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold small shadow-sm">
+                  <Link to="/signup?type=seller" className="btn bg-primary-custom text-white rounded-pill px-3 px-sm-4 py-1.5 py-sm-2 fw-bold small shadow-sm d-none d-sm-inline-flex">
                     {t('landing.supplierBtn', 'Tornar-se Fornecedor')}
                   </Link>
                 </>
               )}
               
-              <Link to="/shop/cart" className="position-relative text-dark text-decoration-none ms-2">
-                <FontAwesomeIcon icon={faShoppingCart} size="lg" />
+              <Link to="/shop/cart" className="position-relative text-dark text-decoration-none ms-1 ms-sm-2 p-1">
+                <FontAwesomeIcon icon={faShoppingCart} />
                 {cartCount > 0 && (
-                  <span className="position-absolute translate-middle badge rounded-pill bg-primary-custom" style={{ top: '-5px', right: '-15px', fontSize: '10px' }}>
+                  <span className="position-absolute translate-middle badge rounded-pill bg-primary-custom" style={{ top: '0', right: '-10px', fontSize: '10px' }}>
                     {cartCount}
                   </span>
                 )}
@@ -178,7 +180,7 @@ export default function PublicLayout() {
         </div>
       </header>
 
-      <main className="flex-grow-1">
+      <main className="flex-grow-1 w-100" style={{ overflowX: 'hidden' }}>
         <Outlet />
       </main>
       
@@ -186,26 +188,26 @@ export default function PublicLayout() {
       <ChatbotWidget />
 
       {/* Footer Global Institucional */}
-      <footer className="bg-white border-top mt-auto py-5">
-        <div className="container pt-4">
-          <div className="row mb-5">
-            <div className="col-lg-3 mb-4 mb-lg-0">
+      <footer className="bg-white border-top mt-auto py-4 py-md-5 w-100" style={{ overflowX: 'hidden' }}>
+        <div className="container">
+          <div className="row g-4 mb-4 mb-md-5">
+            <div className="col-12 col-lg-3 mb-2 mb-lg-0">
               <Link to="/shop" className="text-decoration-none">
-                <h3 className="m-0 text-black fw-extrabold mb-3" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
+                <h3 className="m-0 text-black fw-extrabold mb-2" style={{ letterSpacing: '-1px' }}>nhiquela<span className="text-primary-custom">.</span></h3>
               </Link>
-              <p className="text-muted small pe-4 mb-4">
+              <p className="text-muted small pe-0 pe-lg-4 mb-3">
                 {t('footer.leadingPlatform', 'A plataforma líder de produtos, serviços e entregas em Moçambique.')}
               </p>
-              <div className="d-flex gap-3">
-                <a href="#" className="bg-light text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faFacebookF} /></a>
-                <a href="#" className="bg-light text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faInstagram} /></a>
-                <a href="#" className="bg-light text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTwitter} /></a>
+              <div className="d-flex gap-2">
+                <a href="#" className="bg-light text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '36px', height: '36px' }}><FontAwesomeIcon icon={faFacebookF} /></a>
+                <a href="#" className="bg-light text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '36px', height: '36px' }}><FontAwesomeIcon icon={faInstagram} /></a>
+                <a href="#" className="bg-light text-dark rounded-circle d-flex justify-content-center align-items-center" style={{ width: '36px', height: '36px' }}><FontAwesomeIcon icon={faTwitter} /></a>
               </div>
             </div>
             
-            <div className="col-6 col-lg-2 mb-4 mb-lg-0">
-              <h6 className="fw-bold mb-4">{t('nav.categories', 'Categorias')}</h6>
-              <ul className="list-unstyled d-flex flex-column gap-2 small">
+            <div className="col-6 col-lg-2">
+              <h6 className="fw-bold mb-3">{t('nav.categories', 'Categorias')}</h6>
+              <ul className="list-unstyled d-flex flex-column gap-2 small mb-0">
                 <li><a href="#" className="text-muted text-decoration-none">{t('footer.supermarket', 'Supermercado')}</a></li>
                 <li><a href="#" className="text-muted text-decoration-none">{t('footer.restaurants', 'Restaurantes')}</a></li>
                 <li><a href="#" className="text-muted text-decoration-none">{t('footer.technology', 'Tecnologia')}</a></li>
@@ -214,9 +216,9 @@ export default function PublicLayout() {
               </ul>
             </div>
             
-            <div className="col-6 col-lg-2 mb-4 mb-lg-0">
-              <h6 className="fw-bold mb-4">{t('footer.company', 'Empresa')}</h6>
-              <ul className="list-unstyled d-flex flex-column gap-2 small">
+            <div className="col-6 col-lg-2">
+              <h6 className="fw-bold mb-3">{t('footer.company', 'Empresa')}</h6>
+              <ul className="list-unstyled d-flex flex-column gap-2 small mb-0">
                 <li><a href="#" className="text-muted text-decoration-none">{t('footer.aboutUs', 'Sobre Nós')}</a></li>
                 <li><a href="#" className="text-muted text-decoration-none">{t('footer.careers', 'Carreiras')}</a></li>
                 <li><a href="#" className="text-muted text-decoration-none">{t('footer.press', 'Imprensa')}</a></li>
@@ -225,21 +227,25 @@ export default function PublicLayout() {
               </ul>
             </div>
             
-            <div className="col-lg-5">
-              <h6 className="fw-bold mb-4">{t('footer.stayUpdated', 'Fique por dentro das novidades')}</h6>
+            <div className="col-12 col-lg-5">
+              <h6 className="fw-bold mb-2">{t('footer.stayUpdated', 'Fique por dentro das novidades')}</h6>
               <p className="text-muted small mb-3">{t('footer.newsletterSub', 'Receba as melhores ofertas e novidades diretamente no seu e-mail.')}</p>
-              <div className="input-group mb-3 shadow-sm rounded-pill overflow-hidden bg-light p-1 border">
-                <input type="email" className="form-control border-0 bg-transparent px-3 small" placeholder={t('login.emailPlaceholder', 'Seu e-mail principal')} />
-                <button className="btn bg-primary-custom text-white rounded-pill px-4 fw-bold small" type="button">
+              <div className="d-flex flex-column flex-sm-row gap-2">
+                <input 
+                  type="email" 
+                  className="form-control rounded-pill px-3 py-2 small bg-light border" 
+                  placeholder={t('login.emailPlaceholder', 'Seu e-mail principal')} 
+                />
+                <button className="btn bg-primary-custom text-white rounded-pill px-4 py-2 fw-bold small text-nowrap" type="button">
                   {t('footer.subscribe', 'Subscrever')} <FontAwesomeIcon icon={faPaperPlane} className="ms-1" />
                 </button>
               </div>
             </div>
           </div>
           
-          <div className="border-top pt-4 d-flex flex-column flex-md-row justify-content-between align-items-center">
-            <small className="text-muted mb-2 mb-md-0">{t('footer.rights', 'Todos os direitos são reservados a Nhiquela Serviços e Consultoria 2026')}</small>
-            <div className="d-flex gap-4">
+          <div className="border-top pt-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-center text-md-start">
+            <small className="text-muted">{t('footer.rights', 'Todos os direitos são reservados a Nhiquela Serviços e Consultoria 2026')}</small>
+            <div className="d-flex flex-wrap justify-content-center gap-3 gap-sm-4">
               <a href="#" className="text-muted text-decoration-none small">{t('footer.privacy', 'Privacidade')}</a>
               <a href="#" className="text-muted text-decoration-none small">{t('footer.terms', 'Termos')}</a>
               <a href="#" className="text-muted text-decoration-none small">{t('footer.cookies', 'Cookies')}</a>

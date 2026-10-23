@@ -457,12 +457,12 @@ export const sendImportQuotationEmail = async (customerEmail, customerName, prod
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 8px; overflow: hidden;">
       <div style="background: linear-gradient(135deg, #8B5CF6, #6D28D9); padding: 32px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 26px;">🌐 Nhiquela Import</h1>
+        <h1 style="color: white; margin: 0; font-size: 26px;">🌐 Nhiquela Importações</h1>
         <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 15px;">A sua cotação está pronta!</p>
       </div>
       <div style="padding: 32px; background: white;">
         <p style="font-size: 16px; color: #374151;">Olá <b>${customerName}</b>,</p>
-        <p style="color: #6B7280;">A equipa Nhiquela Import analisou o seu pedido e preparou uma cotação personalizada. Aceda à aplicação para ver os detalhes e aceitar.</p>
+        <p style="color: #6B7280;">A equipa Nhiquela Importações analisou o seu pedido e preparou uma cotação personalizada. Aceda à aplicação para ver os detalhes e aceitar.</p>
 
         <div style="background: #F3F4F6; border-radius: 8px; padding: 20px; margin: 24px 0;">
           <p style="margin: 0 0 8px; color: #9CA3AF; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Detalhes do Pedido</p>
