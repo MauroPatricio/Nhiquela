@@ -5,9 +5,25 @@ import * as supplierController from '../controllers/InternationalSupplierControl
 import * as orderController from '../controllers/ImportOrderController.js';
 import * as shipmentController from '../controllers/ImportShipmentController.js';
 import * as documentController from '../controllers/ImportDocumentController.js';
+import * as simulationController from '../controllers/ImportSimulationController.js';
+import { isAuth, isAdmin } from '../../../utils.js';
 
 // Note: Ensure the auth middleware (e.g. isAuth) is applied where needed when integrating with the main Express app.
 const router = express.Router();
+
+// --- Simulation Funnel & Intelligent Tariff Engine ---
+router.post('/simulation/classify', simulationController.classifyProduct);
+router.post('/simulation/calculate', simulationController.calculateCustomsTax);
+router.get('/tariff/search', simulationController.searchTariff);
+router.get('/tariff/:shCode', simulationController.getTariffByCode);
+router.post('/simulation/save-step', simulationController.saveSimulationStep);
+router.post('/simulation/preliminary', simulationController.calculatePreliminarySimulation);
+router.post('/simulation/capture-lead', simulationController.captureSimulationLead);
+router.post('/simulation/request-quote', simulationController.requestOfficialQuoteFromSimulation);
+router.get('/simulations/admin', isAuth, isAdmin, simulationController.getAdminSimulationLeads);
+router.put('/simulations/:id/validate-tariff', isAuth, isAdmin, simulationController.validateTariffClassification);
+router.get('/simulation/exchange-rates', simulationController.getExchangeRates);
+router.put('/simulation/exchange-rates', isAuth, isAdmin, simulationController.updateExchangeRate);
 
 // --- Requests ---
 router.post('/requests', requestController.createRequest);

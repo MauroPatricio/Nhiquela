@@ -6,6 +6,8 @@ const importRequestSchema = new mongoose.Schema(
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Partner" }, // Optional
     productName: { type: String, required: true },
     description: { type: String, required: true },
+    pautaCategory: { type: String, default: '' },
+    pautaShCode: { type: String, default: '' },
     productUrl: { type: String },
     productImage: { type: String, default: '' },
     quantity: { type: Number, required: true },

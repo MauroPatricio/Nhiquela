@@ -38,6 +38,10 @@ paymentAccountRouter.post(
       accountName: req.body.accountName,
       bankName: req.body.bankName,
       iban: req.body.iban,
+      nib: req.body.nib,
+      swift: req.body.swift,
+      nuib: req.body.nuib,
+      currency: req.body.currency || 'MZN',
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       notes: req.body.notes,
       icon: req.body.icon,
@@ -63,6 +67,10 @@ paymentAccountRouter.put(
     account.accountName = req.body.accountName ?? account.accountName;
     account.bankName = req.body.bankName ?? account.bankName;
     account.iban = req.body.iban ?? account.iban;
+    account.nib = req.body.nib ?? account.nib;
+    account.swift = req.body.swift ?? account.swift;
+    account.nuib = req.body.nuib ?? account.nuib;
+    account.currency = req.body.currency ?? account.currency;
     account.isActive = req.body.isActive !== undefined ? req.body.isActive : account.isActive;
     account.notes = req.body.notes ?? account.notes;
     account.icon = req.body.icon ?? account.icon;

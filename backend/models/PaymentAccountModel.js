@@ -11,7 +11,11 @@ const paymentAccountSchema = new mongoose.Schema(
     accountNumber: { type: String, required: true }, // número da conta ou telemóvel
     accountName: { type: String },                   // nome do titular
     bankName: { type: String },                      // nome do banco (só para tipo BANK)
-    iban: { type: String },                          // IBAN (opcional)
+    iban: { type: String },
+    nib: { type: String },
+    swift: { type: String },
+    nuib: { type: String },
+    currency: { type: String, default: 'MZN' },                          // IBAN (opcional)
     isActive: { type: Boolean, default: true },
     notes: { type: String },                         // instruções adicionais
     icon: { type: String },                          // emoji ou nome do ícone

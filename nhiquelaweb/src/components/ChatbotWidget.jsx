@@ -126,13 +126,13 @@ export default function ChatbotWidget() {
   return (
     <>
       {/* BOTÃO FLUTUANTE DO CHATBOT */}
-      <div className="position-fixed" style={{ bottom: '28px', right: '28px', zIndex: 1050 }}>
+      <div className="position-fixed chatbot-floating-btn-wrap" style={{ bottom: '24px', right: '20px', zIndex: 1050 }}>
         <button
           onClick={handleToggle}
-          className="btn rounded-circle shadow-lg d-flex justify-content-center align-items-center position-relative text-white border-0"
+          className="btn rounded-circle shadow-lg d-flex justify-content-center align-items-center position-relative text-white border-0 chatbot-btn-size"
           style={{
-            width: '62px',
-            height: '62px',
+            width: '58px',
+            height: '58px',
             background: 'linear-gradient(135deg, #7F00FF 0%, #5B00B7 100%)',
             boxShadow: '0 8px 28px rgba(127, 0, 255, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.2) inset',
             transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -157,14 +157,14 @@ export default function ChatbotWidget() {
       {/* JANELA DO CHATBOT */}
       {isOpen && (
         <div
-          className="position-fixed shadow-2xl rounded-4 border-0 overflow-hidden d-flex flex-column"
+          className="position-fixed shadow-2xl rounded-4 border-0 overflow-hidden d-flex flex-column chatbot-window-responsive"
           style={{
-            bottom: '102px',
-            right: '28px',
+            bottom: '92px',
+            right: '20px',
             width: '385px',
-            maxWidth: 'calc(100vw - 36px)',
+            maxWidth: 'calc(100vw - 32px)',
             height: '540px',
-            maxHeight: 'calc(100vh - 125px)',
+            maxHeight: 'calc(100vh - 110px)',
             zIndex: 1050,
             backgroundColor: '#FFFFFF',
             boxShadow: '0 20px 48px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(127, 0, 255, 0.08)',
@@ -466,6 +466,27 @@ export default function ChatbotWidget() {
           </form>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 576px) {
+          .chatbot-floating-btn-wrap {
+            bottom: 16px !important;
+            right: 14px !important;
+          }
+          .chatbot-btn-size {
+            width: 50px !important;
+            height: 50px !important;
+          }
+          .chatbot-window-responsive {
+            bottom: 74px !important;
+            right: 10px !important;
+            left: 10px !important;
+            width: auto !important;
+            max-width: calc(100vw - 20px) !important;
+            height: calc(100vh - 90px) !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

@@ -1,5 +1,6 @@
 import ImportCustomerScreen from './screens/ImportCustomerScreen';
 import ImportDashboard from './screens/admin/ImportDashboard';
+import CustomsTariffScreen from './screens/CustomsTariffScreen';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import PublicLayout from './components/Layout/PublicLayout';
@@ -43,6 +44,7 @@ import EstablishmentTypesScreen from './screens/admin/EstablishmentTypesScreen';
 import ProviderTypesScreen from './screens/admin/ProviderTypesScreen';
 import EstablishmentsScreen from './screens/admin/EstablishmentsScreen';
 import PaymentMethodsScreen from './screens/admin/PaymentMethodsScreen';
+import PaymentAccountsScreen from './screens/admin/PaymentAccountsScreen';
 import CancellationPoliciesScreen from './screens/admin/CancellationPoliciesScreen';
 import ProcessingFeesScreen from './screens/admin/ProcessingFeesScreen';
 import ProvincesScreen from './screens/admin/ProvincesScreen';
@@ -112,6 +114,8 @@ function App() {
           <Route path="seller/:sellerId" element={<SellerProfileScreen />} />
           <Route path="document-order" element={<DocumentOrderScreen />} />
           <Route path="import" element={<ImportCustomerScreen />} />
+          <Route path="customs-calculator" element={<CustomsTariffScreen />} />
+          <Route path="pauta-aduaneira" element={<CustomsTariffScreen />} />
         </Route>
         <Route path="/products" element={<PublicLayout />}>
           <Route index element={<ProductsScreen />} />
@@ -189,6 +193,7 @@ function App() {
           <Route path="provider-classifications" element={<ProviderClassificationsScreen />} />
           <Route path="establishments" element={<EstablishmentsScreen />} />
           <Route path="payment-methods" element={<PaymentMethodsScreen />} />
+          <Route path="payment-accounts" element={<PaymentAccountsScreen />} />
           <Route path="fees" element={<ProcessingFeesScreen />} />
           <Route path="delivery-tariffs" element={<DeliveryTariffsScreen />} />
           <Route path="cancellation-policies" element={<CancellationPoliciesScreen />} />

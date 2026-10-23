@@ -86,13 +86,11 @@ export const updateQuotation = async (req, res) => {
         }
 
         const costs = calculateQuotation(req.body);
-        
-        quotation.productCost = costs.productCost;
-        quotation.internationalShipping = costs.internationalShipping;
-        quotation.customsEstimated = costs.customsEstimated;
-        quotation.nhiquelaServiceFee = costs.nhiquelaServiceFee;
-        quotation.totalCost = costs.totalCost;
-        if(req.body.estimatedDeliveryDays) quotation.estimatedDeliveryDays = req.body.estimatedDeliveryDays;
+        Object.assign(quotation, costs);
+        if (req.body.estimatedDeliveryDays) quotation.estimatedDeliveryDays = req.body.estimatedDeliveryDays;
+        if (req.body.estimatedArrivalDate) quotation.estimatedArrivalDate = req.body.estimatedArrivalDate;
+        if (req.body.quotationValidUntil) quotation.quotationValidUntil = req.body.quotationValidUntil;
+        if (req.body.notes) quotation.notes = req.body.notes;
 
         await quotation.save();
         res.status(200).json(quotation);

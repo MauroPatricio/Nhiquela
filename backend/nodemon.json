@@ -6,6 +6,7 @@
     "services/**/*.js",
     "utils/**/*.js",
     "workers/**/*.js",
+    "modules/**/*.js",
     ".env"
   ],
   "ignore": [

@@ -3,7 +3,7 @@ import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import api, { SOCKET_URL } from '../../api';
 import { useSelector, useDispatch } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faUserTie, faSignOutAlt, faHandshake, faGasPump, faWrench, faTachometerAlt, faChartBar, faHistory, faAngleDown, faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faChartLine, faUsers, faBoxOpen, faTags, faTools, faCar, faExclamationTriangle, faMoneyBillWave, faArrowLeft, faCrown, faBars, faTimes, faShoppingCart, faUserFriends, faBullhorn, faCog, faBuilding, faMapMarkerAlt, faBell, faPalette, faUsersCog, faFileAlt, faShieldAlt, faUserTie, faSignOutAlt, faHandshake, faGasPump, faWrench, faTachometerAlt, faChartBar, faHistory, faAngleDown, faAngleRight, faUniversity } from '@fortawesome/free-solid-svg-icons';
 import { setUserLogout } from '../../store/features/userSlice';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -165,6 +165,7 @@ export default function AdminLayout() {
         { name: 'Tipos de Carga', path: '/admin/cargo-types', icon: faBoxOpen },
         { name: 'Cores de Veículos', path: '/admin/vehicle-colors', icon: faPalette },
         { name: 'Tarifas de Entrega', path: '/admin/delivery-tariffs', icon: faCar },
+        { name: 'Contas de Pagamento', path: '/admin/payment-accounts', icon: faUniversity },
         { name: 'Métodos Pagamento', path: '/admin/payment-methods', icon: faMoneyBillWave },
         { name: 'Taxas Processamento', path: '/admin/fees', icon: faMoneyBillWave },
         { name: 'Configurações', path: '/admin/settings', icon: faCog },
