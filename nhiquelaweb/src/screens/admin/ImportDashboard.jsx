@@ -48,6 +48,7 @@ export default function ImportDashboard() {
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState('75.0');
   const [isSavingRate, setIsSavingRate] = useState(false);
+  const [isSavingQuotation, setIsSavingQuotation] = useState(false);
 
   const handleAddOtherTax = () => {
     setQuoteDetails(prev => ({
@@ -409,6 +410,8 @@ export default function ImportDashboard() {
       toast.warning('Não é possível editar uma cotação que já foi aceite pelo cliente.');
       return;
     }
+    if (isSavingQuotation) return;
+    setIsSavingQuotation(true);
 
     try {
       const validOtherTaxes = (quoteDetails.otherTaxes || [])
@@ -449,17 +452,21 @@ export default function ImportDashboard() {
       };
 
       if (currentQuotation) {
-        await api.put('/import/quotations/' + currentQuotation._id, payload);
+        const res = await api.put('/import/quotations/' + currentQuotation._id, payload);
+        if (res?.data) setCurrentQuotation(res.data);
         toast.success('Cotação atualizada com sucesso!');
       } else {
         const res = await api.post('/import/quotations', payload);
         setCurrentQuotation(res.data);
         toast.success('Cotação criada e enviada com sucesso!');
       }
-      fetchRequests();
+      await fetchRequests();
       setShowQuotationForm(false);
     } catch (err) {
+      console.error('Erro ao guardar cotação:', err);
       toast.error(err.response?.data?.message || 'Erro ao guardar cotação.');
+    } finally {
+      setIsSavingQuotation(false);
     }
   };
 
@@ -1525,8 +1532,14 @@ export default function ImportDashboard() {
                     <Button variant="secondary" size="sm" className="me-2" onClick={() => setShowQuotationForm(false)}>
                       Cancelar
                     </Button>
-                    <Button variant="primary" size="sm" className="bg-primary-custom border-0" onClick={handleSubmitQuotation}>
-                      {currentQuotation ? 'Guardar Cotação' : 'Enviar Cotação'}
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      className="bg-primary-custom border-0" 
+                      onClick={handleSubmitQuotation}
+                      disabled={isSavingQuotation}
+                    >
+                      {isSavingQuotation ? 'A guardar...' : (currentQuotation ? 'Guardar Cotação' : 'Enviar Cotação')}
                     </Button>
                   </div>
                 )}
