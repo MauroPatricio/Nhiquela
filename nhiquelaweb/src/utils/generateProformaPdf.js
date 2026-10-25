@@ -58,7 +58,7 @@ export function generateProformaPdf({
   const borderLight = [205, 215, 225];
 
   // Extração de dados financeiros e de cálculo
-  const rateToMzn = calculationResult?.metadata?.exchangeRateToMzn || 75.0;
+  const rateToMzn = Number(calculationResult?.metadata?.exchangeRateToMzn) || 75.0;
   const currency = product.currency || 'USD';
   const qty = Math.max(1, parseInt(product.quantity) || 1);
   const unitPriceCurr = parseFloat(product.unitPrice) || 0;
@@ -70,13 +70,13 @@ export function generateProformaPdf({
   const customsDutyMzn = calculationResult?.taxSummary?.customsDuty?.amountMzn || 0;
   const vatMzn = calculationResult?.taxSummary?.vat?.amountMzn || 0;
   const tsaFeeMzn = calculationResult?.taxSummary?.customsServicesFee?.amountMzn || 2500;
-  const kudumbaFeeMzn = calculationResult?.operationalSummary?.kudumbaScannerFee || 3200;
-  const terminalHandlingMzn = calculationResult?.operationalSummary?.terminalHandlingFee || 4500;
-  const customsBrokerFeeMzn = calculationResult?.operationalSummary?.customsBrokerFee || 6500;
-  const domesticTransportMzn = calculationResult?.operationalSummary?.domesticDeliveryFee || 1500;
+  const kudumbaFeeMzn = 0;
+  const terminalHandlingMzn = 0;
+  const customsBrokerFeeMzn = 0;
+  const domesticTransportMzn = 0;
   const nhiquelaFeeMzn = calculationResult?.commercialSummary?.nhiquelaServiceFeeMzn || Math.round(goodsMzn * 0.08);
 
-  const totalCostMzn = calculationResult?.grandTotal?.totalCostMzn || (goodsMzn + freightMzn + insuranceMzn + customsDutyMzn + vatMzn + tsaFeeMzn + kudumbaFeeMzn + terminalHandlingMzn + customsBrokerFeeMzn + domesticTransportMzn + nhiquelaFeeMzn);
+  const totalCostMzn = calculationResult?.grandTotal?.totalCostMzn || (goodsMzn + freightMzn + insuranceMzn + customsDutyMzn + vatMzn + tsaFeeMzn + nhiquelaFeeMzn);
   const totalCostUsd = (totalCostMzn / rateToMzn);
 
   const shCode = tariffItem?.shCode || calculationResult?.taxSummary?.shCode || 'Pendente de Conferência';
@@ -163,28 +163,97 @@ export function generateProformaPdf({
   });
 
   // ========================================================
-  // 2. CAIXA DO CLIENTE (SEÇÃO CLIENTE)
+  // 2. CAIXAS DE EXPEDIÇÃO & LOGÍSTICA, FOTO DO PRODUTO E CLIENTE
   // ========================================================
   currentY = 49;
-  const clientBoxX = 100;
-  const clientBoxWidth = pageWidth - marginX - clientBoxX; // 96mm
-  const clientBoxHeight = 27;
+  const boxHeight = 28;
 
-  // Header Azul da Caixa CLIENTE
+  const originText = product.originCountry || 'China';
+  const destCity = product.destinationCity || customer.city || 'Maputo';
+  const destText = `${destCity} - Moçambique`;
+  const transportMode = product.transportType === 'AIR' ? 'Aéreo Expresso (5 a 7 dias)' : 'Marítimo (35 a 45 dias)';
+  const entryPoint = product.entryPort || (product.transportType === 'AIR' ? 'Aeroporto de Maputo' : 'Porto de Maputo');
+
+  const rawImage = product.productImage || product.image;
+  const hasImage = Boolean(rawImage && typeof rawImage === 'string' && (rawImage.startsWith('data:image') || rawImage.startsWith('http') || rawImage.startsWith('blob:')));
+
+  let logisticsBoxX = marginX;
+  let logisticsBoxWidth = 82;
+  let clientBoxX = 100;
+  let clientBoxWidth = pageWidth - marginX - clientBoxX; // 96mm
+
+  if (hasImage) {
+    logisticsBoxWidth = 74;
+    const imageBoxX = marginX + logisticsBoxWidth + 3; // 14 + 74 + 3 = 91mm
+    const imageBoxWidth = 28;
+    clientBoxX = imageBoxX + imageBoxWidth + 3; // 91 + 28 + 3 = 122mm
+    clientBoxWidth = pageWidth - marginX - clientBoxX; // 210 - 14 - 122 = 74mm
+
+    // Caixa 2B: FOTO DO PRODUTO (Centro)
+    doc.setFillColor(...primaryNavy);
+    doc.rect(imageBoxX, currentY, imageBoxWidth, 5.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text('FOTO PRODUTO', imageBoxX + 2, currentY + 4);
+
+    doc.setDrawColor(...borderLight);
+    doc.rect(imageBoxX, currentY + 5.5, imageBoxWidth, boxHeight - 5.5);
+
+    try {
+      let format = 'JPEG';
+      if (rawImage.includes('png') || rawImage.includes('PNG')) format = 'PNG';
+      else if (rawImage.includes('webp') || rawImage.includes('WEBP')) format = 'WEBP';
+      doc.addImage(rawImage, format, imageBoxX + 2, currentY + 6.5, imageBoxWidth - 4, boxHeight - 7.5);
+    } catch (errImg) {
+      console.warn('Aviso ao desenhar imagem do produto:', errImg);
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...mutedText);
+      doc.text('Imagem Anexa', imageBoxX + 3, currentY + 15);
+    }
+  }
+
+  // Caixa 2A: EXPEDIÇÃO & LOGÍSTICA (Lado Esquerdo)
+  doc.setFillColor(...primaryNavy);
+  doc.rect(logisticsBoxX, currentY, logisticsBoxWidth, 5.5, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('EXPEDIÇÃO & LOGÍSTICA', logisticsBoxX + 3, currentY + 4);
+
+  doc.setDrawColor(...borderLight);
+  doc.rect(logisticsBoxX, currentY + 5.5, logisticsBoxWidth, boxHeight - 5.5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...darkText);
+  let lY = currentY + 9.5;
+  doc.text(`[País de Origem] - ${originText}`, logisticsBoxX + 3, lY);
+  lY += 4;
+  doc.text(`[Destino Final] - ${destText}`, logisticsBoxX + 3, lY);
+  lY += 4;
+  doc.text(`[Modal de Envio] - ${transportMode}`, logisticsBoxX + 3, lY);
+  lY += 4;
+  doc.text(`[Entrada Aduaneira] - ${entryPoint}`, logisticsBoxX + 3, lY);
+  lY += 4;
+  doc.text(`[Câmbio Aplicado] - 1 ${currency} = ${Number(rateToMzn).toFixed(2)} MT`, logisticsBoxX + 3, lY);
+
+  // Caixa 2C: DADOS DO CLIENTE
   doc.setFillColor(...primaryNavy);
   doc.rect(clientBoxX, currentY, clientBoxWidth, 5.5, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 255, 255);
-  doc.text('CLIENTE', clientBoxX + 3, currentY + 4);
+  doc.text('DADOS DO CLIENTE', clientBoxX + 3, currentY + 4);
 
   // Corpo da Caixa CLIENTE (borda e conteúdo)
   doc.setDrawColor(...borderLight);
-  doc.rect(clientBoxX, currentY + 5.5, clientBoxWidth, clientBoxHeight - 5.5);
+  doc.rect(clientBoxX, currentY + 5.5, clientBoxWidth, boxHeight - 5.5);
 
   const clientName = customer.name || 'Cliente Particular';
   const clientCompany = customer.company ? customer.company : (customer.name ? 'Particular' : 'DDJ LAW');
-  const clientAddress = customer.city ? `${customer.city} - Moçambique` : 'Maputo - Moçambique';
+  const clientAddress = customer.city ? `${customer.city} - Moçambique` : `${destCity} - Moçambique`;
   const clientPhone = customer.phone ? String(customer.phone) : 'Pendente';
   const clientNuit = customer.nuit || '-';
 
@@ -205,7 +274,7 @@ export function generateProformaPdf({
   // ========================================================
   // 3. TABELA PRINCIPAL DE SERVIÇOS E MERCADORIA
   // ========================================================
-  const tableStartY = currentY + clientBoxHeight + 3;
+  const tableStartY = currentY + boxHeight + 3;
 
   const transportLabel = product.transportType === 'AIR'
     ? 'Envio Aéreo Rápido (5-7 dias)'
@@ -215,7 +284,7 @@ export function generateProformaPdf({
     [
       '#1',
       'Mercadoria (FOB)',
-      `${product.name || 'Produto de Importação'}\n${product.description ? product.description.substring(0, 95) : 'Importação e Fornecimento verificado'}\nOrigem: ${product.originCountry || 'China'}`,
+      `${product.name || 'Produto de Importação'}\n${product.description ? product.description.substring(0, 95) : 'Importação e Fornecimento verificado'}\nOrigem: ${originText} | Destino: ${destText}`,
       String(qty),
       `${unitPriceMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       isVatExempt ? 'Isento' : `${ivaRate}%`,
@@ -224,7 +293,7 @@ export function generateProformaPdf({
     [
       '#2',
       'Frete Internacional',
-      `Frete de transporte internacional (${transportLabel})\nRota: China até ${customer.city || 'Maputo'}, Moçambique`,
+      `Frete de transporte internacional (${transportLabel})\nRota: ${originText} até ${destText}`,
       '1',
       `${freightMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       '-',
@@ -250,15 +319,6 @@ export function generateProformaPdf({
     ],
     [
       '#5',
-      'Taxas Portuárias/Scanner',
-      `Manuseamento de carga no terminal de entrada\nInspeção e varredura Kudumba + Despachante oficial`,
-      '1',
-      `${(kudumbaFeeMzn + terminalHandlingMzn + customsBrokerFeeMzn + domesticTransportMzn).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      '-',
-      `${(kudumbaFeeMzn + terminalHandlingMzn + customsBrokerFeeMzn + domesticTransportMzn).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    ],
-    [
-      '#6',
       'Assessoria Nhiquela',
       'Serviço integrado de Sourcing na Origem, Inspeção do Fornecedor e Acompanhamento Alfandegário Chave-na-Mão',
       '1',
@@ -353,12 +413,11 @@ export function generateProformaPdf({
   // --- LADO DIREITO: RESUMO DISCRIMINADO & TOTAIS ---
   const summaryRows = [
     { label: 'Subtotal (FOB)', val: `${goodsMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    { label: 'IVA', val: isVatExempt ? 'Isento' : `${vatMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    { label: 'Frete', val: `${freightMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    { label: 'Seguro', val: `${insuranceMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    { label: 'Jurídico/Despacho', val: `${customsBrokerFeeMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    { label: 'Inspecção/Cert. (Kudumba)', val: `${kudumbaFeeMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    { label: 'Outros (TSA + Terminal)', val: `${(tsaFeeMzn + terminalHandlingMzn + domesticTransportMzn).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+    { label: 'Frete Internacional', val: `${freightMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+    { label: 'Seguro de Carga', val: `${insuranceMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+    { label: 'Direitos Pautais (DA)', val: `${customsDutyMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+    { label: 'IVA Alfandegário', val: isVatExempt ? 'Isento' : `${vatMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+    { label: 'Processamento JUE/TSA', val: `${tsaFeeMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
     { label: 'Assessoria Nhiquela', val: `${nhiquelaFeeMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
   ];
 

@@ -5,6 +5,7 @@ import User from '../models/UserModel.js';
 import Order from '../models/OrderModel.js';
 import RequestService from '../models/RequestServiceModel.js';
 import Transaction from '../models/TransactionModel.js';
+import ImportRequest from '../modules/import/models/ImportRequestModel.js';
 
 const statsRouter = express.Router();
 
@@ -181,12 +182,24 @@ statsRouter.get(
       });
     } catch (e) { console.error('Error counting pendingProviders:', e.message); }
 
+    let pendingImportRequests = 0;
+    try {
+      pendingImportRequests = await ImportRequest.countDocuments({ 
+        isViewed: { $ne: true },
+        status: { $ne: 'CANCELLED' }
+      });
+      console.log('[admin-badges] pendingImportRequests successfully counted:', pendingImportRequests);
+    } catch (e) { 
+      console.error('[admin-badges] Error counting pendingImportRequests:', e); 
+    }
+
     res.send({
       pendingRecharges,
       pendingDrivers,
       pendingOrders,
       pendingSellers,
-      pendingProviders
+      pendingProviders,
+      pendingImportRequests
     });
   })
 );

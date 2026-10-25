@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Badge, Table, Button, Modal, Form, Nav } fro
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faGlobe, faBoxOpen, faPlane, faFileInvoiceDollar, faCheckCircle, 
-  faShippingFast, faEye, faTrash, faBook, faShieldAlt, faTags,
+  faShippingFast, faEye, faTrash, faPlus, faBook, faShieldAlt, faTags,
   faBullseye, faUserTie, faPhone, faPaperPlane, faCalculator,
   faCoins, faPencilAlt, faCheck
 } from '@fortawesome/free-solid-svg-icons';
@@ -33,6 +33,9 @@ export default function ImportDashboard() {
     pautalRate: 5,
     ivaRate: 16,
     iceRate: 0,
+    otherTaxes: [{ id: 1, description: '', amount: '' }],
+    otherTaxesDescription: '',
+    otherTaxesAmount: '',
     pautaCategory: '',
     pautaShCode: '',
     eta: '', 
@@ -46,6 +49,38 @@ export default function ImportDashboard() {
   const [rateInput, setRateInput] = useState('75.0');
   const [isSavingRate, setIsSavingRate] = useState(false);
 
+  const handleAddOtherTax = () => {
+    setQuoteDetails(prev => ({
+      ...prev,
+      otherTaxes: [
+        ...(prev.otherTaxes || []),
+        { id: Date.now() + Math.random(), description: '', amount: '' }
+      ]
+    }));
+  };
+
+  const handleRemoveOtherTax = (indexToRemove) => {
+    setQuoteDetails(prev => {
+      const currentList = prev.otherTaxes || [];
+      const updated = currentList.filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        otherTaxes: updated.length > 0 ? updated : [{ id: Date.now(), description: '', amount: '' }]
+      };
+    });
+  };
+
+  const handleUpdateOtherTax = (index, field, value) => {
+    setQuoteDetails(prev => {
+      const updated = [...(prev.otherTaxes || [])];
+      if (!updated[index]) {
+        updated[index] = { id: Date.now() + index, description: '', amount: '' };
+      }
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, otherTaxes: updated };
+    });
+  };
+
   // Cálculos Oficiais de Importação (Moçambique) - Lei 17/2022, Lei 22/2022, Lei 19/2022 e 7/2025
   const vm = parseFloat(quoteDetails.productCost) || 0;
   const freight = parseFloat(quoteDetails.freight) || 0;
@@ -58,10 +93,43 @@ export default function ImportDashboard() {
   const baseIva = Number((va + da + iceCost).toFixed(2)); // Base do IVA = VA + DA + ICE
   const ivaRate = parseFloat(quoteDetails.ivaRate !== undefined ? quoteDetails.ivaRate : 16);
   const iva = Number((baseIva * (ivaRate / 100)).toFixed(2)); // IVA = Base IVA * ivaRate (16% ou 0% Isento)
+  const otherTaxes = (quoteDetails.otherTaxes && quoteDetails.otherTaxes.length > 0)
+    ? Number(quoteDetails.otherTaxes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2))
+    : (parseFloat(quoteDetails.otherTaxesAmount) || 0);
   const commission = Number((vm * 0.30).toFixed(2)); // Nhiquela = VM * 30%
-  const importTotal = Number((va + da + iceCost + iva).toFixed(2)); // Total de Importação = VA + DA + ICE + IVA
+  const importTotal = Number((va + da + iceCost + iva + otherTaxes).toFixed(2)); // Total de Importação = VA + DA + ICE + IVA + Outros Impostos
   const finalPrice = Number((importTotal + commission).toFixed(2)); // Total Final = Total Importação + Nhiquela
   const isQuotationAccepted = currentQuotation?.status === 'ACCEPTED' || (selectedReq && ['ACCEPTED', 'PAYMENT_CONFIRMED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'].includes(selectedReq.status));
+
+  const getProductDisplay = (item) => {
+    if (!item) return { title: 'Mercadoria', desc: '' };
+    const pautaDesc = item.simulationLead?.tariffItem?.description || item.pautaCategory || '';
+    
+    // Nome comercial preenchido pelo cliente (não a classificação pautal)
+    let title = item.productName;
+    if (item.simulationLead?.productName && item.simulationLead.productName !== 'Importação Geral' && item.simulationLead.productName !== pautaDesc) {
+      title = item.simulationLead.productName;
+    } else if (title === pautaDesc) {
+      // Se estava com a descrição da pauta, apresentar o nome comercial limpo
+      if (item.simulationLead?.productName && item.simulationLead.productName !== pautaDesc && item.simulationLead.productName !== 'Importação Geral') {
+        title = item.simulationLead.productName;
+      } else {
+        title = pautaDesc.toLowerCase().includes('smartphone') ? 'Smartphone' : (title.length > 30 ? title.split(' ')[0] : title);
+      }
+    }
+
+    // Descrição detalhada comercial (função, especificações)
+    let desc = item.simulationLead?.productDescription;
+    if (!desc && item.description && !item.description.startsWith('Pedido gerado a partir')) {
+      desc = item.description;
+    }
+    if (!desc && item.description && item.description.includes('Descrição:')) {
+      const parts = item.description.split('Descrição:');
+      if (parts[1]?.trim()) desc = parts[1].trim();
+    }
+
+    return { title: title || 'Mercadoria', desc: desc || '' };
+  };
 
   const stats = {
     sourcing: requests.filter(r => ['REQUESTED', 'UNDER_REVIEW', 'SOURCING'].includes(r.status)).length || 0,
@@ -172,22 +240,100 @@ export default function ImportDashboard() {
     setSelectedReq(req);
     setCurrentQuotation(null);
     setShowQuotationForm(false);
+
+    // Se o pedido ainda não foi visualizado, marcar como lido e subtrair das notificações pendentes
+    if (!req.isViewed) {
+      req.isViewed = true;
+      setRequests(prev => prev.map(r => r._id === req._id ? { ...r, isViewed: true } : r));
+      try {
+        api.put('/import/requests/' + req._id + '/view').catch(() => {});
+        window.dispatchEvent(new Event('refresh_admin_badges'));
+      } catch (err) {
+        console.error('Erro ao marcar pedido como visualizado:', err);
+      }
+    }
     
-    // Procura classificação pré-selecionada no pedido
-    const matchedCategory = PAUTA_CATEGORIES.find(c => c.name === req.pautaCategory || c.shCode === req.pautaShCode);
+    // Procura classificação pré-selecionada no pedido ou dados de simulação
+    const catName = req.pautaCategory || req.simulationLead?.tariffItem?.category || req.simulationLead?.tariffItem?.description || '';
+    const shCode = req.pautaShCode || req.simulationLead?.tariffItem?.shCode || '';
+    const matchedCategory = PAUTA_CATEGORIES.find(c => c.name === catName || c.shCode === shCode);
+
+    const exchange = req.exchangeRate || req.simulationLead?.estimatedRange?.exchangeRate || exchangeRateUSD || 75;
+
+    // 1. Custo da mercadoria (VM em MT)
+    let initialProductCost = '';
+    if (req.productCostMzn) {
+      initialProductCost = Math.round(req.productCostMzn);
+    } else if (req.simulationLead?.calculationResult?.goodsSummary?.fobMzn) {
+      initialProductCost = Math.round(req.simulationLead.calculationResult.goodsSummary.fobMzn);
+    } else {
+      const uPrice = req.unitPrice || req.simulationLead?.unitPrice || 0;
+      const qty = req.quantity || req.simulationLead?.quantity || 1;
+      if (uPrice && qty) {
+        initialProductCost = Math.round(uPrice * qty * exchange);
+      }
+    }
+
+    // 2. Frete internacional em MT
+    let initialFreight = '';
+    if (req.freightMzn) {
+      initialFreight = Math.round(req.freightMzn);
+    } else if (req.simulationLead?.calculationResult?.logisticsSummary?.freightMzn) {
+      initialFreight = Math.round(req.simulationLead.calculationResult.logisticsSummary.freightMzn);
+    } else {
+      const fVal = req.freight || req.simulationLead?.freightKnownValue || 0;
+      if (fVal) {
+        initialFreight = Math.round(fVal * exchange);
+      }
+    }
+
+    const initialDaRate = (req.customsDutyRate !== undefined && req.customsDutyRate !== null) 
+      ? req.customsDutyRate 
+      : (req.simulationLead?.tariffItem?.daRate !== undefined 
+          ? req.simulationLead.tariffItem.daRate 
+          : (matchedCategory ? matchedCategory.daRate : 5));
+
+    const initialIvaRate = (req.ivaRate !== undefined && req.ivaRate !== null) 
+      ? req.ivaRate 
+      : (req.simulationLead?.tariffItem?.ivaRate !== undefined 
+          ? req.simulationLead.tariffItem.ivaRate 
+          : (matchedCategory ? matchedCategory.ivaRate : 16));
+
+    const initialIceRate = (req.iceRate !== undefined && req.iceRate !== null) 
+      ? req.iceRate 
+      : (req.simulationLead?.tariffItem?.iceRate !== undefined 
+          ? req.simulationLead.tariffItem.iceRate 
+          : (matchedCategory ? matchedCategory.iceRate : 0));
+
+    // Prazo estimado padrão baseado no tipo de transporte
+    const initialEta = req.estimatedDeliveryDays 
+      ? req.estimatedDeliveryDays.replace(/[^0-9-]/g, '') 
+      : (req.shippingMethod === 'SEA' ? '35' : '7');
+
+    let initialCustoms = '';
+    if (req.customsEstimated) {
+      initialCustoms = Math.round(req.customsEstimated);
+    } else if (req.simulationLead?.calculationResult?.taxSummary?.customsDuty?.amountMzn) {
+      initialCustoms = Math.round(req.simulationLead.calculationResult.taxSummary.customsDuty.amountMzn);
+    }
+
+    const defaultValidUntil = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     setQuoteDetails({ 
-      productCost: '', 
-      freight: '', 
-      customs: '', 
-      pautalRate: matchedCategory ? matchedCategory.daRate : 5,
-      ivaRate: matchedCategory ? matchedCategory.ivaRate : 16,
-      iceRate: matchedCategory ? matchedCategory.iceRate : 0,
-      pautaCategory: matchedCategory ? matchedCategory.name : (req.pautaCategory || ''),
-      pautaShCode: matchedCategory ? matchedCategory.shCode : (req.pautaShCode || ''),
-      eta: '', 
+      productCost: initialProductCost, 
+      freight: initialFreight, 
+      customs: initialCustoms, 
+      pautalRate: initialDaRate,
+      ivaRate: initialIvaRate,
+      iceRate: initialIceRate,
+      otherTaxes: [{ id: 1, description: '', amount: '' }],
+      otherTaxesDescription: '',
+      otherTaxesAmount: '',
+      pautaCategory: matchedCategory ? matchedCategory.name : catName,
+      pautaShCode: matchedCategory ? matchedCategory.shCode : shCode,
+      eta: initialEta, 
       arrivalDate: '', 
-      validUntil: '' 
+      validUntil: defaultValidUntil 
     });
     setShowModal(true);
 
@@ -195,18 +341,37 @@ export default function ImportDashboard() {
       const res = await api.get('/import/quotations/request/' + req._id);
       if (res.data) {
         setCurrentQuotation(res.data);
+        
+        let loadedTaxes = [{ id: 1, description: '', amount: '' }];
+        if (Array.isArray(res.data.otherTaxes) && res.data.otherTaxes.length > 0) {
+          loadedTaxes = res.data.otherTaxes.map((t, idx) => ({
+            id: t._id || Date.now() + idx,
+            description: t.description || '',
+            amount: t.amount !== undefined ? t.amount : ''
+          }));
+        } else if (res.data.otherTaxesAmount || res.data.otherCosts || res.data.otherTaxesDescription) {
+          loadedTaxes = [{
+            id: 1,
+            description: res.data.otherTaxesDescription || '',
+            amount: res.data.otherTaxesAmount !== undefined ? res.data.otherTaxesAmount : (res.data.otherCosts || '')
+          }];
+        }
+
         setQuoteDetails({
-          productCost: res.data.productCost || '',
-          freight: res.data.internationalShipping || '',
+          productCost: res.data.productCost !== undefined ? res.data.productCost : initialProductCost,
+          freight: res.data.internationalShipping !== undefined ? res.data.internationalShipping : initialFreight,
           customs: res.data.customsEstimated || '',
-          pautalRate: res.data.customsDutyRate !== undefined ? res.data.customsDutyRate : 5,
-          ivaRate: res.data.vatRate !== undefined ? res.data.vatRate : 16,
-          iceRate: res.data.iceRate !== undefined ? res.data.iceRate : 0,
-          pautaCategory: res.data.pautaCategory || req.pautaCategory || '',
-          pautaShCode: res.data.pautaShCode || req.pautaShCode || '',
-          eta: res.data.estimatedDeliveryDays || '',
+          pautalRate: res.data.customsDutyRate !== undefined ? res.data.customsDutyRate : initialDaRate,
+          ivaRate: res.data.vatRate !== undefined ? res.data.vatRate : initialIvaRate,
+          iceRate: res.data.iceRate !== undefined ? res.data.iceRate : initialIceRate,
+          otherTaxes: loadedTaxes,
+          otherTaxesDescription: res.data.otherTaxesDescription || '',
+          otherTaxesAmount: res.data.otherTaxesAmount !== undefined ? res.data.otherTaxesAmount : (res.data.otherCosts || ''),
+          pautaCategory: res.data.pautaCategory || (matchedCategory ? matchedCategory.name : catName),
+          pautaShCode: res.data.pautaShCode || (matchedCategory ? matchedCategory.shCode : shCode),
+          eta: res.data.estimatedDeliveryDays ? res.data.estimatedDeliveryDays.replace(/[^0-9-]/g, '') : initialEta,
           arrivalDate: res.data.estimatedArrivalDate ? new Date(res.data.estimatedArrivalDate).toISOString().split('T')[0] : '',
-          validUntil: res.data.quotationValidUntil ? new Date(res.data.quotationValidUntil).toISOString().split('T')[0] : '',
+          validUntil: res.data.quotationValidUntil ? new Date(res.data.quotationValidUntil).toISOString().split('T')[0] : defaultValidUntil,
         });
       }
     } catch (err) {
@@ -246,6 +411,15 @@ export default function ImportDashboard() {
     }
 
     try {
+      const validOtherTaxes = (quoteDetails.otherTaxes || [])
+        .filter(t => (t.description && t.description.trim()) || (parseFloat(t.amount) > 0))
+        .map(t => ({
+          description: t.description ? t.description.trim() : '',
+          amount: parseFloat(t.amount) || 0
+        }));
+
+      const combinedTaxDescription = validOtherTaxes.map(t => t.description).filter(Boolean).join(', ');
+
       const payload = {
         requestId: selectedReq._id,
         productCost: vm,
@@ -259,6 +433,10 @@ export default function ImportDashboard() {
         vatBase: baseIva,
         vatRate: ivaRate,
         vatCost: iva,
+        otherTaxes: validOtherTaxes,
+        otherTaxesDescription: combinedTaxDescription || quoteDetails.otherTaxesDescription || '',
+        otherTaxesAmount: otherTaxes,
+        otherCosts: otherTaxes,
         nhiquelaCommissionRate: 30,
         nhiquelaServiceFee: commission,
         importTotalCost: importTotal,
@@ -490,25 +668,58 @@ export default function ImportDashboard() {
                     requests.map((req) => (
                       <tr key={req._id}>
                         <td className="ps-4">
-                          <span className="fw-bold text-dark d-block">
-                            NQL-IMP-{req._id.substring(req._id.length - 6).toUpperCase()}
-                          </span>
+                          <div className="d-flex align-items-center gap-1.5">
+                            <span className="fw-bold text-dark">
+                              NQL-IMP-{req._id.substring(req._id.length - 6).toUpperCase()}
+                            </span>
+                            {!req.isViewed && (
+                              <Badge bg="primary" pill style={{ fontSize: '0.65rem', padding: '0.2rem 0.45rem' }}>
+                                Novo
+                              </Badge>
+                            )}
+                          </div>
                           <small className="text-muted">
-                            {new Date(req.createdAt).toLocaleDateString('pt-PT')}
+                            {new Date(req.createdAt).toLocaleDateString('pt-PT')} {new Date(req.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                           </small>
+                          {(req.simulationCode || req.simulationLead?.simulationCode) && (
+                            <Badge bg="light" className="text-success border mt-1 d-block small" style={{ fontSize: '0.72rem', width: 'fit-content' }}>
+                              #{req.simulationCode || req.simulationLead?.simulationCode}
+                            </Badge>
+                          )}
                         </td>
                         <td>
-                          <span className="fw-semibold text-dark d-block">{req.customerId?.name || 'Cliente Geral'}</span>
-                          <small className="text-muted">{req.customerId?.email}</small>
-                          {(req.customerId?.phoneNumber || req.customerId?.phone) && (
+                          <span className="fw-semibold text-dark d-block">
+                            {req.customerId?.name || req.importerContact?.name || req.simulationLead?.contactName || 'Cliente Geral'}
+                            {(req.importerContact?.company || req.simulationLead?.companyName) && (
+                              <span className="text-muted small fw-normal ms-1">
+                                ({req.importerContact?.company || req.simulationLead?.companyName})
+                              </span>
+                            )}
+                          </span>
+                          <small className="text-muted d-block">
+                            {req.customerId?.email || req.importerContact?.email || req.simulationLead?.email || ''}
+                          </small>
+                          {(req.customerId?.phoneNumber || req.customerId?.phone || req.importerContact?.phone || req.simulationLead?.phone) && (
                             <small className="text-muted d-block fw-semibold text-primary">
-                              📞 {req.customerId?.phoneNumber || req.customerId?.phone}
+                              📞 {req.customerId?.phoneNumber || req.customerId?.phone || req.importerContact?.phone || req.simulationLead?.phone}
                             </small>
                           )}
                         </td>
                         <td>
-                          <span className="fw-bold text-dark d-block">{req.productName}</span>
-                          <small className="text-muted">Qtd: {req.quantity || 1}</small>
+                          {(() => {
+                            const { title, desc } = getProductDisplay(req);
+                            return (
+                              <>
+                                <span className="fw-bold text-dark d-block" title={title}>{title}</span>
+                                {desc && (
+                                  <small className="text-muted d-block text-truncate" style={{ maxWidth: '240px' }} title={desc}>
+                                    {desc}
+                                  </small>
+                                )}
+                                <small className="text-muted">Qtd: {req.quantity || 1}</small>
+                              </>
+                            );
+                          })()}
                         </td>
                         <td>
                           <Badge bg="secondary" className="me-1">
@@ -577,7 +788,7 @@ export default function ImportDashboard() {
                               #{lead.simulationCode}
                             </span>
                             <small className="text-muted">
-                              {new Date(lead.createdAt).toLocaleDateString('pt-PT')} {new Date(lead.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(lead.createdAt).toLocaleDateString('pt-PT')} {new Date(lead.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </small>
                           </td>
                           <td>
@@ -729,24 +940,215 @@ export default function ImportDashboard() {
 
               <Row>
                 <Col md={12} className="mb-3">
-                  <h6 className="text-muted fw-bold mb-1">ID do Pedido</h6>
-                  <p className="mb-0 fw-semibold text-primary-custom">NQL-IMP-{selectedReq._id.substring(selectedReq._id.length - 6).toUpperCase()}</p>
+                  <h6 className="text-muted fw-bold mb-1">ID do Pedido & Data</h6>
+                  <p className="mb-0 fw-semibold text-primary-custom">
+                    NQL-IMP-{selectedReq._id.substring(selectedReq._id.length - 6).toUpperCase()}
+                    {selectedReq.createdAt && (
+                      <span className="text-muted small fw-normal ms-2">
+                        • {new Date(selectedReq.createdAt).toLocaleDateString('pt-PT')} {new Date(selectedReq.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                    )}
+                  </p>
                 </Col>
                 <Col md={6} className="mb-3">
                   <h6 className="text-muted fw-bold mb-1">Cliente</h6>
-                  <p className="mb-0 fw-semibold">{selectedReq.customerId?.name || 'Desconhecido'}</p>
-                  <p className="text-muted small mb-0">{selectedReq.customerId?.email}</p>
-                  {(selectedReq.customerId?.phoneNumber || selectedReq.customerId?.phone) && (
+                  <p className="mb-0 fw-semibold">
+                    {selectedReq.customerId?.name || selectedReq.importerContact?.name || selectedReq.simulationLead?.contactName || 'Desconhecido'}
+                    {(selectedReq.importerContact?.company || selectedReq.simulationLead?.companyName) && ` (${selectedReq.importerContact?.company || selectedReq.simulationLead?.companyName})`}
+                  </p>
+                  <p className="text-muted small mb-0">
+                    {selectedReq.customerId?.email || selectedReq.importerContact?.email || selectedReq.simulationLead?.email || ''}
+                  </p>
+                  {(selectedReq.customerId?.phoneNumber || selectedReq.customerId?.phone || selectedReq.importerContact?.phone || selectedReq.simulationLead?.phone) && (
                     <p className="text-muted small mb-0 fw-semibold text-primary mt-1">
-                      📞 Telefone / Contacto: {selectedReq.customerId?.phoneNumber || selectedReq.customerId?.phone}
+                      📞 Telefone / Contacto: {selectedReq.customerId?.phoneNumber || selectedReq.customerId?.phone || selectedReq.importerContact?.phone || selectedReq.simulationLead?.phone}
                     </p>
                   )}
                 </Col>
                 <Col md={6} className="mb-3">
                   <h6 className="text-muted fw-bold mb-1">Produto Desejado</h6>
-                  <p className="mb-0">{selectedReq.productName}</p>
-                  <p className="text-muted small mb-0">Qtd: {selectedReq.quantity || 1}</p>
+                  {(() => {
+                    const { title, desc } = getProductDisplay(selectedReq);
+                    return (
+                      <>
+                        <p className="mb-0 fw-bold text-dark">{title}</p>
+                        {desc && (
+                          <p className="text-muted small mb-1 fst-italic">{desc}</p>
+                        )}
+                        <p className="text-muted small mb-0">Qtd: {selectedReq.quantity || 1}</p>
+                      </>
+                    );
+                  })()}
                 </Col>
+
+                {/* MEMÓRIA DE CÁLCULO COMPLETA DA SIMULAÇÃO DO CLIENTE */}
+                {(() => {
+                  const simLead = selectedReq.simulationLead;
+                  const calc = selectedReq.simulationData || simLead?.calculationResult;
+                  const exchange = Number(selectedReq.exchangeRate || calc?.metadata?.exchangeRateToMzn || exchangeRateUSD || 75);
+                  const qty = Number(selectedReq.quantity || calc?.goodsSummary?.quantity || 1);
+                  const unitPrice = Number(selectedReq.unitPrice || calc?.goodsSummary?.unitPriceCurrency || 0);
+                  const currency = selectedReq.currency || calc?.goodsSummary?.currency || 'USD';
+
+                  const goodsMzn = Number(selectedReq.productCostMzn || calc?.goodsSummary?.totalGoodsValueMzn || (unitPrice * qty * exchange));
+                  const goodsCurr = Number(calc?.goodsSummary?.totalGoodsValueCurrency || (goodsMzn > 0 ? (goodsMzn / exchange) : (unitPrice * qty)));
+
+                  const freightMzn = Number(selectedReq.freightMzn || calc?.logisticsSummary?.freightMzn || 0);
+                  const freightCurr = Number(selectedReq.freight || calc?.logisticsSummary?.freightCurrency || (freightMzn > 0 ? (freightMzn / exchange) : 0));
+
+                  const insuranceMzn = Number(selectedReq.insuranceMzn || calc?.logisticsSummary?.insuranceMzn || ((goodsMzn + freightMzn) * 0.01));
+                  const insuranceCurr = Number(selectedReq.insuranceCurrency || calc?.logisticsSummary?.insuranceCurrency || (insuranceMzn > 0 ? (insuranceMzn / exchange) : ((goodsCurr + freightCurr) * 0.01)));
+
+                  const cifMzn = Number(selectedReq.customsValue || calc?.logisticsSummary?.customsValueMzn || (goodsMzn + freightMzn + insuranceMzn));
+                  const cifCurr = Number(selectedReq.customsValueCurrency || calc?.logisticsSummary?.customsValueCurrency || (goodsCurr + freightCurr + insuranceCurr));
+
+                  const daRate = (selectedReq.customsDutyRate !== undefined && selectedReq.customsDutyRate !== null)
+                    ? selectedReq.customsDutyRate
+                    : (calc?.taxSummary?.customsDuty?.rate ?? simLead?.tariffItem?.daRate ?? 5);
+                  const daMzn = Number(calc?.taxSummary?.customsDuty?.amountMzn || (cifMzn * (daRate / 100)));
+
+                  const ivaRate = (selectedReq.ivaRate !== undefined && selectedReq.ivaRate !== null)
+                    ? selectedReq.ivaRate
+                    : (calc?.taxSummary?.vat?.rate ?? simLead?.tariffItem?.ivaRate ?? 16);
+                  const ivaMzn = Number(calc?.taxSummary?.vat?.amountMzn || ((cifMzn + daMzn) * (ivaRate / 100)));
+
+                  const iceRate = (selectedReq.iceRate !== undefined && selectedReq.iceRate !== null)
+                    ? selectedReq.iceRate
+                    : (calc?.taxSummary?.ice?.rate ?? simLead?.tariffItem?.iceRate ?? 0);
+                  const iceMzn = Number(calc?.taxSummary?.ice?.amountMzn || 0);
+
+                  const tsaMzn = Number(calc?.taxSummary?.customsServicesFee?.amountMzn || 2500);
+                  const totalTaxesMzn = Number(calc?.taxSummary?.totalGovernmentTaxesMzn || (daMzn + ivaMzn + iceMzn + tsaMzn));
+
+                  const nhiquelaFeeMzn = Number(selectedReq.nhiquelaServiceFee || calc?.commercialSummary?.nhiquelaServiceFeeMzn || (goodsMzn * 0.08));
+                  const grandTotalMzn = Number(calc?.grandTotal?.totalCostMzn || (cifMzn + totalTaxesMzn + nhiquelaFeeMzn));
+                  const grandTotalCurr = Number((grandTotalMzn / exchange).toFixed(2));
+
+                  const origin = selectedReq.originCountry || selectedReq.preferredOriginCountry || simLead?.originCountry || 'China';
+                  const destination = selectedReq.destinationCity || simLead?.destinationCity || 'Maputo';
+                  const transport = (selectedReq.shippingMethod || simLead?.transportType) === 'AIR' ? '✈️ Aéreo Expresso' : '🚢 Marítimo';
+
+                  const simCode = selectedReq.simulationCode || simLead?.simulationCode;
+                  if (!simCode && !calc && goodsMzn === 0) return null;
+
+                  return (
+                    <Col md={12} className="mb-3">
+                      <div className="p-3 rounded-4 border shadow-sm" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                        {/* Cabeçalho da Simulação */}
+                        <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom border-success-subtle">
+                          <div className="d-flex align-items-center gap-2">
+                            <Badge bg="success" className="px-2.5 py-1.5 fw-bold">Simulação do Cliente</Badge>
+                            <span className="fw-bold text-dark fs-6">
+                              #{simCode || 'NQL-SIM'}
+                            </span>
+                            <Badge bg="light" className="text-dark border">
+                              {origin} → {destination} ({transport})
+                            </Badge>
+                          </div>
+                          <div className="d-flex align-items-center gap-2">
+                            <Badge bg="white" className="text-dark border px-2.5 py-1.5">
+                              Câmbio: 1 USD = {exchange} MT
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Tabela de Rubricas Fiscais e Logísticas (Conforme Memória de Cálculo da Simulação) */}
+                        <div className="table-responsive bg-white rounded-3 border mb-3">
+                          <Table size="sm" className="align-middle mb-0 small" bordered hover>
+                            <thead className="bg-light text-muted">
+                              <tr>
+                                <th>Rubrica</th>
+                                <th style={{ width: '135px' }}>Valor na Moeda</th>
+                                <th style={{ width: '155px' }}>Valor em Meticais (MT)</th>
+                                <th>Observação Legal</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="fw-semibold">Valor da Mercadoria (FOB)</td>
+                                <td>{goodsCurr.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</td>
+                                <td className="fw-bold text-primary">{goodsMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT</td>
+                                <td className="text-muted small">Preço de compra ({qty} un x {unitPrice.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} {currency})</td>
+                              </tr>
+                              <tr>
+                                <td className="fw-semibold">Frete Internacional</td>
+                                <td className="fw-semibold text-dark">
+                                  {freightCurr.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                                </td>
+                                <td className="fw-semibold">{freightMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT</td>
+                                <td className="text-muted small">Estimado (sujeito a cotação final)</td>
+                              </tr>
+                              <tr>
+                                <td className="fw-semibold">Seguro de Carga</td>
+                                <td className="fw-semibold text-dark">
+                                  {insuranceCurr.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                                </td>
+                                <td className="fw-semibold">{insuranceMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT</td>
+                                <td className="text-muted small">Proteção de transporte e carga (1% pauta)</td>
+                              </tr>
+                              <tr className="table-success fw-bold">
+                                <td>Valor Aduaneiro (CIF)</td>
+                                <td className="text-success fw-bold">
+                                  {cifCurr.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                                </td>
+                                <td className="text-success fw-bold">
+                                  {cifMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT
+                                </td>
+                                <td className="text-muted small">Base de cálculo dos Direitos e ICE</td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </div>
+
+                        {/* Detalhes Fiscais e Governamentais */}
+                        <div className="bg-white p-3 rounded-3 border mb-3">
+                          <div className="fw-bold text-dark small mb-2 d-flex align-items-center justify-content-between">
+                            <span>🏛️ Encargos Fiscais & Aduaneiros Oficiais (Estimados)</span>
+                            <span className="badge bg-light text-dark border">
+                              Total Impostos: {totalTaxesMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MT
+                            </span>
+                          </div>
+                          <Row className="g-2 small">
+                            <Col md={3}>
+                              <span className="text-muted d-block">Direitos Aduaneiros (DA {daRate}%):</span>
+                              <span className="fw-bold text-dark">{daMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MT</span>
+                            </Col>
+                            <Col md={3}>
+                              <span className="text-muted d-block">IVA Alfandegário ({ivaRate}%):</span>
+                              <span className="fw-bold text-dark">{ivaMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MT</span>
+                            </Col>
+                            <Col md={3}>
+                              <span className="text-muted d-block">Taxa Eletrónica JUE / TSA:</span>
+                              <span className="fw-bold text-dark">{tsaMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MT</span>
+                            </Col>
+                            <Col md={3}>
+                              <span className="text-muted d-block">Assessoria Nhiquela:</span>
+                              <span className="fw-bold text-dark">{nhiquelaFeeMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MT</span>
+                            </Col>
+                          </Row>
+                        </div>
+
+                        {/* Linha de Total Geral */}
+                        <div className="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top border-success-subtle">
+                          <div>
+                            <span className="text-muted small d-block">Classificação Solicitada:</span>
+                            <span className="fw-bold text-dark small">
+                              {selectedReq.pautaCategory || simLead?.tariffItem?.description || 'Classificação Geral'}
+                              {selectedReq.pautaShCode ? ` (SH: ${selectedReq.pautaShCode})` : ''}
+                            </span>
+                          </div>
+                          <div className="text-end">
+                            <span className="text-muted small d-block">Custo Total Estimado da Importação:</span>
+                            <span className="fs-6 fw-bold text-success">
+                              {grandTotalMzn.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MT
+                              <span className="text-muted fw-normal small ms-1">(~ {grandTotalCurr.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency})</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Col>
+                  );
+                })()}
                 <Col md={12} className="mb-3">
                   <h6 className="text-muted fw-bold mb-1">Descrição</h6>
                   <p className="mb-0 bg-light p-3 rounded">{selectedReq.description || 'Sem descrição.'}</p>
@@ -963,6 +1365,82 @@ export default function ImportDashboard() {
                       />
                     </Form.Group>
                   </Col>
+
+                  {/* Seção Dinâmica de Outros Impostos / Taxas */}
+                  <Col md={12} className="mt-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                      <span className="small fw-bold text-dark text-uppercase" style={{ letterSpacing: '0.5px' }}>
+                        Outros Impostos e Taxas Aduaneiras
+                      </span>
+                      {!isQuotationAccepted && (
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm" 
+                          className="d-flex align-items-center gap-1 rounded-pill px-3 py-1 small"
+                          onClick={handleAddOtherTax}
+                          title="Adicionar outro imposto ou taxa"
+                        >
+                          <FontAwesomeIcon icon={faPlus} />
+                          <span>Adicionar Imposto</span>
+                        </Button>
+                      )}
+                    </div>
+                  </Col>
+
+                  {(quoteDetails.otherTaxes || [{ id: 1, description: '', amount: '' }]).map((tax, idx) => (
+                    <React.Fragment key={tax.id || idx}>
+                      <Col md={7}>
+                        <Form.Group className="mb-2">
+                          {idx === 0 && (
+                            <Form.Label className="small fw-semibold text-muted">
+                              Descrição de Outros Impostos / Taxas
+                            </Form.Label>
+                          )}
+                          <Form.Control 
+                            type="text" 
+                            placeholder="Ex: Taxa JUE / TSA, Sobretaxa de Salvaguarda..." 
+                            value={tax.description || ''}
+                            onChange={(e) => handleUpdateOtherTax(idx, 'description', e.target.value)}
+                            disabled={isQuotationAccepted}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className="mb-2">
+                          {idx === 0 && (
+                            <Form.Label className="small fw-semibold text-muted">
+                              Valor Adicional (MT)
+                            </Form.Label>
+                          )}
+                          <Form.Control 
+                            type="number" 
+                            step="any"
+                            placeholder="0.00" 
+                            value={tax.amount !== undefined ? tax.amount : ''}
+                            onChange={(e) => handleUpdateOtherTax(idx, 'amount', e.target.value)}
+                            disabled={isQuotationAccepted}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={1} className="d-flex align-items-center justify-content-center mb-2">
+                        {/* Ícone para remover nos impostos novos */}
+                        {(idx > 0 || (quoteDetails.otherTaxes && quoteDetails.otherTaxes.length > 1)) && !isQuotationAccepted ? (
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            className="rounded-circle d-flex align-items-center justify-content-center p-0"
+                            style={{ width: '34px', height: '34px', marginTop: idx === 0 ? '22px' : '0' }}
+                            onClick={() => handleRemoveOtherTax(idx)}
+                            title="Remover imposto"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </Button>
+                        ) : (
+                          <div style={{ width: '34px', height: '34px', marginTop: idx === 0 ? '22px' : '0' }} />
+                        )}
+                      </Col>
+                    </React.Fragment>
+                  ))}
                 </Row>
 
                 <div className="mt-3 p-3 bg-white rounded-3 border">
@@ -1003,6 +1481,31 @@ export default function ImportDashboard() {
                     <span>{iceCost > 0 ? '8' : '7'}. IVA da Importação ({ivaRate}%{ivaRate === 0 ? ' - Isento Lei 22/2022' : ''}):</span>
                     <span className="fw-semibold text-dark">{iva.toFixed(2)} MT</span>
                   </div>
+                  {/* Outros Impostos / Taxas */}
+                  {(() => {
+                    const activeTaxes = (quoteDetails.otherTaxes || []).filter(t => (parseFloat(t.amount) || 0) > 0);
+                    if (activeTaxes.length > 0) {
+                      return activeTaxes.map((tax, taxIdx) => {
+                        const rowNum = (iceCost > 0 ? 9 : 8) + taxIdx;
+                        const label = tax.description?.trim() || 'Outro Imposto / Taxa';
+                        const val = parseFloat(tax.amount) || 0;
+                        return (
+                          <div key={tax.id || taxIdx} className="d-flex justify-content-between small text-muted mb-1">
+                            <span>{rowNum}. Outros Impostos ({label}):</span>
+                            <span className="fw-semibold text-dark">+{val.toFixed(2)} MT</span>
+                          </div>
+                        );
+                      });
+                    } else if (otherTaxes > 0) {
+                      return (
+                        <div className="d-flex justify-content-between small text-muted mb-1">
+                          <span>{iceCost > 0 ? '9' : '8'}. Outros Impostos ({quoteDetails.otherTaxesDescription || 'Taxas Adicionais'}):</span>
+                          <span className="fw-semibold text-dark">+{otherTaxes.toFixed(2)} MT</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div className="d-flex justify-content-between small fw-bold text-dark mb-2 pt-1 border-top">
                     <span>Total de Importação Aduaneira:</span>
                     <span>{importTotal.toFixed(2)} MT</span>

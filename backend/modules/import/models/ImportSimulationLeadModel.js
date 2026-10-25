@@ -23,6 +23,10 @@ const importSimulationLeadSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    productImage: {
+      type: String,
+      default: ''
+    },
     quantity: {
       type: Number,
       default: 1
@@ -100,6 +104,20 @@ const importSimulationLeadSchema = new mongoose.Schema(
       minMzn: { type: Number, default: 0 },
       maxMzn: { type: Number, default: 0 },
       exchangeRate: { type: Number, default: 75.0 }
+    },
+    tariffItem: {
+      shCode: { type: String, default: '' },
+      category: { type: String, default: '' },
+      description: { type: String, default: '' },
+      daRate: { type: Number, default: 5 },
+      ivaRate: { type: Number, default: 16 },
+      iceRate: { type: Number, default: 0 },
+      isExempt: { type: Boolean, default: false },
+      exemptionBasis: { type: String, default: '' }
+    },
+    calculationResult: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
     },
     status: {
       type: String,
