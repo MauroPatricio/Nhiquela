@@ -5,7 +5,8 @@ import {
   faArrowRight, faArrowLeft, faShieldAlt, faCheckCircle, faComments, faFileInvoiceDollar, 
   faBuilding, faUser, faPhone, faEnvelope, faRedo, faClock, faPlane, faShip, faTruck,
   faSearch, faBook, faBoxes, faBalanceScale, faFileAlt, faInfoCircle, faExclamationTriangle,
-  faListOl, faGlobe, faExternalLinkAlt, faTimes, faFilePdf, faDownload
+  faListOl, faGlobe, faExternalLinkAlt, faTimes, faFilePdf, faDownload, faExchangeAlt, faCheck, faStar,
+  faMapMarkerAlt, faBolt
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { useSelector } from 'react-redux';
@@ -14,6 +15,7 @@ import api from '../api';
 import { selectUser } from '../store/features/userSlice';
 import { PAUTA_CATEGORIES } from '../data/pautaAduaneiraData';
 import { generateProformaPdf } from '../utils/generateProformaPdf';
+import './ImportTariffCards.css';
 
 export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
   const currentUser = useSelector(selectUser);
@@ -244,6 +246,10 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
       setClassificationResult(res.data);
       if (res.data.topCandidate) {
         setSelectedTariffItem(res.data.topCandidate);
+      } else if (res.data.candidates && res.data.candidates.length > 0) {
+        setSelectedTariffItem(res.data.candidates[0]);
+      } else {
+        setSelectedTariffItem(null);
       }
 
       setStep(3);
@@ -259,6 +265,10 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
   const handleProceedToStep4 = () => {
     if (!selectedTariffItem && classificationResult?.candidates?.length > 0) {
       setSelectedTariffItem(classificationResult.candidates[0]);
+    }
+    if (!selectedTariffItem) {
+      toast.warning('Por favor selecione uma classificação pautal válida para prosseguir com o cálculo.');
+      return;
     }
     setStep(4);
     scrollToSimulator();
@@ -574,46 +584,61 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
       )}
 
       {/* ========================================================
-          BARRA DE PROGRESSO DO ASSISTENTE (Etapas 2 a 7)
+          BARRA DE PROGRESSO DO ASSISTENTE (Etapas 2 a 7) — DESIGN PREMIUM
           ======================================================== */}
       {step > 1 && (
-        <div className="rounded-4 p-3.5 mb-4 bg-white shadow-sm border">
-          <div className="d-flex justify-content-between align-items-center mb-2">
+        <div className="nql-stepper-header">
+          <div className="nql-stepper-nav">
             <button
               type="button"
               onClick={() => setStep(prev => Math.max(1, prev - 1))}
-              className="btn btn-link text-decoration-none text-muted p-0 small fw-semibold"
+              className="nql-back-btn"
             >
-              <FontAwesomeIcon icon={faArrowLeft} className="me-1 small" /> Voltar
+              <FontAwesomeIcon icon={faArrowLeft} />
+              <span>Voltar</span>
             </button>
-            <span className="small fw-bold text-primary">
-              Etapa {step} de 7: {
-                step === 2 ? 'Identificação do Produto' :
-                step === 3 ? 'Classificação Pautal Inteligente' :
-                step === 4 ? 'Logística & Encomenda' :
-                step === 5 ? 'Processamento do Cálculo' :
-                step === 6 ? 'Resultado & Cotação Simulada' : 'Contacto & Cotação'
-              }
-            </span>
-            <span className="badge bg-light text-dark border">
-              {Math.round((step / 7) * 100)}%
-            </span>
+
+            <div className="nql-step-title-group">
+              <span className="nql-step-badge-pill">
+                Etapa {step} de 7
+              </span>
+              <span className="nql-step-name-text">
+                {
+                  step === 2 ? 'Identificação do Produto' :
+                  step === 3 ? 'Classificação Pautal Inteligente' :
+                  step === 4 ? 'Logística & Encomenda' :
+                  step === 5 ? 'Processamento do Cálculo' :
+                  step === 6 ? 'Resultado & Cotação Simulada' : 'Contacto & Cotação'
+                }
+              </span>
+            </div>
+
+            <div className="nql-step-pct-pill">
+              <span>{Math.round((step / 7) * 100)}%</span>
+            </div>
           </div>
-          <ProgressBar now={(step / 7) * 100} style={{ height: '6px' }} className="rounded-pill" />
+
+          <div className="nql-progress-track">
+            <div 
+              className="nql-progress-bar-fill" 
+              style={{ width: `${(step / 7) * 100}%` }}
+            />
+          </div>
         </div>
       )}
 
       {/* ========================================================
-          ETAPA 2 — IDENTIFICAÇÃO DO PRODUTO
+          ETAPA 2 — IDENTIFICAÇÃO DO PRODUTO (DESIGN PREMIUM)
           ======================================================== */}
       {step === 2 && (
-        <Card className="border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 mb-4">
+        <div className="nql-wizard-card mb-4">
           <div className="mb-4">
-            <Badge bg="light" className="text-primary border px-3 py-1.5 rounded-pill mb-2">
-              Passo 02 de 07
-            </Badge>
-            <h2 className="fw-bold fs-3 text-dark mb-1">Identificação do produto</h2>
-            <p className="text-muted small mb-0">
+            <span className="nql-step-intro-badge">
+              <span className="pulse-dot"></span>
+              <span>Passo 02 de 07</span>
+            </span>
+            <h2 className="nql-step-title">Identificação do produto</h2>
+            <p className="nql-step-subtitle mb-0">
               Descreva a sua mercadoria em linguagem corrente. O nosso motor pautal irá identificar a posição oficial correta.
             </p>
           </div>
@@ -829,232 +854,583 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               </div>
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-100 rounded-pill py-3 fw-bold shadow-sm"
-              style={{ backgroundColor: '#000000', fontSize: '1.05rem' }}
+              className="nql-btn-primary-action"
             >
               {loading ? (
                 <React.Fragment>
-                  <Spinner size="sm" animation="border" className="me-2" /> A consultar base pautal com LIKE combinada...
+                  <Spinner size="sm" animation="border" className="me-2" /> A consultar base pautal oficial...
                 </React.Fragment>
               ) : (
-                'Pesquisar Classificação Pautal Inteligente →'
+                <React.Fragment>
+                  <span>Pesquisar Classificação Pautal Inteligente</span>
+                  <FontAwesomeIcon icon={faArrowRight} />
+                </React.Fragment>
               )}
-            </Button>
+            </button>
           </Form>
-        </Card>
+        </div>
       )}
 
       {/* ========================================================
-          ETAPA 3 — CLASSIFICAÇÃO PAUTAL INTELIGENTE
+          ETAPA 3 — CLASSIFICAÇÃO PAUTAL (DESIGN PREMIUM)
           ======================================================== */}
       {step === 3 && classificationResult && (
-        <Card className="border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 mb-4">
+        <div className="nql-wizard-card mb-4">
           <div className="mb-4">
-            <Badge bg="light" className="text-primary border px-3 py-1.5 rounded-pill mb-2">
-              Passo 03 de 07
-            </Badge>
-            <h2 className="fw-bold fs-3 text-dark mb-1">Classificação pautal assistida</h2>
-            <p className="text-muted small mb-0">
-              O motor analisou a descrição e identificou a melhor correspondência na Pauta Aduaneira de Moçambique.
+            <span className="nql-step-intro-badge">
+              <span className="pulse-dot"></span>
+              <span>Passo 03 de 07</span>
+            </span>
+            <h2 className="nql-step-title">Classificação pautal</h2>
+            <p className="nql-step-subtitle mb-0">
+              O motor analisou a descrição da sua mercadoria e consultou a Pauta Aduaneira oficial de Moçambique.
             </p>
           </div>
 
-          {/* CÓDIGO CANDIDATO PRINCIPAL */}
-          {selectedTariffItem && (
-            <div 
-              className="p-4 rounded-4 mb-4 border"
-              style={{ backgroundColor: '#f5f3ff', borderColor: '#c4b5fd' }}
-            >
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="badge bg-primary px-3 py-1.5 rounded-pill" style={{ backgroundColor: '#7c3aed' }}>
-                  Código SH Recomendado: {selectedTariffItem.shCode}
-                </span>
-                <span className="small text-muted fw-semibold">
-                  Confiança: {classificationResult.confidenceScore}%
-                </span>
+          {/* ============================================================
+              CASO 1: NENHUMA CLASSIFICAÇÃO CORRESPONDENTE ENCONTRADA
+              ============================================================ */}
+          {(classificationResult.status === 'unresolved' || (!classificationResult.candidates || classificationResult.candidates.length === 0)) && !selectedTariffItem ? (
+            <div className="p-4 p-md-5 rounded-4 border mb-4 text-center" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
+              <div 
+                className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm"
+                style={{ width: '64px', height: '64px', backgroundColor: '#fef3c7', color: '#d97706' }}
+              >
+                <FontAwesomeIcon icon={faExclamationTriangle} className="fs-3" />
               </div>
 
-              <div className="mb-2">
-                <span className="text-secondary small fw-semibold text-uppercase" style={{ letterSpacing: '0.5px', fontSize: '0.75rem' }}>
-                  Designação Oficial da Pauta Aduaneira:
-                </span>
-                <h4 className="fw-bold text-dark mt-0.5 mb-1" style={{ fontSize: '1.25rem' }}>
-                  {selectedTariffItem.name || selectedTariffItem.description}
-                </h4>
-                {selectedTariffItem.name && selectedTariffItem.description && selectedTariffItem.name !== selectedTariffItem.description && (
-                  <p className="text-muted small mb-0">
-                    <span className="fw-semibold text-secondary">Descrição Pautal:</span> {selectedTariffItem.description}
-                  </p>
-                )}
-                {selectedTariffItem.examples && (
-                  <small className="text-muted d-block mt-1" style={{ fontSize: '0.78rem' }}>
-                    <span className="fw-semibold text-primary">Exemplos:</span> {selectedTariffItem.examples}
-                  </small>
-                )}
-              </div>
+              <h4 className="fw-bold text-dark mb-2">
+                Nenhuma classificação pautal correspondente encontrada
+              </h4>
 
-              {/* Resumo dos Valores Informados na Etapa 2 */}
-              <div className="p-3 bg-white rounded-3 my-3 border d-flex justify-content-between align-items-center flex-wrap gap-2 small">
-                <div>
-                  <span className="text-muted">Quantidade:</span> <strong className="text-dark">{quantity} un.</strong>
-                </div>
-                <div>
-                  <span className="text-muted">Preço Unit.:</span> <strong className="text-dark">{Number(unitPrice).toFixed(2)} {currency}</strong>
-                </div>
-                <div>
-                  <span className="text-muted">Subtotal Mercadoria:</span> <strong className="text-dark">{(Number(quantity) * Number(unitPrice)).toFixed(2)} {currency}</strong>
-                </div>
-                <div>
-                  <span className="text-muted">Frete:</span> <strong className="text-dark">{getAutoFreightValue().toFixed(2)} {currency} (Estimado)</strong>
-                </div>
-                <div>
-                  <span className="text-success fw-bold">Seguro de Carga: {calculateAutoInsurance().toFixed(2)} {currency}</span>
-                </div>
+              <p className="text-secondary mx-auto mb-4" style={{ maxWidth: '640px', lineHeight: '1.6' }}>
+                Não foi possível identificar automaticamente uma posição na Pauta Aduaneira correspondente a <strong className="text-dark">"{productName || 'Mercadoria'}"</strong>.
+                Para garantir o rigor no cálculo de Direitos Aduaneiros e evitar despesas fiscais inesperadas, escolha uma das seguintes opções:
+              </p>
+
+              <div className="d-flex flex-column flex-sm-row justify-content-center gap-2.5 max-w-lg mx-auto">
+                <Button
+                  variant="primary"
+                  className="rounded-pill px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2"
+                  style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
+                  onClick={() => setShowTariffModal(true)}
+                >
+                  <FontAwesomeIcon icon={faSearch} />
+                  <span>Consultar Pauta Manualmente</span>
+                </Button>
+
+                <Button
+                  variant="outline-dark"
+                  className="rounded-pill px-4 py-2.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-2"
+                  onClick={() => setStep(2)}
+                >
+                  <FontAwesomeIcon icon={faArrowLeft} />
+                  <span>Ajustar Descrição</span>
+                </Button>
               </div>
             </div>
-          )}
+          ) : (
+            /* ============================================================
+               CASO 2: CLASSIFICAÇÕES ENCONTRADAS COM SEPARAÇÃO PREMIUM ENTRE
+               COMPONENTE SELECIONADO PARA O CÁLCULO E ALTERNATIVAS SUGERIDAS
+               ============================================================ */
+            (() => {
+              const allCandidates = classificationResult.candidates || [];
+              const activeCandidate = selectedTariffItem || (allCandidates.length > 0 ? allCandidates[0] : null);
+              const alternativeCandidates = allCandidates.filter(c => c.shCode !== activeCandidate?.shCode);
+              const isTopMatch = allCandidates.length > 0 && activeCandidate?.shCode === allCandidates[0]?.shCode;
 
+              return (
+                <React.Fragment>
+                  <div className="mb-4">
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                      <div>
+                        <h5 className="fw-bold text-dark mb-1">
+                          Classificação Pautal da Mercadoria
+                        </h5>
+                        <p className="text-muted small mb-0">
+                          Avaliámos a sua mercadoria na Pauta Aduaneira oficial de Moçambique. O cálculo fiscal é baseado na opção em destaque.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        className="rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 flex-shrink-0"
+                        onClick={() => setShowTariffModal(true)}
+                      >
+                        <FontAwesomeIcon icon={faSearch} className="small" />
+                        <span>Outra Posição Pautal</span>
+                      </Button>
+                    </div>
 
+                    <div className="tariff-selection-wrapper">
+                      {/* =======================================================
+                          1. COMPONENTE SELECIONADO PARA O CÁLCULO (EM DESTAQUE)
+                          ======================================================= */}
+                      {activeCandidate && (
+                        <div>
+                          <div className="tariff-selected-section">
+                            {/* Cabeçalho do Card Selecionado */}
+                            <div className="tariff-selected-header">
+                              <div className="d-flex align-items-center gap-2 flex-wrap">
+                                <div className="tariff-active-pill">
+                                  <span className="pulse-dot"></span>
+                                  <span>Selecionado para o Cálculo</span>
+                                </div>
 
-          {/* OUTROS CÓDIGOS CANDIDATOS SE HOUVEREM */}
-          {classificationResult.candidates?.length > 1 && (
-            <div className="mb-4">
-              <h6 className="fw-semibold text-secondary small mb-2">Outras posições alternativas encontradas:</h6>
-              <div className="d-flex flex-column gap-2">
-                {classificationResult.candidates.filter(c => c.shCode !== selectedTariffItem?.shCode).map(c => (
-                  <div 
-                    key={c.shCode}
-                    onClick={() => setSelectedTariffItem(c)}
-                    className="p-3 rounded-3 border d-flex justify-content-between align-items-center"
-                    style={{ cursor: 'pointer', backgroundColor: '#ffffff' }}
-                  >
-                    <div>
-                      <span className="badge bg-light text-dark border me-2">{c.shCode}</span>
-                      <strong className="text-dark me-2">{c.name || c.description}</strong>
-                      {c.name && c.description && c.name !== c.description && (
-                        <span className="text-muted small">({c.description.substring(0, 55)}...)</span>
+                                {isTopMatch && (
+                                  <span className="tariff-match-badge">
+                                    <FontAwesomeIcon icon={faStar} />
+                                    <span>Maior Correspondência</span>
+                                  </span>
+                                )}
+
+                                {activeCandidate.category && (
+                                  <span className="text-muted small fw-medium" style={{ fontSize: '0.78rem' }}>
+                                    • {activeCandidate.category}
+                                  </span>
+                                )}
+                              </div>
+
+                              <span className="text-muted small d-none d-sm-inline" style={{ fontSize: '0.75rem' }}>
+                                Determina as taxas de DA, IVA e ICE
+                              </span>
+                            </div>
+
+                            {/* Corpo Principal do Card Selecionado */}
+                            <div className="tariff-card-body">
+                              <div className="tariff-check-icon">
+                                <FontAwesomeIcon icon={faCheck} />
+                              </div>
+
+                              <div className="tariff-card-main">
+                                <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                  <span className="tariff-sh-badge">
+                                    Código SH: {activeCandidate.shCode}
+                                  </span>
+                                </div>
+
+                                <h4 className="tariff-title-selected">
+                                  {activeCandidate.name || activeCandidate.description}
+                                </h4>
+
+                                {activeCandidate.name && activeCandidate.description && activeCandidate.name !== activeCandidate.description && (
+                                  <div className="tariff-desc-box">
+                                    <strong className="text-dark d-block mb-0.5">Descrição Pautal Oficial:</strong>
+                                    <span>{activeCandidate.description}</span>
+                                  </div>
+                                )}
+
+                                {activeCandidate.examples && (
+                                  <div className="tariff-examples-box">
+                                    <strong className="text-primary d-inline me-1">Exemplos Enquadrados:</strong>
+                                    <span>{activeCandidate.examples}</span>
+                                  </div>
+                                )}
+
+                                {(activeCandidate.notes || activeCandidate.exemptionBasis) && (
+                                  <div className="text-success small fw-semibold mt-2 d-flex align-items-center gap-1.5" style={{ fontSize: '0.8rem' }}>
+                                    <FontAwesomeIcon icon={faShieldAlt} />
+                                    <span>{activeCandidate.notes || activeCandidate.exemptionBasis}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Painel de Taxas Oficiais em Chips Fiscais */}
+                              <div className="tariff-rates-panel">
+                                <div className={`tariff-rate-chip da ${activeCandidate.daRate === 0 ? 'zero-rate' : ''}`}>
+                                  <span className="tariff-rate-label">Direitos (DA)</span>
+                                  <span className="tariff-rate-value">
+                                    {activeCandidate.daRate === 0 ? '0% Livre' : `${activeCandidate.daRate}%`}
+                                  </span>
+                                </div>
+
+                                <div className={`tariff-rate-chip iva ${activeCandidate.ivaRate === 0 ? 'zero-rate' : ''}`}>
+                                  <span className="tariff-rate-label">IVA Oficial</span>
+                                  <span className="tariff-rate-value">
+                                    {activeCandidate.ivaRate === 0 ? '0% Isento' : `${activeCandidate.ivaRate}%`}
+                                  </span>
+                                </div>
+
+                                {activeCandidate.iceRate > 0 && (
+                                  <div className="tariff-rate-chip ice">
+                                    <span className="tariff-rate-label">ICE Consumo</span>
+                                    <span className="tariff-rate-value">
+                                      {activeCandidate.iceRate}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Rodapé Informativo */}
+                            <div className="tariff-selected-footer">
+                              <div className="d-flex align-items-center gap-2">
+                                <FontAwesomeIcon icon={faShieldAlt} className="text-purple" style={{ color: '#7c3aed' }} />
+                                <span>
+                                  <strong>Base fiscal activa:</strong> Esta classificação determinará os cálculos alfandegários nas próximas etapas.
+                                </span>
+                              </div>
+                              <span className="badge bg-white text-dark border px-2.5 py-1 font-monospace" style={{ fontSize: '0.74rem' }}>
+                                SH {activeCandidate.shCode}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* =======================================================
+                          2. SEPARADOR ELEGANTE & ALTERNATIVAS SUGERIDAS
+                          ======================================================= */}
+                      {alternativeCandidates.length > 0 && (
+                        <div className="mt-2">
+                          <div className="tariff-divider-container mb-3">
+                            <div className="tariff-divider-line"></div>
+                            <div className="tariff-divider-badge">
+                              <FontAwesomeIcon icon={faExchangeAlt} style={{ color: '#7c3aed' }} />
+                              <span>Ou escolha uma das <strong>{alternativeCandidates.length} classificações alternativas</strong></span>
+                            </div>
+                          </div>
+
+                          <p className="text-muted small text-center mb-3">
+                            A sua mercadoria tem outras especificações? Clique em qualquer opção abaixo para alterar a base de cálculo:
+                          </p>
+
+                          <div className="tariff-alternatives-container">
+                            {alternativeCandidates.map((cand, altIdx) => {
+                              const isCandFirstMatch = cand.shCode === allCandidates[0]?.shCode;
+                              return (
+                                <div
+                                  key={cand.shCode + '-alt-' + altIdx}
+                                  onClick={() => setSelectedTariffItem(cand)}
+                                  className="tariff-alternative-card"
+                                >
+                                  <div className="d-flex align-items-start justify-content-between gap-3">
+                                    <div className="d-flex align-items-start gap-3 w-100">
+                                      <div className="tariff-radio-ring">
+                                        {/* Círculo indicador */}
+                                      </div>
+
+                                      <div className="w-100 min-w-0">
+                                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                                          <div className="d-flex align-items-center gap-2 flex-wrap">
+                                            <span className="tariff-sh-badge-alt">
+                                              Código SH: {cand.shCode}
+                                            </span>
+
+                                            {isCandFirstMatch && (
+                                              <Badge bg="success" className="px-2 py-0.5 rounded-pill" style={{ fontSize: '0.66rem' }}>
+                                                Maior Correspondência
+                                              </Badge>
+                                            )}
+
+                                            {cand.category && (
+                                              <span className="text-muted small" style={{ fontSize: '0.74rem' }}>
+                                                • {cand.category}
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          <span className="tariff-switch-btn">
+                                            <FontAwesomeIcon icon={faExchangeAlt} className="small" />
+                                            <span>Mudar para esta</span>
+                                          </span>
+                                        </div>
+
+                                        <h5 className="tariff-title-alt">
+                                          {cand.name || cand.description}
+                                        </h5>
+
+                                        {cand.name && cand.description && cand.name !== cand.description && (
+                                          <p className="text-secondary small mb-1" style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+                                            <span className="fw-semibold">Descrição Pautal:</span> {cand.description}
+                                          </p>
+                                        )}
+
+                                        {cand.examples && (
+                                          <div className="text-muted small mb-1.5" style={{ fontSize: '0.78rem' }}>
+                                            <span className="fw-semibold text-primary">Exemplos:</span> {cand.examples}
+                                          </div>
+                                        )}
+
+                                        {(cand.notes || cand.exemptionBasis) && (
+                                          <div className="text-success small fw-semibold mt-1" style={{ fontSize: '0.74rem' }}>
+                                            <FontAwesomeIcon icon={faShieldAlt} className="me-1" />
+                                            {cand.notes || cand.exemptionBasis}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Taxas Aduaneiras da Alternativa */}
+                                    <div className="text-end flex-shrink-0 d-none d-sm-block">
+                                      <div className="d-flex flex-column align-items-end gap-1">
+                                        <span 
+                                          className={`badge ${cand.daRate === 0 ? 'bg-success' : 'bg-light text-dark border'} px-2.5 py-1`}
+                                          style={{ fontSize: '0.74rem' }}
+                                        >
+                                          DA: {cand.daRate === 0 ? '0% (Livre)' : `${cand.daRate}%`}
+                                        </span>
+                                        <span 
+                                          className={`badge ${cand.ivaRate === 0 ? 'bg-success' : 'bg-light text-dark border'} px-2.5 py-1`}
+                                          style={{ fontSize: '0.74rem' }}
+                                        >
+                                          IVA: {cand.ivaRate === 0 ? '0% (Isento)' : `${cand.ivaRate}%`}
+                                        </span>
+                                        {cand.iceRate > 0 && (
+                                          <span className="badge bg-warning text-dark border px-2.5 py-1" style={{ fontSize: '0.7rem' }}>
+                                            ICE: {cand.iceRate}%
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Taxas em Mobile (< sm) */}
+                                  <div className="d-flex d-sm-none align-items-center gap-1.5 mt-2 pt-2 border-top">
+                                    <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: '0.72rem' }}>
+                                      DA: {cand.daRate}%
+                                    </span>
+                                    <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: '0.72rem' }}>
+                                      IVA: {cand.ivaRate}%
+                                    </span>
+                                    {cand.iceRate > 0 && (
+                                      <span className="badge bg-warning text-dark border px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                                        ICE: {cand.iceRate}%
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <Button variant="outline-primary" size="sm" className="rounded-pill px-3">
-                      Selecionar
-                    </Button>
                   </div>
-                ))}
-              </div>
-            </div>
+                </React.Fragment>
+              );
+            })()
           )}
 
-          <Button
-            variant="dark"
-            className="w-100 rounded-pill py-3 fw-bold"
-            style={{ backgroundColor: '#000000' }}
-            onClick={handleProceedToStep4}
+          <button
+            type="button"
+            className="nql-btn-primary-action"
+            disabled={!selectedTariffItem && (!classificationResult?.candidates || classificationResult.candidates.length === 0)}
+            onClick={() => {
+              if (!selectedTariffItem && classificationResult?.candidates && classificationResult.candidates.length > 0) {
+                setSelectedTariffItem(classificationResult.candidates[0]);
+              }
+              handleProceedToStep4();
+            }}
           >
-            Confirmar Classificação & Avançar para Logística →
-          </Button>
-        </Card>
+            {(!selectedTariffItem && (!classificationResult?.candidates || classificationResult.candidates.length === 0)) ? (
+              <span>Selecione uma classificação pautal acima para prosseguir</span>
+            ) : (
+              <React.Fragment>
+                <span>Confirmar Classificação Selecionada & Avançar para Logística</span>
+                <FontAwesomeIcon icon={faArrowRight} />
+              </React.Fragment>
+            )}
+          </button>
+        </div>
       )}
 
       {/* ========================================================
-          ETAPA 4 — LOGÍSTICA E DADOS DA ENCOMENDA
+          ETAPA 4 — LOGÍSTICA E DADOS DA ENCOMENDA (DESIGN PREMIUM)
           ======================================================== */}
       {step === 4 && (
-        <Card className="border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 mb-4">
+        <div className="nql-wizard-card mb-4">
           <div className="mb-4">
-            <Badge bg="light" className="text-primary border px-3 py-1.5 rounded-pill mb-2">
-              Passo 04 de 07
-            </Badge>
-            <h2 className="fw-bold fs-3 text-dark mb-1">Logística e valores da encomenda</h2>
-            <p className="text-muted small mb-0">
-              Indique os custos de compra e o trajeto logístico para determinar o Valor Aduaneiro (CIF).
+            <span className="nql-step-intro-badge">
+              <span className="pulse-dot"></span>
+              <span>Passo 04 de 07</span>
+            </span>
+            <h2 className="nql-step-title">Logística e valores da encomenda</h2>
+            <p className="nql-step-subtitle mb-0">
+              Indique o país de expedição, o meio de transporte internacional e a cidade de desalfandegamento em Moçambique para liquidar o Valor Aduaneiro (CIF).
             </p>
+          </div>
+
+          {/* Mini-Painel de Resumo da Mercadoria Selecionada */}
+          <div className="nql-order-summary-strip">
+            <div>
+              <span className="nql-summary-item-label">Mercadoria Selecionada</span>
+              <div className="nql-summary-item-value">
+                {productName || 'Mercadoria de Importação'}
+                {selectedTariffItem?.shCode && (
+                  <span className="badge bg-light text-dark ms-2 font-monospace" style={{ fontSize: '0.72rem' }}>
+                    SH {selectedTariffItem.shCode}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <span className="nql-summary-item-label">Quantidade & Preço</span>
+              <div className="nql-summary-item-value">
+                {quantity} un. × {Number(unitPrice || 0).toLocaleString()} {currency}
+              </div>
+            </div>
+
+            <div className="text-sm-end">
+              <span className="nql-summary-item-label">Subtotal de Compra (FOB)</span>
+              <div className="nql-summary-item-value" style={{ color: '#a7f3d0' }}>
+                {(Number(quantity || 1) * Number(unitPrice || 0)).toLocaleString()} {currency}
+              </div>
+            </div>
           </div>
 
           <Form onSubmit={handleRunCustomsCalculation}>
-            <Row className="g-3 mb-4">
-              <Col md={6}>
+            <Row className="g-4 mb-4">
+              {/* 1. País de Origem da Mercadoria */}
+              <Col xs={12} lg={6}>
                 <Form.Group>
-                  <Form.Label className="fw-semibold text-secondary small mb-1">
-                    País de origem da mercadoria *
-                  </Form.Label>
-                  <Form.Select
+                  <label className="nql-form-label">
+                    <span>
+                      <FontAwesomeIcon icon={faGlobe} className="me-1.5" style={{ color: '#7c3aed' }} />
+                      País de Origem da Mercadoria <span className="text-danger">*</span>
+                    </span>
+                    <span className="text-muted fw-normal small" style={{ fontSize: '0.72rem' }}>Local de expedição</span>
+                  </label>
+                  <select
                     value={originCountry}
                     onChange={(e) => setOriginCountry(e.target.value)}
-                    className="rounded-pill px-4 py-2.5 bg-light border-0 shadow-none text-dark fw-semibold"
+                    className="nql-form-select"
                   >
-                    <option value="China">China</option>
-                  </Form.Select>
+                    <option value="China">🇨🇳 China (Principal parceiro de fornecimento)</option>
+                    <option value="África do Sul">🇿🇦 África do Sul</option>
+                    <option value="Emirados Árabes Unidos (Dubai)">🇦🇪 Emirados Árabes Unidos (Dubai)</option>
+                    <option value="Turquia">🇹🇷 Turquia</option>
+                    <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
+                    <option value="Índia">🇮🇳 Índia</option>
+                    <option value="Portugal">🇵🇹 Portugal / União Europeia</option>
+                    <option value="Outro">Outro País</option>
+                  </select>
                 </Form.Group>
               </Col>
 
-              <Col md={6}>
+              {/* 2. Cidade de Entrega em Moçambique */}
+              <Col xs={12} lg={6}>
                 <Form.Group>
-                  <Form.Label className="fw-semibold text-secondary small mb-1">
-                    Modalidade de Transporte *
-                  </Form.Label>
-                  <Form.Select
-                    value={transportType}
-                    onChange={(e) => setTransportType(e.target.value)}
-                    className="rounded-pill px-4 py-2.5 bg-light border-0 shadow-none text-dark fw-semibold"
+                  <label className="nql-form-label">
+                    <span>
+                      <FontAwesomeIcon icon={faMapMarkerAlt} className="me-1.5" style={{ color: '#7c3aed' }} />
+                      Cidade de Entrega em Moçambique <span className="text-danger">*</span>
+                    </span>
+                    <span className="text-muted fw-normal small" style={{ fontSize: '0.72rem' }}>Destino Aduaneiro</span>
+                  </label>
+                  <select
+                    value={destinationCity}
+                    onChange={(e) => setDestinationCity(e.target.value)}
+                    className="nql-form-select"
                   >
-                    <option value="SEA">🚢 Marítimo (Económico — 35 a 45 dias)</option>
-                    <option value="AIR">✈️ Aéreo (Rápido — 5 a 7 dias)</option>
-                  </Form.Select>
-                  <div className="mt-2">
-                    {transportType === 'AIR' ? (
-                      <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1.5 fw-semibold">
-                        ⚡ Prazo Estimado: 5 a 7 dias (Rápido)
-                      </span>
-                    ) : (
-                      <span className="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1.5 fw-semibold">
-                        ⏱️ Prazo Estimado: 35 a 45 dias (Económico)
-                      </span>
-                    )}
+                    <option value="Maputo">🇲🇿 Maputo (Porto de Maputo / Aeroporto Mavalane)</option>
+                    <option value="Matola">🇲🇿 Matola (Hub Industrial / Maputo Província)</option>
+                    <option value="Beira">🇲🇿 Beira (Porto da Beira / Corredor Central)</option>
+                    <option value="Nacala">🇲🇿 Nacala (Porto de Águas Profundas)</option>
+                    <option value="Nampula">🇲🇿 Nampula Cidade</option>
+                    <option value="Tete">🇲🇿 Tete</option>
+                    <option value="Pemba">🇲🇿 Pemba (Cabo Delgado)</option>
+                    <option value="Quelimane">🇲🇿 Quelimane (Zambézia)</option>
+                    <option value="Chimoio">🇲🇿 Chimoio (Manica)</option>
+                    <option value="Inhambane">🇲🇿 Inhambane</option>
+                    <option value="Outra">Outra Cidade / Província</option>
+                  </select>
+                </Form.Group>
+              </Col>
+
+              {/* 3. Modalidade de Transporte (Cards Interativos Premium) */}
+              <Col xs={12}>
+                <Form.Group>
+                  <label className="nql-form-label">
+                    <span>
+                      <FontAwesomeIcon icon={faShip} className="me-1.5" style={{ color: '#7c3aed' }} />
+                      Modalidade de Transporte Internacional <span className="text-danger">*</span>
+                    </span>
+                    <span className="text-muted fw-normal small" style={{ fontSize: '0.72rem' }}>Clique para alternar</span>
+                  </label>
+
+                  <div className="nql-transport-grid">
+                    {/* Opção Marítima */}
+                    <div
+                      className={`nql-transport-card ${transportType === 'SEA' ? 'active' : ''}`}
+                      onClick={() => setTransportType('SEA')}
+                    >
+                      <div>
+                        <div className="nql-transport-card-header">
+                          <div className="nql-transport-icon-wrap nql-transport-icon-sea">
+                            <span>🚢</span>
+                          </div>
+                          <div className="nql-transport-radio-indicator">
+                            {transportType === 'SEA' && <FontAwesomeIcon icon={faCheck} style={{ fontSize: '0.75rem' }} />}
+                          </div>
+                        </div>
+
+                        <h4 className="nql-transport-title">Marítimo (Carga / Contentor)</h4>
+                        <p className="nql-transport-desc">
+                          Recomendado para maquinaria, equipamentos industriais, móveis e compras com peso elevado. Frete económico.
+                        </p>
+                      </div>
+
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
+                        <span className="nql-transport-footer-badge nql-badge-eco">
+                          <FontAwesomeIcon icon={faClock} /> 35 a 45 dias de trânsito
+                        </span>
+                        <span className="badge rounded-pill bg-light text-dark border px-2 py-1" style={{ fontSize: '0.68rem' }}>
+                          Mais Económico
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Opção Aérea */}
+                    <div
+                      className={`nql-transport-card ${transportType === 'AIR' ? 'active' : ''}`}
+                      onClick={() => setTransportType('AIR')}
+                    >
+                      <div>
+                        <div className="nql-transport-card-header">
+                          <div className="nql-transport-icon-wrap nql-transport-icon-air">
+                            <span>✈️</span>
+                          </div>
+                          <div className="nql-transport-radio-indicator">
+                            {transportType === 'AIR' && <FontAwesomeIcon icon={faCheck} style={{ fontSize: '0.75rem' }} />}
+                          </div>
+                        </div>
+
+                        <h4 className="nql-transport-title">Aéreo Expresso</h4>
+                        <p className="nql-transport-desc">
+                          Ideal para produtos de alta tecnologia, telemóveis, computadores, cosméticos ou encomendas com urgência de entrega.
+                        </p>
+                      </div>
+
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
+                        <span className="nql-transport-footer-badge nql-badge-speed">
+                          <FontAwesomeIcon icon={faBolt} /> 5 a 7 dias de trânsito
+                        </span>
+                        <span className="badge rounded-pill bg-light text-dark border px-2 py-1" style={{ fontSize: '0.68rem' }}>
+                          Mais Rápido
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </Form.Group>
               </Col>
             </Row>
 
-            <Row className="g-3 mb-4">
-              <Col md={12}>
-                <Form.Group>
-                  <Form.Label className="fw-semibold text-secondary small mb-1">
-                    Cidade de Entrega em Moçambique *
-                  </Form.Label>
-                  <Form.Select
-                    value={destinationCity}
-                    onChange={(e) => setDestinationCity(e.target.value)}
-                    className="rounded-pill px-4 py-2.5 bg-light border-0 shadow-none text-dark fw-semibold"
-                  >
-                    <option value="Maputo">Maputo</option>
-                    <option value="Matola">Matola</option>
-                    <option value="Beira">Beira</option>
-                    <option value="Nampula">Nampula</option>
-                    <option value="Tete">Tete</option>
-                    <option value="Pemba">Pemba</option>
-                    <option value="Quelimane">Quelimane</option>
-                    <option value="Chimoio">Chimoio</option>
-                    <option value="Nacala">Nacala</option>
-                    <option value="Inhambane">Inhambane</option>
-                    <option value="Outra">Outra cidade</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-100 rounded-pill py-3 fw-bold text-white shadow-sm"
-              style={{ backgroundColor: '#000000', fontSize: '1.05rem' }}
+              className="nql-btn-primary-action mt-2"
             >
-              Executar Motor Fiscal e Calcular Impostos →
-            </Button>
+              <span>Executar Motor Fiscal e Calcular Impostos</span>
+              <FontAwesomeIcon icon={faArrowRight} />
+            </button>
           </Form>
-        </Card>
+        </div>
       )}
 
       {/* ========================================================
@@ -1518,14 +1894,13 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                 <tr>
                   <th style={{ width: '130px' }}>Código SH</th>
                   <th>Nome do Item & Descrição Oficial</th>
-                  <th className="text-center" style={{ width: '70px' }}>DA %</th>
-                  <th className="text-center" style={{ width: '85px' }}>IVA %</th>
+                  <th className="text-center" style={{ width: '100px' }}>Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {tariffSearchResults.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-4 text-muted">
+                    <td colSpan="3" className="text-center py-4 text-muted">
                       {tariffSearchLoading ? (
                         <div className="py-2">
                           <Spinner size="sm" animation="border" className="me-2 text-primary" />
@@ -1581,25 +1956,19 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                         )}
                       </td>
                       <td className="text-center">
-                        <Badge 
-                          bg={item.daRate === 0 ? 'success' : 'light'} 
-                          className={item.daRate === 0 ? 'px-2 py-1' : 'text-dark border px-2 py-1'}
+                        <Button 
+                          variant={selectedTariffItem?.shCode === item.shCode ? "primary" : "outline-primary"}
+                          size="sm"
+                          className="rounded-pill px-2.5 py-1 fw-bold"
+                          style={selectedTariffItem?.shCode === item.shCode ? { backgroundColor: '#7c3aed', borderColor: '#7c3aed', fontSize: '0.75rem' } : { fontSize: '0.75rem' }}
+                          onClick={() => {
+                            setSelectedTariffItem(item);
+                            setShowTariffModal(false);
+                            toast.success(`Posição ${item.shCode} selecionada para o cálculo!`);
+                          }}
                         >
-                          {item.daRate === 0 ? '0% (Livre)' : `${item.daRate}%`}
-                        </Badge>
-                      </td>
-                      <td className="text-center">
-                        <Badge 
-                          bg={item.ivaRate === 0 ? 'success' : 'light'} 
-                          className={item.ivaRate === 0 ? 'px-2 py-1' : 'text-dark border px-2 py-1'}
-                        >
-                          {item.ivaRate === 0 ? 'Isento' : `${item.ivaRate}%`}
-                        </Badge>
-                        {item.iceRate > 0 && (
-                          <Badge bg="warning" text="dark" className="d-block mt-1 border" style={{ fontSize: '0.7rem' }}>
-                            ICE {item.iceRate}%
-                          </Badge>
-                        )}
+                          {selectedTariffItem?.shCode === item.shCode ? "Ativo" : "Selecionar"}
+                        </Button>
                       </td>
                     </tr>
                   ))

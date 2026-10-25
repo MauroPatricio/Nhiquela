@@ -174,9 +174,10 @@ class ProductClassificationService {
       return {
         status: 'unresolved',
         confidenceScore: 0,
+        topCandidate: null,
         candidates: [],
         disambiguationQuestions: [],
-        message: 'Não foi possível encontrar uma correspondência segura na nomenclatura oficial. O pedido será encaminhado para validação por um despachante aduaneiro.',
+        message: 'Não foi encontrada uma classificação pautal correspondente para esta mercadoria na pauta aduaneira.',
         version: TARIFF_DATABASE_VERSION
       };
     }
@@ -223,24 +224,59 @@ class ProductClassificationService {
       status = 'pending_review';
     }
 
-    // Candidatos alternativos: estritamente próximos do top candidate (mesmo capítulo pautal ou forte afinidade semântica)
+    // Garantir pelo menos 5 classificações pautais próximas ou sugestões da pauta
     const topChapter = (topCandidate.shCode || '').substring(0, 2);
-    const relevantCandidates = validCandidates
-      .filter(c => {
-        if (c.shCode === topCandidate.shCode) return true;
-        // Pelo menos 40% da pontuação do topo e pontuação mínima de 35
-        if (c.score < Math.max(35, topScore * 0.40)) return false;
-        // Deve ser do mesmo capítulo do SH OU compartilhar termo técnico direto
-        const cChapter = (c.shCode || '').substring(0, 2);
-        return cChapter === topChapter || c.score >= topScore * 0.65;
-      })
-      .slice(0, 3);
+    const candidateMap = new Map();
+
+    // 1. Adicionar os candidatos válidos por ordem de pontuação
+    for (const cand of validCandidates) {
+      if (!candidateMap.has(cand.shCode)) {
+        candidateMap.set(cand.shCode, cand);
+      }
+      if (candidateMap.size >= 5) break;
+    }
+
+    // 2. Se houver menos de 5, complementar com posições irmãs do mesmo capítulo ou categoria
+    if (candidateMap.size < 5) {
+      for (const item of MOZAMBIQUE_TARIFF_ITEMS) {
+        if (candidateMap.has(item.shCode)) continue;
+        const itemChapter = (item.shCode || '').substring(0, 2);
+        const normCat = category ? this.normalizeText(category) : '';
+        const sameCategory = normCat && item.category && this.normalizeText(item.category).includes(normCat);
+
+        if (itemChapter === topChapter || sameCategory) {
+          candidateMap.set(item.shCode, {
+            shCode: item.shCode,
+            fullCode: item.fullCode,
+            name: item.name,
+            description: item.description,
+            category: item.category,
+            daRate: item.daRate,
+            ivaRate: item.ivaRate,
+            iceRate: item.iceRate,
+            isExempt: item.isExempt,
+            exemptionBasis: item.exemptionBasis,
+            legalBasis: item.legalBasis,
+            unit: item.unit,
+            notes: item.notes,
+            examples: item.examples,
+            score: Math.max(20, Math.round(topScore * 0.5)),
+            hasNameOrDescMatch: true,
+            matchReasons: [`Posição relacionada no Capítulo ${itemChapter} da Pauta`],
+            disambiguationQuestions: item.disambiguationQuestions || []
+          });
+        }
+        if (candidateMap.size >= 5) break;
+      }
+    }
+
+    const suggestions = Array.from(candidateMap.values());
 
     return {
       status, // 'candidate' | 'needs_more_info' | 'pending_review' | 'validated' | 'unresolved'
       confidenceScore: Math.min(100, Math.round(topScore)),
       topCandidate,
-      candidates: relevantCandidates,
+      candidates: suggestions,
       competingCount: competingCandidates.length,
       disambiguationQuestions,
       legalRule: 'RGI 1 — A classificação é determinada pelas posições e notas de secção ou capítulo',
