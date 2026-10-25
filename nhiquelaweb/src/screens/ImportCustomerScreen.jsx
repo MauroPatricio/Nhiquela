@@ -111,12 +111,8 @@ export default function ImportCustomerScreen() {
   const location = useLocation();
   const userInfo = useSelector(selectUser);
 
-  useEffect(() => {
-    if (!userInfo) {
-      toast.info('Faça login para aceder à Importação');
-      navigate('/login?redirect=/shop/import');
-    }
-  }, [userInfo, navigate]);
+  // A rota /shop/import agora é pública (simulador e informações abertas a todos)
+  // O utilizador só precisará de autenticação ao submeter pedidos ou consultar o histórico
 
   useEffect(() => {
     if (location.state?.prefill) {
@@ -148,18 +144,21 @@ export default function ImportCustomerScreen() {
   };
 
   const fetchMyImports = async () => {
+    if (!userInfo) return;
     try {
       const response = await api.get('/import/requests');
       setMyImports(response.data || []);
     } catch (err) {
-      toast.error('Erro ao buscar suas importações.');
+      console.warn('Erro ao carregar importações do utilizador:', err);
     }
   };
 
   useEffect(() => {
-    fetchMyImports();
+    if (userInfo) {
+      fetchMyImports();
+    }
     api.get('/payment-accounts').then(res => setPaymentAccounts(res.data)).catch(() => {});
-  }, []);
+  }, [userInfo]);
 
   const handleShowDetails = async (imp) => {
     setSelectedImport(imp);
@@ -324,6 +323,12 @@ export default function ImportCustomerScreen() {
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
     
+    if (!userInfo) {
+      toast.info('Por favor, inicie sessão para submeter o seu pedido de importação.');
+      navigate('/login?redirect=/shop/import');
+      return;
+    }
+
     if (!imageFile) {
       toast.error('A fotografia do produto é obrigatória para solicitar cotação.');
       return;
@@ -705,7 +710,28 @@ export default function ImportCustomerScreen() {
                   </Button>
                 </div>
 
-                {myImports.length === 0 ? (
+                {!userInfo ? (
+                  <div className="text-center py-5 px-3 bg-white rounded-4 border my-3 shadow-sm">
+                    <div 
+                      className="d-inline-flex align-items-center justify-content-center bg-light rounded-circle shadow-sm mb-3" 
+                      style={{ width: '64px', height: '64px' }}
+                    >
+                      <FontAwesomeIcon icon={faBoxOpen} style={{ fontSize: '1.8rem', color: '#8a2be2' }} />
+                    </div>
+                    <h5 className="fw-bold text-dark mb-2">Acompanhe as suas Importações</h5>
+                    <p className="text-muted small mb-4 mx-auto" style={{ maxWidth: '440px' }}>
+                      Inicie sessão na sua conta para consultar o histórico dos seus pedidos, cotações alfandegárias e prazos de entrega.
+                    </p>
+                    <Button 
+                      variant="primary" 
+                      className="rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
+                      style={{ backgroundColor: '#8a2be2', borderColor: '#8a2be2' }}
+                      onClick={() => navigate('/login?redirect=/shop/import')}
+                    >
+                      Iniciar Sessão
+                    </Button>
+                  </div>
+                ) : myImports.length === 0 ? (
                   <div className="text-center py-5 px-3 bg-light rounded-4 border border-dashed my-3">
                     <div 
                       className="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm mb-3" 

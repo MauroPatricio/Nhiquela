@@ -1,0 +1,822 @@
+/* ==========================================================================
+   ImportTariffCards.css — Design System Premium para o Simulador de Importação
+   Acabamento executivo, Glassmorphism, Micro-interações e Layout Responsivo
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. FUNDAÇÃO E VARIÁVEIS DO SIMULADOR
+   -------------------------------------------------------------------------- */
+:root {
+  --nql-purple-50: #faf5ff;
+  --nql-purple-100: #f3e8ff;
+  --nql-purple-200: #e9d5ff;
+  --nql-purple-300: #d8b4fe;
+  --nql-purple-500: #a855f7;
+  --nql-purple-600: #9333ea;
+  --nql-purple-700: #7c3aed;
+  --nql-purple-800: #6d28d9;
+  --nql-purple-900: #581c87;
+  --nql-dark-900: #0f172a;
+  --nql-dark-800: #1e293b;
+  --nql-dark-700: #334155;
+  --nql-gray-50: #f8fafc;
+  --nql-gray-100: #f1f5f9;
+  --nql-gray-200: #e2e8f0;
+  --nql-gray-400: #94a3b8;
+  --nql-emerald-500: #10b981;
+  --nql-amber-500: #f59e0b;
+  --nql-transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --------------------------------------------------------------------------
+   1. BARRA SUPERIOR DE PROGRESSO DO FUNIL (STEPPER HEADER)
+   -------------------------------------------------------------------------- */
+.nql-stepper-header {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 1.25rem;
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: var(--nql-transition);
+}
+
+.nql-stepper-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.nql-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--nql-gray-50);
+  border: 1px solid var(--nql-gray-200);
+  color: var(--nql-dark-700);
+  padding: 0.45rem 1rem;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--nql-transition);
+}
+
+.nql-back-btn:hover {
+  background-color: var(--nql-purple-50);
+  border-color: var(--nql-purple-300);
+  color: var(--nql-purple-700);
+  transform: translateX(-3px);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12);
+}
+
+.nql-step-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.nql-step-badge-pill {
+  background: linear-gradient(135deg, var(--nql-purple-700) 0%, var(--nql-purple-800) 100%);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0.3rem 0.75rem;
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+}
+
+.nql-step-name-text {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--nql-dark-900);
+}
+
+.nql-step-pct-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: var(--nql-purple-50);
+  border: 1px solid var(--nql-purple-200);
+  color: var(--nql-purple-700);
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 50px;
+  font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+}
+
+/* Barra de Progresso com Gradiente e Glow */
+.nql-progress-track {
+  width: 100%;
+  height: 8px;
+  background-color: var(--nql-gray-100);
+  border-radius: 50px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.nql-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 60%, #ec4899 100%);
+  border-radius: 50px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+  position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   2. CARD PRINCIPAL DO SIMULADOR (WIZARD CARD)
+   -------------------------------------------------------------------------- */
+.nql-wizard-card {
+  background: #ffffff;
+  border: 1.5px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1.5rem;
+  padding: 2.25rem;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(237, 233, 254, 0.4);
+  position: relative;
+  overflow: hidden;
+  transition: var(--nql-transition);
+}
+
+.nql-wizard-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #6366f1 100%);
+  pointer-events: none;
+}
+
+.nql-step-intro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background-color: var(--nql-purple-50);
+  border: 1px solid var(--nql-purple-200);
+  color: var(--nql-purple-700);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border-radius: 50px;
+  margin-bottom: 0.75rem;
+}
+
+.nql-step-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: var(--nql-dark-900);
+  margin-bottom: 0.4rem;
+  line-height: 1.25;
+}
+
+.nql-step-subtitle {
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin-bottom: 1.85rem;
+}
+
+/* --------------------------------------------------------------------------
+   3. FORM CONTROLS PREMIUM (INPUTS, SELECTS, LABELS)
+   -------------------------------------------------------------------------- */
+.nql-form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--nql-dark-800);
+  margin-bottom: 0.55rem;
+}
+
+.nql-form-select,
+.nql-form-input {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1.5px solid var(--nql-gray-200);
+  border-radius: 0.85rem;
+  padding: 0.85rem 1.15rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--nql-dark-900);
+  transition: var(--nql-transition);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.02);
+}
+
+.nql-form-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237c3aed'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.15rem center;
+  background-size: 1.1rem;
+  padding-right: 2.85rem;
+}
+
+.nql-form-select:hover,
+.nql-form-input:hover {
+  border-color: var(--nql-purple-300);
+  background-color: #fcfaff;
+}
+
+.nql-form-select:focus,
+.nql-form-input:focus {
+  outline: none;
+  border-color: var(--nql-purple-700);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   4. CARDS INTERATIVOS DE SELEÇÃO DE TRANSPORTE (ETAPA 4)
+   -------------------------------------------------------------------------- */
+.nql-transport-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.15rem;
+  margin-top: 0.4rem;
+}
+
+.nql-transport-card {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid var(--nql-gray-200);
+  border-radius: 1.15rem;
+  padding: 1.25rem 1.15rem;
+  cursor: pointer;
+  transition: var(--nql-transition);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nql-transport-card:hover {
+  border-color: var(--nql-purple-300);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.08);
+}
+
+.nql-transport-card.active {
+  background: linear-gradient(145deg, #ffffff 0%, #faf8ff 100%);
+  border-color: var(--nql-purple-700);
+  box-shadow: 0 12px 28px -5px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(124, 58, 237, 0.1);
+}
+
+.nql-transport-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.nql-transport-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  transition: var(--nql-transition);
+}
+
+.nql-transport-card.active .nql-transport-icon-wrap {
+  transform: scale(1.08);
+}
+
+.nql-transport-icon-sea {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.nql-transport-icon-air {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+}
+
+.nql-transport-radio-indicator {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--nql-gray-400);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--nql-transition);
+}
+
+.nql-transport-card.active .nql-transport-radio-indicator {
+  border-color: var(--nql-purple-700);
+  background: var(--nql-purple-700);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35);
+}
+
+.nql-transport-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--nql-dark-900);
+  margin-bottom: 0.25rem;
+}
+
+.nql-transport-card.active .nql-transport-title {
+  color: var(--nql-purple-800);
+}
+
+.nql-transport-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 0.85rem;
+  line-height: 1.45;
+}
+
+.nql-transport-footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 50px;
+}
+
+.nql-badge-eco {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.nql-badge-speed {
+  background: #faf5ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
+/* --------------------------------------------------------------------------
+   5. MINI-PAINEL DE RESUMO DA MERCADORIA (STEP 4 HERO BAR)
+   -------------------------------------------------------------------------- */
+.nql-order-summary-strip {
+  background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+  color: #ffffff;
+  border-radius: 1.15rem;
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.3);
+}
+
+.nql-summary-item-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #c4b5fd;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.nql-summary-item-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   6. BOTÕES PRINCIPAIS EXECUTIVOS COM GLOW
+   -------------------------------------------------------------------------- */
+.nql-btn-primary-action {
+  background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  padding: 1.05rem 2rem;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  cursor: pointer;
+  transition: var(--nql-transition);
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.35);
+}
+
+.nql-btn-primary-action:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -4px rgba(124, 58, 237, 0.45);
+}
+
+.nql-btn-primary-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   7. SELEÇÃO PAUTAL ADUANEIRA (HERDADO DA ETAPA 3)
+   -------------------------------------------------------------------------- */
+.tariff-selection-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.tariff-selected-section {
+  position: relative;
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, #ffffff 0%, #faf8ff 55%, #f4edff 100%);
+  border: 2px solid #7c3aed;
+  box-shadow: 0 16px 36px -6px rgba(124, 58, 237, 0.18), 0 4px 12px rgba(124, 58, 237, 0.08);
+  padding: 1.5rem;
+  transition: var(--nql-transition);
+  overflow: hidden;
+}
+
+.tariff-selected-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tariff-selected-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.15rem;
+  border-bottom: 1px dashed rgba(124, 58, 237, 0.25);
+}
+
+.tariff-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 0.45rem 0.95rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+
+.tariff-active-pill .pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+  animation: tariffPulse 2s infinite;
+}
+
+@keyframes tariffPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+.tariff-match-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 50px;
+}
+
+.tariff-card-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.tariff-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.tariff-check-icon {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
+  margin-top: 0.15rem;
+}
+
+.tariff-sh-badge {
+  font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  background-color: #1e1b4b;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tariff-title-selected {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0.5rem 0 0.4rem 0;
+  line-height: 1.35;
+}
+
+.tariff-desc-box {
+  background-color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.84rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.tariff-examples-box {
+  background-color: rgba(245, 243, 255, 0.7);
+  border: 1px solid rgba(196, 181, 253, 0.4);
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.tariff-rates-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.tariff-rate-chip {
+  min-width: 110px;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.tariff-rate-chip:hover { transform: scale(1.03); }
+
+.tariff-rate-chip.da {
+  background-color: #ffffff;
+  border: 1.5px solid #c4b5fd;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.08);
+}
+
+.tariff-rate-chip.da.zero-rate,
+.tariff-rate-chip.iva.zero-rate {
+  background-color: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+}
+
+.tariff-rate-chip.iva {
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+}
+
+.tariff-rate-chip.ice {
+  background-color: #fffbeb;
+  border: 1.5px solid #fde68a;
+}
+
+.tariff-rate-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 0.1rem;
+}
+
+.tariff-rate-chip.da.zero-rate .tariff-rate-label,
+.tariff-rate-chip.iva.zero-rate .tariff-rate-label { color: #059669; }
+.tariff-rate-chip.ice .tariff-rate-label { color: #b45309; }
+
+.tariff-rate-value {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.tariff-rate-chip.da.zero-rate .tariff-rate-value,
+.tariff-rate-chip.iva.zero-rate .tariff-rate-value { color: #047857; }
+.tariff-rate-chip.ice .tariff-rate-value { color: #b45309; }
+
+.tariff-selected-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(124, 58, 237, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #6d28d9;
+}
+
+.tariff-divider-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin: 0.75rem 0 0.25rem 0;
+  text-align: center;
+}
+
+.tariff-divider-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0) 0%, rgba(196, 181, 253, 0.8) 50%, rgba(226, 232, 240, 0) 100%);
+  z-index: 0;
+}
+
+.tariff-divider-badge {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 0.4rem 1.1rem;
+  border-radius: 50px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tariff-divider-badge strong { color: #7c3aed; }
+
+.tariff-alternatives-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.tariff-alternative-card {
+  position: relative;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1.1rem;
+  padding: 1.15rem 1.35rem;
+  cursor: pointer;
+  transition: var(--nql-transition);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.tariff-alternative-card:hover {
+  transform: translateY(-2px);
+  border-color: #c4b5fd;
+  box-shadow: 0 10px 24px -4px rgba(124, 58, 237, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+  background: linear-gradient(180deg, #ffffff 0%, #faf8ff 100%);
+}
+
+.tariff-radio-ring {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-top: 0.15rem;
+}
+
+.tariff-alternative-card:hover .tariff-radio-ring {
+  border-color: #7c3aed;
+  background-color: #f5f3ff;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+}
+
+.tariff-sh-badge-alt {
+  font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tariff-title-alt {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0.4rem 0 0.35rem 0;
+  line-height: 1.35;
+  transition: color 0.2s ease;
+}
+
+.tariff-alternative-card:hover .tariff-title-alt { color: #6d28d9; }
+
+.tariff-switch-btn {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7c3aed;
+  background-color: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  padding: 0.35rem 0.85rem;
+  border-radius: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.tariff-alternative-card:hover .tariff-switch-btn {
+  background-color: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   8. RESPONSIVIDADE (MOBILE & TABLETS)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .nql-wizard-card { padding: 1.35rem 1.15rem; border-radius: 1.25rem; }
+  .nql-step-title { font-size: 1.35rem; }
+  .nql-transport-grid { grid-template-columns: 1fr; gap: 0.85rem; }
+  .nql-stepper-header { padding: 1rem; }
+  .nql-order-summary-strip { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .tariff-card-body { flex-direction: column; gap: 1rem; }
+  .tariff-rates-panel { flex-direction: row; flex-wrap: wrap; width: 100%; gap: 0.5rem; }
+  .tariff-rate-chip { flex: 1; min-width: 85px; align-items: center; }
+}
