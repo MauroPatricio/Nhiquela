@@ -38,17 +38,51 @@ export const DOMESTIC_RATES = {
 
 class CustomsTaxEngine {
   /**
-   * Atualiza a taxa de câmbio de uma moeda (para edição administrativa)
+   * Atualiza ou adiciona a taxa de câmbio de uma moeda (para edição administrativa)
    */
-  static setExchangeRate(currency = 'USD', rate, source = 'Câmbio Oficial Nhiquela') {
-    const curr = (currency || 'USD').toUpperCase();
-    if (CURRENCY_RATES[curr]) {
-      CURRENCY_RATES[curr].rate = Number(rate);
-      CURRENCY_RATES[curr].source = source;
+  static setExchangeRate(currency = 'USD', rate, source = 'Câmbio Oficial Nhiquela', name = '') {
+    const curr = (currency || 'USD').toUpperCase().trim();
+    if (!curr) return null;
+    const defaultNames = {
+      USD: 'Dólar Americano',
+      ZAR: 'Rand Sul-Africano',
+      EUR: 'Euro',
+      CNY: 'Yuan Chinês',
+      GBP: 'Libra Esterlina',
+      AED: 'Dirham dos EAU',
+      BRL: 'Real Brasileiro',
+      MZN: 'Metical Moçambicano'
+    };
+
+    if (!CURRENCY_RATES[curr]) {
+      CURRENCY_RATES[curr] = {
+        rate: Number(rate) || 1,
+        name: name || defaultNames[curr] || curr,
+        source: source || 'Câmbio Oficial Nhiquela',
+        date: new Date().toISOString().split('T')[0]
+      };
+    } else {
+      CURRENCY_RATES[curr].rate = Number(rate) || CURRENCY_RATES[curr].rate;
+      if (name) CURRENCY_RATES[curr].name = name;
+      CURRENCY_RATES[curr].source = source || CURRENCY_RATES[curr].source;
       CURRENCY_RATES[curr].date = new Date().toISOString().split('T')[0];
-      return CURRENCY_RATES[curr];
     }
-    return null;
+    return CURRENCY_RATES[curr];
+  }
+
+  /**
+   * Sincroniza um mapa completo de moedas e taxas
+   */
+  static setMultipleExchangeRates(ratesMap = {}) {
+    if (!ratesMap || typeof ratesMap !== 'object') return;
+    Object.keys(ratesMap).forEach((curr) => {
+      const item = ratesMap[curr];
+      if (typeof item === 'number') {
+        CustomsTaxEngine.setExchangeRate(curr, item);
+      } else if (item && typeof item === 'object') {
+        CustomsTaxEngine.setExchangeRate(curr, item.rate, item.source, item.name);
+      }
+    });
   }
 
   /**

@@ -1,4 +1,4 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 const AppConfigSchema = new mongoose.Schema(
   {
@@ -16,7 +16,7 @@ const AppConfigSchema = new mongoose.Schema(
     maintenanceMessage: { type: String, default: 'Estamos em manutenção para melhorar a plataforma. Voltaremos em breve!' },
 
     // Contact Information & Links
-    supportWhatsApp: { type: String, default: '+258840000000' },
+    supportWhatsApp: { type: String, default: '+258853600036' },
     supportEmail: { type: String, default: 'suporte@nhiquela.com' },
     termsUrl: { type: String, default: 'https://nhiquela.com/termos' },
     privacyUrl: { type: String, default: 'https://nhiquela.com/privacidade' },

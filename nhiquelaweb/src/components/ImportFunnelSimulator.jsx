@@ -72,6 +72,37 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
   const [simulationCode, setSimulationCode] = useState('');
   const [whatsappUrl, setWhatsappUrl] = useState('');
   const [formalQuoteSent, setFormalQuoteSent] = useState(false);
+  const [exchangeRates, setExchangeRates] = useState({
+    USD: { rate: 75.00, name: 'Dólar Americano', source: 'Câmbio Oficial Nhiquela' },
+    ZAR: { rate: 4.10, name: 'Rand Sul-Africano', source: 'Câmbio Oficial Nhiquela' },
+    EUR: { rate: 81.50, name: 'Euro', source: 'Câmbio Oficial Nhiquela' },
+    CNY: { rate: 10.40, name: 'Yuan Chinês', source: 'Câmbio Oficial Nhiquela' },
+    GBP: { rate: 95.00, name: 'Libra Esterlina', source: 'Câmbio Oficial Nhiquela' }
+  });
+  const [customExchangeRate, setCustomExchangeRate] = useState('75.00');
+
+  // Carregar taxas de câmbio ativas e atualizadas da API
+  useEffect(() => {
+    const fetchExchangeRates = async () => {
+      try {
+        const res = await api.get('/import/simulation/exchange-rates');
+        if (res.data && typeof res.data === 'object' && Object.keys(res.data).length > 0) {
+          setExchangeRates(res.data);
+          const activeRate = res.data[currency]?.rate || 75.00;
+          setCustomExchangeRate(Number(activeRate).toFixed(2));
+        }
+      } catch (err) {
+        console.warn('[ImportFunnelSimulator] Uso de taxas de câmbio de fallback:', err?.message || err);
+      }
+    };
+    fetchExchangeRates();
+  }, []);
+
+  // Atualizar a taxa de câmbio quando a moeda for alterada
+  useEffect(() => {
+    const activeRate = exchangeRates[currency]?.rate || (currency === 'ZAR' ? 4.10 : currency === 'EUR' ? 81.50 : currency === 'CNY' ? 10.40 : 75.00);
+    setCustomExchangeRate(Number(activeRate).toFixed(2));
+  }, [currency, exchangeRates]);
 
   // Efeito para preencher contactos se utilizador logado
   useEffect(() => {
@@ -295,6 +326,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
       const autoFreightAmount = getAutoFreightValue();
       const payload = {
         currency,
+        exchangeRate: parseFloat(customExchangeRate) || null,
         quantity: parseInt(quantity),
         unitPrice: parseFloat(unitPrice),
         freightOption: 'NEED_NHIQUELA',
@@ -415,22 +447,26 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
         notes: `Destino: ${destinationCity}. Modal: ${transportType}. Mercadoria: ${productName}. Código SH: ${selectedTariffItem?.shCode || 'Pendente'}.${safeNotes ? ' ' + safeNotes : ''}`
       });
 
-      setWhatsappUrl(res.data.whatsappLink);
+      let leadWhatsapp = res.data?.whatsappLink;
+      if (leadWhatsapp) setWhatsappUrl(leadWhatsapp);
       const activeCode = res.data.simulationCode || res.data.lead?.simulationCode || simulationCode;
       if (activeCode) setSimulationCode(activeCode);
 
-      // Submeter pedido formal de cotação
+      // Submeter pedido formal de cotação e notificar administração por email
       if (res.data.lead?._id) {
-        await api.post('/import/simulation/request-quote', {
+        const quoteRes = await api.post('/import/simulation/request-quote', {
           simulationId: res.data.lead._id
         });
+        if (quoteRes.data?.whatsappLink) {
+          setWhatsappUrl(quoteRes.data.whatsappLink);
+        }
         setFormalQuoteSent(true);
       }
 
       // Download automático e imediato da Factura Proforma Oficial em PDF
       handleDownloadProformaPdf(activeCode);
 
-      toast.success('Pedido registado e Factura Proforma transferida com sucesso!');
+      toast.success('Pedido registado! Email enviado à administração e notificação WhatsApp (+258853600036) gerada.');
       scrollToSimulator();
     } catch (err) {
       toast.error('Erro ao registar contacto comercial.');
@@ -777,8 +813,62 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                       onChange={(e) => setCurrency(e.target.value)}
                       className="rounded-3 px-3 py-2.5 bg-light border-0 shadow-none text-dark fw-semibold"
                     >
-                      <option value="USD">USD — Dólar Americano ($)</option>
+                      {Object.keys(exchangeRates).filter(c => c !== 'MZN').map((currKey) => {
+                        const currInfo = exchangeRates[currKey];
+                        const rateVal = typeof currInfo === 'object' && currInfo !== null ? currInfo.rate : currInfo;
+                        const nameVal = typeof currInfo === 'object' && currInfo !== null ? (currInfo.name || currKey) : currKey;
+                        return (
+                          <option key={currKey} value={currKey}>
+                            {currKey} — {nameVal} (1 {currKey} = {Number(rateVal).toFixed(2)} MT)
+                          </option>
+                        );
+                      })}
                     </Form.Select>
+                    <div className="mt-2 p-2 bg-white rounded-3 border">
+                      <div className="d-flex align-items-center justify-content-between mb-1">
+                        <span className="text-secondary fw-semibold" style={{ fontSize: '0.74rem' }}>
+                          Câmbio Aplicado na Simulação:
+                        </span>
+                        {Number(customExchangeRate) !== Number(exchangeRates[currency]?.rate) && (
+                          <button
+                            type="button"
+                            className="btn btn-link btn-sm p-0 text-decoration-none text-primary fw-bold"
+                            style={{ fontSize: '0.70rem' }}
+                            onClick={() => setCustomExchangeRate(Number(exchangeRates[currency]?.rate || 75).toFixed(2))}
+                          >
+                            Repor Oficial ({Number(exchangeRates[currency]?.rate || 75).toFixed(2)} MT)
+                          </button>
+                        )}
+                      </div>
+                      <div className="input-group input-group-sm">
+                        <span className="input-group-text bg-light border-0 text-muted fw-bold" style={{ fontSize: '0.76rem' }}>
+                          1 {currency} =
+                        </span>
+                        <Form.Control
+                          type="number"
+                          step="any"
+                          min="0.01"
+                          value={customExchangeRate}
+                          onChange={(e) => setCustomExchangeRate(e.target.value)}
+                          className="bg-light border-0 fw-bold text-dark text-end py-1"
+                          style={{ fontSize: '0.85rem' }}
+                          title="Pode ajustar livremente a taxa de câmbio para a simulação"
+                        />
+                        <span className="input-group-text bg-light border-0 text-muted fw-bold" style={{ fontSize: '0.76rem' }}>
+                          MT (MZN)
+                        </span>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center mt-1">
+                        <small className="text-muted" style={{ fontSize: '0.68rem' }}>
+                          * Editável: ajuste a taxa se desejar simular com outra cotação.
+                        </small>
+                        {exchangeRates[currency]?.source && (
+                          <small className="text-muted" style={{ fontSize: '0.68rem' }}>
+                            Ref: {exchangeRates[currency]?.source}
+                          </small>
+                        )}
+                      </div>
+                    </div>
                   </Form.Group>
                 </Col>
 
@@ -1779,21 +1869,19 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               </Badge>
               <h5 className="fw-bold text-dark mb-2">Factura Proforma Gerada com Sucesso</h5>
               <p className="text-muted small mb-3">
-                A Factura Proforma oficial foi transferida para o seu dispositivo. Pode também acompanhá-la via WhatsApp ou descarregá-la novamente:
+                A Factura Proforma oficial foi transferida para o seu dispositivo e foi enviado um <strong>e-mail de notificação à administração</strong> da Nhiquela. Pode também notificar diretamente o WhatsApp da Nhiquela (<strong>+258853600036</strong>):
               </p>
               <div className="d-flex flex-wrap justify-content-center gap-2 mb-2">
-                {whatsappUrl && (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-success rounded-pill px-4 py-2.5 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
-                    style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
-                  >
-                    <FontAwesomeIcon icon={faWhatsapp} size="lg" />
-                    Abrir WhatsApp com o Pedido
-                  </a>
-                )}
+                <a
+                  href={whatsappUrl || 'https://wa.me/258853600036'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-success rounded-pill px-4 py-2.5 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
+                  style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
+                >
+                  <FontAwesomeIcon icon={faWhatsapp} size="lg" />
+                  Notificar WhatsApp Nhiquela (+258853600036)
+                </a>
                 <Button
                   variant="outline-dark"
                   className="rounded-pill px-4 py-2.5 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"

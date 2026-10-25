@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog, faEdit, faTrash, faPlus, faSave, faTimes, faCheckCircle, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faEdit, faTrash, faPlus, faSave, faTimes, faCheckCircle, faEye, faEyeSlash, faCoins, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import api from '../../api';
 
@@ -86,6 +86,57 @@ export default function SettingsScreen() {
   const [showModal, setShowModal] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState(new Set());
   const [formList, setFormList] = useState([]);
+  const [exchangeRatesList, setExchangeRatesList] = useState([]);
+
+  const isExchangeRatesKey = (k = '') => {
+    const keyLower = (k || '').toLowerCase();
+    return keyLower === 'import_exchange_rates' || keyLower.includes('exchange_rate');
+  };
+
+  const parseRatesToExchangeList = (val) => {
+    let obj = val;
+    if (typeof val === 'string') {
+      try { obj = JSON.parse(val); } catch (e) { obj = {}; }
+    }
+    if (!obj || typeof obj !== 'object' || Object.keys(obj).length === 0) {
+      obj = {
+        USD: { rate: 75.00, name: 'Dólar Americano', source: 'Câmbio Oficial Nhiquela' },
+        ZAR: { rate: 4.10, name: 'Rand Sul-Africano', source: 'Câmbio Oficial Nhiquela' },
+        EUR: { rate: 81.50, name: 'Euro', source: 'Câmbio Oficial Nhiquela' },
+        CNY: { rate: 10.40, name: 'Yuan Chinês', source: 'Câmbio Oficial Nhiquela' },
+        GBP: { rate: 95.00, name: 'Libra Esterlina', source: 'Câmbio Oficial Nhiquela' },
+        MZN: { rate: 1.00, name: 'Metical Moçambicano', source: 'Moeda Nacional' }
+      };
+    }
+    return Object.keys(obj).map(curr => ({
+      currency: curr.toUpperCase(),
+      rate: typeof obj[curr] === 'object' && obj[curr] !== null ? (obj[curr].rate ?? 1) : Number(obj[curr]) || 1,
+      name: typeof obj[curr] === 'object' && obj[curr] !== null ? (obj[curr].name || curr) : curr,
+      source: typeof obj[curr] === 'object' && obj[curr] !== null ? (obj[curr].source || 'Câmbio Oficial Nhiquela') : 'Câmbio Oficial Nhiquela'
+    }));
+  };
+
+  const formatSettingDisplay = (setting) => {
+    if (!setting) return '';
+    const val = setting.value;
+    const isSensitive = (setting.key.toLowerCase().includes('key') || 
+      setting.key.toLowerCase().includes('secret') || 
+      setting.key.toLowerCase().includes('password') || 
+      setting.key.toLowerCase().includes('token'));
+      
+    if (isSensitive && !visibleKeys.has(setting._id || setting.id)) {
+      return '••••••••••••••••••••';
+    }
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'object') {
+      try {
+        return JSON.stringify(val);
+      } catch (e) {
+        return String(val);
+      }
+    }
+    return String(val);
+  };
 
   const toggleVisibility = (id) => {
     const newSet = new Set(visibleKeys);
@@ -98,14 +149,25 @@ export default function SettingsScreen() {
     if (setting) {
       setIsEditing(true);
       setCurrentId(setting._id || setting.id);
-      setFormData({ ...setting });
+      const rawVal = typeof setting.value === 'object'
+        ? JSON.stringify(setting.value, null, 2)
+        : (setting.value !== undefined && setting.value !== null ? String(setting.value) : '');
+      setFormData({ ...setting, value: rawVal });
+
+      if (isExchangeRatesKey(setting.key)) {
+        setExchangeRatesList(parseRatesToExchangeList(setting.value));
+      } else {
+        setExchangeRatesList([]);
+      }
+
       const isList = setting.key.toLowerCase().includes('email') || setting.key.toLowerCase().includes('list');
-      setFormList(isList && setting.value ? setting.value.split(',').map(v => v.trim()).filter(Boolean) : []);
+      setFormList(isList && rawVal ? rawVal.split(',').map(v => v.trim()).filter(Boolean) : []);
     } else {
       setIsEditing(false);
       setCurrentId(null);
       setFormData({ key: '', value: '', description: '' });
       setFormList([]);
+      setExchangeRatesList([]);
     }
     setShowModal(true);
   };
@@ -116,19 +178,41 @@ export default function SettingsScreen() {
     e.preventDefault();
     
     let finalData = { ...formData };
-    const isListType = formData.key.toLowerCase().includes('email') || formData.key.toLowerCase().includes('list');
     
-    if (isListType) {
-      finalData.value = formList.filter(v => v.trim() !== '').join(',');
-      if (!finalData.key || !finalData.value) return toast.error('A chave e pelo menos uma opção são obrigatórias.');
+    if (isExchangeRatesKey(formData.key)) {
+      const ratesMap = {};
+      exchangeRatesList.forEach(item => {
+        const code = (item.currency || '').toUpperCase().trim();
+        if (code) {
+          ratesMap[code] = {
+            rate: Math.max(0.0001, Number(item.rate) || 1),
+            name: item.name || code,
+            source: item.source || 'Câmbio Oficial Nhiquela',
+            date: new Date().toISOString().split('T')[0]
+          };
+        }
+      });
+      // Garante MZN como moeda base de referência
+      if (!ratesMap.MZN) {
+        ratesMap.MZN = { rate: 1.00, name: 'Metical Moçambicano', source: 'Moeda Nacional', date: new Date().toISOString().split('T')[0] };
+      }
+      finalData.value = ratesMap;
+      finalData.type = 'json';
     } else {
-      if (!formData.key || !formData.value) return toast.error('Chave e Valor são obrigatórios');
+      const isListType = formData.key.toLowerCase().includes('email') || formData.key.toLowerCase().includes('list');
+      
+      if (isListType) {
+        finalData.value = formList.filter(v => v.trim() !== '').join(',');
+        if (!finalData.key || !finalData.value) return toast.error('A chave e pelo menos uma opção são obrigatórias.');
+      } else {
+        if (!formData.key || !formData.value) return toast.error('Chave e Valor são obrigatórios');
+      }
     }
     
     try {
       if (isEditing) {
         await api.put(`/settings/${currentId}`, finalData);
-        toast.success('Configuração atualizada!');
+        toast.success('Configuração atualizada com sucesso!');
       } else {
         await api.post('/settings', finalData);
         toast.success('Configuração criada!');
@@ -306,16 +390,29 @@ export default function SettingsScreen() {
                         <span className="fw-bold text-dark">{setting.key}</span>
                       </div>
                     </td>
-                    <td style={{ maxWidth: '300px' }}>
+                    <td style={{ maxWidth: '380px' }}>
                       <div className="d-flex align-items-center gap-2">
-                        <span 
-                          className="badge bg-primary-subtle text-primary-custom fs-6 px-3 py-2 rounded-pill text-break text-wrap text-start"
-                          style={{ display: 'inline-block', maxWidth: '100%' }}
-                        >
-                          {(setting.key.toLowerCase().includes('key') || setting.key.toLowerCase().includes('secret') || setting.key.toLowerCase().includes('password') || setting.key.toLowerCase().includes('token')) && !visibleKeys.has(setting._id || setting.id) 
-                            ? '••••••••••••••••••••' 
-                            : setting.value}
-                        </span>
+                        {setting.key === 'import_exchange_rates' && typeof setting.value === 'object' && setting.value !== null ? (
+                          <div className="d-flex flex-wrap gap-1.5 align-items-center py-1">
+                            {Object.keys(setting.value).map((curr) => {
+                              const currData = setting.value[curr];
+                              const rateVal = typeof currData === 'object' && currData !== null ? currData.rate : currData;
+                              return (
+                                <span key={curr} className="badge bg-light text-dark border px-2.5 py-1.5 rounded-pill shadow-xs" style={{ fontSize: '0.76rem' }}>
+                                  <strong className="text-primary-custom me-1">{curr}:</strong>
+                                  {Number(rateVal).toFixed(2)} MT
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span 
+                            className="badge bg-primary-subtle text-primary-custom fs-6 px-3 py-2 rounded-pill text-break text-wrap text-start"
+                            style={{ display: 'inline-block', maxWidth: '100%' }}
+                          >
+                            {formatSettingDisplay(setting)}
+                          </span>
+                        )}
                         {(setting.key.toLowerCase().includes('key') || setting.key.toLowerCase().includes('secret') || setting.key.toLowerCase().includes('password') || setting.key.toLowerCase().includes('token')) && (
                           <button className="btn btn-sm btn-light text-muted rounded-circle" onClick={() => toggleVisibility(setting._id || setting.id)}>
                             <FontAwesomeIcon icon={visibleKeys.has(setting._id || setting.id) ? faEyeSlash : faEye} />
@@ -338,19 +435,184 @@ export default function SettingsScreen() {
 
       {showModal && (
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}>
-          <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
+          <div className="card shadow-lg border-0 rounded-4 animation-fade-in" style={{ width: '100%', maxWidth: isExchangeRatesKey(formData.key) ? '620px' : '500px', maxHeight: '92vh', overflowY: 'auto' }}>
             <div className="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold m-0 text-dark">{isEditing ? 'Editar Configuração' : 'Nova Configuração'}</h5>
+              <h5 className="fw-bold m-0 text-dark">
+                {isExchangeRatesKey(formData.key) ? (
+                  <span><FontAwesomeIcon icon={faCoins} className="text-warning me-2" />Câmbio Oficial Multi-Moedas</span>
+                ) : (
+                  isEditing ? 'Editar Configuração' : 'Nova Configuração'
+                )}
+              </h5>
               <button className="btn btn-sm btn-light rounded-circle text-muted" onClick={handleCloseModal} style={{ width: '35px', height: '35px' }}><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             <div className="card-body p-4">
               <form onSubmit={handleSave}>
                 <div className="mb-3">
                   <label className="form-label fw-bold small text-muted mb-1">Nome da Variável (Chave)</label>
-                  <input type="text" className="form-control bg-light border-0 py-3 rounded-3" value={formData.key} onChange={(e) => setFormData({...formData, key: e.target.value})} placeholder="Ex: Taxa de Serviço" required />
+                  <input type="text" className="form-control bg-light border-0 py-2.5 rounded-3 fw-bold" value={formData.key} onChange={(e) => setFormData({...formData, key: e.target.value})} placeholder="Ex: import_exchange_rates" required readOnly={isEditing} />
                 </div>
                 
-                {formData.key.toLowerCase().includes('email') || formData.key.toLowerCase().includes('list') ? (
+                {isExchangeRatesKey(formData.key) ? (
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <label className="form-label fw-bold small text-dark mb-0">
+                        Cotações de Conversão para Meticais (1 Moeda = X MT)
+                      </label>
+                      <span className="badge bg-light text-muted border">Moeda Base: MZN</span>
+                    </div>
+
+                    <p className="text-muted small mb-2.5" style={{ fontSize: '0.8rem' }}>
+                      Ajuste as taxas de conversão oficiais aplicadas no simulador de importações e cálculo aduaneiro.
+                    </p>
+
+                    <div className="border rounded-3 p-3 bg-light bg-opacity-50 mb-3" style={{ maxHeight: '340px', overflowY: 'auto' }}>
+                      {exchangeRatesList.map((rateItem, idx) => (
+                        <div key={idx} className="bg-white rounded-3 p-2.5 mb-2.5 border shadow-xs">
+                          <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <div className="d-flex align-items-center gap-2">
+                              <input 
+                                type="text" 
+                                maxLength={5}
+                                className="form-control form-control-sm text-center bg-primary text-white fw-bold py-1 px-1 rounded-pill shadow-xs"
+                                value={rateItem.currency} 
+                                placeholder="MOEDA"
+                                disabled={rateItem.currency === 'MZN'}
+                                title="Código da moeda (editável, ex: USD, ZAR, EUR)"
+                                onChange={(e) => {
+                                  const updated = [...exchangeRatesList];
+                                  updated[idx].currency = e.target.value.toUpperCase();
+                                  setExchangeRatesList(updated);
+                                }}
+                                style={{ width: '68px', letterSpacing: '0.5px' }}
+                              />
+                              <input 
+                                type="text" 
+                                className="form-control form-control-sm bg-light border-0 fw-bold py-1 px-2 text-dark"
+                                value={rateItem.name} 
+                                placeholder="Nome (Ex: Dólar Americano)"
+                                title="Nome da moeda (editável)"
+                                onChange={(e) => {
+                                  const updated = [...exchangeRatesList];
+                                  updated[idx].name = e.target.value;
+                                  setExchangeRatesList(updated);
+                                }}
+                                style={{ width: '160px' }}
+                              />
+                            </div>
+                            
+                            {rateItem.currency !== 'USD' && rateItem.currency !== 'MZN' && (
+                              <button 
+                                type="button" 
+                                className="btn btn-sm btn-light text-danger rounded-circle p-1"
+                                title="Remover moeda"
+                                onClick={() => {
+                                  setExchangeRatesList(exchangeRatesList.filter((_, i) => i !== idx));
+                                }}
+                              >
+                                <FontAwesomeIcon icon={faTrash} size="sm" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="row g-2">
+                            <div className="col-7">
+                              <label className="text-muted" style={{ fontSize: '0.72rem' }}>
+                                Cotação (1 {rateItem.currency} = MT)
+                              </label>
+                              <div className="input-group input-group-sm">
+                                <input 
+                                  type="number" 
+                                  step="any"
+                                  min="0.001"
+                                  className="form-control bg-light border-0 fw-bold text-dark py-1.5"
+                                  value={rateItem.rate} 
+                                  disabled={rateItem.currency === 'MZN'}
+                                  onChange={(e) => {
+                                    const updated = [...exchangeRatesList];
+                                    updated[idx].rate = e.target.value;
+                                    setExchangeRatesList(updated);
+                                  }}
+                                  placeholder="Ex: 75.00"
+                                  required
+                                />
+                                <span className="input-group-text bg-light border-0 text-muted fw-bold">
+                                  MT
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="col-5">
+                              <label className="text-muted" style={{ fontSize: '0.72rem' }}>
+                                Fonte / Origem
+                              </label>
+                              <input 
+                                type="text" 
+                                className="form-control form-control-sm bg-light border-0 py-1.5 text-muted"
+                                value={rateItem.source} 
+                                placeholder="Ex: Oficial"
+                                onChange={(e) => {
+                                  const updated = [...exchangeRatesList];
+                                  updated[idx].source = e.target.value;
+                                  setExchangeRatesList(updated);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Botões para Adicionar Nova Moeda */}
+                      <div className="d-flex flex-wrap gap-2 pt-1">
+                        <button 
+                          type="button" 
+                          className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5"
+                          onClick={() => {
+                            const newCurr = prompt('Indique o código da nova moeda (ex: GBP, AED, BRL, INR):');
+                            if (newCurr) {
+                              const code = newCurr.trim().toUpperCase();
+                              if (exchangeRatesList.some(r => r.currency === code)) {
+                                toast.warning('Esta moeda já existe na lista.');
+                                return;
+                              }
+                              setExchangeRatesList([
+                                ...exchangeRatesList,
+                                { currency: code, name: code, rate: 1.0, source: 'Câmbio Oficial Nhiquela' }
+                              ]);
+                            }
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faPlus} size="sm" />
+                          Adicionar Moeda
+                        </button>
+
+                        {/* Sugestões rápidas se não estiverem na lista */}
+                        {['ZAR', 'EUR', 'CNY', 'GBP'].filter(c => !exchangeRatesList.some(r => r.currency === c)).map(suggested => (
+                          <button
+                            key={suggested}
+                            type="button"
+                            className="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted"
+                            style={{ fontSize: '0.75rem' }}
+                            onClick={() => {
+                              const defaults = {
+                                ZAR: { name: 'Rand Sul-Africano', rate: 4.10 },
+                                EUR: { name: 'Euro', rate: 81.50 },
+                                CNY: { name: 'Yuan Chinês', rate: 10.40 },
+                                GBP: { name: 'Libra Esterlina', rate: 95.00 }
+                              };
+                              setExchangeRatesList([
+                                ...exchangeRatesList,
+                                { currency: suggested, name: defaults[suggested]?.name || suggested, rate: defaults[suggested]?.rate || 1.0, source: 'Câmbio Oficial Nhiquela' }
+                              ]);
+                            }}
+                          >
+                            + {suggested}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : formData.key.toLowerCase().includes('email') || formData.key.toLowerCase().includes('list') ? (
                   <div className="mb-3">
                     <label className="form-label fw-bold small text-muted mb-2">
                       {formData.key.toLowerCase().includes('email') ? 'Lista de E-mails' : 'Opções / Valores'}
@@ -390,7 +652,7 @@ export default function SettingsScreen() {
 
                 <div className="mb-4">
                   <label className="form-label fw-bold small text-muted mb-1">Descrição</label>
-                  <textarea className="form-control bg-light border-0 py-3 rounded-3" rows="2" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Para que serve esta variável?"></textarea>
+                  <textarea className="form-control bg-light border-0 py-2.5 rounded-3" rows="2" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Para que serve esta variável?"></textarea>
                 </div>
                 <button type="submit" className="btn bg-primary-custom text-white w-100 py-3 rounded-pill fw-bold d-flex justify-content-center align-items-center shadow-sm">
                   <FontAwesomeIcon icon={faSave} className="me-2" /> {isEditing ? 'Guardar Alterações' : 'Criar Variável'}

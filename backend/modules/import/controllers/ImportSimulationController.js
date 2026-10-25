@@ -4,20 +4,22 @@ import TariffDatabaseService from '../services/TariffDatabaseService.js';
 import ProductClassificationService from '../services/ProductClassificationService.js';
 import CustomsTaxEngine from '../services/CustomsTaxEngine.js';
 import Settings from '../../../models/SettingsModel.js';
+import AppConfig from '../../../models/AppConfigModel.js';
+import User from '../../../models/UserModel.js';
+import { transporter } from '../../../utils.js';
 
-let ratesLoadedFromDb = false;
-async function syncExchangeRatesWithDb() {
-  if (ratesLoadedFromDb) return;
+let lastRatesSyncTime = 0;
+const RATES_CACHE_TTL_MS = 3000; // 3 segundos de cache
+
+async function syncExchangeRatesWithDb(force = false) {
+  const now = Date.now();
+  if (!force && now - lastRatesSyncTime < RATES_CACHE_TTL_MS) return;
   try {
     const setting = await Settings.findOne({ key: 'import_exchange_rates' });
     if (setting && setting.value) {
       const dbRates = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
       if (dbRates && typeof dbRates === 'object') {
-        Object.keys(dbRates).forEach((curr) => {
-          if (dbRates[curr]?.rate) {
-            CustomsTaxEngine.setExchangeRate(curr, dbRates[curr].rate, dbRates[curr].source || 'Câmbio Oficial Nhiquela');
-          }
-        });
+        CustomsTaxEngine.setMultipleExchangeRates(dbRates);
       }
     } else {
       await Settings.create({
@@ -27,7 +29,7 @@ async function syncExchangeRatesWithDb() {
         type: 'json'
       });
     }
-    ratesLoadedFromDb = true;
+    lastRatesSyncTime = now;
   } catch (err) {
     console.error('[syncExchangeRatesWithDb] Aviso:', err?.message || err);
   }
@@ -324,20 +326,23 @@ export const captureSimulationLead = async (req, res) => {
       });
     }
 
+    // Número oficial de suporte e atendimento WhatsApp da Nhiquela
+    const NHIQUELA_WHATSAPP_NUMBER = '258853600036';
+
     // Gerar link e texto oficial do WhatsApp Nhiquela
     const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-    const nhiquelaWhatsappNumber = '258840000000'; // Número oficial da equipa Nhiquela
     const whatsappMessage = encodeURIComponent(
       `Olá Nhiquela! Fiz a simulação #${lead.simulationCode} no vosso site para importar *${lead.productName}* (${lead.originCountry}, ${lead.transportType === 'SEA' ? 'Marítimo' : 'Aéreo'}). ` +
       `Gostaria de receber a cotação oficial e apoio da vossa equipa.`
     );
-    const whatsappLink = `https://wa.me/${nhiquelaWhatsappNumber}?text=${whatsappMessage}`;
+    const whatsappLink = `https://wa.me/${NHIQUELA_WHATSAPP_NUMBER}?text=${whatsappMessage}`;
 
     res.status(200).json({
       success: true,
       simulationCode: lead.simulationCode,
       lead,
       whatsappLink,
+      whatsappNumber: '+258853600036',
       message: 'Contacto registado com sucesso! A equipa da Nhiquela irá validar a pauta e preparar a cotação oficial.'
     });
   } catch (error) {
@@ -345,6 +350,185 @@ export const captureSimulationLead = async (req, res) => {
     res.status(500).json({ message: 'Erro ao registar contacto de simulação.' });
   }
 };
+
+/**
+ * Função Auxiliar: Envia E-mail de Notificação para o Admin Configurado e Administradores do Sistema
+ */
+async function sendAdminImportNotification({ lead, savedRequest, simCode }) {
+  try {
+    const appConfig = await AppConfig.findOne();
+    const adminEmails = new Set();
+
+    // 1. E-mails configurados na tela de Configurações Globais (SettingsScreen / Settings model)
+    try {
+      const emailSettings = await Settings.find({
+        $or: [
+          { key: 'admin_notification_emails' },
+          { key: 'quote_notification_emails' },
+          { key: 'import_notification_emails' },
+          { key: /email/i }
+        ]
+      });
+
+      emailSettings.forEach((setting) => {
+        if (setting && setting.value) {
+          const valStr = typeof setting.value === 'string' ? setting.value : String(setting.value);
+          const parsedEmails = valStr.split(/[,;\s]+/).map(e => e.trim()).filter(e => e && e.includes('@'));
+          parsedEmails.forEach(e => adminEmails.add(e.toLowerCase()));
+        }
+      });
+    } catch (errSettings) {
+      console.warn('[sendAdminImportNotification] Aviso ao consultar Settings globais:', errSettings.message);
+    }
+
+    // 2. E-mail de suporte configurado no painel administrativo (AppConfig)
+    if (appConfig?.supportEmail && appConfig.supportEmail.includes('@')) {
+      adminEmails.add(appConfig.supportEmail.trim().toLowerCase());
+    }
+
+    // 3. E-mails de utilizadores com perfil administrador
+    try {
+      const adminUsers = await User.find({ isAdmin: true, email: { $exists: true } });
+      adminUsers.forEach((admin) => {
+        if (admin.email && admin.email.includes('@')) {
+          adminEmails.add(admin.email.trim().toLowerCase());
+        }
+      });
+    } catch (errDb) {
+      console.warn('[sendAdminImportNotification] Aviso ao listar administradores:', errDb.message);
+    }
+
+    // Fallback padrão se não houver nenhum
+    if (adminEmails.size === 0) {
+      adminEmails.add('mauro.patricio1@gmail.com');
+      adminEmails.add('nhiquelaservicos@gmail.com');
+    }
+
+    const recipients = Array.from(adminEmails);
+    const clientName = lead?.contactName || 'Cliente Particular';
+    const clientCompany = lead?.companyName ? `(${lead.companyName})` : '';
+    const clientPhone = lead?.phone || '—';
+    const clientCleanPhone = clientPhone.replace(/[^0-9]/g, '');
+    const clientEmail = lead?.email || 'Não informado';
+    const prodName = lead?.productName || savedRequest?.productName || 'Mercadoria';
+    const prodDesc = lead?.productDescription || savedRequest?.description || '';
+    const origin = lead?.originCountry || savedRequest?.preferredOriginCountry || 'China';
+    const transport = (lead?.transportType || savedRequest?.shippingMethod) === 'AIR' ? '✈️ Aéreo Expresso (5 a 7 dias)' : '🚢 Marítimo (35 a 45 dias)';
+    const qty = lead?.quantity || savedRequest?.quantity || 1;
+    const unitPrice = lead?.unitPrice || 0;
+    const currency = lead?.currency || 'USD';
+    const totalFob = (Number(qty) * Number(unitPrice)).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
+    const destination = lead?.destinationCity || 'Moçambique';
+
+    const htmlContent = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 24px; color: #1e293b;">
+        <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
+          
+          <div style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+            <div style="display: inline-block; background: rgba(255,255,255,0.22); padding: 5px 16px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 8px;">
+              🚨 NOVO PEDIDO DE COTAÇÃO FORMAL
+            </div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 800;">NHIQUELA IMPORTAÇÕES</h1>
+            <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.95;">Referência do Pedido: <strong>#${simCode}</strong></p>
+          </div>
+
+          <div style="padding: 28px 24px;">
+            <div style="background: #fdfcff; border: 1.5px solid #ede9fe; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #6d28d9; text-transform: uppercase; letter-spacing: 0.5px;">
+                👤 Dados de Contacto do Importador
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; width: 36%;">Nome Completo:</td>
+                  <td style="padding: 6px 0; font-weight: 800; color: #0f172a;">${clientName} ${clientCompany}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">WhatsApp / Telefone:</td>
+                  <td style="padding: 6px 0; font-weight: bold;">
+                    <a href="https://wa.me/${clientCleanPhone}" style="color: #10b981; text-decoration: none;">${clientPhone} (Abrir Conversa WhatsApp)</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">E-mail do Cliente:</td>
+                  <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">${clientEmail}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                📦 Especificação da Mercadoria & Logística
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; width: 36%;">Produto:</td>
+                  <td style="padding: 6px 0; font-weight: 800; color: #7c3aed; font-size: 15px;">${prodName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">Quantidade:</td>
+                  <td style="padding: 6px 0; font-weight: 800; color: #0f172a;">${qty} unidades</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">Preço de Compra:</td>
+                  <td style="padding: 6px 0; font-weight: 800; color: #0f172a;">${unitPrice} ${currency} (Subtotal FOB: ${totalFob} ${currency})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">País de Origem:</td>
+                  <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">🌍 ${origin}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">Modal de Transporte:</td>
+                  <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">${transport}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">Destino em Moçambique:</td>
+                  <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">🇲🇿 ${destination}</td>
+                </tr>
+                ${lead?.productLink ? `
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;">Link do Fornecedor:</td>
+                  <td style="padding: 6px 0;"><a href="${lead.productLink}" target="_blank" style="color: #7c3aed; font-weight: bold;">Aceder ao Link do Produto</a></td>
+                </tr>` : ''}
+                ${prodDesc ? `
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; vertical-align: top;">Descrição / Detalhes:</td>
+                  <td style="padding: 6px 0; color: #334155; line-height: 1.45;">${prodDesc}</td>
+                </tr>` : ''}
+              </table>
+            </div>
+
+            <!-- Botões de Ação Imediata -->
+            <div style="text-align: center; margin-top: 24px;">
+              <a href="https://wa.me/258853600036?text=${encodeURIComponent(`🚨 Notificação de Pedido #${simCode}: ${clientName} solicitou cotação para ${prodName} (${qty} un).`)}" 
+                 style="display: inline-block; background: #25D366; color: #ffffff; padding: 13px 26px; border-radius: 50px; font-weight: bold; text-decoration: none; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);">
+                💬 Notificar WhatsApp Nhiquela (+258853600036)
+              </a>
+            </div>
+
+          </div>
+
+          <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+            © ${new Date().getFullYear()} Nhiquela Moçambique • Notificação automática enviada para o e-mail de administração configurado.
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || 'Nhiquela Importações <nhiquelaservicos@gmail.com>',
+      to: recipients,
+      subject: `🚨 [NOVO PEDIDO DE IMPORTAÇÃO] #${simCode} - ${prodName} (${clientName})`,
+      html: htmlContent
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[sendAdminImportNotification] E-mail enviado com sucesso aos admins:', recipients, info.messageId);
+    return true;
+  } catch (err) {
+    console.error('[sendAdminImportNotification] Erro ao enviar email ao admin:', err);
+    return false;
+  }
+}
 
 /**
  * 7. PEDIDO FORMAL DE COTAÇÃO E CONVERSÃO EM PEDIDO
@@ -362,6 +546,7 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
 
     const simCode = lead?.simulationCode || `NQL-SIM-${Math.floor(1000 + Math.random() * 9000)}`;
     const customerId = req.user ? req.user._id : (lead?.userId || '64e3c1f2b3b3a2a1a1a1a1a1');
+    const NHIQUELA_WHATSAPP_NUMBER = '258853600036';
 
     try {
       const newRequest = new ImportRequest({
@@ -383,22 +568,65 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
         await lead.save();
       }
 
+      // Notificação em tempo real via Socket.IO
       const io = req.app?.get('io');
       if (io) {
         io.emit('import_request_created', savedRequest);
+        io.emit('admin_notification', {
+          type: 'NEW_IMPORT_QUOTE_REQUEST',
+          title: '🚨 Novo Pedido de Cotação Formal!',
+          message: `${lead?.contactName || 'Cliente'} solicitou cotação para ${savedRequest.productName} (#${simCode})`,
+          requestId: savedRequest._id,
+          simulationCode: simCode
+        });
       }
+
+      // 1. Enviar E-mail automático para o Admin configurado e Administradores
+      sendAdminImportNotification({ lead, savedRequest, simCode }).catch(err => {
+        console.error('[requestOfficialQuote] Erro assíncrono ao enviar email:', err);
+      });
+
+      // 2. Gerar Mensagem e Link de Notificação Oficial no WhatsApp Nhiquela (+258853600036)
+      const whatsappText = 
+        `🚨 *NOVO PEDIDO FORMAL DE COTAÇÃO - NHIQUELA IMPORTAÇÕES*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📄 *Ref. Simulação:* #${simCode}\n` +
+        `👤 *Cliente:* ${lead?.contactName || 'Cliente'} ${lead?.companyName ? `(${lead.companyName})` : ''}\n` +
+        `📞 *Contacto Cliente:* ${lead?.phone || '—'}\n` +
+        `✉️ *Email:* ${lead?.email || 'Não informado'}\n\n` +
+        `📦 *MERCADORIA:*\n` +
+        `• *Produto:* ${lead?.productName || savedRequest.productName}\n` +
+        `• *Quantidade:* ${lead?.quantity || 1} un.\n` +
+        `• *Preço Unitário:* ${lead?.unitPrice || 0} ${lead?.currency || 'USD'}\n` +
+        `• *FOB Total:* ${((lead?.quantity || 1) * (lead?.unitPrice || 0)).toLocaleString()} ${lead?.currency || 'USD'}\n\n` +
+        `🌍 *LOGÍSTICA:*\n` +
+        `• *Origem:* ${lead?.originCountry || 'China'}\n` +
+        `• *Modal:* ${lead?.transportType === 'AIR' ? '✈️ Aéreo Expresso' : '🚢 Marítimo'}\n` +
+        `• *Destino:* ${lead?.destinationCity || 'Moçambique'}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `⚡ _Equipa Nhiquela, favor preparar e emitir a Cotação Oficial e Despacho Aduaneiro._`;
+
+      const whatsappLink = `https://wa.me/${NHIQUELA_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`;
 
       return res.status(201).json({
         success: true,
         requestId: savedRequest._id,
         simulationCode: simCode,
-        message: 'Pedido formal de cotação enviado com sucesso para a equipa da Nhiquela.'
+        whatsappLink,
+        whatsappNumber: '+258853600036',
+        message: 'Pedido formal de cotação enviado com sucesso! E-mail enviado à administração e notificação no WhatsApp Nhiquela (+258853600036) preparada.'
       });
     } catch (saveErr) {
       console.warn('[requestOfficialQuoteFromSimulation] Aviso persistência:', saveErr.message);
+      
+      const whatsappText = `Olá Nhiquela (+258853600036)! Fiz a simulação #${simCode} no site para ${lead?.productName || 'Importação'} e gostaria da cotação formal.`;
+      const whatsappLink = `https://wa.me/${NHIQUELA_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`;
+
       return res.status(201).json({
         success: true,
         simulationCode: simCode,
+        whatsappLink,
+        whatsappNumber: '+258853600036',
         message: 'Pedido registado com sucesso para contacto da equipa da Nhiquela.'
       });
     }

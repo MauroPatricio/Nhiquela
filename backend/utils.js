@@ -13,7 +13,7 @@ export const baseUrl = () => process.env.BASE_URL ? process.env.BASE_URL : proce
   'http://localhost:3000' : 'https://nhiquelashop.co.mz';
 
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: process.env.EMAIL_PORT || 587,
   secure: process.env.EMAIL_PORT == 465,
