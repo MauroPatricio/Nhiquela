@@ -236,6 +236,9 @@ export const saveSimulationStep = async (req, res) => {
     if (notes) lead.notes = notes.trim();
     if (estimatedRange) lead.estimatedRange = estimatedRange;
     if (status) lead.status = status;
+    if (req.body.tariffItem) lead.tariffItem = req.body.tariffItem;
+    if (req.body.calculationResult) lead.calculationResult = req.body.calculationResult;
+    if (req.body.productImage !== undefined) lead.productImage = req.body.productImage;
     if (req.user && !lead.userId) lead.userId = req.user._id;
 
     try {
@@ -291,7 +294,8 @@ export const captureSimulationLead = async (req, res) => {
       const generatedCode = simulationCode || `NQL-SIM-${Math.floor(1000 + Math.random() * 9000)}`;
       lead = new ImportSimulationLead({
         simulationCode: generatedCode,
-        productName: req.body.productName || 'Importação Geral',
+        productName: req.body.productName?.trim() || 'Mercadoria',
+        productDescription: req.body.productDescription ? req.body.productDescription.trim() : '',
         contactName: contactName.trim(),
         phone: phone.trim(),
         companyName: companyName ? companyName.trim() : '',
@@ -299,14 +303,27 @@ export const captureSimulationLead = async (req, res) => {
         status: 'CONTACTO_REGISTADO'
       });
     } else {
+      if (req.body.productName && req.body.productName !== 'Importação Geral') {
+        lead.productName = req.body.productName.trim();
+      }
+      if (req.body.productDescription) lead.productDescription = req.body.productDescription.trim();
       lead.contactName = contactName.trim();
       lead.phone = phone.trim();
       if (companyName) lead.companyName = companyName.trim();
       if (email) lead.email = email.trim();
       if (notes) lead.notes = notes.trim();
+      if (req.body.tariffItem) lead.tariffItem = req.body.tariffItem;
+      if (req.body.calculationResult) lead.calculationResult = req.body.calculationResult;
       if (req.user && !lead.userId) lead.userId = req.user._id;
       lead.status = 'CONTACTO_REGISTADO';
     }
+
+    if (req.body.tariffItem && !lead.tariffItem?.shCode) lead.tariffItem = req.body.tariffItem;
+    if (req.body.calculationResult && !lead.calculationResult) lead.calculationResult = req.body.calculationResult;
+    if (req.body.productImage) lead.productImage = req.body.productImage;
+    if (req.body.originCountry) lead.originCountry = req.body.originCountry;
+    if (req.body.destinationCity) lead.destinationCity = req.body.destinationCity;
+    if (req.body.transportType) lead.transportType = req.body.transportType;
 
     try {
       await lead.save();
@@ -484,6 +501,13 @@ async function sendAdminImportNotification({ lead, savedRequest, simCode }) {
                   <td style="padding: 6px 0; color: #64748b;">Destino em Moçambique:</td>
                   <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">🇲🇿 ${destination}</td>
                 </tr>
+                ${(lead?.productImage || savedRequest?.productImage) ? `
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; vertical-align: top;">Fotografia do Produto:</td>
+                  <td style="padding: 6px 0;">
+                    <img src="${lead?.productImage || savedRequest?.productImage}" alt="${prodName}" style="max-width: 220px; max-height: 160px; border-radius: 8px; border: 1px solid #e2e8f0; object-fit: contain; display: block;" />
+                  </td>
+                </tr>` : ''}
                 ${lead?.productLink ? `
                 <tr>
                   <td style="padding: 6px 0; color: #64748b;">Link do Fornecedor:</td>
@@ -500,8 +524,12 @@ async function sendAdminImportNotification({ lead, savedRequest, simCode }) {
             <!-- Botões de Ação Imediata -->
             <div style="text-align: center; margin-top: 24px;">
               <a href="https://wa.me/258853600036?text=${encodeURIComponent(`🚨 Notificação de Pedido #${simCode}: ${clientName} solicitou cotação para ${prodName} (${qty} un).`)}" 
-                 style="display: inline-block; background: #25D366; color: #ffffff; padding: 13px 26px; border-radius: 50px; font-weight: bold; text-decoration: none; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);">
-                💬 Notificar WhatsApp Nhiquela (+258853600036)
+                 style="display: inline-block; background: #25D366; color: #ffffff; padding: 13px 26px; border-radius: 50px; font-weight: bold; text-decoration: none; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35); margin-right: 10px;">
+                💬 WhatsApp (+258853600036)
+              </a>
+              <a href="http://localhost:5173/admin/import" 
+                 style="display: inline-block; background: #7c3aed; color: #ffffff; padding: 13px 26px; border-radius: 50px; font-weight: bold; text-decoration: none; font-size: 14px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);">
+                📦 Aceder ao Painel Admin
               </a>
             </div>
 
@@ -517,7 +545,7 @@ async function sendAdminImportNotification({ lead, savedRequest, simCode }) {
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'Nhiquela Importações <nhiquelaservicos@gmail.com>',
       to: recipients,
-      subject: `🚨 [NOVO PEDIDO DE IMPORTAÇÃO] #${simCode} - ${prodName} (${clientName})`,
+      subject: `🚨 [ASSESSORIA DE IMPORTAÇÃO] #${simCode} - ${clientName} (${prodName})`,
       html: htmlContent
     };
 
@@ -549,15 +577,79 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
     const NHIQUELA_WHATSAPP_NUMBER = '258853600036';
 
     try {
+      const exchangeRate = lead?.calculationResult?.metadata?.exchangeRateToMzn || lead?.estimatedRange?.exchangeRate || 75.0;
+      const unitPrice = lead?.unitPrice || req.body.unitPrice || 0;
+      const quantity = lead?.quantity || req.body.quantity || 1;
+      const currency = lead?.currency || req.body.currency || 'USD';
+      
+      const productCostMzn = lead?.calculationResult?.goodsSummary?.totalGoodsValueMzn || lead?.calculationResult?.goodsSummary?.fobMzn || (unitPrice * quantity * exchangeRate);
+      const freight = lead?.freightKnownValue || lead?.calculationResult?.logisticsSummary?.freightCurrency || (lead?.calculationResult?.logisticsSummary?.freightMzn ? Number((lead.calculationResult.logisticsSummary.freightMzn / exchangeRate).toFixed(2)) : 0);
+      const freightMzn = lead?.calculationResult?.logisticsSummary?.freightMzn || (freight * exchangeRate);
+      const insurance = lead?.calculationResult?.logisticsSummary?.insuranceCurrency || (lead?.calculationResult?.logisticsSummary?.insuranceMzn ? Number((lead.calculationResult.logisticsSummary.insuranceMzn / exchangeRate).toFixed(2)) : Number(((unitPrice * quantity + freight) * 0.01).toFixed(2)));
+      const insuranceMzn = lead?.calculationResult?.logisticsSummary?.insuranceMzn || Number(((productCostMzn + freightMzn) * 0.01).toFixed(2));
+      const customsValue = productCostMzn + freightMzn + insuranceMzn;
+      const customsValueCurrency = lead?.calculationResult?.logisticsSummary?.customsValueCurrency || Number(((unitPrice * quantity) + freight + insurance).toFixed(2));
+      
+      const daRate = lead?.tariffItem?.daRate !== undefined ? lead.tariffItem.daRate : (lead?.calculationResult?.taxSummary?.customsDuty?.rate ?? 5);
+      const ivaRate = lead?.tariffItem?.ivaRate !== undefined ? lead.tariffItem.ivaRate : (lead?.calculationResult?.taxSummary?.vat?.rate ?? 16);
+      const iceRate = lead?.tariffItem?.iceRate !== undefined ? lead.tariffItem.iceRate : (lead?.calculationResult?.taxSummary?.ice?.rate ?? 0);
+      const customsEstimated = lead?.calculationResult?.taxSummary?.customsDuty?.amountMzn || Number((customsValue * (daRate / 100)).toFixed(2));
+      const pautaCategory = lead?.tariffItem?.description || lead?.tariffItem?.category || lead?.productName || '';
+      const pautaShCode = lead?.tariffItem?.shCode || '';
+      const nhiquelaCommissionRate = 30;
+      const nhiquelaServiceFee = lead?.calculationResult?.commercialSummary?.nhiquelaServiceFeeMzn || lead?.calculationResult?.commercialSummary?.nhiquelaFeeMzn || Number((productCostMzn * 0.30).toFixed(2));
+      const finalEstimatedPrice = lead?.calculationResult?.grandTotal?.totalCostMzn || targetBudget || lead?.estimatedRange?.maxMzn || 0;
+
+      const resolvedProductName = req.body.productName?.trim()
+        || (lead?.productName && lead.productName !== 'Importação Geral' && lead.productName !== 'Importação Solicitada' && lead.productName !== lead?.tariffItem?.description ? lead.productName : null)
+        || 'Mercadoria';
+
+      const resolvedDescription = detailedDescription 
+        || req.body.productDescription 
+        || lead?.productDescription 
+        || `Pedido gerado a partir da Simulação #${simCode}.\nImportador: ${lead?.contactName || 'Cliente'} (${lead?.companyName || 'Particular'}).\nTelefone: ${lead?.phone || ''}.\nDescrição: ${lead?.productDescription || ''}`;
+
       const newRequest = new ImportRequest({
         customerId,
-        productName: lead?.productName || 'Importação Solicitada',
-        description: detailedDescription || `Pedido gerado a partir da Simulação #${simCode}.\nImportador: ${lead?.contactName || 'Cliente'} (${lead?.companyName || 'Particular'}).\nTelefone: ${lead?.phone || ''}.\nDescrição: ${lead?.productDescription || ''}`,
-        quantity: lead?.quantity || 1,
-        preferredOriginCountry: lead?.originCountry || 'China',
+        productName: resolvedProductName,
+        description: resolvedDescription,
+        quantity,
+        preferredOriginCountry: lead?.originCountry || req.body.originCountry || 'China',
+        originCountry: lead?.originCountry || req.body.originCountry || 'China',
+        destinationCity: lead?.destinationCity || req.body.destinationCity || 'Maputo',
+        productImage: lead?.productImage || req.body.productImage || '',
         shippingMethod: lead?.transportType || 'SEA',
         targetBudget: targetBudget || lead?.estimatedRange?.maxMzn,
-        notes: `Origem: Simulação #${simCode}. Destino: ${lead?.destinationCity || 'Moçambique'}`
+        notes: `Origem: Simulação #${simCode}. Destino: ${lead?.destinationCity || 'Moçambique'}`,
+        
+        simulationLeadId: lead?._id,
+        simulationCode: simCode,
+        unitPrice,
+        currency,
+        exchangeRate,
+        productCostMzn,
+        freight,
+        freightMzn,
+        insuranceCurrency: insurance,
+        insuranceMzn,
+        customsValueCurrency,
+        customsValue,
+        customsDutyRate: daRate,
+        customsEstimated,
+        ivaRate,
+        iceRate,
+        pautaCategory,
+        pautaShCode,
+        nhiquelaCommissionRate,
+        nhiquelaServiceFee,
+        finalEstimatedPrice,
+        simulationData: lead?.calculationResult || null,
+        importerContact: {
+          name: lead?.contactName || '',
+          phone: lead?.phone || '',
+          email: lead?.email || '',
+          company: lead?.companyName || ''
+        }
       });
 
       const savedRequest = await newRequest.save();
@@ -574,10 +666,14 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
         io.emit('import_request_created', savedRequest);
         io.emit('admin_notification', {
           type: 'NEW_IMPORT_QUOTE_REQUEST',
-          title: '🚨 Novo Pedido de Cotação Formal!',
-          message: `${lead?.contactName || 'Cliente'} solicitou cotação para ${savedRequest.productName} (#${simCode})`,
+          title: '🚨 Novo Cliente Interessado em Assessoria de Importação!',
+          message: `${lead?.contactName || 'Cliente'} solicitou apoio e assessoria no processo de importação para ${savedRequest.productName} (#${simCode})`,
           requestId: savedRequest._id,
           simulationCode: simCode
+        });
+        io.emit('adminNotification', {
+          type: 'IMPORT_REQUEST',
+          message: `🚨 Novo pedido de cotação de importação: ${savedRequest.productName} (#${simCode})`
         });
       }
 
@@ -588,13 +684,14 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
 
       // 2. Gerar Mensagem e Link de Notificação Oficial no WhatsApp Nhiquela (+258853600036)
       const whatsappText = 
-        `🚨 *NOVO PEDIDO FORMAL DE COTAÇÃO - NHIQUELA IMPORTAÇÕES*\n` +
+        `🚨 *NOVO CLIENTE INTERESSADO EM ASSESSORIA DE IMPORTAÇÃO - NHIQUELA*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `O cliente solicitou *apoio e assessoria completa* no processo de importação:\n\n` +
         `📄 *Ref. Simulação:* #${simCode}\n` +
         `👤 *Cliente:* ${lead?.contactName || 'Cliente'} ${lead?.companyName ? `(${lead.companyName})` : ''}\n` +
         `📞 *Contacto Cliente:* ${lead?.phone || '—'}\n` +
         `✉️ *Email:* ${lead?.email || 'Não informado'}\n\n` +
-        `📦 *MERCADORIA:*\n` +
+        `📦 *MERCADORIA SOLICITADA:*\n` +
         `• *Produto:* ${lead?.productName || savedRequest.productName}\n` +
         `• *Quantidade:* ${lead?.quantity || 1} un.\n` +
         `• *Preço Unitário:* ${lead?.unitPrice || 0} ${lead?.currency || 'USD'}\n` +
@@ -604,7 +701,7 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
         `• *Modal:* ${lead?.transportType === 'AIR' ? '✈️ Aéreo Expresso' : '🚢 Marítimo'}\n` +
         `• *Destino:* ${lead?.destinationCity || 'Moçambique'}\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `⚡ _Equipa Nhiquela, favor preparar e emitir a Cotação Oficial e Despacho Aduaneiro._`;
+        `⚡ _Equipa Nhiquela, favor contactar o cliente para conduzir a assessoria e validação do processo de importação._`;
 
       const whatsappLink = `https://wa.me/${NHIQUELA_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`;
 
@@ -619,7 +716,7 @@ export const requestOfficialQuoteFromSimulation = async (req, res) => {
     } catch (saveErr) {
       console.warn('[requestOfficialQuoteFromSimulation] Aviso persistência:', saveErr.message);
       
-      const whatsappText = `Olá Nhiquela (+258853600036)! Fiz a simulação #${simCode} no site para ${lead?.productName || 'Importação'} e gostaria da cotação formal.`;
+      const whatsappText = `Olá Nhiquela (+258853600036)! Fiz a simulação #${simCode} no site para ${lead?.productName || 'Importação'} e gostaria de solicitar apoio e assessoria no processo de importação.`;
       const whatsappLink = `https://wa.me/${NHIQUELA_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`;
 
       return res.status(201).json({

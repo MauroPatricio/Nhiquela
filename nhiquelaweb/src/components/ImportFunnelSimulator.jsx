@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Row, Col, Badge, Spinner, Modal, Table, ProgressBar } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faArrowRight, faArrowLeft, faShieldAlt, faCheckCircle, faComments, faFileInvoiceDollar, 
+import {
+  faArrowRight, faArrowLeft, faShieldAlt, faCheckCircle, faComments, faFileInvoiceDollar,
   faBuilding, faUser, faPhone, faEnvelope, faRedo, faClock, faPlane, faShip, faTruck,
   faSearch, faBook, faBoxes, faBalanceScale, faFileAlt, faInfoCircle, faExclamationTriangle,
   faListOl, faGlobe, faExternalLinkAlt, faTimes, faFilePdf, faDownload, faExchangeAlt, faCheck, faStar,
-  faMapMarkerAlt, faBolt
+  faMapMarkerAlt, faBolt, faCamera, faTrash, faUpload, faImage
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { useSelector } from 'react-redux';
@@ -19,6 +19,7 @@ import './ImportTariffCards.css';
 
 export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
   const currentUser = useSelector(selectUser);
+  const isAdmin = Boolean(currentUser && (currentUser.isAdmin === true || currentUser.role === 'ADMIN' || currentUser.role === 'admin'));
 
   // Etapa ativa do assistente (1 a 7)
   const [step, setStep] = useState(1);
@@ -35,6 +36,9 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
   const [productDescription, setProductDescription] = useState('');
   const [category, setCategory] = useState('Agricultura & Pecuária');
   const [productLink, setProductLink] = useState('');
+  const [productImage, setProductImage] = useState('');
+  const [productImageDataUrl, setProductImageDataUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // --- DADOS DA ETAPA 3: CLASSIFICAÇÃO PAUTAL INTELIGENTE ---
   const [classificationResult, setClassificationResult] = useState(null);
@@ -54,8 +58,6 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
   const [freightOption, setFreightOption] = useState('NEED_NHIQUELA'); // 'HAS_QUOTE' | 'HAS_ESTIMATE' | 'NEED_NHIQUELA'
   const [freightValue, setFreightValue] = useState('200');
   const [isFreightCustom, setIsFreightCustom] = useState(false);
-  const [insuranceOption, setInsuranceOption] = useState('NEED_NHIQUELA'); // 'HAS_QUOTE' | 'NEED_NHIQUELA'
-  const [insuranceValue, setInsuranceValue] = useState('');
   const [importerType, setImporterType] = useState('company');
 
   // --- DADOS DA ETAPA 5 & 6: RESULTADO DO MOTOR FISCAL ---
@@ -79,17 +81,14 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
     CNY: { rate: 10.40, name: 'Yuan Chinês', source: 'Câmbio Oficial Nhiquela' },
     GBP: { rate: 95.00, name: 'Libra Esterlina', source: 'Câmbio Oficial Nhiquela' }
   });
-  const [customExchangeRate, setCustomExchangeRate] = useState('75.00');
 
-  // Carregar taxas de câmbio ativas e atualizadas da API
+  // Carregar taxas de câmbio oficiais configuradas pelo admin na API
   useEffect(() => {
     const fetchExchangeRates = async () => {
       try {
         const res = await api.get('/import/simulation/exchange-rates');
         if (res.data && typeof res.data === 'object' && Object.keys(res.data).length > 0) {
           setExchangeRates(res.data);
-          const activeRate = res.data[currency]?.rate || 75.00;
-          setCustomExchangeRate(Number(activeRate).toFixed(2));
         }
       } catch (err) {
         console.warn('[ImportFunnelSimulator] Uso de taxas de câmbio de fallback:', err?.message || err);
@@ -97,12 +96,6 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
     };
     fetchExchangeRates();
   }, []);
-
-  // Atualizar a taxa de câmbio quando a moeda for alterada
-  useEffect(() => {
-    const activeRate = exchangeRates[currency]?.rate || (currency === 'ZAR' ? 4.10 : currency === 'EUR' ? 81.50 : currency === 'CNY' ? 10.40 : 75.00);
-    setCustomExchangeRate(Number(activeRate).toFixed(2));
-  }, [currency, exchangeRates]);
 
   // Efeito para preencher contactos se utilizador logado
   useEffect(() => {
@@ -114,6 +107,75 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
       if (currentUser.companyName && !companyName) setCompanyName(String(currentUser.companyName));
     }
   }, [currentUser]);
+
+  // Upload de imagem do produto (com suporte a API multipart e fallback base64 local)
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.warning('Por favor selecione um ficheiro de imagem válido (PNG, JPG, WEBP).');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.warning('A imagem deve ter tamanho inferior a 10MB.');
+      return;
+    }
+
+    // Gerar imediatamente data URL local para impressão no PDF
+    const localReader = new FileReader();
+    localReader.onloadend = () => {
+      setProductImageDataUrl(localReader.result);
+    };
+    localReader.readAsDataURL(file);
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      let uploadRes;
+      try {
+        uploadRes = await api.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } catch (err) {
+        uploadRes = await api.post('/upload/local', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
+      if (uploadRes?.data) {
+        const url = uploadRes.data.url || uploadRes.data.secure_url || uploadRes.data;
+        if (typeof url === 'string') {
+          setProductImage(url);
+          toast.success('Imagem do produto anexada com sucesso!');
+          return;
+        }
+      }
+
+      // Fallback base64 para garantia total de funcionamento offline ou sem S3/Cloudinary
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProductImage(reader.result);
+        setProductImageDataUrl(reader.result);
+        toast.success('Imagem do produto anexada!');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('Erro ao enviar imagem ao servidor, convertendo localmente:', err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProductImage(reader.result);
+        setProductImageDataUrl(reader.result);
+        toast.success('Imagem do produto anexada!');
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Rolar suavemente para o topo do simulador
   const scrollToSimulator = () => {
@@ -324,15 +386,15 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
 
     try {
       const autoFreightAmount = getAutoFreightValue();
+      const autoInsuranceAmount = calculateAutoInsurance();
       const payload = {
         currency,
-        exchangeRate: parseFloat(customExchangeRate) || null,
         quantity: parseInt(quantity),
         unitPrice: parseFloat(unitPrice),
-        freightOption: 'NEED_NHIQUELA',
-        freightValue: autoFreightAmount,
-        insuranceOption,
-        insuranceValue: parseFloat(insuranceValue) || 0,
+        freightOption: isFreightCustom ? 'HAS_QUOTE' : 'HAS_ESTIMATE',
+        freightValue: parseFloat(freightValue) || autoFreightAmount,
+        insuranceOption: 'ESTIMATED_STATUTORY_1_PERCENT',
+        insuranceValue: autoInsuranceAmount,
         transportType,
         destinationCity,
         tariffItem: selectedTariffItem,
@@ -347,16 +409,19 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
         const saveRes = await api.post('/import/simulation/save-step', {
           productName,
           productDescription,
+          productImage,
           quantity: parseInt(quantity),
           currency,
           unitPrice: parseFloat(unitPrice),
           freightOption: 'NEED_NHIQUELA',
           freightKnownValue: autoFreightAmount,
-          insuranceOption,
+          insuranceOption: 'ESTIMATED_STATUTORY_1_PERCENT',
           destinationCity,
           originCountry,
           transportType,
           importerType,
+          tariffItem: selectedTariffItem,
+          calculationResult: res.data,
           estimatedRange: {
             minMzn: res.data.grandTotal.totalCostMzn * 0.95,
             maxMzn: res.data.grandTotal.totalCostMzn * 1.05,
@@ -404,8 +469,10 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
         product: {
           name: productName || 'Produto de Importação',
           description: productDescription || '',
+          productImage: productImageDataUrl || productImage,
           category,
           originCountry: originCountry || 'China',
+          destinationCity: destinationCity || 'Maputo',
           transportType,
           quantity: parseInt(quantity) || 1,
           unitPrice: parseFloat(unitPrice) || 0,
@@ -444,7 +511,15 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
         phone: safePhone,
         companyName: safeCompanyName,
         email: safeEmail,
-        notes: `Destino: ${destinationCity}. Modal: ${transportType}. Mercadoria: ${productName}. Código SH: ${selectedTariffItem?.shCode || 'Pendente'}.${safeNotes ? ' ' + safeNotes : ''}`
+        productName: productName || selectedTariffItem?.description || 'Importação Geral',
+        productDescription: productDescription || '',
+        notes: `Destino: ${destinationCity}. Modal: ${transportType}. Mercadoria: ${productName || selectedTariffItem?.description || ''}. Código SH: ${selectedTariffItem?.shCode || 'Pendente'}.${safeNotes ? ' ' + safeNotes : ''}`,
+        tariffItem: selectedTariffItem,
+        calculationResult,
+        productImage,
+        originCountry,
+        destinationCity,
+        transportType
       });
 
       let leadWhatsapp = res.data?.whatsappLink;
@@ -455,7 +530,16 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
       // Submeter pedido formal de cotação e notificar administração por email
       if (res.data.lead?._id) {
         const quoteRes = await api.post('/import/simulation/request-quote', {
-          simulationId: res.data.lead._id
+          simulationId: res.data.lead._id,
+          productName: productName || selectedTariffItem?.description || '',
+          productDescription: productDescription || '',
+          unitPrice: parseFloat(unitPrice) || 0,
+          quantity: parseInt(quantity) || 1,
+          currency,
+          productImage,
+          originCountry,
+          destinationCity,
+          transportType
         });
         if (quoteRes.data?.whatsappLink) {
           setWhatsappUrl(quoteRes.data.whatsappLink);
@@ -479,6 +563,8 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
     setStep(1);
     setProductName('');
     setProductDescription('');
+    setProductImage('');
+    setProductImageDataUrl('');
     setCalculationResult(null);
     setClassificationResult(null);
     setSelectedTariffItem(null);
@@ -496,7 +582,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
       {step === 1 && (
         <React.Fragment>
           {/* HERO BANNER NHIQUELA */}
-          <div 
+          <div
             className="rounded-4 p-4 p-md-5 mb-4 text-white shadow-sm position-relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, #7c3aed 0%, #8a2be2 50%, #6d28d9 100%)',
@@ -513,75 +599,62 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               Descubra os custos da sua importação e receba apoio da nossa equipa, desde a escolha do fornecedor até à entrega.
             </p>
 
-            <div className="d-flex flex-wrap gap-2.5">
-              <Button
-                variant="light"
-                className="rounded-pill px-4 py-2.5 fw-bold shadow-sm"
-                style={{ color: '#7c3aed', fontSize: '0.95rem' }}
-                onClick={startSimulationWizard}
-              >
-                Simular custos de importação
-              </Button>
+            {isAdmin && (
+              <div className="d-flex flex-wrap gap-2.5">
+                <Button
+                  variant="light"
+                  className="rounded-pill px-4 py-2.5 fw-bold shadow-sm"
+                  style={{ color: '#7c3aed', fontSize: '0.95rem' }}
+                  onClick={startSimulationWizard}
+                >
+                  Simular custos de importação
+                </Button>
 
-              <Button
-                variant="outline-light"
-                className="rounded-pill px-4 py-2.5 fw-semibold"
-                style={{ fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.7)' }}
-                onClick={() => setShowTariffModal(true)}
-              >
-                <FontAwesomeIcon icon={faSearch} className="me-2 small" />
-                Consultar código pautal
-              </Button>
-
-              <Button
-                variant="outline-light"
-                className="rounded-pill px-4 py-2.5 fw-semibold"
-                style={{ fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.7)' }}
-                onClick={() => {
-                  if (onStartQuoteRequest) onStartQuoteRequest();
-                  else {
-                    setStep(2);
-                    scrollToSimulator();
-                  }
-                }}
-              >
-                Pedir apoio
-              </Button>
-            </div>
+                <Button
+                  variant="outline-light"
+                  className="rounded-pill px-4 py-2.5 fw-semibold"
+                  style={{ fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.7)' }}
+                  onClick={() => setShowTariffModal(true)}
+                >
+                  <FontAwesomeIcon icon={faSearch} className="me-2 small" />
+                  Consultar código pautal
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* PROCESSO DO SISTEMA: DETERMINAÇÃO PAUTAL E CÁLCULO DE CUSTOS (Filosofia do Stepper com os 4 passos da Foto 2) */}
           <Card className="border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 mb-4">
             <h3 className="fw-bold fs-4 text-dark mb-4">
-              Como o sistema determina o código pautal e calcula os custos
+              Como funciona a nossa cotação ?
             </h3>
-            
+
             <div className="nql-timeline">
               {[
-                { 
-                  num: '01', 
-                  title: 'Dados do produto', 
+                {
+                  num: '01',
+                  title: 'Dados do produto',
                   desc: 'Descrição, composição, função, modelo, potência, dimensões e documentação do fornecedor.',
                   icon: faBoxes,
                   iconColor: '#2563eb'
                 },
-                { 
-                  num: '02', 
-                  title: 'Motor de classificação pautal', 
+                {
+                  num: '02',
+                  title: 'Classificação pautal',
                   desc: 'Pesquisa na nomenclatura oficial, identifica códigos candidatos e verifica as regras de classificação.',
                   icon: faBook,
                   iconColor: '#0284c7'
                 },
-                { 
-                  num: '03', 
-                  title: 'Motor fiscal', 
+                {
+                  num: '03',
+                  title: 'Cálculo do imposto',
                   desc: 'Aplica as taxas vigentes, a base tributável, as preferências de origem e as imposições adicionais aplicáveis.',
                   icon: faBalanceScale,
                   iconColor: '#d97706'
                 },
-                { 
-                  num: '04', 
-                  title: 'Cotação simulada', 
+                {
+                  num: '04',
+                  title: 'Cotação simulada',
                   desc: 'Apresenta valores calculados, fontes legais, data de referência, pressupostos e custos pendentes.',
                   icon: faFileAlt,
                   iconColor: '#7c3aed'
@@ -641,10 +714,10 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               <span className="nql-step-name-text">
                 {
                   step === 2 ? 'Identificação do Produto' :
-                  step === 3 ? 'Classificação Pautal Inteligente' :
-                  step === 4 ? 'Logística & Encomenda' :
-                  step === 5 ? 'Processamento do Cálculo' :
-                  step === 6 ? 'Resultado & Cotação Simulada' : 'Contacto & Cotação'
+                    step === 3 ? 'Classificação Pautal Inteligente' :
+                      step === 4 ? 'Logística & Encomenda' :
+                        step === 5 ? 'Processamento do Cálculo' :
+                          step === 6 ? 'Resultado & Cotação Simulada' : 'Contacto & Cotação'
                 }
               </span>
             </div>
@@ -655,8 +728,8 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
           </div>
 
           <div className="nql-progress-track">
-            <div 
-              className="nql-progress-bar-fill" 
+            <div
+              className="nql-progress-bar-fill"
               style={{ width: `${(step / 7) * 100}%` }}
             />
           </div>
@@ -720,30 +793,84 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               />
               <small className="text-muted d-block mt-1.5" style={{ fontSize: '0.78rem' }}>
                 <FontAwesomeIcon icon={faInfoCircle} className="text-primary me-1" />
-                <strong>Descrição completa obrigatória:</strong> Indique as especificações e função. O sistema combina o nome e a descrição para consultar por aproximação (LIK) o código pautal e a sua designação oficial.
+                <strong>Descrição completa obrigatória:</strong> Indique as especificações e função. O sistema combina o nome e a descrição para consultar o código pautal e a sua designação oficial.
               </small>
             </Form.Group>
 
+            {/* Campo de Upload da Imagem do Produto (Ocultada Categoria do Produto conforme solicitado) */}
             <Form.Group className="mb-4">
-              <Form.Label className="fw-semibold text-secondary small mb-1">
-                Categoria do produto
+              <Form.Label className="fw-semibold text-secondary small mb-2 d-flex align-items-center justify-content-between">
+                <span>
+                  <FontAwesomeIcon icon={faCamera} className="me-2 text-primary" />
+                  Fotografia ou Imagem do Produto (opcional)
+                </span>
+                {productImage && (
+                  <Badge bg="success" className="px-2 py-1 fw-normal">
+                    <FontAwesomeIcon icon={faCheck} className="me-1" /> Imagem Anexada
+                  </Badge>
+                )}
               </Form.Label>
-              <Form.Select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="rounded-pill px-4 py-2.5 bg-light border-0 shadow-none text-dark"
-              >
-                <option value="Agricultura & Pecuária">Agricultura & Pecuária</option>
-                <option value="Energia Solar & Renovável">Energia Solar & Renovável</option>
-                <option value="Maquinaria & Equipamentos Industriais">Maquinaria & Equipamentos Industriais</option>
-                <option value="Tecnologia & Telecomunicações">Tecnologia & Telecomunicações</option>
-                <option value="Veículos Automóveis">Veículos Automóveis</option>
-                <option value="Têxteis & Vestuário">Têxteis & Vestuário</option>
-                <option value="Calçado & Acessórios">Calçado & Acessórios</option>
-                <option value="Saúde & Farmacêutica">Saúde & Farmacêutica</option>
-                <option value="Mobiliário & Decoração">Mobiliário & Decoração</option>
-                <option value="Outro">Outro tipo de mercadoria</option>
-              </Form.Select>
+
+              {productImage ? (
+                <div className="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between gap-3">
+                  <div className="d-flex align-items-center gap-3">
+                    <img
+                      src={productImage}
+                      alt="Produto"
+                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '12px' }}
+                      className="border shadow-sm"
+                    />
+                    <div>
+                      <div className="fw-bold text-dark small">Imagem anexada com sucesso</div>
+                      <div className="text-muted" style={{ fontSize: '0.78rem' }}>Será registada no pedido e enviada na notificação comercial</div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    className="rounded-pill px-3"
+                    onClick={() => {
+                      setProductImage('');
+                      setProductImageDataUrl('');
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="me-1" /> Remover
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="p-3 border rounded-4 text-center bg-light"
+                  style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#cbd5e1', cursor: 'pointer' }}
+                  onClick={() => document.getElementById('productImageInput')?.click()}
+                >
+                  <input
+                    id="productImageInput"
+                    type="file"
+                    accept="image/*"
+                    className="d-none"
+                    onChange={handleImageUpload}
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage ? (
+                    <div>
+                      <Spinner animation="border" size="sm" variant="primary" className="me-2" />
+                      <span className="small text-muted">A processar imagem do produto...</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="badge rounded-pill bg-white p-2.5 text-primary shadow-sm mb-2">
+                        <FontAwesomeIcon icon={faUpload} />
+                      </span>
+                      <div className="fw-bold text-dark small mb-0.5">
+                        Carregar imagem do produto ou foto da mercadoria
+                      </div>
+                      <div className="text-muted" style={{ fontSize: '0.76rem' }}>
+                        Clique para anexar foto (JPG, PNG, WEBP até 10MB)
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </Form.Group>
 
             <Form.Group className="mb-4">
@@ -804,17 +931,15 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                       <Form.Label className="fw-semibold text-dark small mb-0">
                         Moeda da fatura <span className="text-danger">*</span>
                       </Form.Label>
-                      <span className="text-muted" style={{ fontSize: '0.72rem' }}>
-                        Ref. Banco Central
-                      </span>
+
                     </div>
                     <Form.Select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
                       className="rounded-3 px-3 py-2.5 bg-light border-0 shadow-none text-dark fw-semibold"
                     >
-                      {Object.keys(exchangeRates).filter(c => c !== 'MZN').map((currKey) => {
-                        const currInfo = exchangeRates[currKey];
+                      {['USD'].map((currKey) => {
+                        const currInfo = exchangeRates[currKey] || { rate: 75, name: 'Dólar Americano' };
                         const rateVal = typeof currInfo === 'object' && currInfo !== null ? currInfo.rate : currInfo;
                         const nameVal = typeof currInfo === 'object' && currInfo !== null ? (currInfo.name || currKey) : currKey;
                         return (
@@ -824,50 +949,15 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                         );
                       })}
                     </Form.Select>
-                    <div className="mt-2 p-2 bg-white rounded-3 border">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <span className="text-secondary fw-semibold" style={{ fontSize: '0.74rem' }}>
-                          Câmbio Aplicado na Simulação:
-                        </span>
-                        {Number(customExchangeRate) !== Number(exchangeRates[currency]?.rate) && (
-                          <button
-                            type="button"
-                            className="btn btn-link btn-sm p-0 text-decoration-none text-primary fw-bold"
-                            style={{ fontSize: '0.70rem' }}
-                            onClick={() => setCustomExchangeRate(Number(exchangeRates[currency]?.rate || 75).toFixed(2))}
-                          >
-                            Repor Oficial ({Number(exchangeRates[currency]?.rate || 75).toFixed(2)} MT)
-                          </button>
-                        )}
-                      </div>
-                      <div className="input-group input-group-sm">
-                        <span className="input-group-text bg-light border-0 text-muted fw-bold" style={{ fontSize: '0.76rem' }}>
-                          1 {currency} =
-                        </span>
-                        <Form.Control
-                          type="number"
-                          step="any"
-                          min="0.01"
-                          value={customExchangeRate}
-                          onChange={(e) => setCustomExchangeRate(e.target.value)}
-                          className="bg-light border-0 fw-bold text-dark text-end py-1"
-                          style={{ fontSize: '0.85rem' }}
-                          title="Pode ajustar livremente a taxa de câmbio para a simulação"
-                        />
-                        <span className="input-group-text bg-light border-0 text-muted fw-bold" style={{ fontSize: '0.76rem' }}>
-                          MT (MZN)
-                        </span>
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center mt-1">
-                        <small className="text-muted" style={{ fontSize: '0.68rem' }}>
-                          * Editável: ajuste a taxa se desejar simular com outra cotação.
+                    <div className="d-flex align-items-center justify-content-between mt-2 px-1">
+                      <small className="text-muted" style={{ fontSize: '0.74rem' }}>
+                        Câmbio oficial em vigor: <strong className="text-dark">1 {currency} = {Number(exchangeRates[currency]?.rate || 75).toFixed(2)} MT</strong>
+                      </small>
+                      {exchangeRates[currency]?.source && (
+                        <small className="text-muted" style={{ fontSize: '0.70rem' }}>
+                          Ref: {exchangeRates[currency]?.source}
                         </small>
-                        {exchangeRates[currency]?.source && (
-                          <small className="text-muted" style={{ fontSize: '0.68rem' }}>
-                            Ref: {exchangeRates[currency]?.source}
-                          </small>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </Form.Group>
                 </Col>
@@ -901,16 +991,13 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                   </Form.Group>
                 </Col>
 
-                {/* 4. Frete Estimado */}
+                {/* 4. Frete Internacional */}
                 <Col xs={12} sm={6}>
                   <Form.Group>
                     <div className="d-flex justify-content-between align-items-center mb-1.5">
                       <Form.Label className="fw-semibold text-dark small mb-0">
-                        Frete Estimado ({currency}) <span className="text-danger">*</span>
+                        Frete Internacional ({currency}) <span className="text-danger">*</span>
                       </Form.Label>
-                      <Badge bg="light" className="text-secondary border py-1 px-2" style={{ fontSize: '0.68rem' }}>
-                        Padrão / Editável
-                      </Badge>
                     </div>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-0 text-muted fw-bold rounded-start-3 px-3">
@@ -933,13 +1020,18 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                 </Col>
               </Row>
 
-              {/* Subtotal da Mercadoria (FOB) */}
+              {/* Subtotal da Compra */}
               <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center px-4 py-3 rounded-4 bg-light border mb-4">
                 <span className="small text-muted fw-semibold mb-1 mb-sm-0">
-                  Subtotal da Mercadoria (Valor FOB):
+                  Subtotal da Compra (inclui Frete e Seguro 1%):
                 </span>
                 <span className="fw-bold text-dark fs-5">
-                  {((Number(quantity) || 1) * (Number(unitPrice) || 0)).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                  {(() => {
+                    const goodsTotal = (Number(quantity) || 1) * (Number(unitPrice) || 0);
+                    const freight = Number(freightValue) || 0;
+                    const insurance = Number(((goodsTotal + freight) * 0.01).toFixed(2));
+                    return (goodsTotal + freight + insurance).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  })()} {currency}
                 </span>
               </div>
             </div>
@@ -955,7 +1047,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  <span>Pesquisar Classificação Pautal Inteligente</span>
+                  <span>Pesquisar Classificação Pautal</span>
                   <FontAwesomeIcon icon={faArrowRight} />
                 </React.Fragment>
               )}
@@ -985,7 +1077,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               ============================================================ */}
           {(classificationResult.status === 'unresolved' || (!classificationResult.candidates || classificationResult.candidates.length === 0)) && !selectedTariffItem ? (
             <div className="p-4 p-md-5 rounded-4 border mb-4 text-center" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
-              <div 
+              <div
                 className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm"
                 style={{ width: '64px', height: '64px', backgroundColor: '#fef3c7', color: '#d97706' }}
               >
@@ -1073,7 +1165,6 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
 
                                 {isTopMatch && (
                                   <span className="tariff-match-badge">
-                                    <FontAwesomeIcon icon={faStar} />
                                     <span>Maior Correspondência</span>
                                   </span>
                                 )}
@@ -1258,13 +1349,13 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                                     {/* Taxas Aduaneiras da Alternativa */}
                                     <div className="text-end flex-shrink-0 d-none d-sm-block">
                                       <div className="d-flex flex-column align-items-end gap-1">
-                                        <span 
+                                        <span
                                           className={`badge ${cand.daRate === 0 ? 'bg-success' : 'bg-light text-dark border'} px-2.5 py-1`}
                                           style={{ fontSize: '0.74rem' }}
                                         >
                                           DA: {cand.daRate === 0 ? '0% (Livre)' : `${cand.daRate}%`}
                                         </span>
-                                        <span 
+                                        <span
                                           className={`badge ${cand.ivaRate === 0 ? 'bg-success' : 'bg-light text-dark border'} px-2.5 py-1`}
                                           style={{ fontSize: '0.74rem' }}
                                         >
@@ -1366,10 +1457,34 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               </div>
             </div>
 
+            <div>
+              <span className="nql-summary-item-label">Frete Internacional</span>
+              <div className="nql-summary-item-value">
+                {Number(freightValue || 0).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+              </div>
+            </div>
+
+            <div>
+              <span className="nql-summary-item-label">Seguro de Carga (1%)</span>
+              <div className="nql-summary-item-value">
+                {(() => {
+                  const goodsTotal = (Number(quantity || 1) * Number(unitPrice || 0));
+                  const freight = Number(freightValue || 0);
+                  const insurance = Number(((goodsTotal + freight) * 0.01).toFixed(2));
+                  return insurance.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                })()} {currency}
+              </div>
+            </div>
+
             <div className="text-sm-end">
-              <span className="nql-summary-item-label">Subtotal de Compra (FOB)</span>
+              <span className="nql-summary-item-label">Subtotal de Compra</span>
               <div className="nql-summary-item-value" style={{ color: '#a7f3d0' }}>
-                {(Number(quantity || 1) * Number(unitPrice || 0)).toLocaleString()} {currency}
+                {(() => {
+                  const goodsTotal = (Number(quantity || 1) * Number(unitPrice || 0));
+                  const freight = Number(freightValue || 0);
+                  const insurance = Number(((goodsTotal + freight) * 0.01).toFixed(2));
+                  return (goodsTotal + freight + insurance).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                })()} {currency}
               </div>
             </div>
           </div>
@@ -1393,12 +1508,6 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                   >
                     <option value="China">🇨🇳 China (Principal parceiro de fornecimento)</option>
                     <option value="África do Sul">🇿🇦 África do Sul</option>
-                    <option value="Emirados Árabes Unidos (Dubai)">🇦🇪 Emirados Árabes Unidos (Dubai)</option>
-                    <option value="Turquia">🇹🇷 Turquia</option>
-                    <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
-                    <option value="Índia">🇮🇳 Índia</option>
-                    <option value="Portugal">🇵🇹 Portugal / União Europeia</option>
-                    <option value="Outro">Outro País</option>
                   </select>
                 </Form.Group>
               </Col>
@@ -1499,7 +1608,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
 
                       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
                         <span className="nql-transport-footer-badge nql-badge-speed">
-                          <FontAwesomeIcon icon={faBolt} /> 5 a 7 dias de trânsito
+                         5 a 7 dias de trânsito
                         </span>
                         <span className="badge rounded-pill bg-light text-dark border px-2 py-1" style={{ fontSize: '0.68rem' }}>
                           Mais Rápido
@@ -1516,7 +1625,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               disabled={loading}
               className="nql-btn-primary-action mt-2"
             >
-              <span>Executar Motor Fiscal e Calcular Impostos</span>
+              <span>Calcular Impostos</span>
               <FontAwesomeIcon icon={faArrowRight} />
             </button>
           </Form>
@@ -1596,21 +1705,36 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                 </tr>
                 <tr>
                   <td>Frete Internacional</td>
-                  <td>-</td>
+                  <td className="fw-semibold">
+                    {(calculationResult.logisticsSummary.freightCurrency !== undefined
+                      ? calculationResult.logisticsSummary.freightCurrency
+                      : (calculationResult.logisticsSummary.freightMzn / (calculationResult.metadata.exchangeRateToMzn || 1))
+                    ).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                  </td>
                   <td>{calculationResult.logisticsSummary.freightMzn?.toLocaleString()} MT</td>
                   <td className="text-muted">
-                    {calculationResult.logisticsSummary.freightStatus === 'CONFIRMED' ? 'Confirmado' : 'Estimado (sujeito a cotação final)'}
+                    {calculationResult.logisticsSummary.freightStatus === 'CONFIRMED' ? 'Confirmado pelo utilizador' : 'Estimado (sujeito a cotação final)'}
                   </td>
                 </tr>
                 <tr>
                   <td>Seguro de Carga</td>
-                  <td>-</td>
+                  <td className="fw-semibold">
+                    {(calculationResult.logisticsSummary.insuranceCurrency !== undefined
+                      ? calculationResult.logisticsSummary.insuranceCurrency
+                      : (calculationResult.logisticsSummary.insuranceMzn / (calculationResult.metadata.exchangeRateToMzn || 1))
+                    ).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                  </td>
                   <td>{calculationResult.logisticsSummary.insuranceMzn?.toLocaleString()} MT</td>
-                  <td className="text-muted">Proteção de transporte e carga</td>
+                  <td className="text-muted">Proteção de transporte e carga (1% pauta)</td>
                 </tr>
                 <tr className="table-active fw-bold">
                   <td>Valor Aduaneiro (CIF)</td>
-                  <td>-</td>
+                  <td className="text-primary fw-bold">
+                    {(calculationResult.logisticsSummary.customsValueCurrency !== undefined
+                      ? calculationResult.logisticsSummary.customsValueCurrency
+                      : (calculationResult.logisticsSummary.customsValueMzn / (calculationResult.metadata.exchangeRateToMzn || 1))
+                    ).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                  </td>
                   <td className="text-primary">{calculationResult.logisticsSummary.customsValueMzn?.toLocaleString()} MT</td>
                   <td className="text-muted">Base de cálculo dos Direitos e ICE</td>
                 </tr>
@@ -1674,23 +1798,23 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
           <div className="row g-3 mb-4">
             <div className="col-md-6">
               <div className="p-3 rounded-4 bg-light border h-100">
-                <h6 className="fw-bold text-dark mb-2">E. Encargos portuários e despacho</h6>
+                <h6 className="fw-bold text-dark mb-2">Estes encargos portuários e despacho variam (Confirme com a equipa da nhiquela)</h6>
                 <div className="small d-flex flex-column gap-1 text-muted">
                   <div className="d-flex justify-content-between">
                     <span>Varredura não-intrusiva (Kudumba):</span>
-                    <strong>{calculationResult.operationalSummary.kudumbaScannerFee?.toLocaleString()} MT</strong>
+                    <strong>{Number(calculationResult.operationalSummary.kudumbaScannerFee || 0).toLocaleString()} MT</strong>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span>Manuseamento de terminal portuário:</span>
-                    <strong>{calculationResult.operationalSummary.terminalHandlingFee?.toLocaleString()} MT</strong>
+                    <strong>{Number(calculationResult.operationalSummary.terminalHandlingFee || 0).toLocaleString()} MT</strong>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span>Honorários de Despacho Aduaneiro:</span>
-                    <strong>{calculationResult.operationalSummary.customsBrokerFee?.toLocaleString()} MT</strong>
+                    <strong>{Number(calculationResult.operationalSummary.customsBrokerFee || 0).toLocaleString()} MT</strong>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span>Transporte interno ({destinationCity}):</span>
-                    <strong>{calculationResult.operationalSummary.domesticDeliveryFee?.toLocaleString()} MT</strong>
+                    <strong>{Number(calculationResult.operationalSummary.domesticDeliveryFee || 0).toLocaleString()} MT</strong>
                   </div>
                 </div>
               </div>
@@ -1712,7 +1836,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
 
           {/* PENDÊNCIAS E PRESSUPOSTOS */}
           <div className="p-3 rounded-4 bg-light border text-muted small mb-4">
-            <h6 className="fw-bold text-dark mb-1">Pressupostos e elementos a confirmar:</h6>
+            <h6 className="fw-bold text-dark mb-1">Pressupostos da assessoria da Nhiquela:</h6>
             <ul className="mb-0 ps-3">
               {calculationResult.grandTotal.pendingItems.map((p, idx) => (
                 <li key={idx}>{p}</li>
@@ -1742,7 +1866,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
               style={{ backgroundColor: '#000000' }}
               onClick={handleProceedToStep7}
             >
-              Solicitar Cotação Completa à Nhiquela →
+              Solicitar Apoio & Assessoria à Nhiquela →
             </Button>
           </div>
         </Card>
@@ -1757,9 +1881,9 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
             <Badge bg="light" className="text-primary border px-3 py-1.5 rounded-pill mb-2">
               Passo 07 de 07
             </Badge>
-            <h2 className="fw-bold fs-3 text-dark mb-1">Receber cotação oficial da Nhiquela</h2>
+            <h2 className="fw-bold fs-3 text-dark mb-1">Solicitar Apoio & Assessoria no Processo de Importação</h2>
             <p className="text-muted small mb-0">
-              A nossa equipa comercial e aduaneira entrará em contacto com a proposta detalhada e validação de fornecedores.
+              Indique os seus contactos para que a equipa da Nhiquela assuma a assessoria completa (validação de fornecedor, frete, desalfandegamento e entrega porta-a-porta).
             </p>
           </div>
 
@@ -1857,7 +1981,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                   <Spinner size="sm" animation="border" className="me-2" /> A submeter solicitação...
                 </React.Fragment>
               ) : (
-                'Submeter Pedido & Solicitar Cotação Formal'
+                'Submeter Pedido & Solicitar Assessoria à Nhiquela'
               )}
             </Button>
           </Form>
@@ -2020,7 +2144,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                         <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>
                           {item.name || item.description}
                         </div>
-                        
+
                         {/* Descrição pautal oficial relacionada */}
                         {item.description && item.description !== item.name && (
                           <div className="text-secondary small mt-0.5">
@@ -2044,7 +2168,7 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                         )}
                       </td>
                       <td className="text-center">
-                        <Button 
+                        <Button
                           variant={selectedTariffItem?.shCode === item.shCode ? "primary" : "outline-primary"}
                           size="sm"
                           className="rounded-pill px-2.5 py-1 fw-bold"

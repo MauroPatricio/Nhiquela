@@ -22,6 +22,14 @@ const importQuotationSchema = new mongoose.Schema(
     nhiquelaServiceFee: { type: Number, default: 0 }, // Comissão Nhiquela = VM * 30%
     importTotalCost: { type: Number, default: 0 }, // Total de Importação = VA + DA + ICE + IVA
     otherCosts: { type: Number, default: 0 },
+    otherTaxesDescription: { type: String, default: '' },
+    otherTaxesAmount: { type: Number, default: 0 },
+    otherTaxes: [
+      {
+        description: { type: String, default: '' },
+        amount: { type: Number, default: 0 }
+      }
+    ],
     totalCost: { type: Number, required: true }, // Total Final = Total de Importação + Nhiquela
     pautaCategory: { type: String, default: '' },
     pautaShCode: { type: String, default: '' },

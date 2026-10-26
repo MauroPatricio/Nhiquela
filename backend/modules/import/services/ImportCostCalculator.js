@@ -32,10 +32,29 @@ export const calculateQuotation = (params = {}) => {
     const vatRate = params.vatRate !== undefined ? Number(params.vatRate) : 16;
     const vatCost = Number((vatBase * (vatRate / 100)).toFixed(2));
     
-    // Custos operacionais opcionais
+    // Custos operacionais e outros impostos adicionais
     const handlingCost = Number(params.handlingCost) || 0;
     const localTransport = Number(params.localTransport) || 0;
-    const otherCosts = Number(params.otherCosts) || 0;
+
+    let otherTaxesList = [];
+    if (Array.isArray(params.otherTaxes)) {
+        otherTaxesList = params.otherTaxes
+            .filter(t => t && (t.description || t.amount))
+            .map(t => ({
+                description: t.description ? String(t.description).trim() : '',
+                amount: Number(t.amount) || 0
+            }));
+    }
+
+    const otherTaxesAmount = otherTaxesList.length > 0
+        ? Number(otherTaxesList.reduce((acc, t) => acc + t.amount, 0).toFixed(2))
+        : Number(params.otherTaxesAmount !== undefined ? params.otherTaxesAmount : (params.otherCosts || 0));
+
+    const otherTaxesDescription = otherTaxesList.length > 0
+        ? otherTaxesList.map(t => t.description).filter(Boolean).join(', ')
+        : (params.otherTaxesDescription || '');
+
+    const otherCosts = otherTaxesAmount;
 
     // 9. Taxa Nhiquela = VM * 30%
     const nhiquelaCommissionRate = params.nhiquelaCommissionRate !== undefined ? Number(params.nhiquelaCommissionRate) : 30;
@@ -43,8 +62,8 @@ export const calculateQuotation = (params = {}) => {
         ? Number(params.nhiquelaServiceFee)
         : Number((productCost * (nhiquelaCommissionRate / 100)).toFixed(2));
         
-    // 10. Total de Importação = VA + DA + ICE + IVA + handling + localTransport + other
-    const importTotalCost = Number((customsValue + customsEstimated + iceCost + vatCost + handlingCost + localTransport + otherCosts).toFixed(2));
+    // 10. Total de Importação = VA + DA + ICE + IVA + handling + localTransport + outros impostos
+    const importTotalCost = Number((customsValue + customsEstimated + iceCost + vatCost + handlingCost + localTransport + otherTaxesAmount).toFixed(2));
     
     // 11. Total Final = Total de Importação + Taxa Nhiquela
     const totalCost = Number((importTotalCost + nhiquelaServiceFee).toFixed(2));
@@ -64,6 +83,9 @@ export const calculateQuotation = (params = {}) => {
         handlingCost,
         localTransport,
         otherCosts,
+        otherTaxes: otherTaxesList,
+        otherTaxesDescription,
+        otherTaxesAmount,
         nhiquelaCommissionRate,
         nhiquelaServiceFee,
         importTotalCost,

@@ -14,7 +14,7 @@ export default function AdminLayout() {
   const [fleetOpen, setFleetOpen] = useState(false);
   const { userInfo } = useSelector((state) => state.user);
   const dispatch = useDispatch();
-  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0, pendingSellers: 0, pendingProviders: 0 });
+  const [badges, setBadges] = useState({ pendingRecharges: 0, pendingDrivers: 0, pendingOrders: 0, pendingSellers: 0, pendingProviders: 0, pendingImportRequests: 0 });
 
   useEffect(() => {
     if (userInfo && userInfo.isAdmin) {
@@ -45,6 +45,22 @@ export default function AdminLayout() {
         });
       });
 
+      socket.on('import_request_created', (data) => {
+        playNotificationSound();
+        toast.info(`📦 Novo Pedido de Importação: ${data?.productName || 'Cotação Solicitada'}`);
+        fetchBadges();
+      });
+
+      socket.on('import_request_updated', () => {
+        fetchBadges();
+      });
+
+      socket.on('new_import_simulation_lead', (data) => {
+        playNotificationSound();
+        toast.info(`🎯 Novo Lead de Simulação: ${data?.contactName || 'Cliente'} (${data?.productName || ''})`);
+        fetchBadges();
+      });
+
       socket.on('adminNotification', (data) => {
         // Play notification sound
         playNotificationSound();
@@ -64,9 +80,13 @@ export default function AdminLayout() {
         fetchBadges();
       });
 
+      const handleBadgeRefresh = () => fetchBadges();
+      window.addEventListener('refresh_admin_badges', handleBadgeRefresh);
+
       return () => {
         clearInterval(interval);
         socket.disconnect();
+        window.removeEventListener('refresh_admin_badges', handleBadgeRefresh);
       };
     }
   }, [userInfo]);
@@ -147,7 +167,7 @@ export default function AdminLayout() {
       items: [
         { name: 'Fornecedores', path: '/admin/suppliers', icon: faUsers, badge: badges.pendingProviders },
         { name: 'Provedores', path: '/admin/providers', icon: faStore },
-        { name: 'Nhiquela Import', path: '/admin/import', icon: faBoxOpen },
+        { name: 'Nhiquela Import', path: '/admin/import', icon: faBoxOpen, badge: badges.pendingImportRequests },
         { name: 'Produtos', path: '/admin/products', icon: faBoxOpen },
         { name: 'Categorias', path: '/admin/categories', icon: faTags },
         { name: 'Atributos (Cores/Tam.)', path: '/admin/attributes', icon: faPalette },

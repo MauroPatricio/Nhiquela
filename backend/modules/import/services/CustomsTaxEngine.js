@@ -134,41 +134,42 @@ class CustomsTaxEngine {
     const vmInMzn = Number((vmInCurrency * rateToMzn).toFixed(2));
 
     // 2. Determinação do Frete Internacional
-    let freightInMzn = 0;
+    let freightInCurrency = 0;
     let freightStatus = 'CONFIRMED';
 
-    if (freightOption === 'HAS_QUOTE' && Number(freightValue) > 0) {
-      freightInMzn = Number((Number(freightValue) * rateToMzn).toFixed(2));
-      freightStatus = 'CONFIRMED';
-    } else if (freightOption === 'HAS_ESTIMATE' && Number(freightValue) > 0) {
-      freightInMzn = Number((Number(freightValue) * rateToMzn).toFixed(2));
-      freightStatus = 'ESTIMATED';
+    if (Number(freightValue) > 0) {
+      freightInCurrency = Number(Number(freightValue).toFixed(2));
+      freightStatus = freightOption === 'HAS_QUOTE' ? 'CONFIRMED' : 'ESTIMATED';
     } else {
       // Estimativa prudente conforme modalidade (Marítimo: ~18% a 22%, Aéreo: ~32% a 40%)
       const freightRatio = transportType === 'AIR' ? 0.35 : transportType === 'ROAD' ? 0.12 : 0.20;
-      freightInMzn = Number((vmInMzn * freightRatio).toFixed(2));
+      freightInCurrency = Number((vmInCurrency * freightRatio).toFixed(2));
       freightStatus = 'PENDING_NHIQUELA_QUOTE';
     }
+    const freightInMzn = Number((freightInCurrency * rateToMzn).toFixed(2));
 
     // 3. Determinação do Seguro de Transporte Internacional
     // Regra Aduaneira de Moçambique: Se o importador não apresentar apólice de seguro individual,
     // a Alfândega aplica a taxa teórica de 1% sobre (VM + Frete) para determinação do CIF.
-    let insuranceInMzn = 0;
+    let insuranceInCurrency = 0;
     let insuranceStatus = 'CONFIRMED';
 
-    if (insuranceOption === 'HAS_QUOTE' && Number(insuranceValue) > 0) {
-      insuranceInMzn = Number((Number(insuranceValue) * rateToMzn).toFixed(2));
-      insuranceStatus = 'CONFIRMED';
+    if (Number(insuranceValue) > 0) {
+      insuranceInCurrency = Number(Number(insuranceValue).toFixed(2));
+      insuranceStatus = insuranceOption === 'HAS_QUOTE' ? 'CONFIRMED' : 'ESTIMATED';
     } else {
-      insuranceInMzn = Number(((vmInMzn + freightInMzn) * 0.01).toFixed(2));
+      insuranceInCurrency = Number(((vmInCurrency + freightInCurrency) * 0.01).toFixed(2));
       insuranceStatus = 'ESTIMATED_STATUTORY_1_PERCENT';
     }
+    const insuranceInMzn = Number((insuranceInCurrency * rateToMzn).toFixed(2));
 
     // Outros custos incorridos na origem (embalagem especial, taxas portuárias de origem)
-    const otherCostsInMzn = Number(((Number(otherOriginCosts) || 0) * rateToMzn).toFixed(2));
+    const otherCostsInCurrency = Number((Number(otherOriginCosts) || 0).toFixed(2));
+    const otherCostsInMzn = Number((otherCostsInCurrency * rateToMzn).toFixed(2));
 
     // 4. Valor Aduaneiro (VA / CIF) = VM + Frete + Seguro + Outros
     // Base legal: Acordo sobre o Valor Aduaneiro da OMC e Legislação Aduaneira Moçambicana
+    const customsValueCurrency = Number((vmInCurrency + freightInCurrency + insuranceInCurrency + otherCostsInCurrency).toFixed(2));
     const customsValue = Number((vmInMzn + freightInMzn + insuranceInMzn + otherCostsInMzn).toFixed(2));
 
     // 5. Determinação das Taxas Fiscais Aplicáveis
@@ -222,18 +223,19 @@ class CustomsTaxEngine {
     const effectiveIvaRate = isExempt ? 0 : ivaRate;
     const vat = Number((vatBase * (effectiveIvaRate / 100)).toFixed(2));
 
-    // 10. Taxas Aduaneiras e Portuárias Oficiais
+    // 10. Taxas Aduaneiras Oficiais
     const tsaJueFee = DOMESTIC_RATES.TSA_JUE_FEE;
-    const kudumbaFee = DOMESTIC_RATES.KUDUMBA_SCANNER_FEE;
-    const terminalHandling = transportType === 'AIR' ? DOMESTIC_RATES.TERMINAL_HANDLING_AIR : DOMESTIC_RATES.TERMINAL_HANDLING_SEA;
-    const customsBrokerFee = DOMESTIC_RATES.CUSTOMS_BROKER_FEE;
-    const domesticDeliveryFee = DOMESTIC_RATES.LOCAL_TRANSPORT[destinationCity] || DOMESTIC_RATES.LOCAL_TRANSPORT.Maputo;
+    // Encargos portuários e despacho definidos a 0 (confirmados posteriormente com despachantes conforme a carga)
+    const kudumbaFee = 0;
+    const terminalHandling = 0;
+    const customsBrokerFee = 0;
+    const domesticDeliveryFee = 0;
 
     // Total de Impostos Legais Obrigatórios (Cobrados pelo Estado / AT)
     const totalGovernmentTaxes = Number((customsDuty + ice + vat + tsaJueFee).toFixed(2));
 
-    // Total de Custos Operacionais e Portuários (Terminais, Varredura e Despachante)
-    const totalOperationalHandling = Number((kudumbaFee + terminalHandling + customsBrokerFee + domesticDeliveryFee).toFixed(2));
+    // Total de Custos Operacionais e Portuários (mantido em 0 no Total Geral para confirmação prévia com a equipa)
+    const totalOperationalHandling = 0;
 
     // 11. Serviço de Sourcing e Assessoria Nhiquela (Apresentado separadamente com transparência)
     // Margem de gestão completa, auditoria de fornecedor na China e coordenação porta-a-porta: 20% sobre o VM
@@ -264,11 +266,15 @@ class CustomsTaxEngine {
       logisticsSummary: {
         transportType,
         destinationCity,
+        freightCurrency: freightInCurrency,
         freightMzn: freightInMzn,
         freightStatus,
+        insuranceCurrency: insuranceInCurrency,
         insuranceMzn: insuranceInMzn,
         insuranceStatus,
+        otherCostsCurrency: otherCostsInCurrency,
         otherCostsMzn: otherCostsInMzn,
+        customsValueCurrency,
         customsValueMzn: customsValue
       },
       taxSummary: {
@@ -319,9 +325,10 @@ class CustomsTaxEngine {
         costPerUnitCurrency,
         currency,
         pendingItems: [
-          freightStatus !== 'CONFIRMED' ? 'Frete internacional sujeito a cotação negociada de transitário' : null,
-          'Validação física da mercadoria e conferência pautal final no Porto/Aeroporto de Entrada',
-          'Taxa de câmbio final liquidada na data da Declaração Aduaneira (D.U.)'
+          freightStatus !== 'CONFIRMED' ? 'Assessoria no frete internacional, com negociação de tarifas mais acessíveis e competitivas' : null,
+          'Validação física da qualidade da mercadoria no país de origem pelos nossos agentes e parceiros locais',
+          'Acompanhamento da mercadoria e notificação constante ao cliente da localização do produto e desalfandegamento',
+          'Coordenação logística e entrega segura da mercadoria no destino do cliente'
         ].filter(Boolean)
       }
     };

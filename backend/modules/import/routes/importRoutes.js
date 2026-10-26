@@ -29,6 +29,7 @@ router.put('/simulation/exchange-rates', isAuth, isAdmin, simulationController.u
 router.post('/requests', requestController.createRequest);
 router.get('/requests', requestController.getRequests);
 router.get('/requests/:id', requestController.getRequestById);
+router.put('/requests/:id/view', requestController.markRequestAsViewed);
 router.put('/requests/:id/status', requestController.updateRequestStatus);
 router.delete('/requests/:id', requestController.deleteRequest);
 
