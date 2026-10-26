@@ -998,9 +998,6 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                       <Form.Label className="fw-semibold text-dark small mb-0">
                         Frete Internacional ({currency}) <span className="text-danger">*</span>
                       </Form.Label>
-                      <Badge bg="light" className="text-secondary border py-1 px-2" style={{ fontSize: '0.68rem' }}>
-                        Padrão / Editável
-                      </Badge>
                     </div>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-0 text-muted fw-bold rounded-start-3 px-3">
