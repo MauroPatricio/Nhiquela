@@ -900,79 +900,71 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                 Preencha os valores da sua encomenda para o cálculo fiscal e determinação da base aduaneira.
               </p>
 
-              <Row className="g-3.5 mb-3.5">
-                {/* 1. Quantidade */}
-                <Col xs={12} sm={6}>
+              {/* Moeda da Fatura + câmbio em vigor */}
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold text-dark small mb-2">
+                  Moeda da fatura <span className="text-danger">*</span>
+                </Form.Label>
+                <div className="d-flex flex-column flex-md-row gap-2 align-items-md-center">
+                  <Form.Select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="rounded-3 px-3 py-2 bg-light border-0 shadow-none text-dark fw-semibold flex-grow-1"
+                  >
+                    {['USD'].map((currKey) => {
+                      const currInfo = exchangeRates[currKey] || { rate: 75, name: 'Dólar Americano' };
+                      const nameVal = typeof currInfo === 'object' && currInfo !== null ? (currInfo.name || currKey) : currKey;
+                      return (
+                        <option key={currKey} value={currKey}>
+                          {currKey} — {nameVal}
+                        </option>
+                      );
+                    })}
+                  </Form.Select>
+                  <div
+                    className="d-flex flex-column justify-content-center rounded-3 border px-3 py-1 bg-white"
+                    style={{ whiteSpace: 'nowrap', minWidth: 190 }}
+                  >
+                    <small className="text-muted" style={{ fontSize: '0.7rem' }}>
+                      Câmbio oficial em vigor
+                    </small>
+                    <strong className="text-dark small">
+                      1 {currency} = {Number(exchangeRates[currency]?.rate || 75).toFixed(2)} MT
+                    </strong>
+                  </div>
+                </div>
+                {exchangeRates[currency]?.source && (
+                  <small className="text-muted d-block mt-1 px-1" style={{ fontSize: '0.7rem' }}>
+                    Ref: {exchangeRates[currency]?.source}
+                  </small>
+                )}
+              </Form.Group>
+
+              <Row className="g-3 mb-3">
+                {/* Quantidade */}
+                <Col xs={12} md={3}>
                   <Form.Group>
-                    <div className="d-flex justify-content-between align-items-center mb-1.5">
-                      <Form.Label className="fw-semibold text-dark small mb-0">
-                        Quantidade <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Badge bg="danger" className="bg-opacity-10 text-danger border border-danger border-opacity-25 py-1 px-2" style={{ fontSize: '0.68rem' }}>
-                        Obrigatório
-                      </Badge>
-                    </div>
+                    <Form.Label className="fw-semibold text-dark small mb-2">
+                      Quantidade <span className="text-danger">*</span>
+                    </Form.Label>
                     <Form.Control
                       type="number"
                       min="1"
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      className="rounded-3 px-3 py-2.5 bg-light border-0 shadow-none text-dark fw-bold"
+                      className="rounded-3 px-3 py-2 bg-light border-0 shadow-none text-dark fw-bold"
                       placeholder="Ex: 1"
                       required
                     />
                   </Form.Group>
                 </Col>
 
-                {/* 2. Moeda da Fatura */}
-                <Col xs={12} sm={6}>
+                {/* Preço Unitário */}
+                <Col xs={12} sm={6} md={5}>
                   <Form.Group>
-                    <div className="d-flex justify-content-between align-items-center mb-1.5">
-                      <Form.Label className="fw-semibold text-dark small mb-0">
-                        Moeda da fatura <span className="text-danger">*</span>
-                      </Form.Label>
-
-                    </div>
-                    <Form.Select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="rounded-3 px-3 py-2.5 bg-light border-0 shadow-none text-dark fw-semibold"
-                    >
-                      {['USD'].map((currKey) => {
-                        const currInfo = exchangeRates[currKey] || { rate: 75, name: 'Dólar Americano' };
-                        const rateVal = typeof currInfo === 'object' && currInfo !== null ? currInfo.rate : currInfo;
-                        const nameVal = typeof currInfo === 'object' && currInfo !== null ? (currInfo.name || currKey) : currKey;
-                        return (
-                          <option key={currKey} value={currKey}>
-                            {currKey} — {nameVal} (1 {currKey} = {Number(rateVal).toFixed(2)} MT)
-                          </option>
-                        );
-                      })}
-                    </Form.Select>
-                    <div className="d-flex align-items-center justify-content-between mt-2 px-1">
-                      <small className="text-muted" style={{ fontSize: '0.74rem' }}>
-                        Câmbio oficial em vigor: <strong className="text-dark">1 {currency} = {Number(exchangeRates[currency]?.rate || 75).toFixed(2)} MT</strong>
-                      </small>
-                      {exchangeRates[currency]?.source && (
-                        <small className="text-muted" style={{ fontSize: '0.70rem' }}>
-                          Ref: {exchangeRates[currency]?.source}
-                        </small>
-                      )}
-                    </div>
-                  </Form.Group>
-                </Col>
-
-                {/* 3. Preço Unitário */}
-                <Col xs={12} sm={6}>
-                  <Form.Group>
-                    <div className="d-flex justify-content-between align-items-center mb-1.5">
-                      <Form.Label className="fw-semibold text-dark small mb-0">
-                        Preço Unitário <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Badge bg="danger" className="bg-opacity-10 text-danger border border-danger border-opacity-25 py-1 px-2" style={{ fontSize: '0.68rem' }}>
-                        Obrigatório
-                      </Badge>
-                    </div>
+                    <Form.Label className="fw-semibold text-dark small mb-2">
+                      Preço Unitário <span className="text-danger">*</span>
+                    </Form.Label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-0 text-muted fw-bold rounded-start-3 px-3">
                         {currency}
@@ -984,21 +976,19 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                         placeholder="0.00"
                         value={unitPrice}
                         onChange={(e) => setUnitPrice(e.target.value)}
-                        className="rounded-end-3 px-3 py-2.5 bg-light border-0 shadow-none text-dark fw-bold"
+                        className="rounded-end-3 px-3 py-2 bg-light border-0 shadow-none text-dark fw-bold"
                         required
                       />
                     </div>
                   </Form.Group>
                 </Col>
 
-                {/* 4. Frete Internacional */}
-                <Col xs={12} sm={6}>
+                {/* Frete Internacional */}
+                <Col xs={12} sm={6} md={4}>
                   <Form.Group>
-                    <div className="d-flex justify-content-between align-items-center mb-1.5">
-                      <Form.Label className="fw-semibold text-dark small mb-0">
-                        Frete Internacional ({currency}) <span className="text-danger">*</span>
-                      </Form.Label>
-                    </div>
+                    <Form.Label className="fw-semibold text-dark small mb-2">
+                      Frete Internacional <span className="text-danger">*</span>
+                    </Form.Label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-0 text-muted fw-bold rounded-start-3 px-3">
                         {currency}
@@ -1013,27 +1003,43 @@ export default function ImportFunnelSimulator({ onStartQuoteRequest }) {
                           setIsFreightCustom(true);
                           setFreightValue(e.target.value);
                         }}
-                        className="rounded-end-3 px-3 py-2.5 bg-light border-0 shadow-none text-dark fw-bold"
+                        className="rounded-end-3 px-3 py-2 bg-light border-0 shadow-none text-dark fw-bold"
                       />
                     </div>
                   </Form.Group>
                 </Col>
               </Row>
 
-              {/* Subtotal da Compra */}
-              <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center px-4 py-3 rounded-4 bg-light border mb-4">
-                <span className="small text-muted fw-semibold mb-1 mb-sm-0">
-                  Subtotal da Compra (inclui Frete e Seguro 1%):
-                </span>
-                <span className="fw-bold text-dark fs-5">
-                  {(() => {
-                    const goodsTotal = (Number(quantity) || 1) * (Number(unitPrice) || 0);
-                    const freight = Number(freightValue) || 0;
-                    const insurance = Number(((goodsTotal + freight) * 0.01).toFixed(2));
-                    return (goodsTotal + freight + insurance).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                  })()} {currency}
-                </span>
-              </div>
+              {/* Resumo / Subtotal da Compra */}
+              {(() => {
+                const fmt = (v) => v.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const goodsTotal = (Number(quantity) || 1) * (Number(unitPrice) || 0);
+                const freight = Number(freightValue) || 0;
+                const insurance = Number(((goodsTotal + freight) * 0.01).toFixed(2));
+                const subtotal = goodsTotal + freight + insurance;
+                const rows = [
+                  [`Mercadoria (${Number(quantity) || 1} × ${fmt(Number(unitPrice) || 0)})`, goodsTotal],
+                  ['Frete internacional', freight],
+                  ['Seguro (1%)', insurance],
+                ];
+                return (
+                  <div className="rounded-4 bg-light border px-4 py-3 mb-4">
+                    {rows.map(([label, val]) => (
+                      <div key={label} className="d-flex justify-content-between small text-muted mb-1">
+                        <span>{label}</span>
+                        <span style={{ whiteSpace: 'nowrap' }}>{fmt(val)} {currency}</span>
+                      </div>
+                    ))}
+                    <div className="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                      <span className="fw-semibold text-dark small">Subtotal da Compra</span>
+                      <span className="fw-bold text-dark fs-5" style={{ whiteSpace: 'nowrap' }}>
+                        {fmt(subtotal)} {currency}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
 
             <button
